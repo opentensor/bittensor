@@ -1,0 +1,7 @@
+README.md
+setup.py
+bittensor_proto.egg-info/PKG-INFO
+bittensor_proto.egg-info/SOURCES.txt
+bittensor_proto.egg-info/dependency_links.txt
+bittensor_proto.egg-info/requires.txt
+bittensor_proto.egg-info/top_level.txt

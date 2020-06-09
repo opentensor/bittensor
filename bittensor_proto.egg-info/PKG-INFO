@@ -1,0 +1,22 @@
+Metadata-Version: 2.1
+Name: bittensor-proto
+Version: 0.0.1
+Summary: BitTensor protocol buffers
+Home-page: https://github.com/opentensor/bittensor-proto
+Author: 
+Author-email: 
+License: UNKNOWN
+Description: ## BitTensor Protocol Buffers
+        
+        
+        
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Build Tools
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Requires-Python: >=3.5
+Description-Content-Type: text/markdown

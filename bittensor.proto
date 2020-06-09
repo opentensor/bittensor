@@ -1,0 +1,125 @@
+syntax = "proto3";
+
+// NOTE(const): Not used.
+// TODO(const): Switch to Bittensor protocol.
+
+service Bittensor {
+	// Query remote component with text-features, responses are var-length vector
+	// representations of the text.
+	rpc Spike(SpikeRequest) returns (SpikeResponse) {}
+
+	// Query a remote component with gradients. Responses are boolean affirmatives.
+	rpc Grade(GradeRequest) returns (GradeResponse) {}
+}
+
+// Forward query to a peer, carries text and expects feature representations
+message SpikeRequest {
+	// Protocol version 1.0
+	float version = 1;
+
+	// Source identifier. Where the message originated. Format is an EOS account
+	// address.
+	string source_id = 2;
+
+	// Source proof. A signature linking the message id to the source identity.
+	// RSA( Message_hash, Source_Private_Key.)
+	// bytes source_proof = 3;
+
+	// Parent identifier. The last hop this message took. Format is an EOS account
+	// address.
+  	string parent_id = 4;
+
+	// Parent proof. A signature linking the message id to the parent identity.
+	// RSA( Message_hash, Parent_Private_Key.)
+	// bytes parent_proof = 5;
+
+	// Message Nounce. A random or incrementing digit.
+	// bytes nounce = 6;
+
+	// Message identifier. A hash of the message payload, nounce, and source id.
+	// Uniquely identifies this message with the triple(contents, nounce, source).
+	bytes message_id = 7;
+
+	// Message Payload. Zero or more var length bytes strings.
+	// Interpretable as UTF-8 encoded strings. After deserialization these are
+	// variable length unicode strings.
+	// Message length must be checked at components.
+	bytes payload = 8;
+}
+
+// Reverse response from a peer, carries vectors and expects no response.
+message SpikeResponse {
+	// Protocol version 1.0
+	float version = 1;
+
+	// Source identifier. Where the message originated. Format is an EOS account
+	// address.
+	string source_id = 2;
+
+	// Source proof. A signature linking the message id to the source identity.
+	// RSA( Message_hash, Source_Private_Key.)
+	// bytes source_proof = 3;
+
+	// Child identifier. The last hop this message took. Format is an EOS account
+	// address.
+	string child_id = 4;
+
+	// Child proof. A signature linking the message id to the child identity.
+	// RSA( Message_hash, Child_Private_Key.)
+	// bytes child_proof = 5;
+
+	// Message Nounce. A random or incrementing digit.
+	// bytes nounce = 6;
+
+	// Message identifier. A hash of the message payload, nounce, and source id.
+	// Uniquely identifies this message with the triple(contents, nounce, source).
+	bytes message_id = 7;
+
+	// Message Payload. Zero or more fixed length bytes strings.
+	// Interpretable as 1028 dimensional vector representations of tf.float32s.
+	// These are spikes or activation values.
+	bytes payload = 8;
+}
+
+// Forward gradient to peer. Expects peer to train over gradients. Boolean response.
+message GradeRequest {
+	// Protocol version 1.0
+	float version = 1;
+
+	// Source identifier. Where the message originated. Format is an EOS account
+	// address.
+	string source_id = 2;
+
+	// Source proof. A signature linking the message id to the source identity.
+	// RSA( Message_hash, Source_Private_Key.)
+	// bytes source_proof = 3;
+
+	// Parent identifier. The last hop this message took. Format is an EOS account
+	// address.
+	string parent_id = 4;
+
+	// Parent proof. A signature linking the message id to the parent identity.
+	// RSA( Message_hash, Parent_Private_Key.)
+	// bytes parent_proof = 5;
+
+	// Message Nounce. A random or incrementing digit.
+	// bytes nounce = 6;
+
+	// Message identifier. A hash of the message payload, nounce, and source id.
+	// Uniquely identifies this message with the triple(contents, nounce, source).
+	bytes message_id = 7;
+
+	// Message Payload. Zero or more fixed length bytes strings.
+	// Interpretable as 1028 dimensional vector representations of tf.float32s.
+	// These are gradient values.
+	bytes payload = 8;
+}
+
+// Reverse gradient call.
+message GradeResponse {
+	// Protocol version 1.0
+	float version = 1;
+
+	// Boolean, Gradient accepted message.
+  bool accept = 2;
+}
