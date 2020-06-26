@@ -1,114 +1,80 @@
 syntax = "proto3";
 
 service Opentensor {
+	// Forward tensor request.
 	rpc Fwd(FwdRequest) returns (FwdResponse) {}
+	
+	// Reverse tensor (gradient) request.
 	rpc Bwd(BwdRequest) returns (BwdResponse) {}
 }
 
 message FwdRequest {
-	// Protocol version 1.0
+	// Protocol version: i.e. 1.0
 	float version = 1;
 
-	// Source identifier. Where the message originated. Format is an EOS account
-	// address.
+	// Source identifier: (likely public key): 
 	string source_id = 2;
 
-	// Source proof. A signature linking the message id to the source identity.
-	// RSA( Message_hash, Source_Private_Key.)
-	// bytes source_proof = 3;
+	// Proof: message_id signed using source private key.
+	bytes proof = 3;
 
-	// Parent identifier. The last hop this message took. Format is an EOS account
-	// address.
-  	string parent_id = 4;
+	// Message Nounce: A random or incrementing digit.
+	bytes nounce = 4;
 
-	// Parent proof. A signature linking the message id to the parent identity.
-	// RSA( Message_hash, Parent_Private_Key.)
-	// bytes parent_proof = 5;
+	// Message identifier: A hash of concat(payload, nounce, source_id).
+	bytes message_id = 5;
 
-	// Message Nounce. A random or incrementing digit.
-	// bytes nounce = 6;
+	// Message Payload: Raw encoded tensor bytes.
+	bytes payload = 6;
 
-	// Message identifier. A hash of the message payload, nounce, and source id.
-	// Uniquely identifies this message with the triple(contents, nounce, source).
-	bytes message_id = 7;
-
-	// Message Payload. Zero or more var length bytes strings.
-	// Interpretable as UTF-8 encoded strings. After deserialization these are
-	// variable length unicode strings.
-	// Message length must be checked at components.
-	bytes payload = 8;
+	// TODO: optional tensor sizes.
+	// TODO: optional public types.
 }
 
 message FwdResponse {
-	// Protocol version 1.0
+	// Protocol version: i.e. 1.0
 	float version = 1;
 
-	// Source identifier. Where the message originated. Format is an EOS account
-	// address.
-	string source_id = 2;
+	// Server identifier: (likely public key): 
+	string server_id = 2;
 
-	// Source proof. A signature linking the message id to the source identity.
-	// RSA( Message_hash, Source_Private_Key.)
-	// bytes source_proof = 3;
+	// Proof: message_id signed using server private key.
+	bytes proof = 3;
 
-	// Child identifier. The last hop this message took. Format is an EOS account
-	// address.
-	string child_id = 4;
+	// Message Nounce: A random or incrementing digit.
+	bytes nounce = 4;
 
-	// Child proof. A signature linking the message id to the child identity.
-	// RSA( Message_hash, Child_Private_Key.)
-	// bytes child_proof = 5;
+	// Message identifier: A hash of concat(payload, nounce, server_id).
+	bytes message_id = 5;
 
-	// Message Nounce. A random or incrementing digit.
-	// bytes nounce = 6;
-
-	// Message identifier. A hash of the message payload, nounce, and source id.
-	// Uniquely identifies this message with the triple(contents, nounce, source).
-	bytes message_id = 7;
-
-	// Message Payload. Zero or more fixed length bytes strings.
-	// Interpretable as 1028 dimensional vector representations of tf.float32s.
-	// These are spikes or activation values.
-	bytes payload = 8;
+	// Message Payload: Raw encoded tensor bytes.
+	bytes payload = 6;
 }
 
-// Forward gradient to peer. Expects peer to train over gradients. Boolean response.
+// Backward pass gradients to server.
 message BwdRequest {
-	// Protocol version 1.0
+	// Protocol version: i.e. 1.0
 	float version = 1;
 
-	// Source identifier. Where the message originated. Format is an EOS account
-	// address.
+	// Source identifier: (likely public key): 
 	string source_id = 2;
 
-	// Source proof. A signature linking the message id to the source identity.
-	// RSA( Message_hash, Source_Private_Key.)
-	// bytes source_proof = 3;
+	// Proof: message_id signed using child private key.
+	bytes proof = 3;
 
-	// Parent identifier. The last hop this message took. Format is an EOS account
-	// address.
-	string parent_id = 4;
+	// Message Nounce: A random or incrementing digit.
+	bytes nounce = 4;
 
-	// Parent proof. A signature linking the message id to the parent identity.
-	// RSA( Message_hash, Parent_Private_Key.)
-	// bytes parent_proof = 5;
+	// Message identifier: A hash of concat(payload, nounce, child_id).
+	bytes message_id = 5;
 
-	// Message Nounce. A random or incrementing digit.
-	// bytes nounce = 6;
-
-	// Message identifier. A hash of the message payload, nounce, and source id.
-	// Uniquely identifies this message with the triple(contents, nounce, source).
-	bytes message_id = 7;
-
-	// Message Payload. Zero or more fixed length bytes strings.
-	// Interpretable as 1028 dimensional vector representations of tf.float32s.
-	// These are gradient values.
-	bytes payload = 8;
+	// Message Payload: Raw encoded tensor (gradients) bytes.
+	bytes payload = 6;
 }
 
 // Reverse gradient call.
 message BwdResponse {
-	// Protocol version 1.0
+	// Protocol version: i.e. 1.0
 	float version = 1;
 
 	// Boolean, Gradient accepted message.
