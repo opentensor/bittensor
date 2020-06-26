@@ -18,49 +18,49 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\x10opentensor.proto\"j\n\x0cSpikeRequest\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x11\n\tsource_id\x18\x02 \x01(\t\x12\x11\n\tparent_id\x18\x04 \x01(\t\x12\x12\n\nmessage_id\x18\x07 \x01(\x0c\x12\x0f\n\x07payload\x18\x08 \x01(\x0c\"j\n\rSpikeResponse\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x11\n\tsource_id\x18\x02 \x01(\t\x12\x10\n\x08\x63hild_id\x18\x04 \x01(\t\x12\x12\n\nmessage_id\x18\x07 \x01(\x0c\x12\x0f\n\x07payload\x18\x08 \x01(\x0c\"j\n\x0cGradeRequest\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x11\n\tsource_id\x18\x02 \x01(\t\x12\x11\n\tparent_id\x18\x04 \x01(\t\x12\x12\n\nmessage_id\x18\x07 \x01(\x0c\x12\x0f\n\x07payload\x18\x08 \x01(\x0c\"0\n\rGradeResponse\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x0e\n\x06\x61\x63\x63\x65pt\x18\x02 \x01(\x08\x32_\n\tBittensor\x12(\n\x05Spike\x12\r.SpikeRequest\x1a\x0e.SpikeResponse\"\x00\x12(\n\x05Grade\x12\r.GradeRequest\x1a\x0e.GradeResponse\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x10opentensor.proto\"h\n\nFwdRequest\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x11\n\tsource_id\x18\x02 \x01(\t\x12\x11\n\tparent_id\x18\x04 \x01(\t\x12\x12\n\nmessage_id\x18\x07 \x01(\x0c\x12\x0f\n\x07payload\x18\x08 \x01(\x0c\"h\n\x0b\x46wdResponse\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x11\n\tsource_id\x18\x02 \x01(\t\x12\x10\n\x08\x63hild_id\x18\x04 \x01(\t\x12\x12\n\nmessage_id\x18\x07 \x01(\x0c\x12\x0f\n\x07payload\x18\x08 \x01(\x0c\"h\n\nBwdRequest\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x11\n\tsource_id\x18\x02 \x01(\t\x12\x11\n\tparent_id\x18\x04 \x01(\t\x12\x12\n\nmessage_id\x18\x07 \x01(\x0c\x12\x0f\n\x07payload\x18\x08 \x01(\x0c\".\n\x0b\x42wdResponse\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x0e\n\x06\x61\x63\x63\x65pt\x18\x02 \x01(\x08\x32T\n\nOpentensor\x12\"\n\x03\x46wd\x12\x0b.FwdRequest\x1a\x0c.FwdResponse\"\x00\x12\"\n\x03\x42wd\x12\x0b.BwdRequest\x1a\x0c.BwdResponse\"\x00\x62\x06proto3'
 )
 
 
 
 
-_SPIKEREQUEST = _descriptor.Descriptor(
-  name='SpikeRequest',
-  full_name='SpikeRequest',
+_FWDREQUEST = _descriptor.Descriptor(
+  name='FwdRequest',
+  full_name='FwdRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='version', full_name='SpikeRequest.version', index=0,
+      name='version', full_name='FwdRequest.version', index=0,
       number=1, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='source_id', full_name='SpikeRequest.source_id', index=1,
+      name='source_id', full_name='FwdRequest.source_id', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='parent_id', full_name='SpikeRequest.parent_id', index=2,
+      name='parent_id', full_name='FwdRequest.parent_id', index=2,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='message_id', full_name='SpikeRequest.message_id', index=3,
+      name='message_id', full_name='FwdRequest.message_id', index=3,
       number=7, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='payload', full_name='SpikeRequest.payload', index=4,
+      name='payload', full_name='FwdRequest.payload', index=4,
       number=8, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
@@ -79,47 +79,47 @@ _SPIKEREQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=20,
-  serialized_end=126,
+  serialized_end=124,
 )
 
 
-_SPIKERESPONSE = _descriptor.Descriptor(
-  name='SpikeResponse',
-  full_name='SpikeResponse',
+_FWDRESPONSE = _descriptor.Descriptor(
+  name='FwdResponse',
+  full_name='FwdResponse',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='version', full_name='SpikeResponse.version', index=0,
+      name='version', full_name='FwdResponse.version', index=0,
       number=1, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='source_id', full_name='SpikeResponse.source_id', index=1,
+      name='source_id', full_name='FwdResponse.source_id', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='child_id', full_name='SpikeResponse.child_id', index=2,
+      name='child_id', full_name='FwdResponse.child_id', index=2,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='message_id', full_name='SpikeResponse.message_id', index=3,
+      name='message_id', full_name='FwdResponse.message_id', index=3,
       number=7, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='payload', full_name='SpikeResponse.payload', index=4,
+      name='payload', full_name='FwdResponse.payload', index=4,
       number=8, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
@@ -137,48 +137,48 @@ _SPIKERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=128,
-  serialized_end=234,
+  serialized_start=126,
+  serialized_end=230,
 )
 
 
-_GRADEREQUEST = _descriptor.Descriptor(
-  name='GradeRequest',
-  full_name='GradeRequest',
+_BWDREQUEST = _descriptor.Descriptor(
+  name='BwdRequest',
+  full_name='BwdRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='version', full_name='GradeRequest.version', index=0,
+      name='version', full_name='BwdRequest.version', index=0,
       number=1, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='source_id', full_name='GradeRequest.source_id', index=1,
+      name='source_id', full_name='BwdRequest.source_id', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='parent_id', full_name='GradeRequest.parent_id', index=2,
+      name='parent_id', full_name='BwdRequest.parent_id', index=2,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='message_id', full_name='GradeRequest.message_id', index=3,
+      name='message_id', full_name='BwdRequest.message_id', index=3,
       number=7, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='payload', full_name='GradeRequest.payload', index=4,
+      name='payload', full_name='BwdRequest.payload', index=4,
       number=8, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
@@ -196,27 +196,27 @@ _GRADEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=236,
-  serialized_end=342,
+  serialized_start=232,
+  serialized_end=336,
 )
 
 
-_GRADERESPONSE = _descriptor.Descriptor(
-  name='GradeResponse',
-  full_name='GradeResponse',
+_BWDRESPONSE = _descriptor.Descriptor(
+  name='BwdResponse',
+  full_name='BwdResponse',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='version', full_name='GradeResponse.version', index=0,
+      name='version', full_name='BwdResponse.version', index=0,
       number=1, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='accept', full_name='GradeResponse.accept', index=1,
+      name='accept', full_name='BwdResponse.accept', index=1,
       number=2, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
@@ -234,76 +234,76 @@ _GRADERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=344,
-  serialized_end=392,
+  serialized_start=338,
+  serialized_end=384,
 )
 
-DESCRIPTOR.message_types_by_name['SpikeRequest'] = _SPIKEREQUEST
-DESCRIPTOR.message_types_by_name['SpikeResponse'] = _SPIKERESPONSE
-DESCRIPTOR.message_types_by_name['GradeRequest'] = _GRADEREQUEST
-DESCRIPTOR.message_types_by_name['GradeResponse'] = _GRADERESPONSE
+DESCRIPTOR.message_types_by_name['FwdRequest'] = _FWDREQUEST
+DESCRIPTOR.message_types_by_name['FwdResponse'] = _FWDRESPONSE
+DESCRIPTOR.message_types_by_name['BwdRequest'] = _BWDREQUEST
+DESCRIPTOR.message_types_by_name['BwdResponse'] = _BWDRESPONSE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-SpikeRequest = _reflection.GeneratedProtocolMessageType('SpikeRequest', (_message.Message,), {
-  'DESCRIPTOR' : _SPIKEREQUEST,
+FwdRequest = _reflection.GeneratedProtocolMessageType('FwdRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FWDREQUEST,
   '__module__' : 'opentensor_pb2'
-  # @@protoc_insertion_point(class_scope:SpikeRequest)
+  # @@protoc_insertion_point(class_scope:FwdRequest)
   })
-_sym_db.RegisterMessage(SpikeRequest)
+_sym_db.RegisterMessage(FwdRequest)
 
-SpikeResponse = _reflection.GeneratedProtocolMessageType('SpikeResponse', (_message.Message,), {
-  'DESCRIPTOR' : _SPIKERESPONSE,
+FwdResponse = _reflection.GeneratedProtocolMessageType('FwdResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FWDRESPONSE,
   '__module__' : 'opentensor_pb2'
-  # @@protoc_insertion_point(class_scope:SpikeResponse)
+  # @@protoc_insertion_point(class_scope:FwdResponse)
   })
-_sym_db.RegisterMessage(SpikeResponse)
+_sym_db.RegisterMessage(FwdResponse)
 
-GradeRequest = _reflection.GeneratedProtocolMessageType('GradeRequest', (_message.Message,), {
-  'DESCRIPTOR' : _GRADEREQUEST,
+BwdRequest = _reflection.GeneratedProtocolMessageType('BwdRequest', (_message.Message,), {
+  'DESCRIPTOR' : _BWDREQUEST,
   '__module__' : 'opentensor_pb2'
-  # @@protoc_insertion_point(class_scope:GradeRequest)
+  # @@protoc_insertion_point(class_scope:BwdRequest)
   })
-_sym_db.RegisterMessage(GradeRequest)
+_sym_db.RegisterMessage(BwdRequest)
 
-GradeResponse = _reflection.GeneratedProtocolMessageType('GradeResponse', (_message.Message,), {
-  'DESCRIPTOR' : _GRADERESPONSE,
+BwdResponse = _reflection.GeneratedProtocolMessageType('BwdResponse', (_message.Message,), {
+  'DESCRIPTOR' : _BWDRESPONSE,
   '__module__' : 'opentensor_pb2'
-  # @@protoc_insertion_point(class_scope:GradeResponse)
+  # @@protoc_insertion_point(class_scope:BwdResponse)
   })
-_sym_db.RegisterMessage(GradeResponse)
+_sym_db.RegisterMessage(BwdResponse)
 
 
 
-_BITTENSOR = _descriptor.ServiceDescriptor(
-  name='Bittensor',
-  full_name='Bittensor',
+_OPENTENSOR = _descriptor.ServiceDescriptor(
+  name='Opentensor',
+  full_name='Opentensor',
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=394,
-  serialized_end=489,
+  serialized_start=386,
+  serialized_end=470,
   methods=[
   _descriptor.MethodDescriptor(
-    name='Spike',
-    full_name='Bittensor.Spike',
+    name='Fwd',
+    full_name='Opentensor.Fwd',
     index=0,
     containing_service=None,
-    input_type=_SPIKEREQUEST,
-    output_type=_SPIKERESPONSE,
+    input_type=_FWDREQUEST,
+    output_type=_FWDRESPONSE,
     serialized_options=None,
   ),
   _descriptor.MethodDescriptor(
-    name='Grade',
-    full_name='Bittensor.Grade',
+    name='Bwd',
+    full_name='Opentensor.Bwd',
     index=1,
     containing_service=None,
-    input_type=_GRADEREQUEST,
-    output_type=_GRADERESPONSE,
+    input_type=_BWDREQUEST,
+    output_type=_BWDRESPONSE,
     serialized_options=None,
   ),
 ])
-_sym_db.RegisterServiceDescriptor(_BITTENSOR)
+_sym_db.RegisterServiceDescriptor(_OPENTENSOR)
 
-DESCRIPTOR.services_by_name['Bittensor'] = _BITTENSOR
+DESCRIPTOR.services_by_name['Opentensor'] = _OPENTENSOR
 
 # @@protoc_insertion_point(module_scope)

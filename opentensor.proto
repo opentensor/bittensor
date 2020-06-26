@@ -2,7 +2,7 @@ syntax = "proto3";
 
 service Opentensor {
 	rpc Fwd(FwdRequest) returns (FwdResponse) {}
-	rpc Bwd(BwdeRequest) returns (BwdResponse) {}
+	rpc Bwd(BwdRequest) returns (BwdResponse) {}
 }
 
 message FwdRequest {
