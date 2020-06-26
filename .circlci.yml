@@ -1,0 +1,25 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+
+jobs:
+  build-and-test:
+    executor: python/default
+    steps:
+      - checkout
+      - python/load-cache
+      - python/install-deps
+      - run: sudo pip install codecov pytest
+      - python/save-cache
+      - run:
+          command: sudo python setup.py develop
+          name: setup
+      - run:
+          command: pytest ./tests --full-trace
+          name: tests
+
+workflows:
+  main:
+    jobs:
+      - build-and-test
