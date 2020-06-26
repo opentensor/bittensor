@@ -9,7 +9,7 @@ class Opentensor(proto_grpc.OpentensorServicer):
     def __init__(self):
         pass
 
-def main():
+def test_create():
     address = "[::]:8888"
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     opentensor = Opentensor()
@@ -19,5 +19,3 @@ def main():
     server.start()
     server.stop(0)
 
-if __name__ == '__main__':
-    main()
