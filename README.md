@@ -1,3 +1,3 @@
-## BitTensor Protocol Buffers
+## opentensor protocol buffers
 
 
