@@ -1,2 +1,2 @@
 # Build protos.
-	python3 -m grpc.tools.protoc bittensor.proto  -I. --python_out=. --grpc_python_out=.
+	python3 -m grpc.tools.protoc opentensor.proto  -I. --python_out=opentensor_proto --grpc_python_out=opentensor_proto
