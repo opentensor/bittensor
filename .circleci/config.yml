@@ -7,6 +7,12 @@ jobs:
       - python/install-deps
       - python/save-cache
       - run:
+          command: ./scripts/build_protos.sh 
+          name: Build
+      - run:
+          command: python setup.py 
+          name: Install
+      - run:
           command: |
             pytest 
           name: Test
