@@ -1,4 +1,4 @@
-# opentensor protocol buffers
+# Opentensor Protocol 
 [![Build status](https://circleci.com/gh/opentensor/opentensor-proto.svg?style=shield)](https://circleci.com/gh/opentensor/opentensor-proto)
 
 
