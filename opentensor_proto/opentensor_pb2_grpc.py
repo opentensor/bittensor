@@ -4,11 +4,8 @@ import grpc
 import opentensor_pb2 as opentensor__pb2
 
 
-class BittensorStub(object):
-    """NOTE(const): Not used.
-    TODO(const): Switch to Bittensor protocol.
-
-    """
+class OpentensorStub(object):
+    """Missing associated documentation comment in .proto file"""
 
     def __init__(self, channel):
         """Constructor.
@@ -16,67 +13,58 @@ class BittensorStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.Spike = channel.unary_unary(
-                '/Bittensor/Spike',
-                request_serializer=opentensor__pb2.SpikeRequest.SerializeToString,
-                response_deserializer=opentensor__pb2.SpikeResponse.FromString,
+        self.Fwd = channel.unary_unary(
+                '/Opentensor/Fwd',
+                request_serializer=opentensor__pb2.FwdRequest.SerializeToString,
+                response_deserializer=opentensor__pb2.FwdResponse.FromString,
                 )
-        self.Grade = channel.unary_unary(
-                '/Bittensor/Grade',
-                request_serializer=opentensor__pb2.GradeRequest.SerializeToString,
-                response_deserializer=opentensor__pb2.GradeResponse.FromString,
+        self.Bwd = channel.unary_unary(
+                '/Opentensor/Bwd',
+                request_serializer=opentensor__pb2.BwdRequest.SerializeToString,
+                response_deserializer=opentensor__pb2.BwdResponse.FromString,
                 )
 
 
-class BittensorServicer(object):
-    """NOTE(const): Not used.
-    TODO(const): Switch to Bittensor protocol.
+class OpentensorServicer(object):
+    """Missing associated documentation comment in .proto file"""
 
-    """
-
-    def Spike(self, request, context):
-        """Query remote component with text-features, responses are var-length vector
-        representations of the text.
-        """
+    def Fwd(self, request, context):
+        """Missing associated documentation comment in .proto file"""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def Grade(self, request, context):
-        """Query a remote component with gradients. Responses are boolean affirmatives.
-        """
+    def Bwd(self, request, context):
+        """Missing associated documentation comment in .proto file"""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_BittensorServicer_to_server(servicer, server):
+def add_OpentensorServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Spike': grpc.unary_unary_rpc_method_handler(
-                    servicer.Spike,
-                    request_deserializer=opentensor__pb2.SpikeRequest.FromString,
-                    response_serializer=opentensor__pb2.SpikeResponse.SerializeToString,
+            'Fwd': grpc.unary_unary_rpc_method_handler(
+                    servicer.Fwd,
+                    request_deserializer=opentensor__pb2.FwdRequest.FromString,
+                    response_serializer=opentensor__pb2.FwdResponse.SerializeToString,
             ),
-            'Grade': grpc.unary_unary_rpc_method_handler(
-                    servicer.Grade,
-                    request_deserializer=opentensor__pb2.GradeRequest.FromString,
-                    response_serializer=opentensor__pb2.GradeResponse.SerializeToString,
+            'Bwd': grpc.unary_unary_rpc_method_handler(
+                    servicer.Bwd,
+                    request_deserializer=opentensor__pb2.BwdRequest.FromString,
+                    response_serializer=opentensor__pb2.BwdResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'Bittensor', rpc_method_handlers)
+            'Opentensor', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
  # This class is part of an EXPERIMENTAL API.
-class Bittensor(object):
-    """NOTE(const): Not used.
-    TODO(const): Switch to Bittensor protocol.
-
-    """
+class Opentensor(object):
+    """Missing associated documentation comment in .proto file"""
 
     @staticmethod
-    def Spike(request,
+    def Fwd(request,
             target,
             options=(),
             channel_credentials=None,
@@ -85,14 +73,14 @@ class Bittensor(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Bittensor/Spike',
-            opentensor__pb2.SpikeRequest.SerializeToString,
-            opentensor__pb2.SpikeResponse.FromString,
+        return grpc.experimental.unary_unary(request, target, '/Opentensor/Fwd',
+            opentensor__pb2.FwdRequest.SerializeToString,
+            opentensor__pb2.FwdResponse.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def Grade(request,
+    def Bwd(request,
             target,
             options=(),
             channel_credentials=None,
@@ -101,8 +89,8 @@ class Bittensor(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Bittensor/Grade',
-            opentensor__pb2.GradeRequest.SerializeToString,
-            opentensor__pb2.GradeResponse.FromString,
+        return grpc.experimental.unary_unary(request, target, '/Opentensor/Bwd',
+            opentensor__pb2.BwdRequest.SerializeToString,
+            opentensor__pb2.BwdResponse.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)
