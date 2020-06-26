@@ -7,3 +7,10 @@
 $ pip install -r requirements.txt
 $ ./scripts/build_protos.sh
 $ pip install -e .
+```
+
+## Testing locally
+```
+$ pip install -r requirements.txt
+$ pytest
+```
