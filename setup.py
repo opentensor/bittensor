@@ -8,13 +8,13 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='bittensor-proto',
-    version='0.0.3',
-    description='BitTensor protocol buffers',
+    name='opentensor-proto',
+    version='0.0.0',
+    description='Opentensor protocol buffers',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/opentensor/bittensor-proto',
-    author='',
+    url='https://github.com/opentensor/opentensor-proto',
+    author='opentensor.org',
     author_email='',
     classifiers=[
         'Development Status :: 3 - Alpha',
