@@ -1,4 +1,4 @@
 grpcio
-grpc-tools
+grpcio-tools
 pytest
 google-api-python-client
