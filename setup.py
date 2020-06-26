@@ -31,6 +31,6 @@ setup(
         exclude=['data', 'contract', 'assets', 'scripts', 'docs']),
     python_requires='>=3.5',
     install_requires=[
-        'grpcio'
+        'grpcio', 'google-api-python-client'
     ],  # Optional
 )
