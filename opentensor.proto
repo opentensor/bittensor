@@ -1,19 +1,11 @@
 syntax = "proto3";
 
-// NOTE(const): Not used.
-// TODO(const): Switch to Bittensor protocol.
-
-service Bittensor {
-	// Query remote component with text-features, responses are var-length vector
-	// representations of the text.
-	rpc Spike(SpikeRequest) returns (SpikeResponse) {}
-
-	// Query a remote component with gradients. Responses are boolean affirmatives.
-	rpc Grade(GradeRequest) returns (GradeResponse) {}
+service Opentensor {
+	rpc Fwd(FwdRequest) returns (FwdResponse) {}
+	rpc Bwd(BwdeRequest) returns (BwdResponse) {}
 }
 
-// Forward query to a peer, carries text and expects feature representations
-message SpikeRequest {
+message FwdRequest {
 	// Protocol version 1.0
 	float version = 1;
 
@@ -47,8 +39,7 @@ message SpikeRequest {
 	bytes payload = 8;
 }
 
-// Reverse response from a peer, carries vectors and expects no response.
-message SpikeResponse {
+message FwdResponse {
 	// Protocol version 1.0
 	float version = 1;
 
@@ -82,7 +73,7 @@ message SpikeResponse {
 }
 
 // Forward gradient to peer. Expects peer to train over gradients. Boolean response.
-message GradeRequest {
+message BwdRequest {
 	// Protocol version 1.0
 	float version = 1;
 
@@ -116,10 +107,10 @@ message GradeRequest {
 }
 
 // Reverse gradient call.
-message GradeResponse {
+message BwdResponse {
 	// Protocol version 1.0
 	float version = 1;
 
 	// Boolean, Gradient accepted message.
-  bool accept = 2;
+  	bool accept = 2;
 }
