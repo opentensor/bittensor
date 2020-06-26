@@ -1,1 +1,1 @@
-python3 -m grpc.tools.protoc opentensor.proto  -I. --python_out=opentensor_proto --grpc_python_out=opentensor_proto
+python3 -m grpc.tools.protoc opentensor_proto/opentensor.proto  -I. --python_out=. --grpc_python_out=.
