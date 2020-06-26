@@ -1,3 +1,4 @@
 grpcio
+grpc-tools
 pytest
 google-api-python-client
