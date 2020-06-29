@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n!opentensor_proto/opentensor.proto\"\xb4\x01\n\nFwdRequest\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x11\n\tsource_id\x18\x02 \x01(\t\x12\x0e\n\x06nounce\x18\x03 \x01(\x0c\x12\x0f\n\x07payload\x18\x04 \x01(\x0c\x12\x12\n\nmessage_id\x18\x05 \x01(\x0c\x12\x11\n\tsignature\x18\x06 \x01(\x0c\x12 \n\x05shape\x18\x07 \x01(\x0b\x32\x11.TensorShapeProto\x12\x18\n\x05\x64type\x18\x08 \x01(\x0e\x32\t.DataType\"\xb5\x01\n\x0b\x46wdResponse\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x11\n\tserver_id\x18\x02 \x01(\t\x12\x0e\n\x06nounce\x18\x03 \x01(\x0c\x12\x0f\n\x07payload\x18\x04 \x01(\x0c\x12\x12\n\nmessage_id\x18\x05 \x01(\x0c\x12\x11\n\tsignature\x18\x06 \x01(\x0c\x12 \n\x05shape\x18\x07 \x01(\x0b\x32\x11.TensorShapeProto\x12\x18\n\x05\x64type\x18\x08 \x01(\x0e\x32\t.DataType\"\xb4\x01\n\nBwdRequest\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x11\n\tsource_id\x18\x02 \x01(\t\x12\x0e\n\x06nounce\x18\x03 \x01(\x0c\x12\x0f\n\x07payload\x18\x04 \x01(\x0c\x12\x12\n\nmessage_id\x18\x05 \x01(\x0c\x12\x11\n\tsignature\x18\x06 \x01(\x0c\x12 \n\x05shape\x18\x07 \x01(\x0b\x32\x11.TensorShapeProto\x12\x18\n\x05\x64type\x18\x08 \x01(\x0e\x32\t.DataType\".\n\x0b\x42wdResponse\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x0e\n\x06\x61\x63\x63\x65pt\x18\x02 \x01(\x08\"o\n\x10TensorShapeProto\x12\"\n\x03\x64im\x18\x02 \x03(\x0b\x32\x15.TensorShapeProto.Dim\x12\x14\n\x0cunknown_rank\x18\x03 \x01(\x08\x1a!\n\x03\x44im\x12\x0c\n\x04size\x18\x01 \x01(\x03\x12\x0c\n\x04name\x18\x02 \x01(\t*\xf4\x02\n\x08\x44\x61taType\x12\x0e\n\nDT_INVALID\x10\x00\x12\x0c\n\x08\x44T_FLOAT\x10\x01\x12\r\n\tDT_DOUBLE\x10\x02\x12\x0c\n\x08\x44T_INT32\x10\x03\x12\x0c\n\x08\x44T_UINT8\x10\x04\x12\x0c\n\x08\x44T_INT16\x10\x05\x12\x0b\n\x07\x44T_INT8\x10\x06\x12\r\n\tDT_STRING\x10\x07\x12\x10\n\x0c\x44T_COMPLEX64\x10\x08\x12\x0c\n\x08\x44T_INT64\x10\t\x12\x0b\n\x07\x44T_BOOL\x10\n\x12\x0c\n\x08\x44T_QINT8\x10\x0b\x12\r\n\tDT_QUINT8\x10\x0c\x12\r\n\tDT_QINT32\x10\r\x12\x0f\n\x0b\x44T_BFLOAT16\x10\x0e\x12\r\n\tDT_QINT16\x10\x0f\x12\x0e\n\nDT_QUINT16\x10\x10\x12\r\n\tDT_UINT16\x10\x11\x12\x11\n\rDT_COMPLEX128\x10\x12\x12\x0b\n\x07\x44T_HALF\x10\x13\x12\x0f\n\x0b\x44T_RESOURCE\x10\x14\x12\x0e\n\nDT_VARIANT\x10\x15\x12\r\n\tDT_UINT32\x10\x16\x12\r\n\tDT_UINT64\x10\x17\x32T\n\nOpentensor\x12\"\n\x03\x46wd\x12\x0b.FwdRequest\x1a\x0c.FwdResponse\"\x00\x12\"\n\x03\x42wd\x12\x0b.BwdRequest\x1a\x0c.BwdResponse\"\x00\x62\x06proto3'
+  serialized_pb=b'\n!opentensor_proto/opentensor.proto\"\xb4\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\npublic_key\x18\x02 \x01(\x0c\x12\x0e\n\x06nounce\x18\x03 \x01(\x0c\x12\x0f\n\x07\x63ontent\x18\x04 \x01(\x0c\x12\x0e\n\x06\x64igest\x18\x05 \x01(\x0c\x12\x11\n\tsignature\x18\x06 \x01(\x0c\x12 \n\x05shape\x18\x07 \x01(\x0b\x32\x11.TensorShapeProto\x12\x18\n\x05\x64type\x18\x08 \x01(\x0e\x32\t.DataType\"o\n\x10TensorShapeProto\x12\"\n\x03\x64im\x18\x02 \x03(\x0b\x32\x15.TensorShapeProto.Dim\x12\x14\n\x0cunknown_rank\x18\x03 \x01(\x08\x1a!\n\x03\x44im\x12\x0c\n\x04size\x18\x01 \x01(\x03\x12\x0c\n\x04name\x18\x02 \x01(\t*\xf4\x02\n\x08\x44\x61taType\x12\x0e\n\nDT_INVALID\x10\x00\x12\x0c\n\x08\x44T_FLOAT\x10\x01\x12\r\n\tDT_DOUBLE\x10\x02\x12\x0c\n\x08\x44T_INT32\x10\x03\x12\x0c\n\x08\x44T_UINT8\x10\x04\x12\x0c\n\x08\x44T_INT16\x10\x05\x12\x0b\n\x07\x44T_INT8\x10\x06\x12\r\n\tDT_STRING\x10\x07\x12\x10\n\x0c\x44T_COMPLEX64\x10\x08\x12\x0c\n\x08\x44T_INT64\x10\t\x12\x0b\n\x07\x44T_BOOL\x10\n\x12\x0c\n\x08\x44T_QINT8\x10\x0b\x12\r\n\tDT_QUINT8\x10\x0c\x12\r\n\tDT_QINT32\x10\r\x12\x0f\n\x0b\x44T_BFLOAT16\x10\x0e\x12\r\n\tDT_QINT16\x10\x0f\x12\x0e\n\nDT_QUINT16\x10\x10\x12\r\n\tDT_UINT16\x10\x11\x12\x11\n\rDT_COMPLEX128\x10\x12\x12\x0b\n\x07\x44T_HALF\x10\x13\x12\x0f\n\x0b\x44T_RESOURCE\x10\x14\x12\x0e\n\nDT_VARIANT\x10\x15\x12\r\n\tDT_UINT32\x10\x16\x12\r\n\tDT_UINT64\x10\x17\x32^\n\nOpentensor\x12\'\n\x03\x46wd\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12\'\n\x03\x42wd\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x62\x06proto3'
 )
 
 _DATATYPE = _descriptor.EnumDescriptor(
@@ -127,8 +127,8 @@ _DATATYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=749,
-  serialized_end=1121,
+  serialized_start=334,
+  serialized_end=706,
 )
 _sym_db.RegisterEnumDescriptor(_DATATYPE)
 
@@ -160,64 +160,64 @@ DT_UINT64 = 23
 
 
 
-_FWDREQUEST = _descriptor.Descriptor(
-  name='FwdRequest',
-  full_name='FwdRequest',
+_TENSORMESSAGE = _descriptor.Descriptor(
+  name='TensorMessage',
+  full_name='TensorMessage',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='version', full_name='FwdRequest.version', index=0,
+      name='version', full_name='TensorMessage.version', index=0,
       number=1, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='source_id', full_name='FwdRequest.source_id', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
+      name='public_key', full_name='TensorMessage.public_key', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='nounce', full_name='FwdRequest.nounce', index=2,
+      name='nounce', full_name='TensorMessage.nounce', index=2,
       number=3, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='payload', full_name='FwdRequest.payload', index=3,
+      name='content', full_name='TensorMessage.content', index=3,
       number=4, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='message_id', full_name='FwdRequest.message_id', index=4,
+      name='digest', full_name='TensorMessage.digest', index=4,
       number=5, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='signature', full_name='FwdRequest.signature', index=5,
+      name='signature', full_name='TensorMessage.signature', index=5,
       number=6, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='shape', full_name='FwdRequest.shape', index=6,
+      name='shape', full_name='TensorMessage.shape', index=6,
       number=7, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='dtype', full_name='FwdRequest.dtype', index=7,
+      name='dtype', full_name='TensorMessage.dtype', index=7,
       number=8, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -237,204 +237,6 @@ _FWDREQUEST = _descriptor.Descriptor(
   ],
   serialized_start=38,
   serialized_end=218,
-)
-
-
-_FWDRESPONSE = _descriptor.Descriptor(
-  name='FwdResponse',
-  full_name='FwdResponse',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='version', full_name='FwdResponse.version', index=0,
-      number=1, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='server_id', full_name='FwdResponse.server_id', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='nounce', full_name='FwdResponse.nounce', index=2,
-      number=3, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='payload', full_name='FwdResponse.payload', index=3,
-      number=4, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='message_id', full_name='FwdResponse.message_id', index=4,
-      number=5, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='signature', full_name='FwdResponse.signature', index=5,
-      number=6, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='shape', full_name='FwdResponse.shape', index=6,
-      number=7, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='dtype', full_name='FwdResponse.dtype', index=7,
-      number=8, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=221,
-  serialized_end=402,
-)
-
-
-_BWDREQUEST = _descriptor.Descriptor(
-  name='BwdRequest',
-  full_name='BwdRequest',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='version', full_name='BwdRequest.version', index=0,
-      number=1, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='source_id', full_name='BwdRequest.source_id', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='nounce', full_name='BwdRequest.nounce', index=2,
-      number=3, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='payload', full_name='BwdRequest.payload', index=3,
-      number=4, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='message_id', full_name='BwdRequest.message_id', index=4,
-      number=5, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='signature', full_name='BwdRequest.signature', index=5,
-      number=6, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='shape', full_name='BwdRequest.shape', index=6,
-      number=7, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='dtype', full_name='BwdRequest.dtype', index=7,
-      number=8, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=405,
-  serialized_end=585,
-)
-
-
-_BWDRESPONSE = _descriptor.Descriptor(
-  name='BwdResponse',
-  full_name='BwdResponse',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='version', full_name='BwdResponse.version', index=0,
-      number=1, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='accept', full_name='BwdResponse.accept', index=1,
-      number=2, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=587,
-  serialized_end=633,
 )
 
 
@@ -471,8 +273,8 @@ _TENSORSHAPEPROTO_DIM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=713,
-  serialized_end=746,
+  serialized_start=298,
+  serialized_end=331,
 )
 
 _TENSORSHAPEPROTO = _descriptor.Descriptor(
@@ -508,53 +310,25 @@ _TENSORSHAPEPROTO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=635,
-  serialized_end=746,
+  serialized_start=220,
+  serialized_end=331,
 )
 
-_FWDREQUEST.fields_by_name['shape'].message_type = _TENSORSHAPEPROTO
-_FWDREQUEST.fields_by_name['dtype'].enum_type = _DATATYPE
-_FWDRESPONSE.fields_by_name['shape'].message_type = _TENSORSHAPEPROTO
-_FWDRESPONSE.fields_by_name['dtype'].enum_type = _DATATYPE
-_BWDREQUEST.fields_by_name['shape'].message_type = _TENSORSHAPEPROTO
-_BWDREQUEST.fields_by_name['dtype'].enum_type = _DATATYPE
+_TENSORMESSAGE.fields_by_name['shape'].message_type = _TENSORSHAPEPROTO
+_TENSORMESSAGE.fields_by_name['dtype'].enum_type = _DATATYPE
 _TENSORSHAPEPROTO_DIM.containing_type = _TENSORSHAPEPROTO
 _TENSORSHAPEPROTO.fields_by_name['dim'].message_type = _TENSORSHAPEPROTO_DIM
-DESCRIPTOR.message_types_by_name['FwdRequest'] = _FWDREQUEST
-DESCRIPTOR.message_types_by_name['FwdResponse'] = _FWDRESPONSE
-DESCRIPTOR.message_types_by_name['BwdRequest'] = _BWDREQUEST
-DESCRIPTOR.message_types_by_name['BwdResponse'] = _BWDRESPONSE
+DESCRIPTOR.message_types_by_name['TensorMessage'] = _TENSORMESSAGE
 DESCRIPTOR.message_types_by_name['TensorShapeProto'] = _TENSORSHAPEPROTO
 DESCRIPTOR.enum_types_by_name['DataType'] = _DATATYPE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-FwdRequest = _reflection.GeneratedProtocolMessageType('FwdRequest', (_message.Message,), {
-  'DESCRIPTOR' : _FWDREQUEST,
+TensorMessage = _reflection.GeneratedProtocolMessageType('TensorMessage', (_message.Message,), {
+  'DESCRIPTOR' : _TENSORMESSAGE,
   '__module__' : 'opentensor_proto.opentensor_pb2'
-  # @@protoc_insertion_point(class_scope:FwdRequest)
+  # @@protoc_insertion_point(class_scope:TensorMessage)
   })
-_sym_db.RegisterMessage(FwdRequest)
-
-FwdResponse = _reflection.GeneratedProtocolMessageType('FwdResponse', (_message.Message,), {
-  'DESCRIPTOR' : _FWDRESPONSE,
-  '__module__' : 'opentensor_proto.opentensor_pb2'
-  # @@protoc_insertion_point(class_scope:FwdResponse)
-  })
-_sym_db.RegisterMessage(FwdResponse)
-
-BwdRequest = _reflection.GeneratedProtocolMessageType('BwdRequest', (_message.Message,), {
-  'DESCRIPTOR' : _BWDREQUEST,
-  '__module__' : 'opentensor_proto.opentensor_pb2'
-  # @@protoc_insertion_point(class_scope:BwdRequest)
-  })
-_sym_db.RegisterMessage(BwdRequest)
-
-BwdResponse = _reflection.GeneratedProtocolMessageType('BwdResponse', (_message.Message,), {
-  'DESCRIPTOR' : _BWDRESPONSE,
-  '__module__' : 'opentensor_proto.opentensor_pb2'
-  # @@protoc_insertion_point(class_scope:BwdResponse)
-  })
-_sym_db.RegisterMessage(BwdResponse)
+_sym_db.RegisterMessage(TensorMessage)
 
 TensorShapeProto = _reflection.GeneratedProtocolMessageType('TensorShapeProto', (_message.Message,), {
 
@@ -579,16 +353,16 @@ _OPENTENSOR = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=1123,
-  serialized_end=1207,
+  serialized_start=708,
+  serialized_end=802,
   methods=[
   _descriptor.MethodDescriptor(
     name='Fwd',
     full_name='Opentensor.Fwd',
     index=0,
     containing_service=None,
-    input_type=_FWDREQUEST,
-    output_type=_FWDRESPONSE,
+    input_type=_TENSORMESSAGE,
+    output_type=_TENSORMESSAGE,
     serialized_options=None,
   ),
   _descriptor.MethodDescriptor(
@@ -596,8 +370,8 @@ _OPENTENSOR = _descriptor.ServiceDescriptor(
     full_name='Opentensor.Bwd',
     index=1,
     containing_service=None,
-    input_type=_BWDREQUEST,
-    output_type=_BWDRESPONSE,
+    input_type=_TENSORMESSAGE,
+    output_type=_TENSORMESSAGE,
     serialized_options=None,
   ),
 ])

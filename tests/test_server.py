@@ -10,12 +10,12 @@ class Opentensor(proto_grpc.OpentensorServicer):
         pass
 
     def Fwd(self, context, request):
-        response = proto_pb2.FwdResponse()
+        response = proto_pb2.TensorMessage()
         return response
   
 
     def Bwd(self, contect, request):
-        response = proto_pb2.BwdResponse()
+        response = proto_pb2.TensorMessage()
         return response
  
 def create_server():
@@ -40,10 +40,10 @@ def test_client():
     channel = grpc.insecure_channel(address)
     stub = proto_grpc.OpentensorStub(channel)
 
-    request = proto_pb2.FwdRequest(version=1.0)
+    request = proto_pb2.TensorMessage(version=1.0)
     response = stub.Fwd(request)
 
-    request = proto_pb2.BwdRequest(version=1.0)
+    request = proto_pb2.TensorMessage(version=1.0)
     response = stub.Bwd(request)
     server.stop(0)
 
