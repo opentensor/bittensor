@@ -29,13 +29,15 @@ class OpentensorServicer(object):
     """Missing associated documentation comment in .proto file"""
 
     def Fwd(self, request, context):
-        """Missing associated documentation comment in .proto file"""
+        """Forward tensor request. 
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def Bwd(self, request, context):
-        """Missing associated documentation comment in .proto file"""
+        """Reverse tensor (gradient) request.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
