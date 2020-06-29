@@ -2,14 +2,14 @@ syntax = "proto3";
 
 service Opentensor {
 	// Forward tensor request. 
-	rpc Fwd(FwdRequest) returns (FwdResponse) {}
+	rpc Fwd(TensorMessage) returns (TensorMessage) {}
 	
 	// Reverse tensor (gradient) request.
-	rpc Bwd(BwdRequest) returns (BwdResponse) {}
+	rpc Bwd(TensorMessage) returns (TensorMessage) {}
 }
 
 // Proto for a opentensor.
-message FwdRequest {
+message TensorMessage {
 	// Protocol version: i.e. 1.0
 	float version = 1;
 
@@ -21,13 +21,13 @@ message FwdRequest {
 	// >> private = Ed25519PrivateKey.generate()
 	// >> public = private.public_key()
 	// >> id = '0x%s' % public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
-	string source_id = 2;
+	bytes public_key = 2;
 
 	// Message Nounce: A random or incrementing digit.
 	// i.e. bytes(1223123)
 	bytes nounce = 3;
 	
-	// Message Payload: Raw encoded tensor bytes.
+	// Tensor content: Raw encoded tensor bytes.
 	// Serialized raw tensor content. This representation
   	// can be used for all tensor types. The purpose of this representation is to
   	// reduce serialization overhead during RPC call by avoiding serialization of
@@ -35,9 +35,9 @@ message FwdRequest {
 	// TODO(const) decide on encoding method.
 	// 1. opentensor.encoding(numpy_array) --> bytes
 	// 2. opentensor.encoding(tensor) --> bytes
-	bytes payload = 4;
+	bytes content = 4;
 
-	// Message identifier: A hash of concat(nounce, bytes(source_id), payload)
+	// Sha256 message digest from (nounce, publikey, content)
 	// $ python
 	// >>> from cryptography.hazmat.backends import default_backend
 	// >>> from cryptography.hazmat.primitives import hashes
@@ -45,13 +45,13 @@ message FwdRequest {
 	// >>> digest.update(nounce)
 	// >>> digest.update(bytes(source_id))
 	// >>> digest.update(payload)
-	// >>> message_id = digest.finalize()
-	// i.e message_id = b'l\xa1=R\xcap\xc8\x83\xe0\xf0\xbb\x10\x1eBZ\x89\xe8bM\xe5\x1d\xb2\xd29%\x93\xafj\x84\x11\x80\x90'
-	bytes message_id = 5;
+	// >>> digest = digest.finalize()
+	// i.e digest = b'l\xa1=R\xcap\xc8\x83\xe0\xf0\xbb\x10\x1eBZ\x89\xe8bM\xe5\x1d\xb2\xd29%\x93\xafj\x84\x11\x80\x90'
+	bytes digest = 5;
 
 	// $ python
-	// >> signature = private_key.sign(message_id)
-	// >> public_key.verify(signature, message_id))
+	// >> (client) signature = private_key.sign(digest)
+	// >> (server side) public_key.verify(signature, digest))
 	bytes signature = 6;
 
 	// Tensorshape: Shape of the tensor, for interpreting the payload.
@@ -59,120 +59,6 @@ message FwdRequest {
 	
 	// Dtype: tensor type information.
 	DataType dtype = 8;
-}
-
-message FwdResponse {
-	// Protocol version: i.e. 1.0
-	float version = 1;
-
-	// Server ed25519 publickey raw encoded and interpreted as a string:
-	// i.e. "0x4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78"
-  	// $ python 
-	// >> from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-	// >> from cryptography.hazmat.primitives import hashes, serialization
-	// >> private = Ed25519PrivateKey.generate()
-	// >> public = private.public_key()
-	// >> id = '0x%s' % public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
-	string server_id = 2;
-
-	// Message Nounce: Copied from Request.
-	// i.e. bytes(1223123)i
-	bytes nounce = 3;
-	
-	// Message Payload: Raw encoded tensor bytes.
-	// Serialized raw tensor content. This representation
-  	// can be used for all tensor types. The purpose of this representation is to
-  	// reduce serialization overhead during RPC call by avoiding serialization of
-  	// many repeated small items.
-	// TODO(const) decide on encoding method.
-	// 1. opentensor.encoding(numpy_array) --> bytes
-	// 2. opentensor.encoding(tensor) --> bytes
-	bytes payload = 4;
-
-	// Message identifier: Updated from request
-	// $ python
-	// >>> from cryptography.hazmat.backends import default_backend
-	// >>> from cryptography.hazmat.primitives import hashes
-	// >>> digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-	// >>> digest.update(message_id)
-	// >>> digest.update(bytes(server_id))
-	// >>> digest.update(payload)
-	// >>> message_id = digest.finalize()
-	// i.e message_id = b'l\xa1=R\xcap\xc8\x83\xe0\xf0\xbb\x10\x1eBZ\x89\xe8bM\xe5\x1d\xb2\xd29%\x93\xafj\x84\x11\x80\x90'
-	bytes message_id = 5;
-
-	// $ python
-	// >> signature = private_key.sign(message_id)
-	// >> public_key.verify(signature, message_id))
-	bytes signature = 6;
-
-	// Tensorshape: Shape of the tensor, for interpreting the payload.
-	TensorShapeProto shape = 7;
-	
-	// Dtype: tensor type information.
-	DataType dtype = 8;
-}
-
-// Backward pass gradients to server.
-message BwdRequest {
-	// Protocol version: i.e. 1.0
-	float version = 1;
-
-	// Source ed25519 publickey raw encoded and interpreted as a string:
-	// i.e. "0x4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78"
-  	// $ python 
-	// >> from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-	// >> from cryptography.hazmat.primitives import hashes, serialization
-	// >> private = Ed25519PrivateKey.generate()
-	// >> public = private.public_key()
-	// >> id = '0x%s' % public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
-	string source_id = 2;
-
-	// Message Nounce: A random or incrementing digit.
-	// i.e. bytes(1223123)
-	bytes nounce = 3;
-	
-	// Message Payload: Raw encoded tensor bytes.
-	// Serialized raw tensor content. This representation
-  	// can be used for all tensor types. The purpose of this representation is to
-  	// reduce serialization overhead during RPC call by avoiding serialization of
-  	// many repeated small items.
-	// TODO(const) decide on encoding method.
-	// 1. opentensor.encoding(numpy_array) --> bytes
-	// 2. opentensor.encoding(tensor) --> bytes
-	bytes payload = 4;
-	
-	// Message identifier: A hash of concat(nounce, bytes(source_id), payload)
-	// $ python
-	// >>> from cryptography.hazmat.backends import default_backend
-	// >>> from cryptography.hazmat.primitives import hashes
-	// >>> digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-	// >>> digest.update(nounce)
-	// >>> digest.update(bytes(source_id))
-	// >>> digest.update(payload)
-	// >>> message_id = digest.finalize()
-	// i.e message_id = b'l\xa1=R\xcap\xc8\x83\xe0\xf0\xbb\x10\x1eBZ\x89\xe8bM\xe5\x1d\xb2\xd29%\x93\xafj\x84\x11\x80\x90'
-	bytes message_id = 5;
-
-	// $ python
-	// >> signature = private_key.sign(message_id)
-	// >> public_key.verify(signature, message_id))
-	bytes signature = 6;
-
-	// Tensorshape: Shape of the tensor, for interpreting the payload.
-	TensorShapeProto shape = 7;
-	
-	// Dtype: tensor type information.
-	DataType dtype = 8;
-}
-
-// Reverse gradient call.
-message BwdResponse {
-	// Protocol version: i.e. 1.0
-	float version = 1;
-
-	// Boolean, Gradient accepted message.
-  	bool accept = 2;
 }
 
 // Pulled from: "tensorflow/core/framework/tensor_shape.proto"

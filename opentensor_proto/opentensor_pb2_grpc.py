@@ -15,13 +15,13 @@ class OpentensorStub(object):
         """
         self.Fwd = channel.unary_unary(
                 '/Opentensor/Fwd',
-                request_serializer=opentensor__proto_dot_opentensor__pb2.FwdRequest.SerializeToString,
-                response_deserializer=opentensor__proto_dot_opentensor__pb2.FwdResponse.FromString,
+                request_serializer=opentensor__proto_dot_opentensor__pb2.TensorMessage.SerializeToString,
+                response_deserializer=opentensor__proto_dot_opentensor__pb2.TensorMessage.FromString,
                 )
         self.Bwd = channel.unary_unary(
                 '/Opentensor/Bwd',
-                request_serializer=opentensor__proto_dot_opentensor__pb2.BwdRequest.SerializeToString,
-                response_deserializer=opentensor__proto_dot_opentensor__pb2.BwdResponse.FromString,
+                request_serializer=opentensor__proto_dot_opentensor__pb2.TensorMessage.SerializeToString,
+                response_deserializer=opentensor__proto_dot_opentensor__pb2.TensorMessage.FromString,
                 )
 
 
@@ -47,13 +47,13 @@ def add_OpentensorServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Fwd': grpc.unary_unary_rpc_method_handler(
                     servicer.Fwd,
-                    request_deserializer=opentensor__proto_dot_opentensor__pb2.FwdRequest.FromString,
-                    response_serializer=opentensor__proto_dot_opentensor__pb2.FwdResponse.SerializeToString,
+                    request_deserializer=opentensor__proto_dot_opentensor__pb2.TensorMessage.FromString,
+                    response_serializer=opentensor__proto_dot_opentensor__pb2.TensorMessage.SerializeToString,
             ),
             'Bwd': grpc.unary_unary_rpc_method_handler(
                     servicer.Bwd,
-                    request_deserializer=opentensor__proto_dot_opentensor__pb2.BwdRequest.FromString,
-                    response_serializer=opentensor__proto_dot_opentensor__pb2.BwdResponse.SerializeToString,
+                    request_deserializer=opentensor__proto_dot_opentensor__pb2.TensorMessage.FromString,
+                    response_serializer=opentensor__proto_dot_opentensor__pb2.TensorMessage.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -76,8 +76,8 @@ class Opentensor(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/Opentensor/Fwd',
-            opentensor__proto_dot_opentensor__pb2.FwdRequest.SerializeToString,
-            opentensor__proto_dot_opentensor__pb2.FwdResponse.FromString,
+            opentensor__proto_dot_opentensor__pb2.TensorMessage.SerializeToString,
+            opentensor__proto_dot_opentensor__pb2.TensorMessage.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -92,7 +92,7 @@ class Opentensor(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/Opentensor/Bwd',
-            opentensor__proto_dot_opentensor__pb2.BwdRequest.SerializeToString,
-            opentensor__proto_dot_opentensor__pb2.BwdResponse.FromString,
+            opentensor__proto_dot_opentensor__pb2.TensorMessage.SerializeToString,
+            opentensor__proto_dot_opentensor__pb2.TensorMessage.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)
