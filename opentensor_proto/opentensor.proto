@@ -10,86 +10,65 @@ service Opentensor {
 
 // Proto for a opentensor.
 message TensorMessage {
-	// Protocol version: i.e. 1.0
+	// version: protocol version 
+	// i.e. 1.0
 	float version = 1;
 
-	// Source ed25519 publickey raw encoded and interpreted as a string:
-	// i.e. "0x4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78"
+	// sender_key: raw bytes representation of the source's ed25519 public key.
+	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
   	// $ python 
 	// >> from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-	// >> from cryptography.hazmat.primitives import hashes, serialization
+	// >> from cryptography.hazmat.primitives import serialization
 	// >> private = Ed25519PrivateKey.generate()
 	// >> public = private.public_key()
-	// >> public_bytes = public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
-	bytes public_key = 2;
+	// >> source_key = public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+	bytes source_key = 2;
 
-	// Nounce: A random string of bytes to identify this message.
-	// nounce = os.urandom(12)
-	bytes nounce = 3;
-	
-	// Tensor content: Raw encoded tensor bytes.
-	// Serialized raw tensor content. This representation
-  	// can be used for all tensor types. The purpose of this representation is to
-  	// reduce serialization overhead during RPC call by avoiding serialization of
-  	// many repeated small items.
-	// TODO(const) decide on encoding method.
-	// 1. opentensor.serialize(numpy_array) --> byte_content
-	// 2. opentensor.deserialize(bytes_content) --> numpy_array
-	bytes content = 4;
+	// target_key: raw bytes representation of the target's ed25519 public key
+	// Note that clients and experts both have ed25519 public keys. So the response tensor message
+	// should simply have these two keys swapped.
+	bytes target_key = 3;
 
-	// Sha256 message digest from (nounce, publikey, content)
+	// nounce: random bytes to identify this message.
+	// >> nounce = os.urandom(12)
+	bytes nounce = 4;
+
+	// signature: digital signature linking the nounce and source_key
+	// prevents spoofing attacks where an adversary attempts to send messages as other peers.
 	// $ python
 	// >>> from cryptography.hazmat.backends import default_backend
 	// >>> from cryptography.hazmat.primitives import hashes
-	// >>> digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-	// >>> digest.update(nounce)
-	// >>> digest.update(public_key)
-	// >>> digest.update(payload)
+	// >>> digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
+	// >>> digest.update(msg.source_key)
+	// >>> digest.update(msg.nounce)
 	// >>> digest = digest.finalize()
-	// i.e digest = b'l\xa1=R\xcap\xc8\x83\xe0\xf0\xbb\x10\x1eBZ\x89\xe8bM\xe5\x1d\xb2\xd29%\x93\xafj\x84\x11\x80\x90'
-	bytes digest = 5;
+	// >>> source_key.verify(msg.signature, digest)
+	bytes signature = 5;
 
-	// $ python
-	// >> (client) signature = private_key.sign(digest)
-	// >> (server side) public_key.verify(signature, in_digest))
-	bytes signature = 6;
-
-	// Tensorshape: Shape of the tensor, for interpreting the payload.
-	TensorShapeProto shape = 7;
-	
-	// Dtype: tensor type information.
-	DataType dtype = 8;
+	// tensor: 0 or more tensors passed on the wire.
+	repeated Tensor tensors = 6;
 }
 
-// Pulled from: "tensorflow/core/framework/tensor_shape.proto"
-// Dimensions of a tensor.
-message TensorShapeProto {
-  // One dimension of the tensor.
-  message Dim {
-    // Size of the tensor in that dimension.
-    // This value must be >= -1, but values of -1 are reserved for "unknown"
-    // shapes (values of -1 mean "unknown" dimension).  Certain wrappers
-    // that work with TensorShapeProto may fail at runtime when deserializing
-    // a TensorShapeProto containing a dim value of -1.
-    int64 size = 1;
-
-    // Optional name of the tensor dimension.
-    string name = 2;
-  };
-
-  // The order of entries in "dim" matters: It indicates the layout of the
-  // values in the tensor in-memory representation.
-  //
-  // The first entry in "dim" is the outermost dimension used to layout the
-  // values, the last entry is the innermost dimension.  This matches the
-  // in-memory layout of RowMajor Eigen tensors.
-  repeated Dim dim = 2;
-
-  // If true, the number of dimensions in the shape is unknown.
-  //
-  // If true, "dim.size()" must be 0.
-  bool unknown_rank = 3;
-};
+message Tensor {
+	// Tensor content: Serialized raw tensor content. This representation
+  	// can be used for all tensor types. The purpose of this representation is to
+  	// reduce serialization overhead during RPC call by avoiding serialization of
+  	// many repeated small items. In other words, we just copy the bytes and let
+	// the application layer serialize and deserialize the bytes. 
+	// 1. opentensor.serialize(numpy_array) --> buffer
+	// 2. opentensor.deserialize(bytes_content) --> numpy_array    	
+	bytes buffer = 1;
+   	
+	// shape: the shape of this tensor.
+	// i.e. [256, 724]
+	repeated uint32 shape = 2;
+    	
+	// TODO(const) Agree to the significance of this bool.
+	bool requires_grad = 3;
+    
+	// dtype: the tensor datatype.	
+	DataType dtype = 4;
+}
 
 // Pulled from: tensorflow/core/framework/types.proto
 enum DataType {

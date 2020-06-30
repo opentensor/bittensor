@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n!opentensor_proto/opentensor.proto\"\xb4\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\npublic_key\x18\x02 \x01(\x0c\x12\x0e\n\x06nounce\x18\x03 \x01(\x0c\x12\x0f\n\x07\x63ontent\x18\x04 \x01(\x0c\x12\x0e\n\x06\x64igest\x18\x05 \x01(\x0c\x12\x11\n\tsignature\x18\x06 \x01(\x0c\x12 \n\x05shape\x18\x07 \x01(\x0b\x32\x11.TensorShapeProto\x12\x18\n\x05\x64type\x18\x08 \x01(\x0e\x32\t.DataType\"o\n\x10TensorShapeProto\x12\"\n\x03\x64im\x18\x02 \x03(\x0b\x32\x15.TensorShapeProto.Dim\x12\x14\n\x0cunknown_rank\x18\x03 \x01(\x08\x1a!\n\x03\x44im\x12\x0c\n\x04size\x18\x01 \x01(\x03\x12\x0c\n\x04name\x18\x02 \x01(\t*\xf4\x02\n\x08\x44\x61taType\x12\x0e\n\nDT_INVALID\x10\x00\x12\x0c\n\x08\x44T_FLOAT\x10\x01\x12\r\n\tDT_DOUBLE\x10\x02\x12\x0c\n\x08\x44T_INT32\x10\x03\x12\x0c\n\x08\x44T_UINT8\x10\x04\x12\x0c\n\x08\x44T_INT16\x10\x05\x12\x0b\n\x07\x44T_INT8\x10\x06\x12\r\n\tDT_STRING\x10\x07\x12\x10\n\x0c\x44T_COMPLEX64\x10\x08\x12\x0c\n\x08\x44T_INT64\x10\t\x12\x0b\n\x07\x44T_BOOL\x10\n\x12\x0c\n\x08\x44T_QINT8\x10\x0b\x12\r\n\tDT_QUINT8\x10\x0c\x12\r\n\tDT_QINT32\x10\r\x12\x0f\n\x0b\x44T_BFLOAT16\x10\x0e\x12\r\n\tDT_QINT16\x10\x0f\x12\x0e\n\nDT_QUINT16\x10\x10\x12\r\n\tDT_UINT16\x10\x11\x12\x11\n\rDT_COMPLEX128\x10\x12\x12\x0b\n\x07\x44T_HALF\x10\x13\x12\x0f\n\x0b\x44T_RESOURCE\x10\x14\x12\x0e\n\nDT_VARIANT\x10\x15\x12\r\n\tDT_UINT32\x10\x16\x12\r\n\tDT_UINT64\x10\x17\x32^\n\nOpentensor\x12\'\n\x03\x46wd\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12\'\n\x03\x42wd\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x62\x06proto3'
+  serialized_pb=b'\n!opentensor_proto/opentensor.proto\"\x85\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\nsource_key\x18\x02 \x01(\x0c\x12\x12\n\ntarget_key\x18\x03 \x01(\x0c\x12\x0e\n\x06nounce\x18\x04 \x01(\x0c\x12\x11\n\tsignature\x18\x05 \x01(\x0c\x12\x18\n\x07tensors\x18\x06 \x03(\x0b\x32\x07.Tensor\"X\n\x06Tensor\x12\x0e\n\x06\x62uffer\x18\x01 \x01(\x0c\x12\r\n\x05shape\x18\x02 \x03(\r\x12\x15\n\rrequires_grad\x18\x03 \x01(\x08\x12\x18\n\x05\x64type\x18\x04 \x01(\x0e\x32\t.DataType*\xf4\x02\n\x08\x44\x61taType\x12\x0e\n\nDT_INVALID\x10\x00\x12\x0c\n\x08\x44T_FLOAT\x10\x01\x12\r\n\tDT_DOUBLE\x10\x02\x12\x0c\n\x08\x44T_INT32\x10\x03\x12\x0c\n\x08\x44T_UINT8\x10\x04\x12\x0c\n\x08\x44T_INT16\x10\x05\x12\x0b\n\x07\x44T_INT8\x10\x06\x12\r\n\tDT_STRING\x10\x07\x12\x10\n\x0c\x44T_COMPLEX64\x10\x08\x12\x0c\n\x08\x44T_INT64\x10\t\x12\x0b\n\x07\x44T_BOOL\x10\n\x12\x0c\n\x08\x44T_QINT8\x10\x0b\x12\r\n\tDT_QUINT8\x10\x0c\x12\r\n\tDT_QINT32\x10\r\x12\x0f\n\x0b\x44T_BFLOAT16\x10\x0e\x12\r\n\tDT_QINT16\x10\x0f\x12\x0e\n\nDT_QUINT16\x10\x10\x12\r\n\tDT_UINT16\x10\x11\x12\x11\n\rDT_COMPLEX128\x10\x12\x12\x0b\n\x07\x44T_HALF\x10\x13\x12\x0f\n\x0b\x44T_RESOURCE\x10\x14\x12\x0e\n\nDT_VARIANT\x10\x15\x12\r\n\tDT_UINT32\x10\x16\x12\r\n\tDT_UINT64\x10\x17\x32^\n\nOpentensor\x12\'\n\x03\x46wd\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12\'\n\x03\x42wd\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x62\x06proto3'
 )
 
 _DATATYPE = _descriptor.EnumDescriptor(
@@ -127,8 +127,8 @@ _DATATYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=334,
-  serialized_end=706,
+  serialized_start=264,
+  serialized_end=636,
 )
 _sym_db.RegisterEnumDescriptor(_DATATYPE)
 
@@ -175,51 +175,37 @@ _TENSORMESSAGE = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='public_key', full_name='TensorMessage.public_key', index=1,
+      name='source_key', full_name='TensorMessage.source_key', index=1,
       number=2, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='nounce', full_name='TensorMessage.nounce', index=2,
+      name='target_key', full_name='TensorMessage.target_key', index=2,
       number=3, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='content', full_name='TensorMessage.content', index=3,
+      name='nounce', full_name='TensorMessage.nounce', index=3,
       number=4, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='digest', full_name='TensorMessage.digest', index=4,
+      name='signature', full_name='TensorMessage.signature', index=4,
       number=5, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='signature', full_name='TensorMessage.signature', index=5,
-      number=6, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='shape', full_name='TensorMessage.shape', index=6,
-      number=7, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='dtype', full_name='TensorMessage.dtype', index=7,
-      number=8, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
+      name='tensors', full_name='TensorMessage.tensors', index=5,
+      number=6, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
@@ -236,28 +222,42 @@ _TENSORMESSAGE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=38,
-  serialized_end=218,
+  serialized_end=171,
 )
 
 
-_TENSORSHAPEPROTO_DIM = _descriptor.Descriptor(
-  name='Dim',
-  full_name='TensorShapeProto.Dim',
+_TENSOR = _descriptor.Descriptor(
+  name='Tensor',
+  full_name='Tensor',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='size', full_name='TensorShapeProto.Dim.size', index=0,
-      number=1, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
+      name='buffer', full_name='Tensor.buffer', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='name', full_name='TensorShapeProto.Dim.name', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
+      name='shape', full_name='Tensor.shape', index=1,
+      number=2, type=13, cpp_type=3, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='requires_grad', full_name='Tensor.requires_grad', index=2,
+      number=3, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='dtype', full_name='Tensor.dtype', index=3,
+      number=4, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
@@ -273,53 +273,14 @@ _TENSORSHAPEPROTO_DIM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=298,
-  serialized_end=331,
+  serialized_start=173,
+  serialized_end=261,
 )
 
-_TENSORSHAPEPROTO = _descriptor.Descriptor(
-  name='TensorShapeProto',
-  full_name='TensorShapeProto',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='dim', full_name='TensorShapeProto.dim', index=0,
-      number=2, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='unknown_rank', full_name='TensorShapeProto.unknown_rank', index=1,
-      number=3, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[_TENSORSHAPEPROTO_DIM, ],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=220,
-  serialized_end=331,
-)
-
-_TENSORMESSAGE.fields_by_name['shape'].message_type = _TENSORSHAPEPROTO
-_TENSORMESSAGE.fields_by_name['dtype'].enum_type = _DATATYPE
-_TENSORSHAPEPROTO_DIM.containing_type = _TENSORSHAPEPROTO
-_TENSORSHAPEPROTO.fields_by_name['dim'].message_type = _TENSORSHAPEPROTO_DIM
+_TENSORMESSAGE.fields_by_name['tensors'].message_type = _TENSOR
+_TENSOR.fields_by_name['dtype'].enum_type = _DATATYPE
 DESCRIPTOR.message_types_by_name['TensorMessage'] = _TENSORMESSAGE
-DESCRIPTOR.message_types_by_name['TensorShapeProto'] = _TENSORSHAPEPROTO
+DESCRIPTOR.message_types_by_name['Tensor'] = _TENSOR
 DESCRIPTOR.enum_types_by_name['DataType'] = _DATATYPE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -330,20 +291,12 @@ TensorMessage = _reflection.GeneratedProtocolMessageType('TensorMessage', (_mess
   })
 _sym_db.RegisterMessage(TensorMessage)
 
-TensorShapeProto = _reflection.GeneratedProtocolMessageType('TensorShapeProto', (_message.Message,), {
-
-  'Dim' : _reflection.GeneratedProtocolMessageType('Dim', (_message.Message,), {
-    'DESCRIPTOR' : _TENSORSHAPEPROTO_DIM,
-    '__module__' : 'opentensor_proto.opentensor_pb2'
-    # @@protoc_insertion_point(class_scope:TensorShapeProto.Dim)
-    })
-  ,
-  'DESCRIPTOR' : _TENSORSHAPEPROTO,
+Tensor = _reflection.GeneratedProtocolMessageType('Tensor', (_message.Message,), {
+  'DESCRIPTOR' : _TENSOR,
   '__module__' : 'opentensor_proto.opentensor_pb2'
-  # @@protoc_insertion_point(class_scope:TensorShapeProto)
+  # @@protoc_insertion_point(class_scope:Tensor)
   })
-_sym_db.RegisterMessage(TensorShapeProto)
-_sym_db.RegisterMessage(TensorShapeProto.Dim)
+_sym_db.RegisterMessage(Tensor)
 
 
 
@@ -353,8 +306,8 @@ _OPENTENSOR = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=708,
-  serialized_end=802,
+  serialized_start=638,
+  serialized_end=732,
   methods=[
   _descriptor.MethodDescriptor(
     name='Fwd',
