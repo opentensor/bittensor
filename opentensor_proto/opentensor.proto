@@ -20,11 +20,11 @@ message TensorMessage {
 	// >> from cryptography.hazmat.primitives import hashes, serialization
 	// >> private = Ed25519PrivateKey.generate()
 	// >> public = private.public_key()
-	// >> id = '0x%s' % public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
+	// >> public_bytes = public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
 	bytes public_key = 2;
 
-	// Message Nounce: A random or incrementing digit.
-	// i.e. bytes(1223123)
+	// Nounce: A random string of bytes to identify this message.
+	// nounce = os.urandom(12)
 	bytes nounce = 3;
 	
 	// Tensor content: Raw encoded tensor bytes.
@@ -33,8 +33,8 @@ message TensorMessage {
   	// reduce serialization overhead during RPC call by avoiding serialization of
   	// many repeated small items.
 	// TODO(const) decide on encoding method.
-	// 1. opentensor.encoding(numpy_array) --> bytes
-	// 2. opentensor.encoding(tensor) --> bytes
+	// 1. opentensor.serialize(numpy_array) --> byte_content
+	// 2. opentensor.deserialize(bytes_content) --> numpy_array
 	bytes content = 4;
 
 	// Sha256 message digest from (nounce, publikey, content)
@@ -43,7 +43,7 @@ message TensorMessage {
 	// >>> from cryptography.hazmat.primitives import hashes
 	// >>> digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
 	// >>> digest.update(nounce)
-	// >>> digest.update(bytes(source_id))
+	// >>> digest.update(public_key)
 	// >>> digest.update(payload)
 	// >>> digest = digest.finalize()
 	// i.e digest = b'l\xa1=R\xcap\xc8\x83\xe0\xf0\xbb\x10\x1eBZ\x89\xe8bM\xe5\x1d\xb2\xd29%\x93\xafj\x84\x11\x80\x90'
@@ -51,7 +51,7 @@ message TensorMessage {
 
 	// $ python
 	// >> (client) signature = private_key.sign(digest)
-	// >> (server side) public_key.verify(signature, digest))
+	// >> (server side) public_key.verify(signature, in_digest))
 	bytes signature = 6;
 
 	// Tensorshape: Shape of the tensor, for interpreting the payload.
