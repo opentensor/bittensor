@@ -40,10 +40,10 @@ def test_client():
     channel = grpc.insecure_channel(address)
     stub = proto_grpc.OpentensorStub(channel)
 
-    request = proto_pb2.TensorMessage(version=1.0)
+    request = proto_pb2.TensorMessage()
     response = stub.Fwd(request)
 
-    request = proto_pb2.TensorMessage(version=1.0)
+    request = proto_pb2.TensorMessage()
     response = stub.Bwd(request)
     server.stop(0)
 

@@ -17,8 +17,8 @@ def test_signed_message_fail():
     private = ed25519.Ed25519PrivateKey.generate()
     public = private.public_key()
     
-    # Get public key as bytes.
-    public_bytes = public.public_bytes (
+    # Get source_key as bytes.
+    source_key = public.public_bytes (
             serialization.Encoding.Raw, 
             serialization.PublicFormat.Raw 
     )
@@ -26,43 +26,42 @@ def test_signed_message_fail():
     # Create nounce. A string representation of random bytes. 
     nounce = os.urandom(12)
 
-    # Content.
-    content = os.urandom(100)
-    
     # Create SHA256 digest.
-    digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-    digest.update(public_bytes)
+    digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
+    digest.update(source_key)
     digest.update(nounce)
-    digest.update(content)
-    real_sha256_digest = digest.finalize()
+    real_sha1_digest = digest.finalize()
    
-    # Creat false SHA256 digest.
-    false_content = os.urandom(100)
+    # False nounce.
+    false_nounce = os.urandom(12)
     
-    digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-    digest.update(public_bytes)
-    digest.update(nounce)
-    digest.update(false_content)
-    false_sha256_digest = digest.finalize()
+    digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
+    digest.update(source_key)
+    digest.update(false_nounce)
+    false_sha1_digest = digest.finalize()
 
     # Create signature
-    signature = private.sign(real_sha256_digest)
+    signature = private.sign(real_sha1_digest)
     
     # Build message
     fwd_request = proto_pb2.TensorMessage (
-        public_key = public_bytes, 
-        nounce = nounce,
-        digest = false_sha256_digest,
-        content = content,
+        source_key = source_key, 
+        nounce = false_nounce,
         signature = signature
     )
  
     # Server side, load key.
-    in_public_key = ed25519.Ed25519PublicKey.from_public_bytes(fwd_request.public_key)
+    in_source_key = ed25519.Ed25519PublicKey.from_public_bytes(fwd_request.source_key)
     
+    # Recreate digest.
+    digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
+    digest.update(fwd_request.source_key)
+    digest.update(fwd_request.nounce)
+    target_side_digest = digest.finalize()
+
     # Verify the authenticity of the message.
     try:
-        in_public_key.verify(fwd_request.signature, fwd_request.digest)
+        in_source_key.verify(fwd_request.signature, target_side_digest)
     except:
         return True
     
@@ -75,8 +74,8 @@ def test_signed_message():
     private = ed25519.Ed25519PrivateKey.generate()
     public = private.public_key()
     
-    # Get public key as bytes.
-    public_bytes = public.public_bytes (
+    # Get source_key as bytes.
+    source_key = public.public_bytes (
             serialization.Encoding.Raw, 
             serialization.PublicFormat.Raw 
     )
@@ -84,35 +83,32 @@ def test_signed_message():
     # Create nounce. A string representation of random bytes. 
     nounce = os.urandom(12)
 
-    # Content.
-    content = os.urandom(100)
-
-    # Create SHA256 digest.
-    digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-    digest.update(public_bytes)
+    # Create SHA1 digest.
+    digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
+    digest.update(source_key)
     digest.update(nounce)
-    digest.update(content)
-    sha256_digest = digest.finalize()
-    
-    # Create signature
-    signature = private.sign(sha256_digest)
+    sha1_digest = digest.finalize()
+   
+    # Sign the digest.
+    signature = private.sign(sha1_digest)
     
     # Build message
     fwd_request = proto_pb2.TensorMessage (
-        public_key = public_bytes, 
+        source_key = source_key, 
         nounce = nounce,
-        digest = sha256_digest,
-        content = content,
         signature = signature
     )
  
     # Server side, load key.
-    in_public_key = ed25519.Ed25519PublicKey.from_public_bytes(fwd_request.public_key)
+    in_source_key = ed25519.Ed25519PublicKey.from_public_bytes(fwd_request.source_key)
     
+    # Recreate digest.
+    digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
+    digest.update(fwd_request.source_key)
+    digest.update(fwd_request.nounce)
+    target_side_digest = digest.finalize()
+
     # Verify the authenticity of the message.
-    ou = in_public_key.verify(fwd_request.signature, fwd_request.digest)
-
-    print (ou)
-
-
+    in_source_key.verify(fwd_request.signature, target_side_digest)
     
+    return True
