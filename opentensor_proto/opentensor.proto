@@ -14,20 +14,20 @@ message TensorMessage {
 	// i.e. 1.0
 	float version = 1;
 
-	// sender_key: raw bytes representation of the source's ed25519 public key.
+	// sender_id: raw bytes representation of the source's ed25519 public key.
 	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
   	// $ python 
 	// >> from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 	// >> from cryptography.hazmat.primitives import serialization
 	// >> private = Ed25519PrivateKey.generate()
 	// >> public = private.public_key()
-	// >> source_key = public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
-	bytes source_key = 2;
+	// source_id = '0x%s' % public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
+	string source_id = 2;
 
 	// target_key: raw bytes representation of the target's ed25519 public key
 	// Note that clients and experts both have ed25519 public keys. So the response tensor message
 	// should simply have these two keys swapped.
-	bytes target_key = 3;
+	string target_id = 3;
 
 	// nounce: random bytes to identify this message.
 	// >> nounce = os.urandom(12)
@@ -72,7 +72,6 @@ message Tensor {
 
 // Pulled from: tensorflow/core/framework/types.proto
 enum DataType {
-  // Not a legal value for DataType.  Used to indicate a DataType field
   // has not been set.
   DT_INVALID = 0;
 
