@@ -6,6 +6,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from opentensor.node import Node
 from opentensor.keys import Keys
+from opentensor.identity import Identity
 from opentensor.synapse import Synapse
 from opentensor.dendrite import Dendrite
 from opentensor.metagraph import Metagraph
