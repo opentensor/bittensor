@@ -41,6 +41,9 @@ class Metagraph(nn.Module):
         self._nodes = {}
         self._local_nodes = {}
 
+        # Dendrite
+        self._dendrite = opentensor.Dendrite(self)
+
         # Build grpc server.
         self._servicer = opentensor.Synapse(self)
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
@@ -64,8 +67,8 @@ class Metagraph(nn.Module):
     def Bwd(self, request, context):
         pass
 
-    def forward(self, x: List[torch.Tensor], nids: List[opentensor_pb2.Node]):
-        return self._dendrite(x, nodes) 
+    def forward(self, x: List[torch.Tensor], nodes: List[opentensor_pb2.Node]):
+        return self._dendrite.forward(x, nodes) 
 
     def subscribe(self, Node):
         node_id = new_node_id()

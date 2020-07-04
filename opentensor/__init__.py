@@ -4,8 +4,10 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from opentensor.metagraph import Node
+from opentensor.node import Node
+from opentensor.keys import Keys
 from opentensor.synapse import Synapse
+from opentensor.dendrite import Dendrite
 from opentensor.metagraph import Metagraph
 from opentensor.gate import Gate
 from opentensor.dispatcher import Dispatcher
