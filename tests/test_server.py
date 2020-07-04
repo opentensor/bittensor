@@ -1,5 +1,5 @@
-from opentensor_proto import opentensor_pb2_grpc as proto_grpc
-from opentensor_proto import opentensor_pb2 as proto_pb2
+from opentensor import opentensor_pb2_grpc as proto_grpc
+from opentensor import opentensor_pb2 as proto_pb2
 from concurrent import futures
 
 import grpc

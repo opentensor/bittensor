@@ -65,7 +65,7 @@ message TensorMessage {
 	// >> private = Ed25519PrivateKey.generate()
 	// >> public = private.public_key()
 	// source_id = '0x%s' % public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
-	string public_key = 2;
+	bytes public_key = 2;
 
 	// source_id: id of source node. Usually unused by target.
 	bytes source_id = 3;
