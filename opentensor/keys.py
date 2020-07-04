@@ -1,3 +1,10 @@
+from opentensor import opentensor_pb2_grpc as opentensor_grpc
+from opentensor import opentensor_pb2
+import opentensor
+
+from typing import List
+import torch
+
 def torch_to_bytes(key):
     key = key.cpu().detach().numpy()
     key = key.tobytes()
@@ -17,35 +24,26 @@ def new_key(dim):
 class Keys():
     def __init__(self, key_dim):
         self._key_dim = key_dim
-        self._key_for_id = {}
-        self._id_for_key = {}
+        self._key_for_node = {}
+        self._node_for_key = {}
 
-    def addId(self, nid):
+    def addNode(self, node):
         key = new_key(self._key_dim)
-        self._key_for_id[nid] = key
-        self._id_for_key[torch_to_bytes(key)] = nid
-
-    def addNodes(self, nodes: List[opentensor_pb2.Node]):
+        self._key_for_node[node.identity] = key
+        self._node_for_key[torch_to_bytes(key)] = node
         
-
-    def toKeys(self, nids):
+    def toKeys(self, nodes: List[opentensor_pb2.Node]):
         torch_keys = []
-        for nid in nids:
-            if nid not in self._key_for_id:
-                addId(nid)
-            torch_keys.append(self._key_for_id[nid])
-        return torch_keys
+        for node in nodes:
+            if node.identity not in self._key_for_node:
+                self.addNode(node)
+            torch_keys.append(self._key_for_node[node.identity])
+        return torch.cat(torch_keys, dim=0).view(-1, self._key_dim)
 
-    def toIds(self, keys):
-        nids = []
+    def toNodes(self, keys):
+        nodes = []
         for k in keys:
             kb = torch_to_bytes(k)
-            assert(kb in self._id_for_key)
-            nids.append(self._id_for_key[kb])
-        return nids
-
-    def keys(self):
-        return torch.cat(self._keys.toKeys(self._nodes_for_node_id.keys()), dim=0).view(-1, self._key_dim)
-
-
-
+            assert(kb in self._node_for_key)
+            nodes.append(self._node_for_key[kb])
+        return nodes

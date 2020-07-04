@@ -4,6 +4,10 @@ import opentensor
 
 from typing import List
 
+import os
+import grpc
+import torch
+
 class Dendrite:
     def __init__(self, metagraph):
         self._metagraph = metagraph
@@ -11,9 +15,8 @@ class Dendrite:
     def forward (self, x: List[torch.Tensor], nodes: List[opentensor_pb2.Node]):
         
         version = 1.0
-        source_uid = os.urandom(12)
+        source_uid = b'' 
         nounce = os.urandom(12) 
-        node_ids = self._keys.toIds(keys)
      
         results = []
         for idx, tensor in enumerate(x):
