@@ -13,6 +13,7 @@ from loguru import logger
 
 import os
 import ast
+import binascii
 import grpc
 import hashlib
 import sys
@@ -20,15 +21,12 @@ import threading
 import torch
 import numpy as np
 
-def new_node_id():
-    return os.urandom(12)
-
 class Metagraph(nn.Module):
 
-    def __init__(self, public_key, address, port, metagraph_address, start = False):
+    def __init__(self, identity, address, port, metagraph_address, start = False):
         super().__init__()    
     
-        self.public_key = public_key
+        self.identity = identity
         self.address = address
         self.port = port
         self.metagraph_address = metagraph_address
@@ -71,17 +69,17 @@ class Metagraph(nn.Module):
         return self._dendrite.forward(x, nodes) 
 
     def subscribe(self, Node):
-        node_id = new_node_id()
-        assert (node_id not in self._nodes)
+        node_identity = opentensor.Identity().public_key()
+        assert (node_identity not in self._nodes)
         node_proto = opentensor_pb2.Node(
             version = 1.0, 
-            public_key = self.public_key,
-            identity = node_id,
+            public_key = self.identity.public_key(),
+            identity = node_identity,
             address = self.address,
             port = self.port,
         )
-        self._nodes[node_id] = node_proto
-        self._local_nodes[node_id] = Node
+        self._nodes[node_identity] = node_proto
+        self._local_nodes[node_identity] = Node
         self._subscribe(node_proto)
 
     def _subscribe(self, node_proto):

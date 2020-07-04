@@ -18,16 +18,21 @@ message ACK {
 	bool ack = 1;
 }	
 
+message Metagraph {
+	float version = 1;
+	repeated Node nodes = 2;
+}
+
 message Node {
 	float version = 1;
 	string public_key = 2;
-	bytes identity = 3;
+	string identity = 3;
 	string address = 4;
 	string port = 5;
 	float rank = 6;
 	float incentive = 7;
-	float heartbeat = 8; 
-	repeated Weight weights = 9;
+	float stake = 8;	
+	repeated Weight weights = 10;
 }
 
 message Weight {
@@ -35,20 +40,6 @@ message Weight {
 	string source = 2;
 	string target = 3;
 	float value = 4;
-}
-
-message Metagraph {
-	float version = 1;
-	repeated Node nodes = 2;
-	repeated Weight weights = 3;
-	repeated Account accounts = 4;
-}
-
-message Account {
-	float version = 1;
-	string public_key = 2;
-	float incentive = 3;
-	float stake = 4;
 }
 
 // Proto for a opentensor.
@@ -65,15 +56,15 @@ message TensorMessage {
 	// >> private = Ed25519PrivateKey.generate()
 	// >> public = private.public_key()
 	// source_id = '0x%s' % public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
-	bytes public_key = 2;
+	string public_key = 2;
 
 	// source_id: id of source node. Usually unused by target.
-	bytes source_id = 3;
+	string source_id = 3;
 
 	// target_key: raw bytes representation of the target's ed25519 public key
 	// Note that clients and experts both have ed25519 public keys. So the response tensor message
 	// should simply have these two keys swapped.
-	bytes target_id = 4;
+	string target_id = 4;
 
 	// nounce: random bytes to identify this message.
 	// >> nounce = os.urandom(12)

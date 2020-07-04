@@ -31,7 +31,7 @@ class Dendrite:
             tensor = opentensor.Serializer.serialize(tensor)
             request = opentensor_pb2.TensorMessage(
                 version = version,
-                public_key = self._metagraph.public_key,
+                public_key = self._metagraph.identity.public_key(),
                 target_id = target_id, 
                 nounce = nounce,
                 tensors = [tensor]
