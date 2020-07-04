@@ -8,6 +8,49 @@ service Opentensor {
 	rpc Bwd(TensorMessage) returns (TensorMessage) {}
 }
 
+service MetagraphProxy {
+	rpc Subscribe(Node) returns (ACK) {}
+	rpc Unsubscribe(Node) returns (ACK) {}
+	rpc GetMetagraph(ACK) returns (Metagraph) {}
+}
+
+message ACK {
+	bool ack = 1;
+}	
+
+message Node {
+	float version = 1;
+	string public_key = 2;
+	bytes identity = 3;
+	string address = 4;
+	string port = 5;
+	float rank = 6;
+	float incentive = 7;
+	float heartbeat = 8; 
+	repeated Weight weights = 9;
+}
+
+message Weight {
+	float version = 1;
+	string source = 2;
+	string target = 3;
+	float value = 4;
+}
+
+message Metagraph {
+	float version = 1;
+	repeated Node nodes = 2;
+	repeated Weight weights = 3;
+	repeated Account accounts = 4;
+}
+
+message Account {
+	float version = 1;
+	string public_key = 2;
+	float incentive = 3;
+	float stake = 4;
+}
+
 // Proto for a opentensor.
 message TensorMessage {
 	// version: protocol version 
@@ -22,16 +65,19 @@ message TensorMessage {
 	// >> private = Ed25519PrivateKey.generate()
 	// >> public = private.public_key()
 	// source_id = '0x%s' % public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
-	string source_id = 2;
+	string public_key = 2;
+
+	// source_id: id of source node. Usually unused by target.
+	bytes source_id = 3;
 
 	// target_key: raw bytes representation of the target's ed25519 public key
 	// Note that clients and experts both have ed25519 public keys. So the response tensor message
 	// should simply have these two keys swapped.
-	string target_id = 3;
+	bytes target_id = 4;
 
 	// nounce: random bytes to identify this message.
 	// >> nounce = os.urandom(12)
-	bytes nounce = 4;
+	bytes nounce = 5;
 
 	// signature: digital signature linking the nounce and source_key
 	// prevents spoofing attacks where an adversary attempts to send messages as other peers.
@@ -39,14 +85,14 @@ message TensorMessage {
 	// >>> from cryptography.hazmat.backends import default_backend
 	// >>> from cryptography.hazmat.primitives import hashes
 	// >>> digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
-	// >>> digest.update(msg.source_key)
-	// >>> digest.update(msg.nounce)
+	// >>> digest.update(public_key.encode('utf-8'))
+	// >>> digest.update(nounce)
 	// >>> digest = digest.finalize()
 	// >>> source_key.verify(msg.signature, digest)
-	bytes signature = 5;
+	bytes signature = 6;
 
 	// tensor: 0 or more tensors passed on the wire.
-	repeated Tensor tensors = 6;
+	repeated Tensor tensors = 7;
 }
 
 message Tensor {

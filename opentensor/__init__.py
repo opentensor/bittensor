@@ -1,13 +1,20 @@
-from opentensor_proto import opentensor_pb2 as proto_pb2
+from opentensor import opentensor_pb2 as proto_pb2
 
-import pickle
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from opentensor.metagraph import Node
+from opentensor.synapse import Synapse
+from opentensor.metagraph import Metagraph
+from opentensor.gate import Gate
+from opentensor.dispatcher import Dispatcher
+
 from io import BytesIO
-
 import joblib
 import torch
+import pickle
 import umsgpack
-
-import torch
 
 class SerializerBase:
     @staticmethod
@@ -18,26 +25,25 @@ class SerializerBase:
     def loads(buf: bytes) -> object:
         raise NotImplementedError()
 
-class PytorchSerializer(SerializerBase):
-
+class Serializer(SerializerBase):
+    
     @staticmethod
     def serialize(obj: torch.Tensor) -> proto_pb2.Tensor:
-        data_buffer = PytorchSerializer.dumps(obj)
+        data_buffer = Serializer.dumps(obj)
         tensor = proto_pb2.Tensor(buffer=data_buffer)
         return tensor
     
     @staticmethod
     def deserialize(proto: proto_pb2.Tensor) -> torch.Tensor:    
-        torch_tensor = PytorchSerializer.loads(proto.buffer) 
+        torch_tensor = Serializer.loads(proto.buffer) 
         return torch_tensor
-
+    
     @staticmethod
     def dumps(obj: object) -> bytes:
         s = BytesIO()
         torch.save(obj, s, pickle_protocol=pickle.HIGHEST_PROTOCOL)
         return s.getvalue()
-
+    
     @staticmethod
     def loads(buf: bytes) -> object:
         return torch.load(BytesIO(buf))
-
