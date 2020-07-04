@@ -32,6 +32,7 @@ class Dendrite:
             request = opentensor_pb2.TensorMessage(
                 version = version,
                 public_key = self._metagraph.identity.public_key(),
+                source_id = self._metagraph.identity.public_key(),
                 target_id = target_id, 
                 nounce = nounce,
                 tensors = [tensor]
