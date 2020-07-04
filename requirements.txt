@@ -1,3 +1,9 @@
+argparse
+loguru
+numpy
+tensorflow
+fa2
+pycryptodome
 grpcio
 grpcio-tools
 pytest
