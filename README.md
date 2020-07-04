@@ -1,5 +1,5 @@
 # Opentensor Protocol 
-[![Build status](https://circleci.com/gh/opentensor/opentensor-proto.svg?style=shield)](https://circleci.com/gh/opentensor/opentensor-proto)
+[![Build status](https://circleci.com/gh/opentensor/opentensor.svg?style=shield)](https://circleci.com/gh/opentensor/opentensor)
 
 
 ## Building the protos from source
