@@ -23,13 +23,13 @@ import numpy as np
 
 class Metagraph(nn.Module):
 
-    def __init__(self, identity, address, port, metagraph_address, start = False):
+    def __init__(self, identity, address, port, proxy='localhost:8899', start = False):
         super().__init__()    
     
         self.identity = identity
         self.address = address
         self.port = port
-        self.metagraph_address = metagraph_address
+        self.metagraph_address = proxy
         
         # Get channel to metagraph proxy.
         channel = grpc.insecure_channel(self.metagraph_address)
@@ -38,6 +38,7 @@ class Metagraph(nn.Module):
         # State maps.
         self._nodes = {}
         self._local_nodes = {}
+        self._local_node_protos = {}
 
         # Dendrite
         self._dendrite = opentensor.Dendrite(self)
@@ -68,7 +69,7 @@ class Metagraph(nn.Module):
     def forward(self, x: List[torch.Tensor], nodes: List[opentensor_pb2.Node]):
         return self._dendrite.forward(x, nodes) 
 
-    def subscribe(self, Node):
+    def subscribe(self, Node: opentensor.Node):
         node_identity = opentensor.Identity().public_key()
         assert (node_identity not in self._nodes)
         node_proto = opentensor_pb2.Node(
@@ -79,28 +80,24 @@ class Metagraph(nn.Module):
             port = self.port,
         )
         self._nodes[node_identity] = node_proto
+        self._local_node_protos[node_identity] = node_proto
         self._local_nodes[node_identity] = Node
-        self._subscribe(node_proto)
+        self._proxy_subscribe(node_proto)
 
-    def _subscribe(self, node_proto):
-        try:
-            response = self.stub.Subscribe(node_proto)
-        except:
-            pass
+    def _proxy_subscribe(self, node_proto: opentensor_pb2.Node):
+        response = self.stub.Subscribe(node_proto)
 
-    def updates(self, metagraph):
-        for node_proto in metagraph.nodes:
-            if node_proto.node_id in self._nodes_for_node_i:
-                continue
-            self._nodes_for_node_id[node_proto.node_id] = node_proto
+    def _update(self, state):
+        for node in state.nodes:
+            self._nodes[node.identity] = node
 
     def refresh(self):
-        try:
-            request = proto_pb2.MetagraphRequest(version=1.0)
-            metagraph = self.stub.GetMetagraph(request)
-            self.update(metagraph) 
-        except:
-            pass
+        for node_proto in self._local_node_protos.values():
+            self._proxy_subscribe(node_proto)
+   
+        request = opentensor_pb2.ACK()
+        state = self.stub.GetMetagraph(request)
+        self._update(state) 
     
     def __del__(self):
         self.stop()
