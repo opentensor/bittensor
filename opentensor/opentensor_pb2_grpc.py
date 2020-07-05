@@ -110,12 +110,12 @@ class MetagraphProxyStub(object):
         """
         self.Subscribe = channel.unary_unary(
                 '/MetagraphProxy/Subscribe',
-                request_serializer=opentensor_dot_opentensor__pb2.Node.SerializeToString,
+                request_serializer=opentensor_dot_opentensor__pb2.Neuron.SerializeToString,
                 response_deserializer=opentensor_dot_opentensor__pb2.ACK.FromString,
                 )
         self.Unsubscribe = channel.unary_unary(
                 '/MetagraphProxy/Unsubscribe',
-                request_serializer=opentensor_dot_opentensor__pb2.Node.SerializeToString,
+                request_serializer=opentensor_dot_opentensor__pb2.Neuron.SerializeToString,
                 response_deserializer=opentensor_dot_opentensor__pb2.ACK.FromString,
                 )
         self.GetMetagraph = channel.unary_unary(
@@ -151,12 +151,12 @@ def add_MetagraphProxyServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Subscribe': grpc.unary_unary_rpc_method_handler(
                     servicer.Subscribe,
-                    request_deserializer=opentensor_dot_opentensor__pb2.Node.FromString,
+                    request_deserializer=opentensor_dot_opentensor__pb2.Neuron.FromString,
                     response_serializer=opentensor_dot_opentensor__pb2.ACK.SerializeToString,
             ),
             'Unsubscribe': grpc.unary_unary_rpc_method_handler(
                     servicer.Unsubscribe,
-                    request_deserializer=opentensor_dot_opentensor__pb2.Node.FromString,
+                    request_deserializer=opentensor_dot_opentensor__pb2.Neuron.FromString,
                     response_serializer=opentensor_dot_opentensor__pb2.ACK.SerializeToString,
             ),
             'GetMetagraph': grpc.unary_unary_rpc_method_handler(
@@ -185,7 +185,7 @@ class MetagraphProxy(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/MetagraphProxy/Subscribe',
-            opentensor_dot_opentensor__pb2.Node.SerializeToString,
+            opentensor_dot_opentensor__pb2.Neuron.SerializeToString,
             opentensor_dot_opentensor__pb2.ACK.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)
@@ -201,7 +201,7 @@ class MetagraphProxy(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/MetagraphProxy/Unsubscribe',
-            opentensor_dot_opentensor__pb2.Node.SerializeToString,
+            opentensor_dot_opentensor__pb2.Neuron.SerializeToString,
             opentensor_dot_opentensor__pb2.ACK.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)

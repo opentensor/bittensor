@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1bopentensor/opentensor.proto\"\x12\n\x03\x41\x43K\x12\x0b\n\x03\x61\x63k\x18\x01 \x01(\x08\"2\n\tMetagraph\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x14\n\x05nodes\x18\x02 \x03(\x0b\x32\x05.Node\"\xa6\x01\n\x04Node\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\npublic_key\x18\x02 \x01(\t\x12\x10\n\x08identity\x18\x03 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x04 \x01(\t\x12\x0c\n\x04port\x18\x05 \x01(\t\x12\x0c\n\x04rank\x18\x06 \x01(\x02\x12\x11\n\tincentive\x18\x07 \x01(\x02\x12\r\n\x05stake\x18\x08 \x01(\x02\x12\x18\n\x07weights\x18\n \x03(\x0b\x32\x07.Weight\"H\n\x06Weight\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x0e\n\x06source\x18\x02 \x01(\t\x12\x0e\n\x06target\x18\x03 \x01(\t\x12\r\n\x05value\x18\x04 \x01(\x02\"\x97\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\npublic_key\x18\x02 \x01(\t\x12\x11\n\tsource_id\x18\x03 \x01(\t\x12\x11\n\ttarget_id\x18\x04 \x01(\t\x12\x0e\n\x06nounce\x18\x05 \x01(\x0c\x12\x11\n\tsignature\x18\x06 \x01(\x0c\x12\x18\n\x07tensors\x18\x07 \x03(\x0b\x32\x07.Tensor\"X\n\x06Tensor\x12\x0e\n\x06\x62uffer\x18\x01 \x01(\x0c\x12\r\n\x05shape\x18\x02 \x03(\r\x12\x15\n\rrequires_grad\x18\x03 \x01(\x08\x12\x18\n\x05\x64type\x18\x04 \x01(\x0e\x32\t.DataType*\xf4\x02\n\x08\x44\x61taType\x12\x0e\n\nDT_INVALID\x10\x00\x12\x0c\n\x08\x44T_FLOAT\x10\x01\x12\r\n\tDT_DOUBLE\x10\x02\x12\x0c\n\x08\x44T_INT32\x10\x03\x12\x0c\n\x08\x44T_UINT8\x10\x04\x12\x0c\n\x08\x44T_INT16\x10\x05\x12\x0b\n\x07\x44T_INT8\x10\x06\x12\r\n\tDT_STRING\x10\x07\x12\x10\n\x0c\x44T_COMPLEX64\x10\x08\x12\x0c\n\x08\x44T_INT64\x10\t\x12\x0b\n\x07\x44T_BOOL\x10\n\x12\x0c\n\x08\x44T_QINT8\x10\x0b\x12\r\n\tDT_QUINT8\x10\x0c\x12\r\n\tDT_QINT32\x10\r\x12\x0f\n\x0b\x44T_BFLOAT16\x10\x0e\x12\r\n\tDT_QINT16\x10\x0f\x12\x0e\n\nDT_QUINT16\x10\x10\x12\r\n\tDT_UINT16\x10\x11\x12\x11\n\rDT_COMPLEX128\x10\x12\x12\x0b\n\x07\x44T_HALF\x10\x13\x12\x0f\n\x0b\x44T_RESOURCE\x10\x14\x12\x0e\n\nDT_VARIANT\x10\x15\x12\r\n\tDT_UINT32\x10\x16\x12\r\n\tDT_UINT64\x10\x17\x32^\n\nOpentensor\x12\'\n\x03\x46wd\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12\'\n\x03\x42wd\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x32n\n\x0eMetagraphProxy\x12\x1a\n\tSubscribe\x12\x05.Node\x1a\x04.ACK\"\x00\x12\x1c\n\x0bUnsubscribe\x12\x05.Node\x1a\x04.ACK\"\x00\x12\"\n\x0cGetMetagraph\x12\x04.ACK\x1a\n.Metagraph\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x1bopentensor/opentensor.proto\"\x12\n\x03\x41\x43K\x12\x0b\n\x03\x61\x63k\x18\x01 \x01(\x08\"6\n\tMetagraph\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x18\n\x07neurons\x18\x02 \x03(\x0b\x32\x07.Neuron\"\x8d\x01\n\x06Neuron\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\npublic_key\x18\x02 \x01(\t\x12\x0c\n\x04rank\x18\x03 \x01(\x02\x12\r\n\x05stake\x18\x04 \x01(\x02\x12\x11\n\tincentive\x18\x05 \x01(\x02\x12\x18\n\x07weights\x18\x06 \x03(\x0b\x32\x07.Weight\x12\x14\n\x05nodes\x18\x07 \x03(\x0b\x32\x05.Node\"\\\n\x04Node\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\npublic_key\x18\x02 \x01(\t\x12\x10\n\x08identity\x18\x03 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x04 \x01(\t\x12\x0c\n\x04port\x18\x05 \x01(\t\"H\n\x06Weight\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x0e\n\x06source\x18\x02 \x01(\t\x12\x0e\n\x06target\x18\x03 \x01(\t\x12\r\n\x05value\x18\x04 \x01(\x02\"\x97\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\npublic_key\x18\x02 \x01(\t\x12\x11\n\tsource_id\x18\x03 \x01(\t\x12\x11\n\ttarget_id\x18\x04 \x01(\t\x12\x0e\n\x06nounce\x18\x05 \x01(\x0c\x12\x11\n\tsignature\x18\x06 \x01(\x0c\x12\x18\n\x07tensors\x18\x07 \x03(\x0b\x32\x07.Tensor\"X\n\x06Tensor\x12\x0e\n\x06\x62uffer\x18\x01 \x01(\x0c\x12\r\n\x05shape\x18\x02 \x03(\r\x12\x15\n\rrequires_grad\x18\x03 \x01(\x08\x12\x18\n\x05\x64type\x18\x04 \x01(\x0e\x32\t.DataType*\xf4\x02\n\x08\x44\x61taType\x12\x0e\n\nDT_INVALID\x10\x00\x12\x0c\n\x08\x44T_FLOAT\x10\x01\x12\r\n\tDT_DOUBLE\x10\x02\x12\x0c\n\x08\x44T_INT32\x10\x03\x12\x0c\n\x08\x44T_UINT8\x10\x04\x12\x0c\n\x08\x44T_INT16\x10\x05\x12\x0b\n\x07\x44T_INT8\x10\x06\x12\r\n\tDT_STRING\x10\x07\x12\x10\n\x0c\x44T_COMPLEX64\x10\x08\x12\x0c\n\x08\x44T_INT64\x10\t\x12\x0b\n\x07\x44T_BOOL\x10\n\x12\x0c\n\x08\x44T_QINT8\x10\x0b\x12\r\n\tDT_QUINT8\x10\x0c\x12\r\n\tDT_QINT32\x10\r\x12\x0f\n\x0b\x44T_BFLOAT16\x10\x0e\x12\r\n\tDT_QINT16\x10\x0f\x12\x0e\n\nDT_QUINT16\x10\x10\x12\r\n\tDT_UINT16\x10\x11\x12\x11\n\rDT_COMPLEX128\x10\x12\x12\x0b\n\x07\x44T_HALF\x10\x13\x12\x0f\n\x0b\x44T_RESOURCE\x10\x14\x12\x0e\n\nDT_VARIANT\x10\x15\x12\r\n\tDT_UINT32\x10\x16\x12\r\n\tDT_UINT64\x10\x17\x32^\n\nOpentensor\x12\'\n\x03\x46wd\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12\'\n\x03\x42wd\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x32r\n\x0eMetagraphProxy\x12\x1c\n\tSubscribe\x12\x07.Neuron\x1a\x04.ACK\"\x00\x12\x1e\n\x0bUnsubscribe\x12\x07.Neuron\x1a\x04.ACK\"\x00\x12\"\n\x0cGetMetagraph\x12\x04.ACK\x1a\n.Metagraph\"\x00\x62\x06proto3'
 )
 
 _DATATYPE = _descriptor.EnumDescriptor(
@@ -153,8 +153,8 @@ _DATATYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=591,
-  serialized_end=963,
+  serialized_start=664,
+  serialized_end=1036,
 )
 _sym_db.RegisterEnumDescriptor(_DATATYPE)
 
@@ -234,7 +234,7 @@ _METAGRAPH = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='nodes', full_name='Metagraph.nodes', index=1,
+      name='neurons', full_name='Metagraph.neurons', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -253,7 +253,81 @@ _METAGRAPH = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=51,
-  serialized_end=101,
+  serialized_end=105,
+)
+
+
+_NEURON = _descriptor.Descriptor(
+  name='Neuron',
+  full_name='Neuron',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='Neuron.version', index=0,
+      number=1, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='public_key', full_name='Neuron.public_key', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='rank', full_name='Neuron.rank', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='stake', full_name='Neuron.stake', index=3,
+      number=4, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='incentive', full_name='Neuron.incentive', index=4,
+      number=5, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='weights', full_name='Neuron.weights', index=5,
+      number=6, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='nodes', full_name='Neuron.nodes', index=6,
+      number=7, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=108,
+  serialized_end=249,
 )
 
 
@@ -300,34 +374,6 @@ _NODE = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='rank', full_name='Node.rank', index=5,
-      number=6, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='incentive', full_name='Node.incentive', index=6,
-      number=7, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='stake', full_name='Node.stake', index=7,
-      number=8, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='weights', full_name='Node.weights', index=8,
-      number=10, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -340,8 +386,8 @@ _NODE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=104,
-  serialized_end=270,
+  serialized_start=251,
+  serialized_end=343,
 )
 
 
@@ -393,8 +439,8 @@ _WEIGHT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=272,
-  serialized_end=344,
+  serialized_start=345,
+  serialized_end=417,
 )
 
 
@@ -467,8 +513,8 @@ _TENSORMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=347,
-  serialized_end=498,
+  serialized_start=420,
+  serialized_end=571,
 )
 
 
@@ -520,16 +566,18 @@ _TENSOR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=500,
-  serialized_end=588,
+  serialized_start=573,
+  serialized_end=661,
 )
 
-_METAGRAPH.fields_by_name['nodes'].message_type = _NODE
-_NODE.fields_by_name['weights'].message_type = _WEIGHT
+_METAGRAPH.fields_by_name['neurons'].message_type = _NEURON
+_NEURON.fields_by_name['weights'].message_type = _WEIGHT
+_NEURON.fields_by_name['nodes'].message_type = _NODE
 _TENSORMESSAGE.fields_by_name['tensors'].message_type = _TENSOR
 _TENSOR.fields_by_name['dtype'].enum_type = _DATATYPE
 DESCRIPTOR.message_types_by_name['ACK'] = _ACK
 DESCRIPTOR.message_types_by_name['Metagraph'] = _METAGRAPH
+DESCRIPTOR.message_types_by_name['Neuron'] = _NEURON
 DESCRIPTOR.message_types_by_name['Node'] = _NODE
 DESCRIPTOR.message_types_by_name['Weight'] = _WEIGHT
 DESCRIPTOR.message_types_by_name['TensorMessage'] = _TENSORMESSAGE
@@ -550,6 +598,13 @@ Metagraph = _reflection.GeneratedProtocolMessageType('Metagraph', (_message.Mess
   # @@protoc_insertion_point(class_scope:Metagraph)
   })
 _sym_db.RegisterMessage(Metagraph)
+
+Neuron = _reflection.GeneratedProtocolMessageType('Neuron', (_message.Message,), {
+  'DESCRIPTOR' : _NEURON,
+  '__module__' : 'opentensor.opentensor_pb2'
+  # @@protoc_insertion_point(class_scope:Neuron)
+  })
+_sym_db.RegisterMessage(Neuron)
 
 Node = _reflection.GeneratedProtocolMessageType('Node', (_message.Message,), {
   'DESCRIPTOR' : _NODE,
@@ -588,8 +643,8 @@ _OPENTENSOR = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=965,
-  serialized_end=1059,
+  serialized_start=1038,
+  serialized_end=1132,
   methods=[
   _descriptor.MethodDescriptor(
     name='Fwd',
@@ -624,15 +679,15 @@ _METAGRAPHPROXY = _descriptor.ServiceDescriptor(
   index=1,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=1061,
-  serialized_end=1171,
+  serialized_start=1134,
+  serialized_end=1248,
   methods=[
   _descriptor.MethodDescriptor(
     name='Subscribe',
     full_name='MetagraphProxy.Subscribe',
     index=0,
     containing_service=None,
-    input_type=_NODE,
+    input_type=_NEURON,
     output_type=_ACK,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
@@ -642,7 +697,7 @@ _METAGRAPHPROXY = _descriptor.ServiceDescriptor(
     full_name='MetagraphProxy.Unsubscribe',
     index=1,
     containing_service=None,
-    input_type=_NODE,
+    input_type=_NEURON,
     output_type=_ACK,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,

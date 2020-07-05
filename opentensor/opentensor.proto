@@ -9,8 +9,8 @@ service Opentensor {
 }
 
 service MetagraphProxy {
-	rpc Subscribe(Node) returns (ACK) {}
-	rpc Unsubscribe(Node) returns (ACK) {}
+	rpc Subscribe(Neuron) returns (ACK) {}
+	rpc Unsubscribe(Neuron) returns (ACK) {}
 	rpc GetMetagraph(ACK) returns (Metagraph) {}
 }
 
@@ -20,7 +20,17 @@ message ACK {
 
 message Metagraph {
 	float version = 1;
-	repeated Node nodes = 2;
+	repeated Neuron neurons = 2;
+}
+
+message Neuron {
+	float version = 1;
+	string public_key = 2;
+	float rank = 3;
+	float stake = 4;	
+	float incentive = 5;
+	repeated Weight weights = 6;
+	repeated Node nodes = 7;
 }
 
 message Node {
@@ -29,10 +39,6 @@ message Node {
 	string identity = 3;
 	string address = 4;
 	string port = 5;
-	float rank = 6;
-	float incentive = 7;
-	float stake = 8;	
-	repeated Weight weights = 10;
 }
 
 message Weight {

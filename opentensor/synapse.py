@@ -2,7 +2,7 @@ from opentensor import opentensor_pb2_grpc as opentensor_grpc
 from opentensor import opentensor_pb2
 import opentensor
 
-class Synapse(opentensor_grpc.OpentensorServicer):
+class Axon(opentensor_grpc.OpentensorServicer):
     def __init__(self, metagraph):
         self._metagraph = metagraph
     
