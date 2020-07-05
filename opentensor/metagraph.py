@@ -38,6 +38,7 @@ class Metagraph(nn.Module):
         # State maps.
         self._nodes = {}
         self._local_nodes = {}
+        self._local_weights = {}
         self._local_node_protos = {}
 
         # Dendrite
@@ -53,7 +54,7 @@ class Metagraph(nn.Module):
         self._thread = None
         if start:
             self.start()
-
+    
     def nodes(self) -> List[opentensor_pb2.Node]:
         return list(self._nodes.values())
 
@@ -69,6 +70,19 @@ class Metagraph(nn.Module):
     def forward(self, x: List[torch.Tensor], nodes: List[opentensor_pb2.Node]):
         return self._dendrite.forward(x, nodes) 
 
+    def setWeight(self, target: opentensor_pb2.Node, value):
+        weight = opentensor_pb2.Weight (
+            source = self.identity.public_key(),
+            target = target.public_key,
+            value = value
+        )
+        self._local_weights[target.public_key] = weight
+
+    def getWeight(self, target: opentensor_pb2.Node):
+        if target.public_key in self._local_weights:
+            return self._local_weights[target.public_key].value
+        return 0.0
+        
     def subscribe(self, Node: opentensor.Node):
         node_identity = opentensor.Identity().public_key()
         assert (node_identity not in self._nodes)
@@ -77,27 +91,28 @@ class Metagraph(nn.Module):
             public_key = self.identity.public_key(),
             identity = node_identity,
             address = self.address,
-            port = self.port,
+            port = self.port    
         )
         self._nodes[node_identity] = node_proto
         self._local_node_protos[node_identity] = node_proto
         self._local_nodes[node_identity] = Node
-        self._proxy_subscribe(node_proto)
-
-    def _proxy_subscribe(self, node_proto: opentensor_pb2.Node):
-        response = self.stub.Subscribe(node_proto)
-
-    def _update(self, state):
-        for node in state.nodes:
-            self._nodes[node.identity] = node
-
+        self.refresh()
+    
     def refresh(self):
-        for node_proto in self._local_node_protos.values():
-            self._proxy_subscribe(node_proto)
-   
+        # Send graph.
+        neuron = opentensor_pb2.Neuron (
+                public_key = self.identity.public_key(),
+                nodes = self._local_node_protos.values(),
+                weights = self._local_weights.values(),
+        ) 
+        self.stub.Subscribe(neuron)
+       
+        # Pull graph.
         request = opentensor_pb2.ACK()
         state = self.stub.GetMetagraph(request)
-        self._update(state) 
+        for neuron in state.neurons:
+            for node in neuron.nodes:
+                self._nodes[node.identity] = node
     
     def __del__(self):
         self.stop()
@@ -109,7 +124,7 @@ class Metagraph(nn.Module):
     def stop(self):
         self._server.stop(0)
 
-    def _serve(self):
+    def _serve(self): 
         print ('serving metagraph ...')
         self._server.start()
 
