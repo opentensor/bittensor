@@ -7,6 +7,23 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+
+class Encoder(nn.Module):
+    def __init__(self, encoder_dim):
+        super(Net, self).__init__()
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.conv2_drop = nn.Dropout2d()
+        self.fc1 = nn.Linear(320, encoder_dim)
+
+    def forward(self, x):
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
+        x = x.view(-1, 320)
+        x = F.relu(self.fc1(x))
+        return F.log_softmax(x)
+
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -59,8 +76,9 @@ def main():
     # Gate: object for a trained lookup of keys
     topk = 10 # number of keys to choose for each examples.
     n_keys = 10  
-    x_dim = 784 # key rank input size to the network.
-    gate = opentensor.Gate(x_dim, topk, key_dim)
+    encoder_dim = 784 # mnist
+    gate_encoder = Encoder(encoder_dim)
+    gate = opentensor.Gate(encoder_dim, topk, key_dim)
     
     # Object for dispatching / combining gated inputs
     dispatcher = opentensor.Dispatcher()
@@ -68,6 +86,7 @@ def main():
     # Node to serve on metagraph.
     class Mnist(opentensor.Node): 
         def fwd (self, key, tensor):
+            print (key)
             return network(data)
 
         def bwd (self, key, tensor):
@@ -82,8 +101,32 @@ def main():
         for batch_idx, (data, target) in enumerate(train_loader):
             optimizer.zero_grad()
     
-            output = network(data)
+            # Get nodes from metagraph.
+            # and map nodes to torch keys.
+            nodes = metagraph.nodes()                                           # List[opentensor_pb2.Node]))
+            keys = keymap.toKeys(nodes)                                         # (-1, key_dim)
     
+            # Learning a map from the gate_inputs to keys
+            # gates[i, j] = score for the jth key for input i
+            gate_inputs = Encoder(data)                     # (batch_size, seq_len * embedding_size)
+            gates = gate(gate_inputs, keys, topk = min(len(keys), topk))
+            
+            # Dispatch data to inputs for each key.
+            # when gates[i, j] == 0, the key j does not recieve input i
+            dispatch = dispatcher.dispatch(gate_inputs, gates)              # List[(-1, seq_len)] 
+
+            # Query the network by mapping from keys to node endpoints.
+            # results = list[torch.Tensor], len(results) = len(keys)
+            nodes = keymap.toNodes(keys)                                        # List[opentensor_pb2.Node]
+            query = metagraph(dispatch, nodes)                                  # List[(-1, embedding_size)]
+
+            # Join results using gates to combine inputs.
+            net_results = dispatcher.combine(query, gates)                          # (batch_size, seq_len * embedding_size)
+           
+            # join the network outputs.
+            output = network(data)
+            output = net_output + output 
+   
             loss = F.nll_loss(output, target)
             loss.backward()
             
