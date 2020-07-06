@@ -123,8 +123,10 @@ class Metagraph(nn.Module):
                 nodes = self._local_node_protos.values(),
                 weights = self._local_weights.values(),
         ) 
-        self.stub.Subscribe(neuron)
-       
+        try:
+            self.stub.Subscribe(neuron)
+        except:
+            return
         # Pull graph.
         request = opentensor_pb2.ACK()
         state = self.stub.GetMetagraph(request)
