@@ -16,6 +16,7 @@ import ast
 import binascii
 import grpc
 import hashlib
+import random
 import sys
 import threading
 import torch
@@ -23,38 +24,55 @@ import numpy as np
 
 class Metagraph(nn.Module):
 
-    def __init__(self, identity, address, port, proxy='localhost:8899', start = False):
+    def __init__(self, identity: opentensor.Identity, start=True):
         super().__init__()    
-    
-        self.identity = identity
-        self.address = address
-        self.port = port
-        self.metagraph_address = proxy
-        
-        # Get channel to metagraph proxy.
-        channel = grpc.insecure_channel(self.metagraph_address)
-        self.stub = opentensor_grpc.MetagraphProxyStub(channel)
    
-        # State maps.
+        # Network identity key object.
+        self.identity = identity
+       
+        # Inward connection handler.
+        self._axon_address = 'localhost'
+        self._axon_port = str(random.randint(8000, 30000))
+        self._axon = opentensor.Axon(self)
+        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        opentensor_grpc.add_OpentensorServicer_to_server(self._axon, self._server)
+        self._server.add_insecure_port('[::]:' + self._axon_port)
+
+        # Network proxy stub.
+        self._proxy_address = 'localhost:8899'
+        channel = grpc.insecure_channel(self._proxy_address)
+        self.stub = opentensor_grpc.MetagraphProxyStub(channel)
+
+        # Dendrite: outward connection handler.
+        self._dendrite = opentensor.Dendrite(self)
+
+        # Internal state.
         self._nodes = {}
         self._local_nodes = {}
         self._local_weights = {}
         self._local_node_protos = {}
 
-        # Dendrite
-        self._dendrite = opentensor.Dendrite(self)
-
         # Build grpc server.
-        self._servicer = opentensor.Synapse(self)
-        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        opentensor_grpc.add_OpentensorServicer_to_server(self._servicer, self._server)
-        serve_address = self.address + ":" + self.port
-        self._server.add_insecure_port(serve_address)
-        
         self._thread = None
+
         if start:
             self.start()
+        
     
+    def __del__(self):
+        self.stop()
+
+    def start(self):
+        self._thread = threading.Thread(target=self._serve, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        self._server.stop(0)
+
+    def _serve(self): 
+        print ('serving metagraph ...')
+        self._server.start()
+   
     def nodes(self) -> List[opentensor_pb2.Node]:
         return list(self._nodes.values())
 
@@ -90,8 +108,8 @@ class Metagraph(nn.Module):
             version = 1.0, 
             public_key = self.identity.public_key(),
             identity = node_identity,
-            address = self.address,
-            port = self.port    
+            address = self._axon_address,
+            port = self._axon_port    
         )
         self._nodes[node_identity] = node_proto
         self._local_node_protos[node_identity] = node_proto
@@ -114,17 +132,4 @@ class Metagraph(nn.Module):
             for node in neuron.nodes:
                 self._nodes[node.identity] = node
     
-    def __del__(self):
-        self.stop()
-
-    def start(self):
-        self._thread = threading.Thread(target=self._serve, daemon=True)
-        self._thread.start()
-
-    def stop(self):
-        self._server.stop(0)
-
-    def _serve(self): 
-        print ('serving metagraph ...')
-        self._server.start()
-
+    
