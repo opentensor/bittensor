@@ -13,6 +13,15 @@ class Dendrite:
     def __init__(self, metagraph):
         self._metagraph = metagraph
 
+    def gossip(node: opentensor_pb2.Node,
+               graph: opentensor_pb2.Metagraph):
+
+        version = 1.0
+        address = node.address + ":" + node.port
+        channel = grpc.insecure_channel(address)
+        stub = opentensor_grpc.OpentensorStub(channel)
+        return stub.Gossip(graph)
+
     def forward(self, x: List[torch.Tensor], nodes: List[opentensor_pb2.Node]):
 
         version = 1.0

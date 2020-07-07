@@ -16,15 +16,19 @@ class OpentensorStub(object):
             channel: A grpc.Channel.
         """
         self.Fwd = channel.unary_unary(
-                '/Opentensor/Fwd',
-                request_serializer=opentensor_dot_opentensor__pb2.TensorMessage.SerializeToString,
-                response_deserializer=opentensor_dot_opentensor__pb2.TensorMessage.FromString,
-                )
+            '/Opentensor/Fwd',
+            request_serializer=opentensor_dot_opentensor__pb2.TensorMessage.
+            SerializeToString,
+            response_deserializer=opentensor_dot_opentensor__pb2.TensorMessage.
+            FromString,
+        )
         self.Bwd = channel.unary_unary(
-                '/Opentensor/Bwd',
-                request_serializer=opentensor_dot_opentensor__pb2.TensorMessage.SerializeToString,
-                response_deserializer=opentensor_dot_opentensor__pb2.TensorMessage.FromString,
-                )
+            '/Opentensor/Bwd',
+            request_serializer=opentensor_dot_opentensor__pb2.TensorMessage.
+            SerializeToString,
+            response_deserializer=opentensor_dot_opentensor__pb2.TensorMessage.
+            FromString,
+        )
 
 
 class OpentensorServicer(object):
@@ -48,23 +52,29 @@ class OpentensorServicer(object):
 
 def add_OpentensorServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Fwd': grpc.unary_unary_rpc_method_handler(
-                    servicer.Fwd,
-                    request_deserializer=opentensor_dot_opentensor__pb2.TensorMessage.FromString,
-                    response_serializer=opentensor_dot_opentensor__pb2.TensorMessage.SerializeToString,
+        'Fwd':
+            grpc.unary_unary_rpc_method_handler(
+                servicer.Fwd,
+                request_deserializer=opentensor_dot_opentensor__pb2.
+                TensorMessage.FromString,
+                response_serializer=opentensor_dot_opentensor__pb2.
+                TensorMessage.SerializeToString,
             ),
-            'Bwd': grpc.unary_unary_rpc_method_handler(
-                    servicer.Bwd,
-                    request_deserializer=opentensor_dot_opentensor__pb2.TensorMessage.FromString,
-                    response_serializer=opentensor_dot_opentensor__pb2.TensorMessage.SerializeToString,
+        'Bwd':
+            grpc.unary_unary_rpc_method_handler(
+                servicer.Bwd,
+                request_deserializer=opentensor_dot_opentensor__pb2.
+                TensorMessage.FromString,
+                response_serializer=opentensor_dot_opentensor__pb2.
+                TensorMessage.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'Opentensor', rpc_method_handlers)
+        'Opentensor', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
- # This class is part of an EXPERIMENTAL API.
+# This class is part of an EXPERIMENTAL API.
 class Opentensor(object):
     """Runtime protocol definition.
     """
@@ -79,11 +89,12 @@ class Opentensor(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Opentensor/Fwd',
+        return grpc.experimental.unary_unary(
+            request, target, '/Opentensor/Fwd',
             opentensor_dot_opentensor__pb2.TensorMessage.SerializeToString,
-            opentensor_dot_opentensor__pb2.TensorMessage.FromString,
-            options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            opentensor_dot_opentensor__pb2.TensorMessage.FromString, options,
+            channel_credentials, call_credentials, compression, wait_for_ready,
+            timeout, metadata)
 
     @staticmethod
     def Bwd(request,
@@ -95,11 +106,12 @@ class Opentensor(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Opentensor/Bwd',
+        return grpc.experimental.unary_unary(
+            request, target, '/Opentensor/Bwd',
             opentensor_dot_opentensor__pb2.TensorMessage.SerializeToString,
-            opentensor_dot_opentensor__pb2.TensorMessage.FromString,
-            options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            opentensor_dot_opentensor__pb2.TensorMessage.FromString, options,
+            channel_credentials, call_credentials, compression, wait_for_ready,
+            timeout, metadata)
 
 
 class MetagraphProxyStub(object):
@@ -113,20 +125,24 @@ class MetagraphProxyStub(object):
             channel: A grpc.Channel.
         """
         self.Subscribe = channel.unary_unary(
-                '/MetagraphProxy/Subscribe',
-                request_serializer=opentensor_dot_opentensor__pb2.Neuron.SerializeToString,
-                response_deserializer=opentensor_dot_opentensor__pb2.ACK.FromString,
-                )
+            '/MetagraphProxy/Subscribe',
+            request_serializer=opentensor_dot_opentensor__pb2.Neuron.
+            SerializeToString,
+            response_deserializer=opentensor_dot_opentensor__pb2.ACK.FromString,
+        )
         self.Unsubscribe = channel.unary_unary(
-                '/MetagraphProxy/Unsubscribe',
-                request_serializer=opentensor_dot_opentensor__pb2.Neuron.SerializeToString,
-                response_deserializer=opentensor_dot_opentensor__pb2.ACK.FromString,
-                )
+            '/MetagraphProxy/Unsubscribe',
+            request_serializer=opentensor_dot_opentensor__pb2.Neuron.
+            SerializeToString,
+            response_deserializer=opentensor_dot_opentensor__pb2.ACK.FromString,
+        )
         self.GetMetagraph = channel.unary_unary(
-                '/MetagraphProxy/GetMetagraph',
-                request_serializer=opentensor_dot_opentensor__pb2.ACK.SerializeToString,
-                response_deserializer=opentensor_dot_opentensor__pb2.Metagraph.FromString,
-                )
+            '/MetagraphProxy/GetMetagraph',
+            request_serializer=opentensor_dot_opentensor__pb2.ACK.
+            SerializeToString,
+            response_deserializer=opentensor_dot_opentensor__pb2.Metagraph.
+            FromString,
+        )
 
 
 class MetagraphProxyServicer(object):
@@ -154,76 +170,88 @@ class MetagraphProxyServicer(object):
 
 def add_MetagraphProxyServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Subscribe': grpc.unary_unary_rpc_method_handler(
-                    servicer.Subscribe,
-                    request_deserializer=opentensor_dot_opentensor__pb2.Neuron.FromString,
-                    response_serializer=opentensor_dot_opentensor__pb2.ACK.SerializeToString,
+        'Subscribe':
+            grpc.unary_unary_rpc_method_handler(
+                servicer.Subscribe,
+                request_deserializer=opentensor_dot_opentensor__pb2.Neuron.
+                FromString,
+                response_serializer=opentensor_dot_opentensor__pb2.ACK.
+                SerializeToString,
             ),
-            'Unsubscribe': grpc.unary_unary_rpc_method_handler(
-                    servicer.Unsubscribe,
-                    request_deserializer=opentensor_dot_opentensor__pb2.Neuron.FromString,
-                    response_serializer=opentensor_dot_opentensor__pb2.ACK.SerializeToString,
+        'Unsubscribe':
+            grpc.unary_unary_rpc_method_handler(
+                servicer.Unsubscribe,
+                request_deserializer=opentensor_dot_opentensor__pb2.Neuron.
+                FromString,
+                response_serializer=opentensor_dot_opentensor__pb2.ACK.
+                SerializeToString,
             ),
-            'GetMetagraph': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetMetagraph,
-                    request_deserializer=opentensor_dot_opentensor__pb2.ACK.FromString,
-                    response_serializer=opentensor_dot_opentensor__pb2.Metagraph.SerializeToString,
+        'GetMetagraph':
+            grpc.unary_unary_rpc_method_handler(
+                servicer.GetMetagraph,
+                request_deserializer=opentensor_dot_opentensor__pb2.ACK.
+                FromString,
+                response_serializer=opentensor_dot_opentensor__pb2.Metagraph.
+                SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'MetagraphProxy', rpc_method_handlers)
+        'MetagraphProxy', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
- # This class is part of an EXPERIMENTAL API.
+# This class is part of an EXPERIMENTAL API.
 class MetagraphProxy(object):
     """DTH + Blockchain interface.
     """
 
     @staticmethod
     def Subscribe(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/MetagraphProxy/Subscribe',
+                  target,
+                  options=(),
+                  channel_credentials=None,
+                  call_credentials=None,
+                  compression=None,
+                  wait_for_ready=None,
+                  timeout=None,
+                  metadata=None):
+        return grpc.experimental.unary_unary(
+            request, target, '/MetagraphProxy/Subscribe',
             opentensor_dot_opentensor__pb2.Neuron.SerializeToString,
-            opentensor_dot_opentensor__pb2.ACK.FromString,
-            options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            opentensor_dot_opentensor__pb2.ACK.FromString, options,
+            channel_credentials, call_credentials, compression, wait_for_ready,
+            timeout, metadata)
 
     @staticmethod
     def Unsubscribe(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/MetagraphProxy/Unsubscribe',
+                    target,
+                    options=(),
+                    channel_credentials=None,
+                    call_credentials=None,
+                    compression=None,
+                    wait_for_ready=None,
+                    timeout=None,
+                    metadata=None):
+        return grpc.experimental.unary_unary(
+            request, target, '/MetagraphProxy/Unsubscribe',
             opentensor_dot_opentensor__pb2.Neuron.SerializeToString,
-            opentensor_dot_opentensor__pb2.ACK.FromString,
-            options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            opentensor_dot_opentensor__pb2.ACK.FromString, options,
+            channel_credentials, call_credentials, compression, wait_for_ready,
+            timeout, metadata)
 
     @staticmethod
     def GetMetagraph(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/MetagraphProxy/GetMetagraph',
+                     target,
+                     options=(),
+                     channel_credentials=None,
+                     call_credentials=None,
+                     compression=None,
+                     wait_for_ready=None,
+                     timeout=None,
+                     metadata=None):
+        return grpc.experimental.unary_unary(
+            request, target, '/MetagraphProxy/GetMetagraph',
             opentensor_dot_opentensor__pb2.ACK.SerializeToString,
-            opentensor_dot_opentensor__pb2.Metagraph.FromString,
-            options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            opentensor_dot_opentensor__pb2.Metagraph.FromString, options,
+            channel_credentials, call_credentials, compression, wait_for_ready,
+            timeout, metadata)

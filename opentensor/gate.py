@@ -6,6 +6,7 @@ from torch.nn import functional as F
 
 
 class Gate(nn.Module):
+
     def __init__(self, x_dim, topk, key_dim):
         super().__init__()
         self.x_dim = x_dim

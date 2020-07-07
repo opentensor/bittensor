@@ -3,23 +3,14 @@ syntax = "proto3";
 // Runtime protocol definition.
 service Opentensor {
 	// Forward tensor request. 
-	rpc Fwd(TensorMessage) returns (TensorMessage) {}
+	rpc Fwd (TensorMessage) returns (TensorMessage) {}
 	
 	// Reverse tensor (gradient) request.
-	rpc Bwd(TensorMessage) returns (TensorMessage) {}
-}
+	rpc Bwd (TensorMessage) returns (TensorMessage) {}
 
-// DTH + Blockchain interface.
-service MetagraphProxy {
-	rpc Subscribe(Neuron) returns (ACK) {}
-	rpc Unsubscribe(Neuron) returns (ACK) {}
-	rpc GetMetagraph(ACK) returns (Metagraph) {}
+	// Gossip service metagraph 
+	rpc Gossip (Metagraph) returns (Metagraph) {}
 }
-
-// Bool acknowledgment.
-message ACK {
-	bool ack = 1;
-}	
 
 // Full graph definition.
 message Metagraph {
@@ -29,20 +20,20 @@ message Metagraph {
 
 message Neuron {
 	float version = 1;
-	string public_key = 2;
-	float rank = 3;
-	float stake = 4;	
-	float incentive = 5;
-	repeated Weight weights = 6;
-	repeated Node nodes = 7;
+	string neuron_key = 2;
+	string address = 3;
+	string port = 4;
+	float rank = 5;
+	float stake = 6;	
+	float incentive = 7;
+	repeated Weight weights = 8;
+	repeated Node nodes = 9;
 }
 
 message Node {
 	float version = 1;
-	string public_key = 2;
-	string identity = 3;
-	string address = 4;
-	string port = 5;
+	string neuron_key = 2;
+	string node_identity = 3;
 	string definition = 6;
 	TensorDef indef = 7;
 	TensorDef outdef = 8;
