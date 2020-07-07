@@ -1,3 +1,4 @@
+from opentensor import opentensor_pb2 
 import opentensor
 
 import pickle
@@ -67,7 +68,20 @@ def main():
     dispatcher = opentensor.Dispatcher()
 
     # Node to serve on metagraph.
-    class Mnist(opentensor.Node): 
+    class Mnist(opentensor.Node):             
+        def definition (self):
+            return "mnist"
+
+        def indef (self):
+            shape = [-1, 1, 28, 28]
+            dtype = opentensor_pb2.DataType.DT_FLOAT32
+            return opentensor_pb2.TensorDef(shape=shape, dtype=dtype)
+
+        def outdef (self):
+            shape = [-1, 10]
+            dtype = opentensor_pb2.DataType.DT_FLOAT32
+            return opentensor_pb2.TensorDef(shape=shape, dtype=dtype)
+        
         def fwd (self, key, tensor):
             return local(tensor.view(-1, 1, 28, 28))
 
