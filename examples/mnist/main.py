@@ -1,5 +1,6 @@
 import opentensor
 
+import pickle
 import torch
 import torchvision
 
@@ -38,10 +39,8 @@ def main():
     train_loader = torch.utils.data.DataLoader(
             torchvision.datasets.MNIST(root="~/tmp/", train=True, download=True,
             transform = torchvision.transforms.Compose([
-                               torchvision.transforms.ToTensor(),
-                               torchvision.transforms.Normalize(
-                                 (0.1307,), (0.3081,))
-                             ])),
+                                torchvision.transforms.ToTensor()
+                               ])),
             batch_size=batch_size_train, shuffle=True)
 
 
@@ -98,6 +97,10 @@ def main():
         # results = list[torch.Tensor], len(results) = len(keys)
         nodes = keymap.toNodes(keys)                                        # List[opentensor_pb2.Node]
         query = metagraph(dispatch, nodes)                                  # List[(?, 748)]
+
+        weights = metagraph.getweights(nodes)
+        weights = (0.99) * weights + 0.01 * torch.mean(gates, dim=0)
+        metagraph.setweights(nodes, weights)
 
         # Join results using gates to combine inputs.
         return dispatcher.combine(query, gates).view(-1, 10)                             # (batch_size, 10)
