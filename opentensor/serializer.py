@@ -32,12 +32,16 @@ class Serializer(SerializerBase):
     def todef(obj: torch.Tensor) -> proto_pb2.TensorDef:
         if obj.dtype == torch.float32:
             dtype = proto_pb2.DataType.DT_FLOAT32
+        
         elif obj.dtype == torch.float64:
             dtype = proto_pb2.DataType.DT_FLOAT64
-        elif dtype == torch.int32:
+        
+        elif obj.dtype == torch.int32:
             dtype = proto_pb2.DataType.DT_INT32
-        elif dtype == proto_pb2.DataType.DT_INT32:
+        
+        elif obj.dtype == proto_pb2.DataType.DT_INT32:
             dtye = proto_pb2.DataType.DT_INT64
+        
         else:
             dtype = proto_pb2.DataType.UNKNOWN
         
