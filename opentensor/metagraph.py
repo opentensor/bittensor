@@ -49,7 +49,7 @@ class Metagraph(nn.Module):
         # Internal state.
         self._nodes = {}
         self._local_nodes = {}
-        self._local_weights = {}
+        self._weights = {self.identity.public_key(): {}}
         self._local_node_protos = {}
 
         # Build grpc server.
@@ -88,19 +88,21 @@ class Metagraph(nn.Module):
     def forward(self, x: List[torch.Tensor], nodes: List[opentensor_pb2.Node]):
         return self._dendrite.forward(x, nodes) 
 
-    def setWeight(self, target: opentensor_pb2.Node, value):
-        weight = opentensor_pb2.Weight (
-            source = self.identity.public_key(),
-            target = target.public_key,
-            value = value
-        )
-        self._local_weights[target.public_key] = weight
+    def getweights(self, nodes: List[opentensor_pb2.Node]):
+        weights = []
+        for n in nodes:
+            if n.identity not in self._weights[self.identity.public_key()]:
+                weights.append(0.0)
+            else:
+                weights.append(self._weights[self.identity.public_key()][n.identity].value)
+        return torch.Tensor(weights)
 
-    def getWeight(self, target: opentensor_pb2.Node):
-        if target.public_key in self._local_weights:
-            return self._local_weights[target.public_key].value
-        return 0.0
-        
+    def setweights(self, nodes: List[opentensor_pb2.Node], weights: torch.Tensor):
+        weights = weights.cpu().detach().numpy().tolist()
+        for n, w in list(zip(nodes, weights)):
+            w_proto = opentensor_pb2.Weight(source = self.identity.public_key(), target = n.identity, value = w)
+            self._weights[self.identity.public_key()][n.identity] = w_proto
+
     def subscribe(self, Node: opentensor.Node):
         node_identity = opentensor.Identity().public_key()
         assert (node_identity not in self._nodes)
@@ -121,7 +123,7 @@ class Metagraph(nn.Module):
         neuron = opentensor_pb2.Neuron (
                 public_key = self.identity.public_key(),
                 nodes = self._local_node_protos.values(),
-                weights = self._local_weights.values(),
+                weights = self._weights[self.identity.public_key()].values(),
         ) 
         try:
             self.stub.Subscribe(neuron)
@@ -130,8 +132,14 @@ class Metagraph(nn.Module):
         # Pull graph.
         request = opentensor_pb2.ACK()
         state = self.stub.GetMetagraph(request)
+
+        # Update local state.
         for neuron in state.neurons:
             for node in neuron.nodes:
                 self._nodes[node.identity] = node
+            for weight in neuron.weights:
+                if weight.source in self._weights:
+                    self._weights[weight.source] = {}
+                self._weights[weight.source][weight.target] = weight
     
     
