@@ -17,6 +17,7 @@ class Axon(opentensor_grpc.OpentensorServicer):
         tensor = opentensor.Serializer.deserialize(tensor)
         tensor = self._metagraph.Fwd(source_id, target_id, tensor)  
         tensor = opentensor.Serializer.serialize(tensor)
+        
         response = opentensor_pb2.TensorMessage(
             version = version,
             public_key = self._metagraph.identity.public_key(),

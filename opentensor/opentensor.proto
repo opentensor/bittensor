@@ -43,7 +43,10 @@ message Node {
 	string identity = 3;
 	string address = 4;
 	string port = 5;
-}
+	string definition = 6;
+	TensorDef indef = 7;
+	TensorDef outdef = 8;
+}	
 
 message Weight {
 	float version = 1;
@@ -105,47 +108,25 @@ message Tensor {
 	// 1. opentensor.serialize(numpy_array) --> buffer
 	// 2. opentensor.deserialize(bytes_content) --> numpy_array    	
 	bytes buffer = 1;
-   	
+
+	// Shape and type
+	TensorDef tensor_def = 2;
+}
+
+message TensorDef {	
 	// shape: the shape of this tensor.
 	// i.e. [256, 724]
-	repeated uint32 shape = 2;
+	repeated int64 shape = 2;
     	
-	// TODO(const) Agree to the significance of this bool.
-	bool requires_grad = 3;
-    
 	// dtype: the tensor datatype.	
 	DataType dtype = 4;
 }
 
-// Pulled from: tensorflow/core/framework/types.proto
 enum DataType {
-  // has not been set.
-  DT_INVALID = 0;
-
-  // Data types that all computation devices are expected to be
-  // capable to support.
-  DT_FLOAT = 1;
-  DT_DOUBLE = 2;
-  DT_INT32 = 3;
-  DT_UINT8 = 4;
-  DT_INT16 = 5;
-  DT_INT8 = 6;
-  DT_STRING = 7;
-  DT_COMPLEX64 = 8;  // Single-precision complex
-  DT_INT64 = 9;
-  DT_BOOL = 10;
-  DT_QINT8 = 11;     // Quantized int8
-  DT_QUINT8 = 12;    // Quantized uint8
-  DT_QINT32 = 13;    // Quantized int32
-  DT_BFLOAT16 = 14;  // Float32 truncated to 16 bits.  Only for cast ops.
-  DT_QINT16 = 15;    // Quantized int16
-  DT_QUINT16 = 16;   // Quantized uint16
-  DT_UINT16 = 17;
-  DT_COMPLEX128 = 18;  // Double-precision complex
-  DT_HALF = 19;
-  DT_RESOURCE = 20;
-  DT_VARIANT = 21;  // Arbitrary C++ data types
-  DT_UINT32 = 22;
-  DT_UINT64 = 23;
+  DT_FLOAT32 = 0;
+  DT_FLOAT64 = 1;
+  DT_INT32 = 2;
+  DT_INT64 = 3;
+  UNKNOWN = 4;
 }
 
