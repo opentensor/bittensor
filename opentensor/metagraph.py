@@ -103,7 +103,7 @@ class Metagraph(nn.Module):
             w_proto = opentensor_pb2.Weight(source = self.identity.public_key(), target = n.identity, value = w)
             self._weights[self.identity.public_key()][n.identity] = w_proto
 
-    def subscribe(self, Node: opentensor.Node):
+    def subscribe(self, node: opentensor.Node):
         node_identity = opentensor.Identity().public_key()
         assert (node_identity not in self._nodes)
         node_proto = opentensor_pb2.Node(
@@ -111,11 +111,14 @@ class Metagraph(nn.Module):
             public_key = self.identity.public_key(),
             identity = node_identity,
             address = self._axon_address,
-            port = self._axon_port    
+            port = self._axon_port,    
+            indef = node.indef(),
+            outdef = node.outdef(),
+            definition = node.definition()
         )
         self._nodes[node_identity] = node_proto
         self._local_node_protos[node_identity] = node_proto
-        self._local_nodes[node_identity] = Node
+        self._local_nodes[node_identity] = node
         self.refresh()
     
     def refresh(self):
