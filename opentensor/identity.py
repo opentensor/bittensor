@@ -5,6 +5,7 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 
 
 class Identity():
+
     def __init__(self):
         self._private = Ed25519PrivateKey.generate()
         self._public = self._private.public_key()

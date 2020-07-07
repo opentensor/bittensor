@@ -29,11 +29,6 @@ class Metagraph(nn.Module):
             self._axon, self._server)
         self._server.add_insecure_port('[::]:' + self._axon_port)
 
-        # Network proxy stub.
-        self._proxy_address = 'localhost:8899'
-        channel = grpc.insecure_channel(self._proxy_address)
-        self.stub = opentensor_grpc.MetagraphProxyStub(channel)
-
         # Dendrite: outward connection handler.
         self._dendrite = opentensor.Dendrite(self)
 
@@ -111,28 +106,20 @@ class Metagraph(nn.Module):
         self._nodes[node_identity] = node_proto
         self._local_node_protos[node_identity] = node_proto
         self._local_nodes[node_identity] = node
+        print(str(node_proto))
         self.refresh()
 
-    def refresh(self):
+    def recv_gossip(self, metagraph):
+        self._storage.recv_gossip(metagraph)
+
+    def gossip(self):
         # Send graph.
         neuron = opentensor_pb2.Neuron(
             public_key=self.identity.public_key(),
             nodes=self._local_node_protos.values(),
             weights=self._weights[self.identity.public_key()].values(),
         )
-        try:
-            self.stub.Subscribe(neuron)
-        except BaseException:
-            return
-        # Pull graph.
-        request = opentensor_pb2.ACK()
-        state = self.stub.GetMetagraph(request)
-
-        # Update local state.
-        for neuron in state.neurons:
-            for node in neuron.nodes:
-                self._nodes[node.identity] = node
-            for weight in neuron.weights:
-                if weight.source in self._weights:
-                    self._weights[weight.source] = {}
-                self._weights[weight.source][weight.target] = weight
+        metagraph = opentensor_pb2.Metagraph(neurons=[neuron])
+        node = random.choice(self._nodes.values())
+        metagraphs = self._dendrite.gossip(node, metagraph)
+        self._storage.update(metagraphs)

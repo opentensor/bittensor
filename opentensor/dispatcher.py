@@ -32,6 +32,7 @@ class Dispatcher(object):
     This class takes advantage of sparsity in the gate matrix by including in the
     `Tensor`s for expert i only the batch elements for which `gates[b, i] > 0`.
     """
+
     def __init__(self):
         """Create a SparseDispatcher."""
 

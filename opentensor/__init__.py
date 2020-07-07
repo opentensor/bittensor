@@ -17,4 +17,3 @@ from opentensor.dendrite import Dendrite
 from opentensor.metagraph import Metagraph
 from opentensor.gate import Gate
 from opentensor.dispatcher import Dispatcher
-

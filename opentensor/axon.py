@@ -7,6 +7,9 @@ class Axon(opentensor_grpc.OpentensorServicer):
     def __init__(self, metagraph):
         self._metagraph = metagraph
 
+    def gossip(self, request, context):
+        self._metagraph.recv_gossip(request)
+
     def Fwd(self, request, context):
         version = request.version
         public_key = request.public_key

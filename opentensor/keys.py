@@ -1,9 +1,10 @@
-from opentensor import opentensor_pb2_grpc as opentensor_grpc
-from opentensor import opentensor_pb2
-import opentensor
-
 from typing import List
+
+import os
+import numpy as np
 import torch
+
+from opentensor import opentensor_pb2
 
 
 def torch_to_bytes(key):
@@ -27,6 +28,7 @@ def new_key(dim):
 
 
 class Keys():
+
     def __init__(self, key_dim):
         self._key_dim = key_dim
         self._key_for_node = {}

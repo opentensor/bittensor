@@ -7,6 +7,7 @@ import umsgpack
 
 
 class SerializerBase:
+
     @staticmethod
     def todef(obj: object) -> proto_pb2.TensorDef:
         raise NotImplementedError()
@@ -28,6 +29,7 @@ class SerializerBase:
 
 
 class Serializer(SerializerBase):
+
     @staticmethod
     def todef(obj: torch.Tensor) -> proto_pb2.TensorDef:
         if obj.dtype == torch.float32:
