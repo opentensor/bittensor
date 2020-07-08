@@ -7,6 +7,24 @@ class Axon(opentensor_grpc.OpentensorServicer):
     def __init__(self, metagraph):
         self._metagraph = metagraph
 
+        self._axon_address = 'localhost'
+        self._axon_port = str(random.randint(8000, 30000))
+        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        opentensor_grpc.add_OpentensorServicer_to_server(self, self._server)
+        self._server.add_insecure_port('[::]:' + self._axon_port)
+
+        self._thread = None
+
+    def __del__(self):
+        self.stop()
+
+    def start(self):
+        self._thread = threading.Thread(target=self._serve, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        self._server.stop(0)
+
     def gossip(self, request, context):
         self._metagraph.recv_gossip(request)
 
