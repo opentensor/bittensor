@@ -10,21 +10,11 @@ import torch
 
 
 class Dendrite:
-    def __init__(self, metagraph):
-        self._metagraph = metagraph
+    def __init__(self, identity):
+        self._identity = identity
 
-    def send_gossip(node: opentensor_pb2.Node,
-                    subgraph: opentensor_pb2.Metagraph):
-
-        # TODO (const) Error checking
-        # TODO (const) channel state managment.
-        version = 1.0
-        address = node.address + ":" + node.port
-        channel = grpc.insecure_channel(address)
-        stub = opentensor_grpc.OpentensorStub(channel)
-        return stub.Gossip(subgraph)
-
-    def forward(self, x: List[torch.Tensor], nodes: List[opentensor_pb2.Node]):
+    def forward(self, x: List[torch.Tensor], axons: List[opentensor_pb2.Axon]):
+        """ forward tensor processes """
 
         version = 1.0
         source_uid = b''
@@ -32,19 +22,20 @@ class Dendrite:
 
         results = []
         for idx, tensor in enumerate(x):
-            node = nodes[idx]
+            axon = axons[idx]
 
             # Create endpoint stub
-            target_id = node.identity
-            address = node.address + ":" + node.port
+            target_id = axon.identity
+            address = axon.address + ":" + axon.port
             channel = grpc.insecure_channel(address)
             stub = opentensor_grpc.OpentensorStub(channel)
 
             tensor = opentensor.Serializer.serialize(tensor)
+            # TODO(const) The extra public_key is redundant.
             request = opentensor_pb2.TensorMessage(
                 version=version,
-                public_key=self._metagraph.identity.public_key(),
-                source_id=self._metagraph.identity.public_key(),
+                public_key=self._identity.public_key(),
+                source_id=self._identity.public_key(),
                 target_id=target_id,
                 nounce=nounce,
                 tensors=[tensor])

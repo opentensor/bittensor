@@ -7,49 +7,86 @@ service Opentensor {
 	
 	// Reverse tensor (gradient) request.
 	rpc Bwd (TensorMessage) returns (TensorMessage) {}
-
-	// Gossip service metagraph 
-	rpc Gossip (Metagraph) returns (Metagraph) {}
 }
 
-// Full graph definition.
-message Metagraph {
-	float version = 1;
-	repeated Neuron neurons = 2;
+service Metagraph {
+	// Shared POW cache.
+	rpc Gossip (AxonBatch) returns (AxonBatch) {}
 }
 
-message Neuron {
+// Batch of neuron service definitions.
+message AxonBatch {
+	// SIZE: 32-bits (4-bytes)
 	float version = 1;
+	// Sender public_key
 	string neuron_key = 2;
-	string address = 3;
-	string port = 4;
-	float rank = 5;
-	float stake = 6;	
-	float incentive = 7;
-	repeated Weight weights = 8;
-	repeated Node nodes = 9;
+	// Public key signature. 
+	bytes signature = 3;
+	// Endpoint definitions.
+	// SIZE: 304-bytes * N
+	repeated Axon axons = 4;
 }
 
-message Node {
+// Fully describes a axon service definition.
+// SIZE: (256 * 4) + (512 * 2) + (128 * 3) = 2432-bits (304 bytes)
+// NOTE: only the (address, port, identity) need to be stored in RAM.
+// (address, port, identity) = (128 + 32 + 256) = 412 (52 bytes)
+// Holding 20,000,000 endpoints in 1-GB of RAM and 6-GB of Disk.
+message Axon {
+	// SIZE: 256 bits (4-bytes)
 	float version = 1;
+	
+	// Neuron key: ed25519.
+	// SIZE: 256-bits (32-bytes)
 	string neuron_key = 2;
-	string node_identity = 3;
-	string definition = 6;
-	TensorDef indef = 7;
-	TensorDef outdef = 8;
+
+	// Signature: ed25519 public_key signature which signs
+	// this neurons definition using the attached public_key.
+	// SIZE: 512-bits (64-bytes)
+	bytes signature = 3;
+
+	// Optional: Hash of block during message creation.
+	// Optional: Bytes of latest substrate chain block header.
+	// Links the POW to a time which protects the Cache from
+	// long range POW attacks.
+	// SIZE: 512-bits (64-bytes)
+	bytes block_hash = 4;
+	
+	// Sha256 proof of work.
+	// Optional: Will be used to preferentially keep 
+	// this node in the cache.
+	// SIZE: 256-bits (32-bytes)
+	bytes proof_of_work = 5;
+
+	// Node UID of type ed25519 
+	// SIZE: 256-bits (32-bytes)
+	string identity = 6;
+	
+	// Endpoint IP. 
+	// TODO (const) format specification
+	// SIZE: 128-bits (16-bytes)
+	string address = 7;
+	
+	// Endpoint listening port.
+	// SIZE: 32-bits (4-bytes)
+	// TODO (const) should be formated to int32, or joined with address.
+	string port = 8;
+
+	// Endpoint indef describing the acceptable tensor shape.
+	// SIZE: ~128 bits (16 bytes)
+	TensorDef indef = 10;
+
+	// Endpoint outdef describing the returned tenspr  shape.
+	// SIZE: ~128 bits (16 bytes)
+	TensorDef outdef = 11;
 }	
 
-message Weight {
-	float version = 1;
-	string source = 2; // Source neuron public key
-	string target = 3; // Target neuron public key.
-	float value = 4;
-}
-
 // Proto for a opentensor.
+// SIZE: 136 bytes + (tensor_size )
 message TensorMessage {
 	// version: protocol version 
 	// i.e. 1.0
+	// 32-bits (4-bytes)
 	float version = 1;
 
 	// sender_id: raw bytes representation of the source's ed25519 public key.
@@ -60,22 +97,28 @@ message TensorMessage {
 	// >> private = Ed25519PrivateKey.generate()
 	// >> public = private.public_key()
 	// source_id = '0x%s' % public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
-	string public_key = 2;
+	// SIZE: 256-bits (32-bytes)
+	string neuron_key = 2;
 
 	// source_id: id of source node. Usually unused by target.
+	// SIZE: 256-bits (32-bytes)
 	string source_id = 3;
 
 	// target_key: raw bytes representation of the target's ed25519 public key
-	// Note that clients and experts both have ed25519 public keys. So the response tensor message
-	// should simply have these two keys swapped.
+	// Note that clients and experts both have ed25519 public keys. So the 
+	// response tensor message should simply have these two keys swapped.
+	// SIZE: 256-bits (32-bytes)
+	// TODO (const) as bytes.
 	string target_id = 4;
 
 	// nounce: random bytes to identify this message.
-	// >> nounce = os.urandom(12)
+	// >> nounce = os.urandom(32)
+	// SIZE: 32-bits (4-bytes)
 	bytes nounce = 5;
 
 	// signature: digital signature linking the nounce and source_key
-	// prevents spoofing attacks where an adversary attempts to send messages as other peers.
+	// prevents spoofing attacks where an adversary attempts to send 
+	// messages as other peers.
 	// $ python
 	// >>> from cryptography.hazmat.backends import default_backend
 	// >>> from cryptography.hazmat.primitives import hashes
@@ -84,12 +127,15 @@ message TensorMessage {
 	// >>> digest.update(nounce)
 	// >>> digest = digest.finalize()
 	// >>> source_key.verify(msg.signature, digest)
+	// SIZE: 512-bits (64-bytes)
 	bytes signature = 6;
 
 	// tensor: 0 or more tensors passed on the wire.
+	// SIZE: variable.
 	repeated Tensor tensors = 7;
 }
 
+// SIZE: Variable.
 message Tensor {
 	// Tensor content: Serialized raw tensor content. This representation
   	// can be used for all tensor types. The purpose of this representation is to
@@ -104,12 +150,17 @@ message Tensor {
 	TensorDef tensor_def = 2;
 }
 
+
+// SIZE: ~ 20 bytes.
 message TensorDef {	
 	// shape: the shape of this tensor.
 	// i.e. [256, 724]
+	// TODO (const) force limits on this item.
+	// ~ 5 * int32 = 128 bits - (16 bytes)
 	repeated int64 shape = 2;
     	
-	// dtype: the tensor datatype.	
+	// dtype: the tensor datatype.
+	// in32 32-bits (4-bytes)
 	DataType dtype = 4;
 }
 

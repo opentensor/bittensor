@@ -1,105 +1,149 @@
 from concurrent import futures
-
 from typing import List
 
+import math
 import grpc
 import random
 import threading
-import torch
-from torch import nn
+import time
 
-from opentensor import opentensor_pb2_grpc as opentensor_grpc
 from opentensor import opentensor_pb2
+from opentensor import opentensor_pb2_grpc as opentensor_grpc
 import opentensor
 
 
-class Metagraph(nn.Module):
-    def __init__(self, identity: opentensor.Identity, start=True):
-        super().__init__()
+class Metagraph(opentensor_grpc.MetagraphServicer):
+    """
+        A continuously updating metagraph state object. Uses the locally
+        trained weights to keep this set prunned.
+    """
+    def __init__(self,
+                 max_size: int = 1000000,
+                 port: int = random.randint(1000, 10000)):
+        # Max size of the graph (number of axons)
+        self._max_size = max_size
+        # List of graph axons.
+        # TODO(const) access mutex
+        self._axons = []
+        # Local axon list
+        self._local_axons = []
+        # A map from axon identity to a learned score.
+        self._weights = {}
 
-        # Network identity key object.
-        self.identity = identity
+        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        opentensor_grpc.add_OpentensorServicer_to_server(self, self._server)
+        self._server.add_insecure_port('[::]:' + str(port))
 
-        # Inward connection handler.
-        # Axon: deals with inward connections and messag queuing.
-        self._axon = opentensor.Axon(self)
-        if start:
-            # Starts the axon grpc server
-            self._axon.start()
+        # Update thread.
+        self._update_thread = None
+        self._server_thread = None
+        self._running = False
 
-        # Dendrite: outward connection handler.
-        self._dendrite = opentensor.Dendrite(self)
+    def get(self, n: int) -> List[opentensor_pb2.Axon]:
+        """ Returns min(n, len(axons)) axon from the graph sorted by score."""
+        min_n = min(len(self._axons, n))
+        return self._axons[:n]
 
-        # Storage: maintains a cached and scored metagraph object.
-        self._storage = opentensor.Storage(100000)
+    def setweights(self, axons: List[opentensor_pb2.Axon],
+                   weights: List[float]):
+        """ Set local scores for each passed node """
+        for idx, axon in enumerate(axons):
+            self._weights[axon.identity] = weights[idx]
 
-        # Gossip: makes periodic calls to the network to find new
-        # service infor
-        self._gossip = opentensor.Gossip(100)
-        if start:
-            self._gossip.start()
+    def getweights(self, axons: List[opentensor_pb2.Axon]) -> List[float]:
+        """ Get local weights for a list of axons """
+        result = []
+        for ax in axons:
+            if ax.identity not in self._weights:
+                result.append(0.0)
+            else:
+                result.append(self._weights[ax.identity])
+        return result
 
-        # Local callable nodes.
-        self._local_nodes = {}
+    def subscribe(self, axon: opentensor.Axon):
+        """ Adds a local node to the graph """
+        # TODO (const) remove items.
+        axon_proto = opentensor_pb2.Axon(version=1.0,
+                                         public_key=axon.public_key(),
+                                         identity=axon.identity(),
+                                         address=axon.address(),
+                                         port=axon.port(),
+                                         indef=axon.indef(),
+                                         outdef=axon.outdef(),
+                                         definition=axon.definition())
+        self._axons.append(axon_proto)
+        self._local_axons.append(axon_proto)
+        self._weights[axon_proto.identity] = math.inf
 
-    def start(self):
-        """ Begins opentensor backend processes """
-        self._axon.start()
-        self._gossip.start()
+    def Gossip(self, request, context):
+        self._sink(request)
+        return self._make_axon_batch(10)
+
+    def _update(self):
+        """ Internal update thread. Keeps the metagraph up to date. """
+        while self._running:
+            self._gossip()
+            time.sleep(10)
+
+    def _gossip(self):
+        """ Sends gossip query to random node in cache """
+        batch = self._make_axon_batch(10)
+        axon_choice = random.choice(self._axons)
+
+        # Make query.
+        version = 1.0
+        address = axon_choice.address + ":" + (axon_choice.metagraph_port + 1)
+        channel = grpc.insecure_channel(address)
+        stub = opentensor_grpc.MetagraphStub(channel)
+        response = stub.Gossip(batch)
+
+        # Sink the results to the cache.
+        self._sink(response)
+
+    def _make_axon_batch(self, k: int):
+        """ Builds a random batch of cache elements of size k """
+        # TODO (const) sign message.
+        # TODO (const) create new_neuron entries for local endpoints.
+        # Create batch of random neuron definitions.
+        assert k > 0
+        k = min(len(self._axons), 50)
+        batch = random.sample(self._axons, k)
+        batch = opentensor_pb2.AxonBatch(axons=batch)
+        return batch
+
+    def _sink(self, batch: opentensor_pb2.AxonBatch):
+        """ Updates storage with gossiped neuron info. """
+        # TODO(const) score based on POW, timestamp, and trust.
+        # TODO(const) check signatures.
+        # TODO(const) sink weights as well.
+        # TODO(const) write to disk if need be and replace heap cache.
+        # TODO(const) check size contraints.
+        for axon in batch:
+            if axon.identity not in self._axons:
+                self._weights[axon.identity] = 0.0
+                self._axons[axon.identity] = axon
+            else:
+                # TODO (const) check if newer.
+                pass
+
+    def __del__(self):
+        self.stop()
+
+    def _serve(self):
+        self._server.start()
 
     def stop(self):
-        """ Ends opentensor backend processes """
-        self._axon.stop()
-        self._gossip.start()
+        """ Stops the gossip thread """
+        self._running = False
+        if self._update_thread:
+            self._update_thread.join()
+        if self._server_thread:
+            self._server_thread.join()
 
-    def nodes(self) -> List[opentensor_pb2.Node]:
-        """ Returns a list of metagraph nodes to the caller """
-        # TODO(const) should accept a query
-        return self._storage.get()
-
-    def Fwd(self, source_id, target_id, tensor):
-        """ Query the node target_id with tensor """
-        assert target_id in self._local_nodes
-        node = self._local_nodes[target_id]
-        tensor = node.fwd(source_id, tensor)
-        return tensor
-
-    def Bwd(self, request, context):
-        """ Runs the backward request over the targeted node """
-        pass
-
-    def forward(self, x: List[torch.Tensor], nodes: List[opentensor_pb2.Node]):
-        """ Runs a forward request through the passed nodes """
-        return self._dendrite.forward(x, nodes)
-
-    def getweights(self, nodes: List[opentensor_pb2.Node]):
-        """ Returns the weights as a torch tensor for passed nodes """
-        return torch.Tensor(self._storage.getweights(nodes))
-
-    def setweights(self, nodes: List[opentensor_pb2.Node],
-                   weights: torch.Tensor):
-        """ Sets weights for nodes in local storage """
-        self._storage.setweights(weights.cpu().detach().numpy().tolist())
-
-    def subscribe(self, node: opentensor.Node):
-        """ Subscribes a node to the graph """
-        node_identity = opentensor.Identity().public_key()
-        node_proto = opentensor_pb2.Node(version=1.0,
-                                         public_key=self.identity.public_key(),
-                                         identity=node_identity,
-                                         address=self._axon.address,
-                                         port=self._axon.port,
-                                         indef=node.indef(),
-                                         outdef=node.outdef(),
-                                         definition=node.definition())
-        self._storage.addlocal(node_proto)
-        self._local_nodes[node_identity] = node
-
-    def recv_gossip(self, subgraph):
-        """ Recvs a gossip subgraph """
-        self._storage.addsubgraph(subgraph)
-
-    def send_gossip(self, node, subgraph):
-        """ Sends a gossip subgraph and sinks results"""
-        subgraph = self._dendrite.send_gossip(subgraph)
-        self._storage.addsubgraph(node, subgraph)
+    def start(self):
+        """ Starts the gossip thread """
+        self._running = True
+        self._update_thread = threading.Thread(target=self._update,
+                                               daemon=True)
+        self._server_thread = threading.Thread(target=self._serve, daemon=True)
+        self._thread.start()
