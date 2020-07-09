@@ -56,10 +56,10 @@ def main():
 
     # opentensor Metagraph
     identity = opentensor.Identity()
-    metagraph = opentensor.Metagraph(identity)
+    metagraph = opentensor.Neuron(identity)
 
     # Keys object.
-    # projects from/to opentensor_pb2.Node to a variable sized tensor
+    # projects from/to opentensor_pb2.Axon to a variable sized key tensor.
     key_dim = 100
     keymap = opentensor.Keys(key_dim)
 
@@ -73,10 +73,7 @@ def main():
     dispatcher = opentensor.Dispatcher()
 
     # Node to serve on metagraph.
-    class Mnist(opentensor.Node):
-
-        def definition(self):
-            return "mnist"
+    class Mnist(opentensor.Axon):
 
         def indef(self):
             shape = [-1, 784]
@@ -100,10 +97,10 @@ def main():
     def remote(inputs):
         gate_inputs = torch.flatten(inputs, start_dim=1)
 
-        # Get nodes from metagraph.
-        # and map nodes to torch keys.
-        nodes = metagraph.nodes()  # List[opentensor_pb2.Node]))
-        keys = keymap.toKeys(nodes)  # (n_keys, key_dim)
+        # Get axons from the metagraph.
+        # and map axons to torch keys.
+        axons = metagraph.axons()  # List[opentensor_pb2.Axon]))
+        keys = keymap.toKeys(axons)  # (n_keys, key_dim)
 
         # Learning a map from the gate_inputs to keys
         # gates[i, j] = score for the jth key for input i
@@ -113,14 +110,14 @@ def main():
         # when gates[i, j] == 0, the key j does not recieve input i
         dispatch = dispatcher.dispatch(inputs, gates)  # List[(?, 784)]
 
-        # Query the network by mapping from keys to node endpoints.
+        # Query the network by mapping from keys to axon endpoints.
         # results = list[torch.Tensor], len(results) = len(keys)
-        nodes = keymap.toNodes(keys)  # List[opentensor_pb2.Node]
+        axons = keymap.toAxpns(keys)  # List[opentensor_pb2.Axon]
         query = metagraph(dispatch, nodes)  # List[(?, 748)]
 
-        weights = metagraph.getweights(nodes)
+        weights = metagraph.getweights(axons)
         weights = (0.99) * weights + 0.01 * torch.mean(gates, dim=0)
-        metagraph.setweights(nodes, weights)
+        metagraph.setweights(axons, weights)
 
         # Join results using gates to combine inputs.
         return dispatcher.combine(query, gates).view(-1, 10)  # (batch_size, 10)
