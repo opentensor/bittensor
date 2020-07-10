@@ -1,14 +1,13 @@
+from concurrent import futures
 from typing import List
 
 import os
 import sys
-import grpc
 import random
 import threading
+import grpc
 import torch
 from torch import nn
-
-from concurrent import futures
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -31,24 +30,20 @@ from opentensor.dispatcher import Dispatcher
 
 class Neuron(nn.Module):
     """ Opentensor Neuron """
-    def __init__(self):
+    def __init__(self, remote_ip):
         super().__init__()
 
         self._identity = Identity()
 
         # Create a port map
-        self._metagraph_address = '[::]'
-        self._metagraph_port = 123131
-        self._axon_address = '[::]'
-        self._axon_port = 12313
-        #self._metagraph_address, self._metagraph_port = opentensor.Nat.create_port_map(
-        # )
-        #self._axon_address, self._axon_port = opentensor.Nat.create_port_map()
+        self._remote_ip = remote_ip
+        self._m_port = random.randint(10000, 600000)
+        self._a_port = random.randint(10000, 60000)
 
         # Inward connection handler.
         # AxonTerminal: deals with inward connections and makes connections
         # to Axon types
-        self._axon_terminal = AxonTerminal(self._identity, self._axon_port)
+        self._axon_terminal = AxonTerminal(self._identity, self._a_port)
 
         # Dendrite: outward connection handler.
         self._dendrite = Dendrite(self._identity)
@@ -57,7 +52,7 @@ class Neuron(nn.Module):
         # Metagraph: maintains a cache of axons on the network.
         self._metagraph = Metagraph(self._identity,
                                     max_size=100000,
-                                    port=self._metagraph_port)
+                                    port=self._m_port)
 
     def __del__(self):
         self.stop()
@@ -71,8 +66,6 @@ class Neuron(nn.Module):
         """ Ends opentensor backend processes """
         self._axon_terminal.stop()
         self._metagraph.start()
-        #Nat.delete_port_map(self._axon_port)
-        #Nat.delete_port_map(self._metagraph_port)
 
     def axons(self) -> List[opentensor_pb2.Axon]:
         """ Returns a list of metagraph nodes to the caller """
@@ -100,9 +93,9 @@ class Neuron(nn.Module):
             version=1.0,
             neuron_key=self._identity.public_key(),
             identity=axon_identity,
-            address=self._axon_address,
-            port=str(self._axon_port),
-            m_port=str(self._metagraph_port),
+            address=self._remote_ip,
+            port=str(self._a_port),
+            m_port=str(self._m_port),
             indef=axon.indef(),
             outdef=axon.outdef())
         self._metagraph.subscribe(axon_proto)

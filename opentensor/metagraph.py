@@ -28,7 +28,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         self._max_size = max_size
         # List of graph axons.
         # TODO(const) access mutex
-        self._axons = []
+        self._axons = {}
         # Local axon list
         self._local_axons = []
         # A map from axon identity to a learned score.
@@ -45,8 +45,10 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
 
     def get(self, n: int) -> List[opentensor_pb2.Axon]:
         """ Returns min(n, len(axons)) axon from the graph sorted by score."""
-        min_n = min(len(self._axons), n)
-        return self._axons[:n]
+        # TODO (const) sort axon array
+        axon_list = list(self._axons.values())
+        min_n = min(len(axon_list), n)
+        return axon_list[:n]
 
     def setweights(self, axons: List[opentensor_pb2.Axon],
                    weights: List[float]):
@@ -68,7 +70,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         """ Adds a local node to the graph """
         # TODO (const) remove items.
         logger.info('subscribe', axon_proto)
-        self._axons.append(axon_proto)
+        self._axons[axon_proto.identity] = axon_proto
         self._weights[axon_proto.identity] = math.inf
 
     def Gossip(self, request, context):
@@ -80,9 +82,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         if len(self._axons) == 0:
             return
         batch = self._make_axon_batch(10)
-        axon_choice = random.choice(self._axons)
-
-        logger.info(axon_choice)
+        axon_choice = random.choice(list(self._axons.values()))
 
         # Make query.
         version = 1.0
@@ -101,8 +101,9 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         # TODO (const) create new_neuron entries for local endpoints.
         # Create batch of random neuron definitions.
         assert k > 0
-        k = min(len(self._axons), 50)
-        batch = random.sample(self._axons, k)
+        axon_list = list(self._axons.values())
+        k = min(len(axon_list), 50)
+        batch = random.sample(axon_list, k)
         batch = opentensor_pb2.AxonBatch(axons=batch)
         return batch
 
@@ -113,7 +114,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         # TODO(const) sink weights as well.
         # TODO(const) write to disk if need be and replace heap cache.
         # TODO(const) check size contraints.
-        for axon in batch:
+        for axon in batch.axons:
             if axon.identity not in self._axons:
                 self._weights[axon.identity] = 0.0
                 self._axons[axon.identity] = axon
