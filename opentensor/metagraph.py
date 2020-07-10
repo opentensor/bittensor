@@ -69,7 +69,6 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         # TODO (const) remove items.
         logger.info('subscribe', axon_proto)
         self._axons.append(axon_proto)
-        self._local_axons.append(axon_proto)
         self._weights[axon_proto.identity] = math.inf
 
     def Gossip(self, request, context):

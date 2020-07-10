@@ -54,8 +54,8 @@ def main():
                           momentum=momentum)
 
     # opentensor Metagraph
-    metagraph = opentensor.Neuron()
-    metagraph.start()
+    neuron = opentensor.Neuron()
+    neuron.start()
 
     # Keys object.
     # projects from/to opentensor_pb2.Axon to a variable sized key tensor.
@@ -90,14 +90,14 @@ def main():
             pass
 
     # Subscribe the model encoder to the graph.
-    metagraph.subscribe(Mnist())
+    neuron.subscribe(Mnist())
 
     def remote(inputs):
         gate_inputs = torch.flatten(inputs, start_dim=1)
 
         # Get axons from the metagraph.
         # and map axons to torch keys.
-        axons = metagraph.axons()  # List[opentensor_pb2.Axon]))
+        axons = neuron.axons()  # List[opentensor_pb2.Axon]))
         keys = keymap.toKeys(axons)  # (n_keys, key_dim)
 
         # Learning a map from the gate_inputs to keys
@@ -111,11 +111,11 @@ def main():
         # Query the network by mapping from keys to axon endpoints.
         # results = list[torch.Tensor], len(results) = len(keys)
         axons = keymap.toAxons(keys)  # List[opentensor_pb2.Axon]
-        query = metagraph(dispatch, axons)  # List[(?, 748)]
+        query = neuron(dispatch, axons)  # List[(?, 748)]
 
-        weights = metagraph.getweights(axons)
+        weights = neuron.getweights(axons)
         weights = (0.99) * weights + 0.01 * torch.mean(gates, dim=0)
-        metagraph.setweights(axons, weights)
+        neuron.setweights(axons, weights)
 
         # Join results using gates to combine inputs.
         return dispatcher.combine(query, gates).view(-1,
