@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1bopentensor/opentensor.proto\"Y\n\tAxonBatch\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x01(\x0c\x12\x14\n\x05\x61xons\x18\x04 \x03(\x0b\x32\x05.Axon\"\xd1\x01\n\x04\x41xon\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x01(\x0c\x12\x12\n\nblock_hash\x18\x04 \x01(\x0c\x12\x15\n\rproof_of_work\x18\x05 \x01(\x0c\x12\x10\n\x08identity\x18\x06 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x07 \x01(\t\x12\x0c\n\x04port\x18\x08 \x01(\t\x12\x19\n\x05indef\x18\n \x01(\x0b\x32\n.TensorDef\x12\x1a\n\x06outdef\x18\x0b \x01(\x0b\x32\n.TensorDef\"\x97\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x11\n\tsource_id\x18\x03 \x01(\t\x12\x11\n\ttarget_id\x18\x04 \x01(\t\x12\x0e\n\x06nounce\x18\x05 \x01(\x0c\x12\x11\n\tsignature\x18\x06 \x01(\x0c\x12\x18\n\x07tensors\x18\x07 \x03(\x0b\x32\x07.Tensor\"8\n\x06Tensor\x12\x0e\n\x06\x62uffer\x18\x01 \x01(\x0c\x12\x1e\n\ntensor_def\x18\x02 \x01(\x0b\x32\n.TensorDef\"4\n\tTensorDef\x12\r\n\x05shape\x18\x02 \x03(\x03\x12\x18\n\x05\x64type\x18\x04 \x01(\x0e\x32\t.DataType*S\n\x08\x44\x61taType\x12\x0e\n\nDT_FLOAT32\x10\x00\x12\x0e\n\nDT_FLOAT64\x10\x01\x12\x0c\n\x08\x44T_INT32\x10\x02\x12\x0c\n\x08\x44T_INT64\x10\x03\x12\x0b\n\x07UNKNOWN\x10\x04\x32^\n\nOpentensor\x12\'\n\x03\x46wd\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12\'\n\x03\x42wd\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x32/\n\tMetagraph\x12\"\n\x06Gossip\x12\n.AxonBatch\x1a\n.AxonBatch\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x1bopentensor/opentensor.proto\"Y\n\tAxonBatch\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x01(\x0c\x12\x14\n\x05\x61xons\x18\x04 \x03(\x0b\x32\x05.Axon\"\xe1\x01\n\x04\x41xon\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x01(\x0c\x12\x12\n\nblock_hash\x18\x04 \x01(\x0c\x12\x15\n\rproof_of_work\x18\x05 \x01(\x0c\x12\x10\n\x08identity\x18\x06 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x07 \x01(\t\x12\x0c\n\x04port\x18\x08 \x01(\t\x12\x0e\n\x06m_port\x18\t \x01(\t\x12\x19\n\x05indef\x18\x0b \x01(\x0b\x32\n.TensorDef\x12\x1a\n\x06outdef\x18\x0c \x01(\x0b\x32\n.TensorDef\"\x97\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x11\n\tsource_id\x18\x03 \x01(\t\x12\x11\n\ttarget_id\x18\x04 \x01(\t\x12\x0e\n\x06nounce\x18\x05 \x01(\x0c\x12\x11\n\tsignature\x18\x06 \x01(\x0c\x12\x18\n\x07tensors\x18\x07 \x03(\x0b\x32\x07.Tensor\"8\n\x06Tensor\x12\x0e\n\x06\x62uffer\x18\x01 \x01(\x0c\x12\x1e\n\ntensor_def\x18\x02 \x01(\x0b\x32\n.TensorDef\"4\n\tTensorDef\x12\r\n\x05shape\x18\x02 \x03(\x03\x12\x18\n\x05\x64type\x18\x04 \x01(\x0e\x32\t.DataType*S\n\x08\x44\x61taType\x12\x0e\n\nDT_FLOAT32\x10\x00\x12\x0e\n\nDT_FLOAT64\x10\x01\x12\x0c\n\x08\x44T_INT32\x10\x02\x12\x0c\n\x08\x44T_INT64\x10\x03\x12\x0b\n\x07UNKNOWN\x10\x04\x32^\n\nOpentensor\x12\'\n\x03\x46wd\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12\'\n\x03\x42wd\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x32/\n\tMetagraph\x12\"\n\x06Gossip\x12\n.AxonBatch\x1a\n.AxonBatch\"\x00\x62\x06proto3'
 )
 
 _DATATYPE = _descriptor.EnumDescriptor(
@@ -58,8 +58,8 @@ _DATATYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=600,
-  serialized_end=683,
+  serialized_start=616,
+  serialized_end=699,
 )
 _sym_db.RegisterEnumDescriptor(_DATATYPE)
 
@@ -190,15 +190,22 @@ _AXON = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='indef', full_name='Axon.indef', index=8,
-      number=10, type=11, cpp_type=10, label=1,
+      name='m_port', full_name='Axon.m_port', index=8,
+      number=9, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='indef', full_name='Axon.indef', index=9,
+      number=11, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='outdef', full_name='Axon.outdef', index=9,
-      number=11, type=11, cpp_type=10, label=1,
+      name='outdef', full_name='Axon.outdef', index=10,
+      number=12, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -216,7 +223,7 @@ _AXON = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=123,
-  serialized_end=332,
+  serialized_end=348,
 )
 
 
@@ -289,8 +296,8 @@ _TENSORMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=335,
-  serialized_end=486,
+  serialized_start=351,
+  serialized_end=502,
 )
 
 
@@ -328,8 +335,8 @@ _TENSOR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=488,
-  serialized_end=544,
+  serialized_start=504,
+  serialized_end=560,
 )
 
 
@@ -367,8 +374,8 @@ _TENSORDEF = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=546,
-  serialized_end=598,
+  serialized_start=562,
+  serialized_end=614,
 )
 
 _AXONBATCH.fields_by_name['axons'].message_type = _AXON
@@ -429,8 +436,8 @@ _OPENTENSOR = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=685,
-  serialized_end=779,
+  serialized_start=701,
+  serialized_end=795,
   methods=[
   _descriptor.MethodDescriptor(
     name='Fwd',
@@ -465,8 +472,8 @@ _METAGRAPH = _descriptor.ServiceDescriptor(
   index=1,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=781,
-  serialized_end=828,
+  serialized_start=797,
+  serialized_end=844,
   methods=[
   _descriptor.MethodDescriptor(
     name='Gossip',

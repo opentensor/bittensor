@@ -72,6 +72,11 @@ message Axon {
 	// TODO (const) should be formated to int32, or joined with address.
 	string port = 8;
 
+	// Endpoint listening port.
+	// SIZE: 32-bits (4-bytes)
+	// TODO (const) should be formated to int32, or joined with address.
+	string m_port = 9;
+
 	// Endpoint indef describing the acceptable tensor shape.
 	// SIZE: ~128 bits (16 bytes)
 	TensorDef indef = 10;

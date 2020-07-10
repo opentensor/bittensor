@@ -17,13 +17,13 @@ def bytes_to_torch(key):
     torchkey = torch.Tensor(np.frombuffer(key, dtype=np.float32))
     return torchkey
 
+
 def new_key(dim):
     new_key = torch.rand(dim, dtype=torch.float32, requires_grad=False)
     return new_key
 
 
 class Keys():
-
     def __init__(self, key_dim):
         self._key_dim = key_dim
         self._key_for_axon = {}
@@ -34,7 +34,7 @@ class Keys():
         self._key_for_axon[axon.identity] = key
         self._axon_for_key[torch_to_bytes(key)] = axon
 
-    def toKeys(self, axon: List[opentensor_pb2.Axon]):
+    def toKeys(self, axons: List[opentensor_pb2.Axon]):
         torch_keys = []
         for axon in axons:
             if axon.identity not in self._key_for_axon:

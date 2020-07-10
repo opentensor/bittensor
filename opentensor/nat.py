@@ -49,6 +49,7 @@ class Nat:
             while rc != None and external_port < 65536:
                 external_port += 1
                 rc = u.getspecificportmapping(external_port, 'TCP')
+                logger.info(external_port)
             if rc != None:
                 logger.error('Exception in UPnP : ' + str(rc))
 
