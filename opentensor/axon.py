@@ -70,7 +70,6 @@ class AxonTerminal(opentensor_grpc.OpentensorServicer):
         self._axons[axon_proto.identity] = axon
 
     def Fwd(self, request, context):
-        logger.info(request)
         version = request.version
         neuron_key = request.neuron_key
         source_id = request.source_id

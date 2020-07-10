@@ -1,3 +1,5 @@
+from loguru import logger
+
 import pickle
 import torch
 import torchvision
@@ -54,7 +56,7 @@ def main():
                           momentum=momentum)
 
     # opentensor Metagraph
-    neuron = opentensor.Neuron()
+    neuron = opentensor.Neuron(remote_ip='localhost')
     neuron.start()
 
     # Keys object.

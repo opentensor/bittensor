@@ -40,7 +40,6 @@ class Dendrite:
                                                    nounce=nounce,
                                                    tensors=[tensor])
 
-            logger.info('->', axon)
             response = stub.Fwd(request)
             tensor = opentensor.Serializer.deserialize(response.tensors[0])
             results.append(tensor)
