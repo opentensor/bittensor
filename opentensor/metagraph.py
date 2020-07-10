@@ -1,4 +1,5 @@
 from concurrent import futures
+from loguru import logger
 from typing import List
 
 import math
@@ -18,8 +19,11 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         trained weights to keep this set prunned.
     """
     def __init__(self,
+                 identity: opentensor.Identity,
                  max_size: int = 1000000,
                  port: int = random.randint(1000, 10000)):
+        # Opentensor identity
+        self._identity = identity
         # Max size of the graph (number of axons)
         self._max_size = max_size
         # List of graph axons.
@@ -31,7 +35,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         self._weights = {}
 
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        opentensor_grpc.add_OpentensorServicer_to_server(self, self._server)
+        opentensor_grpc.add_MetagraphServicer_to_server(self, self._server)
         self._server.add_insecure_port('[::]:' + str(port))
 
         # Update thread.
@@ -41,7 +45,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
 
     def get(self, n: int) -> List[opentensor_pb2.Axon]:
         """ Returns min(n, len(axons)) axon from the graph sorted by score."""
-        min_n = min(len(self._axons, n))
+        min_n = min(len(self._axons), n)
         return self._axons[:n]
 
     def setweights(self, axons: List[opentensor_pb2.Axon],
@@ -60,17 +64,10 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
                 result.append(self._weights[ax.identity])
         return result
 
-    def subscribe(self, axon: opentensor.Axon):
+    def subscribe(self, axon_proto: opentensor_pb2.Axon):
         """ Adds a local node to the graph """
         # TODO (const) remove items.
-        axon_proto = opentensor_pb2.Axon(version=1.0,
-                                         public_key=axon.public_key(),
-                                         identity=axon.identity(),
-                                         address=axon.address(),
-                                         port=axon.port(),
-                                         indef=axon.indef(),
-                                         outdef=axon.outdef(),
-                                         definition=axon.definition())
+        logger.info('subscribe', axon_proto)
         self._axons.append(axon_proto)
         self._local_axons.append(axon_proto)
         self._weights[axon_proto.identity] = math.inf
@@ -79,20 +76,19 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         self._sink(request)
         return self._make_axon_batch(10)
 
-    def _update(self):
-        """ Internal update thread. Keeps the metagraph up to date. """
-        while self._running:
-            self._gossip()
-            time.sleep(10)
-
     def _gossip(self):
         """ Sends gossip query to random node in cache """
+        if len(self._axons) == 0:
+            return
         batch = self._make_axon_batch(10)
         axon_choice = random.choice(self._axons)
 
+        logger.info(axon_choice)
+
         # Make query.
         version = 1.0
-        address = axon_choice.address + ":" + (axon_choice.metagraph_port + 1)
+        address = axon_choice.address + ":" + axon_choice.m_port
+        logger.info(address)
         channel = grpc.insecure_channel(address)
         stub = opentensor_grpc.MetagraphStub(channel)
         response = stub.Gossip(batch)
@@ -129,16 +125,28 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
     def __del__(self):
         self.stop()
 
+    def _update(self):
+        """ Internal update thread. Keeps the metagraph up to date. """
+        try:
+            while self._running:
+                self._gossip()
+                time.sleep(10)
+        except (KeyboardInterrupt, SystemExit):
+            self._running = False
+            self.stop()
+
     def _serve(self):
-        self._server.start()
+        try:
+            self._server.start()
+        except (KeyboardInterrupt, SystemExit):
+            self.stop()
 
     def stop(self):
         """ Stops the gossip thread """
         self._running = False
         if self._update_thread:
             self._update_thread.join()
-        if self._server_thread:
-            self._server_thread.join()
+        self._server.stop(0)
 
     def start(self):
         """ Starts the gossip thread """
@@ -146,4 +154,5 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         self._update_thread = threading.Thread(target=self._update,
                                                daemon=True)
         self._server_thread = threading.Thread(target=self._serve, daemon=True)
-        self._thread.start()
+        self._update_thread.start()
+        self._server_thread.start()

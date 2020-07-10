@@ -2,6 +2,7 @@ from opentensor import opentensor_pb2_grpc as opentensor_grpc
 from opentensor import opentensor_pb2
 import opentensor
 
+from loguru import logger
 from typing import List
 
 import os
@@ -32,13 +33,14 @@ class Dendrite:
 
             tensor = opentensor.Serializer.serialize(tensor)
             # TODO(const) The extra public_key is redundant.
-            request = opentensor_pb2.TensorMessage(
-                version=version,
-                public_key=self._identity.public_key(),
-                source_id=self._identity.public_key(),
-                target_id=target_id,
-                nounce=nounce,
-                tensors=[tensor])
+            request = opentensor_pb2.TensorMessage(version=version,
+                                                   neuron_key=axon.neuron_key,
+                                                   source_id=axon.identity,
+                                                   target_id=target_id,
+                                                   nounce=nounce,
+                                                   tensors=[tensor])
+
+            logger.info('->', axon)
             response = stub.Fwd(request)
             tensor = opentensor.Serializer.deserialize(response.tensors[0])
             results.append(tensor)

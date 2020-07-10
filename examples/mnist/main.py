@@ -11,7 +11,6 @@ import opentensor
 
 
 class Net(nn.Module):
-
     def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
@@ -55,8 +54,8 @@ def main():
                           momentum=momentum)
 
     # opentensor Metagraph
-    identity = opentensor.Identity()
-    metagraph = opentensor.Neuron(identity)
+    metagraph = opentensor.Neuron()
+    metagraph.start()
 
     # Keys object.
     # projects from/to opentensor_pb2.Axon to a variable sized key tensor.
@@ -74,7 +73,6 @@ def main():
 
     # Node to serve on metagraph.
     class Mnist(opentensor.Axon):
-
         def indef(self):
             shape = [-1, 784]
             dtype = opentensor_pb2.DataType.DT_FLOAT32
@@ -85,10 +83,10 @@ def main():
             dtype = opentensor_pb2.DataType.DT_FLOAT32
             return opentensor_pb2.TensorDef(shape=shape, dtype=dtype)
 
-        def fwd(self, key, tensor):
+        def forward(self, key, tensor):
             return local(tensor.view(-1, 1, 28, 28))
 
-        def bwd(self, key, tensor):
+        def backward(self, key, tensor):
             pass
 
     # Subscribe the model encoder to the graph.
@@ -112,15 +110,16 @@ def main():
 
         # Query the network by mapping from keys to axon endpoints.
         # results = list[torch.Tensor], len(results) = len(keys)
-        axons = keymap.toAxpns(keys)  # List[opentensor_pb2.Axon]
-        query = metagraph(dispatch, nodes)  # List[(?, 748)]
+        axons = keymap.toAxons(keys)  # List[opentensor_pb2.Axon]
+        query = metagraph(dispatch, axons)  # List[(?, 748)]
 
         weights = metagraph.getweights(axons)
         weights = (0.99) * weights + 0.01 * torch.mean(gates, dim=0)
         metagraph.setweights(axons, weights)
 
         # Join results using gates to combine inputs.
-        return dispatcher.combine(query, gates).view(-1, 10)  # (batch_size, 10)
+        return dispatcher.combine(query, gates).view(-1,
+                                                     10)  # (batch_size, 10)
 
     def train(epoch):
         local.train()

@@ -1,4 +1,5 @@
 from concurrent import futures
+from loguru import logger
 
 import grpc
 import random
@@ -40,7 +41,7 @@ class AxonTerminal(opentensor_grpc.OpentensorServicer):
         # Init server objects.
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         opentensor_grpc.add_OpentensorServicer_to_server(self, self._server)
-        self._server.add_insecure_port('[::]:' + port)
+        self._server.add_insecure_port('[::]:' + str(port))
 
         # Local axons
         self._axons = {}
@@ -54,20 +55,24 @@ class AxonTerminal(opentensor_grpc.OpentensorServicer):
 
     def start(self):
         """ Start the axon terminal server. """
-        self._thread = threading.Thread(target=self._server, daemon=True)
+        self._thread = threading.Thread(target=self._serve, daemon=True)
         self._thread.start()
+
+    def _serve(self):
+        self._server.start()
 
     def stop(self):
         """ Stop the axon terminal server """
         self._server.stop(0)
 
-    def subscribe(self, axon: Axon):
+    def subscribe(self, axon_proto: opentensor_pb2.Axon, axon: Axon):
         """ Adds an Axon to the serving set """
-        self._axons[axon.identity] = axon
+        self._axons[axon_proto.identity] = axon
 
     def Fwd(self, request, context):
+        logger.info(request)
         version = request.version
-        public_key = request.public_key
+        neuron_key = request.neuron_key
         source_id = request.source_id
         target_id = request.target_id
         #nounce = request.nounce
@@ -76,12 +81,12 @@ class AxonTerminal(opentensor_grpc.OpentensorServicer):
         tensor = opentensor.Serializer.deserialize(tensor)
         assert target_id in self._axons
         axon = self._axons[target_id]
-        tensor = axon.Forward(source_id, tensor)
+        tensor = axon.forward(source_id, tensor)
         tensor = opentensor.Serializer.serialize(tensor)
 
         response = opentensor_pb2.TensorMessage(
             version=version,
-            public_key=self._identity.public_key(),
+            neuron_key=self._identity.public_key(),
             source_id=target_id,
             target_id=source_id,
             tensors=[tensor])
