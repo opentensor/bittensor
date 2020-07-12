@@ -5,6 +5,7 @@ import grpc
 import random
 import threading
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from opentensor import opentensor_pb2_grpc as opentensor_grpc
 from opentensor import opentensor_pb2
@@ -35,8 +36,9 @@ class Axon():
 
 class AxonTerminal(opentensor_grpc.OpentensorServicer):
     """ Processes Fwd and Bwd requests for a set of local Axons """
-    def __init__(self, identity, port):
+    def __init__(self, identity, port, writer: SummaryWriter):
         self._identity = identity
+        self._writer = writer
 
         # Init server objects.
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
