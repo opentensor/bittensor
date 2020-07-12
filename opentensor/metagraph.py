@@ -88,14 +88,18 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         metagraph_address = random.choice(list(self._peers))
 
         # Make query.
-        version = 1.0
-        logger.info(metagraph_address)
-        channel = grpc.insecure_channel(metagraph_address)
-        stub = opentensor_grpc.MetagraphStub(channel)
-        response = stub.Gossip(batch)
+        logger.info('gossip -> {}', metagraph_address)
+        try:
+            version = 1.0
+            channel = grpc.insecure_channel(metagraph_address)
+            stub = opentensor_grpc.MetagraphStub(channel)
+            response = stub.Gossip(batch)
 
-        # Sink the results to the cache.
-        self._sink(response)
+            # Sink the results to the cache.
+            self._sink(response)
+        except:
+            self._peers.remove(metagraph_address)
+            pass
 
     def _make_axon_batch(self, k: int):
         """ Builds a random batch of cache elements of size k """

@@ -18,7 +18,7 @@ class Dendrite:
         """ forward tensor processes """
 
         version = 1.0
-        source_uid = b''
+        source_uid = self._identity.public_key()
         nounce = os.urandom(12)
 
         results = []
@@ -34,14 +34,17 @@ class Dendrite:
             tensor = opentensor.Serializer.serialize(tensor)
             # TODO(const) The extra public_key is redundant.
             request = opentensor_pb2.TensorMessage(version=version,
-                                                   neuron_key=axon.neuron_key,
-                                                   source_id=axon.identity,
-                                                   target_id=target_id,
+                                                   neuron_key=source_uid,
+                                                   source_id=source_uid,
+                                                   target_id=axon.identity,
                                                    nounce=nounce,
                                                    tensors=[tensor])
 
-            response = stub.Fwd(request)
-            tensor = opentensor.Serializer.deserialize(response.tensors[0])
+            try:
+                response = stub.Fwd(request)
+                tensor = opentensor.Serializer.deserialize(response.tensors[0])
+            except:
+                tensor = opentensor.Serializer.zeros_for_def(axon.outdef)
             results.append(tensor)
 
         return results
