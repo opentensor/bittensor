@@ -29,8 +29,6 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         # List of graph axons.
         # TODO(const) access mutex
         self._axons = {}
-        # Local axon list
-        self._local_axons = []
         # A map from axon identity to a learned score.
         self._weights = {}
 
