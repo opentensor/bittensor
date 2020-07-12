@@ -1,5 +1,6 @@
 from loguru import logger
 
+import argparse
 import pickle
 import torch
 import torchvision
@@ -31,7 +32,7 @@ class Net(nn.Module):
         return F.log_softmax(x)
 
 
-def main():
+def main(hparams):
 
     # Training params.
     n_epochs = 3
@@ -56,7 +57,8 @@ def main():
                           momentum=momentum)
 
     # opentensor Metagraph
-    neuron = opentensor.Neuron(remote_ip='localhost')
+    neuron = opentensor.Neuron(remote_ip='localhost',
+                               bootstrap=hparams.bootstrap)
     neuron.start()
 
     # Keys object.
@@ -149,4 +151,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--bootstrap',
+                        default='',
+                        type=str,
+                        help="peer to bootstrap")
+    hparams = parser.parse_args()
+    main(hparams)
