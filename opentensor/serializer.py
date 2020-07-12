@@ -7,7 +7,6 @@ import umsgpack
 
 
 class SerializerBase:
-
     @staticmethod
     def todef(obj: object) -> proto_pb2.TensorDef:
         raise NotImplementedError()
@@ -29,6 +28,21 @@ class SerializerBase:
 
 
 class Serializer(SerializerBase):
+    @staticmethod
+    def zeros_for_def(tensor_def: proto_pb2.TensorDef) -> torch.Tensor:
+        if tensor_def.dtype == proto_pb2.DataType.DT_FLOAT32:
+            return torch.Tensor(tensor_def.shape, torch.float32)
+
+        elif tensor_def.dtype == proto_pb2.DataType.DT_FLOAT64:
+            return torch.Tensor(tensor_def.shape, torch.float64)
+
+        elif tensor_def.dtype == proto_pb2.DataType.DT_INT32:
+            return torch.Tensor(tensor_def.shape, torch.int32)
+
+        elif tensor_def.dtype == proto_pb2.DataType.DT_INT64:
+            return torch.Tensor(tensor_def.shape, torch.int64)
+        else:
+            raise ValueError
 
     @staticmethod
     def todef(obj: torch.Tensor) -> proto_pb2.TensorDef:
@@ -41,7 +55,7 @@ class Serializer(SerializerBase):
         elif obj.dtype == torch.int32:
             dtype = proto_pb2.DataType.DT_INT32
 
-        elif obj.dtype == proto_pb2.DataType.DT_INT32:
+        elif obj.dtype == torch.int64:
             dtye = proto_pb2.DataType.DT_INT64
 
         else:
