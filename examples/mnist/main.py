@@ -8,6 +8,7 @@ import torchvision
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.utils.tensorboard import SummaryWriter
 
 from opentensor import opentensor_pb2
 import opentensor
@@ -56,9 +57,16 @@ def main(hparams):
                           lr=learning_rate,
                           momentum=momentum)
 
-    # opentensor Metagraph
-    neuron = opentensor.Neuron(remote_ip='localhost',
-                               bootstrap=hparams.bootstrap)
+    # opentensor identity.
+    identity = opentensor.Identity()
+
+    # Build object summary writer.
+    writer = SummaryWriter(log_dir='./runs/' + identity.public_key())
+
+    neuron = opentensor.Neuron(identity=identity,
+                               remote_ip='localhost',
+                               bootstrap=hparams.bootstrap,
+                               writer=writer)
     neuron.start()
 
     # Keys object.
