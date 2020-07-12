@@ -21,11 +21,16 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
     def __init__(self,
                  identity: opentensor.Identity,
                  max_size: int = 1000000,
-                 port: int = random.randint(1000, 10000)):
+                 port: int = random.randint(1000, 10000),
+                 bootstrap: str = None):
         # Opentensor identity
         self._identity = identity
         # Max size of the graph (number of axons)
         self._max_size = max_size
+        # Address-port string endpoints.
+        self._peers = set()
+        if bootstrap:
+            self._peers.add(bootstrap)
         # List of graph axons.
         # TODO(const) access mutex
         self._axons = {}
@@ -76,17 +81,16 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         return self._make_axon_batch(10)
 
     def _gossip(self):
-        """ Sends gossip query to random node in cache """
-        if len(self._axons) == 0:
+        """ Sends ip query to random node in cache """
+        if len(self._peers) == 0:
             return
         batch = self._make_axon_batch(10)
-        axon_choice = random.choice(list(self._axons.values()))
+        metagraph_address = random.choice(list(self._peers))
 
         # Make query.
         version = 1.0
-        address = axon_choice.address + ":" + axon_choice.m_port
-        logger.info(address)
-        channel = grpc.insecure_channel(address)
+        logger.info(metagraph_address)
+        channel = grpc.insecure_channel(metagraph_address)
         stub = opentensor_grpc.MetagraphStub(channel)
         response = stub.Gossip(batch)
 
@@ -116,6 +120,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
             if axon.identity not in self._axons:
                 self._weights[axon.identity] = 0.0
                 self._axons[axon.identity] = axon
+                self._peers.add(axon.address + ':' + axon.m_port)
             else:
                 # TODO (const) check if newer.
                 pass
@@ -128,6 +133,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         try:
             while self._running:
                 self._gossip()
+                print(self._axons)
                 time.sleep(10)
         except (KeyboardInterrupt, SystemExit):
             self._running = False

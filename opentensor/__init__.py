@@ -1,4 +1,5 @@
 from concurrent import futures
+from loguru import logger
 from typing import List
 
 import os
@@ -30,15 +31,19 @@ from opentensor.dispatcher import Dispatcher
 
 class Neuron(nn.Module):
     """ Opentensor Neuron """
-    def __init__(self, remote_ip):
+    def __init__(self, remote_ip, bootstrap: str = None):
         super().__init__()
 
         self._identity = Identity()
 
         # Create a port map
         self._remote_ip = remote_ip
-        self._m_port = random.randint(10000, 600000)
+        self._m_port = random.randint(10000, 60000)
         self._a_port = random.randint(10000, 60000)
+        logger.info('Serving metagraph on: {}',
+                    self._remote_ip + ":" + str(self._m_port))
+        logger.info("Serving axon terminal on {}",
+                    self._remote_ip + ":" + str(self._a_port))
 
         # Inward connection handler.
         # AxonTerminal: deals with inward connections and makes connections
@@ -52,7 +57,8 @@ class Neuron(nn.Module):
         # Metagraph: maintains a cache of axons on the network.
         self._metagraph = Metagraph(self._identity,
                                     max_size=100000,
-                                    port=self._m_port)
+                                    port=self._m_port,
+                                    bootstrap=bootstrap)
 
     def __del__(self):
         self.stop()
