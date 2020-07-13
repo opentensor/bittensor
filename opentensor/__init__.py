@@ -42,7 +42,6 @@ class Neuron(nn.Module):
             self._writer = SummaryWriter()
         else:
             self._writer = writer
-        self._writer.add_text('info', 'init neuron')
 
         if identity == None:
             self._identity = Identity()
@@ -121,3 +120,19 @@ class Neuron(nn.Module):
             outdef=axon.outdef())
         self._metagraph.subscribe(axon_proto)
         self._axon_terminal.subscribe(axon_proto, axon)
+
+    @property
+    def identity(self):
+        return self._identity
+
+    @property
+    def metagraph(self):
+        return self._metagraph
+
+    @property
+    def axon_terminal(self):
+        return self._axon_terminal
+
+    @property
+    def dendrite(self):
+        return self._dendrite
