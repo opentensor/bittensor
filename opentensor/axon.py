@@ -85,7 +85,11 @@ class AxonTerminal(opentensor_grpc.OpentensorServicer):
         tensor = request.tensors[0]
 
         tensor = opentensor.Serializer.deserialize(tensor)
-        assert target_id in self._axons
+
+        # Return null response if the target does not exist.
+        if target_id not in self._axons:
+            return opentensor_pb2.TensorMessage()
+
         axon = self._axons[target_id]
         tensor = axon.forward(source_id, tensor)
         tensor = opentensor.Serializer.serialize(tensor)
