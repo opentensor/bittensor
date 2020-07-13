@@ -8,19 +8,21 @@ from cryptography.hazmat.primitives import hashes, serialization
 
 import os
 
+
 def test_empty_protos():
     proto_pb2.TensorMessage()
     return
 
+
 def test_signed_message_fail():
-    
+
     # Generate key.
     identity = opentensor.Identity()
-    
+
     # Get source_key as bytes.
     public_bytes = identity.public_bytes()
 
-    # Create nounce. A string representation of random bytes. 
+    # Create nounce. A string representation of random bytes.
     nounce = os.urandom(12)
 
     # Create SHA256 digest.
@@ -28,10 +30,10 @@ def test_signed_message_fail():
     digest.update(public_bytes)
     digest.update(nounce)
     real_sha1_digest = digest.finalize()
-   
+
     # False nounce.
     false_nounce = os.urandom(12)
-    
+
     digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
     digest.update(public_bytes)
     digest.update(false_nounce)
@@ -39,18 +41,18 @@ def test_signed_message_fail():
 
     # Create signature
     signature = identity.sign(real_sha1_digest)
-    
+
     # Build message
-    fwd_request = proto_pb2.TensorMessage (
-        public_key = identity.public_key(), 
-        nounce = false_nounce,
-        signature = signature
-    )
- 
+    fwd_request = proto_pb2.TensorMessage(neuron_key=identity.public_key(),
+                                          nounce=false_nounce,
+                                          signature=signature)
+
     # Server side, load key.
-    in_public_bytes = opentensor.Identity.public_bytes_from_string(fwd_request.public_key)
-    in_public_key = opentensor.Identity.public_from_string(fwd_request.public_key)
-    
+    in_public_bytes = opentensor.Identity.public_bytes_from_string(
+        fwd_request.neuron_key)
+    in_public_key = opentensor.Identity.public_from_string(
+        fwd_request.neuron_key)
+
     # Recreate digest.
     digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
     digest.update(in_public_bytes)
@@ -62,19 +64,19 @@ def test_signed_message_fail():
         in_public_key.verify(fwd_request.signature, target_side_digest)
     except:
         return True
-    
-    assert(False)
+
+    assert (False)
 
 
 def test_signed_message():
-   
+
     # Generate key.
     identity = opentensor.Identity()
-    
+
     # Get source_key as bytes.
     public_bytes = identity.public_bytes()
 
-    # Create nounce. A string representation of random bytes. 
+    # Create nounce. A string representation of random bytes.
     nounce = os.urandom(12)
 
     # Create SHA1 digest.
@@ -82,21 +84,21 @@ def test_signed_message():
     digest.update(public_bytes)
     digest.update(nounce)
     sha1_digest = digest.finalize()
-   
+
     # Sign the digest.
     signature = identity.sign(sha1_digest)
-    
+
     # Build message
-    fwd_request = proto_pb2.TensorMessage (
-        public_key = identity.public_key(), 
-        nounce = nounce,
-        signature = signature
-    )
- 
+    fwd_request = proto_pb2.TensorMessage(neuron_key=identity.public_key(),
+                                          nounce=nounce,
+                                          signature=signature)
+
     # Server side, load key.
-    in_public_bytes = opentensor.Identity.public_bytes_from_string(fwd_request.public_key)
-    in_public_key = opentensor.Identity.public_from_string(fwd_request.public_key)
-    
+    in_public_bytes = opentensor.Identity.public_bytes_from_string(
+        fwd_request.neuron_key)
+    in_public_key = opentensor.Identity.public_from_string(
+        fwd_request.neuron_key)
+
     # Recreate digest.
     digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
     digest.update(in_public_bytes)
@@ -105,5 +107,5 @@ def test_signed_message():
 
     # Verify the authenticity of the message.
     in_public_key.verify(fwd_request.signature, target_side_digest)
-    
+
     return True

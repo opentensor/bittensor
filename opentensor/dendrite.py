@@ -2,45 +2,53 @@ from opentensor import opentensor_pb2_grpc as opentensor_grpc
 from opentensor import opentensor_pb2
 import opentensor
 
+from loguru import logger
 from typing import List
 
 import os
 import grpc
 import torch
 
-class Dendrite:
-    def __init__(self, metagraph):
-        self._metagraph = metagraph
 
-    def forward (self, x: List[torch.Tensor], nodes: List[opentensor_pb2.Node]):
-        
+class Dendrite:
+    def __init__(self, identity, remote_ip):
+        self._identity = identity
+        self._remote_ip = remote_ip
+
+    def forward(self, x: List[torch.Tensor], axons: List[opentensor_pb2.Axon]):
+        """ forward tensor processes """
+
         version = 1.0
-        source_uid = b'' 
-        nounce = os.urandom(12) 
-     
+        source_uid = self._identity.public_key()
+        nounce = os.urandom(12)
+
         results = []
         for idx, tensor in enumerate(x):
-            node = nodes[idx]
-            
+            axon = axons[idx]
+
             # Create endpoint stub
-            target_id = node.identity
-            address = node.address + ":" + node.port
-            channel = grpc.insecure_channel(address)
+            target_id = axon.identity
+            address = axon.address
+            # Loop back if the axon is local.
+            if address == self._remote_ip:
+                address = 'localhost'
+            channel = grpc.insecure_channel(address + ':' + axon.port)
             stub = opentensor_grpc.OpentensorStub(channel)
 
             tensor = opentensor.Serializer.serialize(tensor)
-            request = opentensor_pb2.TensorMessage(
-                version = version,
-                public_key = self._metagraph.identity.public_key(),
-                source_id = self._metagraph.identity.public_key(),
-                target_id = target_id, 
-                nounce = nounce,
-                tensors = [tensor]
-            )
-            response = stub.Fwd(request) 
-            tensor = opentensor.Serializer.deserialize(response.tensors[0])
+            # TODO(const) The extra public_key is redundant.
+            request = opentensor_pb2.TensorMessage(version=version,
+                                                   neuron_key=source_uid,
+                                                   source_id=source_uid,
+                                                   target_id=axon.identity,
+                                                   nounce=nounce,
+                                                   tensors=[tensor])
+
+            try:
+                response = stub.Fwd(request)
+                tensor = opentensor.Serializer.deserialize(response.tensors[0])
+            except:
+                tensor = opentensor.Serializer.zeros_for_def(axon.outdef)
             results.append(tensor)
 
         return results
-     
-

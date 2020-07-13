@@ -102,9 +102,8 @@ class Opentensor(object):
             call_credentials, compression, wait_for_ready, timeout, metadata)
 
 
-class MetagraphProxyStub(object):
-    """DTH + Blockchain interface.
-    """
+class MetagraphStub(object):
+    """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
         """Constructor.
@@ -112,76 +111,43 @@ class MetagraphProxyStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.Subscribe = channel.unary_unary(
-                '/MetagraphProxy/Subscribe',
-                request_serializer=opentensor_dot_opentensor__pb2.Neuron.SerializeToString,
-                response_deserializer=opentensor_dot_opentensor__pb2.ACK.FromString,
-                )
-        self.Unsubscribe = channel.unary_unary(
-                '/MetagraphProxy/Unsubscribe',
-                request_serializer=opentensor_dot_opentensor__pb2.Neuron.SerializeToString,
-                response_deserializer=opentensor_dot_opentensor__pb2.ACK.FromString,
-                )
-        self.GetMetagraph = channel.unary_unary(
-                '/MetagraphProxy/GetMetagraph',
-                request_serializer=opentensor_dot_opentensor__pb2.ACK.SerializeToString,
-                response_deserializer=opentensor_dot_opentensor__pb2.Metagraph.FromString,
+        self.Gossip = channel.unary_unary(
+                '/Metagraph/Gossip',
+                request_serializer=opentensor_dot_opentensor__pb2.AxonBatch.SerializeToString,
+                response_deserializer=opentensor_dot_opentensor__pb2.AxonBatch.FromString,
                 )
 
 
-class MetagraphProxyServicer(object):
-    """DTH + Blockchain interface.
-    """
+class MetagraphServicer(object):
+    """Missing associated documentation comment in .proto file."""
 
-    def Subscribe(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def Unsubscribe(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def GetMetagraph(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+    def Gossip(self, request, context):
+        """Shared POW cache.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_MetagraphProxyServicer_to_server(servicer, server):
+def add_MetagraphServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Subscribe': grpc.unary_unary_rpc_method_handler(
-                    servicer.Subscribe,
-                    request_deserializer=opentensor_dot_opentensor__pb2.Neuron.FromString,
-                    response_serializer=opentensor_dot_opentensor__pb2.ACK.SerializeToString,
-            ),
-            'Unsubscribe': grpc.unary_unary_rpc_method_handler(
-                    servicer.Unsubscribe,
-                    request_deserializer=opentensor_dot_opentensor__pb2.Neuron.FromString,
-                    response_serializer=opentensor_dot_opentensor__pb2.ACK.SerializeToString,
-            ),
-            'GetMetagraph': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetMetagraph,
-                    request_deserializer=opentensor_dot_opentensor__pb2.ACK.FromString,
-                    response_serializer=opentensor_dot_opentensor__pb2.Metagraph.SerializeToString,
+            'Gossip': grpc.unary_unary_rpc_method_handler(
+                    servicer.Gossip,
+                    request_deserializer=opentensor_dot_opentensor__pb2.AxonBatch.FromString,
+                    response_serializer=opentensor_dot_opentensor__pb2.AxonBatch.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'MetagraphProxy', rpc_method_handlers)
+            'Metagraph', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
  # This class is part of an EXPERIMENTAL API.
-class MetagraphProxy(object):
-    """DTH + Blockchain interface.
-    """
+class Metagraph(object):
+    """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def Subscribe(request,
+    def Gossip(request,
             target,
             options=(),
             channel_credentials=None,
@@ -190,40 +156,8 @@ class MetagraphProxy(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/MetagraphProxy/Subscribe',
-            opentensor_dot_opentensor__pb2.Neuron.SerializeToString,
-            opentensor_dot_opentensor__pb2.ACK.FromString,
-            options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def Unsubscribe(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/MetagraphProxy/Unsubscribe',
-            opentensor_dot_opentensor__pb2.Neuron.SerializeToString,
-            opentensor_dot_opentensor__pb2.ACK.FromString,
-            options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def GetMetagraph(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/MetagraphProxy/GetMetagraph',
-            opentensor_dot_opentensor__pb2.ACK.SerializeToString,
-            opentensor_dot_opentensor__pb2.Metagraph.FromString,
+        return grpc.experimental.unary_unary(request, target, '/Metagraph/Gossip',
+            opentensor_dot_opentensor__pb2.AxonBatch.SerializeToString,
+            opentensor_dot_opentensor__pb2.AxonBatch.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)
