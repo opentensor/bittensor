@@ -5,6 +5,7 @@ from typing import List
 import os
 import sys
 import random
+import requests
 import threading
 import grpc
 import torch
@@ -34,7 +35,6 @@ class Neuron(nn.Module):
     """ Opentensor Neuron """
     def __init__(self,
                  identity: Identity = None,
-                 remote_ip: str = 'localhost',
                  bootstrap: str = None,
                  writer: SummaryWriter = None):
         super().__init__()
@@ -51,7 +51,7 @@ class Neuron(nn.Module):
             self._identity = identity
 
         # Create a port map
-        self._remote_ip = remote_ip
+        self._remote_ip = requests.get('https://api.ipify.org').text
         self._m_port = random.randint(10000, 60000)
         self._a_port = random.randint(10000, 60000)
         logger.info('Serving metagraph on: {}',
@@ -66,13 +66,14 @@ class Neuron(nn.Module):
                                            self._writer)
 
         # Dendrite: outward connection handler.
-        self._dendrite = Dendrite(self._identity)
+        self._dendrite = Dendrite(self._identity, self._remote_ip)
         # TODO (const) connection handling.
 
         # Metagraph: maintains a cache of axons on the network.
         self._metagraph = Metagraph(self._identity,
                                     max_size=100000,
                                     port=self._m_port,
+                                    remote_ip=self._remote_ip,
                                     bootstrap=bootstrap)
 
     def __del__(self):
@@ -86,7 +87,7 @@ class Neuron(nn.Module):
     def stop(self):
         """ Ends opentensor backend processes """
         self._axon_terminal.stop()
-        self._metagraph.start()
+        self._metagraph.stop()
 
     def axons(self) -> List[opentensor_pb2.Axon]:
         """ Returns a list of metagraph nodes to the caller """

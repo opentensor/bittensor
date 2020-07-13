@@ -11,8 +11,9 @@ import torch
 
 
 class Dendrite:
-    def __init__(self, identity):
+    def __init__(self, identity, remote_ip):
         self._identity = identity
+        self._remote_ip = remote_ip
 
     def forward(self, x: List[torch.Tensor], axons: List[opentensor_pb2.Axon]):
         """ forward tensor processes """
@@ -27,8 +28,11 @@ class Dendrite:
 
             # Create endpoint stub
             target_id = axon.identity
-            address = axon.address + ":" + axon.port
-            channel = grpc.insecure_channel(address)
+            address = axon.address
+            # Loop back if the axon is local.
+            if address == self._remote_ip:
+                address = 'localhost'
+            channel = grpc.insecure_channel(address + ':' + axon.port)
             stub = opentensor_grpc.OpentensorStub(channel)
 
             tensor = opentensor.Serializer.serialize(tensor)

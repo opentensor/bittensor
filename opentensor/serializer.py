@@ -1,9 +1,7 @@
 from opentensor import opentensor_pb2 as proto_pb2
 from io import BytesIO
-import joblib
 import torch
 import pickle
-import umsgpack
 
 
 class SerializerBase:
