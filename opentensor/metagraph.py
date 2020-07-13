@@ -173,3 +173,15 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         self._server_thread = threading.Thread(target=self._serve, daemon=True)
         self._update_thread.start()
         self._server_thread.start()
+
+    @property
+    def peers(self):
+        return self._peers
+
+    @property
+    def axons(self):
+        return self._axons
+
+    @property
+    def weights(self):
+        return self._weights

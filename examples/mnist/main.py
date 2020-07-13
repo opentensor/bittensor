@@ -36,7 +36,6 @@ class Net(nn.Module):
 def main(hparams):
 
     # Training params.
-    n_epochs = 3
     batch_size_train = 64
     learning_rate = 0.01
     momentum = 0.5
@@ -60,13 +59,8 @@ def main(hparams):
     # opentensor identity.
     identity = opentensor.Identity()
 
-    # Build object summary writer.
-    writer = SummaryWriter(log_dir='./runs/' + identity.public_key())
-
     # Build the neuron object.
-    neuron = opentensor.Neuron(identity=identity,
-                               bootstrap=hparams.bootstrap,
-                               writer=writer)
+    neuron = opentensor.Neuron(identity=identity, bootstrap=hparams.bootstrap)
     neuron.start()
 
     # Keys object.
@@ -104,6 +98,9 @@ def main(hparams):
     # Subscribe the model encoder to the graph.
     neuron.subscribe(Mnist())
 
+    # Build summary writer for tensorboard.
+    writer = SummaryWriter(log_dir='./runs/' + identity.public_key())
+
     def remote(inputs):
         gate_inputs = torch.flatten(inputs, start_dim=1)
 
@@ -133,7 +130,7 @@ def main(hparams):
         return dispatcher.combine(query, gates).view(-1,
                                                      10)  # (batch_size, 10)
 
-    def train(epoch):
+    def train(epoch, global_step):
         local.train()
         for batch_idx, (data, target) in enumerate(train_loader):
             optimizer.zero_grad()
@@ -148,14 +145,24 @@ def main(hparams):
             loss.backward()
 
             optimizer.step()
+            global_step += 1
 
             if batch_idx % log_interval == 0:
+                writer.add_scalar('n_peers', len(neuron.metagraph.peers),
+                                  global_step)
+                writer.add_scalar('n_axons', len(neuron.metagraph.axons),
+                                  global_step)
+                writer.add_scalar('Loss/train', float(loss.item()),
+                                  global_step)
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     epoch, batch_idx * len(data), len(train_loader.dataset),
                     100. * batch_idx / len(train_loader), loss.item()))
 
-    for epoch in range(1, n_epochs + 1):
-        train(epoch)
+    epoch = 0
+    global_step = 0
+    while True:
+        train(epoch, global_step)
+        epoch += 1
 
 
 if __name__ == "__main__":
