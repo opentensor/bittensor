@@ -35,20 +35,22 @@ class Dendrite:
             channel = grpc.insecure_channel(address + ':' + axon.port)
             stub = opentensor_grpc.OpentensorStub(channel)
 
-            tensor = opentensor.Serializer.serialize(tensor)
+            serialized_tensor = opentensor.Serializer.serialize(tensor)
             # TODO(const) The extra public_key is redundant.
             request = opentensor_pb2.TensorMessage(version=version,
                                                    neuron_key=source_uid,
                                                    source_id=source_uid,
                                                    target_id=axon.identity,
                                                    nounce=nounce,
-                                                   tensors=[tensor])
+                                                   tensors=[serialized_tensor])
 
             try:
                 response = stub.Fwd(request)
-                tensor = opentensor.Serializer.deserialize(response.tensors[0])
+                out_tensor = opentensor.Serializer.deserialize(
+                    response.tensors[0])
             except:
-                tensor = opentensor.Serializer.zeros_for_def(axon.outdef)
-            results.append(tensor)
+                out_tensor = opentensor.Serializer.zeros_for_def(
+                    tensor, axon.outdef)
+            results.append(out_tensor)
 
         return results
