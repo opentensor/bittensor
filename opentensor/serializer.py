@@ -54,7 +54,7 @@ class Serializer(SerializerBase):
             dtype = proto_pb2.DataType.DT_INT32
 
         elif obj.dtype == torch.int64:
-            dtye = proto_pb2.DataType.DT_INT64
+            dtype = proto_pb2.DataType.DT_INT64
 
         else:
             dtype = proto_pb2.DataType.UNKNOWN
