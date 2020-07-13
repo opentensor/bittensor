@@ -85,17 +85,16 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
 
     def _gossip(self):
         """ Sends ip query to random node in cache """
-        print('gossip')
         if len(self._peers) == 0:
             return
         batch = self._make_axon_batch(10)
         metagraph_address = random.choice(list(self._peers))
 
-        # Make query.
-        # Loop back for local nodes.
+        # Switch to loop for local nodes.
         if metagraph_address.split(':')[0] == self._remote_ip:
             metagraph_address = 'localhost:' + metagraph_address.split(':')[1]
 
+        # Make query.
         logger.info('gossip -> {}', metagraph_address)
         try:
             version = 1.0
@@ -107,7 +106,6 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
             self._sink(response)
         except:
             self._peers.remove(metagraph_address)
-            pass
 
     def _make_axon_batch(self, k: int):
         """ Builds a random batch of cache elements of size k """
@@ -148,6 +146,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
                 print(self._axons)
                 time.sleep(10)
         except (KeyboardInterrupt, SystemExit):
+            logger.info('stop metagraph')
             self._running = False
             self.stop()
 
@@ -156,6 +155,8 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
             self._server.start()
         except (KeyboardInterrupt, SystemExit):
             self.stop()
+        except Exception as e:
+            logger.error(e)
 
     def stop(self):
         """ Stops the gossip thread """

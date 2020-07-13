@@ -1,5 +1,7 @@
 from loguru import logger
+import sys
 import argparse
+import time
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
@@ -8,7 +10,6 @@ import opentensor
 
 
 def main(hparams):
-
     # Null identity
     identity = opentensor.Identity()
 
@@ -17,13 +18,15 @@ def main(hparams):
 
     # Build the neuron object.
     neuron = opentensor.Neuron(identity=identity,
-                               remote_ip=hparams.remote_ip,
                                bootstrap=hparams.bootstrap,
                                writer=writer)
-    try:
-        neuron.start()
-    finally:
-        del neuron
+    neuron.start()
+    while True:
+        try:
+            time.sleep(10)
+        except (KeyboardInterrupt, SystemExit):
+            neuron.stop()
+    del neuron
 
 
 if __name__ == "__main__":

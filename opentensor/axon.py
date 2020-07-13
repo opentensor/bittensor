@@ -61,7 +61,12 @@ class AxonTerminal(opentensor_grpc.OpentensorServicer):
         self._thread.start()
 
     def _serve(self):
-        self._server.start()
+        try:
+            self._server.start()
+        except (KeyboardInterrupt, SystemExit):
+            self.stop()
+        except Exception as e:
+            logger.error(e)
 
     def stop(self):
         """ Stop the axon terminal server """
