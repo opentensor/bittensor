@@ -43,15 +43,15 @@ def test_signed_message_fail():
     signature = identity.sign(real_sha1_digest)
 
     # Build message
-    fwd_request = proto_pb2.TensorMessage(public_key=identity.public_key(),
+    fwd_request = proto_pb2.TensorMessage(neuron_key=identity.public_key(),
                                           nounce=false_nounce,
                                           signature=signature)
 
     # Server side, load key.
     in_public_bytes = opentensor.Identity.public_bytes_from_string(
-        fwd_request.public_key)
+        fwd_request.neuron_key)
     in_public_key = opentensor.Identity.public_from_string(
-        fwd_request.public_key)
+        fwd_request.neuron_key)
 
     # Recreate digest.
     digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
@@ -89,15 +89,15 @@ def test_signed_message():
     signature = identity.sign(sha1_digest)
 
     # Build message
-    fwd_request = proto_pb2.TensorMessage(public_key=identity.public_key(),
+    fwd_request = proto_pb2.TensorMessage(neuron_key=identity.public_key(),
                                           nounce=nounce,
                                           signature=signature)
 
     # Server side, load key.
     in_public_bytes = opentensor.Identity.public_bytes_from_string(
-        fwd_request.public_key)
+        fwd_request.neuron_key)
     in_public_key = opentensor.Identity.public_from_string(
-        fwd_request.public_key)
+        fwd_request.neuron_key)
 
     # Recreate digest.
     digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
