@@ -22,9 +22,12 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
                  identity: opentensor.Identity,
                  max_size: int = 1000000,
                  port: int = random.randint(1000, 10000),
+                 remote_ip: str = 'localhost',
                  bootstrap: str = None):
         # Opentensor identity
         self._identity = identity
+        # remote ip.
+        self._remote_ip = remote_ip
         # Max size of the graph (number of axons)
         self._max_size = max_size
         # Address-port string endpoints.
@@ -82,12 +85,17 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
 
     def _gossip(self):
         """ Sends ip query to random node in cache """
+        print('gossip')
         if len(self._peers) == 0:
             return
         batch = self._make_axon_batch(10)
         metagraph_address = random.choice(list(self._peers))
 
         # Make query.
+        # Loop back for local nodes.
+        if metagraph_address.split(':')[0] == self._remote_ip:
+            metagraph_address = 'localhost:' + metagraph_address.split(':')[1]
+
         logger.info('gossip -> {}', metagraph_address)
         try:
             version = 1.0
