@@ -9,7 +9,7 @@
 $ TOKEN=(your api token)
 
 # Create a remote instance
-$ docker-create --driver digitalocean --digitalocean-size s-4vcpu-8gb --digitalocean-access-token ${TOKEN} bootstrap
+$ docker-machine create --driver digitalocean --digitalocean-size s-4vcpu-8gb --digitalocean-access-token ${TOKEN} bootstrap
 
 # Switch to instance context
 $ eval $(docker-machine env bootstrap)
