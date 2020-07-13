@@ -1,5 +1,4 @@
 argparse
-miniupnpc
 loguru
 numpy
 pycryptodome
