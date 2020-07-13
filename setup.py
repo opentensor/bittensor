@@ -31,5 +31,5 @@ setup(
         exclude=['data', 'contract', 'assets', 'scripts', 'docs']),
     python_requires='>=3.5',
     install_requires=[
-	'argparse', 'miniupnpc', 'loguru', 'numpy', 'pycryptodome', 'grpcio', 'grpcio-tools', 'pytest', 'tensorboard', 'torch', 'pickle-mixin'],  # Optional
+	'argparse', 'loguru', 'numpy', 'pycryptodome', 'grpcio', 'grpcio-tools', 'pytest', 'tensorboard', 'torch', 'pickle-mixin'],  # Optional
 )

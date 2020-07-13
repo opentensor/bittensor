@@ -19,7 +19,6 @@ from opentensor import opentensor_pb2
 from opentensor import opentensor_pb2_grpc as opentensor_grpc
 
 # Import objects.
-from opentensor.nat import Nat
 from opentensor.serializer import Serializer
 from opentensor.keys import Keys
 from opentensor.identity import Identity
