@@ -24,28 +24,29 @@ def new_key(dim):
 
 
 class Keys():
+
     def __init__(self, key_dim):
         self._key_dim = key_dim
-        self._key_for_axon = {}
-        self._axon_for_key = {}
+        self._key_for_synapse = {}
+        self._synapse_for_key = {}
 
-    def addAxon(self, axon):
+    def addSynapse(self, synapse):
         key = new_key(self._key_dim)
-        self._key_for_axon[axon.identity] = key
-        self._axon_for_key[torch_to_bytes(key)] = axon
+        self._key_for_synapse[synapse.identity] = key
+        self._synapse_for_key[torch_to_bytes(key)] = synapse
 
-    def toKeys(self, axons: List[opentensor_pb2.Axon]):
+    def toKeys(self, synapses: List[opentensor_pb2.Synapse]):
         torch_keys = []
-        for axon in axons:
-            if axon.identity not in self._key_for_axon:
-                self.addAxon(axon)
-            torch_keys.append(self._key_for_axon[axon.identity])
+        for synapse in synapses:
+            if synapse.identity not in self._key_for_synapse:
+                self.addSynapse(synapse)
+            torch_keys.append(self._key_for_synapse[synapse.identity])
         return torch.cat(torch_keys, dim=0).view(-1, self._key_dim)
 
-    def toAxons(self, keys):
-        axons = []
+    def toSynapses(self, keys):
+        synapses = []
         for k in keys:
             kb = torch_to_bytes(k)
-            assert (kb in self._axon_for_key)
-            axons.append(self._axon_for_key[kb])
-        return axons
+            assert (kb in self._synapse_for_key)
+            synapses.append(self._synapse_for_key[kb])
+        return synapses

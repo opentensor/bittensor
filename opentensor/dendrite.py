@@ -15,7 +15,7 @@ class Dendrite:
         self._identity = identity
         self._remote_ip = remote_ip
 
-    def forward(self, x: List[torch.Tensor], axons: List[opentensor_pb2.Axon]):
+    def forward(self, x: List[torch.Tensor], synapses: List[opentensor_pb2.Synapse]):
         """ forward tensor processes """
 
         version = 1.0
@@ -24,15 +24,15 @@ class Dendrite:
 
         results = []
         for idx, tensor in enumerate(x):
-            axon = axons[idx]
+            synapse = synapses[idx]
 
             # Create endpoint stub
-            target_id = axon.identity
-            address = axon.address
-            # Loop back if the axon is local.
+            target_id = synapse.identity
+            address = synapse.address
+            # Loop back if the synapse is local.
             if address == self._remote_ip:
                 address = 'localhost'
-            channel = grpc.insecure_channel(address + ':' + axon.port)
+            channel = grpc.insecure_channel(address + ':' + synapse.port)
             stub = opentensor_grpc.OpentensorStub(channel)
 
             serialized_tensor = opentensor.Serializer.serialize(tensor)
@@ -40,7 +40,7 @@ class Dendrite:
             request = opentensor_pb2.TensorMessage(version=version,
                                                    neuron_key=source_uid,
                                                    source_id=source_uid,
-                                                   target_id=axon.identity,
+                                                   target_id=synapse.identity,
                                                    nounce=nounce,
                                                    tensors=[serialized_tensor])
 
@@ -50,7 +50,7 @@ class Dendrite:
                     response.tensors[0])
             except:
                 out_tensor = opentensor.Serializer.zeros_for_def(
-                    tensor, axon.outdef)
+                    tensor, synapse.outdef)
             results.append(out_tensor)
 
         return results

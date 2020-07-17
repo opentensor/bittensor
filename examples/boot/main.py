@@ -20,8 +20,8 @@ def main(hparams):
     neuron = opentensor.Neuron(identity=identity, bootstrap=hparams.bootstrap)
     neuron.start()
     while True:
-        writer.add_scalar('n_peers', len(neuron.metagraph.axons), time.time())
-        writer.add_scalar('n_axons', len(neuron.metagraph.peers), time.time())
+        writer.add_scalar('n_peers', len(neuron.metagraph.synapses), time.time())
+        writer.add_scalar('n_synapses', len(neuron.metagraph.peers), time.time())
         try:
             time.sleep(10)
         except (KeyboardInterrupt, SystemExit):

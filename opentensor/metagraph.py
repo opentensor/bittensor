@@ -28,16 +28,16 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         self._identity = identity
         # remote ip.
         self._remote_ip = remote_ip
-        # Max size of the graph (number of axons)
+        # Max size of the graph (number of synapses)
         self._max_size = max_size
         # Address-port string endpoints.
         self._peers = set()
         if bootstrap:
             self._peers.add(bootstrap)
-        # List of graph axons.
+        # List of graph synapses.
         # TODO(const) access mutex
-        self._axons = {}
-        # A map from axon identity to a learned score.
+        self._synapses = {}
+        # A map from synapse identity to a learned score.
         self._weights = {}
 
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
@@ -49,56 +49,57 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         self._server_thread = None
         self._running = False
 
-    def get(self, n: int) -> List[opentensor_pb2.Axon]:
-        """ Returns min(n, len(axons)) axon from the graph sorted by score."""
-        # TODO (const) sort axon array
-        axon_list = list(self._axons.values())
-        min_n = min(len(axon_list), n)
-        return axon_list[:n]
+    def get(self, n: int) -> List[opentensor_pb2.Synapse]:
+        """ Returns min(n, len(synapses)) synapse from the graph sorted by score."""
+        # TODO (const) sort synapse array
+        synapse_list = list(self._synapses.values())
+        min_n = min(len(synapse_list), n)
+        return synapse_list[:n]
 
-    def setweights(self, axons: List[opentensor_pb2.Axon],
+    def setweights(self, synapses: List[opentensor_pb2.Synapse],
                    weights: List[float]):
         """ Set local scores for each passed node """
-        for idx, axon in enumerate(axons):
-            self._weights[axon.identity] = weights[idx]
+        for idx, synapse in enumerate(synapses):
+            self._weights[synapse.identity] = weights[idx]
 
-    def getweights(self, axons: List[opentensor_pb2.Axon]) -> List[float]:
-        """ Get local weights for a list of axons """
+    def getweights(self, synapses: List[opentensor_pb2.Synapse]) -> List[float]:
+        """ Get local weights for a list of synapses """
         result = []
-        for ax in axons:
+        for ax in synapses:
             if ax.identity not in self._weights:
                 result.append(0.0)
             else:
                 result.append(self._weights[ax.identity])
         return result
 
-    def subscribe(self, axon_proto: opentensor_pb2.Axon):
+    def subscribe(self, synapse_proto: opentensor_pb2.Synapse):
         """ Adds a local node to the graph """
         # TODO (const) remove items.
-        logger.info('subscribe', axon_proto)
-        self._axons[axon_proto.identity] = axon_proto
-        self._weights[axon_proto.identity] = math.inf
+        logger.info('subscribe', synapse_proto)
+        self._synapses[synapse_proto.identity] = synapse_proto
+        self._weights[synapse_proto.identity] = math.inf
 
     def Gossip(self, request, context):
         self._sink(request)
-        return self._make_axon_batch(10)
+        return self._make_synapse_batch(10)
 
     def _gossip(self):
         """ Sends ip query to random node in cache """
         if len(self._peers) == 0:
             return
-        batch = self._make_axon_batch(10)
+        batch = self._make_synapse_batch(10)
         metagraph_address = random.choice(list(self._peers))
 
         # Switch to loop for local nodes.
+        realized_address = metagraph_address 
         if metagraph_address.split(':')[0] == self._remote_ip:
-            metagraph_address = 'localhost:' + metagraph_address.split(':')[1]
+            realized_address = 'localhost:' + metagraph_address.split(':')[1]
 
         # Make query.
         logger.info('gossip -> {}', metagraph_address)
         try:
             version = 1.0
-            channel = grpc.insecure_channel(metagraph_address)
+            channel = grpc.insecure_channel(realized_address)
             stub = opentensor_grpc.MetagraphStub(channel)
             response = stub.Gossip(batch)
 
@@ -107,30 +108,30 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         except:
             self._peers.remove(metagraph_address)
 
-    def _make_axon_batch(self, k: int):
+    def _make_synapse_batch(self, k: int):
         """ Builds a random batch of cache elements of size k """
         # TODO (const) sign message.
         # TODO (const) create new_neuron entries for local endpoints.
         # Create batch of random neuron definitions.
         assert k > 0
-        axon_list = list(self._axons.values())
-        k = min(len(axon_list), 50)
-        batch = random.sample(axon_list, k)
-        batch = opentensor_pb2.AxonBatch(axons=batch)
+        synapse_list = list(self._synapses.values())
+        k = min(len(synapse_list), 50)
+        batch = random.sample(synapse_list, k)
+        batch = opentensor_pb2.SynapseBatch(synapses=batch)
         return batch
 
-    def _sink(self, batch: opentensor_pb2.AxonBatch):
+    def _sink(self, batch: opentensor_pb2.SynapseBatch):
         """ Updates storage with gossiped neuron info. """
         # TODO(const) score based on POW, timestamp, and trust.
         # TODO(const) check signatures.
         # TODO(const) sink weights as well.
         # TODO(const) write to disk if need be and replace heap cache.
         # TODO(const) check size contraints.
-        for axon in batch.axons:
-            if axon.identity not in self._axons:
-                self._weights[axon.identity] = 0.0
-                self._axons[axon.identity] = axon
-                self._peers.add(axon.address + ':' + axon.m_port)
+        for synapse in batch.synapses:
+            if synapse.identity not in self._synapses:
+                self._weights[synapse.identity] = 0.0
+                self._synapses[synapse.identity] = synapse
+                self._peers.add(synapse.address + ':' + synapse.m_port)
             else:
                 # TODO (const) check if newer.
                 pass
@@ -143,7 +144,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         try:
             while self._running:
                 self._gossip()
-                print(self._axons)
+                print(self._synapses)
                 time.sleep(10)
         except (KeyboardInterrupt, SystemExit):
             logger.info('stop metagraph')
@@ -179,8 +180,8 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         return self._peers
 
     @property
-    def axons(self):
-        return self._axons
+    def synapses(self):
+        return self._synapses
 
     @property
     def weights(self):
