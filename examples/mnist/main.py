@@ -24,14 +24,16 @@ class Net(opentensor.Synapse):
         self.fc2 = nn.Linear(50, 10)
         
     def indef(self):
+        channel = opentensor_pb2.IMAGE
         shape = [-1, 784]
         dtype = opentensor_pb2.DataType.DT_FLOAT32
-        return opentensor_pb2.TensorDef(shape=shape, dtype=dtype)
+        return opentensor_pb2.TensorDef(channel=channel, shape=shape, dtype=dtype)
 
     def outdef(self):
+        channel = opentensor_pb2.TENSOR
         shape = [-1, 10]
         dtype = opentensor_pb2.DataType.DT_FLOAT32
-        return opentensor_pb2.TensorDef(shape=shape, dtype=dtype)
+        return opentensor_pb2.TensorDef(channel=channel, shape=shape, dtype=dtype)
     
     def forward(self, x):
         x = x.view(-1, 1, 28, 28)
