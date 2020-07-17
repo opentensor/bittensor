@@ -156,9 +156,12 @@ def main(hparams):
 
     epoch = 0
     global_step = 0
-    while True:
-        train(epoch, global_step)
-        epoch += 1
+    try:
+        while True:
+            train(epoch, global_step)
+            epoch += 1
+    except:
+        neuron.stop()
 
 
 if __name__ == "__main__":
