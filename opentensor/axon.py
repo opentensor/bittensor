@@ -11,31 +11,8 @@ from opentensor import opentensor_pb2_grpc as opentensor_grpc
 from opentensor import opentensor_pb2
 import opentensor
 
-
-class Axon():
-    """ Implementation of an axon. A single ip/port tensor processing unit """
-    def __init__(self):
-        pass
-
-    def indef(self) -> opentensor_pb2.TensorDef:
-        """ Returns the opentensor_pb2.TensorDef for the input """
-        raise NotImplementedError
-
-    def outdef(self) -> opentensor_pb2.TensorDef:
-        """ Returns the opentensor_pb2.TensorDef for the output """
-        raise NotImplementedError
-
-    def forward(self, key, tensor) -> torch.Tensor:
-        """ Processes the tensor from the sent key """
-        raise NotImplementedError
-
-    def backward(self, key, tensor) -> torch.Tensor:
-        """ Processes the gradient from the sent key """
-        raise NotImplementedError
-
-
-class AxonTerminal(opentensor_grpc.OpentensorServicer):
-    """ Processes Fwd and Bwd requests for a set of local Axons """
+class Axon(opentensor_grpc.OpentensorServicer):
+    """ Processes Fwd and Bwd requests for a set of local Synapses """
     def __init__(self, identity, port, writer: SummaryWriter):
         self._identity = identity
         self._writer = writer
@@ -45,18 +22,18 @@ class AxonTerminal(opentensor_grpc.OpentensorServicer):
         opentensor_grpc.add_OpentensorServicer_to_server(self, self._server)
         self._server.add_insecure_port('[::]:' + str(port))
 
-        # Local axons
-        self._axons = {}
+        # Local synapses
+        self._synapses = {}
 
         # Serving thread.
         self._thread = None
 
     def __del__(self):
-        """ Delete the axon terminal. """
+        """ Delete the synapse terminal. """
         self.stop()
 
     def start(self):
-        """ Start the axon terminal server. """
+        """ Start the synapse terminal server. """
         self._thread = threading.Thread(target=self._serve, daemon=True)
         self._thread.start()
 
@@ -69,12 +46,12 @@ class AxonTerminal(opentensor_grpc.OpentensorServicer):
             logger.error(e)
 
     def stop(self):
-        """ Stop the axon terminal server """
+        """ Stop the synapse terminal server """
         self._server.stop(0)
 
-    def subscribe(self, axon_proto: opentensor_pb2.Axon, axon: Axon):
-        """ Adds an Axon to the serving set """
-        self._axons[axon_proto.identity] = axon
+    def subscribe(self, synapse_proto: opentensor_pb2.Synapse, synapse: opentensor.Synapse):
+        """ Adds an Synapse to the serving set """
+        self._synapses[synapse_proto.identity] = synapse
 
     def Fwd(self, request, context):
         version = request.version
@@ -87,11 +64,11 @@ class AxonTerminal(opentensor_grpc.OpentensorServicer):
         tensor = opentensor.Serializer.deserialize(tensor)
 
         # Return null response if the target does not exist.
-        if target_id not in self._axons:
+        if target_id not in self._synapses:
             return opentensor_pb2.TensorMessage()
 
-        axon = self._axons[target_id]
-        tensor = axon.forward(source_id, tensor)
+        synapse = self._synapses[target_id]
+        tensor = synapse.forward(source_id, tensor)
         tensor = opentensor.Serializer.serialize(tensor)
 
         response = opentensor_pb2.TensorMessage(

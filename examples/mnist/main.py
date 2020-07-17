@@ -64,7 +64,7 @@ def main(hparams):
     neuron.start()
 
     # Keys object.
-    # projects from/to opentensor_pb2.Axon to a variable sized key tensor.
+    # projects from/to opentensor_pb2.Synapse to a variable sized key tensor.
     key_dim = 100
     keymap = opentensor.Keys(key_dim)
 
@@ -78,7 +78,7 @@ def main(hparams):
     dispatcher = opentensor.Dispatcher()
 
     # Node to serve on metagraph.
-    class Mnist(opentensor.Axon):
+    class Mnist(opentensor.Synapse):
         def indef(self):
             shape = [-1, 784]
             dtype = opentensor_pb2.DataType.DT_FLOAT32
@@ -104,10 +104,10 @@ def main(hparams):
     def remote(inputs):
         gate_inputs = torch.flatten(inputs, start_dim=1)
 
-        # Get axons from the metagraph.
-        # and map axons to torch keys.
-        axons = neuron.axons()  # List[opentensor_pb2.Axon]))
-        keys = keymap.toKeys(axons)  # (n_keys, key_dim)
+        # Get synapses from the metagraph.
+        # and map synapses to torch keys.
+        synapses = neuron.synapses()  # List[opentensor_pb2.Synapse]))
+        keys = keymap.toKeys(synapses)  # (n_keys, key_dim)
 
         # Learning a map from the gate_inputs to keys
         # gates[i, j] = score for the jth key for input i
@@ -117,14 +117,14 @@ def main(hparams):
         # when gates[i, j] == 0, the key j does not recieve input i
         dispatch = dispatcher.dispatch(inputs, gates)  # List[(?, 784)]
 
-        # Query the network by mapping from keys to axon endpoints.
+        # Query the network by mapping from keys to synapse endpoints.
         # results = list[torch.Tensor], len(results) = len(keys)
-        axons = keymap.toAxons(keys)  # List[opentensor_pb2.Axon]
-        query = neuron(dispatch, axons)  # List[(?, 748)]
+        synapses = keymap.toSynapses(keys)  # List[opentensor_pb2.Synapse]
+        query = neuron(dispatch, synapses)  # List[(?, 748)]
 
-        weights = neuron.getweights(axons)
+        weights = neuron.getweights(synapses)
         weights = (0.99) * weights + 0.01 * torch.mean(gates, dim=0)
-        neuron.setweights(axons, weights)
+        neuron.setweights(synapses, weights)
 
         # Join results using gates to combine inputs.
         return dispatcher.combine(query, gates).view(-1,
@@ -150,7 +150,7 @@ def main(hparams):
             if batch_idx % log_interval == 0:
                 writer.add_scalar('n_peers', len(neuron.metagraph.peers),
                                   global_step)
-                writer.add_scalar('n_axons', len(neuron.metagraph.axons),
+                writer.add_scalar('n_synapses', len(neuron.metagraph.synapses),
                                   global_step)
                 writer.add_scalar('Loss/train', float(loss.item()),
                                   global_step)

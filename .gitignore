@@ -9,6 +9,9 @@ __pycache__/
 # logs directory
 **/runs
 
+# IDE
+*.idea/
+
 # Distribution / packaging
 .Python
 build/

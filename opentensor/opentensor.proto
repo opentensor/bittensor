@@ -11,28 +11,28 @@ service Opentensor {
 
 service Metagraph {
 	// Shared POW cache.
-	rpc Gossip (AxonBatch) returns (AxonBatch) {}
+	rpc Gossip (SynapseBatch) returns (SynapseBatch) {}
 }
 
 // Batch of neuron service definitions.
-message AxonBatch {
+message SynapseBatch {
 	// SIZE: 32-bits (4-bytes)
 	float version = 1;
 	// Sender public_key
 	string neuron_key = 2;
 	// Public key signature. 
 	bytes signature = 3;
-	// Endpoint definitions.
+	// Synapse endpoint definitions.
 	// SIZE: 304-bytes * N
-	repeated Axon axons = 4;
+	repeated Synapse synapses = 4;
 }
 
-// Fully describes a axon service definition.
+// Fully describes a synapse service definition.
 // SIZE: (256 * 4) + (512 * 2) + (128 * 3) = 2432-bits (304 bytes)
 // NOTE: only the (address, port, identity) need to be stored in RAM.
 // (address, port, identity) = (128 + 32 + 256) = 412 (52 bytes)
 // Holding 20,000,000 endpoints in 1-GB of RAM and 6-GB of Disk.
-message Axon {
+message Synapse {
 	// SIZE: 256 bits (4-bytes)
 	float version = 1;
 	
@@ -58,7 +58,7 @@ message Axon {
 	// SIZE: 256-bits (32-bytes)
 	bytes proof_of_work = 5;
 
-	// Node UID of type ed25519 
+	// UID of type ed25519 public key
 	// SIZE: 256-bits (32-bytes)
 	string identity = 6;
 	
@@ -72,7 +72,7 @@ message Axon {
 	// TODO (const) should be formated to int32, or joined with address.
 	string port = 8;
 
-	// Endpoint listening port.
+	// Metagraph listening port.
 	// SIZE: 32-bits (4-bytes)
 	// TODO (const) should be formated to int32, or joined with address.
 	string m_port = 9;
