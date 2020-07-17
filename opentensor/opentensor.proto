@@ -158,6 +158,9 @@ message Tensor {
 
 // SIZE: ~ 20 bytes.
 message TensorDef {	
+	// Channel tag i.e. image
+	Channel channel = 1;
+
 	// shape: the shape of this tensor.
 	// i.e. [256, 724]
 	// TODO (const) force limits on this item.
@@ -166,7 +169,14 @@ message TensorDef {
     	
 	// dtype: the tensor datatype.
 	// in32 32-bits (4-bytes)
-	DataType dtype = 4;
+	DataType dtype = 3;
+}
+
+enum Channel {
+	IMAGE = 0;
+	TEXT = 1;
+	VIDEO = 2;
+	TENSOR = 3; 
 }
 
 enum DataType {
