@@ -15,6 +15,8 @@ import opentensor
 
 
 class Net(opentensor.Synapse):
+    """ Mnist synapse, an opentensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
+    """
     def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
@@ -72,58 +74,24 @@ def main(hparams):
     # Build the neuron object.
     neuron = opentensor.Neuron(identity=identity, bootstrap=hparams.bootstrap)
     neuron.start()
-
-    # Keys object.
-    # projects from/to opentensor_pb2.Synapse to a variable sized key tensor.
+    
+    # Trainable network routing.
     key_dim = 100
-    keymap = opentensor.Keys(key_dim)
-
-    # Gate: object for a trained lookup of keys
-    topk = 10  # number of keys to choose for each examples.
-    n_keys = 10
-    x_dim = 784  # mnist
-    gate = opentensor.Gate(x_dim, topk, key_dim)
-
-    # Object for dispatching / combining gated inputs
-    dispatcher = opentensor.Dispatcher()
+    topk = 10
+    x_dim = 784
+    router = opentensor.Router(x_dim, topk, key_dim)
 
     # Build local network.
     net = Net()
     optimizer = optim.SGD(net.parameters(),
                           lr=learning_rate,
                           momentum=momentum)
-    # Subscribe the model encoder to the graph.
+    
+    # Subscribe the local network to the graph.
     neuron.subscribe(net)
 
     # Build summary writer for tensorboard.
     writer = SummaryWriter(log_dir='./runs/' + identity.public_key())
-
-    def remote(inputs):
-        # Get synapses from the metagraph.
-        # and map synapses to torch keys.
-        synapses = neuron.synapses()  # List[opentensor_pb2.Synapse]))
-        keys = keymap.toKeys(synapses)  # (n_keys, key_dim)
-
-        # Learning a map from the gate_inputs to keys
-        # gates[i, j] = score for the jth key for input i
-        gates = gate(inputs, keys, topk=min(len(keys), topk))
-
-        # Dispatch data to inputs for each key.
-        # when gates[i, j] == 0, the key j does not recieve input i
-        dispatch = dispatcher.dispatch(inputs, gates)  # List[(?, 784)]
-
-        # Query the network by mapping from keys to synapse endpoints.
-        # results = list[torch.Tensor], len(results) = len(keys)
-        synapses = keymap.toSynapses(keys)  # List[opentensor_pb2.Synapse]
-        query = neuron(dispatch, synapses)  # List[(?, 748)]
-
-        weights = neuron.getweights(synapses)
-        weights = (0.99) * weights + 0.01 * torch.mean(gates, dim=0)
-        neuron.setweights(synapses, weights)
-
-        # Join results using gates to combine inputs.
-        return dispatcher.combine(query, gates).view(-1,
-                                                     10)  # (batch_size, 10)
 
     def train(epoch, global_step):
         net.train()
@@ -133,17 +101,27 @@ def main(hparams):
             # Flatten mnist inputs
             inputs = torch.flatten(data, start_dim=1)
             
+            # Query the network.
+            synapses = neuron.synapses()
+            requests, scores = router.route(inputs, synapses)
+            responses = neuron(requests, synapses)
+            remote_output = router.join(responses)
+            
             # join the network outputs.
             local_output = net(inputs)
-            remote_output = remote(inputs)
 
+            # Train graph.
             output = local_output + remote_output
-
             loss = F.nll_loss(output, target)
             loss.backward()
 
             optimizer.step()
             global_step += 1
+            
+            # Set network weights.
+            weights = neuron.getweights(synapses)
+            weights = (0.99) * weights + 0.01 * torch.mean(scores, dim=0)
+            neuron.setweights(synapses, weights)
 
             if batch_idx % log_interval == 0:
                 writer.add_scalar('n_peers', len(neuron.metagraph.peers),
@@ -162,7 +140,8 @@ def main(hparams):
         while True:
             train(epoch, global_step)
             epoch += 1
-    except:
+    except Exception as e:
+        logger.error(e)
         neuron.stop()
 
 

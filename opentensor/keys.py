@@ -22,7 +22,6 @@ def new_key(dim):
     new_key = torch.rand(dim, dtype=torch.float32, requires_grad=False)
     return new_key
 
-
 class Keys():
 
     def __init__(self, key_dim):

@@ -20,12 +20,13 @@ from opentensor import opentensor_pb2_grpc as opentensor_grpc
 
 # Import objects.
 from opentensor.serializer import Serializer
-from opentensor.keys import Keys
 from opentensor.identity import Identity
 from opentensor.synapse import Synapse
 from opentensor.axon import Axon
 from opentensor.dendrite import Dendrite
 from opentensor.metagraph import Metagraph
+from opentensor.keys import Keys
 from opentensor.gate import Gate
 from opentensor.dispatcher import Dispatcher
+from opentensor.router import Router
 from opentensor.neuron import Neuron
