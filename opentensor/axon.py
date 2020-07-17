@@ -59,25 +59,24 @@ class Axon(opentensor_grpc.OpentensorServicer):
         source_id = request.source_id
         target_id = request.target_id
         #nounce = request.nounce
-        tensor = request.tensors[0]
-
-        tensor = opentensor.Serializer.deserialize(tensor)
+        x_tensor = request.tensors[0]
 
         # Return null response if the target does not exist.
         if target_id not in self._synapses:
             return opentensor_pb2.TensorMessage()
 
         synapse = self._synapses[target_id]
-        tensor = synapse.forward(source_id, tensor)
-        tensor = opentensor.Serializer.serialize(tensor)
+        x = opentensor.Serializer.deserialize(x_tensor)
+        y = synapse (x)
+        y_tensor = opentensor.Serializer.serialize(y)
 
         response = opentensor_pb2.TensorMessage(
             version=version,
             neuron_key=self._identity.public_key(),
             source_id=target_id,
             target_id=source_id,
-            tensors=[tensor])
+            tensors=[y_tensor])
         return response
 
     def Bwd(self, request, context):
-        self._metagraph.Bwd(request, context)
+        pass
