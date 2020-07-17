@@ -14,7 +14,7 @@ from opentensor import opentensor_pb2
 import opentensor
 
 
-class Net(nn.Module):
+class Net(opentensor.Synapse):
     def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
@@ -22,15 +22,28 @@ class Net(nn.Module):
         self.conv2_drop = nn.Dropout2d()
         self.fc1 = nn.Linear(320, 50)
         self.fc2 = nn.Linear(50, 10)
+        
+    def indef(self):
+        shape = [-1, 784]
+        dtype = opentensor_pb2.DataType.DT_FLOAT32
+        return opentensor_pb2.TensorDef(shape=shape, dtype=dtype)
 
+    def outdef(self):
+        shape = [-1, 10]
+        dtype = opentensor_pb2.DataType.DT_FLOAT32
+        return opentensor_pb2.TensorDef(shape=shape, dtype=dtype)
+    
     def forward(self, x):
+        x = x.view(-1, 1, 28, 28)
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
         x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
         x = x.view(-1, 320)
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
-        return F.log_softmax(x)
+        x = F.log_softmax(x)
+        x = x.view(-1, 10)
+        return x
 
 
 def main(hparams):
@@ -50,11 +63,6 @@ def main(hparams):
             [torchvision.transforms.ToTensor()])),
                                                batch_size=batch_size_train,
                                                shuffle=True)
-
-    local = Net()
-    optimizer = optim.SGD(local.parameters(),
-                          lr=learning_rate,
-                          momentum=momentum)
 
     # opentensor identity.
     identity = opentensor.Identity()
@@ -77,33 +85,18 @@ def main(hparams):
     # Object for dispatching / combining gated inputs
     dispatcher = opentensor.Dispatcher()
 
-    # Node to serve on metagraph.
-    class Mnist(opentensor.Synapse):
-        def indef(self):
-            shape = [-1, 784]
-            dtype = opentensor_pb2.DataType.DT_FLOAT32
-            return opentensor_pb2.TensorDef(shape=shape, dtype=dtype)
-
-        def outdef(self):
-            shape = [-1, 10]
-            dtype = opentensor_pb2.DataType.DT_FLOAT32
-            return opentensor_pb2.TensorDef(shape=shape, dtype=dtype)
-
-        def forward(self, key, tensor):
-            return local(tensor.view(-1, 1, 28, 28))
-
-        def backward(self, key, tensor):
-            pass
-
+    # Build local network.
+    net = Net()
+    optimizer = optim.SGD(net.parameters(),
+                          lr=learning_rate,
+                          momentum=momentum)
     # Subscribe the model encoder to the graph.
-    neuron.subscribe(Mnist())
+    neuron.subscribe(net)
 
     # Build summary writer for tensorboard.
     writer = SummaryWriter(log_dir='./runs/' + identity.public_key())
 
     def remote(inputs):
-        gate_inputs = torch.flatten(inputs, start_dim=1)
-
         # Get synapses from the metagraph.
         # and map synapses to torch keys.
         synapses = neuron.synapses()  # List[opentensor_pb2.Synapse]))
@@ -111,7 +104,7 @@ def main(hparams):
 
         # Learning a map from the gate_inputs to keys
         # gates[i, j] = score for the jth key for input i
-        gates = gate(gate_inputs, keys, topk=min(len(keys), topk))
+        gates = gate(inputs, keys, topk=min(len(keys), topk))
 
         # Dispatch data to inputs for each key.
         # when gates[i, j] == 0, the key j does not recieve input i
@@ -131,13 +124,16 @@ def main(hparams):
                                                      10)  # (batch_size, 10)
 
     def train(epoch, global_step):
-        local.train()
+        net.train()
         for batch_idx, (data, target) in enumerate(train_loader):
             optimizer.zero_grad()
-
+            
+            # Flatten mnist inputs
+            inputs = torch.flatten(data, start_dim=1)
+            
             # join the network outputs.
-            local_output = local(data)
-            remote_output = remote(data)
+            local_output = net(inputs)
+            remote_output = remote(inputs)
 
             output = local_output + remote_output
 
