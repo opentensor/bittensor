@@ -5,7 +5,6 @@ import grpc
 import random
 import threading
 import torch
-from torch.utils.tensorboard import SummaryWriter
 
 from opentensor import opentensor_pb2_grpc as opentensor_grpc
 from opentensor import opentensor_pb2
@@ -13,9 +12,8 @@ import opentensor
 
 class Axon(opentensor_grpc.OpentensorServicer):
     """ Processes Fwd and Bwd requests for a set of local Synapses """
-    def __init__(self, identity, port, writer: SummaryWriter):
+    def __init__(self, identity, port):
         self._identity = identity
-        self._writer = writer
 
         # Init server objects.
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
