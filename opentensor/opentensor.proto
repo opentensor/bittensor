@@ -179,10 +179,10 @@ enum Channel {
 }
 
 enum DataType {
-  DT_FLOAT32 = 0;
-  DT_FLOAT64 = 1;
-  DT_INT32 = 2;
-  DT_INT64 = 3;
+  FLOAT32 = 0;
+  FLOAT64 = 1;
+  INT32 = 2;
+  INT64 = 3;
   UNKNOWN = 4;
 }
 
