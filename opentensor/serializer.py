@@ -13,6 +13,7 @@ class SerializerBase:
     def serialize(obj: object) -> proto_pb2.Tensor:
         raise NotImplementedError()
 
+    @staticmethod
     def deserialize(proto: proto_pb2.Tensor) -> object:
         raise NotImplementedError()
 
