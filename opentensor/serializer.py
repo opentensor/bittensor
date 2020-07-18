@@ -33,16 +33,16 @@ class Serializer(SerializerBase):
         batch_dim = in_tensor.shape[0]
         out_shape = tensor_def.shape[1:]
         shape = tuple([batch_dim] + out_shape)
-        if tensor_def.dtype == proto_pb2.DataType.DT_FLOAT32:
+        if tensor_def.dtype == proto_pb2.DataType.FLOAT32:
             return torch.zeros(shape, dtype=torch.float32)
 
-        elif tensor_def.dtype == proto_pb2.DataType.DT_FLOAT64:
+        elif tensor_def.dtype == proto_pb2.DataType.FLOAT64:
             return torch.zeros(shape, dtype=torch.float64)
 
-        elif tensor_def.dtype == proto_pb2.DataType.DT_INT32:
+        elif tensor_def.dtype == proto_pb2.DataType.INT32:
             return torch.zeros(shape, dtype=torch.int32)
 
-        elif tensor_def.dtype == proto_pb2.DataType.DT_INT64:
+        elif tensor_def.dtype == proto_pb2.DataType.INT64:
             return torch.zeros(shape, dtype=torch.int64)
         else:
             raise ValueError
@@ -50,16 +50,16 @@ class Serializer(SerializerBase):
     @staticmethod
     def todef(obj: torch.Tensor) -> proto_pb2.TensorDef:
         if obj.dtype == torch.float32:
-            dtype = proto_pb2.DataType.DT_FLOAT32
+            dtype = proto_pb2.DataType.FLOAT32
 
         elif obj.dtype == torch.float64:
-            dtype = proto_pb2.DataType.DT_FLOAT64
+            dtype = proto_pb2.DataType.FLOAT64
 
         elif obj.dtype == torch.int32:
-            dtype = proto_pb2.DataType.DT_INT32
+            dtype = proto_pb2.DataType.INT32
 
         elif obj.dtype == torch.int64:
-            dtype = proto_pb2.DataType.DT_INT64
+            dtype = proto_pb2.DataType.INT64
 
         else:
             dtype = proto_pb2.DataType.UNKNOWN

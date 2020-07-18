@@ -15,7 +15,7 @@ import opentensor
 
 
 class Net(opentensor.Synapse):
-    """ Mnist synapse, an opentensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
+    """ An opentensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
     """
     def __init__(self):
         super(Net, self).__init__()
@@ -28,13 +28,13 @@ class Net(opentensor.Synapse):
     def indef(self):
         channel = opentensor_pb2.IMAGE
         shape = [-1, 784]
-        dtype = opentensor_pb2.DataType.DT_FLOAT32
+        dtype = opentensor_pb2.DataType.FLOAT32
         return opentensor_pb2.TensorDef(channel=channel, shape=shape, dtype=dtype)
 
     def outdef(self):
         channel = opentensor_pb2.TENSOR
         shape = [-1, 10]
-        dtype = opentensor_pb2.DataType.DT_FLOAT32
+        dtype = opentensor_pb2.DataType.FLOAT32
         return opentensor_pb2.TensorDef(channel=channel, shape=shape, dtype=dtype)
     
     def forward(self, x):
