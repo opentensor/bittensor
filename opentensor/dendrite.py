@@ -11,15 +11,14 @@ import torch
 
 
 class Dendrite:
-    def __init__(self, identity, remote_ip):
-        self._identity = identity
-        self._remote_ip = remote_ip
-
+    def __init__(self, config: opentensor.Config):
+        self._config = config
+        
     def forward(self, x: List[torch.Tensor], synapses: List[opentensor_pb2.Synapse]):
         """ forward tensor processes """
 
         version = 1.0
-        source_uid = self._identity.public_key()
+        source_uid = self._config.identity.public_key()
         nounce = os.urandom(12)
 
         results = []
@@ -30,7 +29,7 @@ class Dendrite:
             target_id = synapse.identity
             address = synapse.address
             # Loop back if the synapse is local.
-            if address == self._remote_ip:
+            if address == self._config.remote_ip:
                 address = 'localhost'
             channel = grpc.insecure_channel(address + ':' + synapse.port)
             stub = opentensor_grpc.OpentensorStub(channel)

@@ -1,11 +1,8 @@
 from loguru import logger
 from typing import List
 
-import random
-import requests
 import torch
 import torch.nn as nn 
-from torch.utils.tensorboard import SummaryWriter
 
 # Import protos.
 from opentensor import opentensor_pb2
@@ -13,49 +10,19 @@ import opentensor
 
 class Neuron(nn.Module):
     """ Opentensor Neuron """
-    def __init__(self,
-                 identity: opentensor.Identity = None,
-                 bootstrap: str = None,
-                 writer: SummaryWriter = None):
+    def __init__(self, config: opentensor.Config):
         super().__init__()
-        
-        if writer == None:
-            self._writer = SummaryWriter()
-        else:
-            self._writer = writer
-
-        if identity == None:
-            self._identity = opentensor.Identity()
-        else:
-            self._identity = identity
-
-        if bootstrap == None:
-            bootstrap = "165.227.216.95:8080"
-
-        # Create a port map
-        self._remote_ip = requests.get('https://api.ipify.org').text
-        self._m_port = random.randint(10000, 60000)
-        self._a_port = random.randint(10000, 60000)
-        logger.info('Serving metagraph on: {}',
-                    self._remote_ip + ":" + str(self._m_port))
-        logger.info("Serving synapse terminal on {}",
-                    self._remote_ip + ":" + str(self._a_port))
-
+        self._config = config
         # Inward connection handler.
         # Axon: deals with inward connections
-        self._axon = opentensor.Axon(self._identity, self._a_port,
-                                           self._writer)
+        self._axon = opentensor.Axon(config)
 
         # Dendrite: outward connection handler.
-        self._dendrite = opentensor.Dendrite(self._identity, self._remote_ip)
+        self._dendrite = opentensor.Dendrite(config)
         # TODO (const) connection handling.
 
         # Metagraph: maintains a cache of synapses on the network.
-        self._metagraph = opentensor.Metagraph(self._identity,
-                                    max_size=100000,
-                                    port=self._m_port,
-                                    remote_ip=self._remote_ip,
-                                    bootstrap=bootstrap)
+        self._metagraph = opentensor.Metagraph(config)
 
     def __del__(self):
         self.stop()
@@ -94,11 +61,11 @@ class Neuron(nn.Module):
         synapse_identity = opentensor.Identity().public_key()
         synapse_proto = opentensor_pb2.Synapse(
             version=1.0,
-            neuron_key=self._identity.public_key(),
-            identity=synapse_identity,
-            address=self._remote_ip,
-            port=str(self._a_port),
-            m_port=str(self._m_port),
+            neuron_key = self._config.identity.public_key(),
+            identity = synapse_identity,
+            address = self._config.remote_ip,
+            port = self._config.axon_port,
+            m_port = self._config.metagraph_port,
             indef=synapse.indef(),
             outdef=synapse.outdef())
         self._metagraph.subscribe(synapse_proto)

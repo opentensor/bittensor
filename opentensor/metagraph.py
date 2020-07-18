@@ -18,22 +18,14 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         A continuously updating metagraph state object. Uses the locally
         trained weights to keep this set prunned.
     """
-    def __init__(self,
-                 identity: opentensor.Identity,
-                 max_size: int = 1000000,
-                 port: int = random.randint(1000, 10000),
-                 remote_ip: str = 'localhost',
-                 bootstrap: str = None):
+    def __init__(self, config: opentensor.Config):
         # Opentensor identity
-        self._identity = identity
-        # remote ip.
-        self._remote_ip = remote_ip
-        # Max size of the graph (number of synapses)
-        self._max_size = max_size
+        self._config = config
+        
         # Address-port string endpoints.
         self._peers = set()
-        if bootstrap:
-            self._peers.add(bootstrap)
+        if self._config.bootstrap:
+            self._peers.add(self._config.bootstrap)
         # List of graph synapses.
         # TODO(const) access mutex
         self._synapses = {}
@@ -47,7 +39,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
 
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         opentensor_grpc.add_MetagraphServicer_to_server(self, self._server)
-        self._server.add_insecure_port('[::]:' + str(port))
+        self._server.add_insecure_port('[::]:' + str(self._config.metagraph_port))
 
         # Update thread.
         self._update_thread = None
@@ -117,7 +109,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
 
         # Switch to loop for local nodes.
         realized_address = metagraph_address 
-        if metagraph_address.split(':')[0] == self._remote_ip:
+        if metagraph_address.split(':')[0] == self._config.remote_ip:
             realized_address = 'localhost:' + metagraph_address.split(':')[1]
 
         # Make query.

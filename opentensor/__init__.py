@@ -19,6 +19,7 @@ from opentensor import opentensor_pb2
 from opentensor import opentensor_pb2_grpc as opentensor_grpc
 
 # Import objects.
+from opentensor.config import Config
 from opentensor.serializer import Serializer
 from opentensor.identity import Identity
 from opentensor.synapse import Synapse
