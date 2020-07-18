@@ -18,7 +18,7 @@ $ eval $(docker-machine env bootstrap)
 $ docker build -t opentensor .
 
 # Run the server
-$ docker run -it -network host opentensor python examples/boot/main.py
+$ docker run -it --network host opentensor python examples/boot/main.py
 
 # Get instance ip address
 $ boot_address=$(eval docker-machine ip bootstrap)

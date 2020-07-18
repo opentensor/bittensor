@@ -37,8 +37,13 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         # List of graph synapses.
         # TODO(const) access mutex
         self._synapses = {}
+        
         # A map from synapse identity to a learned score.
         self._weights = {}
+        
+        # A map from synapse identity to time of addition.
+        self._ToA = {}
+        self._ttl = 60 * 5 # 5 minutes.
 
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         opentensor_grpc.add_MetagraphServicer_to_server(self, self._server)
@@ -83,6 +88,26 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         self._sink(request)
         return self._make_synapse_batch(10)
 
+    def remove(self, uid):
+        if uid in self._synapses:
+            del self._synapses[uid]
+        if uid in self._weights:
+            del self._weights[uid]
+        if uid in self._ToA:
+            del self._ToA[uid]
+            
+    def add(self, synapse: opentensor_pb2.Synapse):
+        self._synapses[synapse.identity] = synapse
+        if synapse.identity not in self._weights:
+            self._weights[synapse] = 0.0
+        self._ToA[synapse.identity] = time.time()
+        
+    def _clean(self):
+        now = time.time()
+        for uid in list(self._ToA):
+            if now - self._ToA[uid] > self._ttl:
+                self.remove(uid)
+                
     def _gossip(self):
         """ Sends ip query to random node in cache """
         if len(self._peers) == 0:
@@ -113,12 +138,14 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         # TODO (const) sign message.
         # TODO (const) create new_neuron entries for local endpoints.
         # Create batch of random neuron definitions.
-        assert k > 0
-        synapse_list = list(self._synapses.values())
-        k = min(len(synapse_list), 50)
-        batch = random.sample(synapse_list, k)
-        batch = opentensor_pb2.SynapseBatch(synapses=batch)
-        return batch
+        try:
+            synapse_list = list(self._synapses.values())
+            k = min(len(synapse_list), 50)
+            batch = random.sample(synapse_list, k)
+            batch = opentensor_pb2.SynapseBatch(synapses=batch)
+            return batch
+        except:
+            batch = opentensor_pb2.SynapseBatch()
 
     def _sink(self, batch: opentensor_pb2.SynapseBatch):
         """ Updates storage with gossiped neuron info. """
@@ -128,14 +155,8 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         # TODO(const) write to disk if need be and replace heap cache.
         # TODO(const) check size contraints.
         for synapse in batch.synapses:
-            if synapse.identity not in self._synapses:
-                self._weights[synapse.identity] = 0.0
-                self._synapses[synapse.identity] = synapse
-                self._peers.add(synapse.address + ':' + synapse.m_port)
-            else:
-                # TODO (const) check if newer.
-                pass
-
+            self.add(synapse)
+        
     def __del__(self):
         self.stop()
 
@@ -144,7 +165,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         try:
             while self._running:
                 self._gossip()
-                print(self._synapses)
+                self._clean()
                 time.sleep(10)
         except (KeyboardInterrupt, SystemExit):
             logger.info('stop metagraph')

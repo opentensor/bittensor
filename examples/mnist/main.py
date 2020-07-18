@@ -101,20 +101,19 @@ def main(hparams):
             # Flatten mnist inputs
             inputs = torch.flatten(data, start_dim=1)
             
-            # Query the network.
+            # Query the remote network.
             synapses = neuron.synapses()
             requests, scores = router.route(inputs, synapses)
             responses = neuron(requests, synapses)
-            remote_output = router.join(responses)
+            remote = router.join(responses)
             
-            # join the network outputs.
-            local_output = net(inputs)
+            # Query the local network.
+            local = net(inputs)
 
-            # Train graph.
-            output = local_output + remote_output
+            # Train.
+            output = local + remote
             loss = F.nll_loss(output, target)
             loss.backward()
-
             optimizer.step()
             global_step += 1
             
@@ -130,9 +129,9 @@ def main(hparams):
                                   global_step)
                 writer.add_scalar('Loss/train', float(loss.item()),
                                   global_step)
-                print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f} \tnPeers|nSynapses: {}|{}'.format(
                     epoch, batch_idx * len(data), len(train_loader.dataset),
-                    100. * batch_idx / len(train_loader), loss.item()))
+                    100. * batch_idx / len(train_loader), loss.item(), len(neuron.metagraph.peers), len(neuron.metagraph.synapses)))
 
     epoch = 0
     global_step = 0
@@ -148,7 +147,7 @@ def main(hparams):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--bootstrap',
-                        default='',
+                        default=None,
                         type=str,
                         help="peer to bootstrap")
     hparams = parser.parse_args()

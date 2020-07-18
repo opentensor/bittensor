@@ -18,7 +18,7 @@ class Neuron(nn.Module):
                  bootstrap: str = None,
                  writer: SummaryWriter = None):
         super().__init__()
-
+        
         if writer == None:
             self._writer = SummaryWriter()
         else:
@@ -28,6 +28,9 @@ class Neuron(nn.Module):
             self._identity = opentensor.Identity()
         else:
             self._identity = identity
+
+        if bootstrap == None:
+            bootstrap = "165.227.216.95:8080"
 
         # Create a port map
         self._remote_ip = requests.get('https://api.ipify.org').text
