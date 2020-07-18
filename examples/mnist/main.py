@@ -68,28 +68,32 @@ def main(hparams):
                                                batch_size=batch_size_train,
                                                shuffle=True)
 
-    # Build the neuron object.
-    config = opentensor.Config(hparams)
-    neuron = opentensor.Neuron(config)
-    neuron.start()
-    
-    # Trainable network routing.
-    key_dim = 100
-    topk = 10
-    x_dim = 784
-    router = opentensor.Router(x_dim, topk, key_dim)
-
     # Build local network.
     net = Net()
+
+    # Opentensor:
+    # Load opentensor config from hparams.
+    config = opentensor.Config(hparams)
+    
+    # Build the neuron from configs.
+    neuron = opentensor.Neuron(config)
+    
+    # Init a trainable request router into the network.
+    router = opentensor.Router(x_dim = 784, key_dim = 100, topk = 10)
+    
+    # Subscribe the local synapse to the network
+    neuron.subscribe(net)
+    
+    # Start the neuron backend.
+    neuron.start()
+    
+    # Build summary writer for tensorboard.
+    writer = SummaryWriter(log_dir='./runs/' + config.identity.public_key())
+    
+    # Build the optimizer.
     optimizer = optim.SGD(net.parameters(),
                           lr=learning_rate,
                           momentum=momentum)
-    
-    # Subscribe the local network to the graph.
-    neuron.subscribe(net)
-
-    # Build summary writer for tensorboard.
-    writer = SummaryWriter(log_dir='./runs/' + config.identity.public_key())
 
     def train(epoch, global_step):
         net.train()
@@ -100,10 +104,10 @@ def main(hparams):
             inputs = torch.flatten(data, start_dim=1)
             
             # Query the remote network.
-            synapses = neuron.synapses()
-            requests, scores = router.route(inputs, synapses)
-            responses = neuron(requests, synapses)
-            remote = router.join(responses)
+            synapses = neuron.synapses() # Returns a list of synapses on the network.
+            requests, scores = router.route(inputs, synapses) # routes inputs to network.
+            responses = neuron(requests, synapses) # Makes network calls.
+            remote = router.join(responses) # Joins responses based on scores.
             
             # Query the local network.
             local = net(inputs)

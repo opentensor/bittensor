@@ -10,7 +10,6 @@ service Opentensor {
 }
 
 service Metagraph {
-	// Shared POW cache.
 	rpc Gossip (SynapseBatch) returns (SynapseBatch) {}
 }
 
@@ -81,7 +80,7 @@ message Synapse {
 	// SIZE: ~128 bits (16 bytes)
 	TensorDef indef = 10;
 
-	// Endpoint outdef describing the returned tenspr  shape.
+	// Endpoint outdef describing the returned tensor shape.
 	// SIZE: ~128 bits (16 bytes)
 	TensorDef outdef = 11;
 }	
@@ -147,8 +146,8 @@ message Tensor {
   	// reduce serialization overhead during RPC call by avoiding serialization of
   	// many repeated small items. In other words, we just copy the bytes and let
 	// the application layer serialize and deserialize the bytes. 
-	// 1. opentensor.serialize(numpy_array) --> buffer
-	// 2. opentensor.deserialize(bytes_content) --> numpy_array    	
+	// 1. opentensor.serialize(torch.Tensor) --> buffer
+	// 2. opentensor.deserialize(buffer) --> torch.Tensor    	
 	bytes buffer = 1;
 
 	// Shape and type
@@ -158,7 +157,7 @@ message Tensor {
 
 // SIZE: ~ 20 bytes.
 message TensorDef {	
-	// Channel tag i.e. image
+	// Channel tag i.e. IMAGE
 	Channel channel = 1;
 
 	// shape: the shape of this tensor.

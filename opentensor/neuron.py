@@ -57,7 +57,7 @@ class Neuron(nn.Module):
         self._metagraph.setweights(synapses, weights)
 
     def subscribe(self, synapse: opentensor.Synapse):
-        """ Subscribes an synapse to the graph """
+        """ Subscribes a synapse to the graph """
         synapse_identity = opentensor.Identity().public_key()
         synapse_proto = opentensor_pb2.Synapse(
             version=1.0,
@@ -66,14 +66,14 @@ class Neuron(nn.Module):
             address = self._config.remote_ip,
             port = self._config.axon_port,
             m_port = self._config.metagraph_port,
-            indef=synapse.indef(),
-            outdef=synapse.outdef())
+            indef = synapse.indef(),
+            outdef = synapse.outdef())
         self._metagraph.subscribe(synapse_proto)
         self._axon.subscribe(synapse_proto, synapse)
 
     @property
     def identity(self):
-        return self._identity
+        return self._config.identity
 
     @property
     def metagraph(self):
