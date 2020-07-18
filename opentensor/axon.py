@@ -12,13 +12,13 @@ import opentensor
 
 class Axon(opentensor_grpc.OpentensorServicer):
     """ Processes Fwd and Bwd requests for a set of local Synapses """
-    def __init__(self, identity, port):
-        self._identity = identity
+    def __init__(self, config: opentensor.Config):
+        self._config = config
 
         # Init server objects.
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         opentensor_grpc.add_OpentensorServicer_to_server(self, self._server)
-        self._server.add_insecure_port('[::]:' + str(port))
+        self._server.add_insecure_port('[::]:' + str(self._config.axon_port))
 
         # Local synapses
         self._synapses = {}
@@ -70,7 +70,7 @@ class Axon(opentensor_grpc.OpentensorServicer):
 
         response = opentensor_pb2.TensorMessage(
             version=version,
-            neuron_key=self._identity.public_key(),
+            neuron_key=self._config.identity.public_key(),
             source_id=target_id,
             target_id=source_id,
             tensors=[y_tensor])

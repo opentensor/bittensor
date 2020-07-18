@@ -68,11 +68,9 @@ def main(hparams):
                                                batch_size=batch_size_train,
                                                shuffle=True)
 
-    # opentensor identity.
-    identity = opentensor.Identity()
-
     # Build the neuron object.
-    neuron = opentensor.Neuron(identity=identity, bootstrap=hparams.bootstrap)
+    config = opentensor.Config(hparams)
+    neuron = opentensor.Neuron(config)
     neuron.start()
     
     # Trainable network routing.
@@ -91,7 +89,7 @@ def main(hparams):
     neuron.subscribe(net)
 
     # Build summary writer for tensorboard.
-    writer = SummaryWriter(log_dir='./runs/' + identity.public_key())
+    writer = SummaryWriter(log_dir='./runs/' + config.identity.public_key())
 
     def train(epoch, global_step):
         net.train()
@@ -129,7 +127,7 @@ def main(hparams):
                                   global_step)
                 writer.add_scalar('Loss/train', float(loss.item()),
                                   global_step)
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f} \tnPeers|nSynapses: {}|{}'.format(
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f} \tnP|nS: {}|{}'.format(
                     epoch, batch_idx * len(data), len(train_loader.dataset),
                     100. * batch_idx / len(train_loader), loss.item(), len(neuron.metagraph.peers), len(neuron.metagraph.synapses)))
 
@@ -146,9 +144,6 @@ def main(hparams):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--bootstrap',
-                        default=None,
-                        type=str,
-                        help="peer to bootstrap")
+    hparams = opentensor.Config.add_args(parser)
     hparams = parser.parse_args()
     main(hparams)
