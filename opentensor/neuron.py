@@ -56,8 +56,9 @@ class Neuron(nn.Module):
         weights = weights.cpu().detach().numpy().tolist()
         self._metagraph.setweights(synapses, weights)
 
-    def subscribe(self, synapse: opentensor.Synapse):
+    def subscribe(self, module: torch.nn.Module):
         """ Subscribes a synapse to the graph """
+        synapse = hivemind.server.ExpertBackend(module)
         synapse_identity = opentensor.Identity().public_key()
         synapse_proto = opentensor_pb2.Synapse(
             version=1.0,

@@ -1,90 +1,125 @@
-from opentensor import opentensor_pb2 as proto_pb2
+""" An interface for serializing and deserializing opentensor tensors"""
+from opentensor_proto import opentensor_pb2
 from io import BytesIO
 import torch
 import pickle
 
+PROTO_VERSION = 1.0
+
+class PyTorchSerializer(SerializerBase):
+    @staticmethod
+    def todef(tensor: torch.Tensor) -> opentensor_pb2.TensorDef:
+        """ Returns a opentensor TensorDef proto for a torch.Tensor. 
+
+        Args:
+            tensor (torch.Tensor): Any torch.Tensor object.
+
+        Returns:
+            opentensor_pb2.TensorDef: An opentensor TensorDef for the passed torch.Tensor.
+        """
+        if tensor.dtype == torch.float32:
+            dtype = opentensor_pb2.DataType.FLOAT32
+
+        elif tensor.dtype == torch.float64:
+            dtype = opentensor_pb2.DataType.FLOAT64
+
+        elif tensor.dtype == torch.int32:
+            dtype = opentensor_pb2.DataType.INT32
+
+        elif tensor.dtype == torch.int64:
+            dtype = opentensor_pb2.DataType.INT64
+
+        else:
+            dtype = opentensor_pb2.DataType.UNKNOWN
+
+        # NOTE: we assume that the first dimension is the batch dimension.
+        assert len(tensor.shape) > 1
+        shape = tensor.shape[1:]
+        return opentensor_pb2.TensorDef(
+                        verison = PROTO_VERSION, 
+                        shape = shape, 
+                        dtype = dtype,
+                        requires_grad = tensor.requires_grad)
+
+    @staticmethod
+    def serialize(tensor: torch.Tensor) -> opentensor_pb2.Tensor:
+        """Serializes a torch.Tensor to an opentensor Tensor proto.
+
+        Args:
+            tensor (torch.Tensor): torch.Tensor to serialize.
+
+        Returns:
+            opentensor_pb2.Tensor: Serialized tensor as opentensor_pb2.proto. 
+        """
+        # Using numpy intermediary because deserializing with pickle can run arbitray code on your machine.
+        data_buffer = tensor.numpy().tobytes()
+        tensor_def = PyTorchSerializer.todef(tensor)
+        proto = opentensor_pb2.Tensor(
+                    version = PROTO_VERSION,
+                    buffer = data_buffer,
+                    tensor_def = tensor_def)            
+        return proto
+
+    @staticmethod
+    def deserialize(proto: opentensor_pb2.Tensor) -> torch.Tensor:
+        """Deserializes an opentensor_pb2.Tensor to a torch.Tensor object.
+
+        Args:
+            proto (opentensor_pb2.Tensor): Proto to derserialize.
+
+        Returns:
+            torch.Tensor: torch.Tensor to deserialize.
+        """
+        # TODO avoid copying the array (need to silence pytorch warning, because array is not writable)
+        array = np.frombuffer(proto.buffer, dtype=np.dtype(proto.tensor_def.dtype)).copy()
+        # NOTE (const): The first dimension is always assumed to be the batch dimension.
+        shape = tuple([-1] + proto.tensor_def.shape)
+        assert len(shape) > 1 
+        tensor = torch.as_tensor(array).view(shape).requires_grad_(proto.tensor_def.requires_grad)
+        return tensor
 
 class SerializerBase:
     @staticmethod
-    def todef(obj: object) -> proto_pb2.TensorDef:
+    def todef(tensor: object) -> opentensor_pb2.TensorDef:
+        """ Returns the opentensor_pb2.TensorDef description for this Tensor.
+
+        Args:
+            obj (object): Tensor object: i.e. torch.Tensor type.
+
+        Raises:
+            NotImplementedError: Must be implemented in a subclass of this object.
+
+        Returns:
+            opentensor_pb2.TensorDef: The TensorDef proto describing this Tensor.
+        """
         raise NotImplementedError()
 
     @staticmethod
-    def serialize(obj: object) -> proto_pb2.Tensor:
+    def serialize(tensor: object) -> opentensor_pb2.Tensor:
+        """ Returns a serialized version of generic tensor obj as an opentensor_pb2.Tensor proto.  
+
+        Args:
+            tensor (object): Tensor object: i.e. torch.Tensor.
+
+        Raises:
+            NotImplementedError: Must be implemented in the subclass of this object.
+
+        Returns:
+            opentensor_pb2.Tensor: The proto version of this object.
+        """
         raise NotImplementedError()
 
     @staticmethod
-    def deserialize(proto: proto_pb2.Tensor) -> object:
+    def deserialize(proto: opentensor_pb2.Tensor) -> object:
+        """ Returns the a generic tensor object from an opentensor_pb2.Tensor proto.
+
+        Args:
+            proto (opentensor_pb2.Tensor): The proto to deserialize.
+
+        Raises:
+            NotImplementedError: Must be implemented in the subclass of this object.
+
+        Returns:
+            object: Generic tensor object.
+        """
         raise NotImplementedError()
-
-    @staticmethod
-    def dumps(obj: object) -> bytes:
-        raise NotImplementedError()
-
-    @staticmethod
-    def loads(buf: bytes) -> object:
-        raise NotImplementedError()
-
-
-class Serializer(SerializerBase):
-    @staticmethod
-    def zeros_for_def(in_tensor: torch.Tensor,
-                      tensor_def: proto_pb2.TensorDef) -> torch.Tensor:
-        batch_dim = in_tensor.shape[0]
-        out_shape = tensor_def.shape[1:]
-        shape = tuple([batch_dim] + out_shape)
-        if tensor_def.dtype == proto_pb2.DataType.FLOAT32:
-            return torch.zeros(shape, dtype=torch.float32)
-
-        elif tensor_def.dtype == proto_pb2.DataType.FLOAT64:
-            return torch.zeros(shape, dtype=torch.float64)
-
-        elif tensor_def.dtype == proto_pb2.DataType.INT32:
-            return torch.zeros(shape, dtype=torch.int32)
-
-        elif tensor_def.dtype == proto_pb2.DataType.INT64:
-            return torch.zeros(shape, dtype=torch.int64)
-        else:
-            raise ValueError
-
-    @staticmethod
-    def todef(obj: torch.Tensor) -> proto_pb2.TensorDef:
-        if obj.dtype == torch.float32:
-            dtype = proto_pb2.DataType.FLOAT32
-
-        elif obj.dtype == torch.float64:
-            dtype = proto_pb2.DataType.FLOAT64
-
-        elif obj.dtype == torch.int32:
-            dtype = proto_pb2.DataType.INT32
-
-        elif obj.dtype == torch.int64:
-            dtype = proto_pb2.DataType.INT64
-
-        else:
-            dtype = proto_pb2.DataType.UNKNOWN
-
-        return proto_pb2.TensorDef(shape=list(obj.shape), dtype=dtype)
-
-    @staticmethod
-    def serialize(obj: torch.Tensor) -> proto_pb2.Tensor:
-        data_buffer = Serializer.dumps(obj)
-        shape = list(obj.shape)
-        tensor = proto_pb2.Tensor(buffer=data_buffer,
-                                  tensor_def=Serializer.todef(obj))
-        return tensor
-
-    @staticmethod
-    def deserialize(proto: proto_pb2.Tensor) -> torch.Tensor:
-        torch_tensor = Serializer.loads(proto.buffer)
-        return torch_tensor
-
-    @staticmethod
-    def dumps(obj: object) -> bytes:
-        s = BytesIO()
-        torch.save(obj, s, pickle_protocol=pickle.HIGHEST_PROTOCOL)
-        return s.getvalue()
-
-    @staticmethod
-    def loads(buf: bytes) -> object:
-        return torch.load(BytesIO(buf))
