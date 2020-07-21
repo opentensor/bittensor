@@ -14,7 +14,7 @@ from opentensor import opentensor_pb2
 import opentensor
 
 
-class Net(opentensor.Synapse):
+class Net(torch.nn.module):
     """ An opentensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
     """
     def __init__(self):
@@ -24,18 +24,6 @@ class Net(opentensor.Synapse):
         self.conv2_drop = nn.Dropout2d()
         self.fc1 = nn.Linear(320, 50)
         self.fc2 = nn.Linear(50, 10)
-        
-    def indef(self):
-        channel = opentensor_pb2.IMAGE
-        shape = [-1, 784]
-        dtype = opentensor_pb2.DataType.FLOAT32
-        return opentensor_pb2.TensorDef(channel=channel, shape=shape, dtype=dtype)
-
-    def outdef(self):
-        channel = opentensor_pb2.TENSOR
-        shape = [-1, 10]
-        dtype = opentensor_pb2.DataType.FLOAT32
-        return opentensor_pb2.TensorDef(channel=channel, shape=shape, dtype=dtype)
     
     def forward(self, x):
         x = x.view(-1, 1, 28, 28)
@@ -68,9 +56,6 @@ def main(hparams):
                                                batch_size=batch_size_train,
                                                shuffle=True)
 
-    # Build local network.
-    net = Net()
-
     # Opentensor:
     # Load opentensor config from hparams.
     config = opentensor.Config(hparams)
@@ -78,10 +63,13 @@ def main(hparams):
     # Build the neuron from configs.
     neuron = opentensor.Neuron(config)
     
-    # Init a trainable request router into the network.
+    # Init a trainable request router.
     router = opentensor.Router(x_dim = 784, key_dim = 100, topk = 10)
     
-    # Subscribe the local synapse to the network
+    # Build local network.
+    net = Net()
+    
+    # Subscribe the local network to the network
     neuron.subscribe(net)
     
     # Start the neuron backend.
