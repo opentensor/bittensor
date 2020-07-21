@@ -42,61 +42,71 @@ message Synapse {
 	// >> public = private.public_key()
 	// source_id = '0x%s' % public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
 	string synapse_key = 3;
-
-	// Optional: Hash of block during message creation.
-	// Links the POW to a global-time protecting the cache from
-	// long range POW attacks.
-	// SIZE: 512-bits (64-bytes)
-  	// TODO (const): creation example.
-	bytes block_hash = 4;
-	
-	// Optional: Sha256 proof of work used to preferentially keep 
-	// this definition in the cache.
-	// SIZE: 256-bits (32-bytes)
-  	// TODO (const): creation example.
-	bytes proof_of_work = 5;
 	
 	// Synapse IP. 
   	// i.e. '0.0.0.0'
   	// TODO (const) format for ipv6 vs ipv4
 	// TODO (const) format specification
 	// SIZE: 128-bits (16-bytes)
-	string address = 6;
+	string address = 4;
 	
 	// Synapse listening port.
   	// i.e. '8081'
 	// SIZE: 32-bits (4-bytes)
 	// TODO (const) could be formated to int32, or joined with address.
-	string port = 7;
+	string port = 5;
   
 	// Synapse indefs describing the accepted tensor shapes.
 	// Tensors in TensorMessages are assumed to be packed in this order.
 	// SIZE: ~128 bits (16 bytes) * n
-	repeated TensorDef indef = 8;
+	repeated TensorDef indef = 6;
 
 	// Synapse outdefs describing the returned tensor shapes.
 	// Tensors in TensorMessages are assumed to be packed in this order.
 	// NOTE: When passing in gradient in reverse, inputs and gradients are assumed to be packed: 
 	// [input_1, gradient_1, input_2, gradient_2, input_3 ... ]
 	// SIZE: ~128 bits (16 bytes) * n
-	repeated TensorDef outdef = 9;
+	repeated TensorDef outdef = 7;
+
+	// Optional: Hash of block during message creation.
+	// Links the POW to a global-time protecting the cache from
+	// long range POW attacks.
+	// SIZE: 512-bits (64-bytes)
+	// $ python
+	// >> import requests
+	// >> block_hash = requests.get('https://blockchain.info/latestblock').json()['hash']
+	string block_hash = 8;
+
+	// Optional nounce value: used for proof of work generation.
+	// SIZE: 32-bits (4-bytes)
+	int32 nounce = 9;
+
+	// Optional: Sha256 proof of work used to preferentially keep 
+	// this definition in the cache.
+	// SIZE: 256-bits (32-bytes)
+	// >>> from cryptography.hazmat.backends import default_backend
+	// >>> from cryptography.hazmat.primitives import hashes
+	// >>> nounce = 0
+	// >>> do {
+	// >>> 	nounce += 1
+	// >>> 	digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
+	// >>> 	digest.update(neuron_key.encode('utf-8'))
+  	// >>> 	digest.update(address.encode('utf-8'))
+  	// >>> 	digest.update(port.encode('utf-8))
+  	// >>> 	digest.update(indef.SerializeToString().encode('utf-8))
+	// >>> 	digest.update(oudef.SerializeToString().encode('utf-8))
+	// >>> 	digest.update(block_hash)
+  	// >>> 	digest.update(nounce)
+	// >>> 	digest = digest.finalize()
+	// >>> while( count_zeros(digest) < difficulty )
+	// >>> proof_of_work = digest
+	bytes proof_of_work = 9;
   
   	// Signature: ed25519 public_key signature which signs
 	// this synapse definition using the attached neuron_key.
 	// SIZE: 512-bits (64-bytes)
   	// $ python
-	// >>> from cryptography.hazmat.backends import default_backend
-	// >>> from cryptography.hazmat.primitives import hashes
-	// >>> digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
-	// >>> digest.update(neuron_key.encode('utf-8'))
-	// >>> digest.update(block_hash)
-  	// >>> digest.update(proof_of_work)
-  	// >>> digest.update(address.encode('utf-8'))
-  	// >>> digest.update(port.encode('utf-8))
-  	// >>> digest.update(indef.SerializeToString().encode('utf-8))
-  	// >>> digest.update(oudef.SerializeToString().encode('utf-8))
-	// >>> digest = digest.finalize()
-  	// signature = private_key.sign(digest) # to create.
+	// signature = private_key.sign(digest) # to create.
 	// >>> source_key.verify(signature, digest) # to verify.
 	bytes signature = 10;
 }	
