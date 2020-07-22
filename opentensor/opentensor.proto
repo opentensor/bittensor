@@ -72,9 +72,12 @@ message Synapse {
 	// Links the POW to a global-time protecting the cache from
 	// long range POW attacks.
 	// SIZE: 512-bits (64-bytes)
+	// NOTE: hashes are likely to change from bitcoin to bittensor.
 	// $ python
 	// >> import requests
 	// >> block_hash = requests.get('https://blockchain.info/latestblock').json()['hash']
+	// >> height = requests.get('https://blockchain.info/rawblock/$block_hash').json()['height']
+	// >> work_by_time = difficulty(proof_of_work) / (height_now - height_of_msg) 
 	string block_hash = 8;
 
 	// Optional nounce value: used for proof of work generation.
@@ -122,7 +125,8 @@ message TensorMessage {
 	// 32-bits (4-bytes)
 	float version = 1;
 
-	// Neuron key: ed25519 public key raw hex encoded. See note above.
+	// neuron key: neuron identifier of calling neuron. 
+	// TYPE: raw hex encoded ed25519 public key. See note above.
   	// Links this synapse definition to the containing neuron account on chain.
   	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
 	// SIZE: 256-bits (32-bytes)
@@ -134,7 +138,8 @@ message TensorMessage {
 	// source_id = '0x%s' % public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
 	string neuron_key = 2;
 
-	// UID of type ed25519 public key
+	// synapse key: UID of synapse to call on the recieving neuron. 
+	// TYPE: raw hex encoded ed25519 public key.
 	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
 	// SIZE: 256-bits (32-bytes)
   	// $ python 
@@ -145,18 +150,16 @@ message TensorMessage {
   	// source_id = '0x%s' % public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
 	string synapse_key = 3;
 
-	// nounce: [OPTIONAL] random bytes to identify this message.
-	// TODO (const): Suggest rolling nounce object to protect against copy cat attacks.
-	// >> nounce = os.urandom(32)
+	// nounce: [OPTIONAL] int to identify message ordering and signature updates.
+	// >> nounce = nounce + 1
 	// SIZE: 32-bits (4-bytes)
-	bytes nounce = 4;
+	int64 nounce = 4;
 
-	// signature: [OPTIONAL] digital signature linking the nounce and neuron_key and destination
+	// signature: [OPTIONAL] digital signature linking the nounce, neuron_key and synapse_key
 	// prevents spoofing attacks where an adversary attempts to send messages as other peers.
-	// This field is optional although can be used by the reciever selectively.
-	// NOTE: this field does not link the signature to the inputs allowing the same signature to
-	// be used repeatedly by the same caller for fast message passing.
-	// TODO (const): rolling nounce.
+	// for a unique nounce only the private key holder can create a valid signature.
+	// NOTE: this field does not link the signature to the inputs. New signatures do not need
+	// to be generated for each message.
 	// $ python
 	// >>> from cryptography.hazmat.backends import default_backend
 	// >>> from cryptography.hazmat.primitives import hashes
@@ -169,10 +172,10 @@ message TensorMessage {
 	// >>> neuron_key.verify(signature, digest) # to verify.
 	bytes signature = 5;
 
-	// tensors: 0 or more tensors passed on the wire.
+	// tensors: 1 or more tensors passed on the wire.
 	// SIZE: variable.
 	// NOTE: These tensors should be packed in the same order as that described in the synapse.tensor_def
-	// NOTE: During backward calls the tensors should be ordered [input_1, grad_1, input_2, grad_2, input_3, grad_3 ...] 
+	// NOTE: During backward calls the tensors should be ordered [input_1, input_2, ... grad_1, grad_2, ...] 
 	repeated Tensor tensors = 6;
 }
 
@@ -208,9 +211,8 @@ message TensorDef {
 	float version = 1;
 	
 	// shape: the shape of this tensor.
-	// NOTE: An batch dimension is assumed here. 
+	// NOTE: The batch dimension is assumed here. 
 	// i.e. [256, 724] -> [-1, 256, 724]
- 	// TODO (const) force limits on this item.
 	// ~ 5 * int32 = 128 bits - (16 bytes)
 	repeated int64 shape = 3;
     	

@@ -9,8 +9,12 @@ from opentensor import opentensor_pb2
 import opentensor
 
 class Neuron(nn.Module):
-    """ Opentensor Neuron """
     def __init__(self, config: opentensor.Config):
+        """[summary]
+
+        Args:
+            config (opentensor.Config): [description]
+        """
         super().__init__()
         self._config = config
         # Inward connection handler.
@@ -25,43 +29,74 @@ class Neuron(nn.Module):
         self._metagraph = opentensor.Metagraph(config)
 
     def __del__(self):
+        """[summary]
+        """
         self.stop()
 
     def start(self):
-        """ Begins opentensor backend processes """
+        """[summary]
+        """
         self._axon.start()
         self._metagraph.start()
 
     def stop(self):
-        """ Ends opentensor backend processes """
+        """[summary]
+        """
         self._axon.stop()
         self._metagraph.stop()
 
     def synapses(self) -> List[opentensor_pb2.Synapse]:
-        """ Returns a list of metagraph nodes to the caller """
+        """[summary]
+
+        Returns:
+            List[opentensor_pb2.Synapse]: [description]
+        """
         # TODO(const) should accept a query
         return self._metagraph.get(1000)
 
     def forward(self, x: List[torch.Tensor], synapses: List[opentensor_pb2.Synapse]):
-        """ Runs a forward request through the passed nodes """
+        """[summary]
+
+        Args:
+            x (List[torch.Tensor]): [description]
+            synapses (List[opentensor_pb2.Synapse]): [description]
+
+        Returns:
+            [type]: [description]
+        """
         return self._dendrite.forward(x, synapses)
 
     def getweights(self, synapses: List[opentensor_pb2.Synapse]):
-        """ Returns the weights as a torch tensor for passed nodes """
+        """[summary]
+
+        Args:
+            synapses (List[opentensor_pb2.Synapse]): [description]
+
+        Returns:
+            [type]: [description]
+        """
         return torch.Tensor(self._metagraph.getweights(synapses))
 
     def setweights(self, synapses: List[opentensor_pb2.Synapse],
                    weights: torch.Tensor):
-        """ Sets weights for nodes in local storage """
+        """[summary]
+
+        Args:
+            synapses (List[opentensor_pb2.Synapse]): [description]
+            weights (torch.Tensor): [description]
+        """
         weights = weights.cpu().detach().numpy().tolist()
         self._metagraph.setweights(synapses, weights)
 
-    def subscribe(self, module: torch.nn.Module):
-        """ Subscribes a synapse to the graph """
-        synapse = hivemind.server.ExpertBackend(module)
+    def subscribe(self, module: opentensor.Synapse):
+        """[summary]
+
+        Args:
+            module (opentensor.Synapse): [description]
+        """
         synapse_identity = opentensor.Identity().public_key()
         synapse_proto = opentensor_pb2.Synapse(
-            version=1.0,
+            version = opentensor.PROTOCOL_VERSION,
             neuron_key = self._config.identity.public_key(),
             identity = synapse_identity,
             address = self._config.remote_ip,
