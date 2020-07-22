@@ -9,7 +9,6 @@ import os
 import grpc
 import torch
 
-PROTO_VERSION = 1.0
 DUMMY = torch.empty(0, requires_grad=True)  # dummy tensor that triggers autograd in RemoteExpert  
     
 class Dendrite:
@@ -109,7 +108,7 @@ class _RemoteModuleCall(torch.autograd.Function):
         
         # Build request for forward.
         request = opentensor_pb2.TensorMessage( 
-                                                version = VERSION,
+                                                version = opentensor.PROTOCOL_VERSION,
                                                 neuron_key = ctx.caller.config.neuron_key,
                                                 synapse_key = ctx.caller.synapse.synapse_key,
                                                 nounce = ctx.caller.nounce,
@@ -134,7 +133,7 @@ class _RemoteModuleCall(torch.autograd.Function):
         
         # Build request for forward.
         request = opentensor_pb2.TensorMessage( 
-                                                version = VERSION,
+                                                version = opentensor.PROTOCOL_VERSION,
                                                 neuron_key = ctx.caller.config.neuron_key,
                                                 synapse_key = ctx.caller.synapse.synapse_key,
                                                 nounce = ctx.caller.nounce,

@@ -31,3 +31,5 @@ from opentensor.gate import Gate
 from opentensor.dispatcher import Dispatcher
 from opentensor.router import Router
 from opentensor.neuron import Neuron
+
+PROTOCOL_VERSION = 1.0

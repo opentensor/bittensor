@@ -4,8 +4,6 @@ from io import BytesIO
 import torch
 import pickle
 
-PROTO_VERSION = 1.0
-
 class PyTorchSerializer(SerializerBase):
     @staticmethod
     def todef(tensor: torch.Tensor) -> opentensor_pb2.TensorDef:
@@ -36,7 +34,7 @@ class PyTorchSerializer(SerializerBase):
         assert len(tensor.shape) > 1
         shape = tensor.shape[1:]
         return opentensor_pb2.TensorDef(
-                        verison = PROTO_VERSION, 
+                        verison = opentensor.PROTOCOL_VERSION, 
                         shape = shape, 
                         dtype = dtype,
                         requires_grad = tensor.requires_grad)
@@ -55,7 +53,7 @@ class PyTorchSerializer(SerializerBase):
         data_buffer = tensor.numpy().tobytes()
         tensor_def = PyTorchSerializer.todef(tensor)
         proto = opentensor_pb2.Tensor(
-                    version = PROTO_VERSION,
+                    version = opentensor.PROTOCOL_VERSION,
                     buffer = data_buffer,
                     tensor_def = tensor_def)            
         return proto

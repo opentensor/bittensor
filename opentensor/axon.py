@@ -21,7 +21,7 @@ class Axon(opentensor_grpc.OpentensorServicer):
         self._server.add_insecure_port('[::]:' + str(self._config.axon_port))
 
         # Local synapses
-        self._synapses = {}
+        self._local_synapses = {}
 
         # Serving thread.
         self._thread = None
@@ -49,32 +49,43 @@ class Axon(opentensor_grpc.OpentensorServicer):
 
     def subscribe(self, synapse_proto: opentensor_pb2.Synapse, synapse: opentensor.Synapse):
         """ Adds an Synapse to the serving set """
-        self._synapses[synapse_proto.identity] = synapse
-
-    def Fwd(self, request, context):
-        version = request.version
-        neuron_key = request.neuron_key
-        source_id = request.source_id
-        target_id = request.target_id
-        #nounce = request.nounce
-        x_tensor = request.tensors[0]
-
+        self._local_synapses[synapse_proto.identity] = synapse
+        
+        
+    async def Forward(self, request: opentensor_pb2.TensorMessage, context: grpc.ServicerContext):
+        # TODO (const): optionally check signature.
         # Return null response if the target does not exist.
-        if target_id not in self._synapses:
+        if request.synapse_key not in self._local_synapses:
             return opentensor_pb2.TensorMessage()
-
-        synapse = self._synapses[target_id]
-        x = opentensor.Serializer.deserialize(x_tensor)
-        y = synapse (x)
-        y_tensor = opentensor.Serializer.serialize(y)
+        synapse = self._local_synapses[request.synapse_key]
+        
+        # Make local call.
+        xs = [opentensor.PyTorchSerializer.deserialize(x) for x in request.tensors]
+        ys = synapse (xs)
+        ys_serialized = [opentensor.PyTorchSerializer.serialize(y) for y in ys]
 
         response = opentensor_pb2.TensorMessage(
-            version=version,
-            neuron_key=self._config.identity.public_key(),
-            source_id=target_id,
-            target_id=source_id,
-            tensors=[y_tensor])
+            version = opentensor.PROTOCOL_VERSION,
+            neuron_key = self._config.identity.neuron_key(),
+            synapse_key = request.synapse_key,
+            tensors = output_tensors)
         return response
 
-    def Bwd(self, request, context):
-        pass
+    async def Backward(self, request: runtime_pb2.ExpertRequest, context: grpc.ServicerContext):
+        # TODO (const): optionally check signature.
+        # Return null response if the target does not exist.
+        if request.synapse_key not in self._local_synapses:
+            return opentensor_pb2.TensorMessage()
+        synapse = self._local_synapses[request.synapse_key]
+        
+        # Make local call.
+        xs = [opentensor.PyTorchSerializer.deserialize(x) for x in request.tensors]
+        ys = synapse.backward(xs)
+        ys_serialized = [opentensor.PyTorchSerializer.serialize(y) for y in ys]
+
+        response = opentensor_pb2.TensorMessage(
+            version = opentensor.PROTOCOL_VERSION,
+            neuron_key = self._config.identity.neuron_key(),
+            synapse_key = request.synapse_key,
+            tensors = output_tensors)
+        return response

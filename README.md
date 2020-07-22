@@ -14,3 +14,5 @@ $ pip install -e .
 $ pip install -r requirements.txt
 $ pytest
 ```
+# Acknowledgments
+learning-at-home/hivemind: For a architectural structure, a good protion of this code is adpated from hivemind. 
