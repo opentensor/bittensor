@@ -1,8 +1,11 @@
 """ An interface for serializing and deserializing opentensor tensors"""
 from opentensor import opentensor_pb2
 from io import BytesIO
+import numpy as np
 import torch
 import pickle
+
+import opentensor
 
 class SerializerBase:
     @staticmethod
@@ -49,6 +52,49 @@ class SerializerBase:
             object: Generic tensor object.
         """
         raise NotImplementedError()
+    
+    
+def torch_dtype_to_opentensor_dtype(tdtype):
+    if tdtype == torch.float32:
+        dtype = opentensor_pb2.DataType.FLOAT32
+    elif tdtype == torch.float64:
+        dtype = opentensor_pb2.DataType.FLOAT64
+    elif tdtype == torch.int32:
+        dtype = opentensor_pb2.DataType.INT32
+    elif tdtype == torch.int64:
+        dtype = opentensor_pb2.DataType.INT64
+    else:
+        dtype = opentensor_pb2.DataType.UNKNOWN
+    return dtype
+
+
+def opentensor_dtype_torch_dtype(odtype):
+    if odtype == opentensor_pb2.DataType.FLOAT32:
+        dtype = torch.float32
+    elif odtype == opentensor_pb2.DataType.FLOAT64:
+        dtype = torch.float64
+    elif odtype == opentensor_pb2.DataType.INT32:
+        dtype = torch.int32
+    elif odtype == opentensor_pb2.DataType.INT64: 
+        dtype = torch.int64
+    else:
+        # TODO (const): raise error
+        dtype = torch.float32
+    return dtype
+
+def opentensor_dtype_np_dtype(odtype):
+    if odtype == opentensor_pb2.DataType.FLOAT32:
+        dtype = np.float32
+    elif odtype == opentensor_pb2.DataType.FLOAT64:
+        dtype = np.float64
+    elif odtype == opentensor_pb2.DataType.INT32:
+        dtype = np.int32
+    elif odtype == opentensor_pb2.DataType.INT64: 
+        dtype = np.int64
+    else:
+        # TODO(const): raise error.
+        dtype = np.float32
+    return dtype
 
 class PyTorchSerializer(SerializerBase):
     @staticmethod
@@ -61,26 +107,12 @@ class PyTorchSerializer(SerializerBase):
         Returns:
             opentensor_pb2.TensorDef: An opentensor TensorDef for the passed torch.Tensor.
         """
-        if tensor.dtype == torch.float32:
-            dtype = opentensor_pb2.DataType.FLOAT32
-
-        elif tensor.dtype == torch.float64:
-            dtype = opentensor_pb2.DataType.FLOAT64
-
-        elif tensor.dtype == torch.int32:
-            dtype = opentensor_pb2.DataType.INT32
-
-        elif tensor.dtype == torch.int64:
-            dtype = opentensor_pb2.DataType.INT64
-
-        else:
-            dtype = opentensor_pb2.DataType.UNKNOWN
-
+        dtype = torch_dtype_to_opentensor_dtype(tensor.dtype)
         # NOTE: we assume that the first dimension is the batch dimension.
         assert len(tensor.shape) > 1
         shape = tensor.shape[1:]
         return opentensor_pb2.TensorDef(
-                        verison = opentensor.PROTOCOL_VERSION, 
+                        version = opentensor.PROTOCOL_VERSION, 
                         shape = shape, 
                         dtype = dtype,
                         requires_grad = tensor.requires_grad)
@@ -114,10 +146,11 @@ class PyTorchSerializer(SerializerBase):
         Returns:
             torch.Tensor: torch.Tensor to deserialize.
         """
+        dtype = opentensor_dtype_np_dtype(proto.tensor_def.dtype)
         # TODO avoid copying the array (need to silence pytorch warning, because array is not writable)
-        array = np.frombuffer(proto.buffer, dtype=np.dtype(proto.tensor_def.dtype)).copy()
+        array = np.frombuffer(proto.buffer, dtype=np.dtype(dtype)).copy()
         # NOTE (const): The first dimension is always assumed to be the batch dimension.
-        shape = tuple([-1] + proto.tensor_def.shape)
+        shape = tuple([-1] + list(proto.tensor_def.shape))
         assert len(shape) > 1 
         tensor = torch.as_tensor(array).view(shape).requires_grad_(proto.tensor_def.requires_grad)
         return tensor

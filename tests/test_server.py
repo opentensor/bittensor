@@ -10,11 +10,11 @@ class Opentensor(proto_grpc.OpentensorServicer):
     def __init__(self):
         pass
 
-    def Fwd(self, context, request):
+    def Forward(self, context, request):
         response = proto_pb2.TensorMessage()
         return response
 
-    def Bwd(self, contect, request):
+    def Backward(self, contect, request):
         response = proto_pb2.TensorMessage()
         return response
 
@@ -44,8 +44,8 @@ def test_client():
     stub = proto_grpc.OpentensorStub(channel)
 
     request = proto_pb2.TensorMessage()
-    response = stub.Fwd(request)
+    response = stub.Forward(request)
 
     request = proto_pb2.TensorMessage()
-    response = stub.Bwd(request)
+    response = stub.Backward(request)
     server.stop(0)

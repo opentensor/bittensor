@@ -3,12 +3,14 @@ from opentensor import opentensor_pb2
 import opentensor
 
 from loguru import logger
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 
 import os
 import grpc
 import torch
 import torch.nn as nn
+
+from torch.autograd.function import once_differentiable
 
 DUMMY = torch.empty(0, requires_grad=True)  # dummy tensor that triggers autograd in RemoteExpert  
 

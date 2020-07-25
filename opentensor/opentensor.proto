@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-// Service Definition for tensor processing servers.
+// Service definition for tensor processing servers.
 service Opentensor {
 	// Forward tensor request. 
 	rpc Forward (TensorMessage) returns (TensorMessage) {}
@@ -8,6 +8,25 @@ service Opentensor {
 	// Backward tensor request i.e. gradient.
 	rpc Backward (TensorMessage) returns (TensorMessage) {}
 }
+
+// Service definition for a pow based cache for sharing opentensor synapses.
+service Metagraph {
+	rpc Gossip (SynapseBatch) returns (SynapseBatch) {}
+}
+
+// Batch of neuron service definitions.
+message SynapseBatch {
+	// SIZE: 32-bits (4-bytes)
+	float version = 1;
+	// Sender public_key
+	string neuron_key = 2;
+	// Public key signature. 
+	bytes signature = 3;
+	// Synapse endpoint definitions.
+	// SIZE: 304-bytes * N
+	repeated Synapse synapses = 4;
+}
+
 
 // "Synapse" or "Expert" endpoint definition.
 // Fully describes a tensor processing service definition for hivemind and opentensor.
@@ -99,11 +118,11 @@ message Synapse {
   	// >>> 	digest.update(indef.SerializeToString().encode('utf-8))
 	// >>> 	digest.update(oudef.SerializeToString().encode('utf-8))
 	// >>> 	digest.update(block_hash)
-  	// >>> 	digest.update(nounce)
+  	// >>> 	digest.update(bytes(nounce))
 	// >>> 	digest = digest.finalize()
 	// >>> while( count_zeros(digest) < difficulty )
 	// >>> proof_of_work = digest
-	bytes proof_of_work = 9;
+	bytes proof_of_work = 10;
   
   	// Signature: ed25519 public_key signature which signs
 	// this synapse definition using the attached neuron_key.
@@ -111,7 +130,10 @@ message Synapse {
   	// $ python
 	// signature = private_key.sign(digest) # to create.
 	// >>> source_key.verify(signature, digest) # to verify.
-	bytes signature = 10;
+	bytes signature = 11;
+
+	// TODO(const): remove this item
+	string m_port = 12;
 }	
 
 // TensorMessage
@@ -166,7 +188,7 @@ message TensorMessage {
 	// >>> digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
 	// >>> digest.update(neuron_key.encode('utf-8'))
 	// >>> digest.update(synapse_key.encode('utf-8'))
-	// >>> digest.update(nounce)
+	// >>> digest.update(bytes(nounce))
 	// >>> digest = digest.finalize()
 	// signature = private_key.sign(digest) # to create.
 	// >>> neuron_key.verify(signature, digest) # to verify.
@@ -218,16 +240,19 @@ message TensorDef {
     	
 	// dtype: the tensor datatype.
 	// int32 32-bits (4-bytes)
-	enum DataType {
-		UNKNOWN = 0;
-		FLOAT32 = 1;
-		FLOAT64 = 2;
-		INT32 = 3;
-		INT64 = 4;
-	}
 	DataType dtype = 4;
 
 	// Does this tensor require a gradient.
 	// 1 bit.
 	bool requires_grad = 5;
+}
+
+// dtype: the tensor datatype.
+// int32 32-bits (4-bytes)
+enum DataType {
+	UNKNOWN = 0;
+	FLOAT32 = 1;
+	FLOAT64 = 2;
+	INT32 = 3;
+	INT64 = 4;
 }
