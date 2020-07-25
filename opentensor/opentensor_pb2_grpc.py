@@ -6,7 +6,7 @@ from opentensor import opentensor_pb2 as opentensor_dot_opentensor__pb2
 
 
 class OpentensorStub(object):
-    """Runtime protocol definition.
+    """Service definition for tensor processing servers.
     """
 
     def __init__(self, channel):
@@ -15,31 +15,31 @@ class OpentensorStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.Fwd = channel.unary_unary(
-                '/Opentensor/Fwd',
+        self.Forward = channel.unary_unary(
+                '/Opentensor/Forward',
                 request_serializer=opentensor_dot_opentensor__pb2.TensorMessage.SerializeToString,
                 response_deserializer=opentensor_dot_opentensor__pb2.TensorMessage.FromString,
                 )
-        self.Bwd = channel.unary_unary(
-                '/Opentensor/Bwd',
+        self.Backward = channel.unary_unary(
+                '/Opentensor/Backward',
                 request_serializer=opentensor_dot_opentensor__pb2.TensorMessage.SerializeToString,
                 response_deserializer=opentensor_dot_opentensor__pb2.TensorMessage.FromString,
                 )
 
 
 class OpentensorServicer(object):
-    """Runtime protocol definition.
+    """Service definition for tensor processing servers.
     """
 
-    def Fwd(self, request, context):
+    def Forward(self, request, context):
         """Forward tensor request. 
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def Bwd(self, request, context):
-        """Reverse tensor (gradient) request.
+    def Backward(self, request, context):
+        """Backward tensor request i.e. gradient.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -48,13 +48,13 @@ class OpentensorServicer(object):
 
 def add_OpentensorServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Fwd': grpc.unary_unary_rpc_method_handler(
-                    servicer.Fwd,
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
                     request_deserializer=opentensor_dot_opentensor__pb2.TensorMessage.FromString,
                     response_serializer=opentensor_dot_opentensor__pb2.TensorMessage.SerializeToString,
             ),
-            'Bwd': grpc.unary_unary_rpc_method_handler(
-                    servicer.Bwd,
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
                     request_deserializer=opentensor_dot_opentensor__pb2.TensorMessage.FromString,
                     response_serializer=opentensor_dot_opentensor__pb2.TensorMessage.SerializeToString,
             ),
@@ -66,11 +66,11 @@ def add_OpentensorServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class Opentensor(object):
-    """Runtime protocol definition.
+    """Service definition for tensor processing servers.
     """
 
     @staticmethod
-    def Fwd(request,
+    def Forward(request,
             target,
             options=(),
             channel_credentials=None,
@@ -79,14 +79,14 @@ class Opentensor(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Opentensor/Fwd',
+        return grpc.experimental.unary_unary(request, target, '/Opentensor/Forward',
             opentensor_dot_opentensor__pb2.TensorMessage.SerializeToString,
             opentensor_dot_opentensor__pb2.TensorMessage.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def Bwd(request,
+    def Backward(request,
             target,
             options=(),
             channel_credentials=None,
@@ -95,7 +95,7 @@ class Opentensor(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Opentensor/Bwd',
+        return grpc.experimental.unary_unary(request, target, '/Opentensor/Backward',
             opentensor_dot_opentensor__pb2.TensorMessage.SerializeToString,
             opentensor_dot_opentensor__pb2.TensorMessage.FromString,
             options, channel_credentials,
@@ -103,7 +103,8 @@ class Opentensor(object):
 
 
 class MetagraphStub(object):
-    """Missing associated documentation comment in .proto file."""
+    """Service definition for a pow based cache for sharing opentensor synapses.
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -119,11 +120,11 @@ class MetagraphStub(object):
 
 
 class MetagraphServicer(object):
-    """Missing associated documentation comment in .proto file."""
+    """Service definition for a pow based cache for sharing opentensor synapses.
+    """
 
     def Gossip(self, request, context):
-        """Shared POW cache.
-        """
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -144,7 +145,8 @@ def add_MetagraphServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class Metagraph(object):
-    """Missing associated documentation comment in .proto file."""
+    """Service definition for a pow based cache for sharing opentensor synapses.
+    """
 
     @staticmethod
     def Gossip(request,

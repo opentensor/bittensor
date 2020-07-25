@@ -23,20 +23,20 @@ def test_signed_message_fail():
     public_bytes = identity.public_bytes()
 
     # Create nounce. A string representation of random bytes.
-    nounce = os.urandom(12)
+    nounce = 1
 
     # Create SHA256 digest.
     digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
     digest.update(public_bytes)
-    digest.update(nounce)
+    digest.update(bytes(nounce))
     real_sha1_digest = digest.finalize()
 
     # False nounce.
-    false_nounce = os.urandom(12)
+    false_nounce = 0
 
     digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
     digest.update(public_bytes)
-    digest.update(false_nounce)
+    digest.update(bytes(false_nounce))
     false_sha1_digest = digest.finalize()
 
     # Create signature
@@ -56,7 +56,7 @@ def test_signed_message_fail():
     # Recreate digest.
     digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
     digest.update(in_public_bytes)
-    digest.update(fwd_request.nounce)
+    digest.update(bytes(fwd_request.nounce))
     target_side_digest = digest.finalize()
 
     # Verify the authenticity of the message.
@@ -77,12 +77,12 @@ def test_signed_message():
     public_bytes = identity.public_bytes()
 
     # Create nounce. A string representation of random bytes.
-    nounce = os.urandom(12)
+    nounce = 1
 
     # Create SHA1 digest.
     digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
     digest.update(public_bytes)
-    digest.update(nounce)
+    digest.update(bytes(nounce))
     sha1_digest = digest.finalize()
 
     # Sign the digest.
@@ -102,7 +102,7 @@ def test_signed_message():
     # Recreate digest.
     digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
     digest.update(in_public_bytes)
-    digest.update(fwd_request.nounce)
+    digest.update(bytes(fwd_request.nounce))
     target_side_digest = digest.finalize()
 
     # Verify the authenticity of the message.
