@@ -1,8 +1,54 @@
 """ An interface for serializing and deserializing opentensor tensors"""
-from opentensor_proto import opentensor_pb2
+from opentensor import opentensor_pb2
 from io import BytesIO
 import torch
 import pickle
+
+class SerializerBase:
+    @staticmethod
+    def todef(tensor: object) -> opentensor_pb2.TensorDef:
+        """ Returns the opentensor_pb2.TensorDef description for this Tensor.
+
+        Args:
+            obj (object): Tensor object: i.e. torch.Tensor type.
+
+        Raises:
+            NotImplementedError: Must be implemented in a subclass of this object.
+
+        Returns:
+            opentensor_pb2.TensorDef: The TensorDef proto describing this Tensor.
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def serialize(tensor: object) -> opentensor_pb2.Tensor:
+        """ Returns a serialized version of generic tensor obj as an opentensor_pb2.Tensor proto.  
+
+        Args:
+            tensor (object): Tensor object: i.e. torch.Tensor.
+
+        Raises:
+            NotImplementedError: Must be implemented in the subclass of this object.
+
+        Returns:
+            opentensor_pb2.Tensor: The proto version of this object.
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def deserialize(proto: opentensor_pb2.Tensor) -> object:
+        """ Returns the a generic tensor object from an opentensor_pb2.Tensor proto.
+
+        Args:
+            proto (opentensor_pb2.Tensor): The proto to deserialize.
+
+        Raises:
+            NotImplementedError: Must be implemented in the subclass of this object.
+
+        Returns:
+            object: Generic tensor object.
+        """
+        raise NotImplementedError()
 
 class PyTorchSerializer(SerializerBase):
     @staticmethod
@@ -75,49 +121,3 @@ class PyTorchSerializer(SerializerBase):
         assert len(shape) > 1 
         tensor = torch.as_tensor(array).view(shape).requires_grad_(proto.tensor_def.requires_grad)
         return tensor
-
-class SerializerBase:
-    @staticmethod
-    def todef(tensor: object) -> opentensor_pb2.TensorDef:
-        """ Returns the opentensor_pb2.TensorDef description for this Tensor.
-
-        Args:
-            obj (object): Tensor object: i.e. torch.Tensor type.
-
-        Raises:
-            NotImplementedError: Must be implemented in a subclass of this object.
-
-        Returns:
-            opentensor_pb2.TensorDef: The TensorDef proto describing this Tensor.
-        """
-        raise NotImplementedError()
-
-    @staticmethod
-    def serialize(tensor: object) -> opentensor_pb2.Tensor:
-        """ Returns a serialized version of generic tensor obj as an opentensor_pb2.Tensor proto.  
-
-        Args:
-            tensor (object): Tensor object: i.e. torch.Tensor.
-
-        Raises:
-            NotImplementedError: Must be implemented in the subclass of this object.
-
-        Returns:
-            opentensor_pb2.Tensor: The proto version of this object.
-        """
-        raise NotImplementedError()
-
-    @staticmethod
-    def deserialize(proto: opentensor_pb2.Tensor) -> object:
-        """ Returns the a generic tensor object from an opentensor_pb2.Tensor proto.
-
-        Args:
-            proto (opentensor_pb2.Tensor): The proto to deserialize.
-
-        Raises:
-            NotImplementedError: Must be implemented in the subclass of this object.
-
-        Returns:
-            object: Generic tensor object.
-        """
-        raise NotImplementedError()

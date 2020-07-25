@@ -8,9 +8,10 @@ from typing import List, Tuple, Dict
 import os
 import grpc
 import torch
+import torch.nn as nn
 
 DUMMY = torch.empty(0, requires_grad=True)  # dummy tensor that triggers autograd in RemoteExpert  
-    
+
 class Dendrite:
     def __init__(self, config: opentensor.Config):
         self._config = config
@@ -98,7 +99,7 @@ class _RemoteModuleCall(torch.autograd.Function):
     # TODO (const) check schema.
     # TODO (const) should take multiple input tensors and kwargs.
     @staticmethod
-    def forward(ctx, dummy: torch.Tensor, caller: opentensor.RemoteSynapse, inputs: List[torch.Tensor]) -> List[torch.Tensor]:
+    def forward(ctx, caller: RemoteSynapse, dummy: torch.Tensor, inputs: List[torch.Tensor]) -> List[torch.Tensor]:
         # Save for backward call.
         ctx.caller = caller
         ctx.save_for_backward(inputs)

@@ -71,7 +71,7 @@ class Axon(opentensor_grpc.OpentensorServicer):
             tensors = output_tensors)
         return response
 
-    async def Backward(self, request: runtime_pb2.ExpertRequest, context: grpc.ServicerContext):
+    async def Backward(self, request: opentensor_pb2.TensorMessage, context: grpc.ServicerContext):
         # TODO (const): optionally check signature.
         # Return null response if the target does not exist.
         if request.synapse_key not in self._local_synapses:
