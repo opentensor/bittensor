@@ -26,10 +26,10 @@ from opentensor.synapse import Synapse
 from opentensor.axon import Axon
 from opentensor.dendrite import Dendrite
 from opentensor.metagraph import Metagraph
-from opentensor.keys import Keys
-from opentensor.gate import Gate
-from opentensor.dispatcher import Dispatcher
-from opentensor.router import Router
+from opentensor.utils.keys import Keys
+from opentensor.utils.gate import Gate
+from opentensor.utils.dispatcher import Dispatcher
+from opentensor.utils.router import Router
 from opentensor.neuron import Neuron
 
 PROTOCOL_VERSION = 1.0
