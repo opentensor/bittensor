@@ -2,6 +2,7 @@ from opentensor import opentensor_pb2
 
 import hivemind
 import torch
+import torch.nn as nn
 
 class Synapse(nn.Module):
     """ Implementation of a opentensor.synapse. A single ip/port tensor processing unit """
