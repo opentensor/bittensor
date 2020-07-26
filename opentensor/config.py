@@ -14,7 +14,7 @@ class Config:
         self.toString()
     
     def toString(self):
-        logger.info("\n Neuron key: {} \n Axon port: {} \n Metagraph port: {} \n Metagraph Size: {} \n bootpeer: {} \n remote_ip: {} \n", self.neuron_key.public_key(), self.axon_port, self.metagraph_port, self.metagraph_size, self.bootstrap, self.remote_ip)
+        logger.info("\n Neuron key: {} \n Axon port: {} \n Metagraph port: {} \n Metagraph Size: {} \n bootpeer: {} \n remote_ip: {} \n", self.neuron_key, self.axon_port, self.metagraph_port, self.metagraph_size, self.bootstrap, self.remote_ip)
     
     def _load_defaults(self):
         # Fall back on random port for axon bind. 
@@ -41,7 +41,7 @@ class Config:
           
         # Fall back on creating new neuron_key.   
         if self._hparams.neuron_key == None:
-            self.neuron_key = opentensor.Identity()
+            self.neuron_key = opentensor.Identity().public_key()
         else:
             # TODO(const) load neuron_key from public key.
             pass

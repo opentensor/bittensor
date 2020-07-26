@@ -110,7 +110,7 @@ class PyTorchSerializer(SerializerBase):
         dtype = torch_dtype_to_opentensor_dtype(tensor.dtype)
         # NOTE: we assume that the first dimension is the batch dimension.
         assert len(tensor.shape) > 1
-        shape = tensor.shape[1:]
+        shape = [-1] + list(tensor.shape[1:])
         return opentensor_pb2.TensorDef(
                         version = opentensor.PROTOCOL_VERSION, 
                         shape = shape, 
@@ -133,7 +133,7 @@ class PyTorchSerializer(SerializerBase):
         proto = opentensor_pb2.Tensor(
                     version = opentensor.PROTOCOL_VERSION,
                     buffer = data_buffer,
-                    tensor_def = tensor_def)            
+                    tensor_def = tensor_def)      
         return proto
 
     @staticmethod
@@ -150,7 +150,7 @@ class PyTorchSerializer(SerializerBase):
         # TODO avoid copying the array (need to silence pytorch warning, because array is not writable)
         array = np.frombuffer(proto.buffer, dtype=np.dtype(dtype)).copy()
         # NOTE (const): The first dimension is always assumed to be the batch dimension.
-        shape = tuple([-1] + list(proto.tensor_def.shape))
+        shape = tuple(proto.tensor_def.shape)
         assert len(shape) > 1 
         tensor = torch.as_tensor(array).view(shape).requires_grad_(proto.tensor_def.requires_grad)
         return tensor

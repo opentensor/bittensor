@@ -24,11 +24,13 @@ class Dendrite:
     def run(self):
         pass
         
-    def forward(self, synapses: List[opentensor_pb2.Synapse], x: List[List[torch.Tensor]]) -> List[List[torch.Tensor]]:
+    def forward(self, synapses: List[opentensor_pb2.Synapse], x: List[torch.Tensor]) -> List[torch.Tensor]:
         """ forward tensor processes """
         results = []
         for idx, synapse in enumerate(synapses):
             forward_inputs = x[ idx ]
+            
+            logger.info('den {} {}', forward_inputs, synapse)
             
             # Get or create remote_synapse.
             remote_synapse = None
@@ -41,6 +43,7 @@ class Dendrite:
                 
             # Call remote synapse.
             results.append(remote_synapse(forward_inputs))
+        print ('results {}', results)
         return results
     
 # NOTE: (const) This code has been ported from hivemind thanks to Yozh and Max.
@@ -53,12 +56,15 @@ class RemoteSynapse(nn.Module):
     def __init__(self, synapse: opentensor_pb2.Synapse, config: opentensor.Config):
         super().__init__()
         self.synapse = synapse
-        self.local_neuron_key = config.neuron_key.public_key()       
+        self.local_neuron_key = config.neuron_key       
         # Loop back if the synapse is local.
         if synapse.address == config.remote_ip:
             self.endpoint = 'localhost:' + synapse.port
-        self.endpoint = synapse.address + ':' + synapse.port
+        else:
+            self.endpoint = synapse.address + ':' + synapse.port
         # TODO(const): should accept defaults. config = opentensor.config_or_defaults(config) 
+        
+        logger.info('endpoint {}', self.endpoint)
         self.channel = grpc.insecure_channel(self.endpoint, options=[
                 ('grpc.max_send_message_length', -1),
                 ('grpc.max_receive_message_length', -1)])
@@ -71,7 +77,7 @@ class RemoteSynapse(nn.Module):
         if self.channel is not None:
             self.channel.close()
 
-    def forward(self, inputs: List[torch.Tensor]) -> List[torch.Tensor]:
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         # TODO (const) compare schema
         # assert schema shape and size. raise type error.
         # if not check_schema(inputs, self.synapse.forward_schema):
@@ -92,13 +98,14 @@ class _RemoteModuleCall(torch.autograd.Function):
     # TODO (const) check schema.
     # TODO (const) should take multiple input tensors and kwargs.
     @staticmethod
-    def forward(ctx, caller: RemoteSynapse, dummy: torch.Tensor, inputs: List[torch.Tensor]) -> List[torch.Tensor]:
+    def forward(ctx, caller: RemoteSynapse, dummy: torch.Tensor, inputs: torch.Tensor) -> torch.Tensor:
+        
         # Save for backward call.
         ctx.caller = caller
-        ctx.save_for_backward(inputs)
         
         # Serialize inputs to bytes.
         serialized_inputs = opentensor.PyTorchSerializer.serialize(inputs)
+        ctx.serialized_inputs = serialized_inputs
         
         # Build request for forward.
         request = opentensor_pb2.TensorMessage( 
@@ -111,19 +118,21 @@ class _RemoteModuleCall(torch.autograd.Function):
                                             )
         
         # Make rpc call.
-        outputs = ctx.caller.stub.Forward(request)
-        
+        print ('dendrite -> {}', request)
+        response = ctx.caller.stub.Forward(request)
+        print ('dendrite <- {}', response)
+                
         # Deserialize outputs and return.
-        deserialized_outputs = opentensor.PyTorchSerializer.deserialize(outputs)
-        return deserialized_outputs
+        outputs = opentensor.PyTorchSerializer.deserialize(response.tensors[0])
+        return outputs
 
     @staticmethod
     @once_differentiable
-    def backward(ctx, grads: List[torch.Tensor]) -> Optional[torch.Tensor]:
-        inputs_and_grads = ctx.saved_tensors + grads
+    def backward(ctx, grads: torch.Tensor) -> Optional[torch.Tensor]:
         
         # Serialize inputs to bytes.
-        serialized_inputs = opentensor.PyTorchSerializer.serialize(inputs_and_grads)
+        serialized_grads = opentensor.PyTorchSerializer.serialize(grads)
+        serialized_inputs = ctx.serialized_inputs
         
         # Build request for forward.
         request = opentensor_pb2.TensorMessage( 
@@ -132,14 +141,14 @@ class _RemoteModuleCall(torch.autograd.Function):
                                                 synapse_key = ctx.caller.synapse.synapse_key,
                                                 nounce = ctx.caller.nounce,
                                                 signature = ctx.caller.signature,
-                                                tensors = [serialized_inputs]
+                                                tensors = [serialized_inputs, serialized_grads]
                                             )
         
         # Attain backward response
         response = ctx.caller.stub.Backward(request)
 
         # Deserialize grad responses.
-        deserialized_grad_inputs = opentensor.PyTorchSerializer.deserialize(response.tensors)
+        deserialized_grad_inputs = opentensor.PyTorchSerializer.deserialize(response.tensors[0])
 
         # Return grads
-        return (None, DUMMY, None, *deserialized_grad_inputs)
+        return (None, DUMMY, None, deserialized_grad_inputs)

@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1bopentensor/opentensor.proto\"b\n\x0cSynapseBatch\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x01(\x0c\x12\x1a\n\x08synapses\x18\x04 \x03(\x0b\x32\x08.Synapse\"\xf7\x01\n\x07Synapse\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x13\n\x0bsynapse_key\x18\x03 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x04 \x01(\t\x12\x0c\n\x04port\x18\x05 \x01(\t\x12\x19\n\x05indef\x18\x06 \x03(\x0b\x32\n.TensorDef\x12\x1a\n\x06outdef\x18\x07 \x03(\x0b\x32\n.TensorDef\x12\x12\n\nblock_hash\x18\x08 \x01(\t\x12\x0e\n\x06nounce\x18\t \x01(\x05\x12\x15\n\rproof_of_work\x18\n \x01(\x0c\x12\x11\n\tsignature\x18\x0b \x01(\x0c\x12\x0e\n\x06m_port\x18\x0c \x01(\t\"\x86\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x13\n\x0bsynapse_key\x18\x03 \x01(\t\x12\x0e\n\x06nounce\x18\x04 \x01(\x03\x12\x11\n\tsignature\x18\x05 \x01(\x0c\x12\x18\n\x07tensors\x18\x06 \x03(\x0b\x32\x07.Tensor\"I\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\x1e\n\ntensor_def\x18\x03 \x01(\x0b\x32\n.TensorDef\"\\\n\tTensorDef\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x18\n\x05\x64type\x18\x04 \x01(\x0e\x32\t.DataType\x12\x15\n\rrequires_grad\x18\x05 \x01(\x08*G\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x32g\n\nOpentensor\x12+\n\x07\x46orward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12,\n\x08\x42\x61\x63kward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x32\x35\n\tMetagraph\x12(\n\x06Gossip\x12\r.SynapseBatch\x1a\r.SynapseBatch\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x1bopentensor/opentensor.proto\"b\n\x0cSynapseBatch\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x01(\x0c\x12\x1a\n\x08synapses\x18\x04 \x03(\x0b\x32\x08.Synapse\"\xf7\x01\n\x07Synapse\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x13\n\x0bsynapse_key\x18\x03 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x04 \x01(\t\x12\x0c\n\x04port\x18\x05 \x01(\t\x12\x19\n\x05indef\x18\x06 \x01(\x0b\x32\n.TensorDef\x12\x1a\n\x06outdef\x18\x07 \x01(\x0b\x32\n.TensorDef\x12\x12\n\nblock_hash\x18\x08 \x01(\t\x12\x0e\n\x06nounce\x18\t \x01(\x05\x12\x15\n\rproof_of_work\x18\n \x01(\x0c\x12\x11\n\tsignature\x18\x0b \x01(\x0c\x12\x0e\n\x06m_port\x18\x0c \x01(\t\"\x86\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x13\n\x0bsynapse_key\x18\x03 \x01(\t\x12\x0e\n\x06nounce\x18\x04 \x01(\x03\x12\x11\n\tsignature\x18\x05 \x01(\x0c\x12\x18\n\x07tensors\x18\x06 \x03(\x0b\x32\x07.Tensor\"I\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\x1e\n\ntensor_def\x18\x03 \x01(\x0b\x32\n.TensorDef\"\\\n\tTensorDef\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\r\n\x05shape\x18\x02 \x03(\x03\x12\x18\n\x05\x64type\x18\x03 \x01(\x0e\x32\t.DataType\x12\x15\n\rrequires_grad\x18\x04 \x01(\x08*G\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x32g\n\nOpentensor\x12+\n\x07\x46orward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12,\n\x08\x42\x61\x63kward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x32\x35\n\tMetagraph\x12(\n\x06Gossip\x12\r.SynapseBatch\x1a\r.SynapseBatch\"\x00\x62\x06proto3'
 )
 
 _DATATYPE = _descriptor.EnumDescriptor(
@@ -170,15 +170,15 @@ _SYNAPSE = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='indef', full_name='Synapse.indef', index=5,
-      number=6, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
+      number=6, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='outdef', full_name='Synapse.outdef', index=6,
-      number=7, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
+      number=7, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -364,21 +364,21 @@ _TENSORDEF = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='shape', full_name='TensorDef.shape', index=1,
-      number=3, type=3, cpp_type=2, label=3,
+      number=2, type=3, cpp_type=2, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='dtype', full_name='TensorDef.dtype', index=2,
-      number=4, type=14, cpp_type=8, label=1,
+      number=3, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='requires_grad', full_name='TensorDef.requires_grad', index=3,
-      number=5, type=8, cpp_type=7, label=1,
+      number=4, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
