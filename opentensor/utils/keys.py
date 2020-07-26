@@ -31,15 +31,15 @@ class Keys():
 
     def addSynapse(self, synapse):
         key = new_key(self._key_dim)
-        self._key_for_synapse[synapse.identity] = key
+        self._key_for_synapse[synapse.synapse_key] = key
         self._synapse_for_key[torch_to_bytes(key)] = synapse
 
     def toKeys(self, synapses: List[opentensor_pb2.Synapse]):
         torch_keys = []
         for synapse in synapses:
-            if synapse.identity not in self._key_for_synapse:
+            if synapse.synapse_key not in self._key_for_synapse:
                 self.addSynapse(synapse)
-            torch_keys.append(self._key_for_synapse[synapse.identity])
+            torch_keys.append(self._key_for_synapse[synapse.synapse_key])
         return torch.cat(torch_keys, dim=0).view(-1, self._key_dim)
 
     def toSynapses(self, keys):

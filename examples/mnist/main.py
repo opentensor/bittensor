@@ -13,7 +13,6 @@ from torch.utils.tensorboard import SummaryWriter
 from opentensor import opentensor_pb2
 import opentensor
 
-
 class Net(opentensor.Synapse):
     """ An opentensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
     """
@@ -25,8 +24,23 @@ class Net(opentensor.Synapse):
         self.fc1 = nn.Linear(320, 50)
         self.fc2 = nn.Linear(50, 10)
         
-    def input_schema(self):
-        return [ [784] ]
+    def indef(self):
+        x_def = opentensor_pb2.TensorDef(
+                    version = opentensor.PROTOCOL_VERSION,
+                    shape = [784],
+                    dtype = opentensor_pb2.FLOAT32,
+                    requires_grad = True,
+                )
+        return [x_def]
+    
+    def outdef(self):
+        y_def = opentensor_pb2.TensorDef(
+                    version = opentensor.PROTOCOL_VERSION,
+                    shape = [10],
+                    dtype = opentensor_pb2.FLOAT32,
+                    requires_grad = True,
+                )
+        return [y_def]
     
     def forward(self, x):
         x = x.view(-1, 1, 28, 28)
@@ -79,7 +93,7 @@ def main(hparams):
     neuron.start()
     
     # Build summary writer for tensorboard.
-    writer = SummaryWriter(log_dir='./runs/' + config.identity.public_key())
+    writer = SummaryWriter(log_dir='./runs/' + config.neuron_key.public_key())
     
     # Build the optimizer.
     optimizer = optim.SGD(net.parameters(),

@@ -1,23 +1,28 @@
 from opentensor import opentensor_pb2
 
+from typing import List, Tuple, Dict, Optional
+
 import torch
 import torch.nn as nn
+
+import opentensor
     
 class Synapse(nn.Module):
     """
     """
 
-    def __init__(self, synapse: Synapse):
+    def __init__(self):
         super().__init__()
+        self._synapse_key = opentensor.Identity().public_key()
         
-        self.input_schema = self.input_schema()
-        self.output_schema = self.output_schema()
-        
-    def indef(self) -> List[opentensor.TensorDef]:
+    def indef(self) -> List[opentensor_pb2.TensorDef]:
         raise NotImplementedError
     
-    def outdef(self) -> List[opentensor.TensorDef]:
+    def outdef(self) -> List[opentensor_pb2.TensorDef]:
         return NotImplementedError  
+    
+    def synapse_key(self) -> str:
+        return self._synapse_key      
     
     def call_forward(self, inputs: List[torch.Tensor]) -> List[torch.Tensor]:
         """

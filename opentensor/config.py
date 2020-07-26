@@ -14,7 +14,7 @@ class Config:
         self.toString()
     
     def toString(self):
-        logger.info("\n Neuron key: {} \n Axon port: {} \n Metagraph port: {} \n Metagraph Size: {} \n bootpeer: {} \n remote_ip: {} \n", self.identity.public_key(), self.axon_port, self.metagraph_port, self.metagraph_size, self.bootstrap, self.remote_ip)
+        logger.info("\n Neuron key: {} \n Axon port: {} \n Metagraph port: {} \n Metagraph Size: {} \n bootpeer: {} \n remote_ip: {} \n", self.neuron_key.public_key(), self.axon_port, self.metagraph_port, self.metagraph_size, self.bootstrap, self.remote_ip)
     
     def _load_defaults(self):
         # Fall back on random port for axon bind. 
@@ -39,11 +39,11 @@ class Config:
         else:
             self.bootstrap = self._hparams.bootstrap
           
-        # Fall back on creating new identity.   
-        if self._hparams.identity == None:
-            self.identity = opentensor.Identity()
+        # Fall back on creating new neuron_key.   
+        if self._hparams.neuron_key == None:
+            self.neuron_key = opentensor.Identity()
         else:
-            # TODO(const) load identity from public key.
+            # TODO(const) load neuron_key from public key.
             pass
             
         if self._hparams.remote_ip == None:
@@ -74,10 +74,10 @@ class Config:
                             default=None,
                             type=str,
                             help='Metagraph bootpeer')
-        parser.add_argument('--identity',
+        parser.add_argument('--neuron_key',
                             default=None,
                             type=str,
-                            help='Identity')
+                            help='Neuron key')
         parser.add_argument('--remote_ip',
                             default=None,
                             type=str,

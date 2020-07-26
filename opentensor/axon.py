@@ -49,7 +49,7 @@ class Axon(opentensor_grpc.OpentensorServicer):
 
     def subscribe(self, synapse_proto: opentensor_pb2.Synapse, synapse: opentensor.Synapse):
         """ Adds an Synapse to the serving set """
-        self._local_synapses[synapse_proto.identity] = synapse
+        self._local_synapses[synapse_proto.synapse_key] = synapse
         
         
     async def Forward(self, request: opentensor_pb2.TensorMessage, context: grpc.ServicerContext):
@@ -66,7 +66,7 @@ class Axon(opentensor_grpc.OpentensorServicer):
 
         response = opentensor_pb2.TensorMessage(
             version = opentensor.PROTOCOL_VERSION,
-            neuron_key = self._config.identity.neuron_key(),
+            neuron_key = self._config.neuron_key.neuron_key(),
             synapse_key = request.synapse_key,
             tensors = output_tensors)
         return response
@@ -85,7 +85,7 @@ class Axon(opentensor_grpc.OpentensorServicer):
 
         response = opentensor_pb2.TensorMessage(
             version = opentensor.PROTOCOL_VERSION,
-            neuron_key = self._config.identity.neuron_key(),
+            neuron_key = self._config.neuron_key.neuron_key(),
             synapse_key = request.synapse_key,
             tensors = output_tensors)
         return response

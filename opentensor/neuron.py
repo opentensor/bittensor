@@ -49,7 +49,7 @@ class Neuron(nn.Module):
         Returns:
             [type]: List of torch.Tensor responses from Synapse service definitions.
         """
-        return self._dendrite.forward(x, synapses)
+        return self._dendrite.forward(synapses, x)
 
     def getweights(self, synapses: List[opentensor_pb2.Synapse]):
         """Get the weights for list of Synapse endpoints.
@@ -73,22 +73,22 @@ class Neuron(nn.Module):
         weights = weights.cpu().detach().numpy().tolist()
         self._metagraph.setweights(synapses, weights)
 
-    def subscribe(self, module: opentensor.Synapse):
+    def subscribe(self, synapse: opentensor.Synapse):
         """Subscribes a synapse class object to the metagraph.
 
         Args:
             module (opentensor.Synapse): opentensor.Synapse class object to subscribe.
         """
         # Create a new opentensor_pb2.Synapse proto.
-        synapse_identity = opentensor.Identity().public_key()
         synapse_proto = opentensor_pb2.Synapse(
             version = opentensor.PROTOCOL_VERSION,
-            neuron_key = self._config.identity.public_key(),
-            identity = synapse_identity,
+            neuron_key = self._config.neuron_key.public_key(),
+            synapse_key = synapse.synapse_key(),
             address = self._config.remote_ip,
             port = self._config.axon_port,
             indef = synapse.indef(),
             outdef = synapse.outdef())
+        logger.info("subscribe synapse: {}", synapse_proto)
         self._metagraph.subscribe(synapse_proto)
         self._axon.subscribe(synapse_proto, synapse)
 
@@ -110,8 +110,8 @@ class Neuron(nn.Module):
         self._metagraph.stop()
 
     @property
-    def identity(self):
-        return self._config.identity
+    def neuron_key(self):
+        return self._config.neuron_key
 
     @property
     def metagraph(self):
