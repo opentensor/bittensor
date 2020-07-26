@@ -61,7 +61,7 @@ class Axon(opentensor_grpc.OpentensorServicer):
         
         # Make local call.
         xs = [opentensor.PyTorchSerializer.deserialize(x) for x in request.tensors]
-        ys = synapse (xs)
+        ys = synapse.call_forward(xs)
         ys_serialized = [opentensor.PyTorchSerializer.serialize(y) for y in ys]
 
         response = opentensor_pb2.TensorMessage(
@@ -79,9 +79,9 @@ class Axon(opentensor_grpc.OpentensorServicer):
         synapse = self._local_synapses[request.synapse_key]
         
         # Make local call.
-        xs = [opentensor.PyTorchSerializer.deserialize(x) for x in request.tensors]
-        ys = synapse.backward(xs)
-        ys_serialized = [opentensor.PyTorchSerializer.serialize(y) for y in ys]
+        xs_and_dys = [opentensor.PyTorchSerializer.deserialize(x) for x in request.tensors]
+        dxs = synapse.call_backward(xs_and_dys)
+        dxs_serialized = [opentensor.PyTorchSerializer.serialize(dx) for dx in dxs]
 
         response = opentensor_pb2.TensorMessage(
             version = opentensor.PROTOCOL_VERSION,

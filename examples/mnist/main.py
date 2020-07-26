@@ -14,7 +14,7 @@ from opentensor import opentensor_pb2
 import opentensor
 
 
-class Net(torch.nn.module):
+class Net(opentensor.Synapse):
     """ An opentensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
     """
     def __init__(self):
@@ -24,6 +24,9 @@ class Net(torch.nn.module):
         self.conv2_drop = nn.Dropout2d()
         self.fc1 = nn.Linear(320, 50)
         self.fc2 = nn.Linear(50, 10)
+        
+    def input_schema(self):
+        return [ [784] ]
     
     def forward(self, x):
         x = x.view(-1, 1, 28, 28)
