@@ -49,6 +49,7 @@ class Neuron(nn.Module):
         Returns:
             [type]: List of torch.Tensor responses from Synapse service definitions.
         """
+        logger.info('forward {} {}', x, synapses)
         return self._dendrite.forward(synapses, x)
 
     def getweights(self, synapses: List[opentensor_pb2.Synapse]):
@@ -82,7 +83,7 @@ class Neuron(nn.Module):
         # Create a new opentensor_pb2.Synapse proto.
         synapse_proto = opentensor_pb2.Synapse(
             version = opentensor.PROTOCOL_VERSION,
-            neuron_key = self._config.neuron_key.public_key(),
+            neuron_key = self._config.neuron_key,
             synapse_key = synapse.synapse_key(),
             address = self._config.remote_ip,
             port = self._config.axon_port,
@@ -101,13 +102,13 @@ class Neuron(nn.Module):
         """Starts background threads.
         """
         self._axon.start()
-        self._metagraph.start()
+        #self._metagraph.start()
 
     def stop(self):
         """Stops background threads.
         """
         self._axon.stop()
-        self._metagraph.stop()
+        #self._metagraph.stop()
 
     @property
     def neuron_key(self):

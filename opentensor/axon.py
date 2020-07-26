@@ -52,7 +52,7 @@ class Axon(opentensor_grpc.OpentensorServicer):
         self._local_synapses[synapse_proto.synapse_key] = synapse
         
         
-    async def Forward(self, request: opentensor_pb2.TensorMessage, context: grpc.ServicerContext):
+    def Forward(self, request: opentensor_pb2.TensorMessage, context: grpc.ServicerContext):
         # TODO (const): optionally check signature.
         # Return null response if the target does not exist.
         if request.synapse_key not in self._local_synapses:
@@ -60,18 +60,19 @@ class Axon(opentensor_grpc.OpentensorServicer):
         synapse = self._local_synapses[request.synapse_key]
         
         # Make local call.
-        xs = [opentensor.PyTorchSerializer.deserialize(x) for x in request.tensors]
-        ys = synapse.call_forward(xs)
-        ys_serialized = [opentensor.PyTorchSerializer.serialize(y) for y in ys]
+        x = opentensor.PyTorchSerializer.deserialize(request.tensors[0])
+        y = synapse.call_forward(x)
+        y_serialized = opentensor.PyTorchSerializer.serialize(y)
 
         response = opentensor_pb2.TensorMessage(
             version = opentensor.PROTOCOL_VERSION,
-            neuron_key = self._config.neuron_key.neuron_key(),
+            neuron_key = self._config.neuron_key,
             synapse_key = request.synapse_key,
-            tensors = output_tensors)
+            tensors = [y_serialized])
+        
         return response
 
-    async def Backward(self, request: opentensor_pb2.TensorMessage, context: grpc.ServicerContext):
+    def Backward(self, request: opentensor_pb2.TensorMessage, context: grpc.ServicerContext):
         # TODO (const): optionally check signature.
         # Return null response if the target does not exist.
         if request.synapse_key not in self._local_synapses:
@@ -79,13 +80,14 @@ class Axon(opentensor_grpc.OpentensorServicer):
         synapse = self._local_synapses[request.synapse_key]
         
         # Make local call.
-        xs_and_dys = [opentensor.PyTorchSerializer.deserialize(x) for x in request.tensors]
-        dxs = synapse.call_backward(xs_and_dys)
-        dxs_serialized = [opentensor.PyTorchSerializer.serialize(dx) for dx in dxs]
+        x = opentensor.PyTorchSerializer.deserialize(request.tensors[0])
+        dy = opentensor.PyTorchSerializer.deserialize(request.tensors[1])
+        dx = synapse.call_backward(x, dy)
+        dx_serialized = opentensor.PyTorchSerializer.serialize(dx)
 
         response = opentensor_pb2.TensorMessage(
             version = opentensor.PROTOCOL_VERSION,
-            neuron_key = self._config.neuron_key.neuron_key(),
+            neuron_key = self._config.neuron_key,
             synapse_key = request.synapse_key,
-            tensors = output_tensors)
+            tensors = [dx_serialized])
         return response

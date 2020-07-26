@@ -78,14 +78,14 @@ message Synapse {
 	// Synapse indefs describing the accepted tensor shapes.
 	// Tensors in TensorMessages are assumed to be packed in this order.
 	// SIZE: ~128 bits (16 bytes) * n
-	repeated TensorDef indef = 6;
+	TensorDef indef = 6;
 
 	// Synapse outdefs describing the returned tensor shapes.
 	// Tensors in TensorMessages are assumed to be packed in this order.
 	// NOTE: When passing in gradient in reverse, inputs and gradients are assumed to be packed: 
 	// [input_1, gradient_1, input_2, gradient_2, input_3 ... ]
 	// SIZE: ~128 bits (16 bytes) * n
-	repeated TensorDef outdef = 7;
+	TensorDef outdef = 7;
 
 	// Optional: Hash of block during message creation.
 	// Links the POW to a global-time protecting the cache from
@@ -236,15 +236,15 @@ message TensorDef {
 	// NOTE: The batch dimension is assumed here. 
 	// i.e. [256, 724] -> [-1, 256, 724]
 	// ~ 5 * int32 = 128 bits - (16 bytes)
-	repeated int64 shape = 3;
+	repeated int64 shape = 2;
     	
 	// dtype: the tensor datatype.
 	// int32 32-bits (4-bytes)
-	DataType dtype = 4;
+	DataType dtype = 3;
 
 	// Does this tensor require a gradient.
 	// 1 bit.
-	bool requires_grad = 5;
+	bool requires_grad = 4;
 }
 
 // dtype: the tensor datatype.

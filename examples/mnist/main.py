@@ -27,20 +27,20 @@ class Net(opentensor.Synapse):
     def indef(self):
         x_def = opentensor_pb2.TensorDef(
                     version = opentensor.PROTOCOL_VERSION,
-                    shape = [784],
+                    shape = [-1, 784],
                     dtype = opentensor_pb2.FLOAT32,
                     requires_grad = True,
                 )
-        return [x_def]
+        return x_def
     
     def outdef(self):
         y_def = opentensor_pb2.TensorDef(
                     version = opentensor.PROTOCOL_VERSION,
-                    shape = [10],
+                    shape = [-1, 10],
                     dtype = opentensor_pb2.FLOAT32,
                     requires_grad = True,
                 )
-        return [y_def]
+        return y_def
     
     def forward(self, x):
         x = x.view(-1, 1, 28, 28)
@@ -58,7 +58,7 @@ class Net(opentensor.Synapse):
 def main(hparams):
 
     # Training params.
-    batch_size_train = 64
+    batch_size_train = 2
     learning_rate = 0.01
     momentum = 0.5
     log_interval = 10
@@ -93,7 +93,7 @@ def main(hparams):
     neuron.start()
     
     # Build summary writer for tensorboard.
-    writer = SummaryWriter(log_dir='./runs/' + config.neuron_key.public_key())
+    writer = SummaryWriter(log_dir='./runs/' + config.neuron_key)
     
     # Build the optimizer.
     optimizer = optim.SGD(net.parameters(),
