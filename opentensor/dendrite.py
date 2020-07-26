@@ -73,7 +73,7 @@ class RemoteSynapse(nn.Module):
                 ('grpc.max_receive_message_length', -1)
             ])
         if self.stub is None:
-            self.stub = runtime_grpc.ConnectionHandlerStub(self.channel)
+            self.stub = opentensor_grpc.ConnectionHandlerStub(self.channel)
         return self.stub
 
     def __del__(self):
