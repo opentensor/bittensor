@@ -26,7 +26,8 @@ class Dendrite:
         
     def forward(self, synapses: List[opentensor_pb2.Synapse], x: List[List[torch.Tensor]]) -> List[List[torch.Tensor]]:
         """ forward tensor processes """
-        for idx, synapse in synapses:
+        results = []
+        for idx, synapse in enumerate(synapses):
             forward_inputs = x[ idx ]
             
             # Get or create remote_synapse.
@@ -51,30 +52,20 @@ class RemoteSynapse(nn.Module):
     """
     def __init__(self, synapse: opentensor_pb2.Synapse, config: opentensor.Config):
         super().__init__()
-        self.synapse = synapse        
+        self.synapse = synapse
+        self.local_neuron_key = config.neuron_key.public_key()       
         # Loop back if the synapse is local.
-        if synapse.address == config.address:
+        if synapse.address == config.remote_ip:
             self.endpoint = 'localhost:' + synapse.port
         self.endpoint = synapse.address + ':' + synapse.port
         # TODO(const): should accept defaults. config = opentensor.config_or_defaults(config) 
-        self.config = config
-        self.nounce = 0
-        self.channel, self.stub = None, None
-        
-    def set_signature_and_nounce(self, signature: bytes, nounce: int):
-        self.signature = signature
-        self.nounce = nounce
-
-    @property
-    def stub(self):
-        if self.channel is None:
-            self.channel = grpc.insecure_channel(self.endpoint, options=[
+        self.channel = grpc.insecure_channel(self.endpoint, options=[
                 ('grpc.max_send_message_length', -1),
-                ('grpc.max_receive_message_length', -1)
-            ])
-        if self.stub is None:
-            self.stub = opentensor_grpc.ConnectionHandlerStub(self.channel)
-        return self.stub
+                ('grpc.max_receive_message_length', -1)])
+        self.stub = opentensor_grpc.OpentensorStub(self.channel)        
+        # TODO(const): setter and getters for signature and nounce.
+        self.signature = None
+        self.nounce = None
 
     def __del__(self):
         if self.channel is not None:
@@ -112,7 +103,7 @@ class _RemoteModuleCall(torch.autograd.Function):
         # Build request for forward.
         request = opentensor_pb2.TensorMessage( 
                                                 version = opentensor.PROTOCOL_VERSION,
-                                                neuron_key = ctx.caller.config.neuron_key,
+                                                neuron_key = ctx.caller.local_neuron_key,
                                                 synapse_key = ctx.caller.synapse.synapse_key,
                                                 nounce = ctx.caller.nounce,
                                                 signature = ctx.caller.signature,
@@ -137,7 +128,7 @@ class _RemoteModuleCall(torch.autograd.Function):
         # Build request for forward.
         request = opentensor_pb2.TensorMessage( 
                                                 version = opentensor.PROTOCOL_VERSION,
-                                                neuron_key = ctx.caller.config.neuron_key,
+                                                neuron_key = ctx.caller.local_neuron_key,
                                                 synapse_key = ctx.caller.synapse.synapse_key,
                                                 nounce = ctx.caller.nounce,
                                                 signature = ctx.caller.signature,

@@ -57,24 +57,24 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
                    weights: List[float]):
         """ Set local scores for each passed node """
         for idx, synapse in enumerate(synapses):
-            self._weights[synapse.identity] = weights[idx]
+            self._weights[synapse.synapse_key] = weights[idx]
 
     def getweights(self, synapses: List[opentensor_pb2.Synapse]) -> List[float]:
         """ Get local weights for a list of synapses """
         result = []
         for ax in synapses:
-            if ax.identity not in self._weights:
+            if ax.synapse_key not in self._weights:
                 result.append(0.0)
             else:
-                result.append(self._weights[ax.identity])
+                result.append(self._weights[ax.synapse_key])
         return result
 
     def subscribe(self, synapse_proto: opentensor_pb2.Synapse):
         """ Adds a local node to the graph """
         # TODO (const) remove items.
         logger.info('subscribe', synapse_proto)
-        self._synapses[synapse_proto.identity] = synapse_proto
-        self._weights[synapse_proto.identity] = math.inf
+        self._synapses[synapse_proto.synapse_key] = synapse_proto
+        self._weights[synapse_proto.synapse_key] = math.inf
 
     def Gossip(self, request, context):
         self._sink(request)
@@ -89,10 +89,10 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
             del self._ToA[uid]
             
     def add(self, synapse: opentensor_pb2.Synapse):
-        self._synapses[synapse.identity] = synapse
-        if synapse.identity not in self._weights:
+        self._synapses[synapse.synapse_key] = synapse
+        if synapse.synapse_key not in self._weights:
             self._weights[synapse] = 0.0
-        self._ToA[synapse.identity] = time.time()
+        self._ToA[synapse.synapse_key] = time.time()
         
     def _clean(self):
         now = time.time()
