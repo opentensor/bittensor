@@ -58,7 +58,7 @@ class Net(opentensor.Synapse):
 def main(hparams):
 
     # Training params.
-    batch_size_train = 2
+    batch_size_train = 50
     learning_rate = 0.01
     momentum = 0.5
     log_interval = 10
@@ -119,6 +119,7 @@ def main(hparams):
 
             # Train.
             output = local + remote
+                        
             loss = F.nll_loss(output, target)
             loss.backward()
             optimizer.step()

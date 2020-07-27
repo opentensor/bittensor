@@ -78,11 +78,11 @@ class Axon(opentensor_grpc.OpentensorServicer):
         if request.synapse_key not in self._local_synapses:
             return opentensor_pb2.TensorMessage()
         synapse = self._local_synapses[request.synapse_key]
-        
+                
         # Make local call.
         x = opentensor.PyTorchSerializer.deserialize(request.tensors[0])
-        dy = opentensor.PyTorchSerializer.deserialize(request.tensors[1])
-        dx = synapse.call_backward(x, dy)
+        dy = opentensor.PyTorchSerializer.deserialize(request.tensors[1])        
+        dx = synapse.call_backward(x, dy)    
         dx_serialized = opentensor.PyTorchSerializer.serialize(dx)
 
         response = opentensor_pb2.TensorMessage(

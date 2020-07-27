@@ -49,7 +49,6 @@ class Neuron(nn.Module):
         Returns:
             [type]: List of torch.Tensor responses from Synapse service definitions.
         """
-        logger.info('forward {} {}', x, synapses)
         return self._dendrite.forward(synapses, x)
 
     def getweights(self, synapses: List[opentensor_pb2.Synapse]):

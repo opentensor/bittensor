@@ -29,9 +29,7 @@ class Dendrite:
         results = []
         for idx, synapse in enumerate(synapses):
             forward_inputs = x[ idx ]
-            
-            logger.info('den {} {}', forward_inputs, synapse)
-            
+                        
             # Get or create remote_synapse.
             remote_synapse = None
             if synapse.synapse_key in self._remotes:
@@ -43,7 +41,6 @@ class Dendrite:
                 
             # Call remote synapse.
             results.append(remote_synapse(forward_inputs))
-        print ('results {}', results)
         return results
     
 # NOTE: (const) This code has been ported from hivemind thanks to Yozh and Max.
@@ -64,7 +61,6 @@ class RemoteSynapse(nn.Module):
             self.endpoint = synapse.address + ':' + synapse.port
         # TODO(const): should accept defaults. config = opentensor.config_or_defaults(config) 
         
-        logger.info('endpoint {}', self.endpoint)
         self.channel = grpc.insecure_channel(self.endpoint, options=[
                 ('grpc.max_send_message_length', -1),
                 ('grpc.max_receive_message_length', -1)])
@@ -118,9 +114,7 @@ class _RemoteModuleCall(torch.autograd.Function):
                                             )
         
         # Make rpc call.
-        print ('dendrite -> {}', request)
         response = ctx.caller.stub.Forward(request)
-        print ('dendrite <- {}', response)
                 
         # Deserialize outputs and return.
         outputs = opentensor.PyTorchSerializer.deserialize(response.tensors[0])
@@ -129,7 +123,7 @@ class _RemoteModuleCall(torch.autograd.Function):
     @staticmethod
     @once_differentiable
     def backward(ctx, grads: torch.Tensor) -> Optional[torch.Tensor]:
-        
+            
         # Serialize inputs to bytes.
         serialized_grads = opentensor.PyTorchSerializer.serialize(grads)
         serialized_inputs = ctx.serialized_inputs
@@ -145,10 +139,11 @@ class _RemoteModuleCall(torch.autograd.Function):
                                             )
         
         # Attain backward response
+#        print ('dendrite ->', request)
         response = ctx.caller.stub.Backward(request)
 
         # Deserialize grad responses.
         deserialized_grad_inputs = opentensor.PyTorchSerializer.deserialize(response.tensors[0])
 
         # Return grads
-        return (None, DUMMY, None, deserialized_grad_inputs)
+        return (None, None, deserialized_grad_inputs)
