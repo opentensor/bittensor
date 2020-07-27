@@ -19,7 +19,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         trained weights to keep this set prunned.
     """
     def __init__(self, config: opentensor.Config):
-        # Opentensor identity
+        # Opentensor config
         self._config = config
         
         # Address-port string endpoints.
@@ -30,10 +30,10 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         # TODO(const) access mutex
         self._synapses = {}
         
-        # A map from synapse identity to a learned score.
+        # A map from synapse key to a learned score.
         self._weights = {}
         
-        # A map from synapse identity to time of addition.
+        # A map from synapse key to time of addition.
         self._ToA = {}
         self._ttl = 60 * 5 # 5 minutes.
 

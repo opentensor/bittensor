@@ -37,10 +37,13 @@ class Synapse(nn.Module):
         Apply a backward pass to the nn.module given grads and inputs.
         """
         with torch.enable_grad():
-            outputs = self.forward(inputs)
-            torch.autograd.backward(outputs, grad_tensors=grads, create_graph=False, retain_graph=False)
-            self.apply_gradients()
-        return None
+            pass
+            # TODO(const): fix this.
+            #outputs = self.forward(inputs)
+            #torch.autograd.backward(outputs, grad_tensors=grads, create_graph=False, retain_graph=False)
+            #self.apply_gradients()
+        #print ('return none')
+        return torch.zeros_like(inputs)
 
     def apply_gradients(self) -> None:
         """
