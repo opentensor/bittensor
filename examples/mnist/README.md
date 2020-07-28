@@ -1,4 +1,4 @@
-# Opentensor: Mnist Example
+# BitTensor: Mnist Example
 
 ## Run locally
 1. Install python
