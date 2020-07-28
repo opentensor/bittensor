@@ -35,7 +35,7 @@ class Config:
         
         # Fallback on common boot peer if otherwise not set.
         if self._hparams.bootstrap == None:
-            self.bootstrap = "165.227.216.95:8080"
+            self.bootstrap = ["165.227.216.95:8080"]
         else:
             self.bootstrap = self._hparams.bootstrap
           
@@ -62,16 +62,12 @@ class Config:
                         default=None,
                         type=str,
                         help="Axon terminal bind port")
-        parser.add_argument('--metagraph_port',
-                        default=None,
-                        type=str,
-                        help="Metagraph bind port.")
         parser.add_argument('--metagraph_size',
                             default=100000,
                             type=int,
                             help='Metagraph cache size.')
         parser.add_argument('--bootstrap',
-                            default=None,
+                            default=[],
                             type=str,
                             help='Metagraph bootpeer')
         parser.add_argument('--neuron_key',

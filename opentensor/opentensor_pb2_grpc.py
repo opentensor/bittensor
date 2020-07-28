@@ -114,8 +114,8 @@ class MetagraphStub(object):
         """
         self.Gossip = channel.unary_unary(
                 '/Metagraph/Gossip',
-                request_serializer=opentensor_dot_opentensor__pb2.SynapseBatch.SerializeToString,
-                response_deserializer=opentensor_dot_opentensor__pb2.SynapseBatch.FromString,
+                request_serializer=opentensor_dot_opentensor__pb2.GossipBatch.SerializeToString,
+                response_deserializer=opentensor_dot_opentensor__pb2.GossipBatch.FromString,
                 )
 
 
@@ -134,8 +134,8 @@ def add_MetagraphServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Gossip': grpc.unary_unary_rpc_method_handler(
                     servicer.Gossip,
-                    request_deserializer=opentensor_dot_opentensor__pb2.SynapseBatch.FromString,
-                    response_serializer=opentensor_dot_opentensor__pb2.SynapseBatch.SerializeToString,
+                    request_deserializer=opentensor_dot_opentensor__pb2.GossipBatch.FromString,
+                    response_serializer=opentensor_dot_opentensor__pb2.GossipBatch.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -159,7 +159,7 @@ class Metagraph(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/Metagraph/Gossip',
-            opentensor_dot_opentensor__pb2.SynapseBatch.SerializeToString,
-            opentensor_dot_opentensor__pb2.SynapseBatch.FromString,
+            opentensor_dot_opentensor__pb2.GossipBatch.SerializeToString,
+            opentensor_dot_opentensor__pb2.GossipBatch.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)

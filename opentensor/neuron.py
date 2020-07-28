@@ -101,13 +101,13 @@ class Neuron(nn.Module):
         """Starts background threads.
         """
         self._axon.start()
-        #self._metagraph.start()
+        self._metagraph.start()
 
     def stop(self):
         """Stops background threads.
         """
         self._axon.stop()
-        #self._metagraph.stop()
+        self._metagraph.stop()
 
     @property
     def neuron_key(self):

@@ -20,7 +20,7 @@ class Opentensor(proto_grpc.OpentensorServicer):
 
 
 def create_server():
-    address = "[::]:8888"
+    address = "[::]:8812"
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     opentensor = Opentensor()
     proto_grpc.add_OpentensorServicer_to_server(opentensor, server)
@@ -39,7 +39,7 @@ def test_client():
     server = create_server()
     server.start()
 
-    address = "localhost:8888"
+    address = "localhost:8812"
     channel = grpc.insecure_channel(address)
     stub = proto_grpc.OpentensorStub(channel)
 
