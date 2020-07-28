@@ -11,22 +11,19 @@ service Opentensor {
 
 // Service definition for a pow based cache for sharing opentensor synapses.
 service Metagraph {
-	rpc Gossip (SynapseBatch) returns (SynapseBatch) {}
+	rpc Gossip (GossipBatch) returns (GossipBatch) {}
 }
 
 // Batch of neuron service definitions.
-message SynapseBatch {
+message GossipBatch {
 	// SIZE: 32-bits (4-bytes)
 	float version = 1;
-	// Sender public_key
-	string neuron_key = 2;
-	// Public key signature. 
-	bytes signature = 3;
+	// List of metagraph peer addresses..
+	repeated string peers = 2;
 	// Synapse endpoint definitions.
 	// SIZE: 304-bytes * N
-	repeated Synapse synapses = 4;
+	repeated Synapse synapses = 3;
 }
-
 
 // "Synapse" or "Expert" endpoint definition.
 // Fully describes a tensor processing service definition for hivemind and opentensor.
@@ -131,9 +128,6 @@ message Synapse {
 	// signature = private_key.sign(digest) # to create.
 	// >>> source_key.verify(signature, digest) # to verify.
 	bytes signature = 11;
-
-	// TODO(const): remove this item
-	string m_port = 12;
 }	
 
 // TensorMessage

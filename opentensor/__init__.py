@@ -25,7 +25,7 @@ from opentensor.identity import Identity
 from opentensor.synapse import Synapse
 from opentensor.axon import Axon
 from opentensor.dendrite import Dendrite
-from opentensor.metagraph import Metagraph
+from opentensor.metagraph.metagraph import Metagraph
 from opentensor.utils.keys import Keys
 from opentensor.utils.gate import Gate
 from opentensor.utils.dispatcher import Dispatcher
