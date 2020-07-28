@@ -62,6 +62,10 @@ class Config:
                         default=None,
                         type=str,
                         help="Axon terminal bind port")
+        parser.add_argument('--metagraph_port',
+                        default=None,
+                        type=str,
+                        help='Metagraph bind port.')
         parser.add_argument('--metagraph_size',
                             default=100000,
                             type=int,

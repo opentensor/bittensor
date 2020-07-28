@@ -37,7 +37,7 @@ class Neuron(nn.Module):
             List[opentensor_pb2.Synapse]: List of opentensor_pb2.Synapses from the metagraph.
         """
         # TODO(const) should accept a query
-        return self._metagraph.get(1000)
+        return self._metagraph.get_synapses(1000)
 
     def forward(self, x: List[torch.Tensor], synapses: List[opentensor_pb2.Synapse]):
         """Makes a series of forward requests to synapses passing corresponding inputs.
