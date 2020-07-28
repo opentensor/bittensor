@@ -1,3 +1,4 @@
+opentensor
 argparse
 loguru
 numpy

@@ -10,10 +10,10 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 
-from opentensor import opentensor_pb2
+import bittensor
 import opentensor
 
-class Net(opentensor.Synapse):
+class Net(bittensor.Synapse):
     """ An opentensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
     """
     def __init__(self):
@@ -24,9 +24,10 @@ class Net(opentensor.Synapse):
         self.fc1 = nn.Linear(320, 50)
         self.fc2 = nn.Linear(50, 10)
         
+    # TODO(const): hide protos
     def indef(self):
-        x_def = opentensor_pb2.TensorDef(
-                    version = opentensor.PROTOCOL_VERSION,
+        x_def = opentensor.opentensor_pb2.TensorDef(
+                    version = opentensor.opentensor.PROTOCOL_VERSION,
                     shape = [-1, 784],
                     dtype = opentensor_pb2.FLOAT32,
                     requires_grad = True,
@@ -34,8 +35,8 @@ class Net(opentensor.Synapse):
         return x_def
     
     def outdef(self):
-        y_def = opentensor_pb2.TensorDef(
-                    version = opentensor.PROTOCOL_VERSION,
+        y_def = opentensor.opentensor_pb2.TensorDef(
+                    version = opentensor.opentensor.PROTOCOL_VERSION,
                     shape = [-1, 10],
                     dtype = opentensor_pb2.FLOAT32,
                     requires_grad = True,
@@ -75,13 +76,13 @@ def main(hparams):
 
     # Opentensor:
     # Load opentensor config from hparams.
-    config = opentensor.Config(hparams)
+    config = bittensor.Config(hparams)
     
     # Build the neuron from configs.
-    neuron = opentensor.Neuron(config)
+    neuron = bittensor.Neuron(config)
     
     # Init a trainable request router.
-    router = opentensor.Router(x_dim = 784, key_dim = 100, topk = 10)
+    router = bittensor.Router(x_dim = 784, key_dim = 100, topk = 10)
     
     # Build local network.
     net = Net()
@@ -154,6 +155,6 @@ def main(hparams):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    hparams = opentensor.Config.add_args(parser)
+    hparams = bittensor.Config.add_args(parser)
     hparams = parser.parse_args()
     main(hparams)

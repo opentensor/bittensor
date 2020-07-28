@@ -8,13 +8,13 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='opentensor',
-    version='0.0.2',
-    description='Opentensor',
+    name='bittensor',
+    version='0.0.0',
+    description='BitTensor',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/opentensor/opentensor',
-    author='opentensor.org',
+    url='https://github.com/opentensor/bittensor',
+    author='bittensor.com',
     author_email='',
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -31,5 +31,5 @@ setup(
         exclude=['data', 'contract', 'assets', 'scripts', 'docs']),
     python_requires='>=3.5',
     install_requires=[
-	'argparse', 'loguru', 'numpy', 'pycryptodome', 'grpcio', 'grpcio-tools', 'pytest', 'tensorboard', 'torch', 'pickle-mixin'],  # Optional
+	'opentensor', 'argparse', 'loguru', 'numpy', 'pycryptodome', 'grpcio', 'grpcio-tools', 'pytest', 'tensorboard', 'torch', 'pickle-mixin'],  # Optional
 )

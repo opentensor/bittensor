@@ -1,0 +1,11 @@
+argparse
+loguru
+numpy
+tensorflow
+fa2
+matplotlib
+tensorflow-datasets
+nltk
+sentencepiece
+timeloop
+pycryptodome
