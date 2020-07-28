@@ -19,13 +19,31 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         Args:
             config (opentensor.Config): An opentensor cache config object.
         """
+        # Internal state
+        self._peers = set()
+        self._synapses = {}
+        self._weights = {}
+        self._heartbeat = {}
+        
         # Opentensor config
         self._config = config
-        self._peers = set()
         if len(self._config.bootstrap) > 0:
             self._peers.add(self._config.bootstrap)
-        self._synapses = {}
-        self._heartbeat = {}
+  
+        # Init server objects.
+        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        opentensor_grpc.add_MetagraphServicer_to_server(self, self._server)
+        self._server.add_insecure_port('[::]:' + str(self._config.metagraph_port))
+        
+        # Update thread.
+        self._update_thread = None
+        self._server_thread = None
+        self._running = False
+        
+    def subscribe(self, synapse_proto: opentensor_pb2.Synapse):
+        self._synapses[synapse_proto.synapse_key] = synapse_proto
+        self._weights[synapse_proto.synapse_key] = math.inf
+        self._heartbeat[synapse_proto.synapse_key] = time.time()
         
     def get_synapses(self, n: int) -> List[opentensor_pb2.Synapse]:
         """ Returns min(n, len(synapses)) synapse from the graph sorted by score.
@@ -39,7 +57,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         synapse_list = list(self._synapses.values())
         min_n = min(len(synapse_list), n)
         return synapse_list[:min_n]
-
+    
     def get_peers(self, n: int) -> List[str]:
         """ Return min(n, len(peers)) peer endpoints from the active set.
 
@@ -60,7 +78,7 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
             request (opentensor_pb2.SynapseBatch): [description]
         """
         for peer in request.peers:
-            self.peers.add(peer)
+            self._peers.add(peer)
         for synapse in request.synapses:
             self._synapses[synapse.synapse_key] = synapse
             self._heatbeat[synapse.synapse_key] = time.time()      
@@ -108,8 +126,8 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         """ Internal update thread. Keeps the metagraph up to date. """
         try:
             while self._running:
-                self._do_gossip()
-                self._do_clean(60*60)
+                self.do_gossip()
+                self.do_clean(60*60)
                 time.sleep(10)
         except (KeyboardInterrupt, SystemExit):
             logger.info('stop metagraph')
@@ -150,3 +168,24 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
     @property
     def weights(self):
         return self._weights
+    
+    @property
+    def peers(self):
+        return self._peers
+        
+    def setweights(self, synapses: List[opentensor_pb2.Synapse],
+                   weights: List[float]):
+        """ Set local scores for each passed node """
+        for idx, synapse in enumerate(synapses):
+            self._weights[synapse.synapse_key] = weights[idx]
+
+    def getweights(self, synapses: List[opentensor_pb2.Synapse]) -> List[float]:
+        """ Get local weights for a list of synapses """
+        result = []
+        for syn in synapses:
+            if syn.synapse_key not in self._weights:
+                result.append(0.0)
+            else:
+                result.append(self._weights[syn.synapse_key])
+        return result
+    
