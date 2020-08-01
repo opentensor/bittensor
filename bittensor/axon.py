@@ -8,11 +8,13 @@ import torch
 
 from opentensor import opentensor_pb2_grpc as opentensor_grpc
 from opentensor import opentensor_pb2
+from opentensor.serializer import PyTorchSerializer
 import opentensor
+import bittensor
 
 class Axon(opentensor_grpc.OpentensorServicer):
     """ Processes Fwd and Bwd requests for a set of local Synapses """
-    def __init__(self, config: opentensor.Config):
+    def __init__(self, config: bittensor.Config):
         self._config = config
 
         # Init server objects.
@@ -47,7 +49,7 @@ class Axon(opentensor_grpc.OpentensorServicer):
         """ Stop the synapse terminal server """
         self._server.stop(0)
 
-    def subscribe(self, synapse_proto: opentensor_pb2.Synapse, synapse: opentensor.Synapse):
+    def subscribe(self, synapse_proto: opentensor_pb2.Synapse, synapse: bittensor.Synapse):
         """ Adds an Synapse to the serving set """
         self._local_synapses[synapse_proto.synapse_key] = synapse
         
@@ -60,9 +62,9 @@ class Axon(opentensor_grpc.OpentensorServicer):
         synapse = self._local_synapses[request.synapse_key]
         
         # Make local call.
-        x = opentensor.PyTorchSerializer.deserialize(request.tensors[0])
+        x = PyTorchSerializer.deserialize(request.tensors[0])
         y = synapse.call_forward(x)
-        y_serialized = opentensor.PyTorchSerializer.serialize(y)
+        y_serialized = PyTorchSerializer.serialize(y)
 
         response = opentensor_pb2.TensorMessage(
             version = opentensor.PROTOCOL_VERSION,
@@ -80,10 +82,10 @@ class Axon(opentensor_grpc.OpentensorServicer):
         synapse = self._local_synapses[request.synapse_key]
                 
         # Make local call.
-        x = opentensor.PyTorchSerializer.deserialize(request.tensors[0])
-        dy = opentensor.PyTorchSerializer.deserialize(request.tensors[1])        
+        x = PyTorchSerializer.deserialize(request.tensors[0])
+        dy = PyTorchSerializer.deserialize(request.tensors[1])        
         dx = synapse.call_backward(x, dy)    
-        dx_serialized = opentensor.PyTorchSerializer.serialize(dx)
+        dx_serialized = PyTorchSerializer.serialize(dx)
 
         response = opentensor_pb2.TensorMessage(
             version = opentensor.PROTOCOL_VERSION,

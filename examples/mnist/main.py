@@ -11,6 +11,7 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 
 import bittensor
+from opentensor import opentensor_pb2
 import opentensor
 
 class Net(bittensor.Synapse):
@@ -27,21 +28,21 @@ class Net(bittensor.Synapse):
     # TODO(const): hide protos
     def indef(self):
         x_def = opentensor.opentensor_pb2.TensorDef(
-                    version = opentensor.opentensor.PROTOCOL_VERSION,
+                    version = opentensor.PROTOCOL_VERSION,
                     shape = [-1, 784],
                     dtype = opentensor_pb2.FLOAT32,
                     requires_grad = True,
                 )
-        return x_def
+        return [x_def]
     
     def outdef(self):
         y_def = opentensor.opentensor_pb2.TensorDef(
-                    version = opentensor.opentensor.PROTOCOL_VERSION,
+                    version = opentensor.PROTOCOL_VERSION,
                     shape = [-1, 10],
                     dtype = opentensor_pb2.FLOAT32,
                     requires_grad = True,
                 )
-        return y_def
+        return [y_def]
     
     def forward(self, x):
         x = x.view(-1, 1, 28, 28)

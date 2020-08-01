@@ -4,6 +4,7 @@ import torch
 
 from opentensor import opentensor_pb2
 import opentensor
+import bittensor
 
 class Router ():
     def __init__(self, x_dim, key_dim, topk):
@@ -13,13 +14,13 @@ class Router ():
         
         # Keys object.
         # projects from/to opentensor_pb2.Synapse to a variable sized key tensor.
-        self.keymap = opentensor.Keys(self.key_dim)
+        self.keymap = bittensor.Keys(self.key_dim)
 
         # Trainable gating object.
-        self.gate = opentensor.Gate(self.x_dim, self.topk, self.key_dim)
+        self.gate = bittensor.Gate(self.x_dim, self.topk, self.key_dim)
 
         # Object for dispatching / combining gated inputs
-        self.dispatcher = opentensor.Dispatcher()
+        self.dispatcher = bittensor.Dispatcher()
         
     def route (self, inputs: torch.Tensor, synapses: List[opentensor_pb2.Synapse]) -> Tuple[List[torch.Tensor], torch.Tensor]:
         # Get synapses from the metagraph.

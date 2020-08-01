@@ -3,7 +3,7 @@ from typing import List, Tuple, Dict, Optional
 import torch
 import torch.nn as nn
 
-import opentensor
+from opentensor import opentensor_pb2
 import bittensor
     
 class Synapse(nn.Module):

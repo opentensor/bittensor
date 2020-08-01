@@ -18,13 +18,15 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from opentensor import opentensor_pb2
 from opentensor import opentensor_pb2_grpc as opentensor_grpc
 
+import bittensor
+
 # Import objects.
 from bittensor.config import Config
 from bittensor.identity import Identity
 from bittensor.synapse import Synapse
 from bittensor.axon import Axon
 from bittensor.dendrite import Dendrite
-from bitensor.metagraph import Metagraph
+from bittensor.metagraph import Metagraph
 from bittensor.utils.keys import Keys
 from bittensor.utils.gate import Gate
 from bittensor.utils.dispatcher import Dispatcher
