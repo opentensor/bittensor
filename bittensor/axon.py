@@ -6,20 +6,19 @@ import random
 import threading
 import torch
 
-from opentensor import opentensor_pb2_grpc as opentensor_grpc
-from opentensor import opentensor_pb2
-from opentensor.serializer import PyTorchSerializer
-import opentensor
+from bittensor import bittensor_pb2_grpc as bittensor_grpc
+from bittensor import bittensor_pb2
+from bittensor.serializer import PyTorchSerializer
 import bittensor
 
-class Axon(opentensor_grpc.OpentensorServicer):
+class Axon(bittensor_grpc.BittensorServicer):
     """ Processes Fwd and Bwd requests for a set of local Synapses """
     def __init__(self, config: bittensor.Config):
         self._config = config
 
         # Init server objects.
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        opentensor_grpc.add_OpentensorServicer_to_server(self, self._server)
+        bittensor_grpc.add_BittensorServicer_to_server(self, self._server)
         self._server.add_insecure_port('[::]:' + str(self._config.axon_port))
 
         # Local synapses
@@ -49,16 +48,16 @@ class Axon(opentensor_grpc.OpentensorServicer):
         """ Stop the synapse terminal server """
         self._server.stop(0)
 
-    def subscribe(self, synapse_proto: opentensor_pb2.Synapse, synapse: bittensor.Synapse):
+    def subscribe(self, synapse_proto: bittensor_pb2.Synapse, synapse: bittensor.Synapse):
         """ Adds an Synapse to the serving set """
         self._local_synapses[synapse_proto.synapse_key] = synapse
         
         
-    def Forward(self, request: opentensor_pb2.TensorMessage, context: grpc.ServicerContext):
+    def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext):
         # TODO (const): optionally check signature.
         # Return null response if the target does not exist.
         if request.synapse_key not in self._local_synapses:
-            return opentensor_pb2.TensorMessage()
+            return bittensor_pb2.TensorMessage()
         synapse = self._local_synapses[request.synapse_key]
         
         # Make local call.
@@ -66,19 +65,19 @@ class Axon(opentensor_grpc.OpentensorServicer):
         y = synapse.call_forward(x)
         y_serialized = PyTorchSerializer.serialize(y)
 
-        response = opentensor_pb2.TensorMessage(
-            version = opentensor.PROTOCOL_VERSION,
+        response = bittensor_pb2.TensorMessage(
+            version = bittensor.PROTOCOL_VERSION,
             neuron_key = self._config.neuron_key,
             synapse_key = request.synapse_key,
             tensors = [y_serialized])
         
         return response
 
-    def Backward(self, request: opentensor_pb2.TensorMessage, context: grpc.ServicerContext):
+    def Backward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext):
         # TODO (const): optionally check signature.
         # Return null response if the target does not exist.
         if request.synapse_key not in self._local_synapses:
-            return opentensor_pb2.TensorMessage()
+            return bittensor_pb2.TensorMessage()
         synapse = self._local_synapses[request.synapse_key]
                 
         # Make local call.
@@ -87,8 +86,8 @@ class Axon(opentensor_grpc.OpentensorServicer):
         dx = synapse.call_backward(x, dy)    
         dx_serialized = PyTorchSerializer.serialize(dx)
 
-        response = opentensor_pb2.TensorMessage(
-            version = opentensor.PROTOCOL_VERSION,
+        response = bittensor_pb2.TensorMessage(
+            version = bittensor.PROTOCOL_VERSION,
             neuron_key = self._config.neuron_key,
             synapse_key = request.synapse_key,
             tensors = [dx_serialized])

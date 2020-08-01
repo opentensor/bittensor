@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+from pkg_resources import parse_requirements
 from os import path
 from io import open
 
@@ -6,16 +7,27 @@ here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
+    
+with open('requirements.txt') as requirements_file:
+    install_requires = [str(requirement) for requirement in parse_requirements(requirements_file)]
+
+# loading version from setup.py
+with codecs.open(os.path.join(here, 'bittensor/__init__.py'), encoding='utf-8') as init_file:
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", init_file.read(), re.M)
+    version_string = version_match.group(1)
 
 setup(
     name='bittensor',
-    version='0.0.0',
+    version=version_string,
     description='BitTensor',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/opentensor/bittensor',
+    url='https://github.com/bittensor/bittensor',
     author='bittensor.com',
+    packages=['bittensor'],
     author_email='',
+    license='MIT',
+    install_requires=install_requires,
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
@@ -26,10 +38,12 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Topic :: Scientific/Engineering',
+        'Topic :: Scientific/Engineering :: Mathematics',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
+        'Topic :: Software Development',
+        'Topic :: Software Development :: Libraries',
+        'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    packages=find_packages(
-        exclude=['data', 'contract', 'assets', 'scripts', 'docs']),
     python_requires='>=3.5',
-    install_requires=[
-	'opentensor', 'argparse', 'loguru', 'numpy', 'pycryptodome', 'grpcio', 'grpcio-tools', 'pytest', 'tensorboard', 'torch', 'pickle-mixin'],  # Optional
 )

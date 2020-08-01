@@ -4,7 +4,7 @@ import os
 import numpy as np
 import torch
 
-from opentensor import opentensor_pb2
+from bittensor import bittensor_pb2
 
 
 def torch_to_bytes(key):
@@ -34,7 +34,7 @@ class Keys():
         self._key_for_synapse[synapse.synapse_key] = key
         self._synapse_for_key[torch_to_bytes(key)] = synapse
 
-    def toKeys(self, synapses: List[opentensor_pb2.Synapse]):
+    def toKeys(self, synapses: List[bittensor_pb2.Synapse]):
         torch_keys = []
         for synapse in synapses:
             if synapse.synapse_key not in self._key_for_synapse:

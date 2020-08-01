@@ -1,7 +1,7 @@
-from opentensor import opentensor_pb2_grpc as opentensor_grpc
-from opentensor import opentensor_pb2
-from opentensor.serializer import PyTorchSerializer
-import opentensor
+from bittensor import bittensor_pb2_grpc as bittensor_grpc
+from bittensor import bittensor_pb2
+from bittensor.serializer import PyTorchSerializer
+import bittensor
 import bittensor
 
 from loguru import logger
@@ -26,7 +26,7 @@ class Dendrite:
     def run(self):
         pass
         
-    def forward(self, synapses: List[opentensor_pb2.Synapse], x: List[torch.Tensor]) -> List[torch.Tensor]:
+    def forward(self, synapses: List[bittensor_pb2.Synapse], x: List[torch.Tensor]) -> List[torch.Tensor]:
         """ forward tensor processes """
         results = []
         for idx, synapse in enumerate(synapses):
@@ -47,12 +47,12 @@ class Dendrite:
     
 # NOTE: (const) This code has been ported from hivemind thanks to Yozh and Max.
 # Credit to them for designing this structure and api around torch. Here being ported to 
-# opentensor, and eventually should interact seemlessly with hivemind nodes as well.
+# bittensor, and eventually should interact seemlessly with hivemind nodes as well.
 # TODO (const): needs to check shapes/ input types/ other.
 class RemoteSynapse(nn.Module):
     """ Class which bundles a grpc connection to a remote host as a standard auto-grad torch.nn.Module.
     """
-    def __init__(self, synapse: opentensor_pb2.Synapse, config: bittensor.Config):
+    def __init__(self, synapse: bittensor_pb2.Synapse, config: bittensor.Config):
         super().__init__()
         self.synapse = synapse
         self.local_neuron_key = config.neuron_key       
@@ -61,12 +61,12 @@ class RemoteSynapse(nn.Module):
             self.endpoint = 'localhost:' + synapse.port
         else:
             self.endpoint = synapse.address + ':' + synapse.port
-        # TODO(const): should accept defaults. config = opentensor.config_or_defaults(config) 
+        # TODO(const): should accept defaults. config = bittensor.config_or_defaults(config) 
         
         self.channel = grpc.insecure_channel(self.endpoint, options=[
                 ('grpc.max_send_message_length', -1),
                 ('grpc.max_receive_message_length', -1)])
-        self.stub = opentensor_grpc.OpentensorStub(self.channel)        
+        self.stub = bittensor_grpc.BittensorStub(self.channel)        
         # TODO(const): setter and getters for signature and nounce.
         self.signature = None
         self.nounce = None
@@ -106,8 +106,8 @@ class _RemoteModuleCall(torch.autograd.Function):
         ctx.serialized_inputs = serialized_inputs
         
         # Build request for forward.
-        request = opentensor_pb2.TensorMessage( 
-                                                version = opentensor.PROTOCOL_VERSION,
+        request = bittensor_pb2.TensorMessage( 
+                                                version = bittensor.PROTOCOL_VERSION,
                                                 neuron_key = ctx.caller.local_neuron_key,
                                                 synapse_key = ctx.caller.synapse.synapse_key,
                                                 nounce = ctx.caller.nounce,
@@ -131,8 +131,8 @@ class _RemoteModuleCall(torch.autograd.Function):
         serialized_inputs = ctx.serialized_inputs
         
         # Build request for forward.
-        request = opentensor_pb2.TensorMessage( 
-                                                version = opentensor.PROTOCOL_VERSION,
+        request = bittensor_pb2.TensorMessage( 
+                                                version = bittensor.PROTOCOL_VERSION,
                                                 neuron_key = ctx.caller.local_neuron_key,
                                                 synapse_key = ctx.caller.synapse.synapse_key,
                                                 nounce = ctx.caller.nounce,
