@@ -5,7 +5,7 @@ import requests
 import random
 
 import bittensor
-from opentensor.crypto import Crypto
+from bittensor.crypto import Crypto
 
 class Config:
     

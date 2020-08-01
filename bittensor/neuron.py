@@ -5,8 +5,8 @@ import torch
 import torch.nn as nn 
 
 # Import protos.
-from opentensor import opentensor_pb2
-import opentensor
+from bittensor import bittensor_pb2
+import bittensor
 import bittensor
 
 class Neuron(nn.Module):
@@ -16,7 +16,7 @@ class Neuron(nn.Module):
         """Initializes a new background Neuron object.
 
         Args:
-            config (opentensor.Config): Config object containing information relevant to create a new neuron object.
+            config (bittensor.Config): Config object containing information relevant to create a new neuron object.
         """
         super().__init__()
         self._config = config
@@ -31,44 +31,44 @@ class Neuron(nn.Module):
         # Metagraph: maintains a cache of synapses on the network.
         self._metagraph = bittensor.Metagraph(config)
 
-    def synapses(self) -> List[opentensor_pb2.Synapse]:
+    def synapses(self) -> List[bittensor_pb2.Synapse]:
         """Returns an unordered list of Synapse objects.
 
         Returns:
-            List[opentensor_pb2.Synapse]: List of opentensor_pb2.Synapses from the metagraph.
+            List[bittensor_pb2.Synapse]: List of bittensor_pb2.Synapses from the metagraph.
         """
         # TODO(const) should accept a query
         return self._metagraph.get_synapses(1000)
 
-    def forward(self, x: List[torch.Tensor], synapses: List[opentensor_pb2.Synapse]):
+    def forward(self, x: List[torch.Tensor], synapses: List[bittensor_pb2.Synapse]):
         """Makes a series of forward requests to synapses passing corresponding inputs.
 
         Args:
             x (List[torch.Tensor]): List of torch.Tensor inputs for corresponding Synapses.
-            synapses (List[opentensor_pb2.Synapse]): List of Synapse objects.
+            synapses (List[bittensor_pb2.Synapse]): List of Synapse objects.
 
         Returns:
             [type]: List of torch.Tensor responses from Synapse service definitions.
         """
         return self._dendrite.forward(synapses, x)
 
-    def getweights(self, synapses: List[opentensor_pb2.Synapse]):
+    def getweights(self, synapses: List[bittensor_pb2.Synapse]):
         """Get the weights for list of Synapse endpoints.
 
         Args:
-            synapses (List[opentensor_pb2.Synapse]): Synapses to get weights for.
+            synapses (List[bittensor_pb2.Synapse]): Synapses to get weights for.
 
         Returns:
             [type]: Weights set for each synapse.
         """
         return torch.Tensor(self._metagraph.getweights(synapses))
 
-    def setweights(self, synapses: List[opentensor_pb2.Synapse],
+    def setweights(self, synapses: List[bittensor_pb2.Synapse],
                    weights: torch.Tensor):
         """Sets the weights for these synapses given equal length list of weights.
 
         Args:
-            synapses (List[opentensor_pb2.Synapse]): Synapses to set weights.
+            synapses (List[bittensor_pb2.Synapse]): Synapses to set weights.
             weights (torch.Tensor): Weights to set.
         """
         weights = weights.cpu().detach().numpy().tolist()
@@ -78,11 +78,11 @@ class Neuron(nn.Module):
         """Subscribes a synapse class object to the metagraph.
 
         Args:
-            module (opentensor.Synapse): opentensor.Synapse class object to subscribe.
+            module (bittensor.Synapse): bittensor.Synapse class object to subscribe.
         """
-        # Create a new opentensor_pb2.Synapse proto.
-        synapse_proto = opentensor_pb2.Synapse(
-            version = opentensor.PROTOCOL_VERSION,
+        # Create a new bittensor_pb2.Synapse proto.
+        synapse_proto = bittensor_pb2.Synapse(
+            version = bittensor.PROTOCOL_VERSION,
             neuron_key = self._config.neuron_key,
             synapse_key = synapse.synapse_key(),
             address = self._config.remote_ip,

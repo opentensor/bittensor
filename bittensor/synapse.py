@@ -3,7 +3,7 @@ from typing import List, Tuple, Dict, Optional
 import torch
 import torch.nn as nn
 
-from opentensor import opentensor_pb2
+from bittensor import bittensor_pb2
 import bittensor
     
 class Synapse(nn.Module):
@@ -13,10 +13,10 @@ class Synapse(nn.Module):
         super().__init__()
         self._synapse_key = bittensor.Identity().public_key()
         
-    def indef(self) -> opentensor_pb2.TensorDef:
+    def indef(self) -> bittensor_pb2.TensorDef:
         raise NotImplementedError
     
-    def outdef(self) -> opentensor_pb2.TensorDef:
+    def outdef(self) -> bittensor_pb2.TensorDef:
         return NotImplementedError  
     
     def synapse_key(self) -> str:

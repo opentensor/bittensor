@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
-class TransformerModel(opentensor.Synapse):
+class TransformerModel(bittensor.Synapse):
 
     def __init__(self, ntoken, ninp, nhead, nhid, nlayers, dropout=0.5):
         super(TransformerModel, self).__init__()

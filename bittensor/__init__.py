@@ -14,12 +14,6 @@ from torch.utils.tensorboard import SummaryWriter
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import protos.
-from opentensor import opentensor_pb2
-from opentensor import opentensor_pb2_grpc as opentensor_grpc
-
-import bittensor
-
 # Import objects.
 from bittensor.config import Config
 from bittensor.identity import Identity

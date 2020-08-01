@@ -1,0 +1,266 @@
+syntax = "proto3";
+
+// Service definition for tensor processing servers.
+service Bittensor {
+	// Forward tensor request. 
+	rpc Forward (TensorMessage) returns (TensorMessage) {}
+	
+	// Backward tensor request i.e. gradient.
+	rpc Backward (TensorMessage) returns (TensorMessage) {}
+}
+
+// Service definition for a pow based cache for sharing bittensor synapses.
+service Metagraph {
+	rpc Gossip (GossipBatch) returns (GossipBatch) {}
+}
+
+// Batch of neuron service definitions.
+message GossipBatch {
+	// SIZE: 32-bits (4-bytes)
+	float version = 1;
+	// List of metagraph peer addresses..
+	repeated string peers = 2;
+	// Synapse endpoint definitions.
+	// SIZE: 304-bytes * N
+	repeated Synapse synapses = 3;
+}
+
+// "Synapse" or "Expert" endpoint definition.
+// Fully describes a tensor processing service for hivemind and bittensor.
+// SIZE: (256 * 4) + (512 * 2) + (128 * 3) = 2432-bits (304 bytes)
+// NOTE: only the (address, port, identity) need to be stored in RAM.
+// (address, port, identity) = (128 + 32 + 256) = 412 (52 bytes)
+// Holding 20,000,000 endpoints in 1-GB of RAM and 6-GB of Disk.
+message Synapse {
+	// Version: [REQUIRED] Strictly increasing protocol version identifier.
+	// Indentifies protocol version for backward compatibility.
+	// i.e. 1.0
+	// SIZE: 32 bits (4-bytes)
+	float version = 1;
+	
+	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key.
+	// Links this synapse definition to the containing neuron-account.
+	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
+	// SIZE: 256-bits (32-bytes)
+	// $ python 
+	// >> from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+	// >> from cryptography.hazmat.primitives import serialization
+	// >> private = Ed25519PrivateKey.generate()
+	// >> public = private.public_key()
+	// neuron_key = '0x%s' % public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
+	string neuron_key = 2;
+
+	// Synapse key: [REQUIRED] Ed25519 public key raw hex encoded public key.
+	// Uniquely identifies this synapse.
+	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
+	// SIZE: 256-bits (32-bytes)
+	// $ python 
+	// >> from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey 
+	// >> from cryptography.hazmat.primitives import serialization
+	// >> private = Ed25519PrivateKey.generate()
+	// >> public = private.public_key()
+	// synapse_key = '0x%s' % public.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
+	string synapse_key = 3;
+	
+	// Address: [REQUIRED] Synapse ip address. 
+  	// i.e. '0.0.0.0' or [2001:0db8:85a3:0000:0000:8a2e:0370:7334]
+	// SIZE: < 128-bits (16-bytes)
+	string address = 4;
+	
+	// Port: [REQUIRED] Synapse endpoint listening port.
+  	// i.e. '8081'
+	// SIZE: 32-bits (4-bytes)
+	string port = 5;
+  
+	// Indef: [REQUIRED] Describes acceptable service tensor input definition
+	// Passed TensorMessages must obey this schema. 
+	// i.e [{version=1, shape=[24,24], dtype=FLOAT32, requires_grad=1}]
+	// Note: Tensors in TensorMessages are assumed to be packed in this order.
+	// SIZE: ~128 bits (16 bytes) * N 
+	repeated TensorDef indef = 6;
+
+	// Outdef: [REQUIRED] Describes the returned TensorMessage schema for this service.
+	// Returned TensorMessages should obey this schema. 
+	// i.e [{version=1, shape=[24,24], dtype=FLOAT32, requires_grad=1}]
+	// NOTE: Tensors in TensorMessages are assumed to be packed in this order.
+	// NOTE: Backward TensorMessage inputs and gradients are assumed to be packed: 
+	// [input_1, input_2, ..., gradient_1, gradient_2 ... ]
+	// SIZE: (28 bytes) * N 
+	repeated TensorDef outdef = 7;
+
+	// Block hash: [OPTIONAL] hash of latest chain block service definition creation.
+	// Links the bellow POW to a global-time protecting the cache from
+	// long range POW attacks. Allows services to gossip synpase definitions that 
+	// are globally 'new'.
+	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d
+	// 784c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
+	// NOTE: hashes are likely to change from bitcoin to bittensor.
+	// SIZE: 512-bits (64-bytes)
+	// $ python
+	// >> import requests
+	// >> last_block_hash = requests.get('https://blockchain.info/latestblock').json()['hash']
+	// >> height_now = requests.get('https://blockchain.info/rawblock/$last_block_hash').json()['height']
+	// >> height_of_msg = requests.get('https://blockchain.info/rawblock/$msg.block_hash').json()['height']
+	// >> work_by_time = difficulty(msg.proof_of_work) / (height_now - height_of_msg) 
+	string block_hash = 8;
+
+	// Nounce: [OPTIONAL] incrementing nounce.
+	// Used to generate unique proof of work hashes.
+	// i.e. 12
+	// SIZE: 32-bits (4-bytes)
+	int32 nounce = 9;
+
+	// Proof of work: [OPTIONAL] Work hash which ensures service definition creation 
+	// was computationally expensive. Protects the network cache from flooding attacks.
+	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
+	// SIZE: 256-bits (32-bytes)
+	// >>> from cryptography.hazmat.backends import default_backend
+	// >>> from cryptography.hazmat.primitives import hashes
+	// >>> nounce = 0
+	// >>> do {
+	// >>> 	 nounce += 1
+	// >>> 	 digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+	// >>> 	 digest.update(neuron_key.encode('utf-8'))
+	// >>> 	 digest.update(synapse_key.encode('utf-8'))
+  	// >>> 	 digest.update(address.encode('utf-8'))
+  	// >>> 	 digest.update(port.encode('utf-8))
+  	// >>> 	 digest.update(indef.SerializeToString().encode('utf-8))
+	// >>> 	 digest.update(oudef.SerializeToString().encode('utf-8))
+	// >>> 	 digest.update(block_hash.encode('utf-8'))
+	// >>> 	 digest.update(bytes(nounce))
+	// >>> 	 digest = digest.finalize()
+	// >>> while( count_zeros(digest) < difficulty )
+	// >>> proof_of_work = digest
+	bytes proof_of_work = 10;
+  
+	// Signature: [OPTIONAL] ed25519 public_key signature for this synapse definition.
+	// Ensures that the connected neuron_key signed this proto.
+	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d931561484
+	// 29d784c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
+	// SIZE: 512-bits (64-bytes)
+  	// $ python
+	// signature = private_key.sign(digest) # to create.
+	// >>> source_key.verify(signature, digest) # to verify.
+	bytes signature = 11;
+}	
+
+// TensorMessage
+// Contains a payload of 1 or more serialized tensors and their definitions.
+// Also contains information to identity and verify the sender. 
+// Protocol for bittensor-hivemind message passing.
+// SIZE: 136 bytes + (tensor_size)
+message TensorMessage {
+	// Version: [REQUIRED] Strictly increasing protocol version identifier.
+	// Indentifies protocol version for backward compatibility.
+	// i.e. 1.0
+	// SIZE: 32 bits (4-bytes)
+	float version = 1;
+
+	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key.
+	// Links message to calling neuron-account.
+	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
+	// SIZE: 256-bits (32-bytes)
+	string neuron_key = 2;
+
+	// Synapse key: [REQUIRED] Ed25519 public key raw hex encoded public key.
+	// Uniquely identifies the recieving synapse, used to determine which synapse to query 
+	// behind the endpoint.
+	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
+	// SIZE: 256-bits (32-bytes)
+	string synapse_key = 3;
+
+	// Nounce: [OPTIONAL] Incrementing nounce to identify message ordering.
+	// Used ensure with signature to protect against spoofing attacks.
+	// i.e. nounce = nounce + 1 
+	// SIZE: 32-bits (4-bytes)
+	int64 nounce = 4;
+
+	// Signature: [OPTIONAL] Digital signature linking the nounce, neuron_key and synapse_key.
+	// Prevents spoofing attacks where an adversary sends messages as other peers.
+	// NOTE: this field does not link the signature to the tensor inputs. New signatures do not need
+	// to be generated for each message and can be periodically created with a new incrementing nounce.
+	// Endpoints ensure that that signature is correct and that nounce is incrementing.
+	// $ python
+	// >>> from cryptography.hazmat.backends import default_backend
+	// >>> from cryptography.hazmat.primitives import hashes
+	// >>> digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
+	// >>> digest.update(neuron_key.encode('utf-8'))
+	// >>> digest.update(synapse_key.encode('utf-8'))
+	// >>> digest.update(bytes(nounce))
+	// >>> digest = digest.finalize()
+	// signature = private_key.sign(digest) # to create.
+	// >>> assert (nounce >= last_nounce) and neuron_key.verify(signature, digest) # to verify.
+	bytes signature = 5;
+
+	// Tensors: [REQUIRED] 1 or more tensors passed on the wire.
+	// SIZE: variable.
+	// NOTE: These tensors should be packed in the same order as that described in the synapse.tensor_def
+	// NOTE: During backward calls the tensors should be ordered [input_1, input_2, ... grad_1, grad_2, ...] 
+	repeated Tensor tensors = 6;
+}
+
+// A serialized tensor object created using the serializer class.
+// SIZE: 32 bytes + variable buffer size.
+message Tensor {
+	// Version: [REQUIRED] Strictly increasing protocol version identifier.
+	// Indentifies protocol version for backward compatibility.
+	// i.e. 1.0
+	// SIZE: 32 bits (4-bytes)
+	float version = 1;
+
+	// Buffer: [REQUIRED] Serialized raw tensor content. This representation
+  	// can be used for all tensor types. The purpose of this representation is to
+  	// reduce serialization overhead during RPC calls by avoiding serialization of
+  	// many repeated small items. In other words, we just copy the bytes and let
+	// the application layer serialize and deserialize the bytes. 
+  	// e.g.
+	// 1. PyTorchSerialzier.serialize(torch.Tensor) --> bittensor_pb2.Tensor
+	// 2. PyTorchSerializer.deserialize(bittensor_pb2.Tensor) --> torch.Tensor    	
+	// SIZE: variable
+	bytes buffer = 2;
+
+	// Tensor Def: [REQUIRED] Describes the tensor buffer contents.
+	// i.e {version=1, shape=[24,24], dtype=FLOAT32, requires_grad=1}
+	// SIZE: (28 bytes)
+	TensorDef tensor_def = 3;
+}
+
+
+// Description used to define input and output schemas, 
+// as well as to deserialize passed tensors buffers.
+// SIZE: ~ 28 bytes.
+message TensorDef {		
+	// Version: [REQUIRED] Strictly increasing protocol version identifier.
+	// Indentifies protocol version for backward compatibility.
+	// i.e. 1.0
+	// SIZE: 32 bits (4-bytes)
+	float version = 1;
+	
+	// Shape: [REQUIRED] Shape of this tensor.
+	// NOTE: Variable dimensions (i.e. batch) are non-explicit here as -1.
+	// When a tensor def is used in a synapse service definition.
+	// However for passed tensors, every dimension must be explicit. 
+	// i.e. in Synapse Def: [-1, 256, 23]
+	// i.e in TensorMessage: [50, 256, 23]
+	// ~ 5 * int32 = 128 bits - (16 bytes)
+	repeated int64 shape = 2;
+    	
+	// Dtype: [REQUIRED] The tensor datatype.
+	// Used for serialization deserialization.
+	// int32 32-bits (4-bytes)
+	DataType dtype = 3;
+
+	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
+	// 1 bit.
+	bool requires_grad = 4;
+}
+
+// Dtype: the tensor datatype.
+// int32 32-bits (4-bytes)
+enum DataType {
+	UNKNOWN = 0;
+	FLOAT32 = 1;
+	FLOAT64 = 2;
+	INT32 = 3;
+	INT64 = 4;
+}

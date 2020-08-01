@@ -1,5 +1,5 @@
-from opentensor import opentensor_pb2
-import opentensor
+from bittensor import bittensor_pb2
+import bittensor
 
 import os, sys
 import argparse
@@ -13,27 +13,27 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from transformer import TransformerModel
 from dataset import Dataset
 
-class TransformerSynapse(opentensor.Synapse):
-    """ An opentensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
+class TransformerSynapse(bittensor.Synapse):
+    """ An bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
     """
     def __init__(self, transformer):
         super(Net, self).__init__()
         self.transformer = transformer
         
     def indef(self):
-        x_def = opentensor_pb2.TensorDef(
-                    version = opentensor.PROTOCOL_VERSION,
+        x_def = bittensor_pb2.TensorDef(
+                    version = bittensor.PROTOCOL_VERSION,
                     shape = [-1, 784],
-                    dtype = opentensor_pb2.FLOAT32,
+                    dtype = bittensor_pb2.FLOAT32,
                     requires_grad = True,
                 )
         return x_def
     
     def outdef(self):
-        y_def = opentensor_pb2.TensorDef(
-                    version = opentensor.PROTOCOL_VERSION,
+        y_def = bittensor_pb2.TensorDef(
+                    version = bittensor.PROTOCOL_VERSION,
                     shape = [-1, 10],
-                    dtype = opentensor_pb2.FLOAT32,
+                    dtype = bittensor_pb2.FLOAT32,
                     requires_grad = True,
                 )
         return y_def
@@ -70,15 +70,15 @@ def main(hparams):
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
 
-    # Opentensor:
-    # Load opentensor config from hparams.
-    config = opentensor.Config(hparams)
+    # bittensor:
+    # Load bittensor config from hparams.
+    config = bittensor.Config(hparams)
     
     # Build the neuron from configs.
-    neuron = opentensor.Neuron(config)
+    neuron = bittensor.Neuron(config)
     
     # Init a trainable request router.
-    router = opentensor.Router(x_dim = 784, key_dim = 100, topk = 10)
+    router = bittensor.Router(x_dim = 784, key_dim = 100, topk = 10)
     
     # Build local network.
     net = Net()
@@ -121,7 +121,7 @@ def main(hparams):
 
             # Get nodes from metagraph.
             # and map nodes to torch keys.
-            axons = neuron.axons()  # List[opentensor_pb2.Node]))
+            axons = neuron.axons()  # List[bittensor_pb2.Node]))
             keys = keymap.toKeys(axons)  # (-1, key_dim)
 
             # Learning a map from the gate_inputs to keys
@@ -139,7 +139,7 @@ def main(hparams):
 
             # Query the network by mapping from keys to node endpoints.
             # results = list[torch.Tensor], len(results) = len(keys)
-            axons = keymap.toAxons(keys)  # List[opentensor_pb2.Node]
+            axons = keymap.toAxons(keys)  # List[bittensor_pb2.Node]
             query = neuron(dispatch, axons)  # List[(-1, embedding_size)]
 
             # Join results using gates to combine inputs.
@@ -160,7 +160,7 @@ def main(hparams):
             torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
             optimizer.step()
 
-            # Update opentensor weights
+            # Update bittensor weights
             weights = neuron.getweights(axons)
             weights = (0.95) * weights + (0.05) * torch.mean(gates, dim=0)
             neuron.setweights(axons, weights)

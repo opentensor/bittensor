@@ -2,8 +2,8 @@ from typing import List, Tuple
 
 import torch
 
-from opentensor import opentensor_pb2
-import opentensor
+from bittensor import bittensor_pb2
+import bittensor
 import bittensor
 
 class Router ():
@@ -13,7 +13,7 @@ class Router ():
         self.topk = topk
         
         # Keys object.
-        # projects from/to opentensor_pb2.Synapse to a variable sized key tensor.
+        # projects from/to bittensor_pb2.Synapse to a variable sized key tensor.
         self.keymap = bittensor.Keys(self.key_dim)
 
         # Trainable gating object.
@@ -22,7 +22,7 @@ class Router ():
         # Object for dispatching / combining gated inputs
         self.dispatcher = bittensor.Dispatcher()
         
-    def route (self, inputs: torch.Tensor, synapses: List[opentensor_pb2.Synapse]) -> Tuple[List[torch.Tensor], torch.Tensor]:
+    def route (self, inputs: torch.Tensor, synapses: List[bittensor_pb2.Synapse]) -> Tuple[List[torch.Tensor], torch.Tensor]:
         # Get synapses from the metagraph.
         # and map synapses to torch keys.
         keys = self.keymap.toKeys(synapses)  # (n_keys, key_dim)

@@ -1,5 +1,5 @@
 # Bittensor 
-[![Build status](https://circleci.com/gh/opentensor/bittensor.svg?style=shield)](https://circleci.com/gh/opentensor/bittensor)
+[![Build status](https://circleci.com/gh/bittensor/bittensor.svg?style=shield)](https://circleci.com/gh/bittensor/bittensor)
 
 ## Testing locally
 ```

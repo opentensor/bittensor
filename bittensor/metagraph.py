@@ -8,17 +8,17 @@ import random
 import threading
 import time
 
-from opentensor import opentensor_pb2
-from opentensor import opentensor_pb2_grpc as opentensor_grpc
-import opentensor
+from bittensor import bittensor_pb2
+from bittensor import bittensor_pb2_grpc as bittensor_grpc
+import bittensor
 
 import bittensor
 
-class Metagraph(opentensor_grpc.MetagraphServicer):
+class Metagraph(bittensor_grpc.MetagraphServicer):
     def __init__(self, config: bittensor.Config):
         """Initializes a new Metagraph POW-cache object.
         Args:
-            config (opentensor.Config): An opentensor cache config object.
+            config (bittensor.Config): An bittensor cache config object.
         """
         # Internal state
         self._peers = set()
@@ -26,14 +26,14 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         self._weights = {}
         self._heartbeat = {}
         
-        # Opentensor config
+        # bittensor config
         self._config = config
         if len(self._config.bootstrap) > 0:
             self._peers.add(self._config.bootstrap)
   
         # Init server objects.
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        opentensor_grpc.add_MetagraphServicer_to_server(self, self._server)
+        bittensor_grpc.add_MetagraphServicer_to_server(self, self._server)
         self._server.add_insecure_port('[::]:' + str(self._config.metagraph_port))
         
         # Update thread.
@@ -41,18 +41,18 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         self._server_thread = None
         self._running = False
         
-    def subscribe(self, synapse_proto: opentensor_pb2.Synapse):
+    def subscribe(self, synapse_proto: bittensor_pb2.Synapse):
         self._synapses[synapse_proto.synapse_key] = synapse_proto
         self._weights[synapse_proto.synapse_key] = math.inf
         self._heartbeat[synapse_proto.synapse_key] = time.time()
         
-    def get_synapses(self, n: int) -> List[opentensor_pb2.Synapse]:
+    def get_synapses(self, n: int) -> List[bittensor_pb2.Synapse]:
         """ Returns min(n, len(synapses)) synapse from the graph sorted by score.
         Args:
             n (int): min(n, len(synapses)) synapses to return.
 
         Returns:
-            List[opentensor_pb2.Synapse]: List of synapse endpoints.
+            List[bittensor_pb2.Synapse]: List of synapse endpoints.
         """
         # TODO (const) sort synapse array
         synapse_list = list(self._synapses.values())
@@ -72,11 +72,11 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         min_n = min(len(peer_list), n)
         return peer_list[:min_n]
     
-    def _sink(self, request: opentensor_pb2.GossipBatch):
+    def _sink(self, request: bittensor_pb2.GossipBatch):
         """Sinks a gossip request to the metagraph.
 
         Args:
-            request (opentensor_pb2.SynapseBatch): [description]
+            request (bittensor_pb2.SynapseBatch): [description]
         """
         for peer in request.peers:
             self._peers.add(peer)
@@ -84,11 +84,11 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
             self._synapses[synapse.synapse_key] = synapse
             self._heatbeat[synapse.synapse_key] = time.time()      
 
-    def Gossip(self, request: opentensor_pb2.GossipBatch, context):
+    def Gossip(self, request: bittensor_pb2.GossipBatch, context):
         synapses = self._get_synapses(1000)
         peers = self._get_peers(10)
         self._sink(request)
-        response = opentensor_pb2.GossipBatch(peer=peers, synapses=synapses)
+        response = bittensor_pb2.GossipBatch(peer=peers, synapses=synapses)
         return response
     
     def do_gossip(self):
@@ -102,10 +102,10 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
         if metagraph_address.split(':')[0] == self._config.remote_ip:
             realized_address = 'localhost:' + str(metagraph_address.split(":")[1])
         try:
-            version = opentensor.PROTOCOL_VERSION
+            version = bittensor.PROTOCOL_VERSION
             channel = grpc.insecure_channel(realized_address)
-            stub = opentensor_grpc.MetagraphStub(channel)
-            request = opentensor_pb2.GossipBatch(peers=peers, synapses=batch)
+            stub = bittensor_grpc.MetagraphStub(channel)
+            request = bittensor_pb2.GossipBatch(peers=peers, synapses=batch)
             response = stub.Gossip(request)
             self._sink(response)
         except:
@@ -174,13 +174,13 @@ class Metagraph(opentensor_grpc.MetagraphServicer):
     def peers(self):
         return self._peers
         
-    def setweights(self, synapses: List[opentensor_pb2.Synapse],
+    def setweights(self, synapses: List[bittensor_pb2.Synapse],
                    weights: List[float]):
         """ Set local scores for each passed node """
         for idx, synapse in enumerate(synapses):
             self._weights[synapse.synapse_key] = weights[idx]
 
-    def getweights(self, synapses: List[opentensor_pb2.Synapse]) -> List[float]:
+    def getweights(self, synapses: List[bittensor_pb2.Synapse]) -> List[float]:
         """ Get local weights for a list of synapses """
         result = []
         for syn in synapses:

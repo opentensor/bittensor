@@ -11,11 +11,11 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 
 import bittensor
-from opentensor import opentensor_pb2
-import opentensor
+from bittensor import bittensor_pb2
+import bittensor
 
 class Net(bittensor.Synapse):
-    """ An opentensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
+    """ An bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
     """
     def __init__(self):
         super(Net, self).__init__()
@@ -27,19 +27,19 @@ class Net(bittensor.Synapse):
         
     # TODO(const): hide protos
     def indef(self):
-        x_def = opentensor.opentensor_pb2.TensorDef(
-                    version = opentensor.PROTOCOL_VERSION,
+        x_def = bittensor.bittensor_pb2.TensorDef(
+                    version = bittensor.PROTOCOL_VERSION,
                     shape = [-1, 784],
-                    dtype = opentensor_pb2.FLOAT32,
+                    dtype = bittensor_pb2.FLOAT32,
                     requires_grad = True,
                 )
         return [x_def]
     
     def outdef(self):
-        y_def = opentensor.opentensor_pb2.TensorDef(
-                    version = opentensor.PROTOCOL_VERSION,
+        y_def = bittensor.bittensor_pb2.TensorDef(
+                    version = bittensor.PROTOCOL_VERSION,
                     shape = [-1, 10],
-                    dtype = opentensor_pb2.FLOAT32,
+                    dtype = bittensor_pb2.FLOAT32,
                     requires_grad = True,
                 )
         return [y_def]
@@ -75,8 +75,8 @@ def main(hparams):
                                                batch_size=batch_size_train,
                                                shuffle=True)
 
-    # Opentensor:
-    # Load opentensor config from hparams.
+    # bittensor:
+    # Load bittensor config from hparams.
     config = bittensor.Config(hparams)
     
     # Build the neuron from configs.

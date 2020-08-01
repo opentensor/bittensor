@@ -27,16 +27,16 @@ python examples/mnist/main.py --bootstrap='0.0.0.0:8120'
 $ TOKEN=(your api token)
 
 # Create a remote instance.
-$ docker-machine create --driver digitalocean --digitalocean-size s-4vcpu-8gb --digitalocean-access-token ${TOKEN} opentensor
+$ docker-machine create --driver digitalocean --digitalocean-size s-4vcpu-8gb --digitalocean-access-token ${TOKEN} bittensor
 
 # Run install 1.
-$ eval $(docker-machine env opentensor)
+$ eval $(docker-machine env bittensor)
 
 # Build the image.
-$ docker build -t opentensor .
+$ docker build -t bittensor .
 
 # Run the neuron.
-$ docker run -it -p 8888:8888 opentensor examples/mnist/main.py --port = 8765 --remoteip = ipaddress1
+$ docker run -it -p 8888:8888 bittensor examples/mnist/main.py --port = 8765 --remoteip = ipaddress1
 
 
 
