@@ -8,14 +8,8 @@ jobs:
       - run: sudo pip install pytest
       - python/save-cache
       - run:
-          command: ./scripts/build_protos.sh 
-          name: build
-      - run:
           command: sudo python setup.py develop
           name: setup
-      - run:
-          command: pytest ./tests --full-trace
-          name: test
 orbs:
   python: circleci/python@0.1
 version: 2.1
