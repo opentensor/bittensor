@@ -20,6 +20,9 @@ jobs:
       - run:
           command: sudo python setup.py develop
           name: setup
+      - run:
+          command: pytest ./tests --full-trace
+          name: test
 orbs:
   python: circleci/python@0.1
 version: 2.1
