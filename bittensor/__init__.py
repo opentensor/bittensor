@@ -16,7 +16,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import objects.
 from bittensor.config import Config
-from bittensor.identity import Identity
+from bittensor.crypto import Crypto
+from bittensor.serializer import PyTorchSerializer
 from bittensor.synapse import Synapse
 from bittensor.axon import Axon
 from bittensor.dendrite import Dendrite
@@ -27,4 +28,4 @@ from bittensor.utils.dispatcher import Dispatcher
 from bittensor.utils.router import Router
 from bittensor.neuron import Neuron
 
-PROTOCOL_VERSION = 1.0
+__version__ = '0.0.0'

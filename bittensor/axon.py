@@ -66,7 +66,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         y_serialized = PyTorchSerializer.serialize(y)
 
         response = bittensor_pb2.TensorMessage(
-            version = bittensor.PROTOCOL_VERSION,
+            version = bittensor.__version__,
             neuron_key = self._config.neuron_key,
             synapse_key = request.synapse_key,
             tensors = [y_serialized])
@@ -87,7 +87,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         dx_serialized = PyTorchSerializer.serialize(dx)
 
         response = bittensor_pb2.TensorMessage(
-            version = bittensor.PROTOCOL_VERSION,
+            version = bittensor.__version__,
             neuron_key = self._config.neuron_key,
             synapse_key = request.synapse_key,
             tensors = [dx_serialized])

@@ -34,9 +34,9 @@ message GossipBatch {
 message Synapse {
 	// Version: [REQUIRED] Strictly increasing protocol version identifier.
 	// Indentifies protocol version for backward compatibility.
-	// i.e. 1.0
-	// SIZE: 32 bits (4-bytes)
-	float version = 1;
+	// i.e. 0.0.0
+	// SIZE: 24 bits (3-bytes)
+	string version = 1;
 	
 	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key.
 	// Links this synapse definition to the containing neuron-account.
@@ -152,9 +152,9 @@ message Synapse {
 message TensorMessage {
 	// Version: [REQUIRED] Strictly increasing protocol version identifier.
 	// Indentifies protocol version for backward compatibility.
-	// i.e. 1.0
+	// i.e. '0.0.0'
 	// SIZE: 32 bits (4-bytes)
-	float version = 1;
+	string version = 1;
 
 	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key.
 	// Links message to calling neuron-account.
@@ -204,9 +204,9 @@ message TensorMessage {
 message Tensor {
 	// Version: [REQUIRED] Strictly increasing protocol version identifier.
 	// Indentifies protocol version for backward compatibility.
-	// i.e. 1.0
+	// i.e. '0.0.0'
 	// SIZE: 32 bits (4-bytes)
-	float version = 1;
+	string version = 1;
 
 	// Buffer: [REQUIRED] Serialized raw tensor content. This representation
   	// can be used for all tensor types. The purpose of this representation is to
@@ -232,9 +232,9 @@ message Tensor {
 message TensorDef {		
 	// Version: [REQUIRED] Strictly increasing protocol version identifier.
 	// Indentifies protocol version for backward compatibility.
-	// i.e. 1.0
+	// i.e. '0.0.0'
 	// SIZE: 32 bits (4-bytes)
-	float version = 1;
+	string version = 1;
 	
 	// Shape: [REQUIRED] Shape of this tensor.
 	// NOTE: Variable dimensions (i.e. batch) are non-explicit here as -1.

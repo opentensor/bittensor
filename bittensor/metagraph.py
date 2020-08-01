@@ -102,7 +102,7 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         if metagraph_address.split(':')[0] == self._config.remote_ip:
             realized_address = 'localhost:' + str(metagraph_address.split(":")[1])
         try:
-            version = bittensor.PROTOCOL_VERSION
+            version = bittensor.__version__
             channel = grpc.insecure_channel(realized_address)
             stub = bittensor_grpc.MetagraphStub(channel)
             request = bittensor_pb2.GossipBatch(peers=peers, synapses=batch)

@@ -107,7 +107,7 @@ class _RemoteModuleCall(torch.autograd.Function):
         
         # Build request for forward.
         request = bittensor_pb2.TensorMessage( 
-                                                version = bittensor.PROTOCOL_VERSION,
+                                                version = bittensor.__version__,
                                                 neuron_key = ctx.caller.local_neuron_key,
                                                 synapse_key = ctx.caller.synapse.synapse_key,
                                                 nounce = ctx.caller.nounce,
@@ -132,7 +132,7 @@ class _RemoteModuleCall(torch.autograd.Function):
         
         # Build request for forward.
         request = bittensor_pb2.TensorMessage( 
-                                                version = bittensor.PROTOCOL_VERSION,
+                                                version = bittensor.__version__,
                                                 neuron_key = ctx.caller.local_neuron_key,
                                                 synapse_key = ctx.caller.synapse.synapse_key,
                                                 nounce = ctx.caller.nounce,

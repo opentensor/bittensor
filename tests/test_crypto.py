@@ -14,7 +14,7 @@ def random_synapse():
     private_key = Crypto.generate_private_ed25519()
     public_key = Crypto.public_key_from_private(private_key)
     synapse = bittensor_pb2.Synapse(
-        version = bittensor.PROTOCOL_VERSION,
+        version = bittensor.__version__,
         neuron_key = Crypto.public_key_to_string(public_key),
         synapse_key = Crypto.public_key_to_string(public_key),
         address = '0.0.0.0',
