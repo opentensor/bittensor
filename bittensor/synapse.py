@@ -11,7 +11,7 @@ class Synapse(nn.Module):
     """
     def __init__(self):
         super().__init__()
-        self._synapse_key = bittensor.Identity().public_key()
+        self._synapse_key = bittensor.Crypto.public_key_to_string(bittensor.Crypto.generate_private_ed25519().public_key())
         
     def indef(self) -> bittensor_pb2.TensorDef:
         raise NotImplementedError

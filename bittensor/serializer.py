@@ -110,7 +110,7 @@ class PyTorchSerializer(SerializerBase):
         assert len(tensor.shape) > 1
         shape = list(tensor.shape)
         return bittensor_pb2.TensorDef(
-                        version = bittensor.PROTOCOL_VERSION, 
+                        version = bittensor.__version__, 
                         shape = shape, 
                         dtype = dtype,
                         requires_grad = tensor.requires_grad)
@@ -129,7 +129,7 @@ class PyTorchSerializer(SerializerBase):
         data_buffer = tensor.numpy().tobytes()
         tensor_def = PyTorchSerializer.todef(tensor)
         proto = bittensor_pb2.Tensor(
-                    version = bittensor.PROTOCOL_VERSION,
+                    version = bittensor.__version__,
                     buffer = data_buffer,
                     tensor_def = tensor_def)      
         return proto

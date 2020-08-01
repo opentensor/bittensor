@@ -82,7 +82,7 @@ class Neuron(nn.Module):
         """
         # Create a new bittensor_pb2.Synapse proto.
         synapse_proto = bittensor_pb2.Synapse(
-            version = bittensor.PROTOCOL_VERSION,
+            version = bittensor.__version__,
             neuron_key = self._config.neuron_key,
             synapse_key = synapse.synapse_key(),
             address = self._config.remote_ip,

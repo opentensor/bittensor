@@ -22,7 +22,7 @@ class TransformerSynapse(bittensor.Synapse):
         
     def indef(self):
         x_def = bittensor_pb2.TensorDef(
-                    version = bittensor.PROTOCOL_VERSION,
+                    version = bittensor.__version__,
                     shape = [-1, 784],
                     dtype = bittensor_pb2.FLOAT32,
                     requires_grad = True,
@@ -31,7 +31,7 @@ class TransformerSynapse(bittensor.Synapse):
     
     def outdef(self):
         y_def = bittensor_pb2.TensorDef(
-                    version = bittensor.PROTOCOL_VERSION,
+                    version = bittensor.__version__,
                     shape = [-1, 10],
                     dtype = bittensor_pb2.FLOAT32,
                     requires_grad = True,
