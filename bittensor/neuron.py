@@ -7,11 +7,12 @@ import torch.nn as nn
 # Import protos.
 from opentensor import opentensor_pb2
 import opentensor
+import bittensor
 
 class Neuron(nn.Module):
     """ Auto-grad friendly Torch NN module which maintains a connection to a network of other neuons connected across the web. 
     """
-    def __init__(self, config: opentensor.Config):
+    def __init__(self, config: bittensor.Config):
         """Initializes a new background Neuron object.
 
         Args:
@@ -21,14 +22,14 @@ class Neuron(nn.Module):
         self._config = config
         # Inward connection handler.
         # Axon: deals with inward connections
-        self._axon = opentensor.Axon(config)
+        self._axon = bittensor.Axon(config)
 
         # Dendrite: outward connection handler.
-        self._dendrite = opentensor.Dendrite(config)
+        self._dendrite = bittensor.Dendrite(config)
         # TODO (const) connection handling.
 
         # Metagraph: maintains a cache of synapses on the network.
-        self._metagraph = opentensor.Metagraph(config)
+        self._metagraph = bittensor.Metagraph(config)
 
     def synapses(self) -> List[opentensor_pb2.Synapse]:
         """Returns an unordered list of Synapse objects.
@@ -73,7 +74,7 @@ class Neuron(nn.Module):
         weights = weights.cpu().detach().numpy().tolist()
         self._metagraph.setweights(synapses, weights)
 
-    def subscribe(self, synapse: opentensor.Synapse):
+    def subscribe(self, synapse: bittensor.Synapse):
         """Subscribes a synapse class object to the metagraph.
 
         Args:

@@ -1,6 +1,8 @@
 from opentensor import opentensor_pb2_grpc as opentensor_grpc
 from opentensor import opentensor_pb2
+from opentensor.serializer import PyTorchSerializer
 import opentensor
+import bittensor
 
 from loguru import logger
 from typing import List, Tuple, Dict, Optional
@@ -15,7 +17,7 @@ from torch.autograd.function import once_differentiable
 DUMMY = torch.empty(0, requires_grad=True)  # dummy tensor that triggers autograd in RemoteExpert  
 
 class Dendrite:
-    def __init__(self, config: opentensor.Config):
+    def __init__(self, config: bittensor.Config):
         self._config = config
         self._remotes = {}
         
@@ -50,7 +52,7 @@ class Dendrite:
 class RemoteSynapse(nn.Module):
     """ Class which bundles a grpc connection to a remote host as a standard auto-grad torch.nn.Module.
     """
-    def __init__(self, synapse: opentensor_pb2.Synapse, config: opentensor.Config):
+    def __init__(self, synapse: opentensor_pb2.Synapse, config: bittensor.Config):
         super().__init__()
         self.synapse = synapse
         self.local_neuron_key = config.neuron_key       
@@ -100,7 +102,7 @@ class _RemoteModuleCall(torch.autograd.Function):
         ctx.caller = caller
         
         # Serialize inputs to bytes.
-        serialized_inputs = opentensor.PyTorchSerializer.serialize(inputs)
+        serialized_inputs = PyTorchSerializer.serialize(inputs)
         ctx.serialized_inputs = serialized_inputs
         
         # Build request for forward.
@@ -117,7 +119,7 @@ class _RemoteModuleCall(torch.autograd.Function):
         response = ctx.caller.stub.Forward(request)
                 
         # Deserialize outputs and return.
-        outputs = opentensor.PyTorchSerializer.deserialize(response.tensors[0])
+        outputs = PyTorchSerializer.deserialize(response.tensors[0])
         return outputs
 
     @staticmethod
@@ -125,7 +127,7 @@ class _RemoteModuleCall(torch.autograd.Function):
     def backward(ctx, grads: torch.Tensor) -> Optional[torch.Tensor]:
             
         # Serialize inputs to bytes.
-        serialized_grads = opentensor.PyTorchSerializer.serialize(grads)
+        serialized_grads = PyTorchSerializer.serialize(grads)
         serialized_inputs = ctx.serialized_inputs
         
         # Build request for forward.
@@ -143,7 +145,7 @@ class _RemoteModuleCall(torch.autograd.Function):
         response = ctx.caller.stub.Backward(request)
 
         # Deserialize grad responses.
-        deserialized_grad_inputs = opentensor.PyTorchSerializer.deserialize(response.tensors[0])
+        deserialized_grad_inputs = PyTorchSerializer.deserialize(response.tensors[0])
 
         # Return grads
         return (None, None, deserialized_grad_inputs)

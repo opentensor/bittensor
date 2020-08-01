@@ -12,6 +12,8 @@ from opentensor import opentensor_pb2
 from opentensor import opentensor_pb2_grpc as opentensor_grpc
 import opentensor
 
+import bittensor
+
 class Metagraph(opentensor_grpc.MetagraphServicer):
     def __init__(self, config: bittensor.Config):
         """Initializes a new Metagraph POW-cache object.

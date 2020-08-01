@@ -4,6 +4,9 @@ import argparse
 import requests
 import random
 
+import bittensor
+from opentensor.crypto import Crypto
+
 class Config:
     
     def __init__(self, hparams):
@@ -39,7 +42,8 @@ class Config:
           
         # Fall back on creating new neuron_key.   
         if self._hparams.neuron_key == None:
-            self.neuron_key = opentensor.Identity().public_key()
+            self._neuron_private = Crypto.generate_private_ed25519()
+            self.neuron_key = Crypto.public_key_to_string(self._neuron_private.public_key())
         else:
             # TODO(const) load neuron_key from public key.
             pass
