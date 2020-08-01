@@ -1,4 +1,4 @@
-opentensor
+git+git://github.com/opentensor/opentensor
 argparse
 loguru
 numpy
