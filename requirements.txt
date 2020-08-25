@@ -1,6 +1,7 @@
 argparse
 loguru
 numpy
+cryptography
 pycryptodome
 grpcio
 grpcio-tools
