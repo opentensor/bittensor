@@ -11,3 +11,4 @@ tensorboard
 numpy
 pickle-mixin
 google-api-python-client
+asyncio

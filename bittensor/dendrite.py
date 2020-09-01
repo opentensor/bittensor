@@ -11,6 +11,7 @@ import os
 import grpc
 import torch
 import torch.nn as nn
+import asyncio
 
 from torch.autograd.function import once_differentiable
 
@@ -42,7 +43,7 @@ class Dendrite:
                 self._remotes[synapse.synapse_key] = remote_synapse
                 
             # Call remote synapse.
-            results.append(remote_synapse(forward_inputs))
+            results.append(asyncio.run(remote_synapse(forward_inputs)))
         return results
     
 # NOTE: (const) This code has been ported from hivemind thanks to Yozh and Max.
@@ -51,7 +52,7 @@ class Dendrite:
 # TODO (const): needs to check shapes/ input types/ other.
 class RemoteSynapse(nn.Module):
     """ Class which bundles a grpc connection to a remote host as a standard auto-grad torch.nn.Module.
-    """
+    """    
     def __init__(self, synapse: bittensor_pb2.Synapse, config: bittensor.Config):
         super().__init__()
         self.synapse = synapse
@@ -75,7 +76,7 @@ class RemoteSynapse(nn.Module):
         if self.channel is not None:
             self.channel.close()
 
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+    async def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         # TODO (const) compare schema
         # assert schema shape and size. raise type error.
         # if not check_schema(inputs, self.synapse.forward_schema):
@@ -83,10 +84,10 @@ class RemoteSynapse(nn.Module):
         # TODO (const): consistend packing.
         # flattened = flatten(inputs)
         # Note: (hivemind) we send DUMMY to prevent torch from excluding expert from backward if no other inputs require grad
-        outputs = _RemoteModuleCall.apply(self, DUMMY, inputs)
+        return _RemoteModuleCall.apply(self, DUMMY, inputs)
         # TODO (const) consitent unpacking
         # return unpack_to_schema(outputs, structure = self.synapse.output_schema) 
-        return outputs
+        #return await outputs
         
 # Adapted from hivemind. Thanks Yozh.
 class _RemoteModuleCall(torch.autograd.Function):
@@ -116,7 +117,7 @@ class _RemoteModuleCall(torch.autograd.Function):
                                             )
         
         # Make rpc call.
-        response = ctx.caller.stub.Forward(request)
+        response =ctx.caller.stub.Forward(request)
                 
         # Deserialize outputs and return.
         outputs = PyTorchSerializer.deserialize(response.tensors[0])
