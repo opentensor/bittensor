@@ -117,7 +117,7 @@ class _RemoteModuleCall(torch.autograd.Function):
                                             )
         
         # Make rpc call.
-        response =ctx.caller.stub.Forward(request)
+        response = ctx.caller.stub.Forward(request)
                 
         # Deserialize outputs and return.
         outputs = PyTorchSerializer.deserialize(response.tensors[0])
