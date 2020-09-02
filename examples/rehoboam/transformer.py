@@ -2,7 +2,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+import bittensor
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
 class TransformerModel(bittensor.Synapse):
