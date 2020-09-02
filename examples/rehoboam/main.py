@@ -8,16 +8,18 @@ import time
 
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from transformer import TransformerModel
 from dataset import Dataset
 
+
 class TransformerSynapse(bittensor.Synapse):
     """ An bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
     """
     def __init__(self, transformer):
-        super(Net, self).__init__()
+        super(TransformerSynapse, self).__init__()
         self.transformer = transformer
         
     def indef(self):
@@ -27,7 +29,7 @@ class TransformerSynapse(bittensor.Synapse):
                     dtype = bittensor_pb2.FLOAT32,
                     requires_grad = True,
                 )
-        return x_def
+        return [x_def]
     
     def outdef(self):
         y_def = bittensor_pb2.TensorDef(
@@ -36,7 +38,7 @@ class TransformerSynapse(bittensor.Synapse):
                     dtype = bittensor_pb2.FLOAT32,
                     requires_grad = True,
                 )
-        return y_def
+        return [y_def]
     
     def forward(self, x):
         x = x.view(-1, 1, 28, 28)
@@ -50,7 +52,7 @@ def main(hparams):
     eval_batch_size = 10
     bptt = 35
     
-    dataset = Dataset()
+    dataset = Dataset(bptt)
     train_data = dataset.batchify(dataset.train_txt, batch_size)
     val_data = dataset.batchify(dataset.val_txt, eval_batch_size)
     test_data = dataset.batchify(dataset.test_txt, eval_batch_size)
@@ -64,12 +66,6 @@ def main(hparams):
     dropout = 0.2  # the dropout value
     transformer = TransformerModel(ntokens, emsize, nhead, nhid, nlayers, dropout)
 
-    # Optimizer.
-    criterion = nn.CrossEntropyLoss()  # loss function
-    lr = 5.0  # learning rate
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
-
     # bittensor:
     # Load bittensor config from hparams.
     config = bittensor.Config(hparams)
@@ -81,16 +77,22 @@ def main(hparams):
     router = bittensor.Router(x_dim = 784, key_dim = 100, topk = 10)
     
     # Build local network.
-    net = Net()
+    net = TransformerSynapse(transformer)
     
     # Subscribe the local network to the network
-    neuron.subscribe(transformer)
+    neuron.subscribe(net)
+    
+    # Optimizer.
+    criterion = nn.CrossEntropyLoss()  # loss function
+    lr = 5.0  # learning rate
+    optimizer = torch.optim.SGD(net.parameters(), lr=lr)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
     
     # Start the neuron backend.
     neuron.start()
     
     def train(dataset, transformer):
-        model.train()  # Turn on the train mode
+        transformer.train()  # Turn on the train mode
         total_loss = 0.
         start_time = time.time()
         ntokens = len(dataset.TEXT.vocab.stoi)
@@ -101,7 +103,7 @@ def main(hparams):
             optimizer.zero_grad()
             
             # data 
-            print (data.shape)
+            #print (data.shape)
             
             # Flatten encoder inputs inputs
             inputs = data.view(-1, bptt, emsize)
@@ -115,9 +117,6 @@ def main(hparams):
 
             # Encode sequence inputs.
             encodings = transformer.encode(data)  # (seq_len, batch_size, embedding_size)
-            
-            
-            
 
             # Get nodes from metagraph.
             # and map nodes to torch keys.
@@ -151,13 +150,13 @@ def main(hparams):
                 -1, batch_size,
                 emsize)  # (seq_len, batch_size, embedding_size)
             to_decode = results + encodings
-            output = model.decode(
+            output = transformer.decode(
                 to_decode)  # (target_len, batch_size, embedding_size)
 
             # Loss and optimizer step
             loss = criterion(output.view(-1, ntokens), targets)
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
+            torch.nn.utils.clip_grad_norm_(transformer.parameters(), 0.5)
             optimizer.step()
 
             # Update bittensor weights
@@ -180,17 +179,16 @@ def main(hparams):
                 total_loss = 0
                 start_time = time.time()
 
+    epochs = 0
+    global_step = 0
     for epoch in range(1, epochs + 1):
         epoch_start_time = time.time()
-        train(dataset, model)
+        train(dataset, transformer)
         scheduler.step()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--bootstrap',
-                        default='',
-                        type=str,
-                        help='ip address of bootstrap metagraph')
+    hparams = bittensor.Config.add_args(parser)
     hparams = parser.parse_args()
     main(hparams)
