@@ -2,7 +2,6 @@ from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
 from bittensor.serializer import PyTorchSerializer
 import bittensor
-import bittensor
 
 from loguru import logger
 from typing import List, Tuple, Dict, Optional
@@ -97,7 +96,6 @@ class _RemoteModuleCall(torch.autograd.Function):
     # TODO (const) should take multiple input tensors and kwargs.
     @staticmethod
     def forward(ctx, caller: RemoteSynapse, dummy: torch.Tensor, inputs: torch.Tensor) -> torch.Tensor:
-        
         # Save for backward call.
         ctx.caller = caller
         
