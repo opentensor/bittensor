@@ -17,16 +17,17 @@ from loguru import logger
 
 
 class TransformerSynapse(bittensor.Synapse):
-    """ An bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
+    """ An bittensor endpoint trained on wiki corpus.
     """
-    def __init__(self, transformer):
+    def __init__(self, transformer, ntokens):
         super(TransformerSynapse, self).__init__()
         self.transformer = transformer
-        
+        self.ntokens = ntokens
+                
     def indef(self):
         x_def = bittensor_pb2.TensorDef(
                     version = bittensor.__version__,
-                    shape = [-1, 700],
+                    shape = [700, 20],
                     dtype = bittensor_pb2.INT64,
                     requires_grad = True,
                 )
@@ -35,15 +36,15 @@ class TransformerSynapse(bittensor.Synapse):
     def outdef(self):
         y_def = bittensor_pb2.TensorDef(
                     version = bittensor.__version__,
-                    shape = [-1, 10],
+                    shape = [700, 20],
                     dtype = bittensor_pb2.INT64,
                     requires_grad = True,
                 )
         return [y_def]
     
     def forward(self, x):
-        x = x.view(-1, 1, 35, 20)
         x = self.transformer.encode(x)
+        x = torch.flatten(x, start_dim=1)
         return x
 
 def main(hparams):
@@ -52,6 +53,7 @@ def main(hparams):
     batch_size = 20
     eval_batch_size = 10
     bptt = 35
+    log_interval = 10
     
     dataset = Dataset(bptt)
     train_data = dataset.batchify(dataset.train_txt, batch_size)
@@ -78,7 +80,7 @@ def main(hparams):
     router = bittensor.Router(x_dim = dataset.bptt * emsize, key_dim = 100, topk = 10)
     
     # Build local network.
-    net = TransformerSynapse(transformer)
+    net = TransformerSynapse(transformer, ntokens)
     
     # Subscribe the local network to the network
     neuron.subscribe(net)
@@ -93,107 +95,82 @@ def main(hparams):
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
     
     
-    def train(dataset, transformer):
+    def train(dataset, transformer, epoch):
         transformer.train()  # Turn on the train mode
         total_loss = 0.
+        global_step = 0
         start_time = time.time()
         ntokens = len(dataset.TEXT.vocab.stoi)
-        for batch, i in enumerate(
+        for batch_idx, i in enumerate(
                 range(0,
                       train_data.size(0) - 1, dataset.bptt)):
             data, targets = dataset.get_batch(train_data, i)
             optimizer.zero_grad()
-            
             # data 
             
             # Flatten encoder inputs inputs
             inputs = data.view(-1, bptt, emsize)
             inputs = torch.flatten(inputs, start_dim=1)
-
+            
             # Query the remote network.
             synapses = neuron.synapses() # Returns a list of synapses on the network.
             requests, scores = router.route(inputs.float(), synapses) # routes inputs to network.
-            
+
             # Convert request indices back to type long()
             request_list = [*requests]
             request_list[0] = requests[0].type(torch.LongTensor)
             requests = *request_list,
-
+            
             responses = neuron(requests, synapses) # Makes network calls.
+
             remote = router.join(responses) # Joins responses based on scores.
 
             # Encode sequence inputs.
-            #encodings = net.encode(data)  # (seq_len, batch_size, embedding_size)
+            #encodings = net.transformer.encode(data)  # (seq_len, batch_size, embedding_size)
             #print(encodings)
             # Get nodes from metagraph.
             # and map nodes to torch keys.
-           # axons = neuron.axons()  # List[bittensor_pb2.Node]))
-            #keys = keymap.toKeys(axons)  # (-1, key_dim)
+            local = net(inputs)
 
             # Learning a map from the gate_inputs to keys
             # gates[i, j] = score for the jth key for input i
-            #gate_inputs = encodings.view(
-            #    batch_size, x_dim)  # (batch_size, seq_len * embedding_size)
-            #gates = gate(gate_inputs, keys, topk=min(len(keys), topk))
-
-            # Dispatch data to inputs for each key.
-            # when gates[i, j] == 0, the key j does not recieve input i
-            #dispatch_inputs = data.view(batch_size,
-            #                            -1)  # (batch_size, sequence_length)
-            #dispatch = dispatcher.dispatch(dispatch_inputs,
-            #                               gates)  # List[(-1, seq_len)]
-
-            # Query the network by mapping from keys to node endpoints.
-            # results = list[torch.Tensor], len(results) = len(keys)
-            #axons = keymap.toAxons(keys)  # List[bittensor_pb2.Node]
-            #query = neuron(dispatch, axons)  # List[(-1, embedding_size)]
-
-            # Join results using gates to combine inputs.
-            #results = dispatcher.combine(
-            #    query, gates)  # (batch_size, seq_len * embedding_size)
-
+            #gate_inputs = encodings.view(batch_size, x_dim)  # (batch_size, seq_len * embedding_size)
+            
+            
+            # Train.
+            output = local + remote
+            results = output.view(-1, batch_size, emsize)
+            
             # Decode responses.
             #results = results.view(
             #    -1, batch_size,
             #    emsize)  # (seq_len, batch_size, embedding_size)
             #to_decode = results + encodings
-            #output = transformer.decode(
-            #    to_decode)  # (target_len, batch_size, embedding_size)
+            output = net.transformer.decode(results)
+            loss = criterion(output.view(-1, ntokens), targets)
+            loss.backward()
+            optimizer.step()
+            global_step += 1
+            
+            # Set network weights.
+            weights = neuron.getweights(synapses)
+            weights = (0.99) * weights + 0.01 * torch.mean(scores, dim=0)
+            neuron.setweights(synapses, weights)
 
-            # Loss and optimizer step
-            #loss = criterion(output.view(-1, ntokens), targets)
-            #loss.backward()
-            #torch.nn.utils.clip_grad_norm_(transformer.parameters(), 0.5)
-            #optimizer.step()
-
-            # Update bittensor weights
-            #weights = neuron.getweights(axons)
-            #weights = (0.95) * weights + (0.05) * torch.mean(gates, dim=0)
-            #neuron.setweights(axons, weights)
-
-            #total_loss += loss.item()
-            #log_interval = 1
-            #if batch % log_interval == 0 and batch > 0:
-            #    cur_loss = total_loss / log_interval
-            #    elapsed = time.time() - start_time
-            #    print('| epoch {:3d} | {:5d}/{:5d} batches | '
-            #          'lr {:02.2f} | ms/batch {:5.2f} | '
-            #          'loss {:5.2f} | ppl {:8.2f}'.format(
-            #              epoch, batch,
-            #              len(train_data) // dataset.bptt,
-            #              scheduler.get_lr()[0], elapsed * 1000 / log_interval,
-            #              cur_loss, math.exp(cur_loss)))
-            #    total_loss = 0
-            #    start_time = time.time()
+            if batch_idx % log_interval == 0:
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f} \tnP|nS: {}|{}'.format(
+                    epoch, batch_idx * len(data), len(data),
+                    100. * batch_idx / train_data.size(0), loss.item(), len(neuron.metagraph.peers), len(neuron.metagraph.synapses)))
+ 
 
     epochs = 10
     global_step = 0
     for epoch in range(1, epochs + 1):
-        epoch_start_time = time.time()
-        train(dataset, net)
-        epoch_end_time = time.time() - epoch_start_time
-        logger.info('Train Epoch: {} finished in: {} seconds'.format(
-                    epoch, epoch_end_time))
+        #epoch_start_time = time.time()
+        train(dataset, net, epoch)
+        #epoch_end_time = time.time() - epoch_start_time
+        #logger.info('Train Epoch: {} finished in: {} seconds'.format(
+        #            epoch, epoch_end_time))
         scheduler.step()
 
 
