@@ -109,7 +109,6 @@ def main(hparams):
             
             # Flatten mnist inputs
             inputs = torch.flatten(data, start_dim=1)
-            
             # Query the remote network.
             synapses = neuron.synapses() # Returns a list of synapses on the network.
             requests, scores = router.route(inputs, synapses) # routes inputs to network.
