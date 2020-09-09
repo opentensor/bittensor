@@ -90,7 +90,7 @@ def main(hparams):
     
     # Optimizer.
     criterion = nn.CrossEntropyLoss()  # loss function
-    lr = 5.0  # learning rate
+    lr = 0.01  # learning rate
     optimizer = torch.optim.SGD(net.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
     
@@ -106,8 +106,7 @@ def main(hparams):
                       train_data.size(0) - 1, dataset.bptt)):
             data, targets = dataset.get_batch(train_data, i)
             optimizer.zero_grad()
-            # data 
-            
+            encodings = net.transformer.encode(data)
             # Flatten encoder inputs inputs
             inputs = data.view(-1, bptt, emsize)
             inputs = torch.flatten(inputs, start_dim=1)
@@ -120,33 +119,18 @@ def main(hparams):
             request_list = [*requests]
             request_list[0] = requests[0].type(torch.LongTensor)
             requests = *request_list,
-            
             responses = neuron(requests, synapses) # Makes network calls.
 
             remote = router.join(responses) # Joins responses based on scores.
 
-            # Encode sequence inputs.
-            #encodings = net.transformer.encode(data)  # (seq_len, batch_size, embedding_size)
-            #print(encodings)
-            # Get nodes from metagraph.
-            # and map nodes to torch keys.
             local = net(inputs)
-
-            # Learning a map from the gate_inputs to keys
-            # gates[i, j] = score for the jth key for input i
-            #gate_inputs = encodings.view(batch_size, x_dim)  # (batch_size, seq_len * embedding_size)
-            
             
             # Train.
             output = local + remote
-            results = output.view(-1, batch_size, emsize)
             
             # Decode responses.
-            #results = results.view(
-            #    -1, batch_size,
-            #    emsize)  # (seq_len, batch_size, embedding_size)
-            #to_decode = results + encodings
-            output = net.transformer.decode(results)
+            output = net.transformer.decode(output.view(-1, batch_size, emsize) + encodings)
+            
             loss = criterion(output.view(-1, ntokens), targets)
             loss.backward()
             optimizer.step()
@@ -156,10 +140,10 @@ def main(hparams):
             weights = neuron.getweights(synapses)
             weights = (0.99) * weights + 0.01 * torch.mean(scores, dim=0)
             neuron.setweights(synapses, weights)
-
+            
             if batch_idx % log_interval == 0:
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f} \tnP|nS: {}|{}'.format(
-                    epoch, batch_idx * len(data), len(data),
+                    epoch, batch_idx * len(data), train_data.size(0),
                     100. * batch_idx / train_data.size(0), loss.item(), len(neuron.metagraph.peers), len(neuron.metagraph.synapses)))
  
 
