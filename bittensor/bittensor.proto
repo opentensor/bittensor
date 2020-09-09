@@ -157,6 +157,7 @@ message TensorMessage {
 	string version = 1;
 
 	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key.
+	// Public key of the caller. Used to make a call to the public key of the synapse.
 	// Links message to calling neuron-account.
 	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
 	// SIZE: 256-bits (32-bytes)

@@ -9,3 +9,4 @@ nltk
 sentencepiece
 timeloop
 pycryptodome
+torchtext
