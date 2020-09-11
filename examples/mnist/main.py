@@ -19,11 +19,21 @@ class Net(bittensor.Synapse):
     """
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.conv1 = nn.Conv2d(1, 6, kernel_size=5, stride=1)
+        self.average1 = nn.AvgPool2d(2, stride=2)
+        self.conv2 = nn.Conv2d(6, 16, kernel_size=5, stride=1)
+        self.average2 = nn.AvgPool2d(2, stride=2)
+        self.conv3 = nn.Conv2d(16, 120, kernel_size=4, stride=1)
         self.conv2_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(320, 50)
-        self.fc2 = nn.Linear(50, 10)
+        self.flatten=Flatten()
+        
+        self.fc1 = nn.Linear(120, 82)
+        self.fc2 = nn.Linear(82, 10)
+        #self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        #self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        #self.conv2_drop = nn.Dropout2d()
+        #self.fc1 = nn.Linear(320, 50)
+        #self.fc2 = nn.Linear(50, 10)
         
     # TODO(const): hide protos
     def indef(self):
@@ -44,25 +54,33 @@ class Net(bittensor.Synapse):
                 )
         return [y_def]
     
+    
     def forward(self, x):
         x = x.view(-1, 1, 28, 28)
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        x = x.view(-1, 320)
-        x = F.relu(self.fc1(x))
+        x = torch.tanh(self.conv1(x))
+        x = self.average1(x)
+        x = torch.tanh(self.conv2(x))
+        x = self.average2(x)
+        x = torch.tanh(self.conv3(x))
+        x = x.view(-1, x.shape[1])
         x = F.dropout(x, training=self.training)
-        x = self.fc2(x)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
         x = F.log_softmax(x)
-        x = x.view(-1, 10)
         return x
+    
+class Flatten(nn.Module):
+    def forward(self, input):
+        return input.view(input.size(0), -1)
 
 
 def main(hparams):
 
     # Training params.
-    batch_size_train = 50
-    learning_rate = 0.01
-    momentum = 0.5
+    batch_size_train = 64
+    batch_size_test = 64
+    learning_rate = 0.1
+    momentum = 0.9
     log_interval = 10
 
     # Dataset.
@@ -74,6 +92,15 @@ def main(hparams):
             [torchvision.transforms.ToTensor()])),
                                                batch_size=batch_size_train,
                                                shuffle=True)
+
+    test_loader = torch.utils.data.DataLoader(torchvision.datasets.MNIST(
+        root='~/tmp/',
+        train=False, 
+        download=True,
+        transform=torchvision.transforms.Compose(
+            [torchvision.transforms.ToTensor()])),
+                                            batch_size=batch_size_test, 
+                                            shuffle=True)
 
     # bittensor:
     # Load bittensor config from hparams.
@@ -104,6 +131,7 @@ def main(hparams):
 
     def train(epoch, global_step):
         net.train()
+        correct = 0
         for batch_idx, (data, target) in enumerate(train_loader):
             optimizer.zero_grad()
             
@@ -120,7 +148,7 @@ def main(hparams):
 
             # Train.
             output = local + remote
-                        
+
             loss = F.nll_loss(output, target)
             loss.backward()
             optimizer.step()
@@ -142,11 +170,28 @@ def main(hparams):
                     epoch, batch_idx * len(data), len(train_loader.dataset),
                     100. * batch_idx / len(train_loader), loss.item(), len(neuron.metagraph.peers), len(neuron.metagraph.synapses)))
 
+    def test():
+        net.eval()
+        test_loss = 0
+        correct = 0
+        with torch.no_grad():
+            for data, target in test_loader:
+                output = net(data)
+                test_loss += F.nll_loss(output, target, size_average=False).item()
+                pred = output.data.max(1, keepdim=True)[1]
+                correct += pred.eq(target.data.view_as(pred)).sum()
+
+        test_loss /= len(test_loader.dataset)
+        logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        test_loss, correct, len(test_loader.dataset),
+        100. * correct / len(test_loader.dataset)))        
+    
     epoch = 0
     global_step = 0
     try:
         while True:
             train(epoch, global_step)
+            test()
             epoch += 1
     except Exception as e:
         logger.error(e)
