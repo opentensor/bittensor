@@ -7,7 +7,6 @@ import torch.nn as nn
 # Import protos.
 from bittensor import bittensor_pb2
 import bittensor
-import bittensor
 
 class Neuron(nn.Module):
     """ Auto-grad friendly Torch NN module which maintains a connection to a network of other neuons connected across the web. 
