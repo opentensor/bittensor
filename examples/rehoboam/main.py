@@ -55,9 +55,9 @@ class TransformerSynapse(bittensor.Synapse):
 def main(hparams):
     
     # Args
-    batch_size = 20
+    batch_size = 120
     eval_batch_size = 10
-    bptt = 35
+    bptt = 6
     log_interval = 10
     
     dataset = Dataset(bptt)
@@ -106,9 +106,7 @@ def main(hparams):
         global_step = 0
         start_time = time.time()
         ntokens = len(dataset.TEXT.vocab.stoi)
-        for batch_idx, i in enumerate(
-                range(0,
-                      train_data.size(0) - 1, dataset.bptt)):
+        for batch_idx, i in enumerate(range(0,train_data.size(0) - 1, dataset.bptt)):
             data, targets = dataset.get_batch(train_data, i)
             optimizer.zero_grad()
             encodings = net.transformer.encode(data)
@@ -148,15 +146,40 @@ def main(hparams):
             
             if batch_idx % log_interval == 0:
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f} \tnP|nS: {}|{}'.format(
-                    epoch, batch_idx * len(data), train_data.size(0),
-                    100. * batch_idx / train_data.size(0), loss.item(), len(neuron.metagraph.peers), len(neuron.metagraph.synapses)))
+                            epoch, 
+                            batch_idx * len(data), 
+                            train_data.size(0) - 1,
+                            100. * (batch_idx * len(data)) / train_data.size(0) - 1, 
+                            loss.item(), 
+                            len(neuron.metagraph.peers), 
+                            len(neuron.metagraph.synapses)))
  
+    def test():
+        net.eval()
+        test_loss = 0
+        correct = 0
+        import pdb; pdb.set_trace()
+        with torch.no_grad():
+            for batch_idx, i in enumerate(
+                range(0,
+                      test_data.size(0) - 1, dataset.bptt)):
+                data, targets = dataset.get_batch(test_data, i)
+                output = net(data)
+                test_loss += criterion(output.view(-1, ntokens), targets)
+                pred = output.data.max(1, keepdim=True)[1]
+                correct += pred.eq(targets.data.view_as(pred)).sum()
+
+        test_loss /= len(test_data)
+        logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        test_loss, correct, len(test_data),
+        100. * correct / len(test_data)))   
 
     epochs = 10
     global_step = 0
     for epoch in range(1, epochs + 1):
         #epoch_start_time = time.time()
         train(dataset, net, epoch)
+        test()
         #epoch_end_time = time.time() - epoch_start_time
         #logger.info('Train Epoch: {} finished in: {} seconds'.format(
         #            epoch, epoch_end_time))
