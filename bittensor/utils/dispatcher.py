@@ -49,7 +49,6 @@ class Dispatcher(object):
 
         # calculate num samples that each expert gets
         part_sizes = list((gates != 0.0).sum(0).cpu().numpy())
-
         # expand according to batch index so we can just split by _part_sizes
         x_expanded = x[batch_index].squeeze(1).to(self.device)
         return torch.split(x_expanded, part_sizes, dim=0)
