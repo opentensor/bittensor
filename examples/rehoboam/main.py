@@ -21,6 +21,7 @@ class TransformerSynapse(bittensor.Synapse):
     """
     def __init__(self, transformer, ntokens):
         super(TransformerSynapse, self).__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.transformer = transformer
         self.ntokens = ntokens
                 
@@ -43,6 +44,10 @@ class TransformerSynapse(bittensor.Synapse):
         return [y_def]
     
     def forward(self, x):
+        # Move x over to device, if any
+        x = x.to(self.device)
+        
+        # Encode x
         x = self.transformer.encode(x)
         x = torch.flatten(x, start_dim=1)
         return x
@@ -90,9 +95,9 @@ def main(hparams):
     
     # Optimizer.
     criterion = nn.CrossEntropyLoss()  # loss function
-    lr = 0.01  # learning rate
+    lr = 0.1  # learning rate
     optimizer = torch.optim.SGD(net.parameters(), lr=lr)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 0.9, gamma=0.95)
     
     
     def train(dataset, transformer, epoch):
@@ -137,7 +142,7 @@ def main(hparams):
             global_step += 1
             
             # Set network weights.
-            weights = neuron.getweights(synapses)
+            weights = neuron.getweights(synapses).to(net.device)
             weights = (0.99) * weights + 0.01 * torch.mean(scores, dim=0)
             neuron.setweights(synapses, weights)
             

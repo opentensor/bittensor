@@ -126,7 +126,7 @@ class PyTorchSerializer(SerializerBase):
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
         """
         # Using numpy intermediary because deserializing with pickle can run arbitray code on your machine.
-        data_buffer = tensor.numpy().tobytes()
+        data_buffer = tensor.cpu().numpy().tobytes()
         tensor_def = PyTorchSerializer.todef(tensor)
         proto = bittensor_pb2.Tensor(
                     version = bittensor.__version__,

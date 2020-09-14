@@ -35,6 +35,7 @@ class Dispatcher(object):
 
     def __init__(self):
         """Create a SparseDispatcher."""
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def dispatch(self, x, gates):
         # sort experts
@@ -47,10 +48,10 @@ class Dispatcher(object):
         batch_index = sorted_experts[index_sorted_experts[:, 1], 0]
 
         # calculate num samples that each expert gets
-        part_sizes = list((gates != 0.0).sum(0).numpy())
+        part_sizes = list((gates != 0.0).sum(0).cpu().numpy())
 
         # expand according to batch index so we can just split by _part_sizes
-        x_expanded = x[batch_index].squeeze(1)
+        x_expanded = x[batch_index].squeeze(1).to(self.device)
         return torch.split(x_expanded, part_sizes, dim=0)
 
     def combine(self, expert_out, gates, multiply_by_gates=True):
@@ -68,7 +69,7 @@ class Dispatcher(object):
         """
 
         # apply exp to expert outputs, so we are not longer in log space
-        stitched = torch.cat(expert_out, 0)
+        stitched = torch.cat(expert_out, 0).to(self.device)
         if multiply_by_gates:
 
             # sort experts
@@ -82,13 +83,13 @@ class Dispatcher(object):
 
             gates_exp = gates[batch_index.flatten()]
 
-            nonzero_gates = torch.gather(gates_exp, 1, expert_index)
+            nonzero_gates = torch.gather(gates_exp, 1, expert_index).to(self.device)
 
             stitched = stitched.mul(nonzero_gates)
 
         zeros = torch.zeros(gates.size(0),
                             expert_out[-1].size(1),
-                            requires_grad=True)
+                            requires_grad=True).to(self.device)
 
         # combine samples that have been processed by the same k experts
         combined = zeros.index_add(0, batch_index, stitched.float())
