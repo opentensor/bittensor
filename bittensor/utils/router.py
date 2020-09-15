@@ -21,6 +21,10 @@ class Router ():
 
         # Object for dispatching / combining gated inputs
         self.dispatcher = bittensor.Dispatcher()
+
+        # Device
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
         
     def route (self, inputs: torch.Tensor, synapses: List[bittensor_pb2.Synapse]) -> Tuple[List[torch.Tensor], torch.Tensor]:
         # Get synapses from the metagraph.
