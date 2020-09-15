@@ -181,7 +181,6 @@ def main(hparams):
                 pred = output.data.max(1, keepdim=True)[1].to(net.device)
                 correct += pred.eq(target.data.view_as(pred).to(net.device)).sum()
 
-        import pdb; pdb.set_trace()
         test_loss /= len(test_loader.dataset)
         logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
