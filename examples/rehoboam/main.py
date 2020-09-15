@@ -46,7 +46,6 @@ class TransformerSynapse(bittensor.Synapse):
     def forward(self, x):
         # Move x over to device, if any
         x = x.to(self.device)
-        
         # Encode x
         x = self.transformer.encode(x)
         x = torch.flatten(x, start_dim=1)
@@ -55,8 +54,8 @@ class TransformerSynapse(bittensor.Synapse):
 def main(hparams):
     
     # Args
-    batch_size = 120
-    eval_batch_size = 10
+    batch_size = 20
+    eval_batch_size = 20
     bptt = 6
     log_interval = 10
     
@@ -96,7 +95,7 @@ def main(hparams):
     # Optimizer.
     criterion = nn.CrossEntropyLoss()  # loss function
     lr = 0.1  # learning rate
-    optimizer = torch.optim.SGD(net.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 0.9, gamma=0.95)
     
     
@@ -109,7 +108,10 @@ def main(hparams):
         for batch_idx, i in enumerate(range(0,train_data.size(0) - 1, dataset.bptt)):
             data, targets = dataset.get_batch(train_data, i)
             optimizer.zero_grad()
-            encodings = net.transformer.encode(data)
+            
+            # Encode sequence inputs.
+            encodings = net.transformer.encode(data) # (seq_len, batch_size, embedding_size)
+
             # Flatten encoder inputs inputs
             inputs = data.view(-1, bptt, emsize)
             inputs = torch.flatten(inputs, start_dim=1)
@@ -122,18 +124,20 @@ def main(hparams):
             request_list = [*requests]
             request_list[0] = requests[0].type(torch.LongTensor)
             requests = *request_list,
+
             responses = neuron(requests, synapses) # Makes network calls.
 
             remote = router.join(responses) # Joins responses based on scores.
 
-            local = net(inputs)
-            
+            #local = net(inputs)
+            remote = remote.view(-1, batch_size, emsize)
+
             # Train.
-            output = local + remote
+            output = remote + encodings
             
             # Decode responses.
-            output = net.transformer.decode(output.view(-1, batch_size, emsize) + encodings)
-            
+            #import pdb; pdb.set_trace()
+            output = net.transformer.decode(output)
             loss = criterion(output.view(-1, ntokens), targets)
             loss.backward()
             optimizer.step()
@@ -158,21 +162,30 @@ def main(hparams):
         net.eval()
         test_loss = 0
         correct = 0
-        import pdb; pdb.set_trace()
         with torch.no_grad():
-            for batch_idx, i in enumerate(
-                range(0,
-                      test_data.size(0) - 1, dataset.bptt)):
+            for i in range(0,
+                      test_data.size(0) - 1, dataset.bptt):
+
+                # Get batch
                 data, targets = dataset.get_batch(test_data, i)
+
+                # Encode sequence inputs
+                encodings = net.transformer.encode(data)
+                
+                # Query local network
                 output = net(data)
-                test_loss += criterion(output.view(-1, ntokens), targets)
+
+                # Decode output
+                output = net.transformer.decode(output.view(-1, emsize) + encodings.view(-1, emsize))
+                test_loss += criterion(output, targets)
                 pred = output.data.max(1, keepdim=True)[1]
                 correct += pred.eq(targets.data.view_as(pred)).sum()
 
-        test_loss /= len(test_data)
+        test_loss /= test_data.size(0)
         logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_data),
-        100. * correct / len(test_data)))   
+            test_loss, correct, 
+            test_data.size(0),
+            100. * correct / test_data.size(0)))
 
     epochs = 10
     global_step = 0
