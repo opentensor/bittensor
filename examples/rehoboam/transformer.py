@@ -10,13 +10,14 @@ class TransformerModel(bittensor.Synapse):
     def __init__(self, ntoken, ninp, nhead, nhid, nlayers, dropout=0.5):
         super(TransformerModel, self).__init__()
         self.model_type = 'Transformer'
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.src_mask = None
-        self.pos_encoder = PositionalEncoding(ninp, dropout)
-        encoder_layers = TransformerEncoderLayer(ninp, nhead, nhid, dropout)
-        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
-        self.encoder = nn.Embedding(ntoken, ninp)
+        self.pos_encoder = PositionalEncoding(ninp, dropout).to(self.device)
+        encoder_layers = TransformerEncoderLayer(ninp, nhead, nhid, dropout).to(self.device)
+        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers).to(self.device)
+        self.encoder = nn.Embedding(ntoken, ninp).to(self.device)
         self.ninp = ninp
-        self.decoder = nn.Linear(ninp, ntoken)
+        self.decoder = nn.Linear(ninp, ntoken).to(self.device)
 
         self.init_weights()
 
