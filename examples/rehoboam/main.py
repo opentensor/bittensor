@@ -64,6 +64,8 @@ def main(hparams):
     val_data = dataset.batchify(dataset.val_txt, eval_batch_size)
     test_data = dataset.batchify(dataset.test_txt, eval_batch_size)
 
+    test_results_file = "rehoboam_test_results.txt"
+
     # Transformer model architecture
     ntokens = len(dataset.TEXT.vocab.stoi)  # the size of vocabulary
     emsize = 20  # embedding dimension
@@ -94,9 +96,9 @@ def main(hparams):
     
     # Optimizer.
     criterion = nn.CrossEntropyLoss()  # loss function
-    lr = 0.1  # learning rate
-    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 0.9, gamma=0.95)
+    lr = 3.0 # learning rate
+    optimizer = torch.optim.SGD(net.parameters(), lr=lr)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
     
     
     def train(dataset, transformer, epoch):
@@ -108,16 +110,17 @@ def main(hparams):
         for batch_idx, i in enumerate(range(0,train_data.size(0) - 1, dataset.bptt)):
             data, targets = dataset.get_batch(train_data, i)
             optimizer.zero_grad()
-            
-            # Encode sequence inputs.
-            encodings = net.transformer.encode(data) # (seq_len, batch_size, embedding_size)
 
             # Flatten encoder inputs inputs
             inputs = data.view(-1, bptt, emsize)
             inputs = torch.flatten(inputs, start_dim=1)
+
+            # Query the local network.
+            local = net(inputs)
             
             # Query the remote network.
             synapses = neuron.synapses() # Returns a list of synapses on the network.
+            
             requests, scores = router.route(inputs.float(), synapses) # routes inputs to network.
 
             # Convert request indices back to type long()
@@ -126,20 +129,20 @@ def main(hparams):
             requests = *request_list,
 
             responses = neuron(requests, synapses) # Makes network calls.
-
+            
             remote = router.join(responses) # Joins responses based on scores.
 
             #local = net(inputs)
-            remote = remote.view(-1, batch_size, emsize)
+            #remote = output.view(-1, batch_size, emsize)
 
             # Train.
-            output = remote + encodings
-            
+            output = remote + local
             # Decode responses.
-            #import pdb; pdb.set_trace()
-            output = net.transformer.decode(output)
+
+            output = net.transformer.decode(output.view(-1, batch_size, emsize))
             loss = criterion(output.view(-1, ntokens), targets)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(net.parameters(), 0.5)
             optimizer.step()
             global_step += 1
             
@@ -158,45 +161,58 @@ def main(hparams):
                             len(neuron.metagraph.peers), 
                             len(neuron.metagraph.synapses)))
  
-    def test():
+    def test(data_source):
+        # Turn on evaluation mode
         net.eval()
         test_loss = 0
         correct = 0
         with torch.no_grad():
             for i in range(0,
-                      test_data.size(0) - 1, dataset.bptt):
+                      data_source.size(0) - 1, dataset.bptt):
 
                 # Get batch
-                data, targets = dataset.get_batch(test_data, i)
-
-                # Encode sequence inputs
-                encodings = net.transformer.encode(data)
+                data, targets = dataset.get_batch(data_source, i)
                 
                 # Query local network
                 output = net(data)
+                output = net.transformer.decode(output.view(-1, batch_size, emsize))
 
-                # Decode output
-                output = net.transformer.decode(output.view(-1, emsize) + encodings.view(-1, emsize))
-                test_loss += criterion(output, targets)
-                pred = output.data.max(1, keepdim=True)[1]
-                correct += pred.eq(targets.data.view_as(pred)).sum()
+                output_flat = output.view(-1, ntokens)
+                test_loss += len(data) * criterion(output_flat, targets).item()
+                
 
-        test_loss /= test_data.size(0)
-        logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-            test_loss, correct, 
-            test_data.size(0),
-            100. * correct / test_data.size(0)))
+        test_loss /= (len(data_source) - 1)
+        test_result = 'Test set: Avg. loss: {:.4f}\n'.format(test_loss)
+        #test_result = 'Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        #    test_loss, correct, 
+        #    test_data.size(0),
+        #    100. * correct / test_data.size(0))
+        
+        logger.info(test_result)
+        
+        if os.path.exists(test_results_file):
+            append_write = 'a'
+        else:
+            append_write = 'w'
+        
+        outF = open(test_results_file, append_write)
+        outF.write(test_result)
+        outF.close()
 
-    epochs = 10
+        
     global_step = 0
-    for epoch in range(1, epochs + 1):
-        #epoch_start_time = time.time()
-        train(dataset, net, epoch)
-        test()
-        #epoch_end_time = time.time() - epoch_start_time
-        #logger.info('Train Epoch: {} finished in: {} seconds'.format(
-        #            epoch, epoch_end_time))
-        scheduler.step()
+    epoch = 0
+    try:
+        while True:
+            train(dataset, net, epoch)
+            test(test_data)
+            scheduler.step()
+            epoch += 1
+    except Exception as e:
+        logger.error(e)
+        neuron.stop()
+    
+        
 
 
 if __name__ == "__main__":
