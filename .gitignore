@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # C extensions
 *.so
@@ -155,3 +156,27 @@ cython_debug/
 
 # The cache for chain data in container
 .local
+
+# State folder for all neurons.
+**/data/*
+!data/.gitkeep
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# PIPY Stuff
+bittensor.egg-info
+bittensor*.egg
+bdist.*
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+**/build/*
+**/dist/*
+
