@@ -1,0 +1,59 @@
+FROM ubuntu:18.04
+
+RUN apt-get update && apt-get install -y wget sudo curl vim
+
+
+RUN apt-get update \
+  && apt-get install -y python3-pip python3-dev \
+  && cd /usr/local/bin \
+  && ln -s /usr/bin/python3 python \
+  && pip3 install --upgrade pip
+
+  RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+        build-essential \
+        curl \
+        python \
+        python3-dev \
+        python3-setuptools \
+        python3-pip \
+        libffi-dev \
+        libssl-dev \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --upgrade pip && \
+  pip3 install argparse && \
+  pip3 install grpcio && \
+  pip3 install grpcio-tools && \
+  pip3 install libeospy && \
+  pip3 install loguru && \
+  pip3 install matplotlib && \
+  pip3 install "numpy<1.17" && \
+  pip3 install networkx && \
+  pip3 install pebble && \
+  pip3 install pickle-mixin && \
+  pip3 install pycrypto && \
+  pip3 install --upgrade setuptools && \
+  pip3 install timeloop && \
+  pip3 install zipfile36 && \
+  pip3 install cryptography --force-reinstall && \
+  pip3 install pytest && \
+  pip3 install torch && \
+  pip3 install tensorboard && \
+  pip3 install torchvision && \
+  pip3 install google-api-python-client
+
+# Copy BitTensor source to this image.
+RUN mkdir bittensor
+COPY . bittensor/
+WORKDIR /bittensor
+
+# Install Bittensor
+RUN pip3 install -e .
+
+
+
+
+  
