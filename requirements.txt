@@ -3,11 +3,13 @@ loguru
 numpy
 cryptography
 pycryptodome
+pycrypto
 grpcio
 grpcio-tools
 pytest
 torch
 tensorboard
+torchvision
 numpy
 pickle-mixin
 google-api-python-client

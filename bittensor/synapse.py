@@ -2,6 +2,7 @@ from typing import List, Tuple, Dict, Optional
 
 import torch
 import torch.nn as nn
+import torch.optim as optim
 
 from bittensor import bittensor_pb2
 import bittensor
@@ -12,6 +13,10 @@ class Synapse(nn.Module):
     def __init__(self):
         super().__init__()
         self._synapse_key = bittensor.Crypto.public_key_to_string(bittensor.Crypto.generate_private_ed25519().public_key())
+        # Build the optimizer.
+        #self.opt = optim.SGD(params,
+        #                  lr=0.01,
+        #                  momentum=0.9)
         
     def indef(self) -> bittensor_pb2.TensorDef:
         raise NotImplementedError
@@ -36,11 +41,11 @@ class Synapse(nn.Module):
         Apply a backward pass to the nn.module given grads and inputs.
         """
         with torch.enable_grad():
-            pass
+            #pass
             # TODO(const): fix this.
-            #outputs = self.forward(inputs)
-            #torch.autograd.backward(outputs, grad_tensors=grads, create_graph=False, retain_graph=False)
-            #self.apply_gradients()
+            outputs = self.forward(inputs)
+            torch.autograd.backward(outputs, grad_tensors=grads, create_graph=False, retain_graph=False)
+            self.apply_gradients()
         #print ('return none')
         return torch.zeros_like(inputs)
 
@@ -48,5 +53,5 @@ class Synapse(nn.Module):
         """
         Train the expert for one step.
         """
-        self.opt.step()
-        self.opt.zero_grad()
+        self.optimizer.step()
+        self.optimizer.zero_grad()

@@ -1,3 +1,3 @@
 ./scripts/build_protos.sh
-docker build -t unconst/bittensor:latest -f Dockerfile.base .
-docker push unconst/bittensor:latest
+docker build -t bittensor/bittensor:latest -f Dockerfile.base .
+docker push bittensor/bittensor:latest
