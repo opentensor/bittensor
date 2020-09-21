@@ -1,0 +1,14 @@
+.git
+checkpoints/
+data/*
+__pycach__
+.data/*
+.pytest_cache/*
+.circleci/*
+**/build/*
+**/dist/*
+**/.data/*
+**/env/*
+**/runs/*
+**/data/*
+

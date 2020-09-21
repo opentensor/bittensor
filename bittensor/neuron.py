@@ -91,6 +91,7 @@ class Neuron(nn.Module):
         logger.info("subscribe synapse: {}", synapse_proto)
         self._metagraph.subscribe(synapse_proto)
         self._axon.subscribe(synapse_proto, synapse)
+        synapse.setup_optimizer()
 
     def __del__(self):
         """Stops background threads and destroys object.
