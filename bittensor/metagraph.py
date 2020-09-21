@@ -68,7 +68,7 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         Returns:
             List[str]: List of peers.
         """
-        peer_list = list(self._peers.values())
+        peer_list = list(self._peers)
         min_n = min(len(peer_list), n)
         return peer_list[:min_n]
     
@@ -85,8 +85,8 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
             self._heatbeat[synapse.synapse_key] = time.time()      
 
     def Gossip(self, request: bittensor_pb2.GossipBatch, context):
-        synapses = self._get_synapses(1000)
-        peers = self._get_peers(10)
+        synapses = self.get_synapses(1000)
+        peers = self.get_peers(10)
         self._sink(request)
         response = bittensor_pb2.GossipBatch(peer=peers, synapses=synapses)
         return response
@@ -95,8 +95,8 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         """ Sends gossip query to random peer"""
         if len(self._peers) == 0:
             return
-        synapses = self._get_synapses(1000)
-        peers = self._get_peers(10)
+        synapses = self.get_synapses(1000)
+        peers = self.get_peers(10)
         metagraph_address = random.choice(list(self._peers))
         realized_address = metagraph_address
         if metagraph_address.split(':')[0] == self._config.remote_ip:
@@ -105,7 +105,7 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
             version = bittensor.__version__
             channel = grpc.insecure_channel(realized_address)
             stub = bittensor_grpc.MetagraphStub(channel)
-            request = bittensor_pb2.GossipBatch(peers=peers, synapses=batch)
+            request = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses)
             response = stub.Gossip(request)
             self._sink(response)
         except:

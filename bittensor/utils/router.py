@@ -1,13 +1,15 @@
 from typing import List, Tuple
 
 import torch
+import torch.nn as nn 
 
 from bittensor import bittensor_pb2
 import bittensor
 import bittensor
 
-class Router ():
+class Router (nn.Module):
     def __init__(self, x_dim, key_dim, topk):
+        super().__init__()
         self.x_dim = x_dim
         self.key_dim = key_dim
         self.topk = topk
@@ -20,11 +22,7 @@ class Router ():
         self.gate = bittensor.Gate(self.x_dim, self.topk, self.key_dim)
 
         # Object for dispatching / combining gated inputs
-        self.dispatcher = bittensor.Dispatcher()
-
-        # Device
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
+        self.dispatcher = bittensor.Dispatcher()        
         
     def route (self, inputs: torch.Tensor, synapses: List[bittensor_pb2.Synapse]) -> Tuple[List[torch.Tensor], torch.Tensor]:
         # Get synapses from the metagraph.

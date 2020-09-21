@@ -25,21 +25,9 @@ class Net(bittensor.Synapse):
         self.conv2 = nn.Conv2d(6, 16, kernel_size=5, stride=1).to(self.device)
         self.average2 = nn.AvgPool2d(2, stride=2).to(self.device)
         self.conv3 = nn.Conv2d(16, 120, kernel_size=4, stride=1).to(self.device)
-        self.conv2_drop = nn.Dropout2d().to(self.device)
-        self.flatten=Flatten().to(self.device)
-        
         self.fc1 = nn.Linear(120, 82).to(self.device)
         self.fc2 = nn.Linear(82, 10).to(self.device)
         
-            # Build the optimizer.
-        self.optimizer = optim.SGD(self.parameters(),
-                          lr=0.1,
-                          momentum=0.9)
-        #self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        #self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        #self.conv2_drop = nn.Dropout2d()
-        #self.fc1 = nn.Linear(320, 50)
-        #self.fc2 = nn.Linear(50, 10)
         
     # TODO(const): hide protos
     def indef(self):
@@ -75,10 +63,6 @@ class Net(bittensor.Synapse):
         x = F.relu(self.fc2(x)).to(self.device)
         x = F.log_softmax(x).to(self.device)
         return x
-    
-class Flatten(nn.Module):
-    def forward(self, input):
-        return input.view(input.size(0), -1)
 
 
 def main(hparams):
@@ -130,34 +114,30 @@ def main(hparams):
     
     # Build summary writer for tensorboard.
     writer = SummaryWriter(log_dir='./runs/' + config.neuron_key)
- 
     # Build the optimizer.
-    optimizer = optim.SGD(net.parameters(),
+    optimizer = optim.SGD(router.parameters(),
                           lr=learning_rate,
                           momentum=momentum)
-    
 
     def train(epoch, global_step):
         net.train()
         correct = 0
         for batch_idx, (data, target) in enumerate(train_loader):
-            #net.optimizer.zero_grad()
+            optimizer.zero_grad()
             # Flatten mnist inputs
             inputs = torch.flatten(data, start_dim=1).to(net.device)
             # Query the remote network.
             synapses = neuron.synapses() # Returns a list of synapses on the network.
             requests, scores = router.route(inputs, synapses) # routes inputs to network.
             responses = neuron(requests, synapses) # Makes network calls.
-            remote = router.join(responses) # Joins responses based on scores.
+            output = router.join(responses) # Joins responses based on scores.
             
             # Query the local network.
-            local = net(inputs)
+            #local = net(inputs)
 
-            # Train.
-            output = local + remote
             loss = F.nll_loss(output, target.to(net.device))
             loss.backward()
-            #optimizer.step()
+            optimizer.step()
             global_step += 1
             
             # Set network weights.
