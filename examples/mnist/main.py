@@ -30,6 +30,11 @@ class Net(bittensor.Synapse):
         
         self.fc1 = nn.Linear(120, 82).to(self.device)
         self.fc2 = nn.Linear(82, 10).to(self.device)
+        
+            # Build the optimizer.
+        self.optimizer = optim.SGD(self.parameters(),
+                          lr=0.1,
+                          momentum=0.9)
         #self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
         #self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
         #self.conv2_drop = nn.Dropout2d()
@@ -125,17 +130,18 @@ def main(hparams):
     
     # Build summary writer for tensorboard.
     writer = SummaryWriter(log_dir='./runs/' + config.neuron_key)
-    
+ 
     # Build the optimizer.
     optimizer = optim.SGD(net.parameters(),
                           lr=learning_rate,
                           momentum=momentum)
+    
 
     def train(epoch, global_step):
         net.train()
         correct = 0
         for batch_idx, (data, target) in enumerate(train_loader):
-            optimizer.zero_grad()
+            #net.optimizer.zero_grad()
             # Flatten mnist inputs
             inputs = torch.flatten(data, start_dim=1).to(net.device)
             # Query the remote network.
@@ -151,7 +157,7 @@ def main(hparams):
             output = local + remote
             loss = F.nll_loss(output, target.to(net.device))
             loss.backward()
-            optimizer.step()
+            #optimizer.step()
             global_step += 1
             
             # Set network weights.
