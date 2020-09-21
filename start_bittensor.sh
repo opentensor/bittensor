@@ -96,10 +96,10 @@ function start_local_service() {
 
     if [[ "$(docker images -q $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG 2> /dev/null)" == "" ]]; then
         log "Building $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG"
-        docker built -t $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG -f ./examples/$neuron/Dockerfile .
+        docker build --tag $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG -f ./examples/$neuron/Dockerfile .
     else
          # Build anyway
-    docker build -t $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG -f ./examples/$neuron/Dockerfile .
+    docker build --tag $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG -f ./examples/$neuron/Dockerfile .
     fi
 
     # Stop the container if it is already running.

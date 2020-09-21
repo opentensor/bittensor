@@ -13,10 +13,7 @@ class Synapse(nn.Module):
     def __init__(self):
         super().__init__()
         self._synapse_key = bittensor.Crypto.public_key_to_string(bittensor.Crypto.generate_private_ed25519().public_key())
-        # Build the optimizer.
-        #self.opt = optim.SGD(params,
-        #                  lr=0.01,
-        #                  momentum=0.9)
+        self.optimizer = None
         
     def indef(self) -> bittensor_pb2.TensorDef:
         raise NotImplementedError
@@ -25,8 +22,14 @@ class Synapse(nn.Module):
         return NotImplementedError  
     
     def synapse_key(self) -> str:
-        return self._synapse_key      
+        return self._synapse_key
     
+    def setup_optimizer(self):
+        if not self.optimizer:
+            self.optimizer = optim.SGD(self.parameters(),
+                          lr=0.1,
+                          momentum=0.9)
+        
     def call_forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """
         Apply forward pass to the nn.module given inputs.
@@ -41,12 +44,9 @@ class Synapse(nn.Module):
         Apply a backward pass to the nn.module given grads and inputs.
         """
         with torch.enable_grad():
-            #pass
-            # TODO(const): fix this.
             outputs = self.forward(inputs)
             torch.autograd.backward(outputs, grad_tensors=grads, create_graph=False, retain_graph=False)
             self.apply_gradients()
-        #print ('return none')
         return torch.zeros_like(inputs)
 
     def apply_gradients(self) -> None:

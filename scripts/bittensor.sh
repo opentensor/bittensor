@@ -17,7 +17,7 @@ NEURON=$5
 function start_neuron() {
     log ""
     log "=== start Neuron ==="
-    COMMAND="python3 ./examples/$NEURON/main.py"
+    COMMAND="python3 ./examples/$NEURON/main.py --bootstrap '$SERVE_ADDRESS:$PORT'"
     log "$COMMAND"
     eval $COMMAND &
     NeuronPID=$!
