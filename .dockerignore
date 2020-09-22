@@ -11,4 +11,6 @@ __pycach__
 **/env/*
 **/runs/*
 **/data/*
+**/.data/*
+**/*.txt
 
