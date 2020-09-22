@@ -16,6 +16,9 @@ import bittensor
 
 class Net(bittensor.Synapse):
     """ An bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
+    
+    
+    
     """
     def __init__(self):
         super(Net, self).__init__()
