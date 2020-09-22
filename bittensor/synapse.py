@@ -44,11 +44,11 @@ class Synapse(nn.Module):
         """
         Apply a backward pass to the nn.module given grads and inputs.
         """
-        #with torch.enable_grad():
+        # NOTE(const): removing gradient application here, needs to be replaced with gradient queueing.
+        # with torch.enable_grad():
         #    outputs = self.forward(inputs)
         #    torch.autograd.backward(outputs, grad_tensors=grads.to(self.device), create_graph=False, retain_graph=False)
         #    self.apply_gradients()
-        # NOTE(const): removing gradient application here, needs to be replaced with gradient queueing.
         return torch.zeros_like(inputs)
 
     def apply_gradients(self) -> None:
