@@ -28,7 +28,7 @@ class TransformerSynapse(bittensor.Synapse):
     def indef(self):
         x_def = bittensor_pb2.TensorDef(
                     version = bittensor.__version__,
-                    shape = [700, 20],
+                    shape = [-1, 20],
                     dtype = bittensor_pb2.INT64,
                     requires_grad = True,
                 )
@@ -37,8 +37,8 @@ class TransformerSynapse(bittensor.Synapse):
     def outdef(self):
         y_def = bittensor_pb2.TensorDef(
                     version = bittensor.__version__,
-                    shape = [700, 20],
-                    dtype = bittensor_pb2.INT64,
+                    shape = [-1, 120],
+                    dtype = bittensor_pb2.FLOAT32,
                     requires_grad = True,
                 )
         return [y_def]
@@ -54,9 +54,9 @@ class TransformerSynapse(bittensor.Synapse):
 def main(hparams):
     
     # Args
-    batch_size = 20
+    batch_size = 50
     eval_batch_size = 20
-    bptt = 6
+    bptt = 200
     log_interval = 10
     
     dataset = Dataset(bptt)
@@ -83,7 +83,7 @@ def main(hparams):
     neuron = bittensor.Neuron(config)
     
     # Init a trainable request router.
-    router = bittensor.Router(x_dim = dataset.bptt * emsize, key_dim = 100, topk = 10)
+    router = bittensor.Router(x_dim = batch_size, key_dim = 100, topk = 10)
     
     # Build local network.
     net = TransformerSynapse(transformer, ntokens)
@@ -100,28 +100,19 @@ def main(hparams):
     optimizer = torch.optim.SGD(net.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
     
-    
     def train(dataset, transformer, epoch):
         transformer.train()  # Turn on the train mode
         total_loss = 0.
         global_step = 0
         start_time = time.time()
         ntokens = len(dataset.TEXT.vocab.stoi)
-        for batch_idx, i in enumerate(range(0,train_data.size(0) - 1, dataset.bptt)):
+        for batch_idx, i in enumerate(range(0,train_data.size(0) - 1, bptt)):
             data, targets = dataset.get_batch(train_data, i)
             optimizer.zero_grad()
 
-            # Flatten encoder inputs inputs
-            inputs = data.view(-1, bptt, emsize)
-            inputs = torch.flatten(inputs, start_dim=1)
-
-            # Query the local network.
-            #local = net(inputs)
-            
             # Query the remote network.
             synapses = neuron.synapses() # Returns a list of synapses on the network.
-            
-            requests, scores = router.route(inputs.float(), synapses) # routes inputs to network.
+            requests, scores = router.route(data.float(), synapses) # routes inputs to network.
 
             # Convert request indices back to type long()
             request_list = [*requests]
@@ -131,18 +122,11 @@ def main(hparams):
             responses = neuron(requests, synapses) # Makes network calls.
             
             output = router.join(responses) # Joins responses based on scores.
-
-            #local = net(inputs)
-            #remote = output.view(-1, batch_size, emsize)
-
-            # Train.
-            #output = remote + local
-            # Decode responses.
-
+            # Since model returns encoded version, we should decode here.
             output = net.transformer.decode(output.view(-1, batch_size, emsize))
             loss = criterion(output.view(-1, ntokens), targets)
+            torch.nn.utils.clip_grad_norm_(router.parameters(), 0.5)
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(net.parameters(), 0.5)
             optimizer.step()
             global_step += 1
             
@@ -154,9 +138,9 @@ def main(hparams):
             if batch_idx % log_interval == 0:
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f} \tnP|nS: {}|{}'.format(
                             epoch, 
-                            batch_idx * len(data), 
+                            batch_idx * batch_size, 
                             train_data.size(0) - 1,
-                            100. * (batch_idx * len(data)) / train_data.size(0) - 1, 
+                            100. * (batch_idx * batch_size) / train_data.size(0) - 1, 
                             loss.item(), 
                             len(neuron.metagraph.peers), 
                             len(neuron.metagraph.synapses)))
@@ -168,20 +152,20 @@ def main(hparams):
         correct = 0
         with torch.no_grad():
             for i in range(0,
-                      data_source.size(0) - 1, dataset.bptt):
-
+                      data_source.size(0) - 1, bptt):
+                
                 # Get batch
                 data, targets = dataset.get_batch(data_source, i)
                 
                 # Query local network
                 output = net(data)
-                output = net.transformer.decode(output.view(-1, batch_size, emsize))
+                output = net.transformer.decode(output.view(-1, eval_batch_size, emsize))
 
                 output_flat = output.view(-1, ntokens)
-                test_loss += len(data) * criterion(output_flat, targets).item()
+                test_loss += len(data) + criterion(output_flat, targets).item()
                 
 
-        test_loss /= (len(data_source) - 1)
+        test_loss /= (data_source.size(0) - 1)
         test_result = 'Test set: Avg. loss: {:.4f}\n'.format(test_loss)
         #test_result = 'Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         #    test_loss, correct, 
@@ -209,7 +193,7 @@ def main(hparams):
             scheduler.step()
             epoch += 1
     except Exception as e:
-        logger.error(e)
+        logger.exception(e)
         neuron.stop()
     
         
