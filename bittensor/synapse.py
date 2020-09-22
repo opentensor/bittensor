@@ -4,23 +4,28 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from bittensor import bittensor_pb2
 import bittensor
+from bittensor import bittensor_pb2
     
 class Synapse(nn.Module):
     """
     """
-    def __init__(self):
+    def __init__(self, config: bittensor.Config):
         super().__init__()
+        self._config = config
         self._synapse_key = bittensor.Crypto.public_key_to_string(bittensor.Crypto.generate_private_ed25519().public_key())
         self.optimizer = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
+    def to_proto(self):
+        synapse_proto = bittensor_pb2.Synapse(version = bittensor.__version__, neuron_key = self._config.neuron_key, synapse_key = self.synapse_key(), address = self._config.remote_ip, port = self._config.axon_port, indef = self.indef(), outdef = self.outdef())
+        return synapse_proto
+
     def indef(self) -> bittensor_pb2.TensorDef:
         raise NotImplementedError
     
     def outdef(self) -> bittensor_pb2.TensorDef:
-        return NotImplementedError  
+        return NotImplementedError
     
     def synapse_key(self) -> str:
         return self._synapse_key
@@ -44,15 +49,16 @@ class Synapse(nn.Module):
         """
         Apply a backward pass to the nn.module given grads and inputs.
         """
-        with torch.enable_grad():
-            outputs = self.forward(inputs)
-            torch.autograd.backward(outputs, grad_tensors=grads.to(self.device), create_graph=False, retain_graph=False)
-            self.apply_gradients()
+        # with torch.enable_grad():
+        #     outputs = self.forward(inputs)
+        #     torch.autograd.backward(outputs, grad_tensors=grads.to(self.device), create_graph=False, retain_graph=False)
+        #     self.apply_gradients()
         return torch.zeros_like(inputs)
 
     def apply_gradients(self) -> None:
         """
         Train the expert for one step.
         """
-        self.optimizer.step()
-        self.optimizer.zero_grad()
+        pass
+        # self.optimizer.step()
+        # self.optimizer.zero_grad()

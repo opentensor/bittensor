@@ -24,7 +24,7 @@ class Router (nn.Module):
         # Object for dispatching / combining gated inputs
         self.dispatcher = bittensor.Dispatcher()        
         
-    def route (self, inputs: torch.Tensor, synapses: List[bittensor_pb2.Synapse]) -> Tuple[List[torch.Tensor], torch.Tensor]:
+    def route (self, synapses: List[bittensor_pb2.Synapse], inputs: torch.Tensor) -> Tuple[List[torch.Tensor], torch.Tensor]:
         # Get synapses from the metagraph.
         # and map synapses to torch keys.
         keys = self.keymap.toKeys(synapses)  # (n_keys, key_dim)

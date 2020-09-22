@@ -26,6 +26,6 @@ from bittensor.utils.keys import Keys
 from bittensor.utils.gate import Gate
 from bittensor.utils.dispatcher import Dispatcher
 from bittensor.utils.router import Router
-from bittensor.neuron import Neuron
+
 
 __version__ = '0.0.0'
