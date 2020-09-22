@@ -36,8 +36,7 @@ class Mnist(bittensor.Synapse):
         self.dist_average2 = nn.AvgPool2d(2, stride=2)
         self.dist_conv3 = nn.Conv2d(16, 120, kernel_size=4, stride=1)
         self.dist_fc1 = nn.Linear(120, 82)
-        self.dist_fc2 = nn.Linear(82, 10)
-        
+        self.dist_fc2 = nn.Linear(82, 10)    
         
     # TODO(const): hide protos
     def indef(self):
@@ -70,7 +69,8 @@ class Mnist(bittensor.Synapse):
         x = F.relu(self.dist_fc2(x))
         return x
     
-    def forward (self, x, net_x = None):
+    def forward (self, x, y = None):
+        y = self.distill(x) if y == None else y
         x = x.view(-1, 1, 28, 28)
         x = torch.tanh(self.conv1(x))
         x = self.average1(x)
@@ -81,10 +81,7 @@ class Mnist(bittensor.Synapse):
         x = F.dropout(x, training=self.training)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        # Join network input.
-        #net_x = self.distill(x) if (net_x == None) else (net_x)
-        #x = x + net_x # Join the distilled outputs
-        x = F.log_softmax(x)
+        x = F.log_softmax(x + y)
         return x
 
 def main(hparams):
@@ -137,12 +134,11 @@ def main(hparams):
     neuron.start()
     
     # Build summary writer for tensorboard.
-    #writer = SummaryWriter(log_dir='./runs/' + config.neuron_key)
+    writer = SummaryWriter(log_dir='./runs/' + config.neuron_key)
+    
     # Build the optimizer.
     params = list(router.parameters()) + list(model.parameters())
-    optimizer = optim.SGD(params,
-                          lr=learning_rate,
-                          momentum=momentum)
+    optimizer = optim.SGD(params, lr=learning_rate, momentum=momentum)
 
     def train(model, epoch, global_step):
         model.train()
@@ -181,41 +177,57 @@ def main(hparams):
             neuron.setweights(synapses, weights)
 
             if batch_idx % log_interval == 0:
-            #     writer.add_scalar('n_peers', len(neuron.metagraph.peers),
-            #                       global_step)
-            #     writer.add_scalar('n_synapses', len(neuron.metagraph.synapses),
-            #                       global_step)
-            #     writer.add_scalar('Loss/train', float(loss.item()),
-            #                       global_step)
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f} \tnP|nS: {}|{}'.format(
-                    epoch, batch_idx * len(data), len(train_loader.dataset),
-                    100. * batch_idx / len(train_loader), loss.item(), len(neuron.metagraph.peers), len(neuron.metagraph.synapses)))
+                writer.add_scalar('n_peers', len(neuron.metagraph.peers),
+                                  global_step)
+                writer.add_scalar('n_synapses', len(neuron.metagraph.synapses),
+                                  global_step)
+                writer.add_scalar('Loss/train', float(loss.item()),
+                                  global_step)
+            
+                n = len(train_loader.dataset)
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item()))
 
     def test(model):
+        
+        # Turns off Dropoutlayers, BatchNorm etc.
         model.eval()
-        test_loss = 0
-        correct = 0
+        
+        # Turns off gradient computation for inference speed up.
         with torch.no_grad():
+            
+            loss = 0.0
+            correct = 0.0
             for data, target in test_loader:
+                # Set data to correct device.
                 data = data.to(device)
                 target = target.to(device)
                 
-                output = model(data, model.distill(data))
-                test_loss += F.nll_loss(output, target, size_average=False).item()
-                pred = output.data.max(1, keepdim=True)[1]
-                correct += pred.eq(target.data.view_as(pred)).sum()
+                # Measure loss.
+                logits = model( data )
+                loss += F.nll_loss(logits, target, size_average=False).item()
+                
+                # Count accurate predictions.
+                max_logit = logits.data.max(1, keepdim=True)[1]
+                correct += max_logit.eq( target.data.view_as(max_logit) ).sum()
 
-        test_loss /= len(test_loader.dataset)
-        logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))        
-    
+        # Log results.
+        n = len(test_loader.dataset)
+        loss /= n
+        accuracy = (100. * correct) / n
+        logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))        
+        return loss, accuracy
+
     epoch = 0
     global_step = 0
     try:
         while True:
+            # Train model
             train( model, epoch, global_step )
-            test( model )
+            
+            # Test model.
+            test_loss, test_accuracy = test( model )
+            
             # TODO (const): save(model)
             # TODO (const): axon.serve(model)
             epoch += 1
