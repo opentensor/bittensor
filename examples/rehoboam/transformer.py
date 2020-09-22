@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import bittensor
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
-class TransformerModel(bittensor.Synapse):
+class TransformerModel(nn.Module):
 
     def __init__(self, ntoken, ninp, nhead, nhid, nlayers, dropout=0.5):
         super(TransformerModel, self).__init__()
