@@ -75,9 +75,11 @@ class CIFAR(bittensor.Synapse):
     
 def main(hparams):
 
-    batch_size = 4
+    batch_size_train = 50
+    batch_size_test = 50
     input_dimension = 3072
     output_dimension = 10
+    log_interval = 10
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Load CIFAR
@@ -85,14 +87,14 @@ def main(hparams):
         [transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
+    trainset = torchvision.datasets.CIFAR10(root="~/tmp/bittensor/data/", train=True,
                                         download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size = batch_size,
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size = batch_size_train,
                                           shuffle=True, num_workers=2)
 
-    testset = torchvision.datasets.CIFAR10(root='./data', train=False,
+    testset = torchvision.datasets.CIFAR10(root="~/tmp/bittensor/data/", train=False,
                                        download=True, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size = batch_size,
+    testloader = torch.utils.data.DataLoader(testset, batch_size = batch_size_test,
                                          shuffle=False, num_workers=2)
 
     classes = ('plane', 'car', 'bird', 'cat','deer', 'dog', 'frog', 'horse', 'ship', 'truck')
@@ -117,19 +119,20 @@ def main(hparams):
     neuron.start()
     
     # Build summary writer for tensorboard.
-    writer = SummaryWriter(log_dir='./runs/' + config.neuron_key)
+    writer = SummaryWriter(log_dir='./tmp/bittensor/runs/' + config.neuron_key)
     
     # Build the optimizer.
     criterion = nn.CrossEntropyLoss()
-    params = list(router.parameters()) + len(model.parameters())
+    params = list(router.parameters()) + list(model.parameters())
     optimizer = optim.SGD(params, lr=0.001, momentum=0.9)
 
     def train(model, epoch, global_step):
         running_loss = 0.0
         for i, data in enumerate(trainloader, 0):
             # get the inputs; data is a list of [inputs, labels]
-            data = data.to(device)
-            inputs, labels = data
+            inputs, targets = data
+            inputs.to(device)
+            targets.to(device)
 
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -145,11 +148,11 @@ def main(hparams):
             
              # Run distilled model.
             dist_output = model.distill(inputs)
-            dist_loss = F.kl_div(dist_output, network_input.detach())
+            dist_loss = F.kl_div(dist_output, network_outputs.detach())
             
             # Query the local network.
-            local_output = model.forward(inputs, network_input)
-            target_loss = F.nll_loss(local_output, target)
+            local_output = model.forward(inputs, network_outputs)
+            target_loss = F.nll_loss(local_output, targets)
             
             loss = (target_loss + dist_loss)
             loss.backward()
@@ -161,7 +164,7 @@ def main(hparams):
             weights = (0.99) * weights + 0.01 * torch.mean(scores, dim=0)
             neuron.setweights(synapses, weights)
 
-            if batch_idx % log_interval == 0:
+            if i % log_interval == 0:
 
                 writer.add_scalar('n_peers', len(neuron.metagraph.peers),
                                   global_step)
@@ -170,9 +173,9 @@ def main(hparams):
                 writer.add_scalar('Loss/train', float(loss.item()),
                                   global_step)
             
-                n = len(train_loader.dataset)
+                n = len(trainloader.dataset)
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}'.format(
-                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item(), dist_loss.item()))
+                    epoch, (i * batch_size_train), n, (100. * i * batch_size_train)/n, loss.item(), dist_loss.item()))
 
     def test(model):
         
@@ -184,21 +187,22 @@ def main(hparams):
             
             loss = 0.0
             correct = 0.0
-            for data, target in test_loader:
+            for i, data in enumerate(testloader, 0):
                 # Set data to correct device.
-                data = data.to(device)
-                target = target.to(device)
+                inputs, targets = data
+                inputs = inputs.to(device)
+                targets = targets.to(device)
                 
                 # Measure loss.
-                logits = model( data )
-                loss += F.nll_loss(logits, target, size_average=False).item()
+                logits = model( inputs )
+                loss += F.nll_loss(logits, targets, size_average=False).item()
                 
                 # Count accurate predictions.
                 max_logit = logits.data.max(1, keepdim=True)[1]
-                correct += max_logit.eq( target.data.view_as(max_logit) ).sum()
+                correct += max_logit.eq( targets.data.view_as(max_logit) ).sum()
 
         # Log results.
-        n = len(test_loader.dataset)
+        n = len(testloader.dataset)
         loss /= n
         accuracy = (100. * correct) / n
         logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))        
@@ -215,6 +219,7 @@ def main(hparams):
             test_loss, test_accuracy = test( model )
             
             epoch += 1
+            
     except Exception as e:
         logger.error(e)
         neuron.stop()
