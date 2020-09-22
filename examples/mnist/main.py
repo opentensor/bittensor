@@ -12,7 +12,6 @@ from torch.utils.tensorboard import SummaryWriter
 
 import bittensor
 from bittensor import bittensor_pb2
-import bittensor
 
 class Mnist(bittensor.Synapse):
     """ An bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
@@ -178,6 +177,7 @@ def main(hparams):
             neuron.setweights(synapses, weights)
 
             if batch_idx % log_interval == 0:
+
                 writer.add_scalar('n_peers', len(neuron.metagraph.peers),
                                   global_step)
                 writer.add_scalar('n_synapses', len(neuron.metagraph.synapses),
