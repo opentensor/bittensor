@@ -14,6 +14,7 @@ class Synapse(nn.Module):
         super().__init__()
         self._synapse_key = bittensor.Crypto.public_key_to_string(bittensor.Crypto.generate_private_ed25519().public_key())
         self.optimizer = None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
     def indef(self) -> bittensor_pb2.TensorDef:
         raise NotImplementedError
@@ -45,7 +46,7 @@ class Synapse(nn.Module):
         """
         with torch.enable_grad():
             outputs = self.forward(inputs)
-            torch.autograd.backward(outputs, grad_tensors=grads, create_graph=False, retain_graph=False)
+            torch.autograd.backward(outputs, grad_tensors=grads.to(self.device), create_graph=False, retain_graph=False)
             self.apply_gradients()
         return torch.zeros_like(inputs)
 

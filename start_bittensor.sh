@@ -38,7 +38,7 @@ fi
 
 # hardcoded port for now
 # TODO(shibshib) should bind and advertise port instead.
-port=8120
+port=$(( ( RANDOM % 60000 ) + 5000 ))
 
 # Directory for sinking logs and model updates.
 # TODO(const) Should be root dir.
