@@ -179,4 +179,10 @@ yarn-error.log*
 
 **/build/*
 **/dist/*
+**/runs/*
+**/env/*
+**/data/*
+# Ignore any changes in protobuf code, since that should be locally generated
+**/bittensor_pb2*.py
 
+**/.bash_history

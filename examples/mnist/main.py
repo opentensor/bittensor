@@ -144,6 +144,7 @@ def main(hparams):
         model.train()
         correct = 0
         for batch_idx, (data, target) in enumerate(train_loader):
+            
             optimizer.zero_grad()
             
             # Set data device.
@@ -185,8 +186,8 @@ def main(hparams):
                                   global_step)
             
                 n = len(train_loader.dataset)
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item()))
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}'.format(
+                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item(), dist_loss.item()))
 
     def test(model):
         
