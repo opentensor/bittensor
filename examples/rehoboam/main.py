@@ -116,7 +116,7 @@ def main(hparams):
             inputs = torch.flatten(inputs, start_dim=1)
 
             # Query the local network.
-            local = net(inputs)
+            #local = net(inputs)
             
             # Query the remote network.
             synapses = neuron.synapses() # Returns a list of synapses on the network.
@@ -130,13 +130,13 @@ def main(hparams):
 
             responses = neuron(requests, synapses) # Makes network calls.
             
-            remote = router.join(responses) # Joins responses based on scores.
+            output = router.join(responses) # Joins responses based on scores.
 
             #local = net(inputs)
             #remote = output.view(-1, batch_size, emsize)
 
             # Train.
-            output = remote + local
+            #output = remote + local
             # Decode responses.
 
             output = net.transformer.decode(output.view(-1, batch_size, emsize))
