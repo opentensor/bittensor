@@ -139,7 +139,8 @@ def main(hparams):
     # Build summary writer for tensorboard.
     #writer = SummaryWriter(log_dir='./runs/' + config.neuron_key)
     # Build the optimizer.
-    optimizer = optim.SGD(router.parameters(),
+    params = list(router.parameters()) + list(model.parameters())
+    optimizer = optim.SGD(params,
                           lr=learning_rate,
                           momentum=momentum)
 
