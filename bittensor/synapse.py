@@ -18,7 +18,15 @@ class Synapse(nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
     def to_proto(self):
-        synapse_proto = bittensor_pb2.Synapse(version = bittensor.__version__, neuron_key = self._config.neuron_key, synapse_key = self.synapse_key(), address = self._config.remote_ip, port = self._config.axon_port, indef = self.indef(), outdef = self.outdef())
+        synapse_proto = bittensor_pb2.Synapse(
+            version = bittensor.__version__, 
+            neuron_key = self._config.neuron_key, 
+            synapse_key = self.synapse_key(), 
+            address = self._config.remote_ip, 
+            port = self._config.axon_port, 
+            indef = self.indef(), 
+            outdef = self.outdef()
+        )
         return synapse_proto
     
     @property

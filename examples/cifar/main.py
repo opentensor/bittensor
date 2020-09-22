@@ -15,8 +15,8 @@ from bittensor import bittensor_pb2
 
 class CIFAR(bittensor.Synapse):
         
-    def __init__(self):
-        super(CIFAR, self).__init__()
+    def __init__(self, config: bittensor.Config):
+        super(CIFAR, self).__init__(config)
         
         # Main Network
         self.conv1 = nn.Conv2d(3, 6, 5)
@@ -56,24 +56,14 @@ class CIFAR(bittensor.Synapse):
         x = F.log_softmax(x)
         return x
     
-    def indef(self):
-        x_def = bittensor.bittensor_pb2.TensorDef(
-                    version = bittensor.__version__,
-                    shape = [-1, 3072],
-                    dtype = bittensor_pb2.FLOAT32,
-                    requires_grad = True,
-                )
-        return [x_def]
+    @property
+    def input_shape(self):
+        return [-1, 3072]
     
-    def outdef(self):
-        y_def = bittensor.bittensor_pb2.TensorDef(
-                    version = bittensor.__version__,
-                    shape = [-1, 10],
-                    dtype = bittensor_pb2.FLOAT32,
-                    requires_grad = True,
-                )
-        return [y_def]
-    
+    @property
+    def output_shape(self):
+        return [-1, 10]
+        
 def main(hparams):
 
     batch_size_train = 50
@@ -84,6 +74,8 @@ def main(hparams):
     momentum = 0.9
     log_interval = 10
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    config = bittensor.Config(hparams)
 
     # Load CIFAR
     transform = transforms.Compose(
@@ -100,29 +92,32 @@ def main(hparams):
     testloader = torch.utils.data.DataLoader(testset, batch_size = batch_size_test,
                                          shuffle=False, num_workers=2)
 
-    classes = ('plane', 'car', 'bird', 'cat','deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-    # bittensor:
-    # Load bittensor config from hparams.
-    config = bittensor.Config(hparams)
-    
-    # Build the neuron from configs.
-    neuron = bittensor.Neuron(config)
-    
-    # Init a trainable request router.
-    router = bittensor.Router(x_dim = input_dimension, key_dim = 100, topk = 10)
-    
-    # Build local network.
-    model = CIFAR()
-    model.to(device)
-    
-    # Subscribe the local network to the network
-    neuron.subscribe(model)
-    
-    # Start the neuron backend.
-    neuron.start()
-    
     # Build summary writer for tensorboard.
     writer = SummaryWriter(log_dir='./tmp/bittensor/runs/' + config.neuron_key)
+    
+    # Build local synapse to serve on the network.
+    model = CIFAR(config) # Synapses take a config object.
+    model.to( device ) # Set model to device.
+    
+    # Build and start the metagraph background object.
+    # The metagraph is responsible for connecting to the blockchain
+    # and finding the other neurons on the network.
+    metagraph = bittensor.Metagraph( config )
+    metagraph.subscribe( model ) # Adds the synapse to the metagraph.
+    metagraph.start() # Starts the metagraph gossip threads.
+    
+    # Build and start the Axon server.
+    # The axon server serves the synapse objects 
+    # allowing other neurons to make queries through a dendrite.
+    axon = bittensor.Axon( config )
+    axon.serve( model ) # Makes the synapse available on the axon server.
+    axon.start() # Starts the server background threads. Must be paired with axon.stop().
+    
+    # Build the dendrite and router. 
+    # The dendrite is a torch object which makes calls to synapses across the network
+    # The router is responsible for learning which synapses to call.
+    dendrite = bittensor.Dendrite( config )
+    router = bittensor.Router(x_dim = input_dimension, key_dim = 100, topk = 10)    
     
     # Build the optimizer.
     criterion = nn.CrossEntropyLoss()
@@ -145,9 +140,9 @@ def main(hparams):
             inputs_flatten = torch.flatten(inputs, start_dim=1)
             
             # Query the remote network.
-            synapses = neuron.synapses() # Returns a list of synapses on the network. [...]
-            requests, scores = router.route(inputs_flatten, synapses) # routes inputs to network.
-            responses = neuron(requests, synapses) # Makes network calls.
+            synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network. [...]
+            requests, scores = router.route( synapses, inputs_flatten ) # routes inputs to network.
+            responses = dendrite ( synapses, requests ) # Makes network calls.
             network_outputs = router.join(responses) # Joins responses based on scores.
             
              # Run distilled model.
@@ -164,15 +159,15 @@ def main(hparams):
             global_step += 1
             
             # Set network weights.
-            weights = neuron.getweights(synapses).to(device)
+            weights = metagraph.getweights(synapses).to(device)
             weights = (0.99) * weights + 0.01 * torch.mean(scores, dim=0)
-            neuron.setweights(synapses, weights)
+            metagraph.setweights(synapses, weights)
 
             if i % log_interval == 0:
 
-                writer.add_scalar('n_peers', len(neuron.metagraph.peers),
+                writer.add_scalar('n_peers', len(metagraph.peers),
                                   global_step)
-                writer.add_scalar('n_synapses', len(neuron.metagraph.synapses),
+                writer.add_scalar('n_synapses', len(metagraph.synapses),
                                   global_step)
                 writer.add_scalar('Loss/train', float(loss.item()),
                                   global_step)
@@ -226,7 +221,8 @@ def main(hparams):
             
     except Exception as e:
         logger.error(e)
-        neuron.stop()
+        metagraph.stop()
+        axon.stop()
 
 
 if __name__ == "__main__":
