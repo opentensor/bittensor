@@ -146,8 +146,8 @@ def main(hparams):
                             train_data.size(0) - 1,
                             100. * (batch_idx * batch_size) / train_data.size(0) - 1, 
                             loss.item(), 
-                            len(neuron.metagraph.peers), 
-                            len(neuron.metagraph.synapses)))
+                            len(metagraph.peers), 
+                            len(metagraph.synapses)))
  
     def test(data_source):
         # Turn on evaluation mode
@@ -198,8 +198,8 @@ def main(hparams):
             epoch += 1
     except Exception as e:
         logger.exception(e)
-        neuron.stop()
-    
+        metagraph.stop()
+        axon.stop()
         
 
 
