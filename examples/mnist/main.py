@@ -12,13 +12,13 @@ from torch.utils.tensorboard import SummaryWriter
 
 import bittensor
 from bittensor import bittensor_pb2
-import bittensor
+
 
 class Mnist(bittensor.Synapse):
     """ An bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
     """
-    def __init__(self):
-        super(Mnist, self).__init__()
+    def __init__(self, config: bittensor.Config):
+        super(Mnist, self).__init__(config)
         
         # Main Network
         self.conv1 = nn.Conv2d(1, 6, kernel_size=5, stride=1)
@@ -94,6 +94,9 @@ def main(hparams):
     log_interval = 10
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    # Load bittensor config from hparams.
+    config = bittensor.Config( hparams )
+
     # Dataset.
     train_loader = torch.utils.data.DataLoader(torchvision.datasets.MNIST(
         root="~/tmp/",
@@ -112,30 +115,33 @@ def main(hparams):
             [torchvision.transforms.ToTensor()])),
                                             batch_size=batch_size_test, 
                                             shuffle=True)
-
-    # bittensor:
-    # Load bittensor config from hparams.
-    config = bittensor.Config(hparams)
-    
-    # Build the neuron from configs.
-    neuron = bittensor.Neuron(config)
-    
-    # Init a trainable request router.
-    router = bittensor.Router(x_dim = 784, key_dim = 100, topk = 10)
-    
-    # Build local network.
-    model = Mnist()
-    model.to(device) # Set model to device.
-    
-    # Subscribe the local network to the network
-    neuron.subscribe(model)
-    
-    # Start the neuron backend.
-    neuron.start()
-    
     # Build summary writer for tensorboard.
     writer = SummaryWriter(log_dir='./runs/' + config.neuron_key)
     
+    # Build local synapse to serve on the network.
+    model = Mnist(config) # Synapses take a config object.
+    model.to( device ) # Set model to device.
+    
+    # Build and start the metagraph background object.
+    # The metagraph is responsible for connecting to the blockchain
+    # and finding the other neurons on the network.
+    metagraph = bittensor.Metagraph( config )
+    metagraph.subscribe( model ) # Adds the synapse to the metagraph.
+    metagraph.start() # Starts the metagraph gossip threads.
+    
+    # Build and start the Axon server.
+    # The axon server serves the axon objects 
+    # allowing other neurons to make queries to this torch object.
+    axon = bittensor.Axon( config )
+    axon.serve( model ) # Makes the synapse available on the axon server.
+    axon.start() # Starts the server background threads. Must be paired with axon.stop().
+    
+    # Build the dendrite and router. 
+    # The dendrite is a torch object which makes calls to synapses across the network
+    # The router is responsible for learning which synapses to call.
+    dendrite = bittensor.Dendrite( config )
+    router = bittensor.Router(x_dim = 784, key_dim = 100, topk = 10)
+        
     # Build the optimizer.
     params = list(router.parameters()) + list(model.parameters())
     optimizer = optim.SGD(params, lr=learning_rate, momentum=momentum)
@@ -153,11 +159,11 @@ def main(hparams):
             
             # Query the remote network.
             # Flatten mnist inputs for routing.
-            inputs = torch.flatten(data, start_dim=1)
-            synapses = neuron.synapses() # Returns a list of synapses on the network.
-            requests, scores = router.route(inputs, synapses) # routes inputs to network.
-            responses = neuron(requests, synapses) # Makes network calls.
-            network_input = router.join(responses) # Joins responses based on scores.
+            inputs = torch.flatten( data, start_dim=1 )
+            synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network (max 1000).
+            requests, scores = router.route( synapses, inputs ) # routes inputs to network.
+            responses = dendrite ( synapses, requests ) # Makes network calls.
+            network_input = router.join( responses ) # Joins responses based on scores.
             
             # Run distilled model.
             dist_output = model.distill(inputs)
@@ -173,14 +179,14 @@ def main(hparams):
             global_step += 1
             
             # Set network weights.
-            weights = neuron.getweights(synapses).to(device)
+            weights = metagraph.getweights(synapses).to(device)
             weights = (0.99) * weights + 0.01 * torch.mean(scores, dim=0)
-            neuron.setweights(synapses, weights)
+            metagraph.setweights(synapses, weights)
 
             if batch_idx % log_interval == 0:
-                writer.add_scalar('n_peers', len(neuron.metagraph.peers),
+                writer.add_scalar('n_peers', len(metagraph.peers),
                                   global_step)
-                writer.add_scalar('n_synapses', len(neuron.metagraph.synapses),
+                writer.add_scalar('n_synapses', len(metagraph.synapses),
                                   global_step)
                 writer.add_scalar('Loss/train', float(loss.item()),
                                   global_step)
@@ -232,9 +238,11 @@ def main(hparams):
             # TODO (const): save(model)
             # TODO (const): axon.serve(model)
             epoch += 1
+            
     except Exception as e:
         logger.error(e)
-        neuron.stop()
+        metagraph.stop()
+        axon.stop()
 
 
 if __name__ == "__main__":
