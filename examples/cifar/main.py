@@ -27,21 +27,21 @@ class CIFAR(bittensor.Synapse):
         self.fc3 = nn.Linear(84, 10)
         
         # Distill Network
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
+        self.dist_conv1 = nn.Conv2d(3, 6, 5)
+        self.dist_pool = nn.MaxPool2d(2, 2)
+        self.dist_conv2 = nn.Conv2d(6, 16, 5)
+        self.dist_fc1 = nn.Linear(16 * 5 * 5, 120)
+        self.dist_fc2 = nn.Linear(120, 84)
+        self.dist_fc3 = nn.Linear(84, 10)
 
     def distill(self, x):   
         x = x.view(-1, 3, 32, 32)
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
+        x = self.pool(F.relu(self.dist_conv1(x)))
+        x = self.pool(F.relu(self.dist_conv2(x)))
         x = x.view(-1, 16 * 5 * 5)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.relu(self.dist_fc1(x))
+        x = F.relu(self.dist_fc2(x))
+        x = self.dist_fc3(x)
         return x
     
     def forward(self, x, y = None):
@@ -52,7 +52,8 @@ class CIFAR(bittensor.Synapse):
         x = x.view(-1, 16 * 5 * 5)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.relu(self.fc3(x))
+        x = F.log_softmax(x)
         return x
     
     def indef(self):
@@ -79,6 +80,8 @@ def main(hparams):
     batch_size_test = 50
     input_dimension = 3072
     output_dimension = 10
+    learning_rate = 0.01
+    momentum = 0.9
     log_interval = 10
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -124,18 +127,19 @@ def main(hparams):
     # Build the optimizer.
     criterion = nn.CrossEntropyLoss()
     params = list(router.parameters()) + list(model.parameters())
-    optimizer = optim.SGD(params, lr=0.001, momentum=0.9)
+    optimizer = optim.SGD(params, lr=learning_rate, momentum=momentum)
 
     def train(model, epoch, global_step):
         running_loss = 0.0
         for i, data in enumerate(trainloader, 0):
+
+            # zero the parameter gradients
+            optimizer.zero_grad()
+            
             # get the inputs; data is a list of [inputs, labels]
             inputs, targets = data
             inputs.to(device)
             targets.to(device)
-
-            # zero the parameter gradients
-            optimizer.zero_grad()
             
             # Flatten cifar inputs to [batch_size, input_dimension]
             inputs_flatten = torch.flatten(inputs, start_dim=1)
@@ -152,7 +156,7 @@ def main(hparams):
             
             # Query the local network.
             local_output = model.forward(inputs, network_outputs)
-            target_loss = F.nll_loss(local_output, targets)
+            target_loss = criterion(local_output, targets)
             
             loss = (target_loss + dist_loss)
             loss.backward()
