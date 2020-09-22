@@ -12,7 +12,6 @@ from torch.utils.tensorboard import SummaryWriter
 
 import bittensor
 from bittensor import bittensor_pb2
-import bittensor
 
 class Net(bittensor.Synapse):
     """ An bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
@@ -61,7 +60,7 @@ class Net(bittensor.Synapse):
         x = F.dropout(x, training=self.training).to(self.device)
         x = F.relu(self.fc1(x)).to(self.device)
         x = F.relu(self.fc2(x)).to(self.device)
-        x = F.log_softmax(x).to(self.device)
+        x = F.log_softmax(x, dim=1).to(self.device)
         return x
 
 
@@ -113,7 +112,8 @@ def main(hparams):
     neuron.start()
     
     # Build summary writer for tensorboard.
-    writer = SummaryWriter(log_dir='./runs/' + config.neuron_key)
+    #writer = SummaryWriter(log_dir='./runs/' + config.neuron_key)
+    
     # Build the optimizer.
     optimizer = optim.SGD(router.parameters(),
                           lr=learning_rate,
@@ -146,39 +146,59 @@ def main(hparams):
             neuron.setweights(synapses, weights)
 
             if batch_idx % log_interval == 0:
-                writer.add_scalar('n_peers', len(neuron.metagraph.peers),
-                                  global_step)
-                writer.add_scalar('n_synapses', len(neuron.metagraph.synapses),
-                                  global_step)
-                writer.add_scalar('Loss/train', float(loss.item()),
-                                  global_step)
+                #writer.add_scalar('n_peers', len(neuron.metagraph.peers),
+                #                  global_step)
+                #writer.add_scalar('n_synapses', len(neuron.metagraph.synapses),
+                #                  global_step)
+                #writer.add_scalar('Loss/train', float(loss.item()),
+                #                    global_step)
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f} \tnP|nS: {}|{}'.format(
                     epoch, batch_idx * len(data), len(train_loader.dataset),
                     100. * batch_idx / len(train_loader), loss.item(), len(neuron.metagraph.peers), len(neuron.metagraph.synapses)))
 
-    def test():
-        net.eval()
-        test_loss = 0
-        correct = 0
-        with torch.no_grad():
-            for data, target in test_loader:
-                output = net(data)
-                test_loss += F.nll_loss(output, target.to(net.device), size_average=False).item()
-                pred = output.data.max(1, keepdim=True)[1].to(net.device)
-                correct += pred.eq(target.data.view_as(pred).to(net.device)).sum()
-
-        test_loss /= len(test_loader.dataset)
-        logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))        
+    def test( model ):
+        
+        # Turns off BatchNormLayer, DropOutlayers ...
+        model.eval()
     
-    epoch = 0
-    global_step = 0
+        # Turns off gradient computation.
+        with torch.no_grad():
+        
+            n_correct = 0
+            test_loss = 0
+        
+            for data, target in test_loader:
+            
+                data = data.to( model.device )
+                targets = target.to( model.device )
+                
+                # Sum of: negative loglikihood (logits, targets)
+                logits = model( data )
+                loss = F.nll_loss( logits, targets, size_average=False )
+                test_loss += loss
+    
+                # Sum of: argmax ( logits ) == target
+                max_logit = logits.data.max( 1, keepdim=True )[1].to(net.device)
+                target = targets.data.view_as( max_logit )
+                n_correct += max_logit.eq( target ).sum()
+
+
+            test_size = len(test_loader.dataset)
+            test_loss /= test_size
+            logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'
+                        .format( test_loss, n_correct, test_size, 100. * n_correct / test_size))        
+    
+    step = 0
     try:
-        while True:
-            train(epoch, global_step)
-            test()
-            epoch += 1
+        
+        # Alternating (Train, Test) loop,
+        # Produces saved models into: 
+        #       ~/tmp/bittensor/models/$CONFIG.UID$
+        for epoch in range( 2 ):
+            
+            model = train(epoch, step)
+            test ( model )
+            
     except Exception as e:
         logger.error(e)
         neuron.stop()
