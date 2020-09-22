@@ -20,12 +20,40 @@ class Synapse(nn.Module):
     def to_proto(self):
         synapse_proto = bittensor_pb2.Synapse(version = bittensor.__version__, neuron_key = self._config.neuron_key, synapse_key = self.synapse_key(), address = self._config.remote_ip, port = self._config.axon_port, indef = self.indef(), outdef = self.outdef())
         return synapse_proto
-
-    def indef(self) -> bittensor_pb2.TensorDef:
-        raise NotImplementedError
     
-    def outdef(self) -> bittensor_pb2.TensorDef:
+    @property
+    def input_shape(self):
         return NotImplementedError
+    
+    @property
+    def output_shape(self):
+        return NotImplementedError
+    
+    @property
+    def input_dtype (self):
+        return bittensor_pb2.FLOAT32
+    
+    @property
+    def output_dtype (self):
+        return bittensor_pb2.FLOAT32
+    
+    def indef(self):
+        x_def = bittensor.bittensor_pb2.TensorDef(
+                    version = bittensor.__version__,
+                    shape = self.input_shape,
+                    dtype = self.input_dtype,
+                    requires_grad = True,
+                )
+        return [x_def]
+    
+    def outdef(self):
+        y_def = bittensor.bittensor_pb2.TensorDef(
+                    version = bittensor.__version__,
+                    shape = self.output_shape,
+                    dtype = self.output_dtype,
+                    requires_grad = True,
+                )
+        return [y_def]
     
     def synapse_key(self) -> str:
         return self._synapse_key

@@ -15,7 +15,7 @@ from bittensor import bittensor_pb2
 
 
 class Mnist(bittensor.Synapse):
-    """ An bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
+    """ Bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
     """
     def __init__(self, config: bittensor.Config):
         super(Mnist, self).__init__(config)
@@ -37,25 +37,14 @@ class Mnist(bittensor.Synapse):
         self.dist_conv3 = nn.Conv2d(16, 120, kernel_size=4, stride=1)
         self.dist_fc1 = nn.Linear(120, 82)
         self.dist_fc2 = nn.Linear(82, 10)    
-        
-    # TODO(const): hide protos
-    def indef(self):
-        x_def = bittensor.bittensor_pb2.TensorDef(
-                    version = bittensor.__version__,
-                    shape = [-1, 784],
-                    dtype = bittensor_pb2.FLOAT32,
-                    requires_grad = True,
-                )
-        return [x_def]
     
-    def outdef(self):
-        y_def = bittensor.bittensor_pb2.TensorDef(
-                    version = bittensor.__version__,
-                    shape = [-1, 10],
-                    dtype = bittensor_pb2.FLOAT32,
-                    requires_grad = True,
-                )
-        return [y_def]
+    @property
+    def input_shape(self):
+        return [-1, 784]
+    
+    @property
+    def output_shape(self):
+        return [-1, 10]
     
     def distill(self, x):
         x = x.view(-1, 1, 28, 28)
@@ -130,8 +119,8 @@ def main(hparams):
     metagraph.start() # Starts the metagraph gossip threads.
     
     # Build and start the Axon server.
-    # The axon server serves the axon objects 
-    # allowing other neurons to make queries to this torch object.
+    # The axon server serves the synapse objects 
+    # allowing other neurons to make queries through a dendrite.
     axon = bittensor.Axon( config )
     axon.serve( model ) # Makes the synapse available on the axon server.
     axon.start() # Starts the server background threads. Must be paired with axon.stop().
