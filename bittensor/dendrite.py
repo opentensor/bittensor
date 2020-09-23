@@ -15,8 +15,9 @@ from torch.autograd.function import once_differentiable
 
 DUMMY = torch.empty(0, requires_grad=True)  # dummy tensor that triggers autograd in RemoteExpert  
 
-class Dendrite:
+class Dendrite(nn.Module):
     def __init__(self, config: bittensor.Config):
+        super().__init__()
         self._config = config
         self._remotes = {}
         
