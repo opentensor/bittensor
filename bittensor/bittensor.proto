@@ -264,4 +264,6 @@ enum DataType {
 	FLOAT64 = 2;
 	INT32 = 3;
 	INT64 = 4;
+	STRING = 5;
+	PIL = 6;
 }

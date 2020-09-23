@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x19\x62ittensor/bittensor.proto\"I\n\x0bGossipBatch\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\r\n\x05peers\x18\x02 \x03(\t\x12\x1a\n\x08synapses\x18\x03 \x03(\x0b\x32\x08.Synapse\"\xe7\x01\n\x07Synapse\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x13\n\x0bsynapse_key\x18\x03 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x04 \x01(\t\x12\x0c\n\x04port\x18\x05 \x01(\t\x12\x19\n\x05indef\x18\x06 \x03(\x0b\x32\n.TensorDef\x12\x1a\n\x06outdef\x18\x07 \x03(\x0b\x32\n.TensorDef\x12\x12\n\nblock_hash\x18\x08 \x01(\t\x12\x0e\n\x06nounce\x18\t \x01(\x05\x12\x15\n\rproof_of_work\x18\n \x01(\x0c\x12\x11\n\tsignature\x18\x0b \x01(\x0c\"\x86\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x13\n\x0bsynapse_key\x18\x03 \x01(\t\x12\x0e\n\x06nounce\x18\x04 \x01(\x03\x12\x11\n\tsignature\x18\x05 \x01(\x0c\x12\x18\n\x07tensors\x18\x06 \x03(\x0b\x32\x07.Tensor\"I\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\x1e\n\ntensor_def\x18\x03 \x01(\x0b\x32\n.TensorDef\"\\\n\tTensorDef\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\r\n\x05shape\x18\x02 \x03(\x03\x12\x18\n\x05\x64type\x18\x03 \x01(\x0e\x32\t.DataType\x12\x15\n\rrequires_grad\x18\x04 \x01(\x08*G\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x32\x66\n\tBittensor\x12+\n\x07\x46orward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12,\n\x08\x42\x61\x63kward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x32\x33\n\tMetagraph\x12&\n\x06Gossip\x12\x0c.GossipBatch\x1a\x0c.GossipBatch\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x19\x62ittensor/bittensor.proto\"I\n\x0bGossipBatch\x12\x0f\n\x07version\x18\x01 \x01(\x02\x12\r\n\x05peers\x18\x02 \x03(\t\x12\x1a\n\x08synapses\x18\x03 \x03(\x0b\x32\x08.Synapse\"\xe7\x01\n\x07Synapse\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x13\n\x0bsynapse_key\x18\x03 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x04 \x01(\t\x12\x0c\n\x04port\x18\x05 \x01(\t\x12\x19\n\x05indef\x18\x06 \x03(\x0b\x32\n.TensorDef\x12\x1a\n\x06outdef\x18\x07 \x03(\x0b\x32\n.TensorDef\x12\x12\n\nblock_hash\x18\x08 \x01(\t\x12\x0e\n\x06nounce\x18\t \x01(\x05\x12\x15\n\rproof_of_work\x18\n \x01(\x0c\x12\x11\n\tsignature\x18\x0b \x01(\x0c\"\x86\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x12\n\nneuron_key\x18\x02 \x01(\t\x12\x13\n\x0bsynapse_key\x18\x03 \x01(\t\x12\x0e\n\x06nounce\x18\x04 \x01(\x03\x12\x11\n\tsignature\x18\x05 \x01(\x0c\x12\x18\n\x07tensors\x18\x06 \x03(\x0b\x32\x07.Tensor\"I\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\x1e\n\ntensor_def\x18\x03 \x01(\x0b\x32\n.TensorDef\"\\\n\tTensorDef\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\r\n\x05shape\x18\x02 \x03(\x03\x12\x18\n\x05\x64type\x18\x03 \x01(\x0e\x32\t.DataType\x12\x15\n\rrequires_grad\x18\x04 \x01(\x08*\\\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\n\n\x06STRING\x10\x05\x12\x07\n\x03PIL\x10\x06\x32\x66\n\tBittensor\x12+\n\x07\x46orward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12,\n\x08\x42\x61\x63kward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x32\x33\n\tMetagraph\x12&\n\x06Gossip\x12\x0c.GossipBatch\x1a\x0c.GossipBatch\"\x00\x62\x06proto3'
 )
 
 _DATATYPE = _descriptor.EnumDescriptor(
@@ -55,11 +55,21 @@ _DATATYPE = _descriptor.EnumDescriptor(
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='STRING', index=5, number=5,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='PIL', index=6, number=6,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
   ],
   containing_type=None,
   serialized_options=None,
   serialized_start=644,
-  serialized_end=715,
+  serialized_end=736,
 )
 _sym_db.RegisterEnumDescriptor(_DATATYPE)
 
@@ -69,6 +79,8 @@ FLOAT32 = 1
 FLOAT64 = 2
 INT32 = 3
 INT64 = 4
+STRING = 5
+PIL = 6
 
 
 
@@ -443,8 +455,8 @@ _BITTENSOR = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=717,
-  serialized_end=819,
+  serialized_start=738,
+  serialized_end=840,
   methods=[
   _descriptor.MethodDescriptor(
     name='Forward',
@@ -479,8 +491,8 @@ _METAGRAPH = _descriptor.ServiceDescriptor(
   index=1,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=821,
-  serialized_end=872,
+  serialized_start=842,
+  serialized_end=893,
   methods=[
   _descriptor.MethodDescriptor(
     name='Gossip',
