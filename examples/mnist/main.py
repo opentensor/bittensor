@@ -86,7 +86,7 @@ def main(hparams):
 
     # Dataset.
     train_loader = torch.utils.data.DataLoader(torchvision.datasets.MNIST(
-        root="~/tmp/",
+        root="~/tmp/bittensor/data/",
         train=True,
         download=True,
         transform=torchvision.transforms.Compose(
@@ -95,7 +95,7 @@ def main(hparams):
                                                shuffle=True)
 
     test_loader = torch.utils.data.DataLoader(torchvision.datasets.MNIST(
-        root='~/tmp/',
+        root='~/tmp/bittensor/data/',
         train=False, 
         download=True,
         transform=torchvision.transforms.Compose(
@@ -103,7 +103,7 @@ def main(hparams):
                                             batch_size=batch_size_test, 
                                             shuffle=True)
     # Build summary writer for tensorboard.
-    writer = SummaryWriter(log_dir='./runs/' + config.neuron_key)
+    writer = SummaryWriter(log_dir='~/tmp/bittensor/runs/' + config.neuron_key)
     
     # Build local synapse to serve on the network.
     model = Mnist(config) # Synapses take a config object.
