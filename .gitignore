@@ -4,11 +4,12 @@ __pycache__/
 *$py.class
 *.pyc
 
+# runs/data/models/logs/~
+data/
+**/data/
+
 # C extensions
 *.so
-
-# logs directory
-**/runs
 
 # IDE
 *.idea/

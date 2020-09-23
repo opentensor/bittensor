@@ -1,7 +1,8 @@
 from loguru import logger
 
 import argparse
-import pickle
+import math
+import time
 import torch
 import torchvision
 
@@ -72,8 +73,11 @@ class Mnist(bittensor.Synapse):
         return x
 
 def main(hparams):
+    
+     # Load bittensor config from hparams.
+    config = bittensor.Config( hparams )
 
-    # Training params.
+    # Additional training params.
     batch_size_train = 64
     batch_size_test = 64
     learning_rate = 0.1
@@ -81,29 +85,33 @@ def main(hparams):
     log_interval = 10
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Load bittensor config from hparams.
-    config = bittensor.Config( hparams )
+    # Log/data/model paths.
+    trial_id =  'mnist-' + str(time.time()).split('.')[0]
+    data_path = "data/datasets/"
+    log_dir = 'data/' + trial_id + '/logs/'
+    model_path = 'data/' + trial_id + '/model.torch'
 
-    # Dataset.
+    # Load (Train, Test) datasets into memory.
     train_loader = torch.utils.data.DataLoader(torchvision.datasets.MNIST(
-        root="~/tmp/bittensor/data/",
+        root=data_path,
         train=True,
         download=True,
         transform=torchvision.transforms.Compose(
             [torchvision.transforms.ToTensor()])),
-                                               batch_size=batch_size_train,
-                                               shuffle=True)
+                                            batch_size=batch_size_train,
+                                            shuffle=True)
 
     test_loader = torch.utils.data.DataLoader(torchvision.datasets.MNIST(
-        root='~/tmp/bittensor/data/',
+        root=data_path,
         train=False, 
         download=True,
         transform=torchvision.transforms.Compose(
             [torchvision.transforms.ToTensor()])),
                                             batch_size=batch_size_test, 
                                             shuffle=True)
+
     # Build summary writer for tensorboard.
-    writer = SummaryWriter(log_dir='~/tmp/bittensor/runs/' + config.neuron_key)
+    writer = SummaryWriter(log_dir=log_dir)
     
     # Build local synapse to serve on the network.
     model = Mnist(config) # Synapses take a config object.
@@ -117,10 +125,10 @@ def main(hparams):
     metagraph.start() # Starts the metagraph gossip threads.
     
     # Build and start the Axon server.
-    # The axon server serves the synapse objects 
+    # The axon server serves synapse objects (models) 
     # allowing other neurons to make queries through a dendrite.
     axon = bittensor.Axon( config )
-    axon.serve( model ) # Makes the synapse available on the axon server.
+    axon.serve( model )
     axon.start() # Starts the server background threads. Must be paired with axon.stop().
     
     # Build the dendrite and router. 
@@ -133,11 +141,17 @@ def main(hparams):
     params = list(router.parameters()) + list(model.parameters())
     optimizer = optim.SGD(params, lr=learning_rate, momentum=momentum)
 
+    # Train loop: Single threaded training of MNIST.
+    # 1. Makes calls to the network using the bittensor.dendrite
+    # 2. Trains the local model using inputs from network + raw_features.
+    # 3. Trains the distillation model to emulate network inputs.
+    # 4. Trains the local model and passes gradients through the network.
     def train(model, epoch, global_step):
+        # Turn on Dropoutlayers BatchNorm etc.
         model.train()
         correct = 0
         for batch_idx, (data, target) in enumerate(train_loader):
-            
+            # Clear gradients on model parameters.
             optimizer.zero_grad()
             
             # Set data device.
@@ -150,7 +164,7 @@ def main(hparams):
             synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network (max 1000).
             requests, scores = router.route( synapses, inputs ) # routes inputs to network.
             responses = dendrite ( synapses, requests ) # Makes network calls.
-            network_input = router.join( responses ) # Joins responses based on scores.
+            network_input = router.join( responses ) # Joins responses based on scores..
             
             # Run distilled model.
             dist_output = model.distill(inputs)
@@ -169,20 +183,23 @@ def main(hparams):
             weights = metagraph.getweights(synapses).to(device)
             weights = (0.99) * weights + 0.01 * torch.mean(scores, dim=0)
             metagraph.setweights(synapses, weights)
-
+                
+            # Logs:
             if batch_idx % log_interval == 0:
-                writer.add_scalar('n_peers', len(metagraph.peers),
-                                  global_step)
-                writer.add_scalar('n_synapses', len(metagraph.synapses),
-                                  global_step)
-                writer.add_scalar('Loss/train', float(loss.item()),
-                                  global_step)
+                n_peers = len(metagraph.peers)
+                n_synapses = len(metagraph.synapses)
+                writer.add_scalar('n_peers', n_peers, global_step)
+                writer.add_scalar('n_synapses', n_synapses, global_step)
+                writer.add_scalar('train_loss', float(loss.item()), global_step)
             
                 n = len(train_loader.dataset)
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}'.format(
                     epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item(), dist_loss.item()))
 
-    def test(model):
+    # Test loop.
+    # Evaluates the local model on the hold-out set.
+    # Returns the test_accuracy and test_loss.
+    def test( model: bittensor.Synapse ):
         
         # Turns off Dropoutlayers, BatchNorm etc.
         model.eval()
@@ -204,16 +221,17 @@ def main(hparams):
                 # Count accurate predictions.
                 max_logit = logits.data.max(1, keepdim=True)[1]
                 correct += max_logit.eq( target.data.view_as(max_logit) ).sum()
-
+                
         # Log results.
         n = len(test_loader.dataset)
         loss /= n
         accuracy = (100. * correct) / n
         logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))        
         return loss, accuracy
-
+    
     epoch = 0
     global_step = 0
+    best_test_loss = math.inf
     try:
         while True:
             # Train model
@@ -221,9 +239,16 @@ def main(hparams):
             
             # Test model.
             test_loss, test_accuracy = test( model )
-            
-            # TODO (const): save(model)
-            # TODO (const): axon.serve(model)
+       
+            # Save best model. 
+            if test_loss < best_test_loss:
+                # Update best_loss.
+                best_test_loss = test_loss
+                
+                # Save the best local model.
+                logger.info('Saving model: epoch: {}, loss: {}, path: {}', model_path, epoch, test_loss)
+                torch.save({'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, model_path)
+                
             epoch += 1
             
     except Exception as e:
