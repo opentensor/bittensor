@@ -6,7 +6,9 @@ import math
 import grpc
 import random
 import threading
+import torch
 import time
+
 
 from bittensor import bittensor_pb2
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
@@ -40,11 +42,6 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         self._update_thread = None
         self._server_thread = None
         self._running = False
-        
-    def subscribe(self, synapse_proto: bittensor_pb2.Synapse):
-        self._synapses[synapse_proto.synapse_key] = synapse_proto
-        self._weights[synapse_proto.synapse_key] = math.inf
-        self._heartbeat[synapse_proto.synapse_key] = time.time()
         
     def get_synapses(self, n: int) -> List[bittensor_pb2.Synapse]:
         """ Returns min(n, len(synapses)) synapse from the graph sorted by score.
@@ -161,6 +158,58 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         self._server_thread = threading.Thread(target=self._serve, daemon=True)
         self._update_thread.start()
         self._server_thread.start()
+        
+    def getweights(self, synapses: List[bittensor_pb2.Synapse]) -> torch.Tensor:
+        """Get the weights for list of Synapse endpoints.
+
+        Args:
+            synapses (List[bittensor_pb2.Synapse]): Synapses to get weights for.
+
+        Returns:
+            [type]: Weights set for each synapse.
+        """
+        return torch.Tensor(self._getweights(synapses))
+
+    def _getweights(self, synapses: List[bittensor_pb2.Synapse]) -> List[float]:
+        """ Get local weights for a list of synapses """
+        result = []
+        for syn in synapses:
+            if syn.synapse_key not in self._weights:
+                result.append(0.0)
+            else:
+                result.append(self._weights[syn.synapse_key])
+        return result
+    
+    def setweights(self, synapses: List[bittensor_pb2.Synapse],
+                   weights: torch.Tensor):
+        """Sets the weights for these synapses given equal length list of weights.
+
+        Args:
+            synapses (List[bittensor_pb2.Synapse]): Synapses to set weights.
+            weights (torch.Tensor): Weights to set.
+        """
+        weights = weights.cpu().detach().numpy().tolist()
+        self._setweights(synapses, weights)
+    
+    def _setweights(self, synapses: List[bittensor_pb2.Synapse],
+                   weights: List[float]):
+        """ Set local scores for each passed node """
+        for idx, synapse in enumerate(synapses):
+            self._weights[synapse.synapse_key] = weights[idx]
+            
+    def subscribe(self, synapse: bittensor.Synapse):
+        """Subscribes a synapse class object to the metagraph.
+
+        Args:
+            module (bittensor.Synapse): bittensor.Synapse class object to subscribe.
+        """
+        # Create a new bittensor_pb2.Synapse proto.
+        self._subscribe(synapse.to_proto())
+        
+    def _subscribe(self, synapse_proto: bittensor_pb2.Synapse):
+        self._synapses[synapse_proto.synapse_key] = synapse_proto
+        self._weights[synapse_proto.synapse_key] = math.inf
+        self._heartbeat[synapse_proto.synapse_key] = time.time()
            
     @property
     def synapses(self):
@@ -173,20 +222,6 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
     @property
     def peers(self):
         return self._peers
-        
-    def setweights(self, synapses: List[bittensor_pb2.Synapse],
-                   weights: List[float]):
-        """ Set local scores for each passed node """
-        for idx, synapse in enumerate(synapses):
-            self._weights[synapse.synapse_key] = weights[idx]
+    
 
-    def getweights(self, synapses: List[bittensor_pb2.Synapse]) -> List[float]:
-        """ Get local weights for a list of synapses """
-        result = []
-        for syn in synapses:
-            if syn.synapse_key not in self._weights:
-                result.append(0.0)
-            else:
-                result.append(self._weights[syn.synapse_key])
-        return result
     

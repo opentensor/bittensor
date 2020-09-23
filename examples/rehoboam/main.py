@@ -19,30 +19,28 @@ from loguru import logger
 class TransformerSynapse(bittensor.Synapse):
     """ An bittensor endpoint trained on wiki corpus.
     """
-    def __init__(self, transformer, ntokens):
-        super(TransformerSynapse, self).__init__()
+    def __init__(self, config, transformer, ntokens):
+        super(TransformerSynapse, self).__init__(config)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.transformer = transformer
         self.ntokens = ntokens
-                
-    def indef(self):
-        x_def = bittensor_pb2.TensorDef(
-                    version = bittensor.__version__,
-                    shape = [-1, 20],
-                    dtype = bittensor_pb2.INT64,
-                    requires_grad = True,
-                )
-        return [x_def]
+        
+    @property
+    def input_shape(self):
+        return [-1, 20]
     
-    def outdef(self):
-        y_def = bittensor_pb2.TensorDef(
-                    version = bittensor.__version__,
-                    shape = [-1, 120],
-                    dtype = bittensor_pb2.FLOAT32,
-                    requires_grad = True,
-                )
-        return [y_def]
+    @property
+    def input_dtype(self):
+        return bittensor_pb2.INT64
     
+    @property
+    def output_shape(self):
+        return [-1, 120]
+    
+    @property
+    def output_dtype(self):
+        return bittensor_pb2.FLOAT32
+   
     def forward(self, x):
         # Move x over to device, if any
         x = x.to(self.device)
@@ -58,6 +56,7 @@ def main(hparams):
     eval_batch_size = 20
     bptt = 200
     log_interval = 10
+    config = bittensor.Config( hparams )
     
     dataset = Dataset(bptt)
     train_data = dataset.batchify(dataset.train_txt, batch_size)
@@ -75,29 +74,34 @@ def main(hparams):
     dropout = 0.2  # the dropout value
     transformer = TransformerModel(ntokens, emsize, nhead, nhid, nlayers, dropout)
 
-    # bittensor:
-    # Load bittensor config from hparams.
-    config = bittensor.Config(hparams)
-    
-    # Build the neuron from configs.
-    neuron = bittensor.Neuron(config)
-    
-    # Init a trainable request router.
-    router = bittensor.Router(x_dim = batch_size, key_dim = 100, topk = 10)
-    
     # Build local network.
-    net = TransformerSynapse(transformer, ntokens)
+    net = TransformerSynapse(config, transformer, ntokens)
     
-    # Subscribe the local network to the network
-    neuron.subscribe(net)
+    # Build and start the metagraph background object.
+    # The metagraph is responsible for connecting to the blockchain
+    # and finding the other neurons on the network.
+    metagraph = bittensor.Metagraph( config )
+    metagraph.subscribe( net ) # Adds the synapse to the metagraph.
+    metagraph.start() # Starts the metagraph gossip threads.
     
-    # Start the neuron backend.
-    neuron.start()
+    # Build and start the Axon server.
+    # The axon server serves the synapse objects 
+    # allowing other neurons to make queries through a dendrite.
+    axon = bittensor.Axon( config )
+    axon.serve( net ) # Makes the synapse available on the axon server.
+    axon.start() # Starts the server background threads. Must be paired with axon.stop().
+    
+    # Build the dendrite and router. 
+    # The dendrite is a torch object which makes calls to synapses across the network
+    # The router is responsible for learning which synapses to call.
+    dendrite = bittensor.Dendrite( config )
+    router = bittensor.Router(x_dim = batch_size, key_dim = 100, topk = 10)
     
     # Optimizer.
     criterion = nn.CrossEntropyLoss()  # loss function
     lr = 3.0 # learning rate
-    optimizer = torch.optim.SGD(net.parameters(), lr=lr)
+    params = list(router.parameters()) + list(net.parameters())
+    optimizer = torch.optim.SGD(params, lr=lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
     
     def train(dataset, transformer, epoch):
@@ -111,15 +115,15 @@ def main(hparams):
             optimizer.zero_grad()
 
             # Query the remote network.
-            synapses = neuron.synapses() # Returns a list of synapses on the network.
-            requests, scores = router.route(data.float(), synapses) # routes inputs to network.
+            synapses = metagraph.get_synapses(1000) # Returns a list of synapses on the network.
+            requests, scores = router.route(synapses, data.float()) # routes inputs to network.
 
             # Convert request indices back to type long()
             request_list = [*requests]
             request_list[0] = requests[0].type(torch.LongTensor)
             requests = *request_list,
 
-            responses = neuron(requests, synapses) # Makes network calls.
+            responses = dendrite(synapses, requests) # Makes network calls.
             
             output = router.join(responses) # Joins responses based on scores.
             # Since model returns encoded version, we should decode here.
@@ -131,9 +135,9 @@ def main(hparams):
             global_step += 1
             
             # Set network weights.
-            weights = neuron.getweights(synapses).to(net.device)
+            weights = metagraph.getweights(synapses).to(net.device)
             weights = (0.99) * weights + 0.01 * torch.mean(scores, dim=0)
-            neuron.setweights(synapses, weights)
+            metagraph.setweights(synapses, weights)
             
             if batch_idx % log_interval == 0:
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f} \tnP|nS: {}|{}'.format(
@@ -142,8 +146,8 @@ def main(hparams):
                             train_data.size(0) - 1,
                             100. * (batch_idx * batch_size) / train_data.size(0) - 1, 
                             loss.item(), 
-                            len(neuron.metagraph.peers), 
-                            len(neuron.metagraph.synapses)))
+                            len(metagraph.peers), 
+                            len(metagraph.synapses)))
  
     def test(data_source):
         # Turn on evaluation mode
@@ -194,8 +198,8 @@ def main(hparams):
             epoch += 1
     except Exception as e:
         logger.exception(e)
-        neuron.stop()
-    
+        metagraph.stop()
+        axon.stop()
         
 
 

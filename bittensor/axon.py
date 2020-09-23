@@ -48,11 +48,11 @@ class Axon(bittensor_grpc.BittensorServicer):
         """ Stop the synapse terminal server """
         self._server.stop(0)
 
-    def subscribe(self, synapse_proto: bittensor_pb2.Synapse, synapse: bittensor.Synapse):
+    def serve(self, synapse: bittensor.Synapse):
         """ Adds an Synapse to the serving set """
+        synapse_proto = synapse.to_proto()
         self._local_synapses[synapse_proto.synapse_key] = synapse
-        
-        
+    
     def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext):
         # TODO (const): optionally check signature.
         # Return null response if the target does not exist.
