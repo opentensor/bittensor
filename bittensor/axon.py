@@ -60,10 +60,20 @@ class Axon(bittensor_grpc.BittensorServicer):
             return bittensor_pb2.TensorMessage()
         synapse = self._local_synapses[request.synapse_key]
         
-        # Make local call.
-        x = PyTorchSerializer.deserialize(request.tensors[0])
-        y = synapse.call_forward(x)
-        y_serialized = PyTorchSerializer.serialize(y)
+        # Deserializer and decode.
+        dtype = request.tensors[0].tensor_def.dtype        
+        if dtype == bittensor_pb2.DataType.STRING:
+            x = PyTorchSerializer.deserialize_string(request.tensors[0])
+            y = synapse.encode_string(x)
+        else:
+            x = PyTorchSerializer.deserialize_tensor(request.tensors[0])
+            y = synapse.encode_tensor(x)
+        
+        # Make local call to synapse.
+        z = synapse.call_forward(y)
+        
+        # Serializer and pass to network.
+        y_serialized = PyTorchSerializer.serialize_tensor(y)
 
         response = bittensor_pb2.TensorMessage(
             version = bittensor.__version__,
@@ -81,10 +91,10 @@ class Axon(bittensor_grpc.BittensorServicer):
         synapse = self._local_synapses[request.synapse_key]
                 
         # Make local call.
-        x = PyTorchSerializer.deserialize(request.tensors[0])
-        dy = PyTorchSerializer.deserialize(request.tensors[1])        
+        x = PyTorchSerializer.deserialize_tensor(request.tensors[0])
+        dy = PyTorchSerializer.deserialize_tensor(request.tensors[1])        
         dx = synapse.call_backward(x, dy)    
-        dx_serialized = PyTorchSerializer.serialize(dx)
+        dx_serialized = PyTorchSerializer.serialize_tensor(dx)
 
         response = bittensor_pb2.TensorMessage(
             version = bittensor.__version__,

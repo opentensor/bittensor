@@ -71,7 +71,13 @@ class Synapse(nn.Module):
             self.optimizer = optim.SGD(self.parameters(),
                           lr=0.1,
                           momentum=0.9)
-        
+
+    def encode_tensor(self, inputs: torch.Tensor) -> torch.Tensor:
+        return NotImplementedError    
+ 
+    def encode_string(self, inputs: List[List[str]]) -> torch.Tensor:
+        return NotImplementedError    
+    
     def call_forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """
         Apply forward pass to the nn.module given inputs.
