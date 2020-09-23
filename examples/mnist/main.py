@@ -17,6 +17,8 @@ class Mnist(bittensor.Synapse):
     """
     def __init__(self, config: bittensor.Config):
         super(Mnist, self).__init__(config)
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         # Main Network
         self.conv1 = nn.Conv2d(1, 6, kernel_size=5, stride=1)
@@ -45,6 +47,7 @@ class Mnist(bittensor.Synapse):
         return [-1, 10]
     
     def distill(self, x):
+        x = x.to(self.device)
         x = x.view(-1, 1, 28, 28)
         x = torch.tanh(self.dist_conv1(x))
         x = self.dist_average1(x)
@@ -58,6 +61,8 @@ class Mnist(bittensor.Synapse):
     
     def forward (self, x, y = None):
         y = self.distill(x) if y == None else y
+        x = x.to(self.device)
+        y = y.to(self.device)
         x = x.view(-1, 1, 28, 28)
         x = torch.tanh(self.conv1(x))
         x = self.average1(x)
