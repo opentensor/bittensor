@@ -143,11 +143,10 @@ class _RemoteModuleCall(torch.autograd.Function):
                                             )
         
         # Attain backward response
-#        print ('dendrite ->', request)
         response = ctx.caller.stub.Backward(request)
 
         # Deserialize grad responses.
         deserialized_grad_inputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
 
         # Return grads
-        return (None, None, deserialized_grad_inputs)
+        return (None, None, deserialized_grad_inputs, None)

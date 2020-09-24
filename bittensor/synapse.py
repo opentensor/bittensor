@@ -75,7 +75,7 @@ class Synapse(nn.Module):
     def encode_tensor(self, inputs: torch.Tensor) -> torch.Tensor:
         return NotImplementedError    
  
-    def encode_string(self, inputs: List[List[str]]) -> torch.Tensor:
+    def encode_string(self, inputs: List[str]) -> torch.Tensor:
         return NotImplementedError    
     
     def call_forward(self, inputs: torch.Tensor) -> torch.Tensor:

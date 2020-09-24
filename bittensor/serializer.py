@@ -52,6 +52,21 @@ class SerializerBase:
             bittensor_pb2.Tensor: The proto version of this object.
         """
         raise NotImplementedError()
+    
+    @staticmethod
+    def serialize_string(tensor: List[List[str]]) -> bittensor_pb2.Tensor:
+        """ Returns a serialized version of generic tensor obj as an bittensor_pb2.Tensor proto.  
+
+        Args:
+            tensor (object): Tensor object: i.e. torch.Tensor.
+
+        Raises:
+            NotImplementedError: Must be implemented in the subclass of this object.
+
+        Returns:
+            bittensor_pb2.Tensor: The proto version of this object.
+        """
+        raise NotImplementedError()
 
     @staticmethod
     def serialize_string(tensor: List[List[str]]) -> bittensor_pb2.Tensor:

@@ -49,7 +49,7 @@ class Mnist(bittensor.Synapse):
     def encode_tensor(self, inputs: torch.Tensor) -> torch.Tensor:
         return inputs 
  
-    def encode_string(self, inputs: List[List[str]]) -> torch.Tensor:
+    def encode_string(self, inputs: List[str]) -> torch.Tensor:
         return torch.zeros( (len(inputs), 784) )    
     
     def distill(self, x):
@@ -99,24 +99,10 @@ def main(hparams):
     model_path = 'data/' + trial_id + '/model.torch'
 
     # Load (Train, Test) datasets into memory.
-    train_loader = torch.utils.data.DataLoader(torchvision.datasets.MNIST(
-        root=data_path,
-        train=True,
-        download=True,
-        transform=torchvision.transforms.Compose(
-            [torchvision.transforms.ToTensor()])),
-                                            batch_size=batch_size_train,
-                                            shuffle=True)
-
-    test_loader = torch.utils.data.DataLoader(torchvision.datasets.MNIST(
-        root=data_path,
-        train=False, 
-        download=True,
-        transform=torchvision.transforms.Compose(
-            [torchvision.transforms.ToTensor()])),
-                                            batch_size=batch_size_test, 
-                                            shuffle=True)
-
+    training_data = torchvision.datasets.MNIST(root=data_path, train=True, download=True)
+    
+    testing_data = torchvision.datasets.MNIST(root=data_path, train=False, download=True)
+    
     # Build summary writer for tensorboard.
     writer = SummaryWriter(log_dir=log_dir)
     
@@ -157,19 +143,29 @@ def main(hparams):
         # Turn on Dropoutlayers BatchNorm etc.
         model.train()
         correct = 0
-        for batch_idx, (data, target) in enumerate(train_loader):
+        n = len(training_data)
+        for batch_idx in range( int(n / batch_size_train)):
+            
+            inputs = []
+            targets = []
+            for i in range(batch_size_train):
+                idx = batch_idx * batch_size_test + i
+                inputs.append(training_data [idx][0])
+                targets.append(training_data [idx][1])
+            
             # Clear gradients on model parameters.
             optimizer.zero_grad()
             
             # Set data device.
             data = data.to(device)
             target = target.to(device)
-            
+                        
             # Query the remote network.
             # Flatten mnist inputs for routing.
             inputs = torch.flatten( data, start_dim=1 )
             synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network (max 1000).
             requests, scores = router.route( synapses, inputs ) # routes inputs to network.
+            
             responses = dendrite ( synapses, requests ) # Makes network calls.
             network_input = router.join( responses ) # Joins responses based on scores..
             
