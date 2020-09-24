@@ -6,6 +6,7 @@ import time
 import torch
 import torchvision
 from typing import List, Tuple, Dict, Optional
+from PIL import Image
 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -49,9 +50,21 @@ class Mnist(bittensor.Synapse):
     def encode_tensor(self, inputs: torch.Tensor) -> torch.Tensor:
         return inputs 
  
-    def encode_string(self, inputs: List[str]) -> torch.Tensor:
-        return torch.zeros( (len(inputs), 784) )    
+    def encode_string(self, inputs: List [str] ) -> torch.Tensor:
+        return torch.zeros( (len(inputs), 784) )
     
+    def encode_image(self, inputs: List [object]) -> torch.Tensor:
+        transform = torchvision.transforms.Compose([
+                               torchvision.transforms.ToTensor(),
+                               torchvision.transforms.Normalize(
+                                 (0.1307,), (0.3081,))
+                             ])
+        results = []
+        for image in inputs:
+            results.append(transform(image))
+        results = torch.cat(results, dim=0)
+        return torch.flatten(results, start_dim=1)
+       
     def distill(self, x):
         x = x.view(-1, 1, 28, 28)
         x = torch.tanh(self.dist_conv1(x))
@@ -146,36 +159,37 @@ def main(hparams):
         n = len(training_data)
         for batch_idx in range( int(n / batch_size_train)):
             
-            inputs = []
+            #we do our own batchig
+            raw_inputs = []
             targets = []
             for i in range(batch_size_train):
                 idx = batch_idx * batch_size_test + i
-                inputs.append(training_data [idx][0])
-                targets.append(training_data [idx][1])
+                input_i = training_data [idx][0]
+                target_i = training_data [idx][1]
+                raw_inputs.append(input_i)
+                targets.append(target_i)
+            targets = torch.LongTensor(targets)
             
             # Clear gradients on model parameters.
             optimizer.zero_grad()
             
-            # Set data device.
-            data = data.to(device)
-            target = target.to(device)
-                        
+            # Encode PIL images to tensors.
+            encoded_inputs = model.encode_image(raw_inputs).to(device)
+            
             # Query the remote network.
             # Flatten mnist inputs for routing.
-            inputs = torch.flatten( data, start_dim=1 )
             synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network (max 1000).
-            requests, scores = router.route( synapses, inputs ) # routes inputs to network.
-            
+            requests, scores = router.route( synapses, encoded_inputs, raw_inputs ) # routes inputs to network.
             responses = dendrite ( synapses, requests ) # Makes network calls.
             network_input = router.join( responses ) # Joins responses based on scores..
             
             # Run distilled model.
-            dist_output = model.distill(inputs)
+            dist_output = model.distill(encoded_inputs)
             dist_loss = F.kl_div(dist_output, network_input.detach())
             
             # Query the local network.
-            local_output = model.forward(inputs, network_input)
-            target_loss = F.nll_loss(local_output, target)
+            local_output = model.forward(encoded_inputs, network_input)
+            target_loss = F.nll_loss(local_output, targets)
             
             loss = (target_loss + dist_loss)
             loss.backward()

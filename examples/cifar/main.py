@@ -36,6 +36,8 @@ class CIFAR(bittensor.Synapse):
         self.dist_fc2 = nn.Linear(120, 84)
         self.dist_fc3 = nn.Linear(84, 10)
 
+
+    # projects from inputs to feature layer.
     def distill(self, x):   
         x = x.view(-1, 3, 32, 32)
         x = self.pool(F.relu(self.dist_conv1(x)))
@@ -46,6 +48,7 @@ class CIFAR(bittensor.Synapse):
         x = self.dist_fc3(x)
         return x
     
+    # Projects from inputs to consistent (feature layer)
     def forward(self, x, y = None):
         y = self.distill(x) if y == None else y   
         x = x.view(-1, 3, 32, 32)
@@ -55,6 +58,11 @@ class CIFAR(bittensor.Synapse):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
+        #x = torch.concat(x, y)
+        return x
+    
+    # Projects from feature layer to logits
+    def logits(self, x)
         x = F.log_softmax(x)
         return x
     
@@ -158,9 +166,12 @@ def main(hparams):
             dist_output = model.distill(inputs)
             dist_loss = F.kl_div(dist_output, network_outputs.detach())
             
-            # Query the local network.
-            local_output = model.forward(inputs, network_outputs)
-            target_loss = criterion(local_output, targets)
+            # Query the local network. shared features.
+            local_features = model.forward(inputs, network_outputs)
+            
+            # Local loss.
+            local_logits = model.logits(local_features)
+            target_loss = criterion(local_logits, targets)
             
             loss = (target_loss + dist_loss)
             loss.backward()

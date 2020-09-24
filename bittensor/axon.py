@@ -65,6 +65,12 @@ class Axon(bittensor_grpc.BittensorServicer):
         if dtype == bittensor_pb2.DataType.STRING:
             x = PyTorchSerializer.deserialize_string(request.tensors[0])
             y = synapse.encode_string(x)
+            
+        elif dtype == bittensor_pb2.DataType.IMAGE:
+            x = PyTorchSerializer.deserialize_image(request.tensors[0])
+            y = synapse.encode_image(x)
+            
+        # TODO (const): needs to check modality not dtype.
         else:
             x = PyTorchSerializer.deserialize_tensor(request.tensors[0])
             y = synapse.encode_tensor(x)
@@ -91,14 +97,14 @@ class Axon(bittensor_grpc.BittensorServicer):
         synapse = self._local_synapses[request.synapse_key]
                 
         # Make local call.
-        x = PyTorchSerializer.deserialize_tensor(request.tensors[0])
-        dy = PyTorchSerializer.deserialize_tensor(request.tensors[1])        
-        dx = synapse.call_backward(x, dy)    
-        dx_serialized = PyTorchSerializer.serialize_tensor(dx)
+        # x = PyTorchSerializer.deserialize_(request.tensors[0])
+        # dy = PyTorchSerializer.deserialize_tensor(request.tensors[1])        
+        # dx = synapse.call_backward(x, dy)    
+        # dx_serialized = PyTorchSerializer.serialize_tensor(dx)
 
-        response = bittensor_pb2.TensorMessage(
-            version = bittensor.__version__,
-            neuron_key = self._config.neuron_key,
-            synapse_key = request.synapse_key,
-            tensors = [dx_serialized])
+        response = bittensor_pb2.TensorMessage()
+        #     version = bittensor.__version__,
+        #     neuron_key = self._config.neuron_key,
+        #     synapse_key = request.synapse_key,
+        #     tensors = [dx_serialized])
         return response
