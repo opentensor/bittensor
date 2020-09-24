@@ -209,7 +209,7 @@ def main(hparams):
                 writer.add_scalar('n_synapses', n_synapses, global_step)
                 writer.add_scalar('train_loss', float(loss.item()), global_step)
             
-                n = len(train_loader.dataset)
+                n = len(training_data)
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}'.format(
                     epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item(), dist_loss.item()))
 
@@ -226,13 +226,20 @@ def main(hparams):
             
             loss = 0.0
             correct = 0.0
-            for data, target in test_loader:
-                # Set data to correct device.
-                data = data.to(device)
-                target = target.to(device)
-                
+            n = len(testing_data)
+            for batch_idx in range( int(n / batch_size_train)):
+            
+                # we do our own batchig
+                raw_inputs = []
+                targets = []
+                for i in range(batch_size_test):
+                    idx = batch_idx * batch_size_test + i
+                    input_i = testing_data [idx][0]
+                    raw_inputs.append(input_i)
+                    
                 # Measure loss.
-                logits = model( data )
+                encoded_inputs = model.encode_image(raw_inputs) 
+                logits = model( encoded_inputs, model.distill( encoded_inputs ))
                 loss += F.nll_loss(logits, target, size_average=False).item()
                 
                 # Count accurate predictions.
@@ -240,7 +247,6 @@ def main(hparams):
                 correct += max_logit.eq( target.data.view_as(max_logit) ).sum()
                 
         # Log results.
-        n = len(test_loader.dataset)
         loss /= n
         accuracy = (100. * correct) / n
         logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))        

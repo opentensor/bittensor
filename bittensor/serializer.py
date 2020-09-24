@@ -189,7 +189,28 @@ class PyTorchSerializer():
                     buffer = data_buffer,
                     tensor_def = tensor_def)      
         return proto
+    
+    
+    @staticmethod
+    def deserialize(proto: bittensor_pb2.Tensor) -> object:
+        """Deserializes an bittensor_pb2.Tensor to a torch.Tensor object.
 
+        Args:
+            proto (bittensor_pb2.Tensor): Proto to derserialize.
+
+        Returns:
+            List[object]:
+        """
+        # Check typing
+        if proto.tensor_def.dtype == bittensor_pb2.DataType.IMAGE:
+            return PyTorchSerializer.deserialize_image( proto )
+        
+        if proto.tensor_def.dtype == bittensor_pb2.DataType.STRING:
+            return PyTorchSerializer.deserialize_string( proto )
+        
+        else:
+            return PyTorchSerializer.deserialize_tensor( proto )
+        
     @staticmethod
     def deserialize_image(proto: bittensor_pb2.Tensor) -> List[object]:
         """Deserializes an bittensor_pb2.Tensor to a torch.Tensor object.

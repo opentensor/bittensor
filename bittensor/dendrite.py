@@ -127,7 +127,7 @@ class _RemoteModuleCall(torch.autograd.Function):
     def backward(ctx, grads: torch.Tensor) -> Optional[torch.Tensor]:
             
         # Serialize inputs to bytes.
-        serialized_grads = PyTorchSerializer.serialize_tensor(grads)
+        serialized_grads = PyTorchSerializer.serialize (grads)
         serialized_inputs = ctx.serialized_inputs
         
         # Build request for forward.
@@ -144,7 +144,8 @@ class _RemoteModuleCall(torch.autograd.Function):
         response = ctx.caller.stub.Backward(request)
 
         # Deserialize grad responses.
-        deserialized_grad_inputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
+        # TODO (const) maybe remove this?
+        # deserialized_grad_inputs = PyTorchSerializer.deserialize (response.tensors[0])
 
         # Return grads
-        return (None, None, deserialized_grad_inputs)
+        return (None, None, None)
