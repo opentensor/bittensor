@@ -1,6 +1,8 @@
 from loguru import logger
 
 import argparse
+import math
+import time
 import torch
 import torchvision
 import copy
@@ -134,7 +136,7 @@ class CIFAR(bittensor.Synapse):
                 
         
 def main(hparams):
-
+    config = bittensor.Config(hparams)
     batch_size_train = 32
     batch_size_test = 16
     input_dimension = 3072
@@ -144,7 +146,14 @@ def main(hparams):
     log_interval = 10
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    config = bittensor.Config(hparams)
+    # Log/data/model paths.
+    trial_id =  'cifar-' + str(time.time()).split('.')[0]
+    data_path = "data/datasets/"
+    log_dir = 'data/' + trial_id + '/logs/'
+    model_path = 'data/' + trial_id + '/model.torch'
+
+    # Build summary writer for tensorboard.
+    writer = SummaryWriter(log_dir=log_dir)
 
     # Load CIFAR
     transform_train = transforms.Compose([
@@ -159,19 +168,16 @@ def main(hparams):
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
 
-    trainset = torchvision.datasets.CIFAR10(root="~/tmp/bittensor/data/", train=True,
-                                        download=True, transform=transform_train)
+    trainset = torchvision.datasets.CIFAR10(root=data_path, train=True,
+                                        download=True, transform=transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size = batch_size_train,
                                           shuffle=True, num_workers=2)
-
-    testset = torchvision.datasets.CIFAR10(root="~/tmp/bittensor/data/", train=False,
-                                       download=True, transform=transform_test)
+    
+    testset = torchvision.datasets.CIFAR10(root=data_path, train=False,
+                                       download=True, transform=transform)
     testloader = torch.utils.data.DataLoader(testset, batch_size = batch_size_test,
                                          shuffle=False, num_workers=2)
-
-    # Build summary writer for tensorboard.
-    writer = SummaryWriter(log_dir='./tmp/bittensor/runs/' + config.neuron_key)
-    
+        
     # Build local synapse to serve on the network.
     model = CIFAR(config) # Synapses take a config object.
     model.to( device ) # Set model to device.
@@ -225,7 +231,7 @@ def main(hparams):
             responses = dendrite ( synapses, requests ) # Makes network calls.
             network_outputs = router.join(responses) # Joins responses based on scores.
             
-             # Run distilled model.
+            # Run distilled model.
             dist_output = model.distill(inputs)
             dist_loss = F.kl_div(dist_output, network_outputs.detach())
             
@@ -275,8 +281,8 @@ def main(hparams):
                 inputs = inputs.to(device)
                 targets = targets.to(device)
                 
-                # Measure loss.
-                logits = model( inputs )
+                # Measure loss.                
+                logits = model( inputs, model.distill(inputs) )
                 loss += F.nll_loss(logits, targets, size_average=False).item()
                 
                 # Count accurate predictions.
@@ -292,6 +298,7 @@ def main(hparams):
 
     epoch = 0
     global_step = 0
+    best_test_loss = math.inf
     try:
         while True:
             # Train model
@@ -299,6 +306,15 @@ def main(hparams):
             
             # Test model.
             test_loss, test_accuracy = test( model )
+            
+            # Save best model. 
+            if test_loss < best_test_loss:
+                # Update best_loss.
+                best_test_loss = test_loss
+                
+                # Save the best local model.
+                logger.info('Saving model: epoch: {}, loss: {}, path: {}', model_path, epoch, test_loss)
+                torch.save({'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, model_path)
             
             epoch += 1
             
