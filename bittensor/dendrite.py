@@ -8,6 +8,7 @@ from typing import List, Tuple, Dict, Optional
 
 import os
 import grpc
+import PIL
 import torch
 import torch.nn as nn
 
@@ -25,7 +26,7 @@ class Dendrite(nn.Module):
     # Cleaning remote connections and updating signatures.
     def run(self):
         pass
-    def forward(self, synapses: List[bittensor_pb2.Synapse], x: List[object], dtype = bittensor_pb2.DataType.FLOAT32) -> List[torch.Tensor]:
+    def forward(self, synapses: List[bittensor_pb2.Synapse], x: List[ object ]) -> List[torch.Tensor]:
         """ forward tensor processes """
         results = []
         for idx, synapse in enumerate(synapses):
@@ -41,7 +42,7 @@ class Dendrite(nn.Module):
                 self._remotes[synapse.synapse_key] = remote_synapse
                 
             # Call remote synapse.
-            results.append(remote_synapse(forward_inputs, dtype))
+            results.append(remote_synapse(forward_inputs))
         return results
     
 # NOTE: (const) This code has been ported from hivemind thanks to Yozh and Max.
@@ -74,7 +75,7 @@ class RemoteSynapse(nn.Module):
         if self.channel is not None:
             self.channel.close()
 
-    def forward(self, inputs: object, dtype: bittensor_pb2.DataType) -> torch.Tensor:
+    def forward(self, inputs: object) -> torch.Tensor:
         # TODO (const) compare schema
         # assert schema shape and size. raise type error.
         # if not check_schema(inputs, self.synapse.forward_schema):
@@ -82,7 +83,7 @@ class RemoteSynapse(nn.Module):
         # TODO (const): consistend packing.
         # flattened = flatten(inputs)
         # Note: (hivemind) we send DUMMY to prevent torch from excluding expert from backward if no other inputs require grad
-        outputs = _RemoteModuleCall.apply(self, DUMMY, inputs, dtype)
+        outputs = _RemoteModuleCall.apply(self, DUMMY, inputs)
         # TODO (const) consitent unpacking
         # return unpack_to_schema(outputs, structure = self.synapse.output_schema) 
         return outputs
@@ -95,16 +96,13 @@ class _RemoteModuleCall(torch.autograd.Function):
     # TODO (const) check schema.
     # TODO (const) should take multiple input tensors and kwargs.
     @staticmethod
-    def forward(ctx, caller: RemoteSynapse, dummy: torch.Tensor, inputs: object, dtype: bittensor_pb2.DataType) -> torch.Tensor:
+    def forward(ctx, caller: RemoteSynapse, dummy: torch.Tensor, inputs: object) -> torch.Tensor:
         # Save for backward call.
         ctx.caller = caller
         
-        # Serialize inputs to bytes.
-        if dtype == bittensor_pb2.DataType.STRING:
-            serialized_inputs = PyTorchSerializer.serialize_string(inputs)
-        else:
-            serialized_inputs = PyTorchSerializer.serialize_tensor(inputs)
-        
+        # Serialize inputs to bytes.        
+        serialized_inputs = PyTorchSerializer.serialize( inputs )
+
         ctx.serialized_inputs = serialized_inputs
         
         # Build request for forward.
@@ -149,4 +147,4 @@ class _RemoteModuleCall(torch.autograd.Function):
         deserialized_grad_inputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
 
         # Return grads
-        return (None, None, deserialized_grad_inputs, None)
+        return (None, None, deserialized_grad_inputs)

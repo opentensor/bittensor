@@ -265,5 +265,5 @@ enum DataType {
 	INT32 = 3;
 	INT64 = 4;
 	STRING = 5;
-	PIL = 6;
+	IMAGE = 6;
 }
