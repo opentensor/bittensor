@@ -73,13 +73,13 @@ class Axon(bittensor_grpc.BittensorServicer):
         z = synapse.call_forward(y)
         
         # Serializer and pass to network.
-        y_serialized = PyTorchSerializer.serialize_tensor(y)
+        z_serialized = PyTorchSerializer.serialize_tensor(z)
 
         response = bittensor_pb2.TensorMessage(
             version = bittensor.__version__,
             neuron_key = self._config.neuron_key,
             synapse_key = request.synapse_key,
-            tensors = [y_serialized])
+            tensors = [z_serialized])
         
         return response
 
