@@ -5,6 +5,7 @@ import math
 import time
 import torch
 import torchvision
+from typing import List, Tuple, Dict, Optional
 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -44,6 +45,12 @@ class Mnist(bittensor.Synapse):
     @property
     def output_shape(self):
         return [-1, 10]
+    
+    def encode_tensor(self, inputs: torch.Tensor) -> torch.Tensor:
+        return inputs 
+ 
+    def encode_string(self, inputs: List[List[str]]) -> torch.Tensor:
+        return torch.zeros( (len(inputs), 784) )    
     
     def distill(self, x):
         x = x.view(-1, 1, 28, 28)
