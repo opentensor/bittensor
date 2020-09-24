@@ -97,14 +97,14 @@ class Axon(bittensor_grpc.BittensorServicer):
         synapse = self._local_synapses[request.synapse_key]
                 
         # Make local call.
-        # x = PyTorchSerializer.deserialize_(request.tensors[0])
-        # dy = PyTorchSerializer.deserialize_tensor(request.tensors[1])        
-        # dx = synapse.call_backward(x, dy)    
-        # dx_serialized = PyTorchSerializer.serialize_tensor(dx)
+        x = PyTorchSerializer.deserialize(request.tensors[0])
+        dy = PyTorchSerializer.deserialize(request.tensors[1])        
+        dx = synapse.call_backward(x, dy)    
+        dx_serialized = PyTorchSerializer.serialize_tensor(dx)
 
-        response = bittensor_pb2.TensorMessage()
-        #     version = bittensor.__version__,
-        #     neuron_key = self._config.neuron_key,
-        #     synapse_key = request.synapse_key,
-        #     tensors = [dx_serialized])
+        response = bittensor_pb2.TensorMessage(
+            version = bittensor.__version__,
+            neuron_key = self._config.neuron_key,
+            synapse_key = request.synapse_key,
+            tensors = [dx_serialized])
         return response

@@ -87,7 +87,7 @@ class Synapse(nn.Module):
             outputs = self.forward(inputs)
         return outputs
     
-    def call_backward(self, inputs: torch.Tensor, grads: torch.Tensor)-> torch.Tensor:
+    def call_backward(self, inputs: object, grads: torch.Tensor)-> torch.Tensor:
         """
         Apply a backward pass to the nn.module given grads and inputs.
         """
@@ -96,7 +96,8 @@ class Synapse(nn.Module):
         #    outputs = self.forward(inputs)
         #    torch.autograd.backward(outputs, grad_tensors=grads.to(self.device), create_graph=False, retain_graph=False)
         #    self.apply_gradients()
-        return torch.zeros_like(inputs)
+        # TODO(const): check instance type.
+        return torch.zeros((1,1))
 
     def apply_gradients(self) -> None:
         """
