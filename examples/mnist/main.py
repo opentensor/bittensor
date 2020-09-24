@@ -235,16 +235,19 @@ def main(hparams):
                 for i in range(batch_size_test):
                     idx = batch_idx * batch_size_test + i
                     input_i = testing_data [idx][0]
+                    target_i = testing_data [idx][1]
                     raw_inputs.append(input_i)
-                    
+                    targets.append(target_i)
+                targets = torch.LongTensor(targets)
+            
                 # Measure loss.
                 encoded_inputs = model.encode_image(raw_inputs) 
                 logits = model( encoded_inputs, model.distill( encoded_inputs ))
-                loss += F.nll_loss(logits, target, size_average=False).item()
+                loss += F.nll_loss(logits, targets, size_average=False).item()
                 
                 # Count accurate predictions.
                 max_logit = logits.data.max(1, keepdim=True)[1]
-                correct += max_logit.eq( target.data.view_as(max_logit) ).sum()
+                correct += max_logit.eq( targets.data.view_as(max_logit) ).sum()
                 
         # Log results.
         loss /= n
