@@ -6,20 +6,73 @@ import time
 import torch
 import torchvision
 from typing import List, Tuple, Dict, Optional
-from PIL import Image
 
+import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
+import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
+import torch.nn.functional as F
 
 import bittensor
 from bittensor import bittensor_pb2
 
-from synapse import MnistSynapse
-import torch.nn.functional as F
+class MnistSynapse(bittensor.Synapse):
+    """ Bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
+    """
+    def __init__(self, config: bittensor.Config):
+        super(MnistSynapse, self).__init__(config)
+        # Image encoder
+        self._adaptive_pool = nn.AdaptiveAvgPool2d((28, 28))
+        
+        # Forward Network
+        self.forward_layer1 = nn.Linear((784 + 1024), 1024)
+        self.forward_layer2 = nn.Linear(1024, 1024)
+        
+        # Distillation Network
+        self.dist_layer1 = nn.Linear(784, 1024)
+        self.dist_layer2 = nn.Linear(1024, 1024)
+        
+        # Logit Network 
+        self.logit_layer1 = nn.Linear(1024, 512)
+        self.logit_layer2 = nn.Linear(512, 256)
+        self.logit_layer3 = nn.Linear(256, 10)
+
+    def distill(self, x):
+        x = F.relu(self.dist_layer1 (x))
+        x = F.relu(self.dist_layer2 (x))
+        return x
+    
+    def logits (self, x):
+        x = F.relu(self.logit_layer1 (x))
+        x = F.relu(self.logit_layer2 (x))
+        x = F.log_softmax(x)
+        return x
+        
+    def forward (self, x, y = None):
+        y = self.distill(x) if y == None else y
+        x = torch.cat((x, y), dim=1)
+        x = F.relu(self.forward_layer1 (x))
+        x = F.relu(self.forward_layer2 (x))
+        x = x # + y
+        return x  
+    
+    def encode_image(self, inputs: List [object]) -> torch.Tensor:
+        transform = torchvision.transforms.Compose([
+                               torchvision.transforms.ToTensor(),
+                               torchvision.transforms.Normalize(
+                                 (0.1307,), (0.3081,))
+                             ])
+        # Apply our image transform and an adaptive pool to take all images
+        # into the correct [batch_size, 784] size tensor shape. 
+        image_batch = [transform(image) for image in inputs]
+        image_batch = torch.cat(image_batch, dim=0)
+        image_batch = self._adaptive_pool(image_batch)
+        return torch.flatten(image_batch, start_dim = 1)
 
 def main(hparams):
-    
-     # Load bittensor config from hparams.
+     
+    # Load bittensor config from hparams.
     config = bittensor.Config( hparams )
 
     # Additional training params.
@@ -38,7 +91,6 @@ def main(hparams):
 
     # Load (Train, Test) datasets into memory.
     training_data = torchvision.datasets.MNIST(root=data_path, train=True, download=True)
-    
     testing_data = torchvision.datasets.MNIST(root=data_path, train=False, download=True)
     
     # Build summary writer for tensorboard.
@@ -109,8 +161,8 @@ def main(hparams):
             network_input = router.join( responses ) # Joins responses based on scores..
             
             # Run distilled model.
-            dist_output = model.distill(encoded_inputs)
-            dist_loss = F.kl_div(dist_output, network_input.detach())
+            dist_output = model.distill(encoded_inputs.detach())
+            dist_loss = F.mse_loss(dist_output, network_input.detach())
             
             # Query the local network.
             local_embedding = model.forward(encoded_inputs, network_input)
@@ -137,7 +189,7 @@ def main(hparams):
             
                 n = len(training_data)
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}'.format(
-                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item(), dist_loss.item()))
+                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, target_loss.item(), dist_loss.item()))
 
     # Test loop.
     # Evaluates the local model on the hold-out set.
