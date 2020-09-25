@@ -8,96 +8,14 @@ import torchvision
 from typing import List, Tuple, Dict, Optional
 from PIL import Image
 
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 
 import bittensor
 from bittensor import bittensor_pb2
-class Mnist(bittensor.Synapse):
-    """ Bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
-    """
-    def __init__(self, config: bittensor.Config):
-        super(Mnist, self).__init__(config)
-        
-        # Image encoder
-        self._adaptive_pool = nn.AdaptiveAvgPool2d((28,28))
-        
-        # Main Network
-        self.conv1 = nn.Conv2d(1, 6, kernel_size=5, stride=1)
-        self.average1 = nn.AvgPool2d(2, stride=2)
-        self.conv2 = nn.Conv2d(6, 16, kernel_size=5, stride=1)
-        self.average2 = nn.AvgPool2d(2, stride=2)
-        self.conv3 = nn.Conv2d(16, 120, kernel_size=4, stride=1)
-        self.fc1 = nn.Linear(120, 82)
-        self.fc2 = nn.Linear(82, 10)
-        
-        # Distillation Network
-        self.dist_conv1 = nn.Conv2d(1, 6, kernel_size=5, stride=1)
-        self.dist_average1 = nn.AvgPool2d(2, stride=2)
-        self.dist_conv2 = nn.Conv2d(6, 16, kernel_size=5, stride=1)
-        self.dist_average2 = nn.AvgPool2d(2, stride=2)
-        self.dist_conv3 = nn.Conv2d(16, 120, kernel_size=4, stride=1)
-        self.dist_fc1 = nn.Linear(120, 82)
-        self.dist_fc2 = nn.Linear(82, 10)    
-    
-    @property
-    def input_shape(self):
-        return [-1, 784]
-    
-    @property
-    def output_shape(self):
-        return [-1, 10]
-    
-    def encode_tensor(self, inputs: torch.Tensor) -> torch.Tensor:
-        return inputs 
- 
-    def encode_string(self, inputs: List [str] ) -> torch.Tensor:
-        return torch.zeros( (len(inputs), 784) )
-    
-    def encode_image(self, inputs: List [object]) -> torch.Tensor:
-        transform = torchvision.transforms.Compose([
-                               torchvision.transforms.ToTensor(),
-                               torchvision.transforms.Normalize(
-                                 (0.1307,), (0.3081,))
-                             ])
-        image_batch = []
-        for image in inputs:
-            image_batch.append(transform(image))
-        image_batch = torch.cat(image_batch, dim=0)
-        
-        # Encode images to consistent size.
-        image_batch = self._adaptive_pool(image_batch)
-    
-        return torch.flatten(image_batch, start_dim = 1)
-       
-    def distill(self, x):
-        x = x.view(-1, 1, 28, 28)
-        x = torch.tanh(self.dist_conv1(x))
-        x = self.dist_average1(x)
-        x = torch.tanh(self.dist_conv2(x))
-        x = self.dist_average2(x)
-        x = torch.tanh(self.dist_conv3(x))
-        x = x.view(-1, x.shape[1])
-        x = F.relu(self.dist_fc1(x))
-        x = F.relu(self.dist_fc2(x))
-        return x
-    
-    def forward (self, x, y = None):
-        y = self.distill(x) if y == None else y
-        x = x.view(-1, 1, 28, 28)
-        x = torch.tanh(self.conv1(x))
-        x = self.average1(x)
-        x = torch.tanh(self.conv2(x))
-        x = self.average2(x)
-        x = torch.tanh(self.conv3(x))
-        x = x.view(-1, x.shape[1])
-        x = F.dropout(x, training=self.training)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.log_softmax(x + y)
-        return x
+
+from synapse import MnistSynapse
+import torch.nn.functional as F
 
 def main(hparams):
     
@@ -127,7 +45,7 @@ def main(hparams):
     writer = SummaryWriter(log_dir=log_dir)
     
     # Build local synapse to serve on the network.
-    model = Mnist(config) # Synapses take a config object.
+    model = MnistSynapse(config) # Synapses take a config object.
     model.to( device ) # Set model to device.
     
     # Build and start the metagraph background object.
@@ -166,7 +84,7 @@ def main(hparams):
         n = len(training_data)
         for batch_idx in range( int(n / batch_size_train)):
             
-            #we do our own batchig
+            # Batch the mnist dataset.
             raw_inputs = []
             targets = []
             for i in range(batch_size_train):
@@ -195,8 +113,9 @@ def main(hparams):
             dist_loss = F.kl_div(dist_output, network_input.detach())
             
             # Query the local network.
-            local_output = model.forward(encoded_inputs, network_input)
-            target_loss = F.nll_loss(local_output, targets)
+            local_embedding = model.forward(encoded_inputs, network_input)
+            local_logits = model.logits(local_embedding)
+            target_loss = F.nll_loss(local_logits, targets)
             
             loss = (target_loss + dist_loss)
             loss.backward()
@@ -249,7 +168,8 @@ def main(hparams):
             
                 # Measure loss.
                 encoded_inputs = model.encode_image(raw_inputs) 
-                logits = model( encoded_inputs, model.distill( encoded_inputs ))
+                embedding = model.forward( encoded_inputs, model.distill( encoded_inputs ))
+                logits = model.logits(embedding)
                 loss += F.nll_loss(logits, targets, size_average=False).item()
                 
                 # Count accurate predictions.

@@ -61,7 +61,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         synapse = self._local_synapses[request.synapse_key]
         
         # Deserializer and decode.
-        dtype = request.tensors[0].tensor_def.dtype        
+        dtype = request.tensors[0].dtype        
         if dtype == bittensor_pb2.DataType.STRING:
             x = PyTorchSerializer.deserialize_string(request.tensors[0])
             y = synapse.encode_string(x)
