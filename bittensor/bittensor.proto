@@ -256,6 +256,15 @@ message TensorDef {
 	bool requires_grad = 4;
 }
 
+// Modality: the tensor modality
+// determines how to encode datatypes
+// before passing to the main function.
+enum Modality {
+	TENSOR = 0;
+	STRING = 1;
+	IMAGE = 2;
+}
+
 // Dtype: the tensor datatype.
 // int32 32-bits (4-bytes)
 enum DataType {
