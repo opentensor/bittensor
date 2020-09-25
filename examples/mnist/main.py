@@ -198,8 +198,9 @@ def main(hparams):
                 writer.add_scalar('train_loss', float(loss.item()), global_step)
             
                 n = len(train_loader.dataset)
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}'.format(
-                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item(), dist_loss.item()))
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}\tnP|nS: {}|{}'.format(
+                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item(), dist_loss.item(), len(metagraph.peers), 
+                            len(metagraph.synapses)))
 
     # Test loop.
     # Evaluates the local model on the hold-out set.

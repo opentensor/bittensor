@@ -79,13 +79,13 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
             self._peers.add(peer)
         for synapse in request.synapses:
             self._synapses[synapse.synapse_key] = synapse
-            self._heatbeat[synapse.synapse_key] = time.time()      
+            self._heartbeat[synapse.synapse_key] = time.time()      
 
     def Gossip(self, request: bittensor_pb2.GossipBatch, context):
         synapses = self.get_synapses(1000)
         peers = self.get_peers(10)
         self._sink(request)
-        response = bittensor_pb2.GossipBatch(peer=peers, synapses=synapses)
+        response = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses)
         return response
     
     def do_gossip(self):
@@ -94,10 +94,11 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
             return
         synapses = self.get_synapses(1000)
         peers = self.get_peers(10)
-        metagraph_address = random.choice(list(self._peers))
+        metagraph_address = random.choice(list(self._peers))        
         realized_address = metagraph_address
         if metagraph_address.split(':')[0] == self._config.remote_ip:
             realized_address = 'localhost:' + str(metagraph_address.split(":")[1])
+            
         try:
             version = bittensor.__version__
             channel = grpc.insecure_channel(realized_address)
@@ -105,9 +106,12 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
             request = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses)
             response = stub.Gossip(request)
             self._sink(response)
-        except:
+        except Exception as e:
             # Faulty peer.
+            logger.info("Faulty peer!: {}".format(metagraph_address))
+            logger.error("ERROR: {}".format(e))
             self._peers.remove(metagraph_address)
+            
         
     def do_clean(self, ttl: int):
         """Cleans lingering metagraph elements
