@@ -42,6 +42,9 @@ class Synapse(nn.Module):
     def encode_string(self, inputs: List[str]) -> torch.Tensor:
         return NotImplementedError    
     
+    def encode_image(self, inputs: List[object]) -> torch.Tensor:
+        return NotImplementedError    
+    
     def call_forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """
         Apply forward pass to the nn.module given inputs.
