@@ -21,6 +21,9 @@ class Mnist(bittensor.Synapse):
     def __init__(self, config: bittensor.Config):
         super(Mnist, self).__init__(config)
         
+        # Image encoder
+        self._adaptive_pool = nn.AdaptiveAvgPool2d((28,28))
+        
         # Main Network
         self.conv1 = nn.Conv2d(1, 6, kernel_size=5, stride=1)
         self.average1 = nn.AvgPool2d(2, stride=2)
@@ -59,11 +62,15 @@ class Mnist(bittensor.Synapse):
                                torchvision.transforms.Normalize(
                                  (0.1307,), (0.3081,))
                              ])
-        results = []
+        image_batch = []
         for image in inputs:
-            results.append(transform(image))
-        results = torch.cat(results, dim=0)
-        return torch.flatten(results, start_dim=1)
+            image_batch.append(transform(image))
+        image_batch = torch.cat(image_batch, dim=0)
+        
+        # Encode images to consistent size.
+        image_batch = self._adaptive_pool(image_batch)
+    
+        return torch.flatten(image_batch, start_dim = 1)
        
     def distill(self, x):
         x = x.view(-1, 1, 28, 28)
