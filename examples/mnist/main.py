@@ -54,7 +54,7 @@ class MnistSynapse(bittensor.Synapse):
         x = torch.cat((x, y), dim=1)
         x = F.relu(self.forward_layer1 (x))
         x = F.relu(self.forward_layer2 (x))
-        x = x # + y
+        x = x
         return x  
     
     def encode_image(self, inputs: List [object]) -> torch.Tensor:
