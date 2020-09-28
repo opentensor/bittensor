@@ -38,27 +38,8 @@ class Dispatcher(object):
     def __init__(self):
         """Create a SparseDispatcher."""
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    def dispatch(self, raw_inputs: torch.Tensor, gates) -> List [torch.Tensor ]:
-        # sort experts
-        sorted_experts, index_sorted_experts = torch.nonzero(gates).sort(0)
-
-        # drop indices
-        _, self._expert_index = sorted_experts.split(1, dim=1)
-
-        # get according batch index for each expert
-        batch_index = sorted_experts[index_sorted_experts[:, 1], 0]
-
-        # calculate num samples that each expert gets
-        part_sizes = list((gates != 0.0).sum(0).cpu().numpy())
-        
-        # expand according to batch index so we can just split by _part_sizes
-        x_expanded = x[batch_index].squeeze(1).to(self.device)
-        
-        return torch.split(x_expanded, part_sizes, dim=0)
       
-      
-    def dispatch(self, x: List[object], gates) -> List[ List[object] ]:
+    def dispatch(self, x: object, gates) -> List[ object ]:
         # sort experts
         sorted_experts, index_sorted_experts = torch.nonzero(gates).sort(0)
 
@@ -72,13 +53,19 @@ class Dispatcher(object):
         part_sizes = list((gates != 0.0).sum(0).cpu().numpy())
         
         results = []
-        batch_index = batch_index.view(-1, gates.shape[0])
-        for i, row in enumerate(batch_index):
-          results.append([])
-          for _, idx in enumerate(row):
-            results[i].append( x[idx] ) 
-        return results
+        if isinstance(x, list):   
+          batch_index = batch_index.view(-1, gates.shape[0])
+          for i, row in enumerate(batch_index):
+            results.append([])
+            for _, idx in enumerate(row):
+              results[i].append( x[idx] ) 
+        else:
+          # expand according to batch index so we can just split by _part_sizes
+          x_expanded = x[batch_index].to(self.device)
+          results = torch.split(x_expanded, part_sizes, dim=0)
       
+        return results 
+        
 
     def combine(self, expert_out, gates, multiply_by_gates=True):
         """Sum together the expert output, weighted by the gates.

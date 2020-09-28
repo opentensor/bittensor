@@ -39,11 +39,29 @@ class Synapse(nn.Module):
     def encode_tensor(self, inputs: torch.Tensor) -> torch.Tensor:
         return NotImplementedError    
  
-    def encode_string(self, inputs: List[str]) -> torch.Tensor:
+    def encode_image(self, inputs: torch.Tensor) -> torch.Tensor:
         return NotImplementedError    
     
-    def encode_image(self, inputs: List[object]) -> torch.Tensor:
-        return NotImplementedError    
+    def encode_text(self, inputs: List[str]) -> torch.Tensor:
+        return NotImplementedError       
+    
+    def call_encode(self, inputs: object, modality: bittensor_pb2.Modality) -> torch.Tensor:
+        """
+        Apply modality encoders.
+        """
+        # TODO (const catch not implemented error.)
+        if modality == bittensor_pb2.Modality.TEXT:
+            return self.encode_text(inputs)
+        
+        elif modality == bittensor_pb2.Modality.IMAGE:
+            return self.encode_image(inputs)
+        
+        elif modality == bittensor_pb2.Modality.TENSOR:
+            return self.encode_tensor(inputs)
+                
+        else:
+            raise NotImplementedError
+
     
     def call_forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """

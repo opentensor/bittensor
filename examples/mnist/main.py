@@ -23,6 +23,7 @@ class MnistSynapse(bittensor.Synapse):
     def __init__(self, config: bittensor.Config):
         super(MnistSynapse, self).__init__(config)
         # Image encoder
+        self._transform = bittensor.utils.batch_transforms.Normalize((0.1307,), (0.3081,))
         self._adaptive_pool = nn.AdaptiveAvgPool2d((28, 28))
         
         # Forward Network
@@ -54,22 +55,13 @@ class MnistSynapse(bittensor.Synapse):
         x = torch.cat((x, y), dim=1)
         x = F.relu(self.forward_layer1 (x))
         x = F.relu(self.forward_layer2 (x))
-        x = x
         return x  
     
-    def encode_image(self, inputs: List [object]) -> torch.Tensor:
-        transform = torchvision.transforms.Compose([
-                               torchvision.transforms.ToTensor(),
-                               torchvision.transforms.Normalize(
-                                 (0.1307,), (0.3081,))
-                             ])
-        # Apply our image transform and an adaptive pool to take all images
-        # into the correct [batch_size, 784] size tensor shape. 
-        image_batch = [transform(image) for image in inputs]
-        image_batch = torch.cat(image_batch, dim=0)
-        image_batch = self._adaptive_pool(image_batch)
-        return torch.flatten(image_batch, start_dim = 1)
-
+    def encode_image(self, inputs: torch.Tensor) -> torch.Tensor:
+        inputs = self._transform(inputs)
+        inputs = self._adaptive_pool(inputs)
+        return torch.flatten(inputs, start_dim = 1)
+        
 def main(hparams):
      
     # Load bittensor config from hparams.
@@ -90,8 +82,11 @@ def main(hparams):
     model_path = 'data/' + trial_id + '/model.torch'
 
     # Load (Train, Test) datasets into memory.
-    training_data = torchvision.datasets.MNIST(root=data_path, train=True, download=True)
-    testing_data = torchvision.datasets.MNIST(root=data_path, train=False, download=True)
+    train_data = torchvision.datasets.MNIST(root=data_path, train=True, download=True, transform=transforms.ToTensor())
+    trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size_train, shuffle=True, num_workers=2)
+    
+    test_data = torchvision.datasets.MNIST(root=data_path, train=False, download=True, transform=transforms.ToTensor())
+    testloader = torch.utils.data.DataLoader(test_data, batch_size = batch_size_test, shuffle=False, num_workers=2)
     
     # Build summary writer for tensorboard.
     writer = SummaryWriter(log_dir=log_dir)
@@ -133,31 +128,22 @@ def main(hparams):
         # Turn on Dropoutlayers BatchNorm etc.
         model.train()
         correct = 0
-        n = len(training_data)
-        for batch_idx in range( int(n / batch_size_train)):
-            
-            # Batch the mnist dataset.
-            raw_inputs = []
-            targets = []
-            for i in range(batch_size_train):
-                idx = batch_idx * batch_size_test + i
-                input_i = training_data [idx][0]
-                target_i = training_data [idx][1]
-                raw_inputs.append(input_i)
-                targets.append(target_i)
-            targets = torch.LongTensor(targets)
+        for batch_idx, (image_inputs, targets) in enumerate(trainloader):
             
             # Clear gradients on model parameters.
             optimizer.zero_grad()
             
             # Encode PIL images to tensors.
-            encoded_inputs = model.encode_image(raw_inputs).to(device)
+            encoded_inputs = model.encode_image(image_inputs).to(device)
+            
+            # Targets to Tensor
+            targets = torch.LongTensor(targets).to(device)
             
             # Query the remote network.
             # Flatten mnist inputs for routing.
             synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network (max 1000).
-            requests, scores = router.route( synapses, encoded_inputs, raw_inputs ) # routes inputs to network.
-            responses = dendrite ( synapses, requests ) # Makes network calls.
+            requests, scores = router.route( synapses, encoded_inputs, image_inputs ) # routes inputs to network.
+            responses = dendrite.forward_image( synapses, requests ) # Makes network calls.
             network_input = router.join( responses ) # Joins responses based on scores..
             
             # Run distilled model.
@@ -187,7 +173,7 @@ def main(hparams):
                 writer.add_scalar('n_synapses', n_synapses, global_step)
                 writer.add_scalar('train_loss', float(loss.item()), global_step)
             
-                n = len(training_data)
+                n = len(train_data)
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}'.format(
                     epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, target_loss.item(), dist_loss.item()))
 
@@ -201,34 +187,27 @@ def main(hparams):
         
         # Turns off gradient computation for inference speed up.
         with torch.no_grad():
-            
+        
             loss = 0.0
             correct = 0.0
-            n = len(testing_data)
-            for batch_idx in range( int(n / batch_size_train)):
+            for batch_idx, (image_inputs, targets) in enumerate(testloader):                
+                # Encode PIL images to tensors.
+                encoded_inputs = model.encode_image(image_inputs).to(device)
             
-                # we do our own batchig
-                raw_inputs = []
-                targets = []
-                for i in range(batch_size_test):
-                    idx = batch_idx * batch_size_test + i
-                    input_i = testing_data [idx][0]
-                    target_i = testing_data [idx][1]
-                    raw_inputs.append(input_i)
-                    targets.append(target_i)
-                targets = torch.LongTensor(targets)
+                # Targets to Tensor
+                targets = torch.LongTensor(targets).to(device)
             
-                # Measure loss.
-                encoded_inputs = model.encode_image(raw_inputs) 
-                embedding = model.forward( encoded_inputs, model.distill( encoded_inputs ))
+                # Measure loss. 
+                embedding = model.forward( encoded_inputs, model.distill ( encoded_inputs ) )
                 logits = model.logits(embedding)
                 loss += F.nll_loss(logits, targets, size_average=False).item()
                 
                 # Count accurate predictions.
                 max_logit = logits.data.max(1, keepdim=True)[1]
                 correct += max_logit.eq( targets.data.view_as(max_logit) ).sum()
-                
-        # Log results.
+        
+        # # Log results.
+        n = len(test_data)
         loss /= n
         accuracy = (100. * correct) / n
         logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))        
@@ -247,7 +226,7 @@ def main(hparams):
        
             # Save best model. 
             if test_loss < best_test_loss:
-                # Update best_loss.
+                # Update best loss.
                 best_test_loss = test_loss
                 
                 # Save the best local model.
