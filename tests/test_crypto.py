@@ -19,8 +19,6 @@ def random_synapse():
         synapse_key = Crypto.public_key_to_string(public_key),
         address = '0.0.0.0',
         port = '12231',
-        indef = [bittensor_pb2.TensorDef()],
-        outdef = [bittensor_pb2.TensorDef()],
         block_hash = Crypto.lastest_block_hash()
     )
     return private_key, synapse
