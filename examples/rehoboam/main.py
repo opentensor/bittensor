@@ -16,31 +16,25 @@ from dataset import Dataset
 from loguru import logger
 
 
+import transformers
+from transformers import BertTokenizer
+
+from transformers import AutoTokenizer, AutoModel
+
 class TransformerSynapse(bittensor.Synapse):
     """ An bittensor endpoint trained on wiki corpus.
     """
-    def __init__(self, config, transformer, ntokens):
+    def __init__(self, config, transformer):
         super(TransformerSynapse, self).__init__(config)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.transformer = transformer
-        self.ntokens = ntokens
+        self.tokenizer = BertTokenizer.from_pretrained() 
         
-    @property
-    def input_shape(self):
-        return [-1, 20]
-    
-    @property
-    def input_dtype(self):
-        return bittensor_pb2.INT64
-    
-    @property
-    def output_shape(self):
-        return [-1, 120]
-    
-    @property
-    def output_dtype(self):
-        return bittensor_pb2.FLOAT32
-   
+    def encode_string(self, x: List[str]) -> torch.Tensor:
+        tokenized =  [self.tokenizer.encode(sentence) for sentence in x]
+        tokenized = torch.cat(tokenized)
+        return self.transformer.encode(tokenized)
+        
     def forward(self, x):
         # Move x over to device, if any
         x = x.to(self.device)
@@ -58,13 +52,12 @@ def main(hparams):
     log_interval = 10
     config = bittensor.Config( hparams )
     
-    dataset = Dataset(bptt)
-    train_data = dataset.batchify(dataset.train_txt, batch_size)
-    val_data = dataset.batchify(dataset.val_txt, eval_batch_size)
-    test_data = dataset.batchify(dataset.test_txt, eval_batch_size)
-
-    test_results_file = "rehoboam_test_results.txt"
-
+    
+    TEXT = transformer.data.processors.glue.ColaProcessor()
+    train_data = TEXT.get_train_data( data_dir )
+    test_data = TEXT.get_test_data( data_dir )
+    
+    
     # Transformer model architecture
     ntokens = len(dataset.TEXT.vocab.stoi)  # the size of vocabulary
     emsize = 20  # embedding dimension

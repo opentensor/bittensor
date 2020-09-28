@@ -58,27 +58,22 @@ class Axon(bittensor_grpc.BittensorServicer):
         # Return null response if the target does not exist.
         if request.synapse_key not in self._local_synapses:
             return bittensor_pb2.TensorMessage()
+        
+        # Find synapse.
         synapse = self._local_synapses[request.synapse_key]
         
-        # Deserializer and decode.
-        dtype = request.tensors[0].dtype        
-        if dtype == bittensor_pb2.DataType.STRING:
-            x = PyTorchSerializer.deserialize_string(request.tensors[0])
-            y = synapse.encode_string(x)
-            
-        elif dtype == bittensor_pb2.DataType.IMAGE:
-            x = PyTorchSerializer.deserialize_image(request.tensors[0])
-            y = synapse.encode_image(x)
-            
-        # TODO (const): needs to check modality not dtype.
-        else:
-            x = PyTorchSerializer.deserialize_tensor(request.tensors[0])
-            y = synapse.encode_tensor(x)
+        # Deserialize and decode.
+        inputs = request.tensors[0]
         
-        # Make local call to synapse.
-        z = synapse.call_forward(y)
+        # Deserialize the modality inputs to tensor.
+        x = PyTorchSerializer.deserialize( inputs )
         
-        # Serializer and pass to network.
+        # Call modality encoder. 
+        y = synapse.call_encode( x, inputs.modality )
+        
+        # Call forward network.
+        z = synapse.call_forward( y )
+        
         z_serialized = PyTorchSerializer.serialize_tensor(z)
 
         response = bittensor_pb2.TensorMessage(

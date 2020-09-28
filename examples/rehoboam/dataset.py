@@ -15,6 +15,8 @@ class Dataset():
         self.bptt = bptt
 
     def batchify(self, data, bsz):
+        text_ = data.examples[0].text
+         
         data = self.TEXT.numericalize([data.examples[0].text])
         # Divide the dataset into bsz parts.
         nbatch = data.size(0) // bsz

@@ -216,9 +216,12 @@ message Tensor {
 	// int32 32-bits (4-bytes)
 	DataType dtype = 4;
 
+	// Modality: TEXT, TENSOR, IMAGE
+	Modality modality = 5;
+
 	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
 	// 1 bit.
-	bool requires_grad = 5;
+	bool requires_grad = 6;
 }
 
 // Dtype: [REQUIRED] The tensor datatype.
@@ -230,7 +233,11 @@ enum DataType {
 	FLOAT64 = 2;
 	INT32 = 3;
 	INT64 = 4;
-	STRING = 5;
-	IMAGE = 6;
+}
+
+enum Modality {
+	TENSOR = 0;
+	IMAGE = 1;
+	TEXT = 2;
 }
 

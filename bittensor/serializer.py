@@ -51,31 +51,54 @@ def bittensor_dtype_np_dtype(odtype):
     return dtype
 
 class PyTorchSerializer():
-
+    
     @staticmethod
-    def serialize(tensor: object) -> bittensor_pb2.Tensor:
+    def deserialize(proto: bittensor_pb2.Tensor) -> object:
+        """Deserializes an bittensor_pb2.Tensor to a torch.Tensor object.
+
+        Args:
+            proto (bittensor_pb2.Tensor): Proto to derserialize.
+
+        Returns:
+            List[object]:
+        """
+        # Check typing
+        if proto.modality == bittensor_pb2.Modality.IMAGE:
+            return PyTorchSerializer.deserialize_image( proto )
+        
+        elif proto.modality == bittensor_pb2.Modality.TEXT:
+            return PyTorchSerializer.deserialize_string( proto )
+        
+        elif proto.modality == bittensor_pb2.Modality.TENSOR:
+            return PyTorchSerializer.deserialize_tensor( proto )
+        
+        else:
+            raise NotImplementedError
+   
+    @staticmethod
+    def serialize(tensor: object, modality: bittensor_pb2.Modality) -> bittensor_pb2.Tensor:
         """Serializes a torch.Tensor to an bittensor Tensor proto.
 
         Args:
-            tensor (torch.Tensor): torch.Tensor to serialize.
+            tensor (object): general object with modality TEXT, IMAGE, TENSOR
 
         Returns:
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
         """
-        
         # Check typing
-        if isinstance(tensor, torch.Tensor):
+        if modality == bittensor_pb2.Modality.IMAGE:
+            return PyTorchSerializer.serialize_image( tensor )
+        
+        elif modality == bittensor_pb2.Modality.TEXT:
+            return PyTorchSerializer.serialize_string( tensor )
+        
+        elif modality == bittensor_pb2.Modality.TENSOR:
             return PyTorchSerializer.serialize_tensor( tensor )
-        elif isinstance (tensor, list):
-            if isinstance (tensor[0], str):
-                return PyTorchSerializer.serialize_string ( tensor )
-            elif isinstance (tensor[0], PIL.Image.Image):
-                return PyTorchSerializer.serialize_image ( tensor )
-            else:
-                raise NotImplementedError
+        
         else:
             raise NotImplementedError
-    
+            
+
     @staticmethod
     def serialize_string(tensor: List[str]) -> bittensor_pb2.Tensor:
         """Serializes a torch.Tensor to an bittensor Tensor proto.
@@ -92,11 +115,12 @@ class PyTorchSerializer():
                     buffer = data_buffer,
                     shape = [len(tensor), 1],
                     dtype = bittensor_pb2.DataType.STRING,
+                    modality = bittensor_pb2.Modality.TEXT,
                     requires_grad = False)
         return proto
         
     @staticmethod
-    def serialize_image(tensor: List[object]) -> bittensor_pb2.Tensor:
+    def serialize_image(tensor: torch.Tensor) -> bittensor_pb2.Tensor:
         """Serializes a torch.Tensor to an bittensor Tensor proto.
 
         Args:
@@ -105,13 +129,19 @@ class PyTorchSerializer():
         Returns:
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
         """    
-        data_buffer = pickle.dumps(tensor)
+        # TODO (const) replace asserts with errors.
+        assert len(tensor.shape) > 1
+        # Using numpy intermediary because deserializing with pickle can run arbitray code on your machine.
+        data_buffer = tensor.cpu().numpy().tobytes()
+        dtype = torch_dtype_to_bittensor_dtype (tensor.dtype)
+        shape = list(tensor.shape)
         proto = bittensor_pb2.Tensor(
                     version = bittensor.__version__,
                     buffer = data_buffer,
-                    shape = [len(tensor), 1],
-                    dtype = bittensor_pb2.DataType.IMAGE,
-                    requires_grad = False)
+                    shape = shape,
+                    dtype = dtype,
+                    modality = bittensor_pb2.Modality.IMAGE,
+                    requires_grad = tensor.requires_grad)      
         return proto
     
     @staticmethod
@@ -136,12 +166,13 @@ class PyTorchSerializer():
                     buffer = data_buffer,
                     shape = shape,
                     dtype = dtype,
+                    modality = bittensor_pb2.Modality.TENSOR,
                     requires_grad = tensor.requires_grad)      
         return proto
     
     
     @staticmethod
-    def deserialize(proto: bittensor_pb2.Tensor) -> object:
+    def deserialize_image(proto: bittensor_pb2.Tensor) -> torch.Tensor:
         """Deserializes an bittensor_pb2.Tensor to a torch.Tensor object.
 
         Args:
@@ -150,28 +181,15 @@ class PyTorchSerializer():
         Returns:
             List[object]:
         """
-        # Check typing
-        if proto.dtype == bittensor_pb2.DataType.IMAGE:
-            return PyTorchSerializer.deserialize_image( proto )
+        dtype = np.float32
+        # TODO avoid copying the array (need to silence pytorch warning, because array is not writable)
+        array = np.frombuffer(proto.buffer, dtype=np.dtype(dtype)).copy()
+        # NOTE (const): The first dimension is always assumed to be the batch dimension.
+        shape = tuple(proto.shape)
+        assert len(shape) > 1 
+        tensor = torch.as_tensor(array).view(shape).requires_grad_(proto.requires_grad)
+        return tensor
         
-        if proto.dtype == bittensor_pb2.DataType.STRING:
-            return PyTorchSerializer.deserialize_string( proto )
-        
-        else:
-            return PyTorchSerializer.deserialize_tensor( proto )
-        
-    @staticmethod
-    def deserialize_image(proto: bittensor_pb2.Tensor) -> List[object]:
-        """Deserializes an bittensor_pb2.Tensor to a torch.Tensor object.
-
-        Args:
-            proto (bittensor_pb2.Tensor): Proto to derserialize.
-
-        Returns:
-            List[object]:
-        """
-        return pickle.loads(proto.buffer)
-    
     @staticmethod
     def deserialize_string(proto: bittensor_pb2.Tensor) -> List[str]:
         """Deserializes an bittensor_pb2.Tensor to a torch.Tensor object.

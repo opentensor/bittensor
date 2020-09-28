@@ -26,7 +26,20 @@ class Dendrite(nn.Module):
     # Cleaning remote connections and updating signatures.
     def run(self):
         pass
-    def forward(self, synapses: List[bittensor_pb2.Synapse], x: List[ object ]) -> List[torch.Tensor]:
+    
+    def forward_text(self, synapses: List[bittensor_pb2.Synapse], x: List[ List[str] ]) -> List[torch.Tensor]:
+        """ forward tensor processes """
+        return self.forward(synapses, x, bittensor_pb2.Modality.TEXT)
+    
+    def forward_image(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
+        """ forward tensor processes """
+        return self.forward(synapses, x, bittensor_pb2.Modality.IMAGE)
+    
+    def forward_tensor(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
+        """ forward tensor processes """
+        return self.forward(synapses, x, bittensor_pb2.Modality.TENSOR)
+    
+    def forward(self, synapses: List[bittensor_pb2.Synapse], x: List[ object ], mode: bittensor_pb2.Modality) -> List[torch.Tensor]:
         """ forward tensor processes """
         results = []
         for idx, synapse in enumerate(synapses):
@@ -42,7 +55,7 @@ class Dendrite(nn.Module):
                 self._remotes[synapse.synapse_key] = remote_synapse
                 
             # Call remote synapse.
-            results.append(remote_synapse(forward_inputs))
+            results.append(remote_synapse(forward_inputs, mode))
         return results
     
 # NOTE: (const) This code has been ported from hivemind thanks to Yozh and Max.
@@ -75,7 +88,7 @@ class RemoteSynapse(nn.Module):
         if self.channel is not None:
             self.channel.close()
 
-    def forward(self, inputs: object) -> torch.Tensor:
+    def forward(self, inputs: object, mode: bittensor_pb2.Modality) -> torch.Tensor:
         # TODO (const) compare schema
         # assert schema shape and size. raise type error.
         # if not check_schema(inputs, self.synapse.forward_schema):
@@ -83,7 +96,7 @@ class RemoteSynapse(nn.Module):
         # TODO (const): consistend packing.
         # flattened = flatten(inputs)
         # Note: (hivemind) we send DUMMY to prevent torch from excluding expert from backward if no other inputs require grad
-        outputs = _RemoteModuleCall.apply(self, DUMMY, inputs)
+        outputs = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
         # TODO (const) consitent unpacking
         # return unpack_to_schema(outputs, structure = self.synapse.output_schema) 
         return outputs
@@ -96,12 +109,13 @@ class _RemoteModuleCall(torch.autograd.Function):
     # TODO (const) check schema.
     # TODO (const) should take multiple input tensors and kwargs.
     @staticmethod
-    def forward(ctx, caller: RemoteSynapse, dummy: torch.Tensor, inputs: object) -> torch.Tensor:
+    def forward(ctx, caller: RemoteSynapse, dummy: torch.Tensor, inputs: object, mode: bittensor_pb2.Modality) -> torch.Tensor:
         # Save for backward call.
         ctx.caller = caller
+        ctx.mode = mode
         
-        # Serialize inputs to bytes.        
-        serialized_inputs = PyTorchSerializer.serialize( inputs )
+        # Serialize inputs to bytes.         
+        serialized_inputs = PyTorchSerializer.serialize( inputs, mode )
 
         ctx.serialized_inputs = serialized_inputs
         
@@ -127,7 +141,7 @@ class _RemoteModuleCall(torch.autograd.Function):
     def backward(ctx, grads: torch.Tensor) -> Optional[torch.Tensor]:
             
         # Serialize inputs to bytes.
-        serialized_grads = PyTorchSerializer.serialize (grads)
+        serialized_grads = PyTorchSerializer.serialize_tensor(grads)
         serialized_inputs = ctx.serialized_inputs
         
         # Build request for forward.
@@ -145,7 +159,9 @@ class _RemoteModuleCall(torch.autograd.Function):
 
         # Deserialize grad responses.
         # TODO (const) maybe remove this?
-        # deserialized_grad_inputs = PyTorchSerializer.deserialize (response.tensors[0])
-
-        # Return grads
-        return (None, None, None)
+        if ctx.mode == bittensor_pb2.Modality.TEXT:
+            return (None, None, None, None)       
+        else:
+            deserialized_grad_inputs = PyTorchSerializer.deserialize (response.tensors[0])
+            return (None, None, deserialized_grad_inputs, None)        
+        
