@@ -174,6 +174,10 @@ def main(hparams):
             # Run distilled model.
             dist_output = model.distill(inputs)
             dist_loss = F.kl_div(dist_output, network_input.detach())
+
+            # Distill loss
+            student_output = model.forward(inputs, dist_output)
+            student_loss = F.nll_loss(student_output, target)
             
             # Query the local network.
             local_output = model.forward(inputs, network_input)
@@ -198,8 +202,8 @@ def main(hparams):
                 writer.add_scalar('train_loss', float(loss.item()), global_step)
             
                 n = len(train_loader.dataset)
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}\tnP|nS: {}|{}'.format(
-                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item(), dist_loss.item(), len(metagraph.peers), 
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}\tStudent Loss: {:.6f}\tnP|nS: {}|{}'.format(
+                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item(), dist_loss.item(), student_loss.item(), len(metagraph.peers), 
                             len(metagraph.synapses)))
 
     # Test loop.
