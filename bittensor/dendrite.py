@@ -55,7 +55,9 @@ class Dendrite(nn.Module):
                 self._remotes[synapse.synapse_key] = remote_synapse
                 
             # Call remote synapse.
-            results.append(remote_synapse(forward_inputs, mode))
+            synapse_response = remote_synapse(forward_inputs, mode)
+            synapse_response[torch.isnan(synapse_response)] = 0
+            results.append(synapse_response)
         return results
     
 # NOTE: (const) This code has been ported from hivemind thanks to Yozh and Max.
