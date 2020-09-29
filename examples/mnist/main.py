@@ -70,7 +70,7 @@ def main(hparams):
     # Additional training params.
     batch_size_train = 64
     batch_size_test = 64
-    learning_rate = 0.1
+    learning_rate = 0.01
     momentum = 0.9
     log_interval = 10
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -148,11 +148,12 @@ def main(hparams):
             
             # Run distilled model.
             dist_output = model.distill(encoded_inputs)
-            dist_loss = F.kl_div(dist_output, network_input.detach())
+            dist_loss = F.mse_loss(dist_output, network_input.detach())
 
             # Distill loss
             student_output = model.forward(encoded_inputs, dist_output)
-            student_loss = F.nll_loss(student_output, target)
+            student_logits = model.logits(student_output)
+            student_loss = F.nll_loss(student_logits, targets)
             
             # Query the local network.
             local_embedding = model.forward(encoded_inputs, network_input)
@@ -179,7 +180,7 @@ def main(hparams):
             
                 n = len(train_data)
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}\tStudent Loss: {:.6f}\tnP|nS: {}|{}'.format(
-                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item(), dist_loss.item(), student_loss.item(), len(metagraph.peers), 
+                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, target_loss.item(), dist_loss.item(), student_loss.item(), len(metagraph.peers), 
                             len(metagraph.synapses)))
 
     # Test loop.
