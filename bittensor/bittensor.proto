@@ -71,22 +71,6 @@ message Synapse {
   	// i.e. '8081'
 	// SIZE: 32-bits (4-bytes)
 	string port = 5;
-  
-	// Indef: [REQUIRED] Describes acceptable service tensor input definition
-	// Passed TensorMessages must obey this schema. 
-	// i.e [{version=1, shape=[24,24], dtype=FLOAT32, requires_grad=1}]
-	// Note: Tensors in TensorMessages are assumed to be packed in this order.
-	// SIZE: ~128 bits (16 bytes) * N 
-	repeated TensorDef indef = 6;
-
-	// Outdef: [REQUIRED] Describes the returned TensorMessage schema for this service.
-	// Returned TensorMessages should obey this schema. 
-	// i.e [{version=1, shape=[24,24], dtype=FLOAT32, requires_grad=1}]
-	// NOTE: Tensors in TensorMessages are assumed to be packed in this order.
-	// NOTE: Backward TensorMessage inputs and gradients are assumed to be packed: 
-	// [input_1, input_2, ..., gradient_1, gradient_2 ... ]
-	// SIZE: (28 bytes) * N 
-	repeated TensorDef outdef = 7;
 
 	// Block hash: [OPTIONAL] hash of latest chain block service definition creation.
 	// Links the bellow POW to a global-time protecting the cache from
@@ -124,8 +108,6 @@ message Synapse {
 	// >>> 	 digest.update(synapse_key.encode('utf-8'))
   	// >>> 	 digest.update(address.encode('utf-8'))
   	// >>> 	 digest.update(port.encode('utf-8))
-  	// >>> 	 digest.update(indef.SerializeToString().encode('utf-8))
-	// >>> 	 digest.update(oudef.SerializeToString().encode('utf-8))
 	// >>> 	 digest.update(block_hash.encode('utf-8'))
 	// >>> 	 digest.update(bytes(nounce))
 	// >>> 	 digest = digest.finalize()
@@ -220,23 +202,6 @@ message Tensor {
 	// SIZE: variable
 	bytes buffer = 2;
 
-	// Tensor Def: [REQUIRED] Describes the tensor buffer contents.
-	// i.e {version=1, shape=[24,24], dtype=FLOAT32, requires_grad=1}
-	// SIZE: (28 bytes)
-	TensorDef tensor_def = 3;
-}
-
-
-// Description used to define input and output schemas, 
-// as well as to deserialize passed tensors buffers.
-// SIZE: ~ 28 bytes.
-message TensorDef {		
-	// Version: [REQUIRED] Strictly increasing protocol version identifier.
-	// Indentifies protocol version for backward compatibility.
-	// i.e. '0.0.0'
-	// SIZE: 32 bits (4-bytes)
-	string version = 1;
-	
 	// Shape: [REQUIRED] Shape of this tensor.
 	// NOTE: Variable dimensions (i.e. batch) are non-explicit here as -1.
 	// When a tensor def is used in a synapse service definition.
@@ -244,19 +209,23 @@ message TensorDef {
 	// i.e. in Synapse Def: [-1, 256, 23]
 	// i.e in TensorMessage: [50, 256, 23]
 	// ~ 5 * int32 = 128 bits - (16 bytes)
-	repeated int64 shape = 2;
+	repeated int64 shape = 3;
     	
 	// Dtype: [REQUIRED] The tensor datatype.
 	// Used for serialization deserialization.
 	// int32 32-bits (4-bytes)
-	DataType dtype = 3;
+	DataType dtype = 4;
+
+	// Modality: TEXT, TENSOR, IMAGE
+	Modality modality = 5;
 
 	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
 	// 1 bit.
-	bool requires_grad = 4;
+	bool requires_grad = 6;
 }
 
-// Dtype: the tensor datatype.
+// Dtype: [REQUIRED] The tensor datatype.
+// Used for serialization deserialization.
 // int32 32-bits (4-bytes)
 enum DataType {
 	UNKNOWN = 0;
@@ -265,3 +234,10 @@ enum DataType {
 	INT32 = 3;
 	INT64 = 4;
 }
+
+enum Modality {
+	TENSOR = 0;
+	IMAGE = 1;
+	TEXT = 2;
+}
+

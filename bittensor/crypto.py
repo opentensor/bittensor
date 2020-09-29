@@ -70,10 +70,6 @@ class Crypto():
         digest.update(synapse.synapse_key.encode('utf-8'))
         digest.update(synapse.address.encode('utf-8'))
         digest.update(synapse.port.encode('utf-8'))
-        for indef in synapse.indef: 
-            digest.update(indef.SerializeToString())
-        for outdef in synapse.outdef:
-            digest.update(outdef.SerializeToString())
         digest.update(synapse.block_hash.encode('utf-8')) 
         digest.update(bytes(synapse.nounce))
         digest = digest.finalize()
@@ -101,10 +97,6 @@ class Crypto():
         digest.update(synapse.synapse_key.encode('utf-8'))
         digest.update(synapse.address.encode('utf-8'))
         digest.update(synapse.port.encode('utf-8'))
-        for indef in synapse.indef: 
-            digest.update(indef.SerializeToString())
-        for outdef in synapse.outdef:
-            digest.update(outdef.SerializeToString())
         digest.update(synapse.block_hash.encode('utf-8'))
         synapse_digest = digest.finalize()
         while True:

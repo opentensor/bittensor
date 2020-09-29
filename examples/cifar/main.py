@@ -158,27 +158,15 @@ def main(hparams):
     writer = SummaryWriter(log_dir=log_dir)
 
     # Load CIFAR
-    transform_train = transforms.Compose([
+    trainset = torchvision.datasets.CIFAR10(root=data_path, train=True, download=True, transform=transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
+    ]))
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size = batch_size_train, shuffle=True, num_workers=2)
 
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
-
-    trainset = torchvision.datasets.CIFAR10(root=data_path, train=True,
-                                        download=True, transform=transform_train)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size = batch_size_train,
-                                          shuffle=True, num_workers=2)
-
-    testset = torchvision.datasets.CIFAR10(root=data_path, train=False,
-                                           download=True, transform=transform_test)
-    testloader = torch.utils.data.DataLoader(testset, batch_size = batch_size_test,
-                                         shuffle=False, num_workers=2)
+    testset = torchvision.datasets.CIFAR10(root=data_path, train=False, download=True, transform=transforms.ToTensor())
+    testloader = torch.utils.data.DataLoader(testset, batch_size = batch_size_test, shuffle=False, num_workers=2)
 
     # Build local synapse to serve on the network.
     model = CIFAR(config) # Synapses take a config object.
@@ -228,8 +216,7 @@ def main(hparams):
 
             # Query the remote network.
             synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network. [...]
-            requests, scores = router.route( synapses, inputs_flatten ) # routes inputs to network.
-
+            requests, scores = router.route( synapses, inputs_flatten, inputs ) # routes inputs to network.
             responses = dendrite ( synapses, requests ) # Makes network calls.
             network_outputs = router.join(responses) # Joins responses based on scores.
 
@@ -242,7 +229,8 @@ def main(hparams):
 
             # Query the local network.
             local_output = model.forward(inputs, network_outputs)
-            target_loss = criterion(local_output, targets)
+            local_logits = model.logits(local_output)
+            target_loss = criterion(local_output, targets
             torch.nn.utils.clip_grad_norm_(router.parameters(), 0.5)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
             loss = (target_loss + dist_loss)

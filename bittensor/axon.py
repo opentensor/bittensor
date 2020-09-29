@@ -58,18 +58,29 @@ class Axon(bittensor_grpc.BittensorServicer):
         # Return null response if the target does not exist.
         if request.synapse_key not in self._local_synapses:
             return bittensor_pb2.TensorMessage()
+        
+        # Find synapse.
         synapse = self._local_synapses[request.synapse_key]
         
-        # Make local call.
-        x = PyTorchSerializer.deserialize(request.tensors[0])
-        y = synapse.call_forward(x)
-        y_serialized = PyTorchSerializer.serialize(y)
+        # Deserialize and decode.
+        inputs = request.tensors[0]
+        
+        # Deserialize the modality inputs to tensor.
+        x = PyTorchSerializer.deserialize( inputs )
+        
+        # Call modality encoder. 
+        y = synapse.call_encode( x, inputs.modality )
+        
+        # Call forward network.
+        z = synapse.call_forward( y )
+        
+        z_serialized = PyTorchSerializer.serialize_tensor(z)
 
         response = bittensor_pb2.TensorMessage(
             version = bittensor.__version__,
             neuron_key = self._config.neuron_key,
             synapse_key = request.synapse_key,
-            tensors = [y_serialized])
+            tensors = [z_serialized])
         
         return response
 
@@ -84,7 +95,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         x = PyTorchSerializer.deserialize(request.tensors[0])
         dy = PyTorchSerializer.deserialize(request.tensors[1])        
         dx = synapse.call_backward(x, dy)    
-        dx_serialized = PyTorchSerializer.serialize(dx)
+        dx_serialized = PyTorchSerializer.serialize_tensor(dx)
 
         response = bittensor_pb2.TensorMessage(
             version = bittensor.__version__,
