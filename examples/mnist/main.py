@@ -147,15 +147,19 @@ def main(hparams):
             network_input = router.join( responses ) # Joins responses based on scores..
             
             # Run distilled model.
-            dist_output = model.distill(encoded_inputs.detach())
-            dist_loss = F.mse_loss(dist_output, network_input.detach())
+            dist_output = model.distill(encoded_inputs)
+            dist_loss = F.kl_div(dist_output, network_input.detach())
+
+            # Distill loss
+            student_output = model.forward(encoded_inputs, dist_output)
+            student_loss = F.nll_loss(student_output, target)
             
             # Query the local network.
             local_embedding = model.forward(encoded_inputs, network_input)
             local_logits = model.logits(local_embedding)
             target_loss = F.nll_loss(local_logits, targets)
             
-            loss = (target_loss + dist_loss)
+            loss = (target_loss + dist_loss + student_loss)
             loss.backward()
             optimizer.step()
             global_step += 1
@@ -174,8 +178,9 @@ def main(hparams):
                 writer.add_scalar('train_loss', float(loss.item()), global_step)
             
                 n = len(train_data)
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}'.format(
-                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, target_loss.item(), dist_loss.item()))
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}\tStudent Loss: {:.6f}\tnP|nS: {}|{}'.format(
+                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item(), dist_loss.item(), student_loss.item(), len(metagraph.peers), 
+                            len(metagraph.synapses)))
 
     # Test loop.
     # Evaluates the local model on the hold-out set.
