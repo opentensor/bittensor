@@ -6,6 +6,7 @@ import time
 import torch
 import torchvision
 import copy
+import traceback
 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -78,6 +79,7 @@ class CIFAR(bittensor.Synapse):
         x = F.avg_pool2d(x, 4)
         x = torch.flatten(x, start_dim=1)
         x = self.linear(x)
+        x = F.softmax(x)
         return x
 
     def forward(self, x, y = None):
@@ -93,7 +95,7 @@ class CIFAR(bittensor.Synapse):
         x = F.avg_pool2d(x, 4)
         x = torch.flatten(x, start_dim=1)
         x = self.linear(x)
-        x = F.log_softmax(x)
+        x = F.log_softmax(x + y)
         return x
 
     @property
@@ -209,7 +211,7 @@ def main(hparams):
     criterion = nn.CrossEntropyLoss()
     params = list(router.parameters()) + list(model.parameters())
     optimizer = optim.SGD(params, lr=learning_rate, momentum=momentum, weight_decay=5e-4)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10.0, gamma=0.1)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
     def train(model, epoch, global_step):
         running_loss = 0.0
@@ -234,6 +236,9 @@ def main(hparams):
             # Run distilled model.
             dist_output = model.distill(inputs)
             dist_loss = F.kl_div(dist_output, network_outputs.detach())
+
+            student_output = model.forward(inputs, dist_output)
+            student_loss = F.nll_loss(student_output, targets)
 
             # Query the local network.
             local_output = model.forward(inputs, network_outputs)
@@ -260,8 +265,9 @@ def main(hparams):
                                   global_step)
 
                 n = len(trainloader.dataset)
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}'.format(
-                    epoch, (i * batch_size_train), n, (100. * i * batch_size_train)/n, loss.item(), dist_loss.item()))
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}\tStudent Loss: {:.6f}\tnP|nS: {}|{}'.format(
+                    epoch, (i * batch_size_train), n, (100. * i * batch_size_train)/n, loss.item(), dist_loss.item(), student_loss.item(), len(metagraph.peers), 
+                            len(metagraph.synapses)))
 
             # Empty device cache
             if device == 'cuda':
@@ -296,7 +302,7 @@ def main(hparams):
         logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))
         return loss, accuracy
 
-    epoch = 0
+    epoch = 1
     global_step = 0
     best_test_loss = math.inf
     try:
@@ -320,6 +326,7 @@ def main(hparams):
 
     except Exception as e:
         logger.error(e)
+        traceback.print_exc()
         metagraph.stop()
         axon.stop()
 
