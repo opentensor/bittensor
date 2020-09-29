@@ -1,5 +1,7 @@
 import torch
 import numpy as np
+from typing import List, Tuple, Dict, Optional
+
 
 
 class Dispatcher(object):
@@ -36,8 +38,8 @@ class Dispatcher(object):
     def __init__(self):
         """Create a SparseDispatcher."""
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    def dispatch(self, x, gates):
+      
+    def dispatch(self, x: object, gates) -> List[ object ]:
         # sort experts
         sorted_experts, index_sorted_experts = torch.nonzero(gates).sort(0)
 
@@ -49,9 +51,21 @@ class Dispatcher(object):
 
         # calculate num samples that each expert gets
         part_sizes = list((gates != 0.0).sum(0).cpu().numpy())
-        # expand according to batch index so we can just split by _part_sizes
-        x_expanded = x[batch_index].squeeze(1).to(self.device)
-        return torch.split(x_expanded, part_sizes, dim=0)
+        
+        results = []
+        if isinstance(x, list):   
+          batch_index = batch_index.view(-1, gates.shape[0])
+          for i, row in enumerate(batch_index):
+            results.append([])
+            for _, idx in enumerate(row):
+              results[i].append( x[idx] ) 
+        else:
+          # expand according to batch index so we can just split by _part_sizes
+          x_expanded = x[batch_index].to(self.device)
+          results = torch.split(x_expanded, part_sizes, dim=0)
+      
+        return results 
+        
 
     def combine(self, expert_out, gates, multiply_by_gates=True):
         """Sum together the expert output, weighted by the gates.

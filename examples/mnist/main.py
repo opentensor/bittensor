@@ -5,81 +5,66 @@ import math
 import time
 import torch
 import torchvision
+from typing import List, Tuple, Dict, Optional
 
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
+import torch.nn.functional as F
 
 import bittensor
 from bittensor import bittensor_pb2
-class Mnist(bittensor.Synapse):
+
+class MnistSynapse(bittensor.Synapse):
     """ Bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
     """
     def __init__(self, config: bittensor.Config):
-        super(Mnist, self).__init__(config)
-
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        super(MnistSynapse, self).__init__(config)
+        # Image encoder
+        self._transform = bittensor.utils.batch_transforms.Normalize((0.1307,), (0.3081,))
+        self._adaptive_pool = nn.AdaptiveAvgPool2d((28, 28))
         
-        # Main Network
-        self.conv1 = nn.Conv2d(1, 6, kernel_size=5, stride=1)
-        self.average1 = nn.AvgPool2d(2, stride=2)
-        self.conv2 = nn.Conv2d(6, 16, kernel_size=5, stride=1)
-        self.average2 = nn.AvgPool2d(2, stride=2)
-        self.conv3 = nn.Conv2d(16, 120, kernel_size=4, stride=1)
-        self.fc1 = nn.Linear(120, 82)
-        self.fc2 = nn.Linear(82, 10)
+        # Forward Network
+        self.forward_layer1 = nn.Linear((784 + 1024), 1024)
+        self.forward_layer2 = nn.Linear(1024, 1024)
         
         # Distillation Network
-        self.dist_conv1 = nn.Conv2d(1, 6, kernel_size=5, stride=1)
-        self.dist_average1 = nn.AvgPool2d(2, stride=2)
-        self.dist_conv2 = nn.Conv2d(6, 16, kernel_size=5, stride=1)
-        self.dist_average2 = nn.AvgPool2d(2, stride=2)
-        self.dist_conv3 = nn.Conv2d(16, 120, kernel_size=4, stride=1)
-        self.dist_fc1 = nn.Linear(120, 82)
-        self.dist_fc2 = nn.Linear(82, 10)    
-    
-    @property
-    def input_shape(self):
-        return [-1, 784]
-    
-    @property
-    def output_shape(self):
-        return [-1, 10]
-    
+        self.dist_layer1 = nn.Linear(784, 1024)
+        self.dist_layer2 = nn.Linear(1024, 1024)
+        
+        # Logit Network 
+        self.logit_layer1 = nn.Linear(1024, 512)
+        self.logit_layer2 = nn.Linear(512, 256)
+        self.logit_layer3 = nn.Linear(256, 10)
+
     def distill(self, x):
-        x = x.to(self.device)
-        x = x.view(-1, 1, 28, 28)
-        x = torch.tanh(self.dist_conv1(x))
-        x = self.dist_average1(x)
-        x = torch.tanh(self.dist_conv2(x))
-        x = self.dist_average2(x)
-        x = torch.tanh(self.dist_conv3(x))
-        x = x.view(-1, x.shape[1])
-        x = F.relu(self.dist_fc1(x))
-        x = F.relu(self.dist_fc2(x))
+        x = F.relu(self.dist_layer1 (x))
+        x = F.relu(self.dist_layer2 (x))
         return x
     
+    def logits (self, x):
+        x = F.relu(self.logit_layer1 (x))
+        x = F.relu(self.logit_layer2 (x))
+        x = F.log_softmax(x)
+        return x
+        
     def forward (self, x, y = None):
         y = self.distill(x) if y == None else y
-        x = x.to(self.device)
-        y = y.to(self.device)
-        x = x.view(-1, 1, 28, 28)
-        x = torch.tanh(self.conv1(x))
-        x = self.average1(x)
-        x = torch.tanh(self.conv2(x))
-        x = self.average2(x)
-        x = torch.tanh(self.conv3(x))
-        x = x.view(-1, x.shape[1])
-        x = F.dropout(x, training=self.training)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.log_softmax(x + y)
-        return x
-
-def main(hparams):
+        x = torch.cat((x, y), dim=1)
+        x = F.relu(self.forward_layer1 (x))
+        x = F.relu(self.forward_layer2 (x))
+        return x  
     
-     # Load bittensor config from hparams.
+    def encode_image(self, inputs: torch.Tensor) -> torch.Tensor:
+        inputs = self._transform(inputs)
+        inputs = self._adaptive_pool(inputs)
+        return torch.flatten(inputs, start_dim = 1)
+        
+def main(hparams):
+     
+    # Load bittensor config from hparams.
     config = bittensor.Config( hparams )
 
     # Additional training params.
@@ -97,29 +82,17 @@ def main(hparams):
     model_path = 'data/' + trial_id + '/model.torch'
 
     # Load (Train, Test) datasets into memory.
-    train_loader = torch.utils.data.DataLoader(torchvision.datasets.MNIST(
-        root=data_path,
-        train=True,
-        download=True,
-        transform=torchvision.transforms.Compose(
-            [torchvision.transforms.ToTensor()])),
-                                            batch_size=batch_size_train,
-                                            shuffle=True)
-
-    test_loader = torch.utils.data.DataLoader(torchvision.datasets.MNIST(
-        root=data_path,
-        train=False, 
-        download=True,
-        transform=torchvision.transforms.Compose(
-            [torchvision.transforms.ToTensor()])),
-                                            batch_size=batch_size_test, 
-                                            shuffle=True)
-
+    train_data = torchvision.datasets.MNIST(root=data_path, train=True, download=True, transform=transforms.ToTensor())
+    trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size_train, shuffle=True, num_workers=2)
+    
+    test_data = torchvision.datasets.MNIST(root=data_path, train=False, download=True, transform=transforms.ToTensor())
+    testloader = torch.utils.data.DataLoader(test_data, batch_size = batch_size_test, shuffle=False, num_workers=2)
+    
     # Build summary writer for tensorboard.
     writer = SummaryWriter(log_dir=log_dir)
     
     # Build local synapse to serve on the network.
-    model = Mnist(config) # Synapses take a config object.
+    model = MnistSynapse(config) # Synapses take a config object.
     model.to( device ) # Set model to device.
     
     # Build and start the metagraph background object.
@@ -155,35 +128,38 @@ def main(hparams):
         # Turn on Dropoutlayers BatchNorm etc.
         model.train()
         correct = 0
-        for batch_idx, (data, target) in enumerate(train_loader):
+        for batch_idx, (image_inputs, targets) in enumerate(trainloader):
+            
             # Clear gradients on model parameters.
             optimizer.zero_grad()
             
-            # Set data device.
-            data = data.to(device)
-            target = target.to(device)
+            # Encode PIL images to tensors.
+            encoded_inputs = model.encode_image(image_inputs).to(device)
+            
+            # Targets to Tensor
+            targets = torch.LongTensor(targets).to(device)
             
             # Query the remote network.
             # Flatten mnist inputs for routing.
-            inputs = torch.flatten( data, start_dim=1 )
             synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network (max 1000).
-            requests, scores = router.route( synapses, inputs ) # routes inputs to network.
-            responses = dendrite ( synapses, requests ) # Makes network calls.
+            requests, scores = router.route( synapses, encoded_inputs, image_inputs ) # routes inputs to network.
+            responses = dendrite.forward_image( synapses, requests ) # Makes network calls.
             network_input = router.join( responses ) # Joins responses based on scores..
             
             # Run distilled model.
-            dist_output = model.distill(inputs)
+            dist_output = model.distill(encoded_inputs)
             dist_loss = F.kl_div(dist_output, network_input.detach())
 
             # Distill loss
-            student_output = model.forward(inputs, dist_output)
+            student_output = model.forward(encoded_inputs, dist_output)
             student_loss = F.nll_loss(student_output, target)
             
             # Query the local network.
-            local_output = model.forward(inputs, network_input)
-            target_loss = F.nll_loss(local_output, target)
+            local_embedding = model.forward(encoded_inputs, network_input)
+            local_logits = model.logits(local_embedding)
+            target_loss = F.nll_loss(local_logits, targets)
             
-            loss = (target_loss + dist_loss)
+            loss = (target_loss + dist_loss + student_loss)
             loss.backward()
             optimizer.step()
             global_step += 1
@@ -201,7 +177,7 @@ def main(hparams):
                 writer.add_scalar('n_synapses', n_synapses, global_step)
                 writer.add_scalar('train_loss', float(loss.item()), global_step)
             
-                n = len(train_loader.dataset)
+                n = len(train_data)
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}\tStudent Loss: {:.6f}\tnP|nS: {}|{}'.format(
                     epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item(), dist_loss.item(), student_loss.item(), len(metagraph.peers), 
                             len(metagraph.synapses)))
@@ -216,24 +192,27 @@ def main(hparams):
         
         # Turns off gradient computation for inference speed up.
         with torch.no_grad():
-            
+        
             loss = 0.0
             correct = 0.0
-            for data, target in test_loader:
-                # Set data to correct device.
-                data = data.to(device)
-                target = target.to(device)
-                
-                # Measure loss.
-                logits = model( data )
-                loss += F.nll_loss(logits, target, size_average=False).item()
+            for batch_idx, (image_inputs, targets) in enumerate(testloader):                
+                # Encode PIL images to tensors.
+                encoded_inputs = model.encode_image(image_inputs).to(device)
+            
+                # Targets to Tensor
+                targets = torch.LongTensor(targets).to(device)
+            
+                # Measure loss. 
+                embedding = model.forward( encoded_inputs, model.distill ( encoded_inputs ) )
+                logits = model.logits(embedding)
+                loss += F.nll_loss(logits, targets, size_average=False).item()
                 
                 # Count accurate predictions.
                 max_logit = logits.data.max(1, keepdim=True)[1]
-                correct += max_logit.eq( target.data.view_as(max_logit) ).sum()
-                
-        # Log results.
-        n = len(test_loader.dataset)
+                correct += max_logit.eq( targets.data.view_as(max_logit) ).sum()
+        
+        # # Log results.
+        n = len(test_data)
         loss /= n
         accuracy = (100. * correct) / n
         logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))        
@@ -252,7 +231,7 @@ def main(hparams):
        
             # Save best model. 
             if test_loss < best_test_loss:
-                # Update best_loss.
+                # Update best loss.
                 best_test_loss = test_loss
                 
                 # Save the best local model.
