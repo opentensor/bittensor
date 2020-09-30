@@ -294,14 +294,17 @@ def main(hparams):
         with torch.no_grad():
             loss = 0.0
             correct = 0.0
-            for i, data in enumerate(testloader, 0):
+            for batch_idx, (image_inputs, targets) in enumerate(testloader, 0):
                 # Set data to correct device.
-                inputs, targets = data
-                inputs = inputs.to(device)
-                targets = targets.to(device)
+                # Encode PIL images to tensors.
+                encoded_inputs = model.encode_image(image_inputs).to(device)
+
+                # Targets to Tensor
+                targets = torch.LongTensor(targets).to(device)
 
                 # Measure loss.
-                logits = model( inputs, model.distill(inputs) )
+                embedding = model.forward( encoded_inputs, model.distill ( encoded_inputs ) )
+                logits = model.logits(embedding)
                 loss += F.nll_loss(logits, targets, size_average=False).item()
 
                 # Count accurate predictions.
