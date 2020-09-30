@@ -88,8 +88,6 @@ class CIFAR(bittensor.Synapse):
         x = self.dist_layer4(x)
         x = F.avg_pool2d(x, 4)
         x = torch.flatten(x, start_dim=1)
-        #x = self.linear(x)
-        #x = F.softmax(x)
         return x
     
     def logits (self, x):
@@ -110,8 +108,6 @@ class CIFAR(bittensor.Synapse):
         x = self.layer4(x)
         x = F.avg_pool2d(x, 4)
         x = torch.flatten(x, start_dim=1)
-        #x = self.linear(x)
-        #x = F.log_softmax(x + y)
         return x
     
     def encode_image(self, inputs: torch.Tensor) -> torch.Tensor:
@@ -243,7 +239,7 @@ def main(hparams):
 
             # Run distilled model.
             dist_output = model.distill(image_inputs)
-            dist_loss = F.kl_div(dist_output, network_input.detach())
+            dist_loss = F.mse_loss(dist_output, network_input.detach())
 
             # Distill loss
             student_output = model.forward(encoded_inputs, dist_output)
