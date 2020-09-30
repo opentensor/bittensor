@@ -90,8 +90,6 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
     
     def do_gossip(self):
         """ Sends gossip query to random peer"""
-        if len(self._peers) == 0:
-            return
         synapses = self.get_synapses(1000)
         peers = self.get_peers(10)
         metagraph_address = random.choice(list(self._peers))        
