@@ -24,6 +24,10 @@ class CIFAR(bittensor.Synapse):
         in_planes, out_planes = model_config['in_planes'], model_config['out_planes']
         num_blocks, dense_depth = model_config['num_blocks'], model_config['dense_depth']
 
+        # Image encoder
+        self._transform = bittensor.utils.batch_transforms.Normalize((0.1307,), (0.3081,))
+        self._adaptive_pool = nn.AdaptiveAvgPool2d((32, 32))
+
         # Main Network
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
@@ -41,6 +45,12 @@ class CIFAR(bittensor.Synapse):
         self.dist_layer2 = copy.deepcopy(self.layer2)
         self.dist_layer3 = copy.deepcopy(self.layer3)
         self.dist_layer4 = copy.deepcopy(self.layer4)
+
+        # Logit Network
+        self.logit_layer1 = nn.Linear((out_planes[3] * 4)+(((num_blocks[3]+1) * 4)*dense_depth[3]), 512)
+        self.logit_layer2 = nn.Linear(512, 256)
+        self.logit_layer3 = nn.Linear(256, 10)
+
 
     def _make_layer(self, in_planes, out_planes, num_blocks, dense_depth, stride):
         strides = [stride] + [1]*(num_blocks-1)
@@ -78,11 +88,17 @@ class CIFAR(bittensor.Synapse):
         x = self.dist_layer4(x)
         x = F.avg_pool2d(x, 4)
         x = torch.flatten(x, start_dim=1)
-        x = self.linear(x)
-        x = F.softmax(x)
+        #x = self.linear(x)
+        #x = F.softmax(x)
+        return x
+    
+    def logits (self, x):
+        x = F.relu(self.logit_layer1 (x))
+        x = F.relu(self.logit_layer2 (x))
+        x = F.log_softmax(x)
         return x
 
-    def forward(self, x, y = None):
+    def forward(self, x, y = None):        
         y = self.distill(x) if y == None else y
         x = x.to(self.device)
         y = y.to(self.device)
@@ -94,9 +110,14 @@ class CIFAR(bittensor.Synapse):
         x = self.layer4(x)
         x = F.avg_pool2d(x, 4)
         x = torch.flatten(x, start_dim=1)
-        x = self.linear(x)
-        x = F.log_softmax(x + y)
+        #x = self.linear(x)
+        #x = F.log_softmax(x + y)
         return x
+    
+    def encode_image(self, inputs: torch.Tensor) -> torch.Tensor:
+        inputs = self._transform(inputs)
+        inputs = self._adaptive_pool(inputs)
+        return torch.flatten(inputs, start_dim=1)
 
     @property
     def input_shape(self):
@@ -203,37 +224,41 @@ def main(hparams):
 
     def train(model, epoch, global_step):
         running_loss = 0.0
-        for i, (inputs, targets) in enumerate(trainloader, 0):
+        for i, (image_inputs, targets) in enumerate(trainloader, 0):
 
             # zero the parameter gradients
             optimizer.zero_grad()
 
-            # get the inputs; data is a list of [inputs, labels]
-            inputs, targets = inputs.to(device), targets.to(device)
+            # Encode PIL images to tensors.
+            encoded_inputs = model.encode_image(image_inputs).to(device)
 
-            # Flatten cifar inputs to [batch_size, input_dimension]
-            inputs_flatten = torch.flatten(inputs, start_dim=1).to(device)
+            # Target to tensor
+            targets = torch.LongTensor(targets).to(device)
 
             # Query the remote network.
             synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network. [...]
-            requests, scores = router.route( synapses, inputs_flatten, inputs ) # routes inputs to network.
-            responses = dendrite ( synapses, requests ) # Makes network calls.
-            network_outputs = router.join(responses) # Joins responses based on scores.
+            requests, scores = router.route( synapses, encoded_inputs, image_inputs ) # routes inputs to network.
+            responses = dendrite.forward_image ( synapses, requests ) # Makes network calls.
+            network_input = router.join(responses) # Joins responses based on scores.
 
             # Run distilled model.
-            dist_output = model.distill(inputs)
-            dist_loss = F.kl_div(dist_output, network_outputs.detach())
+            dist_output = model.distill(image_inputs)
+            dist_loss = F.kl_div(dist_output, network_input.detach())
 
-            student_output = model.forward(inputs, dist_output)
-            student_loss = F.nll_loss(student_output, targets)
+            # Distill loss
+            student_output = model.forward(encoded_inputs, dist_output)
+            student_logits = model.logits(student_output)
+            student_loss = F.nll_loss(student_logits, targets)
 
             # Query the local network.
-            local_output = model.forward(inputs, network_outputs)
+            local_output = model.forward(encoded_inputs, network_input)
             local_logits = model.logits(local_output)
-            target_loss = criterion(local_output, targets
+            target_loss = criterion(local_logits, targets)
+            
             torch.nn.utils.clip_grad_norm_(router.parameters(), 0.5)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
-            loss = (target_loss + dist_loss)
+            
+            loss = (target_loss + dist_loss + student_loss)
             loss.backward()
             optimizer.step()
             global_step += 1
@@ -249,12 +274,12 @@ def main(hparams):
                                   global_step)
                 writer.add_scalar('n_synapses', len(metagraph.synapses),
                                   global_step)
-                writer.add_scalar('Loss/train', float(loss.item()),
+                writer.add_scalar('train_loss', float(loss.item()),
                                   global_step)
 
                 n = len(trainloader.dataset)
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}\tStudent Loss: {:.6f}\tnP|nS: {}|{}'.format(
-                    epoch, (i * batch_size_train), n, (100. * i * batch_size_train)/n, loss.item(), dist_loss.item(), student_loss.item(), len(metagraph.peers), 
+                    epoch, (i * batch_size_train), n, (100. * i * batch_size_train)/n, target_loss.item(), dist_loss.item(), student_loss.item(), len(metagraph.peers), 
                             len(metagraph.synapses)))
 
             # Empty device cache
