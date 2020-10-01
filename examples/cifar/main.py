@@ -13,6 +13,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
+from bittensor.utils.model_utils import ModelToolbox
 
 import bittensor
 from bittensor import bittensor_pb2
@@ -163,26 +164,27 @@ def main(hparams):
     learning_rate = 0.01
     momentum = 0.9
     log_interval = 10
+    epoch = 0
+    global_step = 0
+    best_test_loss = math.inf
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Log/data/model paths.
-    trial_id =  'cifar-' + str(time.time()).split('.')[0]
-    data_path = "data/datasets/"
-    log_dir = 'data/' + trial_id + '/logs/'
-    model_path = 'data/' + trial_id + '/model.torch'
+    # Instantiate toolbox to load/save model
+    model_toolbox = ModelToolbox('cifar')
 
     # Build summary writer for tensorboard.
-    writer = SummaryWriter(log_dir=log_dir)
+    writer = SummaryWriter(log_dir=model_toolbox.log_dir)
 
     # Load CIFAR
-    trainset = torchvision.datasets.CIFAR10(root=data_path, train=True, download=True, transform=transforms.Compose([
+    trainset = torchvision.datasets.CIFAR10(root=model_toolbox.data_path, train=True, download=True, transform=transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
     ]))
     trainloader = torch.utils.data.DataLoader(trainset, batch_size = batch_size_train, shuffle=True, num_workers=2)
 
-    testset = torchvision.datasets.CIFAR10(root=data_path, train=False, download=True, transform=transforms.ToTensor())
+    testset = torchvision.datasets.CIFAR10(root=model_toolbox.data_path, train=False, download=True, transform=transforms.ToTensor())
     testloader = torch.utils.data.DataLoader(testset, batch_size = batch_size_test, shuffle=False, num_workers=2)
 
     # Build local synapse to serve on the network.
@@ -216,6 +218,11 @@ def main(hparams):
     criterion = nn.CrossEntropyLoss()
     params = list(router.parameters()) + list(model.parameters())
     optimizer = optim.SGD(params, lr=learning_rate, momentum=momentum, weight_decay=5e-4)
+
+    if config._hparams.load_model is not None:
+        present_model, optimizer, epoch, best_test_loss = model_toolbox.load_model(model, config._hparams.load_model, optimizer)
+        logger.info("Loaded model stored in {} with test loss {} at epoch {}".format(config._hparams.load_model, best_test_loss, epoch-1))
+
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
     def train(model, epoch, global_step):
@@ -313,10 +320,7 @@ def main(hparams):
         accuracy = (100. * correct) / n
         logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))
         return loss, accuracy
-
-    epoch = 1
-    global_step = 0
-    best_test_loss = math.inf
+    
     try:
         while True:
             # Train model
@@ -331,8 +335,8 @@ def main(hparams):
                 best_test_loss = test_loss
 
                 # Save the best local model.
-                logger.info('Saving model: epoch: {}, loss: {}, path: {}', model_path, epoch, test_loss)
-                torch.save({'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, model_path)
+                logger.info('Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, model_toolbox.model_path)
+                model_toolbox.save_model(model, epoch, optimizer, test_loss)
 
             epoch += 1
 
