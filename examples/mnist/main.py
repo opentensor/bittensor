@@ -51,10 +51,12 @@ class MnistSynapse(bittensor.Synapse):
         return x
         
     def forward (self, x, y = None):
+        x = x.to(self.device)
         y = self.distill(x) if y == None else y
         x = torch.cat((x, y), dim=1)
         x = F.relu(self.forward_layer1 (x))
         x = F.relu(self.forward_layer2 (x))
+        #x = F.log_softmax(x)
         return x  
     
     def encode_image(self, inputs: torch.Tensor) -> torch.Tensor:
@@ -70,7 +72,7 @@ def main(hparams):
     # Additional training params.
     batch_size_train = 64
     batch_size_test = 64
-    learning_rate = 0.1
+    learning_rate = 0.01
     momentum = 0.9
     log_interval = 10
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -112,7 +114,7 @@ def main(hparams):
     # Build the dendrite and router. 
     # The dendrite is a torch object which makes calls to synapses across the network
     # The router is responsible for learning which synapses to call.
-    dendrite = bittensor.Dendrite( config )
+    dendrite = bittensor.Dendrite( config ).to(device)
     router = bittensor.Router(x_dim = 784, key_dim = 100, topk = 10)
         
     # Build the optimizer.
@@ -148,11 +150,12 @@ def main(hparams):
             
             # Run distilled model.
             dist_output = model.distill(encoded_inputs)
-            dist_loss = F.kl_div(dist_output, network_input.detach())
+            dist_loss = F.mse_loss(dist_output, network_input.detach())
 
             # Distill loss
             student_output = model.forward(encoded_inputs, dist_output)
-            student_loss = F.nll_loss(student_output, target)
+            student_logits = model.logits(student_output)	            
+            student_loss = F.nll_loss(student_logits, targets)
             
             # Query the local network.
             local_embedding = model.forward(encoded_inputs, network_input)
@@ -160,6 +163,8 @@ def main(hparams):
             target_loss = F.nll_loss(local_logits, targets)
             
             loss = (target_loss + dist_loss + student_loss)
+
+            torch.nn.utils.clip_grad_norm_(router.parameters(), 0.5)
             loss.backward()
             optimizer.step()
             global_step += 1
@@ -179,7 +184,7 @@ def main(hparams):
             
                 n = len(train_data)
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}\tStudent Loss: {:.6f}\tnP|nS: {}|{}'.format(
-                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, loss.item(), dist_loss.item(), student_loss.item(), len(metagraph.peers), 
+                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, target_loss.item(), dist_loss.item(), student_loss.item(), len(metagraph.peers), 
                             len(metagraph.synapses)))
 
     # Test loop.
