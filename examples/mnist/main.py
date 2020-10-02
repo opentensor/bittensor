@@ -13,6 +13,7 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn.functional as F
+from bittensor.utils.model_utils import ModelToolbox
 
 import bittensor
 from bittensor import bittensor_pb2
@@ -47,7 +48,7 @@ class MnistSynapse(bittensor.Synapse):
     def logits (self, x):
         x = F.relu(self.logit_layer1 (x))
         x = F.relu(self.logit_layer2 (x))
-        x = F.log_softmax(x)
+        x = F.log_softmax(x, dim=1)
         return x
         
     def forward (self, x, y = None):
@@ -56,7 +57,6 @@ class MnistSynapse(bittensor.Synapse):
         x = torch.cat((x, y), dim=1)
         x = F.relu(self.forward_layer1 (x))
         x = F.relu(self.forward_layer2 (x))
-        #x = F.log_softmax(x)
         return x  
     
     def encode_image(self, inputs: torch.Tensor) -> torch.Tensor:
@@ -75,28 +75,27 @@ def main(hparams):
     learning_rate = 0.01
     momentum = 0.9
     log_interval = 10
+    epoch = 0
+    global_step = 0
+    best_test_loss = math.inf
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Log/data/model paths.
-    trial_id =  'mnist-' + str(time.time()).split('.')[0]
-    data_path = "data/datasets/"
-    log_dir = 'data/' + trial_id + '/logs/'
-    model_path = 'data/' + trial_id + '/model.torch'
+    # Instantiate toolbox to load/save model
+    model_toolbox = ModelToolbox('mnist')
 
     # Load (Train, Test) datasets into memory.
-    train_data = torchvision.datasets.MNIST(root=data_path, train=True, download=True, transform=transforms.ToTensor())
+    train_data = torchvision.datasets.MNIST(root=model_toolbox.data_path, train=True, download=True, transform=transforms.ToTensor())
     trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size_train, shuffle=True, num_workers=2)
     
-    test_data = torchvision.datasets.MNIST(root=data_path, train=False, download=True, transform=transforms.ToTensor())
+    test_data = torchvision.datasets.MNIST(root=model_toolbox.data_path, train=False, download=True, transform=transforms.ToTensor())
     testloader = torch.utils.data.DataLoader(test_data, batch_size = batch_size_test, shuffle=False, num_workers=2)
     
     # Build summary writer for tensorboard.
-    writer = SummaryWriter(log_dir=log_dir)
+    writer = SummaryWriter(log_dir=model_toolbox.log_dir)
     
     # Build local synapse to serve on the network.
     model = MnistSynapse(config) # Synapses take a config object.
     model.to( device ) # Set model to device.
-    
     # Build and start the metagraph background object.
     # The metagraph is responsible for connecting to the blockchain
     # and finding the other neurons on the network.
@@ -120,6 +119,11 @@ def main(hparams):
     # Build the optimizer.
     params = list(router.parameters()) + list(model.parameters())
     optimizer = optim.SGD(params, lr=learning_rate, momentum=momentum)
+    
+    # Load previously trained model if it exists
+    if config._hparams.load_model is not None:
+        present_model, optimizer, epoch, best_test_loss = model_toolbox.load_model(model, config._hparams.load_model, optimizer)
+        logger.info("Loaded model stored in {} with test loss {} at epoch {}".format(config._hparams.load_model, best_test_loss, epoch-1))
 
     # Train loop: Single threaded training of MNIST.
     # 1. Makes calls to the network using the bittensor.dendrite
@@ -223,9 +227,6 @@ def main(hparams):
         logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))        
         return loss, accuracy
     
-    epoch = 0
-    global_step = 0
-    best_test_loss = math.inf
     try:
         while True:
             # Train model
@@ -240,8 +241,8 @@ def main(hparams):
                 best_test_loss = test_loss
                 
                 # Save the best local model.
-                logger.info('Saving model: epoch: {}, loss: {}, path: {}', model_path, epoch, test_loss)
-                torch.save({'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, model_path)
+                logger.info('Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, model_toolbox.model_path)
+                model_toolbox.save_model(model, epoch, optimizer, test_loss)
                 
             epoch += 1
             

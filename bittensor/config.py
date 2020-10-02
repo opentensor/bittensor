@@ -84,4 +84,8 @@ class Config:
                             default=None,
                             type=str,
                             help='Remote serving ip.')
+        parser.add_argument('--load_model',
+                            default=None,
+                            type=str,
+                            help='Path to a saved torch model.')
         return parser
