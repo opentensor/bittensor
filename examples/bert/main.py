@@ -173,6 +173,8 @@ def main(hparams):
         loss = output['student_target_loss'] + output['student_distillation_loss'] + output['network_target_loss']
         loss.backward()
         optimizer.step()
+
+        logger.info("loss {}", loss.item())
           
         # Set network weights.
         weights = metagraph.getweights(synapses).to(model.device)
