@@ -10,23 +10,12 @@ from bittensor import bittensor_pb2
 class Synapse(nn.Module):
     """
     """
-    def __init__(self, config: bittensor.Config):
+    def __init__(self):
         super().__init__()
-        self._config = config
         self._synapse_key = bittensor.Crypto.public_key_to_string(bittensor.Crypto.generate_private_ed25519().public_key())
         self.optimizer = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
-    def to_proto(self):
-        synapse_proto = bittensor_pb2.Synapse(
-            version = bittensor.__version__, 
-            neuron_key = self._config.neuron_key, 
-            synapse_key = self.synapse_key(), 
-            address = self._config.remote_ip, 
-            port = self._config.axon_port, 
-        )
-        return synapse_proto
-    
+            
     def synapse_key(self) -> str:
         return self._synapse_key
     

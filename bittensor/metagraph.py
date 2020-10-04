@@ -210,7 +210,14 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
             module (bittensor.Synapse): bittensor.Synapse class object to subscribe.
         """
         # Create a new bittensor_pb2.Synapse proto.
-        self._subscribe(synapse.to_proto())
+        synapse_proto = bittensor_pb2.Synapse(
+            version = bittensor.__version__, 
+            neuron_key = self._config.neuron_key, 
+            synapse_key = synapse.synapse_key(), 
+            address = self._config.remote_ip, 
+            port = self._config.axon_port, 
+        )
+        self._subscribe(synapse_proto)
         
     def _subscribe(self, synapse_proto: bittensor_pb2.Synapse):
         self._synapses[synapse_proto.synapse_key] = synapse_proto

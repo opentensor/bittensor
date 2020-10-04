@@ -20,108 +20,125 @@ from datasets import load_dataset, list_metrics, load_metric
 from transformers import DataCollatorForNextSentencePrediction
 from transformers import BertTokenizer
 
-class BertMLMSynapse(bittensor.Synapse):
+class BertNSPSynapse(bittensor.Synapse):
     """ An bittensor endpoint trained on wiki corpus.
     """
-    def __init__(self, config):
-        super(BertMLMSynapse, self).__init__(config)
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
-        self.config = config
-        
-        self._bert_config = transformers.modeling_bert.BertConfig(hidden_size=256, num_hidden_layers=2, num_attention_heads=2, intermediate_size=512, is_decoder=False)
+    def __init__(self):
+        super(BertNSPSynapse, self).__init__()                
+        self.config = transformers.modeling_bert.BertConfig(hidden_size=256, num_hidden_layers=2, num_attention_heads=2, intermediate_size=512, is_decoder=False)
         
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
-        self.embeddings = transformers.modeling_bert.BertEmbeddings(self._bert_config)
+        self.embeddings = transformers.modeling_bert.BertEmbeddings(self.config)
 
-        self.encoder = transformers.modeling_bert.BertEncoder(self._bert_config)
+        self.encoder = transformers.modeling_bert.BertEncoder(self.config)
 
-        self.pooler = transformers.modeling_bert.BertPooler(self._bert_config)
+        self.pooler = transformers.modeling_bert.BertPooler(self.config)
 
-        self.student_encoder = transformers.modeling_bert.BertEncoder(self._bert_config)
+        self.student_encoder = transformers.modeling_bert.BertEncoder(self.config)
 
-        self.student_pooler = transformers.modeling_bert.BertPooler(self._bert_config)
+        self.student_pooler = transformers.modeling_bert.BertPooler(self.config)
 
-        self.nsp = transformers.modeling_bert.BertOnlyNSPHead(self._bert_config) 
+        self.nsp = transformers.modeling_bert.BertOnlyNSPHead(self.config) 
 
         self.nsp_loss_fct = torch.nn.CrossEntropyLoss()
 
     def forward_text(self, inputs: List[str]):
-        return self.forward(inputs = inputs, next_inputs = None, labels = None, network = None) ['student_y']
+        return self.forward(inputs = inputs, next_inputs = None, labels = None, network = None) ['local_output']
         
-    def forward(        self, 
-                        inputs: List[str], 
-                        next_inputs: List[str] = None, 
-                        labels: torch.Tensor = None, 
-                        network: torch.Tensor = None):
-                
-        # Tokenize the list of strings.
+    def forward(    self, 
+                    inputs: List[str], 
+                    next_inputs: List[str] = None, 
+                    labels: torch.Tensor = None, 
+                    network: torch.Tensor = None):
+
+        # Return args.
+        loss = torch.tensor(0.0)
+        local_output = None
+        network_output = None
+        network_target_loss = None
+        local_target_loss = None
+        distillation_loss = None
+                    
+        # Tokenize inputs: dict
+        #  tokenized = dict {
+        #       'input_ids': torch.Tensor(batch_size, max_sequence_len),
+        #       'token_type_ids': torch.Tensor(batch_size, max_sequence_len),
+        #       'attention_mask': torch.Tensor(batch_size, max_sequence_len)
+        # }
         if labels is not None:
+            # During training we tokenize both sequences and return token_type_ids which tell
+            # the model which token belongs to which sequence.
+            # i.e tensor([[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]]),
             tokenized = self.tokenizer(inputs, next_inputs, return_tensors='pt', padding=True)
         else:
+            # During inference we only tokenize the inputs, padding them to the longest sequence len.
             tokenized = self.tokenizer(inputs, return_tensors='pt', padding=True)
 
-        # Embed representations.
+        # Embed tokens into a common dimension.
+        # embedding = torch.Tensor(batch_size, max_sequence_len, config.hidden_size)
         embedding = self.embeddings(input_ids=tokenized['input_ids'], token_type_ids=tokenized['token_type_ids'])
 
-        # Encode embeddings.
-        encoding = self.encoder(embedding) #, attention_mask=tokenized['attention_mask'])
+        # Bert transformer encodings returning the last hidden states from the transformer model.
+        # encoding = List [
+        #   hidden_states = torch.Tensor(batch_size, max_sequence_len, config.hidden_size), 
+        # ]
+        encoding = self.encoder(embedding)
 
-        # Pool encodings
+        # Pooling, "pool" the model by simply taking the hidden state corresponding
+        # to the first token. first_token_tensor = encoding[:, 0]. Applies a dense linear
+        # layer to the encoding for the first token. 
+        # pooled = torch.Tensor (batch_size, config.hidden_size)
         pooled = self.pooler(encoding[0])
 
-        # Encode embeddings using distillation model.
-        student_encoding = self.student_encoder (embedding) #, attention_mask=tokenized['attention_mask'])
-
-        # Pool distilled encodings
+        # Student transformer model which learns a mapping from the embedding to the network inputs
+        # student_pooled = torch.Tensor (batch_size, config.hidden_size)
+        student_encoding = self.student_encoder (embedding.detach())
         student_pooled = self.student_pooler(student_encoding[0])
-
-        # Joined output.
-        student_y = pooled + student_pooled
-
-        # Compute distillation loss for student network.
         if network is not None:
-            network_y = pooled + network
+            # Distillation loss between student_pooled and network inputs.
+            distillation_loss = F.mse_loss(student_pooled, network) 
+            loss += distillation_loss
 
-            student_distillation_loss = F.mse_loss(student_pooled, network_y) 
-        else:
-            student_distillation_loss = None
-            network_y = None
-
-        # Compute NSP loss for student outputs.
+        # Output from the forward pass using only the local and student models.
+        # local_ouput = torch.Tensor ( batch_size, config.hidden_size)
+        local_output = pooled + student_pooled
         if labels is not None:
-            student_prediction = self.nsp(student_y)
-
-            student_target_loss = self.nsp_loss_fct(student_prediction.view(-1, 2), labels)
-        else:
-            student_target_loss = None
+            # Compute the NSP loss by projecting the output to torch.Tensor(2)
+            # logit(1) > logit(0) if next_inputs are the real next sequences.
+            local_prediction = self.nsp(local_output)
+            local_target_loss = self.nsp_loss_fct(local_prediction.view(-1, 2), labels)
+            loss += local_target_loss
             
-        # Compute NSP loss for network outputs.
+        # Compute NSP loss for network outputs. Only run this if we have passed network inputs.
         if network is not None and labels is not None:
-            network_prediction = self.nsp(network_y)
-
+            # Compute the NSP loss by projecting the network_output to torch.Tensor(2)
+            # logit(1) > logit(0) if next_inputs are the real next sequences.
+            network_output = pooled + network
+            network_prediction = self.nsp(network_output)
             network_target_loss = self.nsp_loss_fct(network_prediction.view(-1, 2), labels)
-        else:
-            network_target_loss = None
+            loss += network_target_loss
     
         return {
-            'student_y': student_y,
-            'network_y': network_y,
+            'loss': loss,
+            'local_output': local_output,
+            'network_output': network_output,
             'network_target_loss': network_target_loss,
-            'student_target_loss': student_target_loss,
-            'student_distillation_loss': student_distillation_loss
+            'student_target_loss': local_target_loss,
+            'distillation_loss': distillation_loss
         }
             
 def main(hparams):
     # Args
     config = bittensor.Config( hparams )
-    
-    # Build Synapse
-    model = BertMLMSynapse(config)
-    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     # Dataset
     dataset = load_dataset('bookcorpus')
+
+    # Build Synapse
+    model = BertNSPSynapse()
+    model.to(device)
 
     # Build and start the metagraph background object.
     # The metagraph is responsible for connecting to the blockchain
@@ -170,7 +187,7 @@ def main(hparams):
         # Compute full pass and get loss.
         output = model.forward(inputs, next_inputs, labels, network)
         
-        loss = output['student_target_loss'] + output['student_distillation_loss'] + output['network_target_loss']
+        loss = output['loss']
         loss.backward()
         optimizer.step()
 

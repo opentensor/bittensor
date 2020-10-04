@@ -21,8 +21,8 @@ from bittensor import bittensor_pb2
 class MnistSynapse(bittensor.Synapse):
     """ Bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
     """
-    def __init__(self, config: bittensor.Config):
-        super(MnistSynapse, self).__init__(config)
+    def __init__(self):
+        super(MnistSynapse, self).__init__()
         # Image encoder
         self._transform = bittensor.utils.batch_transforms.Normalize((0.1307,), (0.3081,))
         self._adaptive_pool = nn.AdaptiveAvgPool2d((28, 28))
@@ -36,9 +36,9 @@ class MnistSynapse(bittensor.Synapse):
         self.student_layer2 = nn.Linear(1024, 1024)
         
         # Logit Network 
-        self.logit_layer1 = nn.Linear(1024, 512)
-        self.logit_layer2 = nn.Linear(512, 256)
-        self.logit_layer3 = nn.Linear(256, 10)
+        self.target_layer1 = nn.Linear(1024, 512)
+        self.target_layer2 = nn.Linear(512, 256)
+        self.target_layer3 = nn.Linear(256, 10)
 
     def forward_image(self, inputs: torch.Tensor):
         return self.forward (inputs = inputs, labels = None, network = None) ['student_y']
@@ -81,15 +81,15 @@ class MnistSynapse(bittensor.Synapse):
 
         # Compute the target loss using the student_y and passed labels.
         if labels is not None:
-            student_target = F.relu(self.logit_layer1 (student_y))
-            student_target = F.relu(self.logit_layer2 (student_target))
+            student_target = F.relu(self.target_layer1 (student_y))
+            student_target = F.relu(self.target_layer2 (student_target))
             student_target = F.log_softmax(student_target, dim=1)
             student_target_loss = F.nll_loss(student_target, labels)
 
         # Compute a target loss using network_y and the passed labels.
         if network is not None and labels is not None:
-            network_target = F.relu(self.logit_layer1 (network_y))
-            network_target = F.relu(self.logit_layer2 (network_target))
+            network_target = F.relu(self.target_layer1 (network_y))
+            network_target = F.relu(self.target_layer2 (network_target))
             network_target = F.log_softmax(network_target, dim=1)
             network_target_loss = F.nll_loss(network_target, labels)
 
@@ -132,7 +132,7 @@ def main(hparams):
     writer = SummaryWriter(log_dir=model_toolbox.log_dir)
     
     # Build local synapse to serve on the network.
-    model = MnistSynapse(config) # Synapses take a config object.
+    model = MnistSynapse() # Synapses take a config object.
     model.to( device ) # Set model to device.
     # Build and start the metagraph background object.
     # The metagraph is responsible for connecting to the blockchain
