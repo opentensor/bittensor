@@ -77,7 +77,7 @@ class PyTorchSerializer():
    
     @staticmethod
     def serialize(tensor: object, modality: bittensor_pb2.Modality) -> bittensor_pb2.Tensor:
-        """Serializes a torch.Tensor to an bittensor Tensor proto.
+        """Serializes a object with modality into a bittensor Tensor proto.
 
         Args:
             tensor (object): general object with modality TEXT, IMAGE, TENSOR
@@ -101,10 +101,10 @@ class PyTorchSerializer():
 
     @staticmethod
     def serialize_text(tensor: List[str]) -> bittensor_pb2.Tensor:
-        """Serializes a torch.Tensor to an bittensor Tensor proto.
+        """Serializes a List[str] to an bittensor Tensor proto.
 
         Args:
-            tensor (torch.Tensor): torch.Tensor to serialize.
+            tensor (List[str]): A list of strings.
 
         Returns:
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
@@ -121,10 +121,10 @@ class PyTorchSerializer():
         
     @staticmethod
     def serialize_image(tensor: torch.Tensor) -> bittensor_pb2.Tensor:
-        """Serializes a torch.Tensor to an bittensor Tensor proto.
+        """Serializes a torch.Tensor image into a bittensor Tensor proto.
 
         Args:
-            tensor (torch.Tensor): torch.Tensor to serialize.
+            tensor (torch.Tensor): torch.Tensor of images to serialize.
 
         Returns:
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
@@ -179,7 +179,7 @@ class PyTorchSerializer():
             proto (bittensor_pb2.Tensor): Proto to derserialize.
 
         Returns:
-            List[object]:
+            torch.Tensor: deserialized image tensor.
         """
         dtype = np.float32
         # TODO avoid copying the array (need to silence pytorch warning, because array is not writable)
@@ -192,13 +192,13 @@ class PyTorchSerializer():
         
     @staticmethod
     def deserialize_text(proto: bittensor_pb2.Tensor) -> List[str]:
-        """Deserializes an bittensor_pb2.Tensor to a torch.Tensor object.
+        """Deserializes an bittensor_pb2.Tensor to a List[str] object.
 
         Args:
             proto (bittensor_pb2.Tensor): Proto to derserialize.
 
         Returns:
-            List[object]:
+            List[str]: deserialized text.
         """
         return pickle.loads(proto.buffer)
             
@@ -210,7 +210,7 @@ class PyTorchSerializer():
             proto (bittensor_pb2.Tensor): Proto to derserialize.
 
         Returns:
-            torch.Tensor: torch.Tensor to deserialize.
+            torch.Tensor: deserialized tensor.
         """
         dtype = bittensor_dtype_np_dtype(proto.dtype)
         # TODO avoid copying the array (need to silence pytorch warning, because array is not writable)

@@ -1,3 +1,12 @@
+"""BERT Next Sentence Prediction Synapse
+
+This file demonstrates a bittensor.Synapse trained for Next Sentence Prediction.
+
+Example:
+        $ python examples/bert/main.py
+
+"""
+
 from bittensor import bittensor_pb2
 import bittensor
 
@@ -17,8 +26,10 @@ from transformers import BertTokenizer
 from typing import List, Tuple, Dict, Optional
 
 class BertNSPSynapse(bittensor.Synapse):
-    """ An bittensor endpoint trained on wiki corpus.
+    """ An bittensor synapse endpoint traiing as BERT transformer using Next Sentence Prediction (NSP) 
+    on the bookscorpus dataset.
     """
+
     def __init__(self, config: transformers.modeling_bert.BertConfig):
         super(BertNSPSynapse, self).__init__()                
         self.config = config
@@ -32,6 +43,15 @@ class BertNSPSynapse(bittensor.Synapse):
         self.nsp_loss_fct = torch.nn.CrossEntropyLoss()
 
     def forward_text(self, inputs: List[str]):
+        """ Forward pass inputs and labels through the NSP BERT module.
+
+        Args:
+            inputs (List[str]): batch_size length list of text sentences.
+        
+        Returns:
+            local_output torch.Tensor(n, config.hidden_dim): (Required) Output encoding of inputs 
+                produced by using the local student distillation model as context.
+        """
         return self.forward(inputs = inputs, next_inputs = None, labels = None, network = None) ['local_output']
         
     def forward(    self, 
@@ -39,8 +59,41 @@ class BertNSPSynapse(bittensor.Synapse):
                     next_inputs: List[str] = None, 
                     labels: torch.Tensor = None, 
                     network: torch.Tensor = None):
+    
+    """ Forward pass inputs and labels through the NSP BERT module.
 
-        # Return args.
+    Args:
+        inputs (List[str]): Batch_size length list of text sentences.
+        next_inputs (List[str]): (Optional) Batch_size length list of (potential) next sentences.
+        labels torch.Tensor (batch_size): (Optional) 1 dimensional tensor with either 0 if the corresponding
+            next_input is the suceeding sentence to input.
+        network torch.Tensor (batch_size, config.hidden_size): (Optional)response context from 
+            a bittensor dendrite query. 
+
+    Returns:
+        dictionary with { 
+            loss torch.Tensor(1): (Required) Total loss acumulation to be used by loss.backward()
+
+            local_output torch.Tensor(batch_size, config.hidden_dim): (Required) Output encoding of inputs 
+                produced by using the local student distillation model as context rather than 
+                the network. 
+
+            local_target_loss torch.Tensor(1): (Optional) Next sentence prediction loss computed using 
+                the local_output and with respect to the passed labels.
+
+            network_output torch.Tensor(batch_size, config.hidden_dim): (Optional) Output encoding of inputs
+                produced by using the network inputs as context to the local model rather than 
+                the student.
+
+            network_target_loss torch.Tensor(1): (Optional) Next sentence prediction loss computed using 
+                the network_output and with respect to the passed labels.
+
+            distillation_loss torch.Tensor(1): (Optional) Distillation loss produced by the student with
+                respect to the network context.
+        }
+    """
+
+        # Return vars.
         loss = torch.tensor(0.0)
         local_output = None
         network_output = None
@@ -67,7 +120,7 @@ class BertNSPSynapse(bittensor.Synapse):
         # embedding = torch.Tensor(batch_size, max_sequence_len, config.hidden_size)
         embedding = self.embeddings(input_ids=tokenized['input_ids'], token_type_ids=tokenized['token_type_ids'])
 
-        # Bert transformer encodings returning the last hidden states from the transformer model.
+        # Bert transformer returning the last hidden states from the transformer model.
         # encoding = List [
         #   hidden_states = torch.Tensor(batch_size, max_sequence_len, config.hidden_size), 
         # ]
@@ -119,6 +172,17 @@ class BertNSPSynapse(bittensor.Synapse):
         }
 
 def nsp_batch(data, batch_size):
+    """ Returns a random batch from text dataset with 50 percent NSP.
+
+        Args:
+            data: (List[dict{'text': str}]): Dataset of text inputs.
+            batch_size: size of batch to create.
+        
+        Returns:
+            batch_inputs List[str]: List of sentences.
+            batch_next List[str]: List of (potential) next sentences 
+            batch_labels torch.Tensor(batch_size): 1 if random next sentence, otherwise 0.
+    """
     batch_inputs = []
     batch_next = []
     batch_labels = []
@@ -143,12 +207,11 @@ def main(hparams):
     # Args
     config = bittensor.Config( hparams )
     batch_size = 10
-    log_interval = 100
     epoch_size = 1000
     hidden_size = 256
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Dataset
+    # Dataset: 74 million sentence pulled from books.
     dataset = load_dataset('bookcorpus')
 
     # Build Synapse
@@ -196,7 +259,7 @@ def main(hparams):
             # Query the remote network.
             # Flatten mnist inputs for routing.
             synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network (max 1000).
-            requests, scores = router.route( synapses, context, inputs ) # routes inputs to network.
+            requests, _ = router.route( synapses, context, inputs ) # routes inputs to network.
             responses = dendrite.forward_text( synapses, requests ) # Makes network calls.
             network = router.join( responses ) # Joins responses based on scores..
             

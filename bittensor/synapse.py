@@ -8,7 +8,7 @@ import bittensor
 from bittensor import bittensor_pb2
     
 class Synapse(nn.Module):
-    """
+    """ Bittensor synapse class.
     """
     def __init__(self):
         super().__init__()
@@ -26,17 +26,26 @@ class Synapse(nn.Module):
                           momentum=0.9)
 
     def forward_text(self, inputs: List[str]):
+        """
+            Apply forward pass to the bittensor.synapse given inputs text inputs.
+        """
         raise NotImplementedError
         
     def forward_image(self, inputs: torch.Tensor):
+        """
+            Apply forward pass to the bittensor.synapse given image inputs.
+        """
         raise NotImplementedError
 
     def forward_tensor(self, inputs: torch.Tensor):
+        """
+            Apply forward pass to the bittensor.synapse given tensor inputs.
+        """
         raise NotImplementedError
            
     def call_forward(self, inputs: object, modality: bittensor_pb2.Modality) -> torch.Tensor:
         """
-        Apply forward pass to the nn.module given inputs.
+        Apply forward pass to the bittensor.synapse given inputs and modality.
         """
         # TODO(const): check schema (inputs, input_schema)
         with torch.no_grad():
