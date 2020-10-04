@@ -95,6 +95,7 @@ class BertNSPSynapse(bittensor.Synapse):
             # Compute the NSP loss by projecting the output to torch.Tensor(2)
             # logit(1) > logit(0) if next_inputs are the real next sequences.
             local_prediction = self.nsp(local_output)
+            local_prediction = F.softmax(local_prediction, dim=1)
             local_target_loss = self.nsp_loss_fct(local_prediction.view(-1, 2), labels)
             loss += local_target_loss
             
@@ -104,19 +105,20 @@ class BertNSPSynapse(bittensor.Synapse):
             # logit(1) > logit(0) if next_inputs are the real next sequences.
             network_output = pooled + network
             network_prediction = self.nsp(network_output)
+            network_prediction = F.softmax(network_prediction, dim=1)
             network_target_loss = self.nsp_loss_fct(network_prediction.view(-1, 2), labels)
             loss += network_target_loss
     
         return {
             'loss': loss,
             'local_output': local_output,
+            'local_target_loss': local_target_loss,
             'network_output': network_output,
             'network_target_loss': network_target_loss,
-            'student_target_loss': local_target_loss,
             'distillation_loss': distillation_loss
         }
 
-def nsp_batchify(data, batch_size):
+def nsp_batch(data, batch_size):
     batch_inputs = []
     batch_next = []
     batch_labels = []
@@ -135,7 +137,7 @@ def nsp_batchify(data, batch_size):
                 batch_labels.append(1)
                 if (pos_1 != pos_2) and (pos_1 != pos_2 - 1):
                     break
-    yield batch_inputs, batch_next, torch.tensor(batch_labels, dtype=torch.long)
+    return batch_inputs, batch_next, torch.tensor(batch_labels, dtype=torch.long)
             
 def main(hparams):
     # Args
@@ -184,10 +186,9 @@ def main(hparams):
         optimizer.zero_grad() # Zero out lingering gradients.
 
         step = 0
-        dataiterator = nsp_batchify(dataset['train'], batch_size)
         while step < epoch_size:
             # Next batch.
-            inputs, next_inputs, labels = next(dataiterator)
+            inputs, next_inputs, labels = nsp_batch(dataset['train'], batch_size)
 
             # Get routing context
             context = model.forward_text( inputs )
@@ -202,22 +203,13 @@ def main(hparams):
             # Compute full pass and get loss.
             output = model.forward(inputs, next_inputs, labels, network)
             
-            loss = output['loss']
+            loss = output['local_target_loss']
             loss.backward()
             optimizer.step()
 
-            logger.info("loss {}", loss.item())
-            
-            # Set network weights.
-            weights = metagraph.getweights(synapses).to(model.device)
-            weights = (0.99) * weights + 0.01 * torch.mean(scores, dim=0)
-            metagraph.setweights(synapses, weights)
-
-            # Logs:
             step += 1
-            if step % log_interval == 0:
-                logger.info('Train Step: {} [{}/{} ({:.0f}%)]\t Network Loss: {:.6f}\ Local Loss: {:.6f}\Distilation Loss: {:.6f}\tnP|nS: {}|{}'.format(
-                    epoch, step, epoch_size, output['network_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
+            logger.info('Train Step: {} [{}/{} ({:.0f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
+                 epoch, step, epoch_size, step/epoch_size, output['network_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
       
     epoch = 0
     try:
