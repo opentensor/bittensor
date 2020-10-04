@@ -278,7 +278,6 @@ def main(hparams):
             network = router.join( responses ) # Joins responses based on scores..
             
             # Compute full pass and get loss.
-            #import pdb; pdb.set_trace()
             output = model.forward(sentences, next_sentences, next_sentence_labels, network)
             
             loss = output['local_target_loss']
