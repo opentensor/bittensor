@@ -67,20 +67,17 @@ class Axon(bittensor_grpc.BittensorServicer):
         
         # Deserialize the modality inputs to tensor.
         x = PyTorchSerializer.deserialize( inputs )
-        
-        # Call modality encoder. 
-        y = synapse.call_encode( x, inputs.modality )
-        
+                
         # Call forward network.
-        z = synapse.call_forward( y )
+        y = synapse.call_forward( x , inputs.modality)
         
-        z_serialized = PyTorchSerializer.serialize_tensor(z)
+        y_serialized = PyTorchSerializer.serialize_tensor(y)
 
         response = bittensor_pb2.TensorMessage(
             version = bittensor.__version__,
             neuron_key = self._config.neuron_key,
             synapse_key = request.synapse_key,
-            tensors = [z_serialized])
+            tensors = [y_serialized])
         
         return response
 

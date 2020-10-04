@@ -67,7 +67,7 @@ class PyTorchSerializer():
             return PyTorchSerializer.deserialize_image( proto )
         
         elif proto.modality == bittensor_pb2.Modality.TEXT:
-            return PyTorchSerializer.deserialize_string( proto )
+            return PyTorchSerializer.deserialize_text( proto )
         
         elif proto.modality == bittensor_pb2.Modality.TENSOR:
             return PyTorchSerializer.deserialize_tensor( proto )
@@ -90,7 +90,7 @@ class PyTorchSerializer():
             return PyTorchSerializer.serialize_image( tensor )
         
         elif modality == bittensor_pb2.Modality.TEXT:
-            return PyTorchSerializer.serialize_string( tensor )
+            return PyTorchSerializer.serialize_text( tensor )
         
         elif modality == bittensor_pb2.Modality.TENSOR:
             return PyTorchSerializer.serialize_tensor( tensor )
@@ -100,7 +100,7 @@ class PyTorchSerializer():
             
 
     @staticmethod
-    def serialize_string(tensor: List[str]) -> bittensor_pb2.Tensor:
+    def serialize_text(tensor: List[str]) -> bittensor_pb2.Tensor:
         """Serializes a torch.Tensor to an bittensor Tensor proto.
 
         Args:
@@ -114,7 +114,7 @@ class PyTorchSerializer():
                     version = bittensor.__version__,
                     buffer = data_buffer,
                     shape = [len(tensor), 1],
-                    dtype = bittensor_pb2.DataType.STRING,
+                    dtype = bittensor_pb2.DataType.UTF8,
                     modality = bittensor_pb2.Modality.TEXT,
                     requires_grad = False)
         return proto
@@ -191,7 +191,7 @@ class PyTorchSerializer():
         return tensor
         
     @staticmethod
-    def deserialize_string(proto: bittensor_pb2.Tensor) -> List[str]:
+    def deserialize_text(proto: bittensor_pb2.Tensor) -> List[str]:
         """Deserializes an bittensor_pb2.Tensor to a torch.Tensor object.
 
         Args:
