@@ -45,53 +45,65 @@ class BertNSPSynapse(bittensor.Synapse):
     def forward_text(self, inputs: List[str]):
         """ Forward pass inputs and labels through the NSP BERT module.
 
-        Args:
-            inputs (List[str]): batch_size length list of text sentences.
-        
-        Returns:
-            local_output torch.Tensor(n, config.hidden_dim): (Required) Output encoding of inputs 
-                produced by using the local student distillation model as context.
+            Args:
+                inputs (List[str]): batch_size length list of text sentences.
+            
+            Returns:
+                local_output torch.Tensor(n, config.hidden_dim): (Required) Output encoding of inputs 
+                    produced by using the local student distillation model as context.
         """
-        return self.forward(inputs = inputs, next_inputs = None, labels = None, network = None) ['local_output']
+        return self.forward(sentences = inputs, 
+                            next_sentences = None, 
+                            next_sentence_labels = None, 
+                            network = None) ['local_output']
         
     def forward(    self, 
-                    inputs: List[str], 
-                    next_inputs: List[str] = None, 
-                    labels: torch.Tensor = None, 
+                    sentences: List[str], 
+                    next_sentences: List[str] = None, 
+                    next_sentence_labels: torch.Tensor = None, 
                     network: torch.Tensor = None):
     
-    """ Forward pass inputs and labels through the NSP BERT module.
+        r""" Forward pass inputs and labels through the NSP BERT module.
 
-    Args:
-        inputs (List[str]): Batch_size length list of text sentences.
-        next_inputs (List[str]): (Optional) Batch_size length list of (potential) next sentences.
-        labels torch.Tensor (batch_size): (Optional) 1 dimensional tensor with either 0 if the corresponding
-            next_input is the suceeding sentence to input.
-        network torch.Tensor (batch_size, config.hidden_size): (Optional)response context from 
-            a bittensor dendrite query. 
+            Args:
+                sentences (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`): 
+                    Batch_size length list of text sentences.
 
-    Returns:
-        dictionary with { 
-            loss torch.Tensor(1): (Required) Total loss acumulation to be used by loss.backward()
+                next_sentences (:obj:`List[str]` of shape :obj:`(batch_size)`, `optional`): 
+                    Batch_size length list of (potential) next sentences.
 
-            local_output torch.Tensor(batch_size, config.hidden_dim): (Required) Output encoding of inputs 
-                produced by using the local student distillation model as context rather than 
-                the network. 
+                next_sentence_labels (``torch.LongTensor`` of shape ``(batch_size,)``, `optional`):
+                    Labels for computing the next sequence prediction (classification) loss. 
+                    Indices should be in ``[0, 1]``:
+                        - 0 indicates sequence B is a continuation of sequence A,
+                        - 1 indicates sequence B is a random sequence.
 
-            local_target_loss torch.Tensor(1): (Optional) Next sentence prediction loss computed using 
-                the local_output and with respect to the passed labels.
+                network (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.hidden_size)`, `optional`):
+                    response context from a bittensor dendrite query. 
 
-            network_output torch.Tensor(batch_size, config.hidden_dim): (Optional) Output encoding of inputs
-                produced by using the network inputs as context to the local model rather than 
-                the student.
+            Returns:
+                dictionary with { 
+                    loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
+                        Total loss acumulation to be used by loss.backward()
 
-            network_target_loss torch.Tensor(1): (Optional) Next sentence prediction loss computed using 
-                the network_output and with respect to the passed labels.
+                    local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.hidden_dim)`, `required`):
+                        Output encoding of inputs produced by using the local student distillation model as 
+                        context rather than the network. 
 
-            distillation_loss torch.Tensor(1): (Optional) Distillation loss produced by the student with
-                respect to the network context.
-        }
-    """
+                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        Next sentence prediction loss computed using the local_output and with respect to the passed labels.
+
+                    network_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.hidden_dim)`, `optional`): 
+                        Output encoding of inputs produced by using the network inputs as context to the local model rather than 
+                        the student.
+
+                    network_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):  Next sentence prediction loss computed using 
+                        the network_output and with respect to the passed labels.
+
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        Distillation loss produced by the student with respect to the network context.
+                }
+        """
 
         # Return vars.
         loss = torch.tensor(0.0)
@@ -107,14 +119,14 @@ class BertNSPSynapse(bittensor.Synapse):
         #       'token_type_ids': torch.Tensor(batch_size, max_sequence_len),
         #       'attention_mask': torch.Tensor(batch_size, max_sequence_len)
         # }
-        if labels is not None:
+        if next_sentence_labels is not None:
             # During training we tokenize both sequences and return token_type_ids which tell
             # the model which token belongs to which sequence.
             # i.e tensor([[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]]),
-            tokenized = self.tokenizer(inputs, next_inputs, return_tensors='pt', padding=True)
+            tokenized = self.tokenizer(sentences, next_sentences, return_tensors='pt', padding=True)
         else:
             # During inference we only tokenize the inputs, padding them to the longest sequence len.
-            tokenized = self.tokenizer(inputs, return_tensors='pt', padding=True)
+            tokenized = self.tokenizer(sentences, return_tensors='pt', padding=True)
 
         # Embed tokens into a common dimension.
         # embedding = torch.Tensor(batch_size, max_sequence_len, config.hidden_size)
@@ -144,22 +156,22 @@ class BertNSPSynapse(bittensor.Synapse):
         # Output from the forward pass using only the local and student models.
         # local_ouput = torch.Tensor ( batch_size, config.hidden_size)
         local_output = pooled + student_pooled
-        if labels is not None:
+        if next_sentence_labels is not None:
             # Compute the NSP loss by projecting the output to torch.Tensor(2)
             # logit(1) > logit(0) if next_inputs are the real next sequences.
             local_prediction = self.nsp(local_output)
             local_prediction = F.softmax(local_prediction, dim=1)
-            local_target_loss = self.nsp_loss_fct(local_prediction.view(-1, 2), labels)
+            local_target_loss = self.nsp_loss_fct(local_prediction.view(-1, 2), next_sentence_labels)
             loss += local_target_loss
             
         # Compute NSP loss for network outputs. Only run this if we have passed network inputs.
-        if network is not None and labels is not None:
+        if network is not None and next_sentence_labels is not None:
             # Compute the NSP loss by projecting the network_output to torch.Tensor(2)
             # logit(1) > logit(0) if next_inputs are the real next sequences.
             network_output = pooled + network
             network_prediction = self.nsp(network_output)
             network_prediction = F.softmax(network_prediction, dim=1)
-            network_target_loss = self.nsp_loss_fct(network_prediction.view(-1, 2), labels)
+            network_target_loss = self.nsp_loss_fct(network_prediction.view(-1, 2), next_sentence_labels)
             loss += network_target_loss
     
         return {
@@ -251,20 +263,20 @@ def main(hparams):
         step = 0
         while step < epoch_size:
             # Next batch.
-            inputs, next_inputs, labels = nsp_batch(dataset['train'], batch_size)
+            sentences, next_sentences, next_sentence_labels = nsp_batch(dataset['train'], batch_size)
 
             # Get routing context
-            context = model.forward_text( inputs )
+            context = model.forward_text( sentences )
             
             # Query the remote network.
             # Flatten mnist inputs for routing.
             synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network (max 1000).
-            requests, _ = router.route( synapses, context, inputs ) # routes inputs to network.
+            requests, _ = router.route( synapses, context, sentences ) # routes inputs to network.
             responses = dendrite.forward_text( synapses, requests ) # Makes network calls.
             network = router.join( responses ) # Joins responses based on scores..
             
             # Compute full pass and get loss.
-            output = model.forward(inputs, next_inputs, labels, network)
+            output = model.forward(sentences, next_sentences, next_sentence_labels, network)
             
             loss = output['local_target_loss']
             loss.backward()
