@@ -86,8 +86,14 @@ class MnistSynapse(bittensor.Synapse):
                         Output encoding of image inputs produced by using the local student distillation model as 
                         context rather than the network. 
 
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, 10)`, `optional`):
+                        MNIST Target predictions using student model as context. 
+
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         MNIST Classification loss computed using the local_output and passed labels.
+
+                    network_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, 10)`, `optional`):
+                        MNIST Target predictions using network as context. 
 
                     network_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.hidden_dim)`, `optional`): 
                         Output encoding of inputs produced by using the network inputs as context to the local model rather than 
@@ -103,7 +109,9 @@ class MnistSynapse(bittensor.Synapse):
         # Return vars.
         loss = torch.tensor(0.0)
         local_output = None
+        local_target = None
         network_output = None
+        network_target = None
         network_target_loss = None
         local_target_loss = None
         distillation_loss = None
@@ -130,6 +138,7 @@ class MnistSynapse(bittensor.Synapse):
             # Compute the target loss using the student_y and passed labels.
             local_target = F.relu(self.target_layer1 (local_output))
             local_target = F.relu(self.target_layer2 (local_target))
+            local_target = F.relu(self.target_layer3 (local_target))
             local_target = F.log_softmax(local_target, dim=1)
             local_target_loss = F.nll_loss(local_target, labels)
             loss += local_target_loss
@@ -145,6 +154,7 @@ class MnistSynapse(bittensor.Synapse):
         if network is not None and labels is not None:
             network_target = F.relu(self.target_layer1 (network_output))
             network_target = F.relu(self.target_layer2 (network_target))
+            network_target = F.relu(self.target_layer3 (network_target))
             network_target = F.log_softmax(network_target, dim=1)
             network_target_loss = F.nll_loss(network_target, labels)
             loss += network_target_loss
@@ -153,6 +163,8 @@ class MnistSynapse(bittensor.Synapse):
             'loss': loss,
             'local_output': local_output,
             'network_output': network_output,
+            'local_target': local_target,
+            'network_target': network_target,
             'network_target_loss': network_target_loss,
             'local_target_loss': local_target_loss,
             'distillation_loss': distillation_loss
@@ -296,7 +308,7 @@ def main(hparams):
                 outputs = model.forward(images, labels)
                             
                 # Count accurate predictions.
-                max_logit = outputs['local_output'].data.max(1, keepdim=True)[1]
+                max_logit = outputs['local_target'].data.max(1, keepdim=True)[1]
                 correct += max_logit.eq( labels.data.view_as(max_logit) ).sum()
         
         # # Log results.
