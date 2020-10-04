@@ -36,40 +36,29 @@ class Synapse(nn.Module):
                           lr=0.1,
                           momentum=0.9)
 
-    def encode_tensor(self, inputs: torch.Tensor) -> torch.Tensor:
-        return NotImplementedError    
- 
-    def encode_image(self, inputs: torch.Tensor) -> torch.Tensor:
-        return NotImplementedError    
-    
-    def encode_text(self, inputs: List[str]) -> torch.Tensor:
-        return NotImplementedError       
-    
-    def call_encode(self, inputs: object, modality: bittensor_pb2.Modality) -> torch.Tensor:
-        """
-        Apply modality encoders.
-        """
-        # TODO (const catch not implemented error.)
-        if modality == bittensor_pb2.Modality.TEXT:
-            return self.encode_text(inputs)
+    def forward_text(self, inputs: List[str]):
+        raise NotImplementedError
         
-        elif modality == bittensor_pb2.Modality.IMAGE:
-            return self.encode_image(inputs)
-        
-        elif modality == bittensor_pb2.Modality.TENSOR:
-            return self.encode_tensor(inputs)
-                
-        else:
-            raise NotImplementedError
+    def forward_image(self, inputs: torch.Tensor):
+        raise NotImplementedError
 
-    
-    def call_forward(self, inputs: torch.Tensor) -> torch.Tensor:
+    def forward_tensor(self, inputs: torch.Tensor):
+        raise NotImplementedError
+           
+    def call_forward(self, inputs: object, modality: bittensor_pb2.Modality) -> torch.Tensor:
         """
         Apply forward pass to the nn.module given inputs.
         """
         # TODO(const): check schema (inputs, input_schema)
         with torch.no_grad():
-            outputs = self.forward(inputs)
+            if modality == bittensor_pb2.Modality.TEXT:
+                outputs = self.forward_text(inputs)
+            elif modality == bittensor_pb2.Modality.IMAGE:
+                outputs = self.forward_image(inputs)
+            elif modality == bittensor_pb2.Modality.TENSOR:
+                outputs = self.forward_tensor(inputs)  
+            else:
+                raise NotImplementedError
         return outputs
     
     def call_backward(self, inputs: object, grads: torch.Tensor)-> torch.Tensor:
