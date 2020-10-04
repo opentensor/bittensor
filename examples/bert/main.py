@@ -97,8 +97,8 @@ class BertNSPSynapse(bittensor.Synapse):
                         Output encoding of inputs produced by using the network inputs as context to the local model rather than 
                         the student.
 
-                    network_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):  Next sentence prediction loss computed using 
-                        the network_output and with respect to the passed labels.
+                    network_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):  
+                        Next sentence prediction loss computed using the network_output and with respect to the passed labels.
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss produced by the student with respect to the network context.

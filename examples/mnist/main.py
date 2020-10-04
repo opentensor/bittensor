@@ -1,25 +1,31 @@
-from loguru import logger
+"""BERT Next Sentence Prediction Synapse
+
+This file demonstrates a bittensor.Synapse trained for Next Sentence Prediction.
+
+Example:
+        $ python examples/bert/main.py
+
+"""
+
+import bittensor
+from bittensor.utils.model_utils import ModelToolbox
+from bittensor import bittensor_pb2
 
 import argparse
+from loguru import logger
 import math
 import time
 import torch
-import torchvision
-from typing import List, Tuple, Dict, Optional
-
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torchvision
 import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
-import torch.nn.functional as F
-from bittensor.utils.model_utils import ModelToolbox
-
-import bittensor
-from bittensor import bittensor_pb2
+from typing import List, Tuple, Dict, Optional
 
 class MnistSynapse(bittensor.Synapse):
-    """ Bittensor endpoint trained on 28, 28 pixel images to detect handwritten characters.
+    """ Bittensor endpoint trained on PIL images to detect handwritten characters.
     """
     def __init__(self):
         super(MnistSynapse, self).__init__()
@@ -40,65 +46,116 @@ class MnistSynapse(bittensor.Synapse):
         self.target_layer2 = nn.Linear(512, 256)
         self.target_layer3 = nn.Linear(256, 10)
 
-    def forward_image(self, inputs: torch.Tensor):
-        return self.forward (inputs = inputs, labels = None, network = None) ['student_y']
+    def forward_image(self, images: torch.Tensor):
+        r""" Forward pass inputs and labels through the NSP BERT module.
+
+            Args:
+                inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, -1, -1, -1)`, `required`): 
+                    batch_size length list of image tensors. (batch index, channel, row, col) produced 
+                    by calling PIL.toTensor()
+            
+            Returns:
+                local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.hidden_size)`, `required`): 
+                    Output encoding of inputs produced using the local student distillation model as context.
+        """
+        return self.forward (images = images, labels = None, network = None) ['local_output']
 
     def forward (   self, 
-                    inputs: torch.Tensor,
+                    images: torch.Tensor,
                     labels: torch.Tensor = None,
                     network: torch.Tensor = None):
 
-        student_y = None
-        network_y = None
-        student_target_loss = None
+        r""" Forward pass inputs and labels through the NSP BERT module.
+
+            Args:
+                images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, -1, -1, -1)`, `required`): 
+                    PIL.toTensor() encoded images.
+
+                labels (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, 10)`, `optional`): 
+                    Mnist labels.
+
+                network (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.hidden_size)`, `optional`):
+                    response context from a bittensor dendrite query. 
+
+            Returns:
+                dictionary with { 
+                    loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
+                        Total loss acumulation to be used by loss.backward()
+
+                    local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.hidden_dim)`, `required`):
+                        Output encoding of image inputs produced by using the local student distillation model as 
+                        context rather than the network. 
+
+                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        MNIST Classification loss computed using the local_output and passed labels.
+
+                    network_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.hidden_dim)`, `optional`): 
+                        Output encoding of inputs produced by using the network inputs as context to the local model rather than 
+                        the student.
+
+                    network_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+                        MNIST Classification loss computed using the local_output and passed labels.
+
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        Distillation loss produced by the student with respect to the network context.
+                }
+        """
+        # Return vars.
+        loss = torch.tensor(0.0)
+        local_output = None
+        network_output = None
         network_target_loss = None
-        student_distillation_loss = None
+        local_target_loss = None
+        distillation_loss = None
 
         # Encode images into standard shape. Images could any size PILs.
-        inputs = self._transform(inputs)
-        inputs = self._adaptive_pool(inputs).to(self.device)
-        inputs = torch.flatten(inputs, start_dim = 1)
+        images = self._transform(images)
+        images = self._adaptive_pool(images).to(self.device)
+        images = torch.flatten(images, start_dim = 1)
 
         # student inputs:
-        student = F.relu(self.student_layer1 (inputs))
+        student = F.relu(self.student_layer1 (images))
         student = F.relu(self.student_layer2 (student))
 
         # If there is a network context, use it to train the student network.
         if network is not None:
-            student_distillation_loss = F.mse_loss(student, network.detach())
+            distillation_loss = F.mse_loss(student, network.detach())
+            loss += distillation_loss
 
         # Build student_y
-        student_y = torch.cat((inputs, student), dim=1)
-        student_y = F.relu(self.forward_layer1 (student_y))
-        student_y = F.relu(self.forward_layer2 (student_y))
+        local_output = torch.cat((images, student), dim=1)
+        local_output = F.relu(self.forward_layer1 (local_output))
+        local_output = F.relu(self.forward_layer2 (local_output))
+        if labels is not None:
+            # Compute the target loss using the student_y and passed labels.
+            local_target = F.relu(self.target_layer1 (local_output))
+            local_target = F.relu(self.target_layer2 (local_target))
+            local_target = F.log_softmax(local_target, dim=1)
+            local_target_loss = F.nll_loss(local_target, labels)
+            loss += local_target_loss
 
         # Compute the synapse head using the network inputs.
         # Only compute this when there is a network context.
         if network is not None:
-            network_y = torch.cat((inputs, network), dim=1)
-            network_y = F.relu(self.forward_layer1 (network_y))
-            network_y = F.relu(self.forward_layer2 (network_y))
-
-        # Compute the target loss using the student_y and passed labels.
-        if labels is not None:
-            student_target = F.relu(self.target_layer1 (student_y))
-            student_target = F.relu(self.target_layer2 (student_target))
-            student_target = F.log_softmax(student_target, dim=1)
-            student_target_loss = F.nll_loss(student_target, labels)
+            network_output = torch.cat((images, network), dim=1)
+            network_output = F.relu(self.forward_layer1 (network_output))
+            network_output = F.relu(self.forward_layer2 (network_output))
 
         # Compute a target loss using network_y and the passed labels.
         if network is not None and labels is not None:
-            network_target = F.relu(self.target_layer1 (network_y))
+            network_target = F.relu(self.target_layer1 (network_output))
             network_target = F.relu(self.target_layer2 (network_target))
             network_target = F.log_softmax(network_target, dim=1)
             network_target_loss = F.nll_loss(network_target, labels)
+            loss += network_target_loss
 
         return {
-            'student_y': student_y,
-            'network_y': network_y,
+            'loss': loss,
+            'local_output': local_output,
+            'network_output': network_output,
             'network_target_loss': network_target_loss,
-            'student_target_loss': student_target_loss,
-            'student_distillation_loss': student_distillation_loss
+            'local_target_loss': local_target_loss,
+            'distillation_loss': distillation_loss
         }
             
         
@@ -171,29 +228,29 @@ def main(hparams):
     def train(model, epoch, global_step):
         # Turn on Dropoutlayers BatchNorm etc.
         model.train()
-        for batch_idx, (inputs, targets) in enumerate(trainloader):
+        for batch_idx, (images, labels) in enumerate(trainloader):
             
             # Clear gradients on model parameters.
             optimizer.zero_grad()
             
             # Encode inputs for network contect used to query.
-            context = model.forward_image(inputs).to(device)
+            context = model.forward_image(images).to(device)
             
             # Targets to Tensor
-            targets = torch.LongTensor(targets).to(device)
+            labels = torch.LongTensor(labels).to(device)
             
             # Query the remote network.
             # Flatten mnist inputs for routing.
             synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network (max 1000).
-            requests, scores = router.route( synapses, context, inputs ) # routes inputs to network.
+            requests, scores = router.route( synapses, context, images ) # routes inputs to network.
             responses = dendrite.forward_image( synapses, requests ) # Makes network calls.
             network = router.join( responses ) # Joins responses based on scores..
             
             # Compute full pass and get loss.
-            output = model.forward(inputs, targets, network)
+            output = model.forward(images, labels, network)
 
             # Loss and step.
-            loss = output['student_target_loss'] + output['student_distillation_loss'] + output['network_target_loss']
+            loss = output['loss']
             torch.nn.utils.clip_grad_norm_(router.parameters(), 0.5)
             loss.backward()
             optimizer.step()
@@ -213,8 +270,8 @@ def main(hparams):
                 writer.add_scalar('train_loss', float(loss.item()), global_step)
             
                 n = len(train_data)
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tDistill Loss: {:.6f}\tStudent Loss: {:.6f}\tnP|nS: {}|{}'.format(
-                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['network_target_loss'].item(), output['student_distillation_loss'].item(), output['student_target_loss'].item(), len(metagraph.peers), 
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\tTarget Loss: {:.6f}\tDistillation Loss: {:.6f}\tnP|nS: {}|{}'.format(
+                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['local_target_loss'].item(), output['network_target_loss'].item(), output['distillation_loss'].item(), len(metagraph.peers), 
                             len(metagraph.synapses)))
 
     # Test loop.
@@ -230,17 +287,17 @@ def main(hparams):
         
             loss = 0.0
             correct = 0.0
-            for _, (inputs, targets) in enumerate(testloader):                
+            for _, (images, labels) in enumerate(testloader):                
                
-                # Targets to Tensor
-                targets = torch.LongTensor(targets).to(device)
+                # Labels to Tensor
+                labels = torch.LongTensor(labels).to(device)
 
                 # Compute full pass and get loss.
-                outputs = model.forward(inputs, targets)
+                outputs = model.forward(images, labels)
                             
                 # Count accurate predictions.
-                max_logit = outputs['student_y'].data.max(1, keepdim=True)[1]
-                correct += max_logit.eq( targets.data.view_as(max_logit) ).sum()
+                max_logit = outputs['local_output'].data.max(1, keepdim=True)[1]
+                correct += max_logit.eq( labels.data.view_as(max_logit) ).sum()
         
         # # Log results.
         n = len(test_data)
