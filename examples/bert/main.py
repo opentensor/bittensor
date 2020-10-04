@@ -41,6 +41,7 @@ class BertNSPSynapse(bittensor.Synapse):
         self.student_pooler = transformers.modeling_bert.BertPooler(self.config)
         self.nsp = transformers.modeling_bert.BertOnlyNSPHead(self.config) 
         self.nsp_loss_fct = torch.nn.CrossEntropyLoss()
+        self.device
 
     def forward_text(self, inputs: List[str]):
         """ Forward pass inputs and labels through the NSP BERT module.
@@ -123,10 +124,10 @@ class BertNSPSynapse(bittensor.Synapse):
             # During training we tokenize both sequences and return token_type_ids which tell
             # the model which token belongs to which sequence.
             # i.e tensor([[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]]),
-            tokenized = self.tokenizer(sentences, next_sentences, return_tensors='pt', padding=True)
+            tokenized = self.tokenizer(sentences, next_sentences, return_tensors='pt', padding=True).to(self.device)
         else:
             # During inference we only tokenize the inputs, padding them to the longest sequence len.
-            tokenized = self.tokenizer(sentences, return_tensors='pt', padding=True)
+            tokenized = self.tokenizer(sentences, return_tensors='pt', padding=True).to(self.device)
 
         # Embed tokens into a common dimension.
         # embedding = torch.Tensor(batch_size, max_sequence_len, config.hidden_size)
@@ -136,6 +137,7 @@ class BertNSPSynapse(bittensor.Synapse):
         # encoding = List [
         #   hidden_states = torch.Tensor(batch_size, max_sequence_len, config.hidden_size), 
         # ]
+        #import pdb; pdb.set_trace()
         encoding = self.encoder(embedding)
 
         # Pooling, "pool" the model by simply taking the hidden state corresponding
@@ -143,15 +145,15 @@ class BertNSPSynapse(bittensor.Synapse):
         # layer to the encoding for the first token. 
         # pooled = torch.Tensor (batch_size, config.hidden_size)
         pooled = self.pooler(encoding[0])
-
+        #import pdb; pdb.set_trace()
         # Student transformer model which learns a mapping from the embedding to the network inputs
         # student_pooled = torch.Tensor (batch_size, config.hidden_size)
         student_encoding = self.student_encoder (embedding.detach())
         student_pooled = self.student_pooler(student_encoding[0])
         if network is not None:
             # Distillation loss between student_pooled and network inputs.
-            distillation_loss = F.mse_loss(student_pooled, network) 
-            loss += distillation_loss
+            distillation_loss = F.mse_loss(student_pooled, network)
+            loss = loss + distillation_loss
 
         # Output from the forward pass using only the local and student models.
         # local_ouput = torch.Tensor ( batch_size, config.hidden_size)
@@ -159,20 +161,20 @@ class BertNSPSynapse(bittensor.Synapse):
         if next_sentence_labels is not None:
             # Compute the NSP loss by projecting the output to torch.Tensor(2)
             # logit(1) > logit(0) if next_inputs are the real next sequences.
-            local_prediction = self.nsp(local_output)
+            local_prediction = self.nsp(local_output).to(self.device)
             local_prediction = F.softmax(local_prediction, dim=1)
-            local_target_loss = self.nsp_loss_fct(local_prediction.view(-1, 2), next_sentence_labels)
-            loss += local_target_loss
+            local_target_loss = self.nsp_loss_fct(local_prediction.view(-1, 2), next_sentence_labels.to(self.device))
+            loss = loss + local_target_loss
             
         # Compute NSP loss for network outputs. Only run this if we have passed network inputs.
         if network is not None and next_sentence_labels is not None:
             # Compute the NSP loss by projecting the network_output to torch.Tensor(2)
             # logit(1) > logit(0) if next_inputs are the real next sequences.
             network_output = pooled + network
-            network_prediction = self.nsp(network_output)
+            network_prediction = self.nsp(network_output).to(self.device)
             network_prediction = F.softmax(network_prediction, dim=1)
-            network_target_loss = self.nsp_loss_fct(network_prediction.view(-1, 2), next_sentence_labels)
-            loss += network_target_loss
+            network_target_loss = self.nsp_loss_fct(network_prediction.view(-1, 2), next_sentence_labels.to(self.device))
+            loss = loss + network_target_loss
     
         return {
             'loss': loss,
@@ -218,8 +220,8 @@ def nsp_batch(data, batch_size):
 def main(hparams):
     # Args
     config = bittensor.Config( hparams )
-    batch_size = 10
-    epoch_size = 1000
+    batch_size = 128
+    epoch_size = 100
     hidden_size = 256
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -276,6 +278,7 @@ def main(hparams):
             network = router.join( responses ) # Joins responses based on scores..
             
             # Compute full pass and get loss.
+            #import pdb; pdb.set_trace()
             output = model.forward(sentences, next_sentences, next_sentence_labels, network)
             
             loss = output['local_target_loss']
