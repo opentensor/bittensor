@@ -16,6 +16,10 @@ from loguru import logger
 import math
 import time
 import torch
+import torchvision
+from typing import List, Tuple, Dict, Optional
+import traceback
+
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -338,6 +342,7 @@ def main(hparams):
             epoch += 1
             
     except Exception as e:
+        traceback.print_exc()
         logger.error(e)
         metagraph.stop()
         axon.stop()
