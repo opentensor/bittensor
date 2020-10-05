@@ -219,7 +219,8 @@ def nsp_batch(data, batch_size):
 def main(hparams):
     # Args
     config = bittensor.Config( hparams )
-    batch_size = 10
+    learning_rate = 0.01 
+    batch_size = 500
     epoch_size = 1000
     hidden_size = 256
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -253,9 +254,8 @@ def main(hparams):
     router = bittensor.Router(x_dim = hidden_size, key_dim = 100, topk = 10)
     
     # Optimizer.
-    lr = 0.01 # learning rate
     params = list(router.parameters()) + list(model.parameters())
-    optimizer = torch.optim.SGD(params, lr=lr)
+    optimizer = torch.optim.SGD(params, lr=learning_rate)
     
     def train(dataset, model, epoch):
         model.train()  # Turn on the train mode.
@@ -279,7 +279,7 @@ def main(hparams):
             # Compute full pass and get loss.
             output = model.forward(sentences, next_sentences, next_sentence_labels, exterior_inputs)
             
-            loss = output['local_target_loss']
+            loss = output['loss']
             loss.backward()
             optimizer.step()
 
