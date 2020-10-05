@@ -67,7 +67,7 @@ class PyTorchSerializer():
             return PyTorchSerializer.deserialize_image( proto )
         
         elif proto.modality == bittensor_pb2.Modality.TEXT:
-            return PyTorchSerializer.deserialize_string( proto )
+            return PyTorchSerializer.deserialize_text( proto )
         
         elif proto.modality == bittensor_pb2.Modality.TENSOR:
             return PyTorchSerializer.deserialize_tensor( proto )
@@ -77,7 +77,7 @@ class PyTorchSerializer():
    
     @staticmethod
     def serialize(tensor: object, modality: bittensor_pb2.Modality) -> bittensor_pb2.Tensor:
-        """Serializes a torch.Tensor to an bittensor Tensor proto.
+        """Serializes a object with modality into a bittensor Tensor proto.
 
         Args:
             tensor (object): general object with modality TEXT, IMAGE, TENSOR
@@ -90,7 +90,7 @@ class PyTorchSerializer():
             return PyTorchSerializer.serialize_image( tensor )
         
         elif modality == bittensor_pb2.Modality.TEXT:
-            return PyTorchSerializer.serialize_string( tensor )
+            return PyTorchSerializer.serialize_text( tensor )
         
         elif modality == bittensor_pb2.Modality.TENSOR:
             return PyTorchSerializer.serialize_tensor( tensor )
@@ -100,11 +100,11 @@ class PyTorchSerializer():
             
 
     @staticmethod
-    def serialize_string(tensor: List[str]) -> bittensor_pb2.Tensor:
-        """Serializes a torch.Tensor to an bittensor Tensor proto.
+    def serialize_text(tensor: List[str]) -> bittensor_pb2.Tensor:
+        """Serializes a List[str] to an bittensor Tensor proto.
 
         Args:
-            tensor (torch.Tensor): torch.Tensor to serialize.
+            tensor (List[str]): A list of strings.
 
         Returns:
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
@@ -114,17 +114,17 @@ class PyTorchSerializer():
                     version = bittensor.__version__,
                     buffer = data_buffer,
                     shape = [len(tensor), 1],
-                    dtype = bittensor_pb2.DataType.STRING,
+                    dtype = bittensor_pb2.DataType.UTF8,
                     modality = bittensor_pb2.Modality.TEXT,
                     requires_grad = False)
         return proto
         
     @staticmethod
     def serialize_image(tensor: torch.Tensor) -> bittensor_pb2.Tensor:
-        """Serializes a torch.Tensor to an bittensor Tensor proto.
+        """Serializes a torch.Tensor image into a bittensor Tensor proto.
 
         Args:
-            tensor (torch.Tensor): torch.Tensor to serialize.
+            tensor (torch.Tensor): torch.Tensor of images to serialize.
 
         Returns:
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
@@ -179,7 +179,7 @@ class PyTorchSerializer():
             proto (bittensor_pb2.Tensor): Proto to derserialize.
 
         Returns:
-            List[object]:
+            torch.Tensor: deserialized image tensor.
         """
         dtype = np.float32
         # TODO avoid copying the array (need to silence pytorch warning, because array is not writable)
@@ -191,14 +191,14 @@ class PyTorchSerializer():
         return tensor
         
     @staticmethod
-    def deserialize_string(proto: bittensor_pb2.Tensor) -> List[str]:
-        """Deserializes an bittensor_pb2.Tensor to a torch.Tensor object.
+    def deserialize_text(proto: bittensor_pb2.Tensor) -> List[str]:
+        """Deserializes an bittensor_pb2.Tensor to a List[str] object.
 
         Args:
             proto (bittensor_pb2.Tensor): Proto to derserialize.
 
         Returns:
-            List[object]:
+            List[str]: deserialized text.
         """
         return pickle.loads(proto.buffer)
             
@@ -210,7 +210,7 @@ class PyTorchSerializer():
             proto (bittensor_pb2.Tensor): Proto to derserialize.
 
         Returns:
-            torch.Tensor: torch.Tensor to deserialize.
+            torch.Tensor: deserialized tensor.
         """
         dtype = bittensor_dtype_np_dtype(proto.dtype)
         # TODO avoid copying the array (need to silence pytorch warning, because array is not writable)

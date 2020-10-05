@@ -19,8 +19,8 @@ import bittensor
 from bittensor import bittensor_pb2
 
 class CIFAR(bittensor.Synapse):
-    def __init__(self, config: bittensor.Config):
-        super(CIFAR, self).__init__(config)
+    def __init__(self):
+        super(CIFAR, self).__init__()
         model_config = self.DPN26()
         in_planes, out_planes = model_config['in_planes'], model_config['out_planes']
         num_blocks, dense_depth = model_config['num_blocks'], model_config['dense_depth']
@@ -188,7 +188,7 @@ def main(hparams):
     testloader = torch.utils.data.DataLoader(testset, batch_size = batch_size_test, shuffle=False, num_workers=2)
 
     # Build local synapse to serve on the network.
-    model = CIFAR(config) # Synapses take a config object.
+    model = CIFAR() # Synapses take a config object.
     model.to( device ) # Set model to device.
 
     if device == 'cuda':
@@ -264,6 +264,7 @@ def main(hparams):
             loss = (target_loss + dist_loss + student_loss)
             loss.backward()
             optimizer.step()
+            scheduler.step()
             global_step += 1
 
             # Set network weights.

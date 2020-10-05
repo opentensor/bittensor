@@ -75,6 +75,7 @@ class Bittensor(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -83,7 +84,7 @@ class Bittensor(object):
             bittensor_dot_bittensor__pb2.TensorMessage.SerializeToString,
             bittensor_dot_bittensor__pb2.TensorMessage.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def Backward(request,
@@ -91,6 +92,7 @@ class Bittensor(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -99,7 +101,7 @@ class Bittensor(object):
             bittensor_dot_bittensor__pb2.TensorMessage.SerializeToString,
             bittensor_dot_bittensor__pb2.TensorMessage.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
 
 class MetagraphStub(object):
@@ -154,6 +156,7 @@ class Metagraph(object):
             options=(),
             channel_credentials=None,
             call_credentials=None,
+            insecure=False,
             compression=None,
             wait_for_ready=None,
             timeout=None,
@@ -162,4 +165,4 @@ class Metagraph(object):
             bittensor_dot_bittensor__pb2.GossipBatch.SerializeToString,
             bittensor_dot_bittensor__pb2.GossipBatch.FromString,
             options, channel_credentials,
-            call_credentials, compression, wait_for_ready, timeout, metadata)
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
