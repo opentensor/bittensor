@@ -50,8 +50,15 @@ class Axon(bittensor_grpc.BittensorServicer):
 
     def serve(self, synapse: bittensor.Synapse):
         """ Adds an Synapse to the serving set """
-        synapse_proto = synapse.to_proto()
-        self._local_synapses[synapse_proto.synapse_key] = synapse
+         # Create a new bittensor_pb2.Synapse proto.
+        synapse_proto = bittensor_pb2.Synapse(
+            version = bittensor.__version__, 
+            neuron_key = self._config.neuron_key, 
+            synapse_key = synapse.synapse_key(), 
+            address = self._config.remote_ip, 
+            port = self._config.axon_port, 
+        )
+        self._local_synapses[synapse.synapse_key()] = synapse
     
     def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext):
         # TODO (const): optionally check signature.
@@ -67,20 +74,17 @@ class Axon(bittensor_grpc.BittensorServicer):
         
         # Deserialize the modality inputs to tensor.
         x = PyTorchSerializer.deserialize( inputs )
-        
-        # Call modality encoder. 
-        y = synapse.call_encode( x, inputs.modality )
-        
+                
         # Call forward network.
-        z = synapse.call_forward( y )
+        y = synapse.call_forward( x , inputs.modality)
         
-        z_serialized = PyTorchSerializer.serialize_tensor(z)
+        y_serialized = PyTorchSerializer.serialize_tensor(y)
 
         response = bittensor_pb2.TensorMessage(
             version = bittensor.__version__,
             neuron_key = self._config.neuron_key,
             synapse_key = request.synapse_key,
-            tensors = [z_serialized])
+            tensors = [y_serialized])
         
         return response
 

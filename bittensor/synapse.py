@@ -8,25 +8,14 @@ import bittensor
 from bittensor import bittensor_pb2
     
 class Synapse(nn.Module):
+    """ Bittensor synapse class.
     """
-    """
-    def __init__(self, config: bittensor.Config):
+    def __init__(self):
         super().__init__()
-        self._config = config
         self._synapse_key = bittensor.Crypto.public_key_to_string(bittensor.Crypto.generate_private_ed25519().public_key())
         self.optimizer = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
-    def to_proto(self):
-        synapse_proto = bittensor_pb2.Synapse(
-            version = bittensor.__version__, 
-            neuron_key = self._config.neuron_key, 
-            synapse_key = self.synapse_key(), 
-            address = self._config.remote_ip, 
-            port = self._config.axon_port, 
-        )
-        return synapse_proto
-    
+            
     def synapse_key(self) -> str:
         return self._synapse_key
     
@@ -36,40 +25,38 @@ class Synapse(nn.Module):
                           lr=0.1,
                           momentum=0.9)
 
-    def encode_tensor(self, inputs: torch.Tensor) -> torch.Tensor:
-        return NotImplementedError    
- 
-    def encode_image(self, inputs: torch.Tensor) -> torch.Tensor:
-        return NotImplementedError    
-    
-    def encode_text(self, inputs: List[str]) -> torch.Tensor:
-        return NotImplementedError       
-    
-    def call_encode(self, inputs: object, modality: bittensor_pb2.Modality) -> torch.Tensor:
+    def forward_text(self, inputs: List[str]):
         """
-        Apply modality encoders.
+            Apply forward pass to the bittensor.synapse given inputs text inputs.
         """
-        # TODO (const catch not implemented error.)
-        if modality == bittensor_pb2.Modality.TEXT:
-            return self.encode_text(inputs)
+        raise NotImplementedError
         
-        elif modality == bittensor_pb2.Modality.IMAGE:
-            return self.encode_image(inputs)
-        
-        elif modality == bittensor_pb2.Modality.TENSOR:
-            return self.encode_tensor(inputs)
-                
-        else:
-            raise NotImplementedError
+    def forward_image(self, inputs: torch.Tensor):
+        """
+            Apply forward pass to the bittensor.synapse given image inputs.
+        """
+        raise NotImplementedError
 
-    
-    def call_forward(self, inputs: torch.Tensor) -> torch.Tensor:
+    def forward_tensor(self, inputs: torch.Tensor):
         """
-        Apply forward pass to the nn.module given inputs.
+            Apply forward pass to the bittensor.synapse given tensor inputs.
+        """
+        raise NotImplementedError
+           
+    def call_forward(self, inputs: object, modality: bittensor_pb2.Modality) -> torch.Tensor:
+        """
+        Apply forward pass to the bittensor.synapse given inputs and modality.
         """
         # TODO(const): check schema (inputs, input_schema)
         with torch.no_grad():
-            outputs = self.forward(inputs)
+            if modality == bittensor_pb2.Modality.TEXT:
+                outputs = self.forward_text(inputs)
+            elif modality == bittensor_pb2.Modality.IMAGE:
+                outputs = self.forward_image(inputs)
+            elif modality == bittensor_pb2.Modality.TENSOR:
+                outputs = self.forward_tensor(inputs)  
+            else:
+                raise NotImplementedError
         return outputs
     
     def call_backward(self, inputs: object, grads: torch.Tensor)-> torch.Tensor:
