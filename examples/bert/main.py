@@ -123,7 +123,7 @@ class BertNSPSynapse(bittensor.Synapse):
             # During training we tokenize both sequences and return token_type_ids which tell
             # the model which token belongs to which sequence.
             # i.e tensor([[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]]),
-            tokenized = self.tokenizer(sentences, next_sentences, return_tensors='pt', padding=True)
+            tokenized = self.tokenizer(sentences, text_pair = next_sentences, return_tensors='pt', padding=True)
         else:
             # During inference we only tokenize the inputs, padding them to the longest sequence len.
             tokenized = self.tokenizer(sentences, return_tensors='pt', padding=True)
@@ -151,18 +151,19 @@ class BertNSPSynapse(bittensor.Synapse):
         if network is not None:
             # Distillation loss between student_pooled and network inputs.
             distillation_loss = F.mse_loss(student_pooled, network) 
-            loss += distillation_loss
+            loss = loss + distillation_loss
 
         # Output from the forward pass using only the local and student models.
         # local_ouput = torch.Tensor ( batch_size, config.hidden_size)
-        local_output = pooled + student_pooled
+        #local_output = pooled + student_pooled
+        local_output = pooled
         if next_sentence_labels is not None:
             # Compute the NSP loss by projecting the output to torch.Tensor(2)
             # logit(1) > logit(0) if next_inputs are the real next sequences.
             local_prediction = self.nsp(local_output)
             local_prediction = F.softmax(local_prediction, dim=1)
             local_target_loss = self.nsp_loss_fct(local_prediction.view(-1, 2), next_sentence_labels)
-            loss += local_target_loss
+            loss = loss + local_target_loss
             
         # Compute NSP loss for network outputs. Only run this if we have passed network inputs.
         if network is not None and next_sentence_labels is not None:
@@ -172,7 +173,7 @@ class BertNSPSynapse(bittensor.Synapse):
             network_prediction = self.nsp(network_output)
             network_prediction = F.softmax(network_prediction, dim=1)
             network_target_loss = self.nsp_loss_fct(network_prediction.view(-1, 2), next_sentence_labels)
-            loss += network_target_loss
+            loss = loss + network_target_loss
     
         return {
             'loss': loss,
@@ -252,7 +253,7 @@ def main(hparams):
     router = bittensor.Router(x_dim = hidden_size, key_dim = 100, topk = 10)
     
     # Optimizer.
-    lr = 3.0 # learning rate
+    lr = 0.01 # learning rate
     params = list(router.parameters()) + list(model.parameters())
     optimizer = torch.optim.SGD(params, lr=lr)
     
@@ -273,10 +274,10 @@ def main(hparams):
             synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network (max 1000).
             requests, _ = router.route( synapses, context, sentences ) # routes inputs to network.
             responses = dendrite.forward_text( synapses, requests ) # Makes network calls.
-            network = router.join( responses ) # Joins responses based on scores..
+            exterior_inputs = router.join( responses ) # Joins responses based on scores..
             
             # Compute full pass and get loss.
-            output = model.forward(sentences, next_sentences, next_sentence_labels, network)
+            output = model.forward(sentences, next_sentences, next_sentence_labels, exterior_inputs)
             
             loss = output['local_target_loss']
             loss.backward()
@@ -284,7 +285,7 @@ def main(hparams):
 
             step += 1
             logger.info('Train Step: {} [{}/{} ({:.0f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
-                 epoch, step, epoch_size, step/epoch_size, output['network_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
+                epoch, step, epoch_size, step/epoch_size, output['network_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
       
     epoch = 0
     try:
