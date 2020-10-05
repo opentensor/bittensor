@@ -186,6 +186,7 @@ yarn-error.log*
 **/.data/*
 **/*.txt
 # Ignore any changes in protobuf code, since that should be locally generated
-**/bittensor_pb2*.py
+**/bittensor_pb2.py
+**/bittensor_pb2_grpc.py
 
 **/.bash_history
