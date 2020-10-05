@@ -257,6 +257,7 @@ def main(hparams):
     lr = 3.0 # learning rate
     params = list(router.parameters()) + list(model.parameters())
     optimizer = torch.optim.SGD(params, lr=lr)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
     
     def train(dataset, model, epoch):
         model.train()  # Turn on the train mode.
@@ -283,6 +284,7 @@ def main(hparams):
             loss = output['local_target_loss']
             loss.backward()
             optimizer.step()
+            scheduler.step()
 
             step += 1
             logger.info('Train Step: {} [{}/{} ({:.0f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
