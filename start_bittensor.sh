@@ -223,10 +223,11 @@ log "╚═════╝░╚═╝░░░╚═╝░░░░░░╚═
 log "identity: $identity"
 log "remote_ip: $remote_ip"
 log "port: $port"
-log "server address: $serve_address"
+log "metagraph_port: $metagraph_port"
 log "logdir: $logdir"
 log "neuron: $neuron"
-log "bootstrap port: $bootstrap_port"
+log "bootstrap: $bootstrap"
+log "Axon port: $axon_port"
 
 start_local_service
 }
