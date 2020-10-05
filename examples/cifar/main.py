@@ -264,6 +264,7 @@ def main(hparams):
             loss = (target_loss + dist_loss + student_loss)
             loss.backward()
             optimizer.step()
+            scheduler.step()
             global_step += 1
 
             # Set network weights.
