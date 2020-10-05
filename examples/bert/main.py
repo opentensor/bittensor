@@ -41,6 +41,7 @@ class BertNSPSynapse(bittensor.Synapse):
         self.student_pooler = transformers.modeling_bert.BertPooler(self.config)
         self.nsp = transformers.modeling_bert.BertOnlyNSPHead(self.config) 
         self.nsp_loss_fct = torch.nn.CrossEntropyLoss()
+        self.device
 
     def forward_text(self, inputs: List[str]):
         """ Forward pass inputs and labels through the NSP BERT module.
@@ -123,10 +124,10 @@ class BertNSPSynapse(bittensor.Synapse):
             # During training we tokenize both sequences and return token_type_ids which tell
             # the model which token belongs to which sequence.
             # i.e tensor([[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]]),
-            tokenized = self.tokenizer(sentences, text_pair = next_sentences, return_tensors='pt', padding=True)
+            tokenized = self.tokenizer(sentences, text_pair = next_sentences, return_tensors='pt', padding=True).to(self.device)
         else:
             # During inference we only tokenize the inputs, padding them to the longest sequence len.
-            tokenized = self.tokenizer(sentences, return_tensors='pt', padding=True)
+            tokenized = self.tokenizer(sentences, return_tensors='pt', padding=True).to(self.device)
 
         # Embed tokens into a common dimension.
         # embedding = torch.Tensor(batch_size, max_sequence_len, config.hidden_size)
@@ -136,6 +137,7 @@ class BertNSPSynapse(bittensor.Synapse):
         # encoding = List [
         #   hidden_states = torch.Tensor(batch_size, max_sequence_len, config.hidden_size), 
         # ]
+        #import pdb; pdb.set_trace()
         encoding = self.encoder(embedding)
 
         # Pooling, "pool" the model by simply taking the hidden state corresponding
@@ -143,7 +145,7 @@ class BertNSPSynapse(bittensor.Synapse):
         # layer to the encoding for the first token. 
         # pooled = torch.Tensor (batch_size, config.hidden_size)
         pooled = self.pooler(encoding[0])
-
+        #import pdb; pdb.set_trace()
         # Student transformer model which learns a mapping from the embedding to the network inputs
         # student_pooled = torch.Tensor (batch_size, config.hidden_size)
         student_encoding = self.student_encoder (embedding.detach())
@@ -160,9 +162,9 @@ class BertNSPSynapse(bittensor.Synapse):
         if next_sentence_labels is not None:
             # Compute the NSP loss by projecting the output to torch.Tensor(2)
             # logit(1) > logit(0) if next_inputs are the real next sequences.
-            local_prediction = self.nsp(local_output)
+            local_prediction = self.nsp(local_output).to(self.device)
             local_prediction = F.softmax(local_prediction, dim=1)
-            local_target_loss = self.nsp_loss_fct(local_prediction.view(-1, 2), next_sentence_labels)
+            local_target_loss = self.nsp_loss_fct(local_prediction.view(-1, 2), next_sentence_labels.to(self.device))
             loss = loss + local_target_loss
             
         # Compute NSP loss for network outputs. Only run this if we have passed network inputs.
@@ -170,9 +172,9 @@ class BertNSPSynapse(bittensor.Synapse):
             # Compute the NSP loss by projecting the network_output to torch.Tensor(2)
             # logit(1) > logit(0) if next_inputs are the real next sequences.
             network_output = pooled + network
-            network_prediction = self.nsp(network_output)
+            network_prediction = self.nsp(network_output).to(self.device)
             network_prediction = F.softmax(network_prediction, dim=1)
-            network_target_loss = self.nsp_loss_fct(network_prediction.view(-1, 2), next_sentence_labels)
+            network_target_loss = self.nsp_loss_fct(network_prediction.view(-1, 2), next_sentence_labels.to(self.device))
             loss = loss + network_target_loss
     
         return {
@@ -256,6 +258,7 @@ def main(hparams):
     # Optimizer.
     params = list(router.parameters()) + list(model.parameters())
     optimizer = torch.optim.SGD(params, lr=learning_rate)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
     
     def train(dataset, model, epoch):
         model.train()  # Turn on the train mode.
@@ -282,6 +285,7 @@ def main(hparams):
             loss = output['loss']
             loss.backward()
             optimizer.step()
+            scheduler.step()
 
             step += 1
             logger.info('Train Step: {} [{}/{} ({:.0f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
