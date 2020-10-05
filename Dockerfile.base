@@ -13,10 +13,12 @@ FROM python:3.7-slim
 
 # Copy BitTensor source to this image.
 RUN mkdir bittensor
-COPY . bittensor/
-WORKDIR /bittensor
+WORKDIR bittensor
+COPY requirements.txt .
 
 RUN pip3 install -r requirements.txt
+
+COPY . .
 
 # Install Bittensor
 RUN pip3 install -e .
