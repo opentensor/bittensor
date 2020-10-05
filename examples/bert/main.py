@@ -124,7 +124,7 @@ class BertNSPSynapse(bittensor.Synapse):
             # During training we tokenize both sequences and return token_type_ids which tell
             # the model which token belongs to which sequence.
             # i.e tensor([[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]]),
-            tokenized = self.tokenizer(sentences, next_sentences, return_tensors='pt', padding=True).to(self.device)
+            tokenized = self.tokenizer(sentences, text_pair = next_sentences, return_tensors='pt', padding=True).to(self.device)
         else:
             # During inference we only tokenize the inputs, padding them to the longest sequence len.
             tokenized = self.tokenizer(sentences, return_tensors='pt', padding=True).to(self.device)
@@ -152,12 +152,13 @@ class BertNSPSynapse(bittensor.Synapse):
         student_pooled = self.student_pooler(student_encoding[0])
         if network is not None:
             # Distillation loss between student_pooled and network inputs.
-            distillation_loss = F.mse_loss(student_pooled, network)
+            distillation_loss = F.mse_loss(student_pooled, network) 
             loss = loss + distillation_loss
 
         # Output from the forward pass using only the local and student models.
         # local_ouput = torch.Tensor ( batch_size, config.hidden_size)
-        local_output = pooled + student_pooled
+        #local_output = pooled + student_pooled
+        local_output = pooled
         if next_sentence_labels is not None:
             # Compute the NSP loss by projecting the output to torch.Tensor(2)
             # logit(1) > logit(0) if next_inputs are the real next sequences.
@@ -220,8 +221,9 @@ def nsp_batch(data, batch_size):
 def main(hparams):
     # Args
     config = bittensor.Config( hparams )
-    batch_size = 128
-    epoch_size = 100
+    learning_rate = 0.01 
+    batch_size = 500
+    epoch_size = 1000
     hidden_size = 256
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -254,9 +256,8 @@ def main(hparams):
     router = bittensor.Router(x_dim = hidden_size, key_dim = 100, topk = 10)
     
     # Optimizer.
-    lr = 3.0 # learning rate
     params = list(router.parameters()) + list(model.parameters())
-    optimizer = torch.optim.SGD(params, lr=lr)
+    optimizer = torch.optim.SGD(params, lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
     
     def train(dataset, model, epoch):
@@ -276,19 +277,19 @@ def main(hparams):
             synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network (max 1000).
             requests, _ = router.route( synapses, context, sentences ) # routes inputs to network.
             responses = dendrite.forward_text( synapses, requests ) # Makes network calls.
-            network = router.join( responses ) # Joins responses based on scores..
+            exterior_inputs = router.join( responses ) # Joins responses based on scores..
             
             # Compute full pass and get loss.
-            output = model.forward(sentences, next_sentences, next_sentence_labels, network)
+            output = model.forward(sentences, next_sentences, next_sentence_labels, exterior_inputs)
             
-            loss = output['local_target_loss']
+            loss = output['loss']
             loss.backward()
             optimizer.step()
             scheduler.step()
 
             step += 1
             logger.info('Train Step: {} [{}/{} ({:.0f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
-                 epoch, step, epoch_size, step/epoch_size, output['network_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
+                epoch, step, epoch_size, step/epoch_size, output['network_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
       
     epoch = 0
     try:
