@@ -199,7 +199,6 @@ function start_local_service() {
       docker run --rm --name bittensor-$identity -d -t \
         -p $port:$dest_port \
         -p $axon_port:$axon_port \
-        --network=host \
         --mount type=bind,source="$(pwd)"/scripts,target=/bittensor/scripts \
         --mount type=bind,source="$(pwd)"/data,target=/bittensor/data \
         --mount type=bind,source="$(pwd)"/examples,target=/bittensor/examples \
