@@ -223,7 +223,7 @@ def main(hparams):
     config = bittensor.Config( hparams )
     learning_rate = 0.01 
     batch_size = 500
-    epoch_size = 1000
+    epoch_size = 50
     hidden_size = 256
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
