@@ -33,6 +33,7 @@ class BertNSPSynapse(bittensor.Synapse):
     def __init__(self, config: transformers.modeling_bert.BertConfig):
         super(BertNSPSynapse, self).__init__()                
         self.config = config
+        self.router = bittensor.Router(x_dim = config.hidden_size, key_dim = 100, topk = 10)
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.embeddings = transformers.modeling_bert.BertEmbeddings(self.config)
         self.encoder = transformers.modeling_bert.BertEncoder(self.config)
@@ -56,13 +57,13 @@ class BertNSPSynapse(bittensor.Synapse):
         return self.forward(sentences = inputs, 
                             next_sentences = None, 
                             next_sentence_labels = None, 
-                            network = None) ['local_output']
+                            query = False) ['local_output']
         
     def forward(    self, 
                     sentences: List[str], 
                     next_sentences: List[str] = None, 
                     next_sentence_labels: torch.Tensor = None, 
-                    network: torch.Tensor = None):
+                    query: bool = False):
     
         r""" Forward pass inputs and labels through the NSP BERT module.
 
@@ -79,8 +80,8 @@ class BertNSPSynapse(bittensor.Synapse):
                         - 0 indicates sequence B is a continuation of sequence A,
                         - 1 indicates sequence B is a random sequence.
 
-                network (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.hidden_size)`, `optional`):
-                    response context from a bittensor dendrite query. 
+                query (:obj:`bool')`, `optional`):
+                    Switch to True if this forward pass makes a remote call to the network. 
 
             Returns:
                 dictionary with { 
@@ -145,12 +146,20 @@ class BertNSPSynapse(bittensor.Synapse):
         # layer to the encoding for the first token. 
         # pooled = torch.Tensor (batch_size, config.hidden_size)
         pooled = self.pooler(encoding[0])
+
+        # If query == True make a remote network call.
+        if query:
+            synapses = bittensor.metagraph.synapses() # Returns a list of synapses on the network.
+            requests, _ = self.router.route( synapses, pooled, sentences ) # routes inputs to network.
+            responses = bittensor.dendrite.forward_text( synapses, requests ) # Makes network calls.
+            network = self.router.join( responses ) # Joins responses based on scores..
+
         #import pdb; pdb.set_trace()
         # Student transformer model which learns a mapping from the embedding to the network inputs
         # student_pooled = torch.Tensor (batch_size, config.hidden_size)
         student_encoding = self.student_encoder (embedding.detach())
         student_pooled = self.student_pooler(student_encoding[0])
-        if network is not None:
+        if query:
             # Distillation loss between student_pooled and network inputs.
             distillation_loss = F.mse_loss(student_pooled, network) 
             loss = loss + distillation_loss
@@ -168,7 +177,7 @@ class BertNSPSynapse(bittensor.Synapse):
             loss = loss + local_target_loss
             
         # Compute NSP loss for network outputs. Only run this if we have passed network inputs.
-        if network is not None and next_sentence_labels is not None:
+        if query and next_sentence_labels is not None:
             # Compute the NSP loss by projecting the network_output to torch.Tensor(2)
             # logit(1) > logit(0) if next_inputs are the real next sequences.
             network_output = pooled + network
@@ -235,29 +244,17 @@ def main(hparams):
     model = BertNSPSynapse(model_config)
     model.to(device)
 
-    # Build and start the metagraph background object.
-    # The metagraph is responsible for connecting to the blockchain
-    # and finding the other neurons on the network.
-    metagraph = bittensor.Metagraph( config )
-    metagraph.subscribe( model ) # Adds the synapse to the metagraph.
-    metagraph.start() # Starts the metagraph gossip threads.
-    
-    # Build and start the Axon server.
-    # The axon server serves the synapse objects 
-    # allowing other neurons to make queries through a dendrite.
-    axon = bittensor.Axon( config )
-    axon.serve( model ) # Makes the synapse available on the axon server.
-    axon.start() # Starts the server background threads. Must be paired with axon.stop().
-    
-    # Build the dendrite and router. 
-    # The dendrite is a torch object which makes calls to synapses across the network
-    # The router is responsible for learning which synapses to call.
-    dendrite = bittensor.Dendrite( config )
-    router = bittensor.Router(x_dim = hidden_size, key_dim = 100, topk = 10)
-    
+    # Setup Bittensor.
+    # Create background objects.
+    # Connect the metagraph.
+    # Start the axon server.
+    config = bittensor.Config( hparams )
+    bittensor.init( config )
+    bittensor.serve( model )
+    bittensor.start()
+  
     # Optimizer.
-    params = list(router.parameters()) + list(model.parameters())
-    optimizer = torch.optim.SGD(params, lr=learning_rate)
+    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
     
     def train(dataset, model, epoch):
@@ -268,19 +265,9 @@ def main(hparams):
         while step < epoch_size:
             # Next batch.
             sentences, next_sentences, next_sentence_labels = nsp_batch(dataset['train'], batch_size)
-
-            # Get routing context
-            context = model.forward_text( sentences )
             
-            # Query the remote network.
-            # Flatten mnist inputs for routing.
-            synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network (max 1000).
-            requests, _ = router.route( synapses, context, sentences ) # routes inputs to network.
-            responses = dendrite.forward_text( synapses, requests ) # Makes network calls.
-            exterior_inputs = router.join( responses ) # Joins responses based on scores..
-            
-            # Compute full pass and get loss.
-            output = model.forward(sentences, next_sentences, next_sentence_labels, exterior_inputs)
+            # Compute full pass and get loss with a network query.
+            output = model(sentences, next_sentences, next_sentence_labels, query=True)
             
             loss = output['loss']
             loss.backward()
@@ -288,8 +275,8 @@ def main(hparams):
             scheduler.step()
 
             step += 1
-            logger.info('Train Step: {} [{}/{} ({:.0f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
-                epoch, step, epoch_size, step/epoch_size, output['network_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
+            logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
+                epoch, step, epoch_size, float(step * 100)/float(epoch_size), output['network_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
       
     epoch = 0
     try:
@@ -298,8 +285,7 @@ def main(hparams):
             epoch += 1
     except Exception as e:
         logger.exception(e)
-        metagraph.stop()
-        axon.stop()
+        bittensor.stop()
         
 
 

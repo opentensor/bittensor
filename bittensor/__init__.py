@@ -31,6 +31,7 @@ import bittensor.utils.batch_transforms
 
 __version__ = '0.0.0'
 
+# Global bittensor neuron objects.
 metagraph = None
 dendrite = None
 axon = None
@@ -53,3 +54,34 @@ def init(config: bittensor.Config):
     # The router is responsible for learning which synapses to call.
     global dendrite
     dendrite = bittensor.Dendrite( config )
+
+
+def serve (synapse: Synapse):
+    # Subscribe the synapse object to the network.
+    global metagraph
+    metagraph.subscribe( synapse )
+    
+    # Serve the synapse object on the grpc endpoint.
+    global axon
+    axon.serve ( synapse )
+
+def start ():
+    # Start background threads for gossiping peers.
+    global metagraph
+    metagraph.start()
+    
+    # Stop background grpc threads for serving synapse objects.
+    global axon
+    axon.start()
+
+
+def stop ():
+ 
+    # Start background threads for gossiping peers.
+    global metagraph
+    metagraph.stop()
+    
+    # Stop background grpc threads for serving synapse objects.
+    global axon
+    axon.stop()
+  

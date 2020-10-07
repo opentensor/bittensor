@@ -227,11 +227,10 @@ def main(hparams):
     # Connect the metagraph.
     # Start the axon server.
     config = bittensor.Config( hparams )
-    bittensor.init(config)
-    bittensor.axon.start()
-    bittensor.metagraph.start()
-    bittensor.metagraph.subscribe( model )
-    bittensor.axon.serve( model ) 
+    bittensor.init( config )
+    bittensor.serve( model )
+    bittensor.start()
+
         
     # Instantiate toolbox to load/save model
     model_toolbox = ModelToolbox('mnist')
