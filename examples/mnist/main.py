@@ -39,6 +39,10 @@ class MnistSynapse(bittensor.Synapse):
         # Image.PIL.toTensor() -> [Image Encoder]
         self._transform = bittensor.utils.batch_transforms.Normalize((0.1307,), (0.3081,))
         self._adaptive_pool = nn.AdaptiveAvgPool2d((28, 28))
+
+        # Router object for training network connectivity.
+        # [Image Encoder] -> [ROUTER] -> [Synapses] -> [ROUTER]
+        self.router = bittensor.Router(x_dim = 784, key_dim = 100, topk = 10)
         
         # Forward Network: Transforms inputs and (student or network) context into 
         # a (batch_size, bittensor.network_shape) output. 
@@ -69,12 +73,12 @@ class MnistSynapse(bittensor.Synapse):
                 local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.network_size)`, `required`): 
                     Output encoding of inputs produced using the student model as context.
         """
-        return self.forward (images = images) ['local_output']
+        return self.forward (images = images, query = False) ['local_output']
 
     def forward (   self, 
                     images: torch.Tensor,
                     labels: torch.Tensor = None,
-                    network: torch.Tensor = None):
+                    query: bool = False):
 
         r""" Forward pass inputs and labels through the MNIST model.
 
@@ -85,8 +89,8 @@ class MnistSynapse(bittensor.Synapse):
                 labels (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, 10)`, `optional`): 
                     Mnist labels.
 
-                network (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.hidden_size)`, `optional`):
-                    response context from a bittensor dendrite query. 
+                query (:obj:`bool')`, `optional`):
+                    Switch to True if this forward pass makes a remote call to the network. 
 
             Returns:
                 dictionary with { 
@@ -131,17 +135,24 @@ class MnistSynapse(bittensor.Synapse):
         # The images are encoded to a standard shape 784 
         # using an adaptive pooling layer and our normalization
         # transform.
-        images = self._transform(images)
-        images = self._adaptive_pool(images).to(self.device)
-        images = torch.flatten(images, start_dim = 1)
+        transform = self._transform(images)
+        transform = self._adaptive_pool(transform).to(self.device)
+        transform = torch.flatten(transform, start_dim = 1)
+
+        # If query == True make a remote network call.
+        if query:
+            synapses = bittensor.metagraph.synapses() # Returns a list of synapses on the network.
+            requests, scores = self.router.route( synapses, transform, images ) # routes inputs to network.
+            responses = bittensor.dendrite.forward_image( synapses, requests ) # Makes network calls.
+            network = self.router.join( responses ) # Joins responses based on scores..
 
         # student: torch.Tensor(batch_size, bittensor.network_dim)
         # The student model distills from the network and is used
         # to compute the local_outputs when there is no network
         # context.
-        student = F.relu(self.student_layer1 (images))
+        student = F.relu(self.student_layer1 (transform))
         student = F.relu(self.student_layer2 (student))
-        if network is not None:
+        if query:
             # Use the network context to train the student network.
             distillation_loss = F.mse_loss(student, network.detach())
             loss += distillation_loss
@@ -151,7 +162,7 @@ class MnistSynapse(bittensor.Synapse):
         # Outputs are used by other models as training signals.
         # This output is local because it uses the student inputs to 
         # condition the outputs rather than the network context.
-        local_output = torch.cat((images, student.detach()), dim=1)
+        local_output = torch.cat((transform, student.detach()), dim=1)
         local_output = F.relu(self.forward_layer1 (local_output))
         local_output = F.relu(self.forward_layer2 (local_output))
         if labels is not None:
@@ -168,14 +179,14 @@ class MnistSynapse(bittensor.Synapse):
         # network_output = torch.Tensor(batch_size, bittensor.network_dim)
         # The network_output is a non-target output of this synapse.
         # This output is remote because it requries inputs from the network.
-        if network is not None:
-            network_output = torch.cat((images, network.detach()), dim=1)
+        if query:
+            network_output = torch.cat((transform, network), dim=1)
             network_output = F.relu(self.forward_layer1 (network_output))
             network_output = F.relu(self.forward_layer2 (network_output))
 
         # network_target = torch.Tensor(batch_size, 10)
         # Compute a target loss using the network_output and passed labels.
-        if network is not None and labels is not None:
+        if query and labels is not None:
             network_target = F.relu(self.target_layer1 (network_output))
             network_target = F.relu(self.target_layer2 (network_target))
             network_target = F.relu(self.target_layer3 (network_target))
@@ -193,13 +204,9 @@ class MnistSynapse(bittensor.Synapse):
             'local_target_loss': local_target_loss,
             'distillation_loss': distillation_loss
         }
-            
         
 def main(hparams):
      
-    # Load bittensor config from hparams.
-    config = bittensor.Config( hparams )
-
     # Additional training params.
     batch_size_train = 64
     batch_size_test = 64
@@ -211,50 +218,39 @@ def main(hparams):
     best_test_loss = math.inf
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    # Build local synapse to serve on the network.
+    model = MnistSynapse()
+    model.to( device ) # Set model to device.
+
+    # Setup Bittensor.
+    # Create background objects.
+    # Connect the metagraph.
+    # Start the axon server.
+    config = bittensor.Config( hparams )
+    bittensor.init(config)
+    bittensor.axon.start()
+    bittensor.metagraph.start()
+    bittensor.metagraph.subscribe( model )
+    bittensor.axon.serve( model ) 
+        
     # Instantiate toolbox to load/save model
     model_toolbox = ModelToolbox('mnist')
+    if config._hparams.load_model is not None:
+        # Load previously trained model if it exists
+        model, optimizer, epoch, best_test_loss = model_toolbox.load_model(model, config._hparams.load_model, optimizer)
+        logger.info("Loaded model stored in {} with test loss {} at epoch {}".format(config._hparams.load_model, best_test_loss, epoch-1))
 
     # Load (Train, Test) datasets into memory.
     train_data = torchvision.datasets.MNIST(root=model_toolbox.data_path, train=True, download=True, transform=transforms.ToTensor())
     trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size_train, shuffle=True, num_workers=2)
-    
     test_data = torchvision.datasets.MNIST(root=model_toolbox.data_path, train=False, download=True, transform=transforms.ToTensor())
     testloader = torch.utils.data.DataLoader(test_data, batch_size = batch_size_test, shuffle=False, num_workers=2)
     
     # Build summary writer for tensorboard.
     writer = SummaryWriter(log_dir=model_toolbox.log_dir)
-    
-    # Build local synapse to serve on the network.
-    model = MnistSynapse() # Synapses take a config object.
-    model.to( device ) # Set model to device.
-    # Build and start the metagraph background object.
-    # The metagraph is responsible for connecting to the blockchain
-    # and finding the other neurons on the network.
-    metagraph = bittensor.Metagraph( config )
-    metagraph.subscribe( model ) # Adds the synapse to the metagraph.
-    metagraph.start() # Starts the metagraph gossip threads.
-    
-    # Build and start the Axon server.
-    # The axon server serves synapse objects (models) 
-    # allowing other neurons to make queries through a dendrite.
-    axon = bittensor.Axon( config )
-    axon.serve( copy.deepcopy(model) )
-    axon.start() # Starts the server background threads. Must be paired with axon.stop().
-    
-    # Build the dendrite and router. 
-    # The dendrite is a torch nn.Module object which makes calls to synapses across the network
-    # The router is responsible for learning which synapses to call.
-    dendrite = bittensor.Dendrite( config ).to(device)
-    router = bittensor.Router(x_dim = 1024, key_dim = 100, topk = 10)
-        
+
     # Build the optimizer.
-    params = list(router.parameters()) + list(model.parameters())
-    optimizer = optim.SGD(params, lr=learning_rate, momentum=momentum)
-    
-    # Load previously trained model if it exists
-    if config._hparams.load_model is not None:
-        model, optimizer, epoch, best_test_loss = model_toolbox.load_model(model, config._hparams.load_model, optimizer)
-        logger.info("Loaded model stored in {} with test loss {} at epoch {}".format(config._hparams.load_model, best_test_loss, epoch-1))
+    optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
 
     # Train loop: Single threaded training of MNIST.
     def train(model, epoch, global_step):
@@ -269,43 +265,28 @@ def main(hparams):
             labels = torch.LongTensor(labels).to(device)
             images = images.to(device)
             
-            # Encode inputs for the router context.
-            context = model.forward_image(images).to(device)
-            
-            # Query the remote network.
-            # [images] -> TOPK(scores, synapses) -> JOIN(scores, responses)
-            synapses = metagraph.get_synapses( 1000 ) # Returns a list of synapses on the network (max 1000).
-            requests, scores = router.route( synapses, context, images ) # routes inputs to network.
-            responses = dendrite.forward_image( synapses, requests ) # Makes network calls.
-            network = router.join( responses ) # Joins responses based on scores..
-            
             # Computes model outputs and loss.
-            output = model.forward(images, labels, network)
+            output = model(images, labels, query = True)
 
             # Loss and step.
             loss = output['loss']
-            torch.nn.utils.clip_grad_norm_(router.parameters(), 0.5)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
             loss.backward()
             optimizer.step()
             global_step += 1
-            
-            # Set network weights.
-            weights = metagraph.getweights(synapses).to(device)
-            weights = (0.99) * weights + 0.01 * torch.mean(scores, dim=0)
-            metagraph.setweights(synapses, weights)
-                
+                            
             # Logs:
             if batch_idx % log_interval == 0:
-                n_peers = len(metagraph.peers)
-                n_synapses = len(metagraph.synapses)
+                n_peers = len(bittensor.metagraph.peers)
+                n_synapses = len(bittensor.metagraph.synapses())
                 writer.add_scalar('n_peers', n_peers, global_step)
                 writer.add_scalar('n_synapses', n_synapses, global_step)
                 writer.add_scalar('train_loss', float(loss.item()), global_step)
             
                 n = len(train_data)
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\nNetwork Loss: {:.6f}\tDistillation Loss: {:.6f}\tnP|nS: {}|{}'.format(
-                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['local_target_loss'].item(), output['network_target_loss'].item(), output['distillation_loss'].item(), len(metagraph.peers), 
-                            len(metagraph.synapses)))
+                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['local_target_loss'].item(), output['network_target_loss'].item(), output['distillation_loss'].item(), len(bittensor.metagraph.peers), 
+                            len(bittensor.metagraph.synapses())))
 
     # Test loop.
     # Evaluates the local model on the hold-out set.
@@ -326,7 +307,7 @@ def main(hparams):
                 labels = torch.LongTensor(labels).to(device)
 
                 # Compute full pass and get loss.
-                outputs = model.forward(images, labels)
+                outputs = model.forward(images, labels, query=False)
                             
                 # Count accurate predictions.
                 max_logit = outputs['local_target'].data.max(1, keepdim=True)[1]
@@ -355,15 +336,14 @@ def main(hparams):
                 
                 # Save the best local model.
                 logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, model_toolbox.model_path)
-                axon.serve( copy.deepcopy(model) ) # Save a model copy to the axon, replaces the prvious model.
                 model_toolbox.save_model(model, epoch, optimizer, test_loss) # Saves the model to local storage.
             epoch += 1
 
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
-            metagraph.stop()
-            axon.stop()
+            bittensor.metagraph.stop()
+            bittensor.axon.stop()
             break
 
 if __name__ == "__main__":
