@@ -30,3 +30,26 @@ import bittensor.utils.batch_transforms
 
 
 __version__ = '0.0.0'
+
+metagraph = None
+dendrite = None
+axon = None
+
+def init(config: bittensor.Config):
+    # Build and start the metagraph background object.
+    # The metagraph is responsible for connecting to the blockchain
+    # and finding the other neurons on the network.
+    global metagraph
+    metagraph = bittensor.Metagraph( config )
+    
+    # Build and start the Axon server.
+    # The axon server serves synapse objects (models) 
+    # allowing other neurons to make queries through a dendrite.
+    global axon
+    axon = bittensor.Axon( config )
+
+    # Build the dendrite and router. 
+    # The dendrite is a torch nn.Module object which makes calls to synapses across the network
+    # The router is responsible for learning which synapses to call.
+    global dendrite
+    dendrite = bittensor.Dendrite( config )

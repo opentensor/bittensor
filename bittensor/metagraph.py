@@ -43,7 +43,7 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         self._server_thread = None
         self._running = False
         
-    def get_synapses(self, n: int) -> List[bittensor_pb2.Synapse]:
+    def synapses(self, n: int = 1000) -> List[bittensor_pb2.Synapse]:
         """ Returns min(n, len(synapses)) synapse from the graph sorted by score.
         Args:
             n (int): min(n, len(synapses)) synapses to return.
@@ -223,11 +223,7 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         self._synapses[synapse_proto.synapse_key] = synapse_proto
         self._weights[synapse_proto.synapse_key] = math.inf
         self._heartbeat[synapse_proto.synapse_key] = time.time()
-           
-    @property
-    def synapses(self):
-        return self._synapses
-
+        
     @property
     def weights(self):
         return self._weights
