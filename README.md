@@ -12,8 +12,9 @@ $ pytest
 ```
 
 ## Links
+- [Documentation](https://bittensor-docs.readthedocs.io/en/latest/index.html)
 - [Installation](https://bittensor-docs.readthedocs.io/en/latest/getting-started/installation.html)
-- [Run mutiple bittensor instances](https://bittensor-docs.readthedocs.io/en/latest/getting-started/run-multiple-bittensor-instances.html)
+- [Getting Started](https://bittensor-docs.readthedocs.io/en/latest/getting-started/run-multiple-bittensor-instances.html)
 - [Architecture](https://bittensor-docs.readthedocs.io/en/latest/bittensor-deep-dive/bittensor-architecture.html)
 
 ## Acknowledgments
