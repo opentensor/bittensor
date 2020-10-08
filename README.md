@@ -4,13 +4,6 @@
 
 The dominant tools used to guide machine intelligence are typically benchmarks which rank systems on a set of predefined tasks. However, the narrow low resolution definition of intelligence provided by these benchmarks make them inefficient guides for the field. Bittensor is an expanded framework that measures knowledge production from within a network of intelligence systems.
 
-
-## Testing locally
-```
-$ pip install -r requirements.txt
-$ pytest
-```
-
 ## Links
 - [Documentation](https://bittensor-docs.readthedocs.io/en/latest/index.html)
 - [Installation](https://bittensor-docs.readthedocs.io/en/latest/getting-started/installation.html)
