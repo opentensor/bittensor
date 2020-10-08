@@ -12,7 +12,6 @@ class Config:
     def __init__(self, hparams):
         self._hparams = hparams
         self._load_defaults()
-        self.toString()
     
     def toString(self):
         logger.info("\n Neuron key: {} \n Axon port: {} \n Metagraph port: {} \n Metagraph Size: {} \n bootpeer: {} \n remote_ip: {} \n", self.neuron_key, self.axon_port, self.metagraph_port, self.metagraph_size, self.bootstrap, self.remote_ip)

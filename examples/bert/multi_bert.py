@@ -115,7 +115,7 @@ class BertNSPSynapse(bittensor.Synapse):
         local_target_loss = None
         distillation_loss = None
                     
-        # Tokenize inputs: dict
+        # Tokenize inputs: 
         #  tokenized = dict {
         #       'input_ids': torch.Tensor(batch_size, max_sequence_len),
         #       'token_type_ids': torch.Tensor(batch_size, max_sequence_len),
@@ -138,7 +138,6 @@ class BertNSPSynapse(bittensor.Synapse):
         # encoding = List [
         #   hidden_states = torch.Tensor(batch_size, max_sequence_len, config.hidden_size), 
         # ]
-        #import pdb; pdb.set_trace()
         encoding = self.encoder(embedding)
 
         # Pooling, "pool" the model by simply taking the hidden state corresponding
@@ -167,7 +166,8 @@ class BertNSPSynapse(bittensor.Synapse):
         # Output from the forward pass using only the local and student models.
         # local_ouput = torch.Tensor ( batch_size, config.hidden_size)
         #local_output = pooled + student_pooled
-        local_output = pooled
+        # TODO (const): joiner network.
+        local_output = pooled + student_pooled
         if next_sentence_labels is not None:
             # Compute the NSP loss by projecting the output to torch.Tensor(2)
             # logit(1) > logit(0) if next_inputs are the real next sequences.
@@ -196,7 +196,7 @@ class BertNSPSynapse(bittensor.Synapse):
         }
 
 def nsp_batch(data, batch_size):
-    """ Returns a random batch from text dataset with 50 percent NSP.
+    """ Returns a random batch from text dataset with 50 percent NSP likelihood.
 
         Args:
             data: (List[dict{'text': str}]): Dataset of text inputs.
@@ -229,7 +229,6 @@ def nsp_batch(data, batch_size):
             
 def main(hparams):
     # Args
-    config = bittensor.Config( hparams )
     learning_rate = 0.01 
     batch_size = 500
     epoch_size = 50
@@ -237,56 +236,55 @@ def main(hparams):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Dataset: 74 million sentence pulled from books.
-    dataset = load_dataset('bookcorpus')
+    dataset = load_dataset('bookcorpus')['train']
 
-    # Build Synapse
+    # Build Synapses
     model_config = transformers.modeling_bert.BertConfig(hidden_size=hidden_size, num_hidden_layers=2, num_attention_heads=2, intermediate_size=512, is_decoder=False)
-    model = BertNSPSynapse(model_config)
-    model.to(device)
+    models = []
+    for _ in range(2):
+        model = BertNSPSynapse(model_config)
+        model.to(device)
+        model.train()
+        models.append(model)
 
     # Setup Bittensor.
     # Create background objects.
     # Connect the metagraph.
     # Start the axon server.
+    config = bittensor.Config( hparams )
     bittensor.init( config )
-    bittensor.serve( model )
     bittensor.start()
+    for model in models: 
+        bittensor.serve( model )
   
     # Optimizer.
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
     
-    def train(dataset, model, epoch):
-        model.train()  # Turn on the train mode.
-        optimizer.zero_grad() # Zero out lingering gradients.
+    def step(model):
+        optimizer.zero_grad()
+        sentences, next_sentences, next_sentence_labels = nsp_batch(dataset, batch_size)
+        output = model(sentences, next_sentences, next_sentence_labels, query=True)
+        loss = output['loss']
+        loss.backward()
+        optimizer.step()
+        scheduler.step()
+        return loss.item()
 
-        step = 0
-        while step < epoch_size:
-            # Next batch.
-            sentences, next_sentences, next_sentence_labels = nsp_batch(dataset['train'], batch_size)
-            
-            # Compute full pass and get loss with a network query.
-            output = model(sentences, next_sentences, next_sentence_labels, query=True)
-            
-            loss = output['loss']
-            loss.backward()
-            optimizer.step()
-            scheduler.step()
-
-            step += 1
-            logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
-                epoch, step, epoch_size, float(step * 100)/float(epoch_size), output['network_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
-      
+    def train(epoch):
+        for i in range(epoch_size):
+            losses = [ step(model) for model in models]
+            logger.info('Train Step: {}: {}', i, losses) 
+        
     epoch = 0
     try:
         while True:
-            train(dataset, model, epoch)
+            train(epoch)
             epoch += 1
     except Exception as e:
         logger.exception(e)
         bittensor.stop()
         
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
