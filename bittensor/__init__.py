@@ -30,6 +30,7 @@ import bittensor.utils.batch_transforms
 
 
 __version__ = '0.0.0'
+__network_dim__ = 256
 
 # Global bittensor neuron objects.
 metagraph = None
