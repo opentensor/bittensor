@@ -58,7 +58,7 @@ def main(hparams):
     # Args
     config = bittensor.Config( hparams )
     learning_rate = 0.01 
-    batch_size = 100
+    batch_size = 10
     epoch_size = 50
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
