@@ -101,12 +101,11 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
             realized_address = 'localhost:' + str(metagraph_address.split(":")[1])
             
         try:
+
             channel = grpc.insecure_channel(realized_address)
             stub = bittensor_grpc.MetagraphStub(channel)
             request = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses)
             response = stub.Gossip(request)
-            
-            logger.info("Received response: {}".format(response))
             self._sink(response)
         except Exception as e:
             # Faulty peer.
@@ -122,7 +121,6 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         """
         now = time.time()
         for uid in list(self._synapses):
-            logger.info("now: {}\t last heartbeat:{}\t ttl:{}".format(now, self._heartbeat[uid], ttl))
             if now - self._heartbeat[uid] > ttl:
                 del self._synapses[uid]
                 del self._heartbeat[uid]
