@@ -27,19 +27,32 @@ class Dendrite(nn.Module):
     def run(self):
         pass
     
-    def forward_text(self, synapses: List[bittensor_pb2.Synapse], x: List[ List[str] ]) -> List[torch.Tensor]:
+    def forward_text(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
         """ forward tensor processes """
+        if len(x[0].shape) != 2:
+            logger.error('Incorrect serialization for text inputs: {}', list(x[0].shape))
+            logger.error('Text tokenization should be [batch_size, sequence_len]')
+            assert False
         return self.forward(synapses, x, bittensor_pb2.Modality.TEXT)
     
     def forward_image(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
         """ forward tensor processes """
+        # TODO(const): Checks across all tensors and other shape checks.
+        if len(x[0].shape) != 5:
+            logger.error('Incorrect shape for image inputs: {}', list(x[0].shape))
+            logger.error('Image inputs should be [batch_size, sequence_len, channels, rows, cols]')
+            assert False
         return self.forward(synapses, x, bittensor_pb2.Modality.IMAGE)
     
     def forward_tensor(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
         """ forward tensor processes """
+        if len(x[0].shape) != 3:
+            logger.error('Incorrect shape for tensor inputs: {}', list(x[0].shape))
+            logger.error('Image inputs should be [batch_size, sequence_len, feature_len]')
+            assert False
         return self.forward(synapses, x, bittensor_pb2.Modality.TENSOR)
     
-    def forward(self, synapses: List[bittensor_pb2.Synapse], x: List[ object ], mode: bittensor_pb2.Modality) -> List[torch.Tensor]:
+    def forward(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ], mode: bittensor_pb2.Modality) -> List[torch.Tensor]:
         """ forward tensor processes """
         results = []
         for idx, synapse in enumerate(synapses):
@@ -88,7 +101,7 @@ class RemoteSynapse(nn.Module):
         if self.channel is not None:
             self.channel.close()
 
-    def forward(self, inputs: object, mode: bittensor_pb2.Modality) -> torch.Tensor:
+    def forward(self, inputs: torch.Tensor, mode: bittensor_pb2.Modality) -> torch.Tensor:
         # TODO (const) compare schema
         # assert schema shape and size. raise type error.
         # if not check_schema(inputs, self.synapse.forward_schema):
@@ -109,7 +122,7 @@ class _RemoteModuleCall(torch.autograd.Function):
     # TODO (const) check schema.
     # TODO (const) should take multiple input tensors and kwargs.
     @staticmethod
-    def forward(ctx, caller: RemoteSynapse, dummy: torch.Tensor, inputs: object, mode: bittensor_pb2.Modality) -> torch.Tensor:
+    def forward(ctx, caller: RemoteSynapse, dummy: torch.Tensor, inputs: torch.Tensor, mode: bittensor_pb2.Modality) -> torch.Tensor:
         # Save for backward call.
         ctx.caller = caller
         ctx.mode = mode
@@ -158,10 +171,6 @@ class _RemoteModuleCall(torch.autograd.Function):
         response = ctx.caller.stub.Backward(request)
 
         # Deserialize grad responses.
-        # TODO (const) maybe remove this?
-        if ctx.mode == bittensor_pb2.Modality.TEXT:
-            return (None, None, None, None)       
-        else:
-            deserialized_grad_inputs = PyTorchSerializer.deserialize (response.tensors[0])
-            return (None, None, deserialized_grad_inputs, None)        
-        
+        deserialized_grad_inputs = PyTorchSerializer.deserialize (response.tensors[0])
+        return (None, None, deserialized_grad_inputs, None)        
+    
