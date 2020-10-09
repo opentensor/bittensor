@@ -30,3 +30,52 @@ import bittensor.utils.batch_transforms
 
 
 __version__ = '0.0.0'
+__network_dim__ = 256
+
+# Global bittensor neuron objects.
+metagraph = None
+dendrite = None
+axon = None
+
+def init(config: bittensor.Config):
+    # Build and start the metagraph background object.
+    # The metagraph is responsible for connecting to the blockchain
+    # and finding the other neurons on the network.
+    global metagraph
+    metagraph = bittensor.Metagraph( config )
+    
+    # Build and start the Axon server.
+    # The axon server serves synapse objects (models) 
+    # allowing other neurons to make queries through a dendrite.
+    global axon
+    axon = bittensor.Axon( config )
+
+    # Build the dendrite and router. 
+    # The dendrite is a torch nn.Module object which makes calls to synapses across the network
+    # The router is responsible for learning which synapses to call.
+    global dendrite
+    dendrite = bittensor.Dendrite( config )
+
+
+def serve (synapse: Synapse):
+    # Subscribe the synapse object to the network.
+    metagraph.subscribe( synapse )
+    
+    # Serve the synapse object on the grpc endpoint.
+    axon.serve ( synapse )
+
+def start ():
+    # Start background threads for gossiping peers.
+    metagraph.start()
+    
+    # Stop background grpc threads for serving synapse objects.
+    axon.start()
+
+
+def stop ():
+    # Start background threads for gossiping peers.
+    metagraph.stop()
+    
+    # Stop background grpc threads for serving synapse objects.
+    axon.stop()
+  

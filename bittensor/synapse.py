@@ -18,12 +18,6 @@ class Synapse(nn.Module):
             
     def synapse_key(self) -> str:
         return self._synapse_key
-    
-    def setup_optimizer(self):
-        if not self.optimizer:
-            self.optimizer = optim.SGD(self.parameters(),
-                          lr=0.1,
-                          momentum=0.9)
 
     def forward_text(self, inputs: List[str]):
         """
