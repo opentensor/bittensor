@@ -56,6 +56,7 @@ class Dendrite(nn.Module):
                 
             # Call remote synapse.
             results.append(remote_synapse(forward_inputs, mode))
+
         return results
     
 # NOTE: (const) This code has been ported from hivemind thanks to Yozh and Max.
@@ -130,10 +131,14 @@ class _RemoteModuleCall(torch.autograd.Function):
                                             )
         
         # Make rpc call.
-        response = ctx.caller.stub.Forward(request)
-                
-        # Deserialize outputs and return.
-        outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
+        try:
+            response = ctx.caller.stub.Forward(request)                
+            # Deserialize outputs and return.
+            outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
+        except grpc._channel._InactiveRpcError as ire:
+            #logger.error("Could not forward() to peer: {}".format(ire))
+            outputs = torch.zeros((inputs.size(0), bittensor.__network_dim__))
+        
         return outputs
 
     @staticmethod
@@ -154,14 +159,19 @@ class _RemoteModuleCall(torch.autograd.Function):
                                                 tensors = [serialized_inputs, serialized_grads]
                                             )
         
-        # Attain backward response
-        response = ctx.caller.stub.Backward(request)
-
-        # Deserialize grad responses.
-        # TODO (const) maybe remove this?
-        if ctx.mode == bittensor_pb2.Modality.TEXT:
-            return (None, None, None, None)       
-        else:
-            deserialized_grad_inputs = PyTorchSerializer.deserialize (response.tensors[0])
-            return (None, None, deserialized_grad_inputs, None)        
+        deserialized_grad_inputs = torch.zeros(1,1)
         
+        try:
+            # Attain backward response
+            response = ctx.caller.stub.Backward(request)
+
+            # Deserialize grad responses.
+            # TODO (const) maybe remove this?
+            if ctx.mode == bittensor_pb2.Modality.TEXT:
+                return (None, None, None, None)       
+            else:
+                deserialized_grad_inputs = PyTorchSerializer.deserialize (response.tensors[0])
+                return (None, None, deserialized_grad_inputs, None)        
+        except grpc._channel._InactiveRpcError as ire:
+            #logger.error("Could not backward() to peer: {}".format(ire))
+            return (None, None, deserialized_grad_inputs, None)
