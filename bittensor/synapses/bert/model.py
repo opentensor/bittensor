@@ -8,7 +8,7 @@ from transformers import BertTokenizer
 from typing import List, Tuple, Dict, Optional
 
 class BertNSPSynapse(bittensor.Synapse):
-    """ A Bittensor Synapse trainng a BERT transformer with Next Sentence Prediction (NSP).
+    """ A Bittensor Synapse training a BERT transformer with Next Sentence Prediction (NSP).
     """
 
     def __init__(self, config: transformers.modeling_bert.BertConfig):
@@ -27,7 +27,7 @@ class BertNSPSynapse(bittensor.Synapse):
         self.device
 
     def forward_text(self, inputs: List[str]):
-        """ Forward pass inputs and labels through the NSP BERT module.
+        """ Local forward inputs and labels through the NSP BERT Synapse.
 
             Args:
                 inputs (List[str]): batch_size length list of text sentences.
@@ -158,7 +158,7 @@ class BertNSPSynapse(bittensor.Synapse):
             loss = loss + local_target_loss
             
             # Compute NSP loss for network outputs. Only run this if we have passed network inputs.
-            if next_sentence_labels is not None:
+            if query:
                 # Compute the NSP loss by projecting the network_output to torch.Tensor(2)
                 # logit(1) > logit(0) if next_inputs are the real next sequences.
                 network_output = self.joiner(torch.cat([pooled, network], dim=1))
