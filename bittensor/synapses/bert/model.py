@@ -157,15 +157,15 @@ class BertNSPSynapse(bittensor.Synapse):
             local_target_loss = self.nsp_loss_fct(local_prediction.view(-1, 2), next_sentence_labels.to(self.device))
             loss = loss + local_target_loss
             
-        # Compute NSP loss for network outputs. Only run this if we have passed network inputs.
-        if query and next_sentence_labels is not None:
-            # Compute the NSP loss by projecting the network_output to torch.Tensor(2)
-            # logit(1) > logit(0) if next_inputs are the real next sequences.
-            network_output = self.joiner(torch.cat([pooled, network], dim=1))
-            network_prediction = self.nsp(network_output).to(self.device)
-            network_prediction = F.softmax(network_prediction, dim=1)
-            network_target_loss = self.nsp_loss_fct(network_prediction.view(-1, 2), next_sentence_labels.to(self.device))
-            loss = loss + network_target_loss
+            # Compute NSP loss for network outputs. Only run this if we have passed network inputs.
+            if next_sentence_labels is not None:
+                # Compute the NSP loss by projecting the network_output to torch.Tensor(2)
+                # logit(1) > logit(0) if next_inputs are the real next sequences.
+                network_output = self.joiner(torch.cat([pooled, network], dim=1))
+                network_prediction = self.nsp(network_output).to(self.device)
+                network_prediction = F.softmax(network_prediction, dim=1)
+                network_target_loss = self.nsp_loss_fct(network_prediction.view(-1, 2), next_sentence_labels.to(self.device))
+                loss = loss + network_target_loss
     
         return {
             'loss': loss,

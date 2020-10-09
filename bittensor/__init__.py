@@ -59,30 +59,23 @@ def init(config: bittensor.Config):
 
 def serve (synapse: Synapse):
     # Subscribe the synapse object to the network.
-    global metagraph
     metagraph.subscribe( synapse )
     
     # Serve the synapse object on the grpc endpoint.
-    global axon
     axon.serve ( synapse )
 
 def start ():
     # Start background threads for gossiping peers.
-    global metagraph
     metagraph.start()
     
     # Stop background grpc threads for serving synapse objects.
-    global axon
     axon.start()
 
 
 def stop ():
- 
     # Start background threads for gossiping peers.
-    global metagraph
     metagraph.stop()
     
     # Stop background grpc threads for serving synapse objects.
-    global axon
     axon.stop()
   
