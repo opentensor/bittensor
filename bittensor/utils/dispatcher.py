@@ -83,6 +83,8 @@ class Dispatcher(object):
 
         # apply exp to expert outputs, so we are not longer in log space
         stitched = torch.cat(expert_out, 0).to(self.device)
+        flat_stitched = torch.flatten(stitched, start_dim=1)
+
         if multiply_by_gates:
 
             # sort experts
@@ -98,13 +100,19 @@ class Dispatcher(object):
 
             nonzero_gates = torch.gather(gates_exp, 1, expert_index).to(self.device)
 
-            stitched = stitched.mul(nonzero_gates)
+            flat_stitched = torch.flatten(stitched, start_dim=1)
+
+            flat_stitched = flat_stitched.mul(nonzero_gates)
+
 
         zeros = torch.zeros(gates.size(0),
-                            expert_out[-1].size(1),
+                            flat_stitched.size(1),
                             requires_grad=True).to(self.device)
 
         # combine samples that have been processed by the same k experts
-        combined = zeros.index_add(0, batch_index, stitched.float())
+        combined = zeros.index_add(0, batch_index, flat_stitched.float())
+
+        # reshape as original
+        combined = combined.view(expert_out[0].shape)
 
         return combined

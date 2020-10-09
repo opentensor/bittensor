@@ -7,7 +7,7 @@ Example:
 
 """
 import bittensor
-from bittensor.synapses.gpt2.synapse import GPT2LMSynapse
+from bittensor.synapses.gpt2.model import GPT2LMSynapse
 
 import argparse
 from datasets import load_dataset
@@ -39,7 +39,7 @@ def main(hparams):
     # Args
     config = bittensor.Config( hparams )
     learning_rate = 0.01 
-    batch_size = 200
+    batch_size = 20
     epoch_size = 50
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -50,7 +50,7 @@ def main(hparams):
     model_config = GPT2Config( vocab_size=204483, 
                                 n_positions=256, 
                                 n_ctx=256, 
-                                n_embd=200,
+                                n_embd=bittensor.__network_dim__,
                                 n_layer=3, 
                                 n_head=2, 
                                 n_inner=None, 
