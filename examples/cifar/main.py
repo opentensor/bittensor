@@ -1,9 +1,9 @@
-"""Training a MNIST Neuron.
+"""Training a CIFAR Neuron
 
-This file demonstrates a training pipeline for an MNIST Neuron.
+This file demonstrates a training pipeline for an CIFAR Neuron.
 
 Example:
-        $ python examples/mnist/main.py
+        $ python examples/cifar/main.py
 
 """
 
