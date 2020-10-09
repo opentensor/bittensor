@@ -144,8 +144,9 @@ class BertNSPSynapse(bittensor.Synapse):
         self.config = config
         self.router = bittensor.Router(x_dim = bittensor.__network_dim__, key_dim = 100, topk = 10)
         self.transformer = BertModel(self.config, add_pooling_layer=True)
-        self.student = BertModel(self.config, add_pooling_layer=False)
+        self.student = BertModel(self.config, add_pooling_layer=True)
         self.joiner = nn.Linear(2 * bittensor.__network_dim__, bittensor.__network_dim__)
+        self.pooler = transformers.modeling_bert.BertPooler(self.config)
         self.nsp_head = transformers.modeling_bert.BertOnlyNSPHead(self.config) 
         self.nsp_loss_fct = torch.nn.CrossEntropyLoss()
 
@@ -178,8 +179,10 @@ class BertNSPSynapse(bittensor.Synapse):
                     Token Type IDs for training to distinguish between the sentence context and the next sentence.
 
                 attention_mask (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
-                    Attention mask which tells the model which tokens to attend to. i.e. indicating the position 
-                    of the padded indices. Not passed when calling the forward call.
+                    Mask to avoid performing attention on padding token indices.
+                    Mask values selected in ``[0, 1]``:
+                        - 1 for tokens that are **not masked**,
+                        - 0 for tokens that are **maked**.        
 
                 labels (``torch.LongTensor`` of shape ``(batch_size,)``, `optional`):
                     Labels for computing the next sequence prediction (classification) loss. 
@@ -248,13 +251,15 @@ class BertNSPSynapse(bittensor.Synapse):
         if labels is not None:
             # Compute the NSP loss by projecting the output to torch.Tensor(2)
             # logit(1) > logit(0) if next_inputs are the real next sequences.
-            local_prediction = self.nsp_head(local_output)
+            local_pooled = self.pooler(local_output)
+            local_prediction = self.nsp_head(local_pooled)
             local_prediction = F.softmax(local_prediction, dim=1)        
             # Compute NSP loss for network outputs. Only run this if we have passed network inputs.
             if query:
                 # Compute the NSP loss by projecting the network_output to torch.Tensor(2)
                 # logit(1) > logit(0) if next_inputs are the real next sequences.
-                network_prediction = self.nsp_head(network_output)
+                network_pooled = self.pooler(network_output)
+                network_prediction = self.nsp_head(network_pooled)
                 network_prediction = F.softmax(network_prediction, dim=1)
                
         # Target loss.
