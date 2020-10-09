@@ -7,6 +7,21 @@ import transformers
 from transformers import GPT2Tokenizer, GPT2Config, GPT2Model
 from typing import List, Tuple, Dict, Optional
 
+class GPT2Pooler(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.dense = nn.Linear(config.n_embd, config.n_embd)
+        self.activation = nn.Tanh()
+
+    def forward(self, hidden_states):
+        # We "pool" the model by simply taking the hidden state corresponding
+        # to the first token.
+        first_token_tensor = hidden_states[:, 0]
+        pooled_output = self.dense(first_token_tensor)
+        pooled_output = self.activation(pooled_output)
+        return pooled_output
+
+
 class GPT2LMSynapse(bittensor.Synapse):
     """ A Bittensor Synapse training GPT2 with Masked Language Modelling (MLM)
     """
@@ -20,6 +35,7 @@ class GPT2LMSynapse(bittensor.Synapse):
         self.transformer = GPT2Model(self.config)
         self.student_transformer = GPT2Model(self.config)
         self.joiner = torch.nn.Linear(bittensor.__network_dim__ + bittensor.__network_dim__, bittensor.__network_dim__)
+        self.pooler = GPT2Pooler(self.config)
         self.head = nn.Linear(self.config.n_embd, self.config.vocab_size, bias=False)
         self.loss_fct = torch.nn.CrossEntropyLoss()
 
@@ -30,7 +46,7 @@ class GPT2LMSynapse(bittensor.Synapse):
                 inputs (List[str]): batch_size length list of text sentences.
             
             Returns:
-                local_output torch.Tensor(n, bittensor.__network_dim__): (Required) Output encoding of inputs 
+                local_output torch.Tensor(n, sequence_length, bittensor.__network_dim__): (Required) Output encoding of inputs 
                     produced by using the local student distillation model as context.
         """
         return self.forward(sentences = inputs, query = False) ['local_output']
@@ -51,7 +67,7 @@ class GPT2LMSynapse(bittensor.Synapse):
                     loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
                         Total loss acumulation to be used by loss.backward()
 
-                    local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
+                    local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length, bittensor.__network_dim__)`, `required`):
                         Output encoding of inputs produced by using the local student distillation model as 
                         context rather than the network. 
 
@@ -83,30 +99,30 @@ class GPT2LMSynapse(bittensor.Synapse):
 
         # Run GPT
         local_encoding = self.transformer(**tokenized)[0]
+        local_pooled = self.pooler(local_encoding)
 
         # If query == True make a remote network call.
         if query:
             # network = torch.Tensor(batch_size, bittensor.__network_dim__)
             synapses = bittensor.metagraph.synapses() # Returns a list of synapses on the network.
-            requests, _ = self.router.route( synapses, local_encoding, sentences ) # routes inputs to network.
+            requests, _ = self.router.route( synapses, local_pooled, sentences ) # routes inputs to network.
             responses = bittensor.dendrite.forward_text( synapses, requests ) # Makes network calls.
-            network = self.router.join( responses ) # Joins responses based on scores..
+            network_encoding = self.router.join( responses ) # Joins responses based on scores..
 
         # Student transformer model which learns a mapping from the embedding to the network inputs
         # student_pooled = torch.Tensor (batch_size, config.hidden_size)
         student_encoding = self.student_transformer(**tokenized)[0]
         if query:
             # Distillation loss between student_pooled and network inputs.
-            distillation_loss = F.mse_loss(student_encoding, network) 
+            distillation_loss = F.mse_loss(student_encoding, network_encoding) 
             loss = loss + distillation_loss
 
         # Join student and local embedding.
-        local_output = self.joiner( torch.cat([local_encoding, student_encoding]), dim = 1) 
+        local_output = self.joiner ( torch.cat([local_encoding, student_encoding], dim = 2)) 
+        local_logits = self.head ( local_output )
         if query:
-            network_output = self.joiner(torch.cat([local_encoding, network]), dim = 1) 
-
-        # Language model head scores from hidden states.
-        local_logits = self.head(local_output)
+            network_output = self.joiner( torch.cat( [local_encoding, network_encoding], dim = 2))
+            network_logits = self.head( network_output )
 
         # Compute loss for local_logits
         # Shift so that tokens < n predict n
@@ -118,7 +134,6 @@ class GPT2LMSynapse(bittensor.Synapse):
         if query:
             # Compute loss for local_logits
             # Shift so that tokens < n predict n
-            network_logits = self.head(network_output)
             network_shift_logits = network_logits[..., :-1, :].contiguous()
             network_shift_labels = tokenized['input_ids'][..., 1:].contiguous()
             network_target_loss = self.loss_fct(network_shift_logits.view(-1, network_shift_logits.size(-1)), network_shift_labels.view(-1))
