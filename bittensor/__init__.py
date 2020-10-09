@@ -33,7 +33,7 @@ import bittensor.utils.batch_transforms
 __version__ = '0.0.0'
 __network_dim__ = 256
 __tokenizer__ = GPT2Tokenizer.from_pretrained("gpt2")
-__tokenizer__.pad_token = __tokenizer__.eos_token
+__tokenizer__.pad_token = '[PAD]'
 __tokenizer__.mask_token = -100
 __vocab_size__ = 204483
 

@@ -20,7 +20,7 @@ import transformers
 from transformers import GPT2Config
 import torch
 
-def nextbatch(data, batch_size):
+def nextbatch(data, batch_size, tokenizer):
     """ Returns a random batch of sentences from text dataset.
 
         Args:
@@ -28,11 +28,12 @@ def nextbatch(data, batch_size):
             batch_size: size of batch to create.
         
         Returns:
-            batch_inputs List[str]: List of sentences.
+            batch_inputs torch.Tensor (batch_size, sequence_length): List of tokenized sentences.
     """
-    batch_inputs = []
+    batch_text = []
     for _ in range(batch_size):
-        batch_inputs.append(data[random.randint(0, len(data))]['text'])
+        batch_text.append(data[random.randint(0, len(data))]['text'])
+    batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True)['input_ids']
     return batch_inputs
             
 def main(hparams):
@@ -47,11 +48,9 @@ def main(hparams):
     dataset = load_dataset('bookcorpus')['train']
 
     # Build Synapse
-    model_config = GPT2Config( vocab_size=204483, 
-                                n_positions=256, 
-                                n_ctx=256, 
+    model_config = GPT2Config(  vocab_size=bittensor.__vocab_size__, 
                                 n_embd=bittensor.__network_dim__,
-                                n_layer=3, 
+                                n_layer=3,
                                 n_head=2, 
                                 n_inner=None, 
                                 activation_function='gelu_new', 
@@ -89,10 +88,10 @@ def main(hparams):
         step = 0
         while step < epoch_size:
             # Next batch.
-            sentences = nextbatch(dataset, batch_size)
+            inputs = nextbatch(dataset, batch_size, bittensor.__tokenizer__)
             
             # Compute full pass and get loss with a network query.
-            output = model(sentences, query=True)
+            output = model(inputs, query=True)
             
             loss = output['loss']
             loss.backward()
