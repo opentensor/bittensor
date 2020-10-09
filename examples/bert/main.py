@@ -1,6 +1,6 @@
-"""BERT Next Sentence Prediction Synapse
+"""BERT Next Sentence Prediction Neuron.
 
-This file demonstrates a bittensor.Synapse trained for Next Sentence Prediction.
+This file demonstrates training the BERT neuron with next sentence prediction.
 
 Example:
         $ python examples/bert/main.py
