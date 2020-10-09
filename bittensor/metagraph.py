@@ -56,7 +56,7 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         min_n = min(len(synapse_list), n)
         return synapse_list[:min_n]
     
-    def get_peers(self, n: int) -> List[str]:
+    def peers(self, n: int = 10) -> List[str]:
         """ Return min(n, len(peers)) peer endpoints from the active set.
 
         Args:
@@ -227,10 +227,6 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
     @property
     def weights(self):
         return self._weights
-    
-    @property
-    def peers(self):
-        return self._peers
     
 
     
