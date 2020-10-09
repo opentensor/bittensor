@@ -38,9 +38,10 @@ class Dendrite(nn.Module):
     def forward_image(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
         """ forward tensor processes """
         # TODO(const): Checks across all tensors and other shape checks.
-        if len(x[0].shape) != 5:
+        # TODO(const): Add sequence length.
+        if len(x[0].shape) != 4:
             logger.error('Incorrect shape for image inputs: {}', list(x[0].shape))
-            logger.error('Image inputs should be [batch_size, sequence_len, channels, rows, cols]')
+            logger.error('Image inputs should be [batch_size, channels, rows, cols]')
             assert False
         return self.forward(synapses, x, bittensor_pb2.Modality.IMAGE)
     
