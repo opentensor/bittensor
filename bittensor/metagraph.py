@@ -82,8 +82,8 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
             self._heartbeat[synapse.synapse_key] = time.time()      
 
     def Gossip(self, request: bittensor_pb2.GossipBatch, context):
-        synapses = self.get_synapses(1000)
-        peers = self.get_peers(10)
+        synapses = self.synapses(1000)
+        peers = self.peers(10)
         self._sink(request)
         response = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses)
         return response
@@ -93,15 +93,15 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         if len(self._peers) == 0:
             return
         
-        synapses = self.get_synapses(1000)
-        peers = self.get_peers(10)
+        synapses = self.synapses(1000)
+        peers = self.peers(10)
         metagraph_address = random.choice(list(self._peers))        
         realized_address = metagraph_address
         if metagraph_address.split(':')[0] == self._config.remote_ip:
             realized_address = 'localhost:' + str(metagraph_address.split(":")[1])
             
         try:
-            version = bittensor.__version__
+
             channel = grpc.insecure_channel(realized_address)
             stub = bittensor_grpc.MetagraphStub(channel)
             request = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses)
@@ -131,18 +131,20 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
             while self._running:
                 self.do_gossip()
                 if len(self._peers) > 0:
-                    self.do_clean(60*60)
+                    self.do_clean(15)
                 time.sleep(10)
-        except (KeyboardInterrupt, SystemExit):
+        except (KeyboardInterrupt, SystemExit) as e:
             logger.info('stop metagraph')
             self._running = False
             self.stop()
+            raise e
 
     def _serve(self):
         try:
             self._server.start()
-        except (KeyboardInterrupt, SystemExit):
+        except (KeyboardInterrupt, SystemExit) as ex:
             self.stop()
+            raise ex
         except Exception as e:
             logger.error(e)
         
