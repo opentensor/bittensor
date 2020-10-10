@@ -2,7 +2,7 @@
 [![Build status](https://circleci.com/gh/opentensor/bittensor.svg?style=shield)](https://circleci.com/gh/opentensor/bittensor)
 [![Documentation Status](https://readthedocs.org/projects/bittensor-docs/badge/?version=latest)](https://bittensor-docs.readthedocs.io/en/latest/?badge=latest)
 
-The dominant tools used to guide machine intelligence are typically benchmarks which rank systems on a set of predefined tasks. However, the narrow low resolution definition of intelligence provided by these benchmarks make them inefficient guides for the field. Bittensor is an expanded framework that measures knowledge production from within a network of intelligence systems.
+Bittensor is an internet based peer-to-peer neural network architecture which measures the  value of information produced by the computers which compose it.
 
 ## Links
 - [Documentation](https://bittensor-docs.readthedocs.io/en/latest/index.html)
