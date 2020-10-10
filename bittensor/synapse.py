@@ -19,7 +19,7 @@ class Synapse(nn.Module):
     def synapse_key(self) -> str:
         return self._synapse_key
 
-    def forward_text(self, inputs: List[str]):
+    def forward_text(self, inputs: torch.Tensor):
         """
             Apply forward pass to the bittensor.synapse given inputs text inputs.
         """

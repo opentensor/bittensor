@@ -11,6 +11,7 @@ import grpc
 import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
+from transformers import GPT2Tokenizer
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -31,6 +32,10 @@ import bittensor.utils.batch_transforms
 
 __version__ = '0.0.0'
 __network_dim__ = 256
+__tokenizer__ = GPT2Tokenizer.from_pretrained("gpt2")
+__tokenizer__.pad_token = '[PAD]'
+__tokenizer__.mask_token = -100
+__vocab_size__ = 204483
 
 # Global bittensor neuron objects.
 metagraph = None

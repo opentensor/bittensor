@@ -1,70 +1,72 @@
-"""BERT Next Sentence Prediction Neuron.
+"""GPT2 Language Modelling 
 
-This file demonstrates training the BERT neuron with next sentence prediction.
+This file demonstrates training the GPT2 neuron with language modelling.
 
 Example:
-        $ python examples/bert/main.py
+        $ python examples/gpt/main.py
 
 """
 import bittensor
-from bittensor.synapses.bert.model import BertNSPSynapse
+from bittensor.synapses.gpt2.model import GPT2LMSynapse
 
 import argparse
-from datasets import load_dataset, list_metrics, load_metric
+from datasets import load_dataset
 from loguru import logger
 import os, sys
 import math
 import random
 import time
 import transformers
+from transformers import GPT2Config
 import torch
 
-def nsp_batch(data, batch_size):
-    """ Returns a random batch from text dataset with 50 percent NSP.
+def nextbatch(data, batch_size, tokenizer):
+    """ Returns a random batch of sentences from text dataset.
 
         Args:
             data: (List[dict{'text': str}]): Dataset of text inputs.
             batch_size: size of batch to create.
         
         Returns:
-            batch_inputs List[str]: List of sentences.
-            batch_next List[str]: List of (potential) next sentences 
-            batch_labels torch.Tensor(batch_size): 1 if random next sentence, otherwise 0.
+            batch_inputs torch.Tensor (batch_size, sequence_length): List of tokenized sentences.
     """
-    batch_inputs = []
-    batch_next = []
-    batch_labels = []
+    batch_text = []
     for _ in range(batch_size):
-        if random.random() > 0.5:
-            pos = random.randint(0, len(data))
-            batch_inputs.append(data[pos]['text'])
-            batch_next.append(data[pos + 1]['text'])
-            batch_labels.append(0)
-        else:
-            while True:
-                pos_1 = random.randint(0, len(data))
-                pos_2 = random.randint(0, len(data))
-                batch_inputs.append(data[pos_1]['text'])
-                batch_next.append(data[pos_2]['text'])
-                batch_labels.append(1)
-                if (pos_1 != pos_2) and (pos_1 != pos_2 - 1):
-                    break
-    return batch_inputs, batch_next, torch.tensor(batch_labels, dtype=torch.long)
+        batch_text.append(data[random.randint(0, len(data))]['text'])
+    batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True)['input_ids']
+    return batch_inputs
             
 def main(hparams):
     # Args
     config = bittensor.Config( hparams )
     learning_rate = 0.01 
-    batch_size = 500
+    batch_size = 20
     epoch_size = 50
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Dataset: 74 million sentence pulled from books.
-    dataset = load_dataset('bookcorpus')
+    # Dataset: 74 million sentences pulled from books.
+    dataset = load_dataset('bookcorpus')['train']
 
     # Build Synapse
-    model_config = transformers.modeling_bert.BertConfig(hidden_size=bittensor.__network_dim__, num_hidden_layers=2, num_attention_heads=2, intermediate_size=512, is_decoder=False)
-    model = BertNSPSynapse(model_config)
+    model_config = GPT2Config(  vocab_size=bittensor.__vocab_size__, 
+                                n_embd=bittensor.__network_dim__,
+                                n_layer=3,
+                                n_head=2, 
+                                n_inner=None, 
+                                activation_function='gelu_new', 
+                                resid_pdrop=0.1, 
+                                embd_pdrop=0.1, 
+                                attn_pdrop=0.1, 
+                                layer_norm_epsilon=1e-05, 
+                                initializer_range=0.02, 
+                                summary_type='cls_index', 
+                                summary_use_proj=True, 
+                                summary_activation=None, 
+                                summary_proj_to_labels=True, 
+                                summary_first_dropout=0.1, 
+                                bos_token_id=50256, 
+                                eos_token_id=50256)    
+    model = GPT2LMSynapse(model_config)
     model.to(device)
 
     # Setup Bittensor.
@@ -86,10 +88,10 @@ def main(hparams):
         step = 0
         while step < epoch_size:
             # Next batch.
-            sentences, next_sentences, next_sentence_labels = nsp_batch(dataset['train'], batch_size)
+            inputs = nextbatch(dataset, batch_size, bittensor.__tokenizer__)
             
             # Compute full pass and get loss with a network query.
-            output = model(sentences, next_sentences, next_sentence_labels, query=True)
+            output = model(inputs, query=True)
             
             loss = output['loss']
             loss.backward()
