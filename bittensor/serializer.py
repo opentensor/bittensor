@@ -1,8 +1,8 @@
 """ An interface for serializing and deserializing bittensor tensors"""
 from bittensor import bittensor_pb2
+from loguru import logger
 import numpy as np
 import pickle
-import PIL
 import torch
 from typing import List, Tuple, Dict, Optional
 
@@ -109,12 +109,14 @@ class PyTorchSerializer():
         Returns:
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
         """
-        data_buffer = pickle.dumps(tensor)
+        data_buffer = tensor.cpu().numpy().tobytes()
+        dtype = torch_dtype_to_bittensor_dtype (tensor.dtype)
+        shape = list(tensor.shape)
         proto = bittensor_pb2.Tensor(
                     version = bittensor.__version__,
                     buffer = data_buffer,
-                    shape = [len(tensor), 1],
-                    dtype = bittensor_pb2.DataType.UTF8,
+                    shape = shape,
+                    dtype = dtype,
                     modality = bittensor_pb2.Modality.TEXT,
                     requires_grad = False)
         return proto
@@ -129,9 +131,6 @@ class PyTorchSerializer():
         Returns:
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
         """    
-        # TODO (const) replace asserts with errors.
-        assert len(tensor.shape) > 1
-        # Using numpy intermediary because deserializing with pickle can run arbitray code on your machine.
         data_buffer = tensor.cpu().numpy().tobytes()
         dtype = torch_dtype_to_bittensor_dtype (tensor.dtype)
         shape = list(tensor.shape)
@@ -154,10 +153,6 @@ class PyTorchSerializer():
         Returns:
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
         """
-
-        # TODO (const) replace asserts with errors.
-        assert len(tensor.shape) > 1
-        # Using numpy intermediary because deserializing with pickle can run arbitray code on your machine.
         data_buffer = tensor.cpu().numpy().tobytes()
         dtype = torch_dtype_to_bittensor_dtype (tensor.dtype)
         shape = list(tensor.shape)
@@ -182,25 +177,26 @@ class PyTorchSerializer():
             torch.Tensor: deserialized image tensor.
         """
         dtype = np.float32
-        # TODO avoid copying the array (need to silence pytorch warning, because array is not writable)
         array = np.frombuffer(proto.buffer, dtype=np.dtype(dtype)).copy()
-        # NOTE (const): The first dimension is always assumed to be the batch dimension.
         shape = tuple(proto.shape)
-        assert len(shape) > 1 
         tensor = torch.as_tensor(array).view(shape).requires_grad_(proto.requires_grad)
         return tensor
         
     @staticmethod
-    def deserialize_text(proto: bittensor_pb2.Tensor) -> List[str]:
-        """Deserializes an bittensor_pb2.Tensor to a List[str] object.
+    def deserialize_text(proto: bittensor_pb2.Tensor) -> torch.Tensor:
+        """Deserializes an bittensor_pb2.Tensor to a torch.Tensor object.
 
         Args:
             proto (bittensor_pb2.Tensor): Proto to derserialize.
 
         Returns:
-            List[str]: deserialized text.
+            torch.Tensor: deserialized text tensor.
         """
-        return pickle.loads(proto.buffer)
+        dtype = bittensor_dtype_np_dtype(proto.dtype)
+        array = np.frombuffer(proto.buffer, dtype=np.dtype(dtype)).copy()
+        shape = tuple(proto.shape)
+        tensor = torch.as_tensor(array).view(shape).requires_grad_(proto.requires_grad)
+        return tensor
             
     @staticmethod
     def deserialize_tensor(proto: bittensor_pb2.Tensor) -> torch.Tensor:
@@ -213,10 +209,7 @@ class PyTorchSerializer():
             torch.Tensor: deserialized tensor.
         """
         dtype = bittensor_dtype_np_dtype(proto.dtype)
-        # TODO avoid copying the array (need to silence pytorch warning, because array is not writable)
         array = np.frombuffer(proto.buffer, dtype=np.dtype(dtype)).copy()
-        # NOTE (const): The first dimension is always assumed to be the batch dimension.
         shape = tuple(proto.shape)
-        assert len(shape) > 1 
         tensor = torch.as_tensor(array).view(shape).requires_grad_(proto.requires_grad)
         return tensor

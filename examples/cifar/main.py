@@ -100,7 +100,7 @@ def main(hparams):
                             
             # Logs:
             if batch_idx % log_interval == 0:
-                n_peers = len(bittensor.metagraph.peers)
+                n_peers = len(bittensor.metagraph.peers())
                 n_synapses = len(bittensor.metagraph.synapses())
                 writer.add_scalar('n_peers', n_peers, global_step)
                 writer.add_scalar('n_synapses', n_synapses, global_step)
