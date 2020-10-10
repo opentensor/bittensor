@@ -96,7 +96,7 @@ def main(hparams):
                             
             # Logs:
             if batch_idx % log_interval == 0:
-                n_peers = len(bittensor.metagraph.peers)
+                n_peers = len(bittensor.metagraph.peers())
                 n_synapses = len(bittensor.metagraph.synapses())
                 writer.add_scalar('n_peers', n_peers, global_step)
                 writer.add_scalar('n_synapses', n_synapses, global_step)
@@ -104,7 +104,7 @@ def main(hparams):
             
                 n = len(train_data)
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\nNetwork Loss: {:.6f}\tDistillation Loss: {:.6f}\tnP|nS: {}|{}'.format(
-                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['local_target_loss'].item(), output['network_target_loss'].item(), output['distillation_loss'].item(), len(bittensor.metagraph.peers), 
+                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['local_target_loss'].item(), output['network_target_loss'].item(), output['distillation_loss'].item(), len(bittensor.metagraph.peers()), 
                             len(bittensor.metagraph.synapses())))
 
     # Test loop.
