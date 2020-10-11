@@ -15,17 +15,21 @@ class Gate(nn.Module):
         self.projection = nn.Linear(x_dim, key_dim, bias=True).to(self.device)
 
     def forward(self, x: torch.Tensor, keys: torch.Tensor, topk: int):
-        assert topk >= len(keys)
-        assert x.dim() == 2 and x.size(1) == self.x_dim
+        if x.dim() != 2:
+            raise ValueError('Ensure the context used for key routing is rank 2: x.dim() == {} != 2'.format(x.dim()))
+        if x.size(1) != self.x_dim:
+            raise ValueError('Ensure that x.size(1) == x_dim:  x.size(1) === {} != {}'.format(x.size(1), self.x_dim))
+
         bs = x.shape[0]  # batch_size
 
         # Make input projection to k_dim dimension.
         query = self.projection(x)  # [bs, key_dim]
-        assert query.shape == (bs, self.key_dim)
+        # Check the query shape.
+        if query.shape != (bs, self.key_dim):
+            raise ValueError('The router projection returned an incorrect shape: {} != {}. Ensure that your projection is onto the keydim.'.format(query.shape, [(bs, self.key_dim)]))
 
         query = query.view(-1, self.key_dim).to(self.device)  # (bs, key_dim)
         bs = query.shape[0]
-        assert query.dim() == 2 and query.size(1) == self.key_dim
         real_topk = min(keys.shape[0], topk)
         
         # Compute scores over keys.
