@@ -12,4 +12,4 @@ Bittensor is a peer-to-peer neural network which rewards the information produce
 - [Architecture](https://bittensor-docs.readthedocs.io/en/latest/bittensor-deep-dive/bittensor-architecture.html)
 
 ## Acknowledgments
-learning-at-home/hivemind: For a architectural structure, a good protion of this code is adpated from hivemind. 
+**learning-at-home/hivemind**:
