@@ -3,16 +3,12 @@ jobs:
     executor: python/default
     steps:
       - checkout
-      - run: sudo pip install codecov pytest grpcio-tools
+      - run: sudo pip install codecov coverage pytest grpcio-tools
       - run: sudo pip install pytest
       - python/save-cache
       - run:
           command: sudo python setup.py develop
           name: setup
-      - run:
-          command: pytest ./tests --full-trace
-          name: test
-
       - run:
         name: Coverage
         command: |
