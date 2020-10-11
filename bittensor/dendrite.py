@@ -21,20 +21,41 @@ class Dendrite(nn.Module):
         super().__init__()
         self._config = config
         self._remotes = {}
-        
-    # TODO (const): connection handling.
-    # Cleaning remote connections and updating signatures.
-    def run(self):
-        pass
     
     def forward_text(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
-        """ forward tensor processes """
+        r""" Forward text inputs to synapses.
+
+            Args:
+                synapses (:obj:`List[bittensor_pb2.Synapse]` of shape :obj:`(num_synapses)`, `required`): 
+                    List of remote synapses which match length of x. Tensors from x are sent forward to these synapses.
+
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_synapses * [batch_size, sequence_len])`, `required`): 
+                    List of tensors to send to corresponsing synapses. Tensors are text input_ids encoded using the
+                    bittensor tokenizer of shape [batch_size, sequence_len].
+            
+            Returns:
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`): 
+                    Output encodings of inputs produced by remote synapses. Non-responses are zeroes of common shape.
+        """
         if len(x[0].shape) != 2:
             raise ValueError('Text inputs should rank 2 with semantic shape: [batch_size, sequence_len]')
         return self.forward(synapses, x, bittensor_pb2.Modality.TEXT)
     
     def forward_image(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
-        """ forward tensor processes """
+        r""" Forward image inputs to synapses.
+
+            Args:
+                synapses (:obj:`List[bittensor_pb2.Synapse]` of shape :obj:`(num_synapses)`, `required`): 
+                    List of remote synapses which match length of x. Tensors from x are sent forward to these synapses.
+
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_synapses * [batch_size, channels, rows, cols])`, `required`): 
+                    List of image-tensors to send to corresponsing synapses. Tensors are images encoded using the
+                    torch.toTensor() or other encoding which produces the shape [batch_size, channels, rows, cols].
+            
+            Returns:
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`): 
+                    Output encodings of images produced by remote synapses. Non-responses are zeroes of common shape.
+        """
         # TODO(const): Checks across all tensors and other shape checks.
         # TODO(const): Add sequence length.
         if len(x[0].shape) != 4:
@@ -42,13 +63,42 @@ class Dendrite(nn.Module):
         return self.forward(synapses, x, bittensor_pb2.Modality.IMAGE)
     
     def forward_tensor(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
-        """ forward tensor processes """
+        r""" Forward tensor inputs to synapses.
+
+            Args:
+                synapses (:obj:`List[bittensor_pb2.Synapse]` of shape :obj:`(num_synapses)`, `required`): 
+                    List of remote synapses which match length of x. Tensors from x are sent forward to these synapses.
+
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_synapses * [batch_size, sequence_len, feature_len])`, `required`): 
+                    List of tensors to send to corresponsing synapses. Tensors are of arbitrary type and
+                    with shape [batch_size, sequence_len, feature_len].
+            
+            Returns:
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_synapses * (batch_size, sequence_len, bittensor.network_size)]`, `required`): 
+                    Output encodings of tensors produced by remote synapses. Non-responses are zeroes of common shape.
+        """
         if len(x[0].shape) != 3:
             raise ValueError('Tensor inputs should be rank 3 with semantic shape: [batch_size, sequence_len, feature_len]')
         return self.forward(synapses, x, bittensor_pb2.Modality.TENSOR)
     
     def forward(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ], mode: bittensor_pb2.Modality) -> List[torch.Tensor]:
-        """ forward tensor processes """
+        r""" Forward tensor inputs to synapses.
+
+            Args:
+                synapses (:obj:`List[bittensor_pb2.Synapse]` of shape :obj:`(num_synapses)`, `required`): 
+                    List of remote synapses which match length of x. Tensors from x are sent forward to these synapses.
+
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_synapses * [shape])`, `required`): 
+                    List of tensors to send to corresponsing synapses. Tensors are of arbitrary type and shape depending on the 
+                    modality.
+
+                mode (:obj:`bittensor_pb2.Modality` of shape :obj:`(1)`, `required`): 
+                    Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
+            
+            Returns:
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_synapses * (batch_size, sequence_len, bittensor.network_size)]`, `required`): 
+                    Output encodings of tensors produced by remote synapses. Non-responses are zeroes of common shape.
+        """
         results = []
         for idx, synapse in enumerate(synapses):
             forward_inputs = x[ idx ]
@@ -98,10 +148,6 @@ class RemoteSynapse(nn.Module):
             self.channel.close()
 
     def forward(self, inputs: torch.Tensor, mode: bittensor_pb2.Modality) -> torch.Tensor:
-        # TODO (const) compare schema
-        # assert schema shape and size. raise type error.
-        # if not check_schema(inputs, self.synapse.forward_schema):
-        #    raise TypeError(f"Inputs do not match expert input schema. Did you pass the right number of parameters?")
         # TODO (const): consistend packing.
         # flattened = flatten(inputs)
         # Note: (hivemind) we send DUMMY to prevent torch from excluding expert from backward if no other inputs require grad
@@ -138,16 +184,27 @@ class _RemoteModuleCall(torch.autograd.Function):
                                                 tensors = [serialized_inputs]
                                             )
         
-        # Make rpc call.
+        # Make RPC call.
         try:
             response = ctx.caller.stub.Forward(request)                
-            # Deserialize outputs and return.
-            outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
         except grpc._channel._InactiveRpcError as ire:
-            #logger.error("Could not forward() to peer: {}".format(ire))
-            outputs = torch.zeros((inputs.size(0), bittensor.__network_dim__))
-        
-        return outputs
+            # Error making remote request.
+            logger.error("Error making forward call to {} with error {}", RemoteSynapse, ire)
+            return torch.zeros((inputs.size(0), bittensor.__network_dim__))
+
+        # Deserialize outputs.
+        try:
+            output = PyTorchSerializer.deserialize_tensor(response.tensors[0])               
+        except Exception as e:
+            logger.error("Error deserializing responses with response {} with error {}", response.tensors[0], e)
+            return torch.zeros((inputs.size(0), bittensor.__network_dim__))
+
+        # Check batch_size.
+        # TODO(const) check sequence_len when images have sequence len.
+        if output.size(0) != inputs.size(0):    
+            return torch.zeros((inputs.size(0), bittensor.__network_dim__))
+
+        return output
 
     @staticmethod
     @once_differentiable

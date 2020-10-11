@@ -77,14 +77,17 @@ class Axon(bittensor_grpc.BittensorServicer):
                 
         # Call forward network.
         y = synapse.call_forward( x , inputs.modality)
-        
-        y_serialized = PyTorchSerializer.serialize_tensor(y)
+
+        # Check y is realized. Otherwise return None.
+        y_serialized = None
+        if y != None:
+            y_serialized = [PyTorchSerializer.serialize_tensor(y)]
 
         response = bittensor_pb2.TensorMessage(
             version = bittensor.__version__,
             neuron_key = self._config.neuron_key,
             synapse_key = request.synapse_key,
-            tensors = [y_serialized])
+            tensors = y_serialized)
         
         return response
 
