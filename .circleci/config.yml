@@ -16,8 +16,8 @@ jobs:
           paths:
             - "venv"
       - run:
-        command: pip install --upgrade pip
-        name: pipup 
+          command: sudo pip install --upgrade pip
+          name: pipup 
       - run:
           command: sudo python setup.py develop
           name: setup
