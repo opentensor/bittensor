@@ -30,9 +30,7 @@ class Dendrite(nn.Module):
     def forward_text(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
         """ forward tensor processes """
         if len(x[0].shape) != 2:
-            logger.error('Incorrect serialization for text inputs: {}', list(x[0].shape))
-            logger.error('Text tokenization should be [batch_size, sequence_len]')
-            assert False
+            raise ValueError('Text inputs should rank 2 with semantic shape: [batch_size, sequence_len]')
         return self.forward(synapses, x, bittensor_pb2.Modality.TEXT)
     
     def forward_image(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
@@ -40,17 +38,13 @@ class Dendrite(nn.Module):
         # TODO(const): Checks across all tensors and other shape checks.
         # TODO(const): Add sequence length.
         if len(x[0].shape) != 4:
-            logger.error('Incorrect shape for image inputs: {}', list(x[0].shape))
-            logger.error('Image inputs should be [batch_size, channels, rows, cols]')
-            assert False
+            raise ValueError('Image inputs should be rank 4 with semantic shape: [batch_size, channels, rows, cols]')
         return self.forward(synapses, x, bittensor_pb2.Modality.IMAGE)
     
     def forward_tensor(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
         """ forward tensor processes """
         if len(x[0].shape) != 3:
-            logger.error('Incorrect shape for tensor inputs: {}', list(x[0].shape))
-            logger.error('Image inputs should be [batch_size, sequence_len, feature_len]')
-            assert False
+            raise ValueError('Tensor inputs should be rank 3 with semantic shape: [batch_size, sequence_len, feature_len]')
         return self.forward(synapses, x, bittensor_pb2.Modality.TENSOR)
     
     def forward(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ], mode: bittensor_pb2.Modality) -> List[torch.Tensor]:
