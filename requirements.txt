@@ -1,4 +1,5 @@
 argparse
+coverage
 cryptography
 datasets
 google-api-python-client

@@ -1,11 +1,20 @@
 jobs:
   build:
     executor: python/default
+    docker:
+      - image: circleci/python:3.6.4 
     steps:
       - checkout
+      - restore_cache:
+          # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
+          key: deps9-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
       - python/install-packages:
           pkg-manager: pip
           pypi-cache: true
+      - save_cache: # cache Python dependencies using checksum of Pipfile as the cache-key
+          key: deps9-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
+          paths:
+            - "venv"
       - run:
           command: sudo python setup.py develop
           name: setup
