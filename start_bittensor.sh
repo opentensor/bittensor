@@ -73,6 +73,8 @@ bootstrap='none'
 neuron_key='none'
 # Model path
 model_path='none'
+# DO token
+token='none'
 
 
 # Read command line args
@@ -130,9 +132,16 @@ while test 12 -gt 0; do
     -r|--remote_ip)
       remote=${2:-'host.docker.internal'}
       shift
+      shift
       ;;
     -mp|--model_path)
       model_path=${2:-'none'}
+      shift
+      shift
+      ;;
+    -t|--token)
+      token=${2:-'none'}
+      shift
       shift
       ;;
     *)
@@ -147,6 +156,13 @@ done
 function start_local_service() {
     log "=== Running Locally ==="
 
+    # Stop the container if it is already running.
+    if [[ "$(docker ps -a | grep bittensor-$identity)" ]]; then
+        log "=== stopping bittensor-$identity ==="
+        docker stop bittensor-$identity || true
+        docker rm bittensor-$identity || true
+    fi
+
     # Init image if non-existent
     log "=== Building bittensor image ==="
 
@@ -156,13 +172,6 @@ function start_local_service() {
     else
          # Build anyway
     docker build --tag $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG -f ./examples/$neuron/Dockerfile .
-    fi
-
-    # Stop the container if it is already running.
-    if [[ "$(docker ps -a | grep bittensor-$identity)" ]]; then
-        log "=== stopping bittensor-$identity ==="
-        docker stop bittensor-$identity || true
-        docker rm bittensor-$identity || true
     fi
 
     # Trap control C (for clean docker container tear down.)
@@ -176,8 +185,8 @@ function start_local_service() {
     trap teardown INT SIGHUP SIGINT SIGTERM ERR EXIT
 
     # Build start command
-    script="./scripts/bittensor.sh"
-    COMMAND="$script $identity $serve_address $port $logdir $neuron $chain_endpoint $axon_port $metagraph_port $metagraph_size $bootstrap $neuron_key $remote_ip $model_path"
+    bittensor_script="./scripts/bittensor.sh"
+    COMMAND="$bittensor_script $identity $serve_address $port $logdir $neuron $chain_endpoint $axon_port $metagraph_port $metagraph_size $bootstrap $neuron_key $remote_ip $model_path"
     log "Run command: $COMMAND"
 
     # Run docker service
@@ -188,26 +197,94 @@ function start_local_service() {
 
     log "=== run docker container locally ==="
     log "=== container image: $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG ==="
-    if [ $remote_ip == 'host.docker.internal' ]; then
-      docker run --rm --name bittensor-$identity -d -t \
-        --network=host \
-        --mount type=bind,source="$(pwd)"/scripts,target=/bittensor/scripts \
-        --mount type=bind,source="$(pwd)"/data,target=/bittensor/data \
-        --mount type=bind,source="$(pwd)"/examples,target=/bittensor/examples \
-        $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
-    else
-      docker run --rm --name bittensor-$identity -d -t \
-        -p $port:$dest_port \
-        -p $axon_port:$axon_port \
-        --mount type=bind,source="$(pwd)"/scripts,target=/bittensor/scripts \
-        --mount type=bind,source="$(pwd)"/data,target=/bittensor/data \
-        --mount type=bind,source="$(pwd)"/examples,target=/bittensor/examples \
-        $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
-    fi
-    
+    docker run --rm --name bittensor-$identity -d -t \
+      -p $port:$dest_port \
+      -p $axon_port:$axon_port \
+      $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
 
     log "=== follow logs ==="
     docker logs bittensor-$identity --follow
+}
+
+
+function start_remote_service() {
+  log "=== run instance remotely ==="
+
+  # Build trap "ctrl+c" (for clean docker container teardown from DO)
+  function teardown() {
+    log "=== tearing down remote instance ==="
+    eval $(docker-machine env -u)
+    echo "To tear down host, run: "
+    echo "       docker-machine stop bittensor-$identity & docker-machine rm bittensor-$identity --force"
+    exit 0
+  }
+
+  trap teardown INT SIGHUP SIGTERM ERR EXIT
+
+  # initialize host
+  log "=== initializing remote host ==="
+  if [[ "$(docker-machine ls | grep bittensor-$identity)" ]]; then
+    # Host already exists
+    log "bittensor-$identity droplet already exists"
+  else
+    log "Creating droplet: bittensor-$identity"
+    droplet_create_cmd="docker-machine create --driver digitalocean --digitalocean-size s-1vcpu-1gb --digitalocean-access-token ${token} bittensor-$identity"
+    log "Create command: $droplet_create_cmd"
+    eval $droplet_create_cmd
+  fi
+
+  # Set docker context to droplet
+  log "=== switching droplet context ==="
+  eval $(docker-machine env bittensor-$identity)
+
+  # Stop container if it is already running
+  if [[ "$(docker ps -a | grep bittensor-$identity)" ]]; then
+    log "=== stopping bittensor-$identity ==="
+    docker stop bittensor-$identity || true
+    docker rm bittensor-$identity || true
+  fi
+
+  # Build image
+  if [[ "$(docker images -q $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG 2> /dev/null)" == "" ]]; then
+    log "Building $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG"
+    docker build -t $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG -f ./examples/$neuron/Dockerfile .
+  else
+    # Build anyway
+    docker build -t $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG -f ./examples/$neuron/Dockerfile .
+  fi
+
+  # Find external IP address of this droplet.
+  droplet_ip_address=$(eval docker-machine ip bittensor-$identity)
+  log "Droplet IP address: $droplet_ip_address:$port"
+
+  # Build start command
+  bittensor_script="./scripts/bittensor.sh"
+  COMMAND="$bittensor_script $identity $serve_address $port $logdir $neuron $chain_endpoint $axon_port $metagraph_port $metagraph_size $bootstrap $neuron_key $remote_ip $model_path"
+  log "Run command: $COMMAND"
+
+  # Run docker service
+  dest_port=$metagraph_port
+  if [ $dest_port == 'none' ]; then
+    dest_port=$bootstrap_port
+  fi
+
+  # Run docker service.
+  log "=== Run docker container on remote host. ==="
+  log "=== container image: $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG ==="
+  if [ $remote_ip == 'host.docker.internal' ] && [ $token == 'none' ]; then
+    docker run --rm --name bittensor-$identity -d -t \
+      -p $port:$dest_port
+      $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
+  else
+    docker run --rm --name bittensor-$identity -d -t \
+      -p $port:$dest_port \
+      -p $axon_port:$axon_port \
+      $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
+  fi
+
+  log "=== follow logs ==="
+  docker logs bittensor-$identity --follow
+
 }
 
 # Main function
@@ -229,7 +306,12 @@ log "neuron: $neuron"
 log "bootstrap: $bootstrap"
 log "Axon port: $axon_port"
 
-start_local_service
+if [ "$token" == "none" ]; then
+  start_local_service
+else
+  start_remote_service
+fi
+
 }
 
 main
