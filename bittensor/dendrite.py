@@ -86,7 +86,10 @@ class RemoteSynapse(nn.Module):
         self.local_neuron_key = config.neuron_key       
         # Loop back if the synapse is local.
         if synapse.address == config.remote_ip:
-            self.endpoint = 'localhost:' + synapse.port
+            ip = "localhost:"
+            if config.remote_ip == "host.docker.internal":
+                ip = "host.docker.internal:"
+            self.endpoint = ip + synapse.port
         else:
             self.endpoint = synapse.address + ':' + synapse.port
         # TODO(const): should accept defaults. config = bittensor.config_or_defaults(config) 
