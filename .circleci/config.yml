@@ -19,7 +19,7 @@ jobs:
           command: sudo pip install --upgrade pip
           name: pipup 
       - run:
-          command: sudo python setup.py develop
+          command: sudo python setup.py install
           name: setup
       - run:
           name: test
