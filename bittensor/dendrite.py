@@ -151,7 +151,10 @@ class _RemoteModuleCall(torch.autograd.Function):
         try:
             response = ctx.caller.stub.Forward(request)                
             # Deserialize outputs and return.
-            outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
+            if len(response.tensors) > 0:
+                outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
+            else:
+                raise grpc._channel._InactiveRpcError
         except grpc._channel._InactiveRpcError as ire:
             #logger.error("Could not forward() to peer: {}".format(ire))
             outputs = torch.zeros((inputs.size(0), bittensor.__network_dim__))
