@@ -20,7 +20,7 @@ function print_help () {
   echo " -l, --logdir         Logging directory."
   echo " -p, --port           Bind side port for accepting requests."
   echo " -c, --chain_endpoint Bittensor chain endpoint."
-  echo " -ax, --axon_port      Axon terminal bind port."
+  echo " -ax, --axon_port     The bootstrapping peer's axon port."
   echo " -m, --metagraph_port Metagraph bind port."
   echo " -s, --metagraph_size Metagraph cache size."
   echo " -b, --bootstrap      Metagraph boot peer."
@@ -186,7 +186,7 @@ function start_local_service() {
         exit 0
     }
 
-    trap teardown INT SIGHUP SIGINT SIGTERM ERR EXIT
+    trap teardown INT SIGHUP SIGINT SIGTERM ERR
 
     # Build start command
     bittensor_script="./scripts/bittensor.sh"
@@ -210,11 +210,10 @@ function start_local_service() {
       --mount type=bind,source="$(pwd)"/examples,target=/bittensor/examples \
       $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
 
-    log "=== follow logs ==="
-
     if [ $logging == 'true' ]; then
       log "=== follow logs ==="
       docker logs bittensor-$identity --follow
+      trap teardown EXIT
     fi
 }
 
@@ -293,6 +292,7 @@ function start_remote_service() {
   if [ $logging == 'true' ]; then
     log "=== follow logs ==="
     docker logs bittensor-$identity --follow
+    trap teardown EXIT
   fi
 
 }
