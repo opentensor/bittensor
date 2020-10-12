@@ -101,11 +101,12 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
             realized_address = 'localhost:' + str(metagraph_address.split(":")[1])
             
         try:
-
             channel = grpc.insecure_channel(realized_address)
             stub = bittensor_grpc.MetagraphStub(channel)
             request = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses)
             response = stub.Gossip(request)
+            logger.info("realised_address: {}",realized_address)
+            logger.info("Responses: {}".format(response))
             self._sink(response)
         except Exception as e:
             # Faulty peer.
@@ -137,13 +138,15 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
             logger.info('stop metagraph')
             self._running = False
             self.stop()
-            raise e
+            return
 
     def _serve(self):
         try:
             self._server.start()
         except (KeyboardInterrupt, SystemExit) as ex:
+            logger.info('stop metagraph')
             self.stop()
+            self._running = False
             raise ex
         except Exception as e:
             logger.error(e)
@@ -156,6 +159,7 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         self._running = False
         if self._update_thread:
             self._update_thread.join()
+        logger.info("Stopping gRPC server")
         self._server.stop(0)
 
     def start(self):
