@@ -1,11 +1,13 @@
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
 from bittensor.serializer import PyTorchSerializer
-import bittensor
 
 from loguru import logger
 from typing import List, Tuple, Dict, Optional
 
+from bittensor.exceptions.ResponseExceptions import EmptyTensorException
+
+import bittensor
 import os
 import grpc
 import PIL
@@ -154,9 +156,12 @@ class _RemoteModuleCall(torch.autograd.Function):
             if len(response.tensors) > 0:
                 outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
             else:
-                raise grpc._channel._InactiveRpcError
+                raise EmptyTensorException
+            
         except grpc._channel._InactiveRpcError as ire:
             #logger.error("Could not forward() to peer: {}".format(ire))
+            outputs = torch.zeros((inputs.size(0), bittensor.__network_dim__))
+        except EmptyTensorException as ete:
             outputs = torch.zeros((inputs.size(0), bittensor.__network_dim__))
         
         return outputs
