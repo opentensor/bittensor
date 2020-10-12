@@ -20,7 +20,7 @@ function print_help () {
   echo " -l, --logdir         Logging directory."
   echo " -p, --port           Bind side port for accepting requests."
   echo " -c, --chain_endpoint Bittensor chain endpoint."
-  echo " -a, --axon_port      Axon terminal bind port."
+  echo " -ax, --axon_port      Axon terminal bind port."
   echo " -m, --metagraph_port Metagraph bind port."
   echo " -s, --metagraph_size Metagraph cache size."
   echo " -b, --bootstrap      Metagraph boot peer."
@@ -31,8 +31,6 @@ function print_help () {
 
 identity=$(LC_CTYPE=C tr -dc 'a-z' < /dev/urandom | head -c 7 | xargs)
 # Bind the grpc server to this address with port
-bind_address="0.0.0.0"
-# Advertise this address on the EOS chain.
 machine=$(whichmachine)
 echo "Detected host: $machine"
 if [[ "$machine" == "Darwin" ||  "$machine" == "Mac" ]]; then
@@ -60,8 +58,6 @@ default_axon_port=$(( ( RANDOM % 60000 ) + 5000 ))
 default_metagraph_port=$(( ( RANDOM % 60000 ) + 5000 ))
 # metagraph port
 metagraph_port='none'
-# bootstrap port
-bootstrap_port='none'
 # Metagraph size
 metagraph_size='0'
 # Is this service running on digital ocean. Default is local docker host.
@@ -75,6 +71,8 @@ neuron_key='none'
 model_path='none'
 # DO token
 token='none'
+# follow logs?
+logging='false'
 
 
 # Read command line args
@@ -102,9 +100,10 @@ while test 12 -gt 0; do
     -c|--chain_endpoint)
       chain_endpoint=${2:-'none'}
       shift
+      shift
       ;;
-    -a|--axon_port)
-      axon_port=`${2:-default_axon_port}`
+    -ax|--axon_port)
+      axon_port=${2:-$default_axon_port}
       shift
       shift
       ;;
@@ -119,8 +118,8 @@ while test 12 -gt 0; do
       shift
       ;;
     -b|--bootstrap)
-      bootstrap_port=${2:-$default_bootstrap_port}
-      bootstrap="${serve_address}:${bootstrap_port}"
+      bootstrap=${2:-'none'}
+      bootstrap_port=${bootstrap##*:}
       shift
       shift
       ;;
@@ -130,7 +129,7 @@ while test 12 -gt 0; do
       shift
       ;;
     -r|--remote_ip)
-      remote=${2:-'host.docker.internal'}
+      remote_ip=${2:-'host.docker.internal'}
       shift
       shift
       ;;
@@ -141,6 +140,11 @@ while test 12 -gt 0; do
       ;;
     -t|--token)
       token=${2:-'none'}
+      shift
+      shift
+      ;;
+    -l|--logging)
+      logging=${2:-'false'}
       shift
       shift
       ;;
@@ -186,6 +190,7 @@ function start_local_service() {
 
     # Build start command
     bittensor_script="./scripts/bittensor.sh"
+
     COMMAND="$bittensor_script $identity $serve_address $port $logdir $neuron $chain_endpoint $axon_port $metagraph_port $metagraph_size $bootstrap $neuron_key $remote_ip $model_path"
     log "Run command: $COMMAND"
 
@@ -197,25 +202,20 @@ function start_local_service() {
 
     log "=== run docker container locally ==="
     log "=== container image: $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG ==="
-    if [ $remote_ip == 'host.docker.internal' ]; then
-      docker run --rm --name bittensor-$identity -d -t \
-        --network=host \
-        --mount type=bind,source="$(pwd)"/scripts,target=/bittensor/scripts \
-        --mount type=bind,source="$(pwd)"/data,target=/bittensor/data \
-        --mount type=bind,source="$(pwd)"/examples,target=/bittensor/examples \
-        $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
-    else
-      docker run --rm --name bittensor-$identity -d -t \
-        -p $port:$dest_port \
-        -p $axon_port:$axon_port \
-        --mount type=bind,source="$(pwd)"/scripts,target=/bittensor/scripts \
-        --mount type=bind,source="$(pwd)"/data,target=/bittensor/data \
-        --mount type=bind,source="$(pwd)"/examples,target=/bittensor/examples \
-        $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
-    fi
+
+    docker run --rm --name bittensor-$identity -d -t \
+      --network=host \
+      --mount type=bind,source="$(pwd)"/scripts,target=/bittensor/scripts \
+      --mount type=bind,source="$(pwd)"/data,target=/bittensor/data \
+      --mount type=bind,source="$(pwd)"/examples,target=/bittensor/examples \
+      $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
 
     log "=== follow logs ==="
-    docker logs bittensor-$identity --follow
+
+    if [ $logging == 'true' ]; then
+      log "=== follow logs ==="
+      docker logs bittensor-$identity --follow
+    fi
 }
 
 
@@ -271,9 +271,11 @@ function start_remote_service() {
 
   # Build start command
   bittensor_script="./scripts/bittensor.sh"
+  remote_ip=$droplet_ip_address
+
   COMMAND="$bittensor_script $identity $serve_address $port $logdir $neuron $chain_endpoint $axon_port $metagraph_port $metagraph_size $bootstrap $neuron_key $remote_ip $model_path"
   log "Run command: $COMMAND"
-
+  
   # Run docker service
   dest_port=$metagraph_port
   if [ $dest_port == 'none' ]; then
@@ -283,19 +285,15 @@ function start_remote_service() {
   # Run docker service.
   log "=== Run docker container on remote host. ==="
   log "=== container image: $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG ==="
-  if [ $remote_ip == 'host.docker.internal' ] && [ $token == 'none' ]; then
-    docker run --rm --name bittensor-$identity -d -t \
-      -p $port:$dest_port
-      $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
-  else
-    docker run --rm --name bittensor-$identity -d -t \
-      -p $port:$dest_port \
-      -p $axon_port:$axon_port \
-      $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
+  docker run --rm --name bittensor-$identity -d -t \
+    -p $dest_port:$dest_port \
+    -p $axon_port:$axon_port \
+    $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
+  
+  if [ $logging == 'true' ]; then
+    log "=== follow logs ==="
+    docker logs bittensor-$identity --follow
   fi
-
-  log "=== follow logs ==="
-  docker logs bittensor-$identity --follow
 
 }
 
@@ -315,8 +313,9 @@ log "port: $port"
 log "metagraph_port: $metagraph_port"
 log "logdir: $logdir"
 log "neuron: $neuron"
-log "bootstrap: $bootstrap"
+log "bootstrap: $bootstrap_port"
 log "Axon port: $axon_port"
+log "Follow logging: $logging"
 
 if [ "$token" == "none" ]; then
   start_local_service
