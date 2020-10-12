@@ -197,10 +197,22 @@ function start_local_service() {
 
     log "=== run docker container locally ==="
     log "=== container image: $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG ==="
-    docker run --rm --name bittensor-$identity -d -t \
-      -p $port:$dest_port \
-      -p $axon_port:$axon_port \
-      $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
+    if [ $remote_ip == 'host.docker.internal' ]; then
+      docker run --rm --name bittensor-$identity -d -t \
+        --network=host \
+        --mount type=bind,source="$(pwd)"/scripts,target=/bittensor/scripts \
+        --mount type=bind,source="$(pwd)"/data,target=/bittensor/data \
+        --mount type=bind,source="$(pwd)"/examples,target=/bittensor/examples \
+        $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
+    else
+      docker run --rm --name bittensor-$identity -d -t \
+        -p $port:$dest_port \
+        -p $axon_port:$axon_port \
+        --mount type=bind,source="$(pwd)"/scripts,target=/bittensor/scripts \
+        --mount type=bind,source="$(pwd)"/data,target=/bittensor/data \
+        --mount type=bind,source="$(pwd)"/examples,target=/bittensor/examples \
+        $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
+    fi
 
     log "=== follow logs ==="
     docker logs bittensor-$identity --follow
