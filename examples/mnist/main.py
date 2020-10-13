@@ -36,40 +36,35 @@ def main(hparams):
     log_interval = 10
     epoch = 0
     global_step = 0
+    trial_uid = 'mnist -' + str(time.time()).split('.')[0]
     best_test_loss = math.inf
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # Build local synapse to serve on the network.
-    model = MnistSynapse()
-    model.to( device ) # Set model to device.
-
+   
     # Setup Bittensor.
     # Create background objects.
     # Connect the metagraph.
     # Start the axon server.
-    config = bittensor.Config( hparams )
+    config = bittensor.Config.from_hparams( hparams )
+    logger.info(config)
     bittensor.init( config )
-    bittensor.serve( model )
     bittensor.start()
-        
-    # Instantiate toolbox to load/save model
-    model_toolbox = ModelToolbox('mnist')
-    if config._hparams.load_model is not None:
-        # Load previously trained model if it exists
-        model, optimizer, epoch, best_test_loss = model_toolbox.load_model(model, config._hparams.load_model, optimizer)
-        logger.info("Loaded model stored in {} with test loss {} at epoch {}".format(config._hparams.load_model, best_test_loss, epoch-1))
-
-    # Load (Train, Test) datasets into memory.
-    train_data = torchvision.datasets.MNIST(root=model_toolbox.data_path, train=True, download=True, transform=transforms.ToTensor())
-    trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size_train, shuffle=True, num_workers=2)
-    test_data = torchvision.datasets.MNIST(root=model_toolbox.data_path, train=False, download=True, transform=transforms.ToTensor())
-    testloader = torch.utils.data.DataLoader(test_data, batch_size = batch_size_test, shuffle=False, num_workers=2)
     
-    # Build summary writer for tensorboard.
-    writer = SummaryWriter(log_dir=model_toolbox.log_dir)
+    # Build local synapse to serve on the network.
+    model = MnistSynapse()
+    model.to( device ) # Set model to device.
+    bittensor.serve( model )
 
     # Build the optimizer.
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
+        
+    # Load (Train, Test) datasets into memory.
+    train_data = torchvision.datasets.MNIST(root = config.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
+    trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size_train, shuffle=True, num_workers=2)
+    test_data = torchvision.datasets.MNIST(root = config.datapath + "datasets/", train=False, download=True, transform=transforms.ToTensor())
+    testloader = torch.utils.data.DataLoader(test_data, batch_size = batch_size_test, shuffle=False, num_workers=2)
+    
+    # Build summary writer for tensorboard.
+    writer = SummaryWriter(log_dir = config.datapath + trial_uid + "/logs/")
 
     # Train loop: Single threaded training of MNIST.
     def train(model, epoch, global_step):
@@ -154,8 +149,8 @@ def main(hparams):
                 best_test_loss = test_loss
                 
                 # Save the best local model.
-                logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, model_toolbox.model_path)
-                model_toolbox.save_model(model, epoch, optimizer, test_loss) # Saves the model to local storage.
+                logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, config.datapath + trial_uid + '/model.torch')
+                torch.save({ 'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, config.datapath + trial_uid + '/model.torch')
             epoch += 1
 
         except Exception as e:
