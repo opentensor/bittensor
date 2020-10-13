@@ -1,38 +1,33 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+
 jobs:
-  build:
+  build-and-test:
     executor: python/default
     docker:
-      - image: circleci/python:3.6.4 
+
+      - image: circleci/python:3.8.1
     steps:
       - checkout
-      - restore_cache:
-          # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
-          key: deps9-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
-      - python/install-packages:
-          pkg-manager: pip
-          pypi-cache: true
-      - save_cache: # cache Python dependencies using checksum of Pipfile as the cache-key
-          key: deps9-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
-          paths:
-            - "venv"
+      - python/load-cache
+      - run: pip uninstall -y pytest codecov  # temporary override for broken cache
+      - run: pip install codecov pytest
+      - python/install-deps
+      - python/save-cache
       - run:
-          command: sudo pip install --upgrade pip
-          name: pipup 
-      - run:
-          command: sudo python setup.py install
+          command: pip install -e .
           name: setup
       - run:
-          name: test
-          command: |
-            coverage run -m pytest
-            coverage report
-            coverage html
-      - store_artifacts:
-          path: htmlcov
-orbs:
-  python: circleci/python@1.2.0
-version: 2.1
+          command: pytest ./tests
+          name: tests
+      - run:
+          command: codecov
+          name: codecov
+
+
 workflows:
   main:
     jobs:
-      - build
+      - build-and-test
