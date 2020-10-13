@@ -56,27 +56,28 @@ def nsp_batch(data, batch_size, tokenizer):
             
 def main(hparams):
     # Args
-    config = bittensor.Config( hparams )
     learning_rate = 0.01 
     batch_size = 10
     epoch_size = 50
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # Dataset: 74 million sentences pulled from books.
-    dataset = load_dataset('bookcorpus')
+ 
+    # Setup Bittensor.
+    # Create background objects.
+    # Connect the metagraph.
+    # Start the axon server.
+    config = bittensor.Config.from_hparams( hparams )
+    logger.info(config)
+    bittensor.init( config )
+    bittensor.start()
 
     # Build Synapse
     model_config = transformers.modeling_bert.BertConfig(vocab_size=bittensor.__vocab_size__, hidden_size=bittensor.__network_dim__, num_hidden_layers=2, num_attention_heads=2, intermediate_size=512, is_decoder=False)
     model = BertNSPSynapse(model_config)
     model.to(device)
-
-    # Setup Bittensor.
-    # Create background objects.
-    # Connect the metagraph.
-    # Start the axon server.
-    bittensor.init( config )
     bittensor.serve( model )
-    bittensor.start()
+
+    # Dataset: 74 million sentences pulled from books.
+    dataset = load_dataset('bookcorpus')
   
     # Optimizer.
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
