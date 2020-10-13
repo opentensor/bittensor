@@ -202,15 +202,15 @@ class _RemoteModuleCall(torch.autograd.Function):
             # Error making remote request.
             logger.error("Error making forward call to {} with error {}", RemoteSynapse, ire)
             return torch.zeros((inputs.size(0), bittensor.__network_dim__))
-         except EmptyTensorException as ete:
+        except EmptyTensorException as ete:
             outputs = torch.zeros((inputs.size(0), bittensor.__network_dim__))
 
         # Check batch_size.
         # TODO(const) check sequence_len when images have sequence len.
-        if output.size(0) != inputs.size(0):    
+        if outputs.size(0) != inputs.size(0):    
             return torch.zeros((inputs.size(0), bittensor.__network_dim__))
 
-        return output
+        return outputs
 
     @staticmethod
     @once_differentiable
