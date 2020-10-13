@@ -5,7 +5,7 @@ from bittensor.serializer import PyTorchSerializer
 from loguru import logger
 from typing import List, Tuple, Dict, Optional
 
-from bittensor.exceptions.ResponseExceptions import EmptyTensorException
+from bittensor.exceptions.ResponseExceptions import EmptyTensorException, ResponseShapeException
 
 import bittensor
 import os
@@ -23,40 +23,83 @@ class Dendrite(nn.Module):
         super().__init__()
         self._config = config
         self._remotes = {}
-        
-    # TODO (const): connection handling.
-    # Cleaning remote connections and updating signatures.
-    def run(self):
-        pass
     
     def forward_text(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
-        """ forward tensor processes """
+        r""" Forward text inputs to synapses.
+
+            Args:
+                synapses (:obj:`List[bittensor_pb2.Synapse]` of shape :obj:`(num_synapses)`, `required`): 
+                    List of remote synapses which match length of x. Tensors from x are sent forward to these synapses.
+
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_synapses * [batch_size, sequence_len])`, `required`): 
+                    List of tensors to send to corresponsing synapses. Tensors are text input_ids encoded using the
+                    bittensor tokenizer of shape [batch_size, sequence_len].
+            
+            Returns:
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`): 
+                    Output encodings of inputs produced by remote synapses. Non-responses are zeroes of common shape.
+        """
         if len(x[0].shape) != 2:
-            logger.error('Incorrect serialization for text inputs: {}', list(x[0].shape))
-            logger.error('Text tokenization should be [batch_size, sequence_len]')
-            assert False
+            raise ValueError('Text inputs should rank 2 with semantic shape: [batch_size, sequence_len]')
         return self.forward(synapses, x, bittensor_pb2.Modality.TEXT)
     
     def forward_image(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
-        """ forward tensor processes """
+        r""" Forward image inputs to synapses.
+
+            Args:
+                synapses (:obj:`List[bittensor_pb2.Synapse]` of shape :obj:`(num_synapses)`, `required`): 
+                    List of remote synapses which match length of x. Tensors from x are sent forward to these synapses.
+
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_synapses * [batch_size, sequence_len, channels, rows, cols])`, `required`): 
+                    List of image-tensors to send to corresponsing synapses. Tensors are images encoded using the
+                    torch.toTensor() or other encoding which produces the shape [batch_size, channels, rows, cols].
+            
+            Returns:
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`): 
+                    Output encodings of images produced by remote synapses. Non-responses are zeroes of common shape.
+        """
         # TODO(const): Checks across all tensors and other shape checks.
-        # TODO(const): Add sequence length.
-        if len(x[0].shape) != 4:
-            logger.error('Incorrect shape for image inputs: {}', list(x[0].shape))
-            logger.error('Image inputs should be [batch_size, channels, rows, cols]')
-            assert False
+        if len(x[0].shape) != 5:
+            raise ValueError('Image inputs should be rank 5 with semantic shape: [batch_size, sequence_dim, channels, rows, cols]')
         return self.forward(synapses, x, bittensor_pb2.Modality.IMAGE)
     
     def forward_tensor(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
-        """ forward tensor processes """
+        r""" Forward tensor inputs to synapses.
+
+            Args:
+                synapses (:obj:`List[bittensor_pb2.Synapse]` of shape :obj:`(num_synapses)`, `required`): 
+                    List of remote synapses which match length of x. Tensors from x are sent forward to these synapses.
+
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_synapses * [batch_size, sequence_len, feature_len])`, `required`): 
+                    List of tensors to send to corresponsing synapses. Tensors are of arbitrary type and
+                    with shape [batch_size, sequence_len, feature_len].
+            
+            Returns:
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_synapses * (batch_size, sequence_len, bittensor.network_size)]`, `required`): 
+                    Output encodings of tensors produced by remote synapses. Non-responses are zeroes of common shape.
+        """
         if len(x[0].shape) != 3:
-            logger.error('Incorrect shape for tensor inputs: {}', list(x[0].shape))
-            logger.error('Image inputs should be [batch_size, sequence_len, feature_len]')
-            assert False
+            raise ValueError('Tensor inputs should be rank 3 with semantic shape: [batch_size, sequence_len, feature_len]')
         return self.forward(synapses, x, bittensor_pb2.Modality.TENSOR)
     
     def forward(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ], mode: bittensor_pb2.Modality) -> List[torch.Tensor]:
-        """ forward tensor processes """
+        r""" Forward tensor inputs to synapses.
+
+            Args:
+                synapses (:obj:`List[bittensor_pb2.Synapse]` of shape :obj:`(num_synapses)`, `required`): 
+                    List of remote synapses which match length of x. Tensors from x are sent forward to these synapses.
+
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_synapses * [shape])`, `required`): 
+                    List of tensors to send to corresponsing synapses. Tensors are of arbitrary type and shape depending on the 
+                    modality.
+
+                mode (:obj:`bittensor_pb2.Modality` of shape :obj:`(1)`, `required`): 
+                    Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
+            
+            Returns:
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_synapses * (batch_size, sequence_len, bittensor.network_size)]`, `required`): 
+                    Output encodings of tensors produced by remote synapses. Non-responses are zeroes of common shape.
+        """
         results = []
         for idx, synapse in enumerate(synapses):
             forward_inputs = x[ idx ]
@@ -109,10 +152,6 @@ class RemoteSynapse(nn.Module):
             self.channel.close()
 
     def forward(self, inputs: torch.Tensor, mode: bittensor_pb2.Modality) -> torch.Tensor:
-        # TODO (const) compare schema
-        # assert schema shape and size. raise type error.
-        # if not check_schema(inputs, self.synapse.forward_schema):
-        #    raise TypeError(f"Inputs do not match expert input schema. Did you pass the right number of parameters?")
         # TODO (const): consistend packing.
         # flattened = flatten(inputs)
         # Note: (hivemind) we send DUMMY to prevent torch from excluding expert from backward if no other inputs require grad

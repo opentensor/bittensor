@@ -55,22 +55,31 @@ class MnistSynapse(bittensor.Synapse):
         r""" Forward pass inputs and labels through the NSP BERT module.
 
             Args:
-                inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, -1, -1, -1)`, `required`): 
+                inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, -1, -1, -1)`, `required`): 
                     batch_size list of image tensors. (batch index, channel, row, col) produced for images
                     by calling PIL.toTensor()
             
             Returns:
-                local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.network_size)`, `required`): 
+                local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.network_size)`, `required`): 
                     Output encoding of inputs produced using the student model as context.
         """
-        return self.forward (images = images, query = False) ['local_output']
+        # Reshape from [batch_size, sequence_len, channels, rows, cols] -> [batch_size, sequence_len, channels, rows, cols] 
+        # Then back to fit sequence dim.
+        images = images.view(images.shape[0] * images.shape[1], images.shape[2], images.shape[3], images.shape[4])
+
+        # Forward non-sequential_images.
+        local_output = self.forward (images = images, query = False) ['local_output']
+        
+        # Reshape adding back the sequence dim.
+        local_output = local_output.view(images.shape[0], images.shape[1], bittensor.__network_dim__)
+        return local_output
 
     def forward (   self, 
                     images: torch.Tensor,
                     labels: torch.Tensor = None,
                     query: bool = False):
 
-        r""" Forward pass inputs and labels through the MNIST model.
+        r""" Forward pass non-sequential image inputs and labels through the MNIST model.
 
             Args:
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, -1, -1, -1)`, `required`): 
@@ -133,10 +142,12 @@ class MnistSynapse(bittensor.Synapse):
         # If query == True make a remote network call.
         # network: torch.Tensor(batch_size, bittensor.__network_dim__)
         if query:
+            images = torch.unsqueeze(images, 1) # Add sequence dimension.
             synapses = bittensor.metagraph.synapses() # Returns a list of synapses on the network.
             requests, _ = self.router.route( synapses, transform, images ) # routes inputs to network.
             responses = bittensor.dendrite.forward_image( synapses, requests ) # Makes network calls.
             network = self.router.join( responses ) # Joins responses based on scores..
+            network = network.view(network.shape[0] * network.shape[1], network.shape[2]) # Squeeze the sequence dimension.
 
         # student: torch.Tensor(batch_size, bittensor.network_dim)
         # The student model distills from the network and is used

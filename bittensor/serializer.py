@@ -76,11 +76,11 @@ class PyTorchSerializer():
             raise NotImplementedError
    
     @staticmethod
-    def serialize(tensor: object, modality: bittensor_pb2.Modality) -> bittensor_pb2.Tensor:
+    def serialize(tensor: torch.Tensor, modality: bittensor_pb2.Modality) -> bittensor_pb2.Tensor:
         """Serializes a object with modality into a bittensor Tensor proto.
 
         Args:
-            tensor (object): general object with modality TEXT, IMAGE, TENSOR
+            tensor (torch.Tensor): torch.Tensor object with modality TEXT, IMAGE, TENSOR
 
         Returns:
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
@@ -100,11 +100,11 @@ class PyTorchSerializer():
             
 
     @staticmethod
-    def serialize_text(tensor: List[str]) -> bittensor_pb2.Tensor:
-        """Serializes a List[str] to an bittensor Tensor proto.
+    def serialize_text(tensor: torch.Tensor) -> bittensor_pb2.Tensor:
+        """Serializes a torch.Tensor to an bittensor Tensor proto.
 
         Args:
-            tensor (List[str]): A list of strings.
+            tensor (torch.Tensor): A list of strings.
 
         Returns:
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
