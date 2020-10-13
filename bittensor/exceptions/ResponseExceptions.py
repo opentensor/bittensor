@@ -3,5 +3,10 @@ class EmptyTensorException (Exception):
     pass
 
 class ResponseShapeException (Exception):
-    """ Raised when tensor included in the response has an incorrect shape """
+    """ Raised when a response message has an improper shape """
     pass
+
+class RequestShapeException (Exception):
+    """ Raised when a request message has an improper shape """
+    pass
+

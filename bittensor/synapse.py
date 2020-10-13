@@ -21,20 +21,42 @@ class Synapse(nn.Module):
         return self._synapse_key
 
     def forward_text(self, inputs: torch.Tensor):
-        """
-            Apply forward pass to the bittensor.synapse given inputs text inputs.
+        """ Local forward inputs through the bittensor.Synapse. To be implemented by sub-classes.
+
+            Args:
+                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                    Batch_size length list of text sentences.
+            
+            Returns:
+                local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Output encoding of inputs produced by the synapse.
         """
         raise NotImplementedError
         
     def forward_image(self, inputs: torch.Tensor):
-        """
-            Apply forward pass to the bittensor.synapse given image inputs.
+        r""" Forward pass inputs through the bittensor.synapse. To be implemented by sub-classes.
+
+            Args:
+                inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
+                    batch_size list of image tensors. (batch index, sequence_len, channel, row, col) produced for images
+                    by calling PIL.toTensor().
+            
+            Returns:
+                local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.network_size)`, `required`): 
+                    Output encoding of inputs produced by the synapse.
         """
         raise NotImplementedError
 
     def forward_tensor(self, inputs: torch.Tensor):
-        """
-            Apply forward pass to the bittensor.synapse given tensor inputs.
+        """ Forward tensor inputs through the bittensor.synapse. To be implemented by sub-classes.
+
+            Args:
+                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Batch_size length sequences of tensors.
+            
+            Returns:
+                local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Output encoding of inputs produced by the synapse.
         """
         raise NotImplementedError
            
