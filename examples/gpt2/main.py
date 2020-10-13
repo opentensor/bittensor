@@ -38,14 +38,19 @@ def nextbatch(data, batch_size, tokenizer):
             
 def main(hparams):
     # Args
-    config = bittensor.Config( hparams )
     learning_rate = 0.01 
     batch_size = 20
     epoch_size = 50
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Dataset: 74 million sentences pulled from books.
-    dataset = load_dataset('bookcorpus')['train']
+    # Setup Bittensor.
+    # Create background objects.
+    # Connect the metagraph.
+    # Start the axon server.
+    config = bittensor.Config.from_hparams( hparams )
+    logger.info(config)
+    bittensor.init( config )
+    bittensor.start()
 
     # Build Synapse
     model_config = GPT2Config(  vocab_size=bittensor.__vocab_size__, 
@@ -68,14 +73,11 @@ def main(hparams):
                                 eos_token_id=50256)    
     model = GPT2LMSynapse(model_config)
     model.to(device)
-
-    # Setup Bittensor.
-    # Create background objects.
-    # Connect the metagraph.
-    # Start the axon server.
-    bittensor.init( config )
     bittensor.serve( model )
-    bittensor.start()
+
+    # Dataset: 74 million sentences pulled from books.
+    dataset = load_dataset('bookcorpus')['train']
+
   
     # Optimizer.
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
