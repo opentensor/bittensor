@@ -156,8 +156,7 @@ def main(hparams):
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
-            bittensor.metagraph.stop()
-            bittensor.axon.stop()
+            bittensor.stop()
             break
 
 if __name__ == "__main__":
