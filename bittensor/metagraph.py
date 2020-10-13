@@ -99,13 +99,11 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         realized_address = metagraph_address
         if metagraph_address.split(':')[0] == self._config.remote_ip:
             realized_address = 'localhost:' + str(metagraph_address.split(":")[1])
-            
         try:
-
             channel = grpc.insecure_channel(realized_address)
             stub = bittensor_grpc.MetagraphStub(channel)
             request = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses)
-            response = stub.Gossip(request)
+            response = stub.Gossip(request, timeout=0.5)
             self._sink(response)
         except Exception as e:
             # Faulty peer.
@@ -132,7 +130,10 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
                 self.do_gossip()
                 if len(self._peers) > 0:
                     self.do_clean(15)
-                time.sleep(10)
+                for _ in range(10 * 10):
+                    time.sleep(0.1)
+                    if not self._running:
+                        break
         except (KeyboardInterrupt, SystemExit) as e:
             logger.info('stop metagraph')
             self._running = False
