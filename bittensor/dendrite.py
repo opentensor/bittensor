@@ -199,7 +199,7 @@ class _RemoteModuleCall(torch.autograd.Function):
                 raise EmptyTensorException
 
             # Check batch_size.
-            if output.size(0) != inputs.size(0) or output.size(1) != inputs.size(1):    
+            if outputs.size(0) != inputs.size(0) or outputs.size(1) != inputs.size(1):    
                 raise ResponseShapeException
           
         # Catch Errors and return zeros.
