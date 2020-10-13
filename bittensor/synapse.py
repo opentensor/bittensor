@@ -1,5 +1,6 @@
 from typing import List, Tuple, Dict, Optional
 
+from loguru import logger
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -37,20 +38,28 @@ class Synapse(nn.Module):
         """
         raise NotImplementedError
            
-    def call_forward(self, inputs: object, modality: bittensor_pb2.Modality) -> torch.Tensor:
+    def call_forward(self, inputs: torch.Tensor, modality: bittensor_pb2.Modality) -> torch.Tensor:
         """
         Apply forward pass to the bittensor.synapse given inputs and modality.
         """
         # TODO(const): check schema (inputs, input_schema)
         with torch.no_grad():
-            if modality == bittensor_pb2.Modality.TEXT:
-                outputs = self.forward_text(inputs)
-            elif modality == bittensor_pb2.Modality.IMAGE:
-                outputs = self.forward_image(inputs)
-            elif modality == bittensor_pb2.Modality.TENSOR:
-                outputs = self.forward_tensor(inputs)  
-            else:
-                raise NotImplementedError
+            try:
+                if modality == bittensor_pb2.Modality.TEXT:
+                    outputs = self.forward_text(inputs)
+                elif modality == bittensor_pb2.Modality.IMAGE:
+                    outputs = self.forward_image(inputs)
+                elif modality == bittensor_pb2.Modality.TENSOR:
+                    outputs = self.forward_tensor(inputs)  
+                else:
+                    raise NotImplementedError
+            except NotImplementedError:
+                # Input modality not implemented.
+                # Returns None.
+                return None
+            except Exception as e:
+                logger.error(e)
+                return None
         return outputs
     
     def call_backward(self, inputs: object, grads: torch.Tensor)-> torch.Tensor:
