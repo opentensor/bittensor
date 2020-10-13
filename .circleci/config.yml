@@ -3,7 +3,9 @@ jobs:
     executor: python/default
     steps:
       - checkout
-      - run: sudo pip install codecov pytest grpcio-tools
+      - run: sudo pip install codecov 
+      - run: sudo pip install grpcio
+      - run: sudo pip install grpcio-tools
       - run: sudo pip install pytest
       - python/save-cache
       - run:
