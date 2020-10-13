@@ -16,7 +16,7 @@ def random_synapse():
         synapse_key = bittensor.crypto.Crypto.public_key_to_string(public_key),
         address = '0.0.0.0',
         port = '12231',
-        block_hash = bittensor.crypto.Crypto.lastest_block_hash()
+        block_hash = None
     )
     return synapse
 
@@ -98,3 +98,9 @@ def test_router_fail_context_size():
     synapses = [random_synapse() for _ in range(n_synapses)]
     with pytest.raises(ValueError, match=r"Ensure that x.size"):
         _ , _ = router.route( synapses, context, inputs )
+
+
+if __name__ == "__main__": 
+    test_router_fail_context_size()
+    test_router_large_inputs()
+    test_router_correct()
