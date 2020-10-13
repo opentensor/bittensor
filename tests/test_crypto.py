@@ -25,13 +25,13 @@ def random_synapse():
 
 def test_proof_of_work():
     difficulty = 1
-    private, synapse = random_synapse()
+    _, synapse = random_synapse()
     synapse = Crypto.fill_proof_of_work(synapse, difficulty)
-    assert Crypto.count_zeros(synapse.proof_of_work) == difficulty
+    assert Crypto.count_zeros(synapse.proof_of_work) >= difficulty
 
 def test_false_proof_of_work():
     difficulty = 1
-    private, synapse = random_synapse()
+    _, synapse = random_synapse()
     synapse = Crypto.fill_proof_of_work(synapse, difficulty)
     synapse.proof_of_work = os.urandom(256)
     assert Crypto.count_zeros(synapse.proof_of_work) != difficulty
