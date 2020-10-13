@@ -118,8 +118,6 @@ def test_mnist_synapse_swarm():
             logger.info('stopping axon {}', i)
             axon.stop()
 
-
-
 class NullSynapse(bittensor.Synapse):
     """ Bittensor endpoint trained on PIL images to detect handwritten characters.
     """
