@@ -1,11 +1,13 @@
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
 from bittensor.serializer import PyTorchSerializer
-import bittensor
 
 from loguru import logger
 from typing import List, Tuple, Dict, Optional
 
+from bittensor.exceptions.ResponseExceptions import EmptyTensorException
+
+import bittensor
 import os
 import grpc
 import PIL
@@ -86,7 +88,10 @@ class RemoteSynapse(nn.Module):
         self.local_neuron_key = config.neuron_key       
         # Loop back if the synapse is local.
         if synapse.address == config.remote_ip:
-            self.endpoint = 'localhost:' + synapse.port
+            ip = "localhost:"
+            if config.remote_ip == "host.docker.internal":
+                ip = "host.docker.internal:"
+            self.endpoint = ip + synapse.port
         else:
             self.endpoint = synapse.address + ':' + synapse.port
         # TODO(const): should accept defaults. config = bittensor.config_or_defaults(config) 
@@ -148,9 +153,15 @@ class _RemoteModuleCall(torch.autograd.Function):
         try:
             response = ctx.caller.stub.Forward(request)                
             # Deserialize outputs and return.
-            outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
+            if len(response.tensors) > 0:
+                outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
+            else:
+                raise EmptyTensorException
+            
         except grpc._channel._InactiveRpcError as ire:
             #logger.error("Could not forward() to peer: {}".format(ire))
+            outputs = torch.zeros((inputs.size(0), bittensor.__network_dim__))
+        except EmptyTensorException as ete:
             outputs = torch.zeros((inputs.size(0), bittensor.__network_dim__))
         
         return outputs
