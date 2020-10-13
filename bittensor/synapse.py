@@ -16,9 +16,21 @@ class Synapse(nn.Module):
         self._synapse_key = bittensor.Crypto.public_key_to_string(bittensor.Crypto.generate_private_ed25519().public_key())
         self.optimizer = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self._loss = .0
+        self._accuracy = .0
             
     def synapse_key(self) -> str:
         return self._synapse_key
+
+    def set_synapse_stats(self, loss, accuracy):
+        self.loss = loss
+        self.accuracy = accuracy
+    
+    def loss(self) -> float:
+        return self._loss
+
+    def accuracy(self) -> float:
+        return self._accuracy
 
     def forward_text(self, inputs: torch.Tensor):
         """

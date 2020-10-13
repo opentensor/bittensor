@@ -17,7 +17,7 @@ service Metagraph {
 // Batch of neuron service definitions.
 message GossipBatch {
 	// SIZE: 32-bits (4-bytes)
-	float version = 1;
+	string version = 1;
 	// List of metagraph peer addresses..
 	repeated string peers = 2;
 	// Synapse endpoint definitions.
@@ -72,6 +72,12 @@ message Synapse {
 	// SIZE: 32-bits (4-bytes)
 	string port = 5;
 
+	// Present loss of this synapse at the current Epoch
+	float loss = 6;
+
+	// Presnet accuracy of this synapse at the current Epoch 
+	float accuracy = 7;
+
 	// Block hash: [OPTIONAL] hash of latest chain block service definition creation.
 	// Links the bellow POW to a global-time protecting the cache from
 	// long range POW attacks. Allows services to gossip synpase definitions that 
@@ -124,6 +130,7 @@ message Synapse {
 	// signature = private_key.sign(digest) # to create.
 	// >>> source_key.verify(signature, digest) # to verify.
 	bytes signature = 11;
+
 }	
 
 // TensorMessage

@@ -14,7 +14,6 @@ from bittensor import bittensor_pb2
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 import bittensor
 
-import bittensor
 
 class Metagraph(bittensor_grpc.MetagraphServicer):
     def __init__(self, config: bittensor.Config):
@@ -105,6 +104,7 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
             channel = grpc.insecure_channel(realized_address)
             stub = bittensor_grpc.MetagraphStub(channel)
             request = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses)
+            logger.info("Request: {}".format(request))
             response = stub.Gossip(request)
             self._sink(response)
         except Exception as e:
@@ -218,6 +218,8 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
             synapse_key = synapse.synapse_key(), 
             address = self._config.remote_ip, 
             port = self._config.axon_port, 
+            loss = synapse.loss(),
+            accuracy = synapse.accuracy()
         )
         self._subscribe(synapse_proto)
         

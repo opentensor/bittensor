@@ -1,4 +1,5 @@
 argparse
+pyyaml
 coverage
 cryptography
 datasets
