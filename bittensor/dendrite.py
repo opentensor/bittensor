@@ -199,23 +199,11 @@ class _RemoteModuleCall(torch.autograd.Function):
                 raise EmptyTensorException
 
             # Check batch_size.
-            if output.size(0) != inputs.size(0):    
+            if output.size(0) != inputs.size(0) or output.size(1) != inputs.size(1):    
                 raise ResponseShapeException
-
-            # Check sequence dim.
-            if output.size(1) != inputs.size(1):    
-                raise ResponseShapeException
-            
+          
         # Catch Errors and return zeros.
-        except grpc._channel._InactiveRpcError as ire:
-            outputs = torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__))
-        except EmptyTensorException as ete:
-            outputs = torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__))
-        except ResponseShapeException as ibd:
-            outputs = torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__))
-        except ResponseShapeException as isd:
-            outputs = torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__))
-        except Exception as e:
+        except (grpc._channel._InactiveRpcError, EmptyTensorException, ResponseShapeException) as e:
             outputs = torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__))
 
         return outputs
