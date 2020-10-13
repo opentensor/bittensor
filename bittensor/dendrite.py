@@ -5,7 +5,7 @@ from bittensor.serializer import PyTorchSerializer
 from loguru import logger
 from typing import List, Tuple, Dict, Optional
 
-from bittensor.exceptions.ResponseExceptions import EmptyTensorException
+from bittensor.exceptions.ResponseExceptions import EmptyTensorException, ResponseShapeException
 
 import bittensor
 import os
@@ -50,7 +50,7 @@ class Dendrite(nn.Module):
                 synapses (:obj:`List[bittensor_pb2.Synapse]` of shape :obj:`(num_synapses)`, `required`): 
                     List of remote synapses which match length of x. Tensors from x are sent forward to these synapses.
 
-                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_synapses * [batch_size, channels, rows, cols])`, `required`): 
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_synapses * [batch_size, sequence_len, channels, rows, cols])`, `required`): 
                     List of image-tensors to send to corresponsing synapses. Tensors are images encoded using the
                     torch.toTensor() or other encoding which produces the shape [batch_size, channels, rows, cols].
             
@@ -59,9 +59,8 @@ class Dendrite(nn.Module):
                     Output encodings of images produced by remote synapses. Non-responses are zeroes of common shape.
         """
         # TODO(const): Checks across all tensors and other shape checks.
-        # TODO(const): Add sequence length.
-        if len(x[0].shape) != 4:
-            raise ValueError('Image inputs should be rank 4 with semantic shape: [batch_size, channels, rows, cols]')
+        if len(x[0].shape) != 5:
+            raise ValueError('Image inputs should be rank 5 with semantic shape: [batch_size, sequence_dim, channels, rows, cols]')
         return self.forward(synapses, x, bittensor_pb2.Modality.IMAGE)
     
     def forward_tensor(self, synapses: List[bittensor_pb2.Synapse], x: List[ torch.Tensor ]) -> List[torch.Tensor]:
@@ -188,27 +187,24 @@ class _RemoteModuleCall(torch.autograd.Function):
                                                 signature = ctx.caller.signature,
                                                 tensors = [serialized_inputs]
                                             )
-        
-        # Make RPC call.
+              # Make RPC call.
         try:
-            response = ctx.caller.stub.Forward(request)          
+            # Forward tensor.
+            response = ctx.caller.stub.Forward(request)       
+
             # Deserialize outputs and return.
             if len(response.tensors) > 0:
                 outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
             else:
                 raise EmptyTensorException
 
-        except grpc._channel._InactiveRpcError as ire:
-            # Error making remote request.
-            logger.error("Error making forward call to {} with error {}", RemoteSynapse, ire)
-            return torch.zeros((inputs.size(0), bittensor.__network_dim__))
-        except EmptyTensorException as ete:
-            outputs = torch.zeros((inputs.size(0), bittensor.__network_dim__))
-
-        # Check batch_size.
-        # TODO(const) check sequence_len when images have sequence len.
-        if outputs.size(0) != inputs.size(0):    
-            return torch.zeros((inputs.size(0), bittensor.__network_dim__))
+            # Check batch_size.
+            if output.size(0) != inputs.size(0) or output.size(1) != inputs.size(1):    
+                raise ResponseShapeException
+          
+        # Catch Errors and return zeros.
+        except (grpc._channel._InactiveRpcError, EmptyTensorException, ResponseShapeException) as e:
+            outputs = torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__))
 
         return outputs
 
