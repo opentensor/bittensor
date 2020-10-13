@@ -148,22 +148,37 @@ class _RemoteModuleCall(torch.autograd.Function):
                                                 signature = ctx.caller.signature,
                                                 tensors = [serialized_inputs]
                                             )
-        
-        # Make rpc call.
+              # Make RPC call.
         try:
-            response = ctx.caller.stub.Forward(request)                
+            # Forward tensor.
+            response = ctx.caller.stub.Forward(request)       
+
             # Deserialize outputs and return.
             if len(response.tensors) > 0:
                 outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
             else:
                 raise EmptyTensorException
+
+            # Check batch_size.
+            if output.size(0) != inputs.size(0):    
+                raise ResponseShapeException
+
+            # Check sequence dim.
+            if output.size(1) != inputs.size(1):    
+                raise ResponseShapeException
             
+        # Catch Errors and return zeros.
         except grpc._channel._InactiveRpcError as ire:
-            #logger.error("Could not forward() to peer: {}".format(ire))
-            outputs = torch.zeros((inputs.size(0), bittensor.__network_dim__))
+            outputs = torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__))
         except EmptyTensorException as ete:
-            outputs = torch.zeros((inputs.size(0), bittensor.__network_dim__))
-        
+            outputs = torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__))
+        except ResponseShapeException as ibd:
+            outputs = torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__))
+        except ResponseShapeException as isd:
+            outputs = torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__))
+        except Exception as e:
+            outputs = torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__))
+
         return outputs
 
     @staticmethod
