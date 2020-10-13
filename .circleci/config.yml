@@ -1,21 +1,31 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+
 jobs:
-  build:
+  build-and-test:
     executor: python/default
+    docker:
+      - image: circleci/python:3.8.1
     steps:
       - checkout
-      - run: sudo pip install codecov pytest grpcio-tools
-      - run: sudo pip install pytest
+      - python/load-cache
+      - run: pip uninstall -y pytest codecov  # temporary override for broken cache
+      - run: pip install codecov pytest
+      - python/install-deps
       - python/save-cache
       - run:
-          command: sudo python setup.py develop
+          command: pip install -e .
           name: setup
       - run:
-          command: pytest ./tests --full-trace
-          name: test
-orbs:
-  python: circleci/python@0.1
-version: 2.1
+          command: pytest ./tests
+          name: tests
+      - run:
+          command: codecov
+          name: codecov
+
 workflows:
   main:
     jobs:
-      - build
+      - build-and-test
