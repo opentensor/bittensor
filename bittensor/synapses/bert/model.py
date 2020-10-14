@@ -24,7 +24,7 @@ class BertMLMSynapse(bittensor.Synapse):
         self.loss_fct = torch.nn.CrossEntropyLoss()
         
     def forward_text(self, inputs: torch.LongTensor):
-        """ Local forward inputs and labels through the NSP BERT Synapse.
+        """ Local forward inputs through the NSP BERT Synapse.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape ``(batch_size, sequence_length)``, `required`):
