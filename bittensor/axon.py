@@ -9,6 +9,7 @@ import torch
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
 from bittensor.serializer import PyTorchSerializer
+from bittensor.exceptions.ResponseExceptions import RequestShapeException
 import bittensor
 
 class Axon(bittensor_grpc.BittensorServicer):
@@ -74,20 +75,48 @@ class Axon(bittensor_grpc.BittensorServicer):
         
         # Deserialize the modality inputs to tensor.
         x = PyTorchSerializer.deserialize( inputs )
-                
-        # Call forward network.
-        y = synapse.call_forward( x , inputs.modality)
 
-        # Check y is realized. Otherwise return None.
-        y_serialized = None
-        if y != None:
+        # Check shaping contraints.
+        try:
+            if x.shape[0] <= 1:
+                raise RequestShapeException("request batch dim exception with batch_size = {} ".format(x.shape[0]))
+
+            if x.shape[1] <= 1:
+                raise RequestShapeException("request sequence dim exception with sequence_dim = {} ".format(x.shape[1]))
+
+            if inputs.modality == bittensor_pb2.Modality.TEXT:
+                if len(x.shape) != 2:
+                    raise RequestShapeException("text input shape exception with len(request.shape) = {} ".format(len(x.shape)))
+
+            elif inputs.modality == bittensor_pb2.Modality.IMAGE:
+                if len(x.shape) != 5:
+                    raise RequestShapeException("image input shape exception for len(shape) = {} ".format(len(x.shape)))
+
+            elif inputs.modality == bittensor_pb2.Modality.TENSOR:
+                if len(x.shape) != 3:
+                    raise RequestShapeException("tensor input shape exception len(shape) = {} ".format(len(x.shape)))
+        
+            # Call forward network. May call NotImplementedError:
+            y = synapse.call_forward(x, inputs.modality)
+
+            # Serialize.
             y_serialized = [PyTorchSerializer.serialize_tensor(y)]
 
-        response = bittensor_pb2.TensorMessage(
-            version = bittensor.__version__,
-            neuron_key = self._config.neuron_key,
-            synapse_key = request.synapse_key,
-            tensors = y_serialized)
+            # Build response.
+            response = bittensor_pb2.TensorMessage(
+                version = bittensor.__version__,
+                neuron_key = self._config.neuron_key,
+                synapse_key = request.synapse_key,
+                tensors = y_serialized
+            )
+                
+        except (RequestShapeException, NotImplementedError) as e:
+            # Build null response.
+            response = bittensor_pb2.TensorMessage (
+                version = bittensor.__version__,
+                neuron_key = self._config.neuron_key,
+                synapse_key = request.synapse_key
+            )
         
         return response
 

@@ -9,6 +9,7 @@ Example:
 
 import bittensor
 
+from loguru import logger
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -19,8 +20,37 @@ from typing import List, Tuple, Dict, Optional
 class MnistSynapse(bittensor.Synapse):
     """ Bittensor endpoint trained on PIL images to detect handwritten characters.
     """
-    def __init__(self):
+    def __init__(   self, 
+                     dendrite: bittensor.Dendrite = None,
+                     metagraph: bittensor.Metagraph = None):
+        r""" Init a new mnist synapse module.
+
+            Args:
+                dendrite (:obj:`bittensor.Dendrite`, `optional`): 
+                    bittensor dendrite object used for queries to remote synapses.
+                    Defaults to bittensor.dendrite global.
+
+                metagraph (:obj:`bittensor.Metagraph`, `optional`): 
+                    bittensor metagraph containing network graph information. 
+                    Defaults to bittensor.metagraph global.
+
+            Returns:
+                local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.network_size)`, `required`): 
+                    Output encoding of inputs produced using the student model as context.
+        """
         super(MnistSynapse, self).__init__()
+
+        # Bittensor dendrite object used for queries to remote synapses.
+        # Defaults to bittensor.dendrite global object.
+        self.dendrite = dendrite
+        if self.dendrite == None:
+            self.dendrite = bittensor.dendrite
+
+        # Bttensor metagraph containing network graph information. 
+        # Defaults to bittensor.metagraph global object.
+        self.metagraph = metagraph
+        if self.metagraph == None:
+            self.metagraph = bittensor.metagraph
 
         # Set up device.
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -52,7 +82,7 @@ class MnistSynapse(bittensor.Synapse):
         self.target_layer3 = nn.Linear(256, 10)
 
     def forward_image(self, images: torch.Tensor):
-        r""" Forward pass inputs and labels through the NSP BERT module.
+        r""" Forward image inputs through the mnist synapse.
 
             Args:
                 inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, -1, -1, -1)`, `required`): 
@@ -143,9 +173,9 @@ class MnistSynapse(bittensor.Synapse):
         # network: torch.Tensor(batch_size, bittensor.__network_dim__)
         if query:
             images = torch.unsqueeze(images, 1) # Add sequence dimension.
-            synapses = bittensor.metagraph.synapses() # Returns a list of synapses on the network.
+            synapses = self.metagraph.synapses() # Returns a list of synapses on the network.
             requests, _ = self.router.route( synapses, transform, images ) # routes inputs to network.
-            responses = bittensor.dendrite.forward_image( synapses, requests ) # Makes network calls.
+            responses = self.dendrite.forward_image( synapses, requests ) # Makes network calls.
             network = self.router.join( responses ) # Joins responses based on scores..
             network = network.view(network.shape[0] * network.shape[1], network.shape[2]) # Squeeze the sequence dimension.
 
