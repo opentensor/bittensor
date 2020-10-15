@@ -4,7 +4,6 @@ This file demonstrates a training pipeline for an MNIST Neuron.
 
 Example:
         $ python examples/mnist/main.py
-
 """
 
 import bittensor
@@ -36,7 +35,7 @@ def main(hparams):
     log_interval = 10
     epoch = 0
     global_step = 0
-    trial_uid = 'mnist -' + str(time.time()).split('.')[0]
+    trial_uid = "mnist-{}".format(str(time.time()).split('.')[0])
     best_test_loss = math.inf
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
    
