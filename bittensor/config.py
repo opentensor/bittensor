@@ -35,7 +35,11 @@ class Config(object):
     __metagraph_size_default__ = 10000
     __bootstrap_default__ = ""
     __neuron_key_default__ = Crypto.public_key_to_string(Crypto.generate_private_ed25519().public_key())
-    __remote_ip_default__ = requests.get('https://api.ipify.org').text
+    try:
+        __remote_ip_default__ = requests.get('https://api.ipify.org').text
+    except:
+        __remote_ip_default__ = 'localhost'
+
     __datapath_default__ = "data/"
 
     def __init__(self, **kwargs):

@@ -15,7 +15,7 @@ import bittensor
 from bittensor.synapses.mnist.model import MnistSynapse
 
 def test_mnist_swarm_loss():
-    n = 2
+    n = 1
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     meta_ports = [x for x in range(8000, 8000 + n)]
     axon_ports = [x for x in range(9000, 9000 + n)]
@@ -84,7 +84,7 @@ def test_mnist_swarm_loss():
             meta.stop()
 
     logger.info('Load Mnist dataset.')
-    batch_size_train = 200
+    batch_size_train = 64
     train_data = torchvision.datasets.MNIST(root = configs[0].datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
     trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size_train, shuffle=True, num_workers=2)
 
@@ -95,27 +95,37 @@ def test_mnist_swarm_loss():
             axon.start()
             logger.info('start axon {}', i)
 
-        losses = [0 for _ in synapses]
-        accuracy = [0 for _ in synapses]
-        batches = 500
         epochs = 10
-        for _ in range(epochs):
+        log_interval = 10
+        logger.info('Train ...')
+        for epoch in range(epochs):
             for i, model in enumerate(synapses):
+                correct = 0.0
+                total_epoch = 0
                 for batch_idx, (images, labels) in enumerate(trainloader):
+                    # Clear gradients on model parameters.
                     optimizers[i].zero_grad()
-                    images = images.to(device)
+
+                    # Targets and images to correct device.
                     labels = torch.LongTensor(labels).to(device)
-                    output = model(images, labels, query = True)
-                    loss = output['loss']
+                    images = images.to(device)
+                    
+                    # Computes model outputs and loss.
+                    output = model(images, labels, query = False)
+
+                    # Loss and step.
                     max_logit = output['local_target'].data.max(1, keepdim=True)[1]
-                    correct = max_logit.eq( labels.data.view_as(max_logit) ).sum()  
+                    correct += max_logit.eq( labels.data.view_as(max_logit) ).sum()
+                    loss = output['loss']
                     loss.backward()
                     optimizers[i].step()
-                    losses[i] = (1 - 0.1) * losses[i] +  0.1 * loss.item()
-                    accuracy[i] = (1 - 0.1) * accuracy[i] + (0.1 / batch_size_train) * correct.item() 
-                    if batch_idx > batches:
-                        break
-                    logger.info('loss/acc: {}', list(zip(losses, accuracy)))
+                    total_epoch += batch_size_train
+
+                    if batch_idx % log_interval == 0:
+                        n = len(train_data)
+                        accuracy = (100. * correct.item()) / total_epoch
+                        logger.info('Synapse {}, Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {}'.format(i,
+                            epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['local_target_loss'].item(), accuracy)) 
 
 
     except Exception as e:
@@ -213,7 +223,7 @@ def test_mnist_synapse_swarm():
             for i, model in enumerate(synapses): 
                 optimizer.zero_grad()
                 labels = torch.LongTensor(labels)
-                output = model(images, labels, query = True)
+                output = model(images, labels, query = False)
                 loss = output['loss']
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
                 loss.backward()
