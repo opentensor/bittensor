@@ -78,10 +78,10 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # Check shaping contraints.
         try:
-            if x.shape[0] <= 1:
+            if x.shape[0] < 1:
                 raise RequestShapeException("request batch dim exception with batch_size = {} ".format(x.shape[0]))
 
-            if x.shape[1] <= 1:
+            if x.shape[1] < 1:
                 raise RequestShapeException("request sequence dim exception with sequence_dim = {} ".format(x.shape[1]))
 
             if inputs.modality == bittensor_pb2.Modality.TEXT:

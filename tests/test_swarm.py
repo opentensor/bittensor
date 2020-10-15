@@ -15,8 +15,8 @@ import bittensor
 from bittensor.synapses.mnist.model import MnistSynapse
 
 def test_mnist_swarm_loss():
-    n = 5
-    batch_size_train = 64
+    n = 2
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     meta_ports = [x for x in range(8000, 8000 + n)]
     axon_ports = [x for x in range(9000, 9000 + n)]
     configs = []
@@ -43,9 +43,10 @@ def test_mnist_swarm_loss():
         dendrite = bittensor.Dendrite(config)
         
         synapse = MnistSynapse(dendrite, meta)
+        synapse.to( device )
         axon.serve( synapse )
         meta.subscribe( synapse )
-        optimizer = optim.SGD(synapse.parameters(), lr=0.1, momentum=0.9)
+        optimizer = optim.SGD(synapse.parameters(), lr=0.01, momentum=0.9)
 
         configs.append(config)
         axons.append(axon)
@@ -83,6 +84,7 @@ def test_mnist_swarm_loss():
             meta.stop()
 
     logger.info('Load Mnist dataset.')
+    batch_size_train = 200
     train_data = torchvision.datasets.MNIST(root = configs[0].datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
     trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size_train, shuffle=True, num_workers=2)
 
@@ -95,25 +97,26 @@ def test_mnist_swarm_loss():
 
         losses = [0 for _ in synapses]
         accuracy = [0 for _ in synapses]
+        batches = 500
         epochs = 10
-        batches = 100
-        for i, model in enumerate(synapses):
-            for batch_idx, (images, labels) in enumerate(trainloader):
-                optimizer.zero_grad()
-                labels = torch.LongTensor(labels)
-                output = model(images, labels, query = True)
-                loss = output['loss']
-                max_logit = output['local_target'].data.max(1, keepdim=True)[1]
-                correct = max_logit.eq( labels.data.view_as(max_logit) ).sum()  
-                loss.backward()
-                optimizers[i].step()
-                losses[i] = (1 - 0.1) * losses[i] +  0.1 * loss.item()
-                accuracy[i] = (1 - 0.1) * accuracy[i] + (0.1 / batch_size_train) * correct.item() 
-                if batch_idx > batches:
-                    break
-                logger.info('loss/acc: {}', list(zip(losses, accuracy)))
+        for _ in range(epochs):
+            for i, model in enumerate(synapses):
+                for batch_idx, (images, labels) in enumerate(trainloader):
+                    optimizers[i].zero_grad()
+                    images = images.to(device)
+                    labels = torch.LongTensor(labels).to(device)
+                    output = model(images, labels, query = True)
+                    loss = output['loss']
+                    max_logit = output['local_target'].data.max(1, keepdim=True)[1]
+                    correct = max_logit.eq( labels.data.view_as(max_logit) ).sum()  
+                    loss.backward()
+                    optimizers[i].step()
+                    losses[i] = (1 - 0.1) * losses[i] +  0.1 * loss.item()
+                    accuracy[i] = (1 - 0.1) * accuracy[i] + (0.1 / batch_size_train) * correct.item() 
+                    if batch_idx > batches:
+                        break
+                    logger.info('loss/acc: {}', list(zip(losses, accuracy)))
 
-            
 
     except Exception as e:
         exc_type, _, exc_tb = sys.exc_info()
