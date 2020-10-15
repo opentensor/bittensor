@@ -57,22 +57,27 @@ class MnistSynapse(bittensor.Synapse):
 
         # Image encoder: transforms variable shaped PIL tensors to a common shape.
         # Image.PIL.toTensor() -> [Image Encoder]
-        self._transform = bittensor.utils.batch_transforms.Normalize((0.1307,), (0.3081,))
-        self._adaptive_pool = nn.AdaptiveAvgPool2d((28, 28))
+        self.transform = bittensor.utils.batch_transforms.Normalize((0.1307,), (0.3081,))
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((28, 28))
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5) # transform_dim is now 320
+        self.conv2_drop = nn.Dropout2d()
+        transform_dim = 320
 
         # Router object for training network connectivity.
         # [Image Encoder] -> [ROUTER] -> [Synapses] -> [ROUTER]
-        self.router = bittensor.Router(x_dim = 784, key_dim = 100, topk = 10)
+        self.router = bittensor.Router(x_dim = transform_dim, key_dim = 100, topk = 10)
         
         # Forward Network: Transforms inputs and (student or network) context into 
         # a (batch_size, bittensor.__network_dim__) output. 
         # [Image Encoder + (Student or Network)] -> [Forward Net] -> [Target Net]
-        self.forward_layer1 = nn.Linear((784 + bittensor.__network_dim__), 512)
-        self.forward_layer2 = nn.Linear(512, bittensor.__network_dim__)
+        #self.forward_layer1 = nn.Linear((transform_dim + bittensor.__network_dim__), 512)
+        self.forward_layer1 = nn.Linear(transform_dim, transform_dim)
+        self.forward_layer2 = nn.Linear(transform_dim, bittensor.__network_dim__)
         
         # Student Network: Learns a mapping from inputs to network context.
         # [Image Encoder] -> [Student Net] -> [Forward Network]
-        self.student_layer1 = nn.Linear(784, 512)
+        self.student_layer1 = nn.Linear(transform_dim, 512)
         self.student_layer2 = nn.Linear(512, bittensor.__network_dim__)
         
         # Target Network: Transforms the model output to targets and loss.
@@ -80,6 +85,8 @@ class MnistSynapse(bittensor.Synapse):
         self.target_layer1 = nn.Linear(bittensor.__network_dim__, 256)
         self.target_layer2 = nn.Linear(256, 256)
         self.target_layer3 = nn.Linear(256, 10)
+
+        self.forward_dropout = nn.Dropout(p = 0.2 )
 
     def forward_image(self, images: torch.Tensor):
         r""" Forward image inputs through the mnist synapse.
@@ -159,22 +166,22 @@ class MnistSynapse(bittensor.Synapse):
         network_target_loss = None
         local_target_loss = None
         distillation_loss = None
+        scores = []
 
         # images: torch.Tensor(batch_size, -1, -1, -1)
-        # transform: torch.Tensor(batch_size, 784)
-        # The images are encoded to a standard shape 784 
-        # using an adaptive pooling layer and our normalization
-        # transform.
-        transform = self._transform(images)
-        transform = self._adaptive_pool(transform).to(self.device)
-        transform = torch.flatten(transform, start_dim = 1)
+        # transform: torch.Tensor(batch_size, transform_dim)
+        transform = self.transform(images)
+        transform = self.adaptive_pool(transform).to(self.device)
+        transform = F.relu(F.max_pool2d(self.conv1(transform), 2))
+        transform = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(transform)), 2))
+        transform = transform.view(-1, 320)
 
         # If query == True make a remote network call.
         # network: torch.Tensor(batch_size, bittensor.__network_dim__)
         if query:
             images = torch.unsqueeze(images, 1) # Add sequence dimension.
             synapses = self.metagraph.synapses() # Returns a list of synapses on the network.
-            requests, _ = self.router.route( synapses, transform, images ) # routes inputs to network.
+            requests, scores = self.router.route( synapses, transform, images ) # routes inputs to network.
             responses = self.dendrite.forward_image( synapses, requests ) # Makes network calls.
             network = self.router.join( responses ) # Joins responses based on scores..
             network = network.view(network.shape[0] * network.shape[1], network.shape[2]) # Squeeze the sequence dimension.
@@ -195,9 +202,10 @@ class MnistSynapse(bittensor.Synapse):
         # Outputs are used by other models as training signals.
         # This output is local because it uses the student inputs to 
         # condition the outputs rather than the network context.
-        local_output = torch.cat((transform, student.detach()), dim=1)
-        local_output = F.relu(self.forward_layer1 (local_output))
+        #local_output = torch.cat((transform, student.detach()), dim=1)
+        local_output = F.relu(self.forward_layer1 (transform))
         local_output = F.relu(self.forward_layer2 (local_output))
+        local_output = self.forward_dropout(local_output) 
         if labels is not None:
             # local_target = torch.Tensor(batch_size, 10)
             # Compute the target loss using the student and passed labels.
@@ -213,9 +221,10 @@ class MnistSynapse(bittensor.Synapse):
         # The network_output is a non-target output of this synapse.
         # This output is remote because it requries inputs from the network.
         if query:
-            network_output = torch.cat((transform, network), dim=1)
-            network_output = F.relu(self.forward_layer1 (network_output))
+            #network_output = torch.cat((transform, network), dim=1)
+            network_output = F.relu(self.forward_layer1 (transform))
             network_output = F.relu(self.forward_layer2 (network_output))
+            network_output = self.forward_dropout(network_output) 
 
         # network_target = torch.Tensor(batch_size, 10)
         # Compute a target loss using the network_output and passed labels.
@@ -235,5 +244,6 @@ class MnistSynapse(bittensor.Synapse):
             'network_target': network_target,
             'network_target_loss': network_target_loss,
             'local_target_loss': local_target_loss,
-            'distillation_loss': distillation_loss
+            'distillation_loss': distillation_loss,
+            'scores': scores,
         }

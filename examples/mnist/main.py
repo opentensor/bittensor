@@ -32,11 +32,11 @@ def main(hparams):
     batch_size_train = 64
     batch_size_test = 64
     learning_rate = 0.01
-    momentum = 0.9
+    momentum = 0.5
     log_interval = 10
     epoch = 0
     global_step = 0
-    trial_uid = 'mnist -' + str(time.time()).split('.')[0]
+    trial_uid = 'mnist-' + str(time.time()).split('.')[0]
     best_test_loss = math.inf
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
    
@@ -70,6 +70,8 @@ def main(hparams):
     def train(model, epoch, global_step):
         # Turn on Dropoutlayers BatchNorm etc.
         model.train()
+        correct = 0.0
+        total_epoch = 0
         for batch_idx, (images, labels) in enumerate(trainloader):
             
             # Clear gradients on model parameters.
@@ -80,14 +82,17 @@ def main(hparams):
             images = images.to(device)
             
             # Computes model outputs and loss.
-            output = model(images, labels, query = True)
+            output = model(images, labels, query = False)
 
             # Loss and step.
+            max_logit = output['local_target'].data.max(1, keepdim=True)[1]
+            correct += max_logit.eq( labels.data.view_as(max_logit) ).sum()
             loss = output['loss']
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
             loss.backward()
+            #torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
             optimizer.step()
             global_step += 1
+            total_epoch += batch_size_train
                             
             # Logs:
             if batch_idx % log_interval == 0:
@@ -98,9 +103,13 @@ def main(hparams):
                 writer.add_scalar('train_loss', float(loss.item()), global_step)
             
                 n = len(train_data)
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\nNetwork Loss: {:.6f}\tDistillation Loss: {:.6f}\tnP|nS: {}|{}'.format(
-                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['local_target_loss'].item(), output['network_target_loss'].item(), output['distillation_loss'].item(), len(bittensor.metagraph.peers()), 
+                accuracy = (100.0 * correct) / total_epoch
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\tnP|nS: {}|{}'.format(
+                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['local_target_loss'].item(), accuracy, len(bittensor.metagraph.peers()), 
                             len(bittensor.metagraph.synapses())))
+                # logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\nNetwork Loss: {:.6f}\tDistillation Loss: {:.6f}\tnP|nS: {}|{}'.format(
+                #     epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['local_target_loss'].item(), output['network_target_loss'].item(), output['distillation_loss'].item(), len(bittensor.metagraph.peers()), 
+                #             len(bittensor.metagraph.synapses())))
 
     # Test loop.
     # Evaluates the local model on the hold-out set.
