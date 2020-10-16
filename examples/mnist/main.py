@@ -51,7 +51,7 @@ def main(hparams):
     # Build local synapse to serve on the network.
     model = MnistSynapse()
     model.to( device ) # Set model to device.
-    bittensor.serve( model )
+    bittensor.serve( model.deepcopy() )
 
     # Build the optimizer.
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
@@ -87,9 +87,9 @@ def main(hparams):
             # Logs:
             if batch_idx % log_interval == 0:            
                 n = len(train_data)
-                max_logit = output['student_target'].data.max(1, keepdim=True)[1]
+                max_logit = output['network_target'].data.max(1, keepdim=True)[1]
                 correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
-                loss_item  = output['student_target_loss'].item()
+                loss_item  = output['network_target_loss'].item()
                 processed = ((batch_idx + 1) * batch_size_train)
                 progress = (100. * processed) / n
                 accuracy = (100.0 * correct) / batch_size_train
@@ -128,7 +128,6 @@ def main(hparams):
         logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))        
         return loss, accuracy
     
-    
     while True:
         try:
             # Train model
@@ -142,9 +141,11 @@ def main(hparams):
                 # Update best loss.
                 best_test_loss = test_loss
                 
-                # Save the best local model.
-                logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, config.datapath + trial_uid + '/model.torch')
+                # Save and serve the new best local model.
+                logger.info('Saving/Serving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, config.datapath + trial_uid + '/model.torch')
                 torch.save({ 'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, config.datapath + trial_uid + '/model.torch')
+                bittensor.serve( model.deepcopy()  )
+
             epoch += 1
 
         except Exception as e:
