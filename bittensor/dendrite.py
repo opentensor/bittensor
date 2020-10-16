@@ -5,7 +5,7 @@ from bittensor.serializer import PyTorchSerializer
 from loguru import logger
 from typing import List, Tuple, Dict, Optional
 
-from bittensor.exceptions.ResponseExceptions import EmptyTensorException, ResponseShapeException
+from bittensor.exceptions.ResponseExceptions import EmptyTensorException, ResponseShapeException, SerializationException
 
 import bittensor
 import os
@@ -172,23 +172,26 @@ class _RemoteModuleCall(torch.autograd.Function):
         # Save for backward call.
         ctx.caller = caller
         ctx.mode = mode
-        
-        # Serialize inputs to bytes.         
-        serialized_inputs = PyTorchSerializer.serialize( inputs, mode )
-
-        ctx.serialized_inputs = serialized_inputs
-        
-        # Build request for forward.
-        request = bittensor_pb2.TensorMessage( 
-                                                version = bittensor.__version__,
-                                                neuron_key = ctx.caller.local_neuron_key,
-                                                synapse_key = ctx.caller.synapse.synapse_key,
-                                                nounce = ctx.caller.nounce,
-                                                signature = ctx.caller.signature,
-                                                tensors = [serialized_inputs]
-                                            )
-              # Make RPC call.
         try:
+        
+            # Serialize inputs to bytest buffer.
+            try:         
+                serialized_inputs = PyTorchSerializer.serialize( inputs, mode )
+            except:
+                raise SerializationException
+
+            ctx.serialized_inputs = serialized_inputs
+        
+            # Build request for forward.
+            request = bittensor_pb2.TensorMessage( 
+                        version = bittensor.__version__,
+                        neuron_key = ctx.caller.local_neuron_key,
+                        synapse_key = ctx.caller.synapse.synapse_key,
+                        nounce = ctx.caller.nounce,
+                        signature = ctx.caller.signature,
+                        tensors = [serialized_inputs]
+            )
+
             # Forward tensor.
             response = ctx.caller.stub.Forward(request)     
 
@@ -199,15 +202,14 @@ class _RemoteModuleCall(torch.autograd.Function):
                 raise EmptyTensorException
 
             # Check batch_size.
-            if outputs.size(0) != inputs.size(0) or outputs.size(1) != inputs.size(1):    
+            if outputs.size(0) != inputs.size(0) or outputs.size(1) != inputs.size(1) or outputs.size(2) != bittensor.__network_dim__:    
                 raise ResponseShapeException
 
             # Safe catch NaNs and replace with 0.0.
             outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
-
           
         # Catch Errors and return zeros.
-        except (grpc._channel._InactiveRpcError, EmptyTensorException, ResponseShapeException) as e:
+        except (grpc._channel._InactiveRpcError, EmptyTensorException, SerializationException, ResponseShapeException) as e:
             outputs = torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__))
 
         return outputs

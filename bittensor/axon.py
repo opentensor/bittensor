@@ -9,7 +9,7 @@ import torch
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
 from bittensor.serializer import PyTorchSerializer
-from bittensor.exceptions.ResponseExceptions import RequestShapeException
+from bittensor.exceptions.ResponseExceptions import RequestShapeException, SerializationException, NonExistentSynapseException
 import bittensor
 
 class Axon(bittensor_grpc.BittensorServicer):
@@ -51,33 +51,24 @@ class Axon(bittensor_grpc.BittensorServicer):
 
     def serve(self, synapse: bittensor.Synapse):
         """ Adds an Synapse to the serving set """
-         # Create a new bittensor_pb2.Synapse proto.
-        synapse_proto = bittensor_pb2.Synapse(
-            version = bittensor.__version__, 
-            neuron_key = self._config.neuron_key, 
-            synapse_key = synapse.synapse_key(), 
-            address = self._config.remote_ip, 
-            port = self._config.axon_port, 
-        )
         self._local_synapses[synapse.synapse_key()] = synapse
     
     def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext):
-        # TODO (const): optionally check signature.
-        # Return null response if the target does not exist.
-        if request.synapse_key not in self._local_synapses:
-            return bittensor_pb2.TensorMessage()
-        
-        # Find synapse.
-        synapse = self._local_synapses[request.synapse_key]
-        
-        # Deserialize and decode.
-        inputs = request.tensors[0]
-        
-        # Deserialize the modality inputs to tensor.
-        x = PyTorchSerializer.deserialize( inputs )
-
-        # Check shaping contraints.
         try:
+            if request.synapse_key not in self._local_synapses:
+                raise NonExistentSynapseException 
+
+            synapse = self._local_synapses[request.synapse_key]
+        
+            # Single tensor requests only.
+            inputs = request.tensors[0]
+
+            # Deserialize the modality inputs to tensor.
+            try:
+                x = PyTorchSerializer.deserialize( inputs )
+            except:
+                raise SerializationException
+       
             if x.shape[0] < 1:
                 raise RequestShapeException("request batch dim exception with batch_size = {} ".format(x.shape[0]))
 
@@ -110,7 +101,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 tensors = y_serialized
             )
                 
-        except (RequestShapeException, NotImplementedError) as _:
+        except (RequestShapeException, NonExistentSynapseException, SerializationException, NotImplementedError) as _:
             # Build null response.
             response = bittensor_pb2.TensorMessage (
                 version = bittensor.__version__,
@@ -122,6 +113,7 @@ class Axon(bittensor_grpc.BittensorServicer):
 
     def Backward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext):
         # TODO (const): optionally check signature.
+        # TODO (const): Exceptions.
         # Return null response if the target does not exist.
         if request.synapse_key not in self._local_synapses:
             return bittensor_pb2.TensorMessage()

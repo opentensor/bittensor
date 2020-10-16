@@ -116,6 +116,7 @@ def test_mnist_swarm_loss():
                     # Loss and step.
                     max_logit = output['network_target'].data.max(1, keepdim=True)[1]
                     correct += max_logit.eq( labels.data.view_as(max_logit) ).sum()
+
                     loss = output['network_target_loss']
                     loss.backward()
                     optimizers[i].step()

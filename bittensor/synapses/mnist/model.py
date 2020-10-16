@@ -77,7 +77,7 @@ class MnistSynapse(bittensor.Synapse):
         # Hidden Network: Transforms inputs and (student or network) context into 
         # a (batch_size, bittensor.__network_dim__) output. 
         # [Transform] + [(Student or Network)] -> [Hidden Net]
-        self.hidden_layer1 = nn.Linear(self.transform_dim, 50)
+        self.hidden_layer1 = nn.Linear(self.transform_dim + bittensor.__network_dim__, 50)
         self.hidden_layer2 = nn.Linear(50, 10)
         
         
@@ -98,7 +98,8 @@ class MnistSynapse(bittensor.Synapse):
         images = images.view(images.shape[0] * images.shape[1], images.shape[2], images.shape[3], images.shape[4])
 
         # Forward non-sequential_images.
-        local_output = self.forward (images = images, query = False) ['local_output']
+        # [Transform] + [Student] -> [Hidden Net] -> [Padding] -> (out)
+        local_output = self.forward (images = images, query = False) ['student_output']
         
         # Reshape adding back the sequence dim.
         local_output = local_output.view(images.shape[0], images.shape[1], bittensor.__network_dim__)
@@ -106,16 +107,16 @@ class MnistSynapse(bittensor.Synapse):
 
     def forward (   self, 
                     images: torch.Tensor,
-                    labels: torch.Tensor = None,
+                    targets: torch.Tensor = None,
                     query: bool = False):
 
-        r""" Forward pass non-sequential image inputs and labels through the MNIST model.
+        r""" Forward pass non-sequential image inputs and targets through the MNIST model.
 
             Args:
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, -1, -1, -1)`, `required`): 
                     PIL.toTensor() encoded images.
 
-                labels (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, 10)`, `optional`): 
+                targets (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, 10)`, `optional`): 
                     Mnist labels.
 
                 query (:obj:`bool')`, `optional`):
@@ -150,14 +151,15 @@ class MnistSynapse(bittensor.Synapse):
                         Distillation loss produced by the student with respect to the network context.
                 }
         """
-        # Return vars.
+
+        # Return vars to be filled.
         loss = torch.tensor(0.0)
-        local_output = None
-        local_target = None
+        student_output = None
         network_output = None
+        student_target = None
         network_target = None
+        student_target_loss = None
         network_target_loss = None
-        local_target_loss = None
         distillation_loss = None
         scores = []
     
@@ -194,46 +196,47 @@ class MnistSynapse(bittensor.Synapse):
         # Outputs are used by other models as training signals.
         # This output is local because it uses the student inputs to 
         # condition the outputs rather than the network context.
-        # local_output = torch.cat((transform, student.detach()), dim=1)
-        local_hidden = F.relu(self.hidden_layer1 (transform))
-        local_hidden = F.relu(self.hidden_layer2 (local_hidden))
-        if labels is not None:
+        student_hidden = torch.cat((transform, student.detach()), dim=1)
+        student_hidden = F.relu(self.hidden_layer1 (student_hidden))
+        student_hidden = F.relu(self.hidden_layer2 (student_hidden))
+        if targets is not None:
             # local_target = torch.Tensor(batch_size, 10)
             # Compute the target loss using the student and passed labels.
-            labels.to(self.device)
-            local_target = F.log_softmax(local_hidden, dim=1)
-            local_target_loss = F.nll_loss(local_target, labels)
-            loss += local_target_loss
+            targets.to(self.device)
+            student_target = F.log_softmax(student_hidden, dim=1)
+            student_target_loss = F.nll_loss(student_target, targets)
+            loss += student_target_loss
 
         # network_hidden = torch.Tensor(batch_size, bittensor.network_dim)
         # The network_output is a non-target output of this synapse.
         # This output is remote because it requries inputs from the network.
         if query:
-            network_hidden = F.relu(self.hidden_layer1 (transform))
+            network_hidden = torch.cat((transform, network.detach()), dim=1)
+            network_hidden = F.relu(self.hidden_layer1 (network_hidden))
             network_hidden = F.relu(self.hidden_layer2 (network_hidden))
 
         # network_target = torch.Tensor(batch_size, 10)
         # Compute a target loss using the network_output and passed labels.
-        if query and labels is not None:
+        if query and targets is not None:
             network_target = F.log_softmax(network_hidden, dim=1)
-            network_target_loss = F.nll_loss(network_target, labels)
+            network_target_loss = F.nll_loss(network_target, targets)
             loss += network_target_loss
 
         # Pad outputs to bittensor.__network_dim__
-        local_output = torch.zeros(local_hidden.shape[0], bittensor.__network_dim__)
-        local_output[:, :self.transform_dim] = transform
+        student_output = torch.zeros(student_hidden.shape[0], bittensor.__network_dim__)
+        student_output[:, :self.transform_dim] = transform
         if query:
             network_output = torch.zeros(network_hidden.shape[0], bittensor.__network_dim__)
             network_output[:, :self.transform_dim] = transform
 
         return {
             'loss': loss,
-            'local_output': local_output,
+            'student_output': student_output,
             'network_output': network_output,
-            'local_target': local_target,
+            'student_target': student_target,
             'network_target': network_target,
+            'student_target_loss': student_target_loss,
             'network_target_loss': network_target_loss,
-            'local_target_loss': local_target_loss,
             'distillation_loss': distillation_loss,
             'scores': scores,
         }
