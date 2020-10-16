@@ -148,6 +148,11 @@ while test 12 -gt 0; do
       shift
       shift
       ;;
+    -i|--identity)
+      identity=${2:-$identity}
+      shift
+      shift
+      ;;
     *)
       break
       ;;
