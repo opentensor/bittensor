@@ -31,11 +31,23 @@ import bittensor.utils.batch_transforms
 
 
 __version__ = '0.0.0'
-__network_dim__ = 256
+__network_dim__ = 512
 __tokenizer__ = GPT2Tokenizer.from_pretrained("gpt2")
 __tokenizer__.pad_token = '[PAD]'
 __tokenizer__.mask_token = -100
 __vocab_size__ = 204483
+
+
+# Default logger
+config = {
+    "handlers": [
+        {
+            "sink": sys.stdout,
+            "format": "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+        }
+    ]
+}
+logger.configure(**config)
 
 # Global bittensor neuron objects.
 metagraph = None

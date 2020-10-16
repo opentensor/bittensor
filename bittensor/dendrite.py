@@ -190,7 +190,7 @@ class _RemoteModuleCall(torch.autograd.Function):
               # Make RPC call.
         try:
             # Forward tensor.
-            response = ctx.caller.stub.Forward(request)       
+            response = ctx.caller.stub.Forward(request)     
 
             # Deserialize outputs and return.
             if len(response.tensors) > 0:
@@ -201,6 +201,10 @@ class _RemoteModuleCall(torch.autograd.Function):
             # Check batch_size.
             if outputs.size(0) != inputs.size(0) or outputs.size(1) != inputs.size(1):    
                 raise ResponseShapeException
+
+            # Safe catch NaNs and replace with 0.0.
+            outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
+
           
         # Catch Errors and return zeros.
         except (grpc._channel._InactiveRpcError, EmptyTensorException, ResponseShapeException) as e:
@@ -233,5 +237,5 @@ class _RemoteModuleCall(torch.autograd.Function):
             response = ctx.caller.stub.Backward(request)
             deserialized_grad_inputs = PyTorchSerializer.deserialize (response.tensors[0])
             return (None, None, deserialized_grad_inputs, None)        
-        except grpc._channel._InactiveRpcError as ire:
+        except grpc._channel._InactiveRpcError as _:
             return (None, None, deserialized_grad_inputs, None)
