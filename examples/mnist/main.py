@@ -69,46 +69,32 @@ def main(hparams):
     def train(model, epoch, global_step):
         # Turn on Dropoutlayers BatchNorm etc.
         model.train()
-        correct = 0.0
-        total_epoch = 0
-        for batch_idx, (images, labels) in enumerate(trainloader):
-            
-            # Clear gradients on model parameters.
+        for batch_idx, (images, targets) in enumerate(trainloader):
+            # Clear gradients.
             optimizer.zero_grad()
 
-            # Targets and images to correct device.
-            labels = torch.LongTensor(labels).to(device)
+            # Forward pass.
             images = images.to(device)
-            
-            # Computes model outputs and loss.
-            output = model(images, labels, query = True)
+            targets = torch.LongTensor(targets).to(device)
+            output = model(images, targets, query = True)
 
-            # Loss and step.
-            max_logit = output['local_target'].data.max(1, keepdim=True)[1]
-            correct += max_logit.eq( labels.data.view_as(max_logit) ).sum()
-            loss = output['loss']
+            # Backprop.
+            loss = output['network_target_loss'] + output['distillation_loss']
             loss.backward()
-            #torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
             optimizer.step()
             global_step += 1
-            total_epoch += batch_size_train
                             
             # Logs:
-            if batch_idx % log_interval == 0:
-                n_peers = len(bittensor.metagraph.peers())
-                n_synapses = len(bittensor.metagraph.synapses())
-                writer.add_scalar('n_peers', n_peers, global_step)
-                writer.add_scalar('n_synapses', n_synapses, global_step)
-                writer.add_scalar('train_loss', float(loss.item()), global_step)
-            
+            if batch_idx % log_interval == 0:            
                 n = len(train_data)
-                accuracy = (100.0 * correct) / total_epoch
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\tnP|nS: {}|{}'.format(
-                    epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['local_target_loss'].item(), accuracy, len(bittensor.metagraph.peers()), 
-                            len(bittensor.metagraph.synapses())))
-                # logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\nNetwork Loss: {:.6f}\tDistillation Loss: {:.6f}\tnP|nS: {}|{}'.format(
-                #     epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['local_target_loss'].item(), output['network_target_loss'].item(), output['distillation_loss'].item(), len(bittensor.metagraph.peers()), 
-                #             len(bittensor.metagraph.synapses())))
+                max_logit = output['student_target'].data.max(1, keepdim=True)[1]
+                correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
+                loss_item  = output['student_target_loss'].item()
+                processed = ((batch_idx + 1) * batch_size_train)
+                progress = (100. * processed) / n
+                accuracy = (100.0 * correct) / batch_size_train
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}', 
+                    epoch, processed, n, progress, loss_item, accuracy)
 
     # Test loop.
     # Evaluates the local model on the hold-out set.
@@ -132,7 +118,7 @@ def main(hparams):
                 outputs = model.forward(images, labels, query=False)
                             
                 # Count accurate predictions.
-                max_logit = outputs['local_target'].data.max(1, keepdim=True)[1]
+                max_logit = outputs['student_target'].data.max(1, keepdim=True)[1]
                 correct += max_logit.eq( labels.data.view_as(max_logit) ).sum()
         
         # # Log results.
