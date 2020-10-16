@@ -17,8 +17,38 @@ DUMMY = torch.empty(0, requires_grad=True)
 
 
 class Dendrite(nn.Module):
+    r"""
+    This is the bittensr object used to make calls to the network. It can be used like a normal torch nn.Module
+    and is differentiable. Messages passed through this module will be sent to synapse objects, either remote
+    or local, and return response torch tensors. Gradients passing through this module on a .backward() call will trigger
+    the Backward rpc calls, passing gradients to the remote synapse instances called during the Forward operation.   
 
-    def __init__(self, config: bittensor.Config):
+    Args:
+        config (:obj:`bittensor.Config`, `required`):
+            Bittensor config object.
+    Examples::
+
+        >>> from bittensor
+
+        >>> # Initialize config defaults.
+        >>> config = bittensor.Config()
+
+        >>> # Build metagraph object for network connectivity
+        >>> metagraph = bittensor.Metagraph(config)
+        >>> metagraph.start() # Begin gossip.
+
+        >>> # Create Dendrite nn.module
+        >>> dendrite = bittensor.Dendrite(config)
+
+        >>> if len(metagraph.synapses()) > 0
+        >>>     requests = [torch.rand(10, 100) for _ in metagraph.synapses()] # Random query tensors.
+        >>>     responses = dendrite (requests, metagraph.synapses()) # Make network queries.
+        >>>     responses[0].backward() # Backprop through dendrite.
+    """
+    def __init__ (
+        self, 
+        config: bittensor.Config
+    ):
         super().__init__()
         self._config = config
         self._remotes = {}
