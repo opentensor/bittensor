@@ -31,8 +31,8 @@ def main(hparams):
     # Additional training params.
     batch_size_train = 64
     batch_size_test = 64
-    learning_rate = 0.01
-    momentum = 0.5
+    learning_rate = 0.05
+    momentum = 0.9
     log_interval = 10
     epoch = 0
     global_step = 0
@@ -82,7 +82,7 @@ def main(hparams):
             images = images.to(device)
             
             # Computes model outputs and loss.
-            output = model(images, labels, query = False)
+            output = model(images, labels, query = True)
 
             # Loss and step.
             max_logit = output['local_target'].data.max(1, keepdim=True)[1]

@@ -237,5 +237,5 @@ class _RemoteModuleCall(torch.autograd.Function):
             response = ctx.caller.stub.Backward(request)
             deserialized_grad_inputs = PyTorchSerializer.deserialize (response.tensors[0])
             return (None, None, deserialized_grad_inputs, None)        
-        except grpc._channel._InactiveRpcError as ire:
+        except grpc._channel._InactiveRpcError as _:
             return (None, None, deserialized_grad_inputs, None)

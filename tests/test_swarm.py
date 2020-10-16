@@ -15,7 +15,7 @@ import bittensor
 from bittensor.synapses.mnist.model import MnistSynapse
 
 def test_mnist_swarm_loss():
-    n = 1
+    n = 2
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     meta_ports = [x for x in range(8000, 8000 + n)]
     axon_ports = [x for x in range(9000, 9000 + n)]
@@ -95,13 +95,13 @@ def test_mnist_swarm_loss():
             axon.start()
             logger.info('start axon {}', i)
 
-        epochs = 10
+        epochs = 2
         log_interval = 10
+        accuracies = [0 for _ in synapses]
         logger.info('Train ...')
         for epoch in range(epochs):
             for i, model in enumerate(synapses):
                 correct = 0.0
-                total_epoch = 0
                 for batch_idx, (images, labels) in enumerate(trainloader):
                     # Clear gradients on model parameters.
                     optimizers[i].zero_grad()
@@ -111,132 +111,36 @@ def test_mnist_swarm_loss():
                     images = images.to(device)
                     
                     # Computes model outputs and loss.
-                    output = model(images, labels, query = False)
+                    output = model(images, labels, query = True)
 
                     # Loss and step.
-                    max_logit = output['local_target'].data.max(1, keepdim=True)[1]
+                    max_logit = output['network_target'].data.max(1, keepdim=True)[1]
                     correct += max_logit.eq( labels.data.view_as(max_logit) ).sum()
-                    loss = output['loss']
+                    loss = output['network_target_loss']
                     loss.backward()
                     optimizers[i].step()
-                    total_epoch += batch_size_train
 
                     if batch_idx % log_interval == 0:
                         n = len(train_data)
-                        accuracy = (100. * correct.item()) / total_epoch
+                        accuracy = (100. * correct.item()) / ((batch_idx + 1) * batch_size_train)
                         logger.info('Synapse {}, Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {}'.format(i,
-                            epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['local_target_loss'].item(), accuracy)) 
+                            epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['network_target_loss'].item(), accuracy)) 
+                        accuracies[i] = accuracy
 
+                    if batch_idx > 100:
+                        break
 
-    except Exception as e:
-        exc_type, _, exc_tb = sys.exc_info()
-        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        logger.error(exc_type, fname, exc_tb.tb_lineno)
-
-    finally:
-        for i, axon in enumerate(axons):
-            logger.info('stopping axon {}', i)
-            axon.stop()
-
-def test_mnist_synapse_swarm():
-    n = 5
-    batches = 100
-    batch_size_train = 64
-    meta_ports = [x for x in range(8000, 8000 + n)]
-    axon_ports = [x for x in range(9000, 9000 + n)]
-    configs = []
-    metagraphs = []
-    axons = []
-    dendrites = []
-    synapses = []
-    optimizers = []
-    logger.info('Build swram...')
-    for i in range(n):
-        metagraph_port = str(meta_ports[i])
-        axon_port = str(axon_ports[i])
-        if i == 0:
-            bootstrap = 'localhost:' + str(meta_ports[-1])
-        else:
-            bootstrap = 'localhost:' + str(meta_ports[i-1])
-        config = bittensor.Config(  axon_port = axon_port,
-                                    metagraph_port = metagraph_port,
-                                    bootstrap = bootstrap)
-        logger.info('config: {}', config)
-                                    
-        meta = bittensor.Metagraph(config)
-        axon = bittensor.Axon(config)
-        dendrite = bittensor.Dendrite(config)
-        
-        synapse = MnistSynapse(dendrite, meta)
-        axon.serve(synapse)
-        meta.subscribe(synapse)
-        optimizer = optim.SGD(synapse.parameters(), lr=0.1, momentum=0.9)
-
-        configs.append(config)
-        axons.append(axon)
-        metagraphs.append(meta)
-        dendrites.append(dendrite)
-        synapses.append(synapse)
-        optimizers.append(optimizer)
-
-        logger.info('synapse: {}', synapse)
-    logger.info('Finished building graphs')
-
-    # Connect metagraphs.
-    logger.info('Connect swram...')
-    try:
-        for i, meta in enumerate(metagraphs):
-            meta.start()
-            logger.info('start meta {}', i)
-
-        logger.info('Connecting metagraphs ...')
-        for j in range(n*n):
-            for i, meta in enumerate(metagraphs):
-                meta.do_gossip()
-        for i, meta in enumerate(metagraphs):
-            if len(meta.peers()) != n:
-                logger.error("peers not fully connected")
-                assert False
-        logger.info("Metagraphs fully connected.")
-
-    except Exception as e:
-        logger.error(e)
-
-    finally:
-        for i, meta in enumerate(metagraphs):
-            logger.info('stopping meta {}', i)
-            meta.stop()
-
-    logger.info('Load Mnist dataset.')
-    train_data = torchvision.datasets.MNIST(root = configs[0].datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
-    trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size_train, shuffle=True, num_workers=2)
-
-    # Run swarm.
-    logger.info('Running mnist swarm..')
-    try:
-        for i, axon in enumerate(axons):
-            axon.start()
-            logger.info('start axon {}', i)
-
-        for batch_idx, (images, labels) in enumerate(trainloader):
-            losses = []
-            for i, model in enumerate(synapses): 
-                optimizer.zero_grad()
-                labels = torch.LongTensor(labels)
-                output = model(images, labels, query = False)
-                loss = output['loss']
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
-                loss.backward()
-                optimizers[i].step()
-                losses.append(loss.item())
-            logger.info('Batch {} {}', batch_idx, losses)
-            if batch_idx > batches:
-                break
+        # Assert loss convergence.
+        logger.info(accuracies)
+        for acc in accuracies:
+            if (acc < 0.60):
+                assert False 
 
     except Exception as e:
         exc_type, _, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         logger.error(exc_type, fname, exc_tb.tb_lineno)
+        assert False
 
     finally:
         for i, axon in enumerate(axons):
