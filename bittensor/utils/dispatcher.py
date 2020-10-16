@@ -3,7 +3,6 @@ import numpy as np
 from typing import List, Tuple, Dict, Optional
 
 
-
 class Dispatcher(object):
     """Helper for implementing a mixture of experts.
     The purpose of this class is to create input minibatches for the
@@ -22,13 +21,14 @@ class Dispatcher(object):
     calling this class and reshaping the output to the original shape.
     See common_layers.reshape_like().
     Example use:
-    gates: a float32 `Tensor` with shape `[batch_size, num_experts]`
-    inputs: a float32 `Tensor` with shape `[batch_size, input_size]`
-    experts: a list of length `num_experts` containing sub-networks.
-    dispatcher = SparseDispatcher(num_experts, gates)
-    expert_inputs = dispatcher.dispatch(inputs)
-    expert_outputs = [experts[i](expert_inputs[i]) for i in range(num_experts)]
-    outputs = dispatcher.combine(expert_outputs)
+      gates: a float32 `Tensor` with shape `[batch_size, num_experts]`
+      inputs: a float32 `Tensor` with shape `[batch_size, input_size]`
+      experts: a list of length `num_experts` containing sub-networks.
+      dispatcher = SparseDispatcher(num_experts, gates)
+      expert_inputs = dispatcher.dispatch(inputs)
+      expert_outputs = [experts[i](expert_inputs[i]) for i in range(num_experts)]
+      outputs = dispatcher.combine(expert_outputs)
+      
     The preceding code sets the output for a particular example b to:
     output[b] = Sum_i(gates[b, i] * experts[i](inputs[b]))
     This class takes advantage of sparsity in the gate matrix by including in the
@@ -37,9 +37,10 @@ class Dispatcher(object):
 
     def __init__(self):
         """Create a SparseDispatcher."""
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-      
-    def dispatch(self, x: object, gates) -> List[ object ]:
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu")
+
+    def dispatch(self, x: object, gates) -> List[object]:
         # sort experts
         sorted_experts, index_sorted_experts = torch.nonzero(gates).sort(0)
 
@@ -51,21 +52,20 @@ class Dispatcher(object):
 
         # calculate num samples that each expert gets
         part_sizes = list((gates != 0.0).sum(0).cpu().numpy())
-        
+
         results = []
-        if isinstance(x, list):   
-          batch_index = batch_index.view(-1, gates.shape[0])
-          for i, row in enumerate(batch_index):
-            results.append([])
-            for _, idx in enumerate(row):
-              results[i].append( x[idx] ) 
+        if isinstance(x, list):
+            batch_index = batch_index.view(-1, gates.shape[0])
+            for i, row in enumerate(batch_index):
+                results.append([])
+                for _, idx in enumerate(row):
+                    results[i].append(x[idx])
         else:
-          # expand according to batch index so we can just split by _part_sizes
-          x_expanded = x[batch_index].to(self.device)
-          results = torch.split(x_expanded, part_sizes, dim=0)
-      
-        return results 
-        
+            # expand according to batch index so we can just split by _part_sizes
+            x_expanded = x[batch_index].to(self.device)
+            results = torch.split(x_expanded, part_sizes, dim=0)
+
+        return results
 
     def combine(self, expert_out, gates, multiply_by_gates=True):
         """Sum together the expert output, weighted by the gates.
@@ -98,12 +98,12 @@ class Dispatcher(object):
 
             gates_exp = gates[batch_index.flatten()]
 
-            nonzero_gates = torch.gather(gates_exp, 1, expert_index).to(self.device)
+            nonzero_gates = torch.gather(gates_exp, 1,
+                                         expert_index).to(self.device)
 
             flat_stitched = torch.flatten(stitched, start_dim=1)
 
             flat_stitched = flat_stitched.mul(nonzero_gates)
-
 
         zeros = torch.zeros(gates.size(0),
                             flat_stitched.size(1),
