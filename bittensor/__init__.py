@@ -37,6 +37,18 @@ __tokenizer__.pad_token = '[PAD]'
 __tokenizer__.mask_token = -100
 __vocab_size__ = 204483
 
+
+# Default logger
+config = {
+    "handlers": [
+        {
+            "sink": sys.stdout,
+            "format": "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+        }
+    ]
+}
+logger.configure(**config)
+
 # Global bittensor neuron objects.
 metagraph = None
 dendrite = None

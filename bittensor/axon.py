@@ -110,7 +110,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 tensors = y_serialized
             )
                 
-        except (RequestShapeException, NotImplementedError) as e:
+        except (RequestShapeException, NotImplementedError) as _:
             # Build null response.
             response = bittensor_pb2.TensorMessage (
                 version = bittensor.__version__,
