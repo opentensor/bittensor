@@ -74,10 +74,10 @@ def init(config: bittensor.Config):
     dendrite = bittensor.Dendrite( config )
 
 
-def serve (synapse: Synapse):
+def serve ( synapse: Synapse ):
     # Subscribe the synapse object to the network.
     metagraph.subscribe( synapse )
-    
+
     # Serve the synapse object on the grpc endpoint.
     axon.serve ( synapse )
 

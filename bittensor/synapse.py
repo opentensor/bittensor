@@ -20,6 +20,12 @@ class Synapse(nn.Module):
     def synapse_key(self) -> str:
         return self._synapse_key
 
+    def deepcopy (self):
+        SynapseClass = self.__class__
+        synapse_copy = SynapseClass()
+        synapse_copy.load_state_dict(self.state_dict())
+        return synapse_copy
+
     def forward_text(self, inputs: torch.Tensor):
         """ Local forward inputs through the bittensor.Synapse. To be implemented by sub-classes.
 
