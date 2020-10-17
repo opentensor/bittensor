@@ -34,8 +34,6 @@ def main(hparams):
     momentum = 0.9
     log_interval = 10
     epoch = 0
-    global_step = 0
-    trial_uid = "mnist-{}".format(str(time.time()).split('.')[0])
     best_test_loss = math.inf
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
    
@@ -61,14 +59,12 @@ def main(hparams):
     trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size_train, shuffle=True, num_workers=2)
     test_data = torchvision.datasets.MNIST(root = config.datapath + "datasets/", train=False, download=True, transform=transforms.ToTensor())
     testloader = torch.utils.data.DataLoader(test_data, batch_size = batch_size_test, shuffle=False, num_workers=2)
-    
-    # Build summary writer for tensorboard.
-    writer = SummaryWriter(log_dir = config.datapath + trial_uid + "/logs/")
 
     # Train loop: Single threaded training of MNIST.
     def train(model, epoch, global_step):
         # Turn on Dropoutlayers BatchNorm etc.
         model.train()
+        last_log = time.time()
         for batch_idx, (images, targets) in enumerate(trainloader):
             # Clear gradients.
             optimizer.zero_grad()
@@ -85,7 +81,7 @@ def main(hparams):
             global_step += 1
                             
             # Logs:
-            if batch_idx % log_interval == 0:            
+            if (batch_idx + 1) % log_interval == 0: 
                 n = len(train_data)
                 max_logit = output['network_target'].data.max(1, keepdim=True)[1]
                 correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
@@ -95,11 +91,18 @@ def main(hparams):
                 accuracy = (100.0 * correct) / batch_size_train
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}', 
                     epoch, processed, n, progress, loss_item, accuracy)
+                bittensor.tbwriter.add_scalar('train network target loss', output['network_target_loss'].item(), time.time())
+                bittensor.tbwriter.add_scalar('train student target loss', output['student_target_loss'].item(), time.time())
+                bittensor.tbwriter.add_scalar('train distilation loss', output['distillation_loss'].item(), time.time())
+                bittensor.tbwriter.add_scalar('train loss', output['loss'].item(), time.time())
+                bittensor.tbwriter.add_scalar('train accuracy', accuracy, time.time())
+                bittensor.tbwriter.add_scalar('gs/t', log_interval / (time.time() - last_log), time.time())
+                last_log = time.time()
 
     # Test loop.
     # Evaluates the local model on the hold-out set.
     # Returns the test_accuracy and test_loss.
-    def test( model: bittensor.Synapse ):
+    def test( model: bittensor.Synapse, global_step):
         
         # Turns off Dropoutlayers, BatchNorm etc.
         model.eval()
@@ -125,16 +128,18 @@ def main(hparams):
         n = len(test_data)
         loss /= n
         accuracy = (100. * correct) / n
-        logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))        
+        logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))  
+        bittensor.tbwriter.add_scalar('test loss', loss, time.time())
         return loss, accuracy
     
+    global_step = 0
     while True:
         try:
             # Train model
             train( model, epoch, global_step )
             
             # Test model.
-            test_loss, _ = test( model )
+            test_loss, _ = test( model, global_step )
         
             # Save best model. 
             if test_loss < best_test_loss:
@@ -142,9 +147,9 @@ def main(hparams):
                 best_test_loss = test_loss
                 
                 # Save and serve the new best local model.
-                logger.info('Saving/Serving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, config.datapath + trial_uid + '/model.torch')
-                torch.save({ 'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, config.datapath + trial_uid + '/model.torch')
-                bittensor.serve( model.deepcopy()  )
+                logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, config.logdir + '/model.torch' )
+                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, config.logdir + '/model.torch' )
+                bittensor.serve( model.deepcopy() )
 
             epoch += 1
 
