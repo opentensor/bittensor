@@ -1,19 +1,20 @@
 from concurrent import futures
-from loguru import logger
-
 import grpc
+from loguru import logger
 import random
 import threading
 import torch
 
-from bittensor import bittensor_pb2_grpc as bittensor_grpc
+import bittensor
 from bittensor import bittensor_pb2
+from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor.serializer import PyTorchSerializer
 from bittensor.exceptions.ResponseExceptions import RequestShapeException, SerializationException, NonExistentSynapseException
-import bittensor
+
 
 class Axon(bittensor_grpc.BittensorServicer):
     """ Processes Fwd and Bwd requests for a set of local Synapses """
+
     def __init__(self, config: bittensor.Config):
         self._config = config
 
@@ -52,41 +53,52 @@ class Axon(bittensor_grpc.BittensorServicer):
     def serve(self, synapse: bittensor.Synapse):
         """ Adds an Synapse to the serving set """
         self._local_synapses[synapse.synapse_key()] = synapse
-    
-    def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext):
+
+    def Forward(self, request: bittensor_pb2.TensorMessage,
+                context: grpc.ServicerContext):
         try:
             if request.synapse_key not in self._local_synapses:
-                raise NonExistentSynapseException 
+                raise NonExistentSynapseException
 
             synapse = self._local_synapses[request.synapse_key]
-        
+
             # Single tensor requests only.
             inputs = request.tensors[0]
 
             # Deserialize the modality inputs to tensor.
             try:
-                x = PyTorchSerializer.deserialize( inputs )
+                x = PyTorchSerializer.deserialize(inputs)
             except:
                 raise SerializationException
-       
+
             if x.shape[0] < 1:
-                raise RequestShapeException("request batch dim exception with batch_size = {} ".format(x.shape[0]))
+                raise RequestShapeException(
+                    "request batch dim exception with batch_size = {} ".format(
+                        x.shape[0]))
 
             if x.shape[1] < 1:
-                raise RequestShapeException("request sequence dim exception with sequence_dim = {} ".format(x.shape[1]))
+                raise RequestShapeException(
+                    "request sequence dim exception with sequence_dim = {} ".
+                    format(x.shape[1]))
 
             if inputs.modality == bittensor_pb2.Modality.TEXT:
                 if len(x.shape) != 2:
-                    raise RequestShapeException("text input shape exception with len(request.shape) = {} ".format(len(x.shape)))
+                    raise RequestShapeException(
+                        "text input shape exception with len(request.shape) = {} "
+                        .format(len(x.shape)))
 
             elif inputs.modality == bittensor_pb2.Modality.IMAGE:
                 if len(x.shape) != 5:
-                    raise RequestShapeException("image input shape exception for len(shape) = {} ".format(len(x.shape)))
+                    raise RequestShapeException(
+                        "image input shape exception for len(shape) = {} ".
+                        format(len(x.shape)))
 
             elif inputs.modality == bittensor_pb2.Modality.TENSOR:
                 if len(x.shape) != 3:
-                    raise RequestShapeException("tensor input shape exception len(shape) = {} ".format(len(x.shape)))
-        
+                    raise RequestShapeException(
+                        "tensor input shape exception len(shape) = {} ".format(
+                            len(x.shape)))
+
             # Call forward network. May call NotImplementedError:
             y = synapse.call_forward(x, inputs.modality)
 
@@ -95,39 +107,39 @@ class Axon(bittensor_grpc.BittensorServicer):
 
             # Build response.
             response = bittensor_pb2.TensorMessage(
-                version = bittensor.__version__,
-                neuron_key = self._config.neuron_key,
-                synapse_key = request.synapse_key,
-                tensors = y_serialized
-            )
-                
-        except (RequestShapeException, NonExistentSynapseException, SerializationException, NotImplementedError) as _:
+                version=bittensor.__version__,
+                neuron_key=self._config.neuron_key,
+                synapse_key=request.synapse_key,
+                tensors=y_serialized)
+
+        except (RequestShapeException, NonExistentSynapseException,
+                SerializationException, NotImplementedError) as _:
             # Build null response.
-            response = bittensor_pb2.TensorMessage (
-                version = bittensor.__version__,
-                neuron_key = self._config.neuron_key,
-                synapse_key = request.synapse_key
-            )
-        
+            response = bittensor_pb2.TensorMessage(
+                version=bittensor.__version__,
+                neuron_key=self._config.neuron_key,
+                synapse_key=request.synapse_key)
+
         return response
 
-    def Backward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext):
+    def Backward(self, request: bittensor_pb2.TensorMessage,
+                 context: grpc.ServicerContext):
         # TODO (const): optionally check signature.
         # TODO (const): Exceptions.
         # Return null response if the target does not exist.
         if request.synapse_key not in self._local_synapses:
             return bittensor_pb2.TensorMessage()
         synapse = self._local_synapses[request.synapse_key]
-                
+
         # Make local call.
         x = PyTorchSerializer.deserialize(request.tensors[0])
-        dy = PyTorchSerializer.deserialize(request.tensors[1])        
-        dx = synapse.call_backward(x, dy)    
+        dy = PyTorchSerializer.deserialize(request.tensors[1])
+        dx = synapse.call_backward(x, dy)
         dx_serialized = PyTorchSerializer.serialize_tensor(dx)
 
         response = bittensor_pb2.TensorMessage(
-            version = bittensor.__version__,
-            neuron_key = self._config.neuron_key,
-            synapse_key = request.synapse_key,
-            tensors = [dx_serialized])
+            version=bittensor.__version__,
+            neuron_key=self._config.neuron_key,
+            synapse_key=request.synapse_key,
+            tensors=[dx_serialized])
         return response

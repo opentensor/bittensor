@@ -1,20 +1,23 @@
-class EmptyTensorException (Exception):
+class EmptyTensorException(Exception):
     """ Raised when tensor included in the response is unexpectedly empty """
     pass
 
-class ResponseShapeException (Exception):
+
+class ResponseShapeException(Exception):
     """ Raised when a response message has an improper shape """
     pass
 
-class RequestShapeException (Exception):
+
+class RequestShapeException(Exception):
     """ Raised when a request message has an improper shape """
     pass
 
-class SerializationException (Exception):
+
+class SerializationException(Exception):
     """ Raised when message serialization fails """
     pass
 
-class NonExistentSynapseException (Exception):
+
+class NonExistentSynapseException(Exception):
     """ Raised when the called synapse is not in the local synapse set """
     pass
-

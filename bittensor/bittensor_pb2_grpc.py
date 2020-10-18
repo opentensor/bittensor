@@ -16,15 +16,19 @@ class BittensorStub(object):
             channel: A grpc.Channel.
         """
         self.Forward = channel.unary_unary(
-                '/Bittensor/Forward',
-                request_serializer=bittensor_dot_bittensor__pb2.TensorMessage.SerializeToString,
-                response_deserializer=bittensor_dot_bittensor__pb2.TensorMessage.FromString,
-                )
+            '/Bittensor/Forward',
+            request_serializer=bittensor_dot_bittensor__pb2.TensorMessage.
+            SerializeToString,
+            response_deserializer=bittensor_dot_bittensor__pb2.TensorMessage.
+            FromString,
+        )
         self.Backward = channel.unary_unary(
-                '/Bittensor/Backward',
-                request_serializer=bittensor_dot_bittensor__pb2.TensorMessage.SerializeToString,
-                response_deserializer=bittensor_dot_bittensor__pb2.TensorMessage.FromString,
-                )
+            '/Bittensor/Backward',
+            request_serializer=bittensor_dot_bittensor__pb2.TensorMessage.
+            SerializeToString,
+            response_deserializer=bittensor_dot_bittensor__pb2.TensorMessage.
+            FromString,
+        )
 
 
 class BittensorServicer(object):
@@ -48,60 +52,68 @@ class BittensorServicer(object):
 
 def add_BittensorServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Forward': grpc.unary_unary_rpc_method_handler(
-                    servicer.Forward,
-                    request_deserializer=bittensor_dot_bittensor__pb2.TensorMessage.FromString,
-                    response_serializer=bittensor_dot_bittensor__pb2.TensorMessage.SerializeToString,
+        'Forward':
+            grpc.unary_unary_rpc_method_handler(
+                servicer.Forward,
+                request_deserializer=bittensor_dot_bittensor__pb2.TensorMessage.
+                FromString,
+                response_serializer=bittensor_dot_bittensor__pb2.TensorMessage.
+                SerializeToString,
             ),
-            'Backward': grpc.unary_unary_rpc_method_handler(
-                    servicer.Backward,
-                    request_deserializer=bittensor_dot_bittensor__pb2.TensorMessage.FromString,
-                    response_serializer=bittensor_dot_bittensor__pb2.TensorMessage.SerializeToString,
+        'Backward':
+            grpc.unary_unary_rpc_method_handler(
+                servicer.Backward,
+                request_deserializer=bittensor_dot_bittensor__pb2.TensorMessage.
+                FromString,
+                response_serializer=bittensor_dot_bittensor__pb2.TensorMessage.
+                SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'Bittensor', rpc_method_handlers)
+        'Bittensor', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
- # This class is part of an EXPERIMENTAL API.
+# This class is part of an EXPERIMENTAL API.
 class Bittensor(object):
     """Service definition for tensor processing servers.
     """
 
     @staticmethod
     def Forward(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Bittensor/Forward',
+                target,
+                options=(),
+                channel_credentials=None,
+                call_credentials=None,
+                insecure=False,
+                compression=None,
+                wait_for_ready=None,
+                timeout=None,
+                metadata=None):
+        return grpc.experimental.unary_unary(
+            request, target, '/Bittensor/Forward',
             bittensor_dot_bittensor__pb2.TensorMessage.SerializeToString,
-            bittensor_dot_bittensor__pb2.TensorMessage.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+            bittensor_dot_bittensor__pb2.TensorMessage.FromString, options,
+            channel_credentials, insecure, call_credentials, compression,
+            wait_for_ready, timeout, metadata)
 
     @staticmethod
     def Backward(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Bittensor/Backward',
+                 target,
+                 options=(),
+                 channel_credentials=None,
+                 call_credentials=None,
+                 insecure=False,
+                 compression=None,
+                 wait_for_ready=None,
+                 timeout=None,
+                 metadata=None):
+        return grpc.experimental.unary_unary(
+            request, target, '/Bittensor/Backward',
             bittensor_dot_bittensor__pb2.TensorMessage.SerializeToString,
-            bittensor_dot_bittensor__pb2.TensorMessage.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+            bittensor_dot_bittensor__pb2.TensorMessage.FromString, options,
+            channel_credentials, insecure, call_credentials, compression,
+            wait_for_ready, timeout, metadata)
 
 
 class MetagraphStub(object):
@@ -115,10 +127,12 @@ class MetagraphStub(object):
             channel: A grpc.Channel.
         """
         self.Gossip = channel.unary_unary(
-                '/Metagraph/Gossip',
-                request_serializer=bittensor_dot_bittensor__pb2.GossipBatch.SerializeToString,
-                response_deserializer=bittensor_dot_bittensor__pb2.GossipBatch.FromString,
-                )
+            '/Metagraph/Gossip',
+            request_serializer=bittensor_dot_bittensor__pb2.GossipBatch.
+            SerializeToString,
+            response_deserializer=bittensor_dot_bittensor__pb2.GossipBatch.
+            FromString,
+        )
 
 
 class MetagraphServicer(object):
@@ -134,35 +148,39 @@ class MetagraphServicer(object):
 
 def add_MetagraphServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Gossip': grpc.unary_unary_rpc_method_handler(
-                    servicer.Gossip,
-                    request_deserializer=bittensor_dot_bittensor__pb2.GossipBatch.FromString,
-                    response_serializer=bittensor_dot_bittensor__pb2.GossipBatch.SerializeToString,
+        'Gossip':
+            grpc.unary_unary_rpc_method_handler(
+                servicer.Gossip,
+                request_deserializer=bittensor_dot_bittensor__pb2.GossipBatch.
+                FromString,
+                response_serializer=bittensor_dot_bittensor__pb2.GossipBatch.
+                SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'Metagraph', rpc_method_handlers)
+        'Metagraph', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
- # This class is part of an EXPERIMENTAL API.
+# This class is part of an EXPERIMENTAL API.
 class Metagraph(object):
     """Service definition for a pow based cache for sharing bittensor synapses.
     """
 
     @staticmethod
     def Gossip(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Metagraph/Gossip',
+               target,
+               options=(),
+               channel_credentials=None,
+               call_credentials=None,
+               insecure=False,
+               compression=None,
+               wait_for_ready=None,
+               timeout=None,
+               metadata=None):
+        return grpc.experimental.unary_unary(
+            request, target, '/Metagraph/Gossip',
             bittensor_dot_bittensor__pb2.GossipBatch.SerializeToString,
-            bittensor_dot_bittensor__pb2.GossipBatch.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+            bittensor_dot_bittensor__pb2.GossipBatch.FromString, options,
+            channel_credentials, insecure, call_credentials, compression,
+            wait_for_ready, timeout, metadata)

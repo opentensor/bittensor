@@ -5,14 +5,14 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
-
 import requests
-import bittensor.bittensor_pb2 as bittensor_pb2
-
 import binascii
 
+import bittensor.bittensor_pb2 as bittensor_pb2
+
+
 class Crypto():
-    
+
     @staticmethod
     def count_zeros(to_count: bytes) -> int:
         """ Counts the number of prepended zeros from a bytes string encoded as hex.
@@ -25,7 +25,7 @@ class Crypto():
         """
         hex_string = binascii.hexlify(to_count).decode("ascii")
         return len(hex_string) - len(hex_string.lstrip('0'))
-        
+
     @staticmethod
     def lastest_block_hash() -> str:
         """ Returns the string representation of the hash of latest bitcoin block.
@@ -33,9 +33,10 @@ class Crypto():
         Returns:
             str: Latest bitcoin block hash.
         """
-        last_block_hash = requests.get('https://blockchain.info/latestblock').json()['hash']
+        url = 'https://blockchain.info/latestblock'
+        last_block_hash = requests.get(url).json()['hash']
         return last_block_hash
-    
+
     @staticmethod
     def check_signature(synapse: bittensor_pb2.Synapse) -> bool:
         """Checks that the synapse is properly signed by the neuron.
@@ -64,24 +65,24 @@ class Crypto():
         Returns:
             bytes: Sha256 Hash digest.
         """
-        nounce = 0
         digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
         digest.update(synapse.neuron_key.encode('utf-8'))
         digest.update(synapse.synapse_key.encode('utf-8'))
         digest.update(synapse.address.encode('utf-8'))
         digest.update(synapse.port.encode('utf-8'))
-        digest.update(synapse.block_hash.encode('utf-8')) 
+        digest.update(synapse.block_hash.encode('utf-8'))
         digest.update(bytes(synapse.nounce))
         digest = digest.finalize()
         return digest
-    
+
     @staticmethod
     def difficulty(digest: bytes) -> int:
         hex_string = digest.hex()
         return len(hex_string) - len(hex_string.lstrip('0'))
-   
+
     @staticmethod
-    def fill_proof_of_work(synapse: bittensor_pb2.Synapse, difficulty: int) -> bittensor_pb2.Synapse:
+    def fill_proof_of_work(synapse: bittensor_pb2.Synapse,
+                           difficulty: int) -> bittensor_pb2.Synapse:
         """ Fills the synapse.proof_of_work with a pow digest with difficulty.
 
         Args:
@@ -100,7 +101,8 @@ class Crypto():
         digest.update(synapse.block_hash.encode('utf-8'))
         synapse_digest = digest.finalize()
         while True:
-            proof_of_work = hashes.Hash(hashes.SHA256(), backend=default_backend())
+            proof_of_work = hashes.Hash(hashes.SHA256(),
+                                        backend=default_backend())
             proof_of_work.update(synapse_digest)
             proof_of_work.update(bytes(nounce))
             proof_of_work = proof_of_work.finalize()
@@ -113,9 +115,9 @@ class Crypto():
         synapse.proof_of_work = proof_of_work
         return synapse
 
-
     @staticmethod
-    def sign_synapse(private_key: Ed25519PrivateKey, synapse: bittensor_pb2.Synapse) -> bittensor_pb2.Synapse:
+    def sign_synapse(private_key: Ed25519PrivateKey,
+                     synapse: bittensor_pb2.Synapse) -> bittensor_pb2.Synapse:
         """ Signs the passed bittensor_pb2.Synapse contents and appends the signature.
 
         Args:
@@ -126,10 +128,10 @@ class Crypto():
             bittensor_pb2.Synapse: Synapse with signature.
         """
         digest = Crypto.digest(synapse)
-        signature = private_key.sign(digest) # to create.
+        signature = private_key.sign(digest)  # to create.
         synapse.signature = signature
         return synapse
-    
+
     @staticmethod
     def generate_private_ed25519() -> Ed25519PrivateKey:
         """ Creates and returns a new Ed25519PrivateKey
@@ -140,7 +142,8 @@ class Crypto():
         return Ed25519PrivateKey.generate()
 
     @staticmethod
-    def public_key_from_private(private_key: Ed25519PrivateKey) -> Ed25519PublicKey:
+    def public_key_from_private(
+            private_key: Ed25519PrivateKey) -> Ed25519PublicKey:
         """ Returns the corresponding Ed25519PublicKey for a Ed25519PrivateKey
 
         Args:
@@ -150,7 +153,7 @@ class Crypto():
             Ed25519PublicKey: Public key.
         """
         return private_key.public_key()
-    
+
     @staticmethod
     def public_key_to_bytes(public_key: Ed25519PublicKey) -> bytes:
         """Returns the raw hex encoded bytes of a Ed25519PublicKey.
@@ -162,7 +165,7 @@ class Crypto():
             bytes: Byte encoding.
         """
         return public_key.public_bytes(serialization.Encoding.Raw,
-                                         serialization.PublicFormat.Raw)
+                                       serialization.PublicFormat.Raw)
 
     @staticmethod
     def public_key_to_string(public_key: Ed25519PublicKey) -> str:
@@ -201,7 +204,7 @@ class Crypto():
         result = Identity.public_bytes_from_string(string)
         public_key = ed25519.Ed25519PublicKey.from_public_bytes(result)
         return public_key
-    
+
     @staticmethod
     def public_key_from_string(public_string: str) -> Ed25519PublicKey:
         """ Returns the Ed25519PublicKey from passed string.
@@ -215,7 +218,7 @@ class Crypto():
         result = Crypto.public_bytes_from_string(public_string)
         public_key = ed25519.Ed25519PublicKey.from_public_bytes(result)
         return public_key
-    
+
     @staticmethod
     def sign_bytes(private_key: Ed25519PrivateKey, digest: bytes) -> bytes:
         """ Signs bytest with passed Ed25519PrivateKey.
@@ -242,9 +245,10 @@ class Crypto():
         public_key = Crypto.public_key_from_string(synapse.neuron_key)
         digest = Crypto.digest(synapse)
         return Crypto.verify(public_key, synapse.signature, digest)
-       
+
     @staticmethod
-    def verify(public_key: Ed25519PublicKey, signature:bytes, data: bytes) -> bool:
+    def verify(public_key: Ed25519PublicKey, signature: bytes,
+               data: bytes) -> bool:
         """ Verifies that the passed public key was used to create the signature for passed data.
 
         Args:
@@ -260,4 +264,3 @@ class Crypto():
         except:
             return False
         return True
-
