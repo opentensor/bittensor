@@ -1,24 +1,42 @@
-from typing import List, Tuple, Dict, Optional
-
 from loguru import logger
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from typing import List, Tuple, Dict, Optional
 
 import bittensor
 from bittensor import bittensor_pb2
-    
+
+
 class Synapse(nn.Module):
     """ Bittensor synapse class.
     """
+
     def __init__(self):
         super().__init__()
-        self._synapse_key = bittensor.Crypto.public_key_to_string(bittensor.Crypto.generate_private_ed25519().public_key())
-        self.optimizer = None
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            
+        self._synapse_key = bittensor.Crypto.public_key_to_string(
+            bittensor.Crypto.generate_private_ed25519().public_key())
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu")
+
     def synapse_key(self) -> str:
         return self._synapse_key
+
+    def set_synapse_key(self, key):
+        self._synapse_key = key
+
+    def deepcopy(self):
+        """ Returns a copy of this synapse by passing the model params to load_state_dict.
+
+            Returns:
+                synapse_copy (:obj:`self.__class__`, `required`): 
+                    Deep copy synapse object.
+        """
+        SynapseClass = self.__class__
+        synapse_copy = SynapseClass()
+        synapse_copy.load_state_dict(self.state_dict())
+        synapse_copy.set_synapse_key(self._synapse_key)
+        return synapse_copy
 
     def forward_text(self, inputs: torch.Tensor):
         """ Local forward inputs through the bittensor.Synapse. To be implemented by sub-classes.
@@ -32,7 +50,7 @@ class Synapse(nn.Module):
                     Output encoding of inputs produced by the synapse.
         """
         raise NotImplementedError
-        
+
     def forward_image(self, inputs: torch.Tensor):
         r""" Forward pass inputs through the bittensor.synapse. To be implemented by sub-classes.
 
@@ -59,8 +77,9 @@ class Synapse(nn.Module):
                     Output encoding of inputs produced by the synapse.
         """
         raise NotImplementedError
-           
-    def call_forward(self, inputs: torch.Tensor, modality: bittensor_pb2.Modality) -> torch.Tensor:
+
+    def call_forward(self, inputs: torch.Tensor,
+                     modality: bittensor_pb2.Modality) -> torch.Tensor:
         """
         Apply forward pass to the bittensor.synapse given inputs and modality.
         """
@@ -72,7 +91,7 @@ class Synapse(nn.Module):
                 elif modality == bittensor_pb2.Modality.IMAGE:
                     outputs = self.forward_image(inputs)
                 elif modality == bittensor_pb2.Modality.TENSOR:
-                    outputs = self.forward_tensor(inputs)  
+                    outputs = self.forward_tensor(inputs)
                 else:
                     raise NotImplementedError
             except NotImplementedError:
@@ -83,8 +102,9 @@ class Synapse(nn.Module):
                 logger.error(e)
                 return None
         return outputs
-    
-    def call_backward(self, inputs: object, grads: torch.Tensor)-> torch.Tensor:
+
+    def call_backward(self, inputs: object,
+                      grads: torch.Tensor) -> torch.Tensor:
         """
         Apply a backward pass to the nn.module given grads and inputs.
         """
@@ -94,7 +114,7 @@ class Synapse(nn.Module):
         #    torch.autograd.backward(outputs, grad_tensors=grads.to(self.device), create_graph=False, retain_graph=False)
         #    self.apply_gradients()
         # TODO(const): check instance type.
-        return torch.zeros((1,1))
+        return torch.zeros((1, 1))
 
     def apply_gradients(self) -> None:
         """

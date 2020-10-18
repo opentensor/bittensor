@@ -7,7 +7,7 @@ class ToTensor:
 
     def __init__(self):
         self.max = 255
-        
+
     def __call__(self, tensor):
         """
         Args:
@@ -30,11 +30,18 @@ class Normalize:
         device (torch.device,optional): The device of tensors to which the transform will be applied.
     """
 
-    def __init__(self, mean, std, inplace=False, dtype=torch.float, device='cpu'):
-        self.mean = torch.as_tensor(mean, dtype=dtype, device=device)[None, :, None, None]
-        self.std = torch.as_tensor(std, dtype=dtype, device=device)[None, :, None, None]
+    def __init__(self,
+                 mean,
+                 std,
+                 inplace=False,
+                 dtype=torch.float,
+                 device='cpu'):
+        self.mean = torch.as_tensor(mean, dtype=dtype,
+                                    device=device)[None, :, None, None]
+        self.std = torch.as_tensor(std, dtype=dtype, device=device)[None, :,
+                                                                    None, None]
         self.inplace = inplace
-        
+
     def __call__(self, tensor):
         """
         Args:
@@ -61,7 +68,7 @@ class RandomHorizontalFlip:
     def __init__(self, p=0.5, inplace=False):
         self.p = p
         self.inplace = inplace
-        
+
     def __call__(self, tensor):
         """
         Args:
@@ -71,7 +78,7 @@ class RandomHorizontalFlip:
         """
         if not self.inplace:
             tensor = tensor.clone()
-            
+
         flipped = torch.rand(tensor.size(0)) < self.p
         tensor[flipped] = torch.flip(tensor[flipped], [3])
         return tensor
@@ -86,13 +93,13 @@ class RandomCrop:
         dtype (torch.dtype,optional): The data type of tensors to which the transform will be applied.
         device (torch.device,optional): The device of tensors to which the transform will be applied.
     """
-    
+
     def __init__(self, size, padding=None, dtype=torch.float, device='cpu'):
         self.size = size
         self.padding = padding
         self.dtype = dtype
         self.device = device
-        
+
     def __call__(self, tensor):
         """
         Args:
@@ -101,22 +108,34 @@ class RandomCrop:
             Tensor: Randomly cropped Tensor.
         """
         if self.padding is not None:
-            padded = torch.zeros((tensor.size(0), tensor.size(1), tensor.size(2) + self.padding * 2, 
-                                  tensor.size(3) + self.padding * 2), dtype=self.dtype, device=self.device)
-            padded[:, :, self.padding:-self.padding, self.padding:-self.padding] = tensor
+            padded = torch.zeros(
+                (tensor.size(0), tensor.size(1), tensor.size(2) +
+                 self.padding * 2, tensor.size(3) + self.padding * 2),
+                dtype=self.dtype,
+                device=self.device)
+            padded[:, :, self.padding:-self.padding,
+                   self.padding:-self.padding] = tensor
         else:
             padded = tensor
-            
+
         w, h = padded.size(2), padded.size(3)
         th, tw = self.size, self.size
         if w == tw and h == th:
             i, j = 0, 0
         else:
-            i = torch.randint(0, h - th + 1, (tensor.size(0),), device=self.device)
-            j = torch.randint(0, w - tw + 1, (tensor.size(0),), device=self.device)
-            
-        rows = torch.arange(th, dtype=torch.long, device=self.device) + i[:, None]
-        columns = torch.arange(tw, dtype=torch.long, device=self.device) + j[:, None]
+            i = torch.randint(0,
+                              h - th + 1, (tensor.size(0),),
+                              device=self.device)
+            j = torch.randint(0,
+                              w - tw + 1, (tensor.size(0),),
+                              device=self.device)
+
+        rows = torch.arange(th, dtype=torch.long, device=self.device) + i[:,
+                                                                          None]
+        columns = torch.arange(tw, dtype=torch.long,
+                               device=self.device) + j[:, None]
         padded = padded.permute(1, 0, 2, 3)
-        padded = padded[:, torch.arange(tensor.size(0))[:, None, None], rows[:, torch.arange(th)[:, None]], columns[:, None]]
+        padded = padded[:,
+                        torch.arange(tensor.size(0))[:, None, None],
+                        rows[:, torch.arange(th)[:, None]], columns[:, None]]
         return padded.permute(1, 0, 2, 3)
