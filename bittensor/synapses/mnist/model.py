@@ -36,9 +36,6 @@ class MnistSynapse(bittensor.Synapse):
                     bittensor metagraph containing network graph information. 
                     Defaults to bittensor.metagraph global.
 
-            Returns:
-                local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.network_size)`, `required`): 
-                    Output encoding of inputs produced using the student model as context.
         """
         super(MnistSynapse, self).__init__()
 
@@ -63,7 +60,7 @@ class MnistSynapse(bittensor.Synapse):
         # Image.PIL.toTensor() -> [Image Encoder]
         self.transform_dim = 320
         self.transform = bittensor.utils.batch_transforms.Normalize((0.1307,),
-                                                                    (0.3081,))
+                                                                    (0.3081,), device=self.device)
         self.adaptive_pool = nn.AdaptiveAvgPool2d((28, 28))
         self.transform_conv1 = nn.Conv2d(1, 10, kernel_size=5)
         self.transform_conv2 = nn.Conv2d(10, 20, kernel_size=5)
@@ -86,6 +83,8 @@ class MnistSynapse(bittensor.Synapse):
         self.hidden_layer1 = nn.Linear(
             self.transform_dim + bittensor.__network_dim__, 50)
         self.hidden_layer2 = nn.Linear(50, 10)
+        
+        self.to(self.device)
 
     def forward_image(self, images: torch.Tensor):
         r""" Forward image inputs through the mnist synapse.
@@ -99,14 +98,14 @@ class MnistSynapse(bittensor.Synapse):
                 local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.network_size)`, `required`): 
                     Output encoding of inputs produced using the student model as context.
         """
-        # Reshape from [batch_size, sequence_len, channels, rows, cols] -> [batch_size, sequence_len, channels, rows, cols]
+        # Reshape from [batch_size, sequence_len, channels, rows, cols] -> [batch_size, channels, rows, cols]
         # Then back to fit sequence dim.
         images = images.view(images.shape[0] * images.shape[1], images.shape[2],
                              images.shape[3], images.shape[4])
 
         # Forward non-sequential_images.
         # [Transform] + [Student] -> [Hidden Net] -> [Padding] -> (out)
-        local_output = self.forward(images=images,
+        local_output = self.forward(images=images.to(self.device),
                                     query=False)['student_output']
 
         # Reshape adding back the sequence dim.
@@ -179,7 +178,6 @@ class MnistSynapse(bittensor.Synapse):
             F.max_pool2d(self.transform_drop(self.transform_conv2(transform)),
                          2))
         transform = transform.view(-1, 320)
-
         # If query == True make a remote network call.
         # network: torch.Tensor(batch_size, bittensor.__network_dim__)
         if query:
@@ -200,12 +198,12 @@ class MnistSynapse(bittensor.Synapse):
         # The student model distills from the network and is used
         # to compute the local_outputs when there is no network
         # context.
-        student = F.relu(self.student_layer1(transform).detach())
+        student = F.relu(self.student_layer1(transform.detach()))
         student = F.relu(self.student_layer2(student))
         if query:
             # Use the network context to train the student network.
             distillation_loss = F.mse_loss(student, network.detach())
-            loss += distillation_loss
+            loss = loss + distillation_loss
 
         # local_hidden: torch.Tensor(batch_size, bittensor.network_dim)
         # The local_output is a non-target output of this synapse.
@@ -221,7 +219,7 @@ class MnistSynapse(bittensor.Synapse):
             targets.to(self.device)
             student_target = F.log_softmax(student_hidden, dim=1)
             student_target_loss = F.nll_loss(student_target, targets)
-            loss += student_target_loss
+            loss = loss + student_target_loss
 
         # network_hidden = torch.Tensor(batch_size, bittensor.network_dim)
         # The network_output is a non-target output of this synapse.
@@ -236,7 +234,7 @@ class MnistSynapse(bittensor.Synapse):
         if query and targets is not None:
             network_target = F.log_softmax(network_hidden, dim=1)
             network_target_loss = F.nll_loss(network_target, targets)
-            loss += network_target_loss
+            loss = loss + network_target_loss
 
         # Pad outputs to bittensor.__network_dim__
         student_output = torch.zeros(student_hidden.shape[0],
