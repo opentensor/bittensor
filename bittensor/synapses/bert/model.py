@@ -4,9 +4,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import transformers
-from transformers import BertModel, BertTokenizer, BertConfig
-from transformers import DataCollatorForLanguageModeling
-from typing import List, Tuple, Dict, Optional
+from transformers import BertModel, BertConfig
 
 
 class BertMLMSynapse(bittensor.Synapse):
@@ -25,7 +23,8 @@ class BertMLMSynapse(bittensor.Synapse):
             self.config)
         self.joiner = nn.Linear(2 * bittensor.__network_dim__,
                                 bittensor.__network_dim__)
-        self.loss_fct = torch.nn.CrossEntropyLoss()
+        self.loss_fct = torch.nn.CrossEntropyLoss() 
+        self.to(self.device)
 
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the NSP BERT Synapse.
@@ -38,7 +37,7 @@ class BertMLMSynapse(bittensor.Synapse):
                 local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Output encoding of inputs produced by using the local student distillation model as context.
         """
-        return self.forward(inputs=inputs, labels=None,
+        return self.forward(inputs=inputs.to(self.device), labels=None,
                             query=False)['local_output']
 
     def forward(self,
@@ -242,7 +241,7 @@ class BertNSPSynapse(bittensor.Synapse):
         network_target_loss = None
         local_target_loss = None
         distillation_loss = None
-
+  
         # Run local and student models.
         local_encoding = self.transformer(inputs,
                                           attention_mask=attention_mask,

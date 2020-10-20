@@ -35,7 +35,12 @@ class Normalize:
                  std,
                  inplace=False,
                  dtype=torch.float,
-                 device='cpu'):
+                 device=None):
+        
+        if not device:
+            device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu")
+
         self.mean = torch.as_tensor(mean, dtype=dtype,
                                     device=device)[None, :, None, None]
         self.std = torch.as_tensor(std, dtype=dtype, device=device)[None, :,
