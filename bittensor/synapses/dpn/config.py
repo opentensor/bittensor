@@ -34,29 +34,33 @@ class DPNConfig:
         >>> configuration = DPNConfig()
 
         >>> # Accessing the model configuration
-        >>> configuration = model.config
+        >>> configuration = model ( configuration )
     """
 
-    block_config = None
+    __default_target_size__ = 10
+    __default_in_planes__ = (96,192,384,768)
+    __default_out_planes__ = (256,512,1024,2048)
+    __default_block_config__ = (2,2,2,2)
+    __default_dense_depth__ = (16,32,24,128)
     
-    def __init__(
-        self,
-        in_planes=(96,192,384,768),
-        out_planes=(256,512,1024,2048),
-        block_config=(2,2,2,2),
-        dense_depth=(16,32,24,128)
-    ):
+    def __init__(self, **kwargs):
+        self.target_size = kwargs.pop("target_size",
+                                         self.__default_target_size__)
+        self.in_planes = kwargs.pop("in_planes",
+                                         self.__default_in_planes__)
+        self.out_planes = kwargs.pop("out_planes",
+                                         self.__default_out_planes__)
+        self.block_config = kwargs.pop("block_config",
+                                         self.__default_block_config__)
+        self.dense_depth = kwargs.pop("dense_depth",
+                                         self.__default_dense_depth__)
 
-        self.in_planes = in_planes
-        self.out_planes = out_planes
-        self.block_config = block_config
-        self.dense_depth = dense_depth
-
-    def DPN(self):
-        cfg = {
-            'in_planes': self.in_planes,
-            'out_planes': self.out_planes,
-            'num_blocks': self.block_config,
-            'dense_depth': self.dense_depth,
-        }
-        return cfg
+        self.run_type_checks()
+    
+    def run_type_checks(self):
+        assert isinstance(self.target_size, int)
+        assert isinstance(self.in_planes, tuple)
+        assert isinstance(self.out_planes, tuple)
+        assert isinstance(self.block_config, tuple)
+        assert isinstance(self.dense_depth, tuple)
+    

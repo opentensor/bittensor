@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from bittensor.synapses.dpn.dpn_configuration import DPNConfig
+from bittensor.synapses.dpn.config import DPNConfig
 
 class DPNSynapse(bittensor.Synapse):
     """ Bittensor endpoint trained on PIL images to detect objects using DPN.
@@ -50,14 +50,23 @@ class DPNSynapse(bittensor.Synapse):
         self.metagraph = metagraph
         if self.metagraph == None:
             self.metagraph = bittensor.metagraph
+        
+        self.config = config
+        if self.config == None:
+            self.config = DPNConfig()
 
-        model_config = config.DPN()
-        in_planes, out_planes = model_config['in_planes'], model_config['out_planes']
-        num_blocks, dense_depth = model_config['num_blocks'], model_config['dense_depth']
+        in_planes, out_planes = config.in_planes, config.out_planes
+        num_blocks, dense_depth = config.block_config, config.dense_depth
 
         # Transform Network
-        # Image encoder: transforms PIL-encoded tensors to a common shape.
-        # [batch_size, channels, rows, cols] -> [batch_size, *channels*, *rows*, *cols*] 
+        """ Transform network.
+                Layers take in PIL input (image in this case), normalize it and then apply 
+                4 convolutional layers. 
+            Image encoder: transforms PIL-encoded tensors to a common shape.
+            [batch_size, channels, rows, cols] -> [batch_size, -1, -1, -1] 
+
+            Output: [batch_size, self.transform_dim (9728)]
+        """
         self.transform = bittensor.utils.batch_transforms.Normalize((0.1307,), (0.3081,), device=self.device)
         self.adaptive_pool = nn.AdaptiveAvgPool2d((32, 32))
         self.transform_conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
@@ -74,6 +83,11 @@ class DPNSynapse(bittensor.Synapse):
         self.router = bittensor.Router(x_dim = self.transform_dim , key_dim = 100, topk = 10)
 
         # Context layers.
+        """
+            Distillation model for remote context. This layer takes input 
+            coming from transform layer, and runs it through 3 linear layers,
+            projecting it to bittensor.__network_dim__.  
+        """
         self.context_layer1 = nn.Linear(self.transform_dim, 512)
         self.context_layer2 = nn.Linear(512, 256)
         self.context_layer3 = nn.Linear(256, bittensor.__network_dim__)
@@ -82,6 +96,11 @@ class DPNSynapse(bittensor.Synapse):
         self.hidden_layer1 = nn.Linear(self.transform_dim + bittensor.__network_dim__, 512)
         self.hidden_layer2 = nn.Linear(512, 256)
         self.hidden_layer3 = nn.Linear(256, bittensor.__network_dim__)
+
+        # Layers to project target down to target size passed by config
+        # (number of classes)
+        self.target_layer1 = nn.Linear(bittensor.__network_dim__, 128)
+        self.target_layer2 = nn.Linear(128, config.target_size)
 
         # Send model to appropriate device (CPU or CUDA)
         self.to(self.device)
@@ -167,7 +186,11 @@ class DPNSynapse(bittensor.Synapse):
         remote_context = None
         scores = []
         
-        # transform: transform images to common shape.
+
+        r"""
+            Transform the images into a common shape (32x32) in this case
+        """
+                # transform: transform images to common shape.
         # transform.shape = [batch_size, self.transform_dim]
         transform = self.transform(images)
         transform = self.adaptive_pool(transform)
@@ -178,6 +201,7 @@ class DPNSynapse(bittensor.Synapse):
         transform = self.transform_layer4(transform)
         transform = F.avg_pool2d(transform, 4)
         transform = torch.flatten(transform, start_dim=1)
+
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         if remote:
@@ -215,7 +239,9 @@ class DPNSynapse(bittensor.Synapse):
             # local_target.shape = [batch_size, 10]
             # local_target_loss.shape = [1]
             targets.to(self.device)
-            local_target = F.log_softmax(local_hidden, dim=1)
+            local_target = self.target_layer1(local_hidden)
+            local_target = self.target_layer2(local_target)
+            local_target = F.log_softmax(local_target, dim=1)
             local_target_loss = F.nll_loss(local_target, targets)
             loss = loss + local_target_loss
         
@@ -232,7 +258,9 @@ class DPNSynapse(bittensor.Synapse):
             # remote_target_loss: loss between remote_target and passed targets.
             # remote_target.shape = [batch_size, 10]
             # remote_target_loss.shape = [1]
-            remote_target = F.log_softmax(remote_hidden, dim=1)
+            remote_target = self.target_layer1(remote_hidden)
+            remote_target = self.target_layer2(remote_target)
+            remote_target = F.log_softmax(remote_target, dim=1)
             remote_target_loss = F.nll_loss(remote_target, targets)
             loss = loss + remote_target_loss
 
