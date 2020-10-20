@@ -8,7 +8,7 @@ Example:
 
 import bittensor
 from bittensor.synapses.dpn.model import DPNSynapse
-from bittensor.synapses.dpn.dpn_configuration import DPNConfig
+from bittensor.synapses.dpn.config import DPNConfig
 from bittensor.utils.model_utils import ModelToolbox
 
 import argparse
