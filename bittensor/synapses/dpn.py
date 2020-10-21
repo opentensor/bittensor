@@ -105,23 +105,10 @@ class DPNSynapse(bittensor.Synapse):
                     Defaults to bittensor.metagraph global.
 
         """
-        super(DPNSynapse, self).__init__(config = config)
-
-        # Bittensor dendrite object used for queries to remote synapses.
-        # Defaults to bittensor.dendrite global object.
-        self.dendrite = dendrite
-        if self.dendrite == None:
-            self.dendrite = bittensor.dendrite
-
-        # Bttensor metagraph containing network graph information. 
-        # Defaults to bittensor.metagraph global object.
-        self.metagraph = metagraph
-        if self.metagraph == None:
-            self.metagraph = bittensor.metagraph
-        
-        self.config = config
-        if self.config == None:
-            self.config = DPNConfig()
+        super(DPNSynapse, self).__init__(
+            config = config,
+            dendrite = dendrite,
+            metagraph = metagraph)
 
         in_planes, out_planes = config.in_planes, config.out_planes
         num_blocks, dense_depth = config.block_config, config.dense_depth
@@ -169,9 +156,6 @@ class DPNSynapse(bittensor.Synapse):
         # (number of classes)
         self.target_layer1 = nn.Linear(bittensor.__network_dim__, 128)
         self.target_layer2 = nn.Linear(128, config.target_size)
-
-        # Send model to appropriate device (CPU or CUDA)
-        self.to(self.device)
     
     def forward_image (     self,  
                             images: torch.Tensor):

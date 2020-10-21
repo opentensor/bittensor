@@ -12,10 +12,50 @@ class Synapse(nn.Module):
     """ Bittensor synapse class.
     """
 
-    def __init__(self, config: bittensor.SynapseConfig):
+    def __init__(   self,
+                    config: bittensor.synapse.SynapseConfig,
+                    dendrite: bittensor.dendrite.Dendrite = None,
+                    metagraph: bittensor.metagraph.Metagraph = None):
+        r""" Init synapse module.
+
+            Args:
+                config (:obj:`bittensor.SynapseConfig`, `required`): 
+                    Base synapse config configuration class.
+
+                dendrite (:obj:`bittensor.dendrite.Dendrite`, `optional`, bittensor.dendrite): 
+                    bittensor dendrite object used for queries to remote synapses.
+                    Defaults to bittensor.dendrite global.
+
+                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`, bittensor.metagraph): 
+                    bittensor metagraph containing network graph information. 
+                    Defaults to bittensor.metagraph global.
+
+        """
         super().__init__()
+
         self.config = config
+        
+        # Bittensor dendrite object used for queries to remote synapses.
+        # Defaults to bittensor.dendrite global object.
+        self.dendrite = dendrite
+        if self.dendrite == None:
+            self.dendrite = bittensor.dendrite
+            if bittensor.dendrite == None:
+                raise Warning ('Synapse initialized without a valid dendrite. Call bittensor.init() to create a global dendrite instance.')
+
+        # Bttensor metagraph containing network graph information.
+        # Defaults to bittensor.metagraph global object.
+        self.metagraph = metagraph
+        if self.metagraph == None:
+            self.metagraph = bittensor.metagraph
+            if bittensor.metagraph == None:
+                raise Warning ('Synapse initialized without a valid metagraph. Call bittensor.init() to create a global metagraph instance.')
+
+
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # Send model to appropriate device (CPU or CUDA)
+        self.to(self.device)
 
     def synapse_key(self) -> str:
         return self.config.synapse_key
