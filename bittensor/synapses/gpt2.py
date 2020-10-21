@@ -19,7 +19,7 @@ class GPT2MLMConfig (bittensor.SynapseConfig):
 
     examples:
 
-        >>> from bittensor.synapses.ffnn.model import GPT2LMConfig, GPT2LMSynapse
+        >>> from bittensor.synapses.gpt2 import GPT2LMConfig, GPT2LMSynapse
 
         >>> # Initializing a GPT2MLMConfig configuration.
         >>> configuration = GPT2MLMConfig()
@@ -85,7 +85,7 @@ class GPT2LMSynapse(bittensor.Synapse):
         r""" Init a new ffnn synapse module.
 
             Args:
-                config (:obj:`GPT2MLMConfig`, `required`): 
+                config (:obj:`bittensor.gpt2.GPT2MLMConfig`, `required`): 
                     GPTMLM configuration class.
 
                 dendrite (:obj:`bittensor.Dendrite`, `optional`, bittensor.dendrite): 

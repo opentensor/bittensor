@@ -26,7 +26,7 @@ class FFNNConfig (bittensor.SynapseConfig):
 
     Examples::
 
-        >>> from bittensor.synapses.ffnn.model import FNNSynapse, FFNNConfig
+        >>> from bittensor.synapses.ffnn import FNNSynapse, FFNNConfig
 
         >>> # Initializing a FFNN configuration
         >>> configuration = FFNNConfig()
@@ -56,7 +56,7 @@ class FFNNSynapse(bittensor.Synapse):
         r""" Init a new ffnn synapse module.
 
             Args:
-                config (:obj:`FFNNConfig`, `required`): 
+                config (:obj:`bittensor.ffnn.FFNNConfig`, `required`): 
                     ffnn configuration class.
 
                 dendrite (:obj:`bittensor.Dendrite`, `optional`, bittensor.dendrite): 

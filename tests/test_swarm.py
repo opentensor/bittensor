@@ -13,7 +13,7 @@ import copy
 from typing import List, Tuple, Dict, Optional
 
 import bittensor
-from bittensor.synapses.ffnn.model import FFNNSynapse, FFNNConfig
+from bittensor.synapses.ffnn import FFNNSynapse, FFNNConfig
 
 def test_mnist_swarm_loss():
     n = 2
