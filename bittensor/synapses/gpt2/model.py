@@ -10,12 +10,12 @@ from typing import List, Tuple, Dict, Optional
 
 class GPT2MLMConfig:
     r"""
-    This is the configuration class to store the configuration of a :class:`~GPT2LMSynapse`.
+    This is the configuration class for a :class:`~GPT2LMSynapse`.
     
 
     Args:
         huggingface_config (:obj:`transformers.GPT2Config`, `required`, defaults to GPT2MLMConfig.__default_huggingface_config__):
-            The number of logit heads used by the target layer.      
+            huggingface config for underlying transformer model.      
 
     examples:
 
@@ -50,9 +50,9 @@ class GPT2MLMConfig:
     
     def __init__(self, **kwargs):
         self.huggingface_config = kwargs.pop("huggingface_config", self.__default_huggingface_config__)
-        self.run_type_checks()
+        self.run_checks()
     
-    def run_type_checks(self):
+    def run_checks(self):
         assert isinstance(self.huggingface_config, transformers.GPT2Config)
         assert self.huggingface_config.n_embd == bittensor.__network_dim__, "GPT embedding dim {} != {}".format(self.huggingface_config.n_embd, bittensor.__network_dim__)
         assert self.huggingface_config.vocab_size == bittensor.__vocab_size__, "GPT vocab size must match bittensor.__vocab_size {} != {}".format(self.huggingface_config.vocab_size, bittensor.__vocab_size__)
@@ -113,15 +113,15 @@ class GPT2LMSynapse(bittensor.Synapse):
             self.metagraph = bittensor.metagraph
 
 
-        # encoder_layer: encodes tokenized sequences to embedding size.
+        # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
         self.encoder_transformer = GPT2Model(self.config.huggingface_config)
 
-        # pooler_layer: pools transformed sequence to singe embedding.
+        # pooler_layer: pools transformed sequence to network_dim for router.
         # [batch_size, bittensor.__network_dim__, sequence_len] -> [batch_size, bittensor.__network_dim__]
         self.pooler = GPT2Pooler(self.config.huggingface_config)
 
-        # router: (PKM layer) queries network using initial transform as context.
+        # router: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, bittensor.__network_dim__] -> topk * [batch_size, bittensor.__network_dim__]
         self.router = bittensor.Router(x_dim=bittensor.__network_dim__, key_dim=100, topk=10)
 
@@ -129,11 +129,11 @@ class GPT2LMSynapse(bittensor.Synapse):
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
         self.context_transformer = GPT2Model(self.config.huggingface_config)
 
-        # hidden_layer: distills the remote_context from inputs
+        # hidden_layer: transforms context and encoding to network_dim hidden units.
         # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
         self.hidden_layer = torch.nn.Linear(2 * bittensor.__network_dim__, bittensor.__network_dim__)
 
-        # target_layer: maps from hidden layer to vocab dimension for each token. Used of MLM loss.
+        # target_layer: maps from hidden layer to vocab dimension for each token. Used by MLM loss.
         # [batch_size, sequence_len, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__vocab_size__]
         self.target_layer = nn.Linear(bittensor.__network_dim__, bittensor.__vocab_size__, bias=False)
         
@@ -159,7 +159,7 @@ class GPT2LMSynapse(bittensor.Synapse):
                 inputs: torch.LongTensor, 
                 training: bool = True, 
                 remote: bool = False):
-        r""" Forward pass inputs and labels through the GPT MLM module.
+        r""" Forward pass through GPT MLM synapse.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
@@ -169,20 +169,20 @@ class GPT2LMSynapse(bittensor.Synapse):
                     Switch to True if this forward pass computes an MLM loss.
 
                 remote (:obj:`bool')`, `optional`):
-                    Switch to True if this forward pass makes a remote call to the network. 
+                    Switch to True if this forward pass queries the network for the remote_context.
 
             dictionary with { 
                     loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
-                        Total loss acumulation to be used by loss.backward()
+                        Total loss acumulation used by loss.backward()
 
                     local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                        Hidden layer encoding produced using student_context.
+                        Hidden layer encoding produced using local_context.
 
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
-                        GPT MLM Target predictions using student_context. 
+                        GPT MLM Target predictions produced using local_context. 
 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        GPT MLM loss using student_context.
+                        GPT MLM loss using local_context.
 
                     remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
@@ -194,7 +194,7 @@ class GPT2LMSynapse(bittensor.Synapse):
                         GPT MLM loss using the remote_context.
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        Distillation loss between student_context and remote_context.
+                        Distillation loss between local_context and remote_context.
                 }
         """
 
@@ -209,25 +209,25 @@ class GPT2LMSynapse(bittensor.Synapse):
         distillation_loss = None
         remote_context = None
 
-        # encoding: encoded sentences into network_dim.
-        # encoding.last_hidden_state.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        # encoding: transformer encoded sentences.
+        # encoding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         encoding = self.encoder_transformer(input_ids=inputs, return_dict=True).last_hidden_state
         
-        # pooled: pooled encodings,
+        # pooled: pooled encodings by taking the hidden units of the last token.
         # pooled.shape = [batch_size, bittensor.__network_dim__]
         pooled = self.pooler(encoding)
 
-        # remote_context: responses from a bittensor remote network call.
+        # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         if remote:
             # network = torch.Tensor(batch_size, bittensor.__network_dim__)
             synapses = bittensor.metagraph.synapses()  # Returns a list of synapses on the network.
             requests, _ = self.router.route(synapses, pooled, inputs)  # routes inputs to network.
             responses = bittensor.dendrite.forward_text(synapses, requests)  # Makes network calls.
-            remote_context = self.router.join(responses)  # Joins responses based on scores..
+            remote_context = self.router.join(responses)  # Join responses with scores.
 
-        # local_context: distillation model for remote_context.
-        # local_context.last_hidden_state.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        # local_context: distilled version of remote_context.
+        # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         local_context = self.context_transformer(input_ids=inputs, return_dict=True).last_hidden_state
         if remote:
             # distillation_loss: distillation loss between local_context and remote_context
@@ -235,7 +235,7 @@ class GPT2LMSynapse(bittensor.Synapse):
             distillation_loss = F.mse_loss(local_context, remote_context.detach())
             loss = loss + distillation_loss
 
-        # local_hidden: hidden layer encoding using local_context.
+        # local_hidden: hidden layer encoding of sequence with local_context.
         # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         local_hidden = torch.cat([encoding, local_context], dim=2)
         local_hidden = self.hidden_layer(local_hidden)
