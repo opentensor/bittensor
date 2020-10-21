@@ -21,7 +21,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-from torch.utils.tensorboard import SummaryWriter
 import traceback
 from typing import List, Tuple, Dict, Optional
 
@@ -75,7 +74,7 @@ def main(hparams):
             output = model(images, targets, query = True)
 
             # Backprop.
-            loss = output['network_target_loss'] + output['distillation_loss']
+            loss = output['loss']
             loss.backward()
             optimizer.step()
             global_step += 1

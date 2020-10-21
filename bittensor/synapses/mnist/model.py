@@ -169,7 +169,6 @@ class MnistSynapse(bittensor.Synapse):
         student_target_loss = None
         network_target_loss = None
         distillation_loss = None
-        scores = []
 
         # images: torch.Tensor(batch_size, -1, -1, -1)
         # transform: torch.Tensor(batch_size, transform_dim)
@@ -186,7 +185,7 @@ class MnistSynapse(bittensor.Synapse):
             images = torch.unsqueeze(images, 1)  # Add sequence dimension.
             synapses = self.metagraph.synapses(
             )  # Returns a list of synapses on the network.
-            requests, scores = self.router.route(
+            requests, _ = self.router.route(
                 synapses, transform, images)  # routes inputs to network.
             responses = self.dendrite.forward_image(
                 synapses, requests)  # Makes network calls.
@@ -256,5 +255,4 @@ class MnistSynapse(bittensor.Synapse):
             'student_target_loss': student_target_loss,
             'network_target_loss': network_target_loss,
             'distillation_loss': distillation_loss,
-            'scores': scores,
         }
