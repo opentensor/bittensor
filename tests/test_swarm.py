@@ -143,7 +143,7 @@ def test_mnist_swarm_loss():
     except Exception as e:
         exc_type, _, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        logger.error(exc_type, fname, exc_tb.tb_lineno)
+        #logger.error(exc_type, fname, exc_tb.tb_lineno)
         assert False
 
     finally:
