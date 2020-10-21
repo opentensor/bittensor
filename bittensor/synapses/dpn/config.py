@@ -35,8 +35,8 @@ class DPNConfig:
         >>> # Initializing a DPN configuration
         >>> configuration = DPNConfig()
 
-        >>> # Accessing the model configuration
-        >>> configuration = model ( configuration )
+        >>> # Initializing a DNP Synapse
+        >>> model = DPNSynapse ( configuration )
     """
 
     __default_target_size__ = 10

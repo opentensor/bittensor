@@ -46,7 +46,7 @@ def main(hparams):
     model_config = FFNNConfig()
     model = FFNNSynapse(model_config)
     model.to( device ) # Set model to device.
-    bittensor.serve( model.deepcopy(model_config) )
+    bittensor.serve( model.deepcopy() )
 
     # Build the optimizer.
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
@@ -149,7 +149,7 @@ def main(hparams):
                 # Save and serve the new best local model.
                 logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, config.logdir + '/model.torch' )
                 torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, config.logdir + '/model.torch' )
-                bittensor.serve( model.deepcopy(model_config) )
+                bittensor.serve( model.deepcopy() )
 
             epoch += 1
 

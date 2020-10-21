@@ -32,7 +32,7 @@ class FFNNConfig:
         >>> configuration = FFNNConfig()
 
         >>> # Accessing the model configuration
-        >>> configuration = model ( configuration )
+        >>> configuration = FNNSynapse ( configuration )
     """
 
     __default_target_dim__ = 10
@@ -55,11 +55,14 @@ class FFNNSynapse(bittensor.Synapse):
         r""" Init a new ffnn synapse module.
 
             Args:
-                dendrite (:obj:`bittensor.Dendrite`, `optional`): 
+                config (:obj:`FFNNConfig`, `optional`, defaults to FNNConfig()): 
+                    ffnn configuration class.
+
+                dendrite (:obj:`bittensor.Dendrite`, `optional`, bittensor.dendrite): 
                     bittensor dendrite object used for queries to remote synapses.
                     Defaults to bittensor.dendrite global.
 
-                metagraph (:obj:`bittensor.Metagraph`, `optional`): 
+                metagraph (:obj:`bittensor.Metagraph`, `optional`, bittensor.metagraph): 
                     bittensor metagraph containing network graph information. 
                     Defaults to bittensor.metagraph global.
 
@@ -116,7 +119,7 @@ class FFNNSynapse(bittensor.Synapse):
         self.to(self.device)
 
     def forward_image(self, images: torch.Tensor):
-        r""" Forward image inputs through the DPN synapse .
+        r""" Forward image inputs through the FFNN synapse .
 
             Args:
                 inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
@@ -150,10 +153,10 @@ class FFNNSynapse(bittensor.Synapse):
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
                     PIL.toTensor() encoded images.
 
-                targets (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, 10)`, `optional`): 
+                targets (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, target_dim)`, `optional`, defaults to None): 
                     Image labels.
 
-                remote (:obj:`bool')`, `optional`):
+                remote (:obj:`bool')`, `optional`, default to False):
                     Switch between local_contextand remote context. If true, function makes quries to the remote network.
 
             Returns:
@@ -164,7 +167,7 @@ class FFNNSynapse(bittensor.Synapse):
                     local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
                         Hidden layer encoding produced by using student_context.
 
-                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, 10)`, `optional`):
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
                         MNIST Target predictions using student_context. 
 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
@@ -173,7 +176,7 @@ class FFNNSynapse(bittensor.Synapse):
                     remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
 
-                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, 10)`, `optional`):
+                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
                         MNIST Target predictions using the remote_context.
 
                     remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
@@ -251,7 +254,7 @@ class FFNNSynapse(bittensor.Synapse):
         if remote and targets is not None:
             # remote_target: projection of remote_hidden onto target dimension.
             # remote_target_loss: loss between remote_target and passed targets.
-            # remote_target.shape = [batch_size, 10]
+            # remote_target.shape = [batch_size, target_dim]
             # remote_target_loss.shape = [1]
             remote_target = self.target_layer1(remote_hidden)
             remote_target = self.target_layer2(remote_target)
