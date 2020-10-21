@@ -7,7 +7,7 @@ Example:
 
 """
 import bittensor
-from bittensor.synapses.gpt2.model import GPT2LMSynapse, GPT2MLMConfig
+from bittensor.synapses.gpt2 import GPT2LMSynapse, GPT2MLMConfig
 
 import argparse
 from datasets import load_dataset

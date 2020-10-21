@@ -7,7 +7,7 @@ Example:
 """
 
 import bittensor
-from bittensor.synapses.ffnn.model import FFNNSynapse, FFNNConfig
+from bittensor.synapses.ffnn import FFNNSynapse, FFNNConfig
 from bittensor.utils.model_utils import ModelToolbox
 
 import argparse

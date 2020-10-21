@@ -42,7 +42,7 @@ class DPNConfig (bittensor.SynapseConfig):
 
     Examples::
 
-        >>> from bittensor.synapses.dpn.config import DPNConfig
+        >>> from bittensor.synapses.dpn import DPNConfig, DPNSynapse
 
         >>> # Initializing a DPN configuration
         >>> configuration = DPNConfig()
@@ -92,9 +92,9 @@ class DPNSynapse(bittensor.Synapse):
         r""" Init a new DPN synapse module.
 
             Args:
-                config (:obj: `bittensor.dpn.dpn_configuration.DPNConfig`, `required`)
+                config (:obj: `bittensor.dpn.DPNConfig`, `required`)
                     Model configuration object used to set up what the model should 
-                    contain in terms of convolutional and dense layers. See :class: bittensor.dpn.dpn_configuration.DPNConfig
+                    contain in terms of convolutional and dense layers. See :class: bittensor.dpn.DPNConfig
 
                 dendrite (:obj:`bittensor.Dendrite`, `optional`, defaults to bittensor.dendrite): 
                     bittensor dendrite object used for queries to remote synapses.
