@@ -99,8 +99,6 @@ class GPT2LMSynapse(bittensor.Synapse):
         """
         super(GPT2LMSynapse, self).__init__(config = config)
 
-        self.config = config
-
         # Bittensor dendrite object used for queries to remote synapses.
         # Defaults to bittensor.dendrite global object.
         self.dendrite = dendrite
