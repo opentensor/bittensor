@@ -55,7 +55,7 @@ class GPT2LMSynapse(bittensor.Synapse):
                 local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Output encoding of inputs produced by using the local student distillation model as context.
         """
-        return self.forward(inputs=inputs, query=False)['local_output']
+        return self.forward(inputs=inputs.to(self.device), query=False)['local_output']
 
     def forward(self, inputs: torch.LongTensor, query: bool = False):
         r""" Forward pass inputs and labels through the NSP BERT module.

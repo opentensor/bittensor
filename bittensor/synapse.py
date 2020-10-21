@@ -25,15 +25,18 @@ class Synapse(nn.Module):
     def set_synapse_key(self, key):
         self._synapse_key = key
 
-    def deepcopy(self):
+    def deepcopy(self, config):
         """ Returns a copy of this synapse by passing the model params to load_state_dict.
+
+            config: (:obj:`config.class`, `required`): 
+                    model config used to re-init the model.
 
             Returns:
                 synapse_copy (:obj:`self.__class__`, `required`): 
                     Deep copy synapse object.
         """
         SynapseClass = self.__class__
-        synapse_copy = SynapseClass()
+        synapse_copy = SynapseClass(config)
         synapse_copy.load_state_dict(self.state_dict())
         synapse_copy.set_synapse_key(self._synapse_key)
         return synapse_copy

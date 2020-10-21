@@ -12,11 +12,7 @@ from bittensor.synapses.gpt2.model import GPT2LMSynapse
 import argparse
 from datasets import load_dataset
 from loguru import logger
-import os, sys
-import math
 import random
-import time
-import transformers
 from transformers import GPT2Config
 import torch
 
@@ -93,7 +89,7 @@ def main(hparams):
             inputs = nextbatch(dataset, batch_size, bittensor.__tokenizer__)
             
             # Compute full pass and get loss with a network query.
-            output = model(inputs, query=True)
+            output = model(inputs.to(device), query=True)
             
             loss = output['loss']
             loss.backward()
