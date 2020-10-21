@@ -27,7 +27,9 @@ class Config(object):
         remote_ip (:obj:`str`, `optional`, defaults to :obj:`None`):
             Default serving endpoing (IP Address) advertised on the network. Defaults to returned IP on: https://api.ipify.org
         datapath (:obj:`str`, `optional`, defaults to :obj:`data/`)
-            Location of save models.
+            Data dir for datasets/models/logs
+        logdir (:obj:`str`, `optional`, defaults to :obj:`data/config.neuron_key`)
+            Location of logs and saved model.
     """
     __chainendpoint_default__ = ""
     __axon_port_default__ = "8091"
@@ -42,6 +44,7 @@ class Config(object):
         __remote_ip_default__ = 'localhost'
 
     __datapath_default__ = "data/"
+    __logdir_default__ = "data/" + __neuron_key_default__
 
     def __init__(self, **kwargs):
         # Bittensor chain endpoint.
@@ -63,8 +66,11 @@ class Config(object):
                                      Config.__neuron_key_default__)
         # Default serving endpoing (IP Address) advertised on the network.
         self.remote_ip = kwargs.pop("remote_ip", Config.__remote_ip_default__)
-        # Path to a saved torch model.
+        # Path to datasets.
         self.datapath = kwargs.pop("datapath", Config.__datapath_default__)
+        # Path to save logs and models.
+        self.logdir = kwargs.pop("logdir", Config.__logdir_default__)
+
 
         # Additional attributes without default values
         for key, value in kwargs.items():
@@ -92,11 +98,13 @@ class Config(object):
                           type(bittensor.Config.__remote_ip_default__))
         assert isinstance(self.datapath,
                           type(bittensor.Config.__datapath_default__))
+        assert isinstance(self.logdir,
+                          type(bittensor.Config.__logdir_default__))
 
     def __str__(self):
-        return "\n Neuron key: {} \n Axon port: {} \n Metagraph port: {} \n Metagraph Size: {} \n bootpeer: {} \n remote_ip: {} \n".format(
-            self.neuron_key, self.axon_port, self.metagraph_port,
-            self.metagraph_size, self.bootstrap, self.remote_ip)
+        return "\n chain_endpoint: {} \n neuron key: {} \n axon port: {} \n metagraph port: {} \n metagraph Size: {} \n bootpeer: {} \n remote_ip: {} \n datapath: {} \n logdir: {}".format(
+            self.chain_endpoint, self.neuron_key, self.axon_port, self.metagraph_port,
+            self.metagraph_size, self.bootstrap, self.remote_ip, self.datapath, self.logdir)
 
     def from_hparams(hparams):
         config = Config()
@@ -146,5 +154,9 @@ class Config(object):
         parser.add_argument('--datapath',
                             default=Config.__datapath_default__,
                             type=str,
-                            help='Path to a saved torch model.')
+                            help='Path to datasets.')
+        parser.add_argument('--logdir',
+                            default=Config.__logdir_default__,
+                            type=str,
+                            help='Path to logs and saved models.')
         return parser

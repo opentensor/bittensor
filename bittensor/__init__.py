@@ -48,7 +48,7 @@ logger.configure(**config)
 metagraph = None
 dendrite = None
 axon = None
-
+tbwriter = None
 
 def init(config: bittensor.Config):
     # Build and start the metagraph background object.
@@ -69,6 +69,10 @@ def init(config: bittensor.Config):
     global dendrite
     dendrite = bittensor.Dendrite(config)
 
+    # Build bittensor tbwriter for tensorboard.
+    # Logs are stored in datapath/neuronkey/logs/
+    global tbwriter
+    tbwriter = SummaryWriter(log_dir = config.logdir)
 
 def serve(synapse: Synapse):
     # Subscribe the synapse object to the network.
