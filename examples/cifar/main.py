@@ -7,8 +7,7 @@ Example:
 """
 
 import bittensor
-from bittensor.synapses.dpn.model import DPNSynapse
-from bittensor.synapses.dpn.config import DPNConfig
+from bittensor.synapses.dpn.model import DPNSynapse, DPNConfig
 from bittensor.utils.model_utils import ModelToolbox
 
 import argparse
@@ -62,7 +61,6 @@ def main(hparams):
     trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size_train, shuffle=True, num_workers=2)
     test_data = torchvision.datasets.CIFAR10(root=config.datapath, train=False, download=True, transform=transforms.ToTensor())
     testloader = torch.utils.data.DataLoader(test_data, batch_size = batch_size_test, shuffle=False, num_workers=2)
-    model_toolbox.setup_model_directory()
 
     # Train loop: Single threaded training of MNIST.
     def train(model, epoch, global_step):

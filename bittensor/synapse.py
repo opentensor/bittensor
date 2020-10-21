@@ -23,27 +23,16 @@ class Synapse(nn.Module):
     def set_synapse_key(self, key):
         self.config.synapse_key = key
 
-    def deepcopy(self, config: bittensor.config.SynapseConfig = None):
+    def deepcopy(self):
         """ Returns a copy of this synapse by passing the model params to load_state_dict.
-
-            config: (:obj:`bittensor.config.SynapseConfig`, `optional`, defaults to model.config): 
-                    model config used to re-init the model.
 
             Returns:
                 synapse_copy (:obj:`self.__class__`, `required`): 
                     Deep copy synapse object.
         """
         SynapseClass = self.__class__
-        
-        model_config = None
-        if config == None:
-            # If no passed config, try model config.
-            if self.config == None:
-                raise ValueError('Deep copy requires a passed model config object or a member model.config')
-            model_config = self.config
-        synapse_copy = SynapseClass(model_config)
+        synapse_copy = SynapseClass(self.config)
         synapse_copy.load_state_dict(self.state_dict())
-        synapse_copy.set_synapse_key(self._synapse_key)
         return synapse_copy
 
     def forward_text(self, inputs: torch.Tensor):
