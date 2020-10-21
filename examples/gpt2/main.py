@@ -7,12 +7,14 @@ Example:
 
 """
 import bittensor
+from bittensor.synapses.gpt2.config import GPT2Config
 from bittensor.synapses.gpt2.model import GPT2LMSynapse
 
 import argparse
 from datasets import load_dataset
 from loguru import logger
 import random
+import time
 from transformers import GPT2Config
 import torch
 
@@ -73,7 +75,6 @@ def main(hparams):
 
     # Dataset: 74 million sentences pulled from books.
     dataset = load_dataset('bookcorpus')['train']
-
   
     # Optimizer.
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
@@ -89,7 +90,7 @@ def main(hparams):
             inputs = nextbatch(dataset, batch_size, bittensor.__tokenizer__)
             
             # Compute full pass and get loss with a network query.
-            output = model(inputs.to(device), query=True)
+            output = model(inputs.to(device), training = True, remote = True)
             
             loss = output['loss']
             loss.backward()
@@ -99,7 +100,12 @@ def main(hparams):
             step += 1
             logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
                 epoch, step, epoch_size, float(step * 100)/float(epoch_size), output['network_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
-      
+            bittensor.tbwriter.add_scalar('train remote target loss', output['remote_target_loss'].item(), time.time())
+            bittensor.tbwriter.add_scalar('train local target loss', output['local_target_loss'].item(), time.time())
+            bittensor.tbwriter.add_scalar('train distilation loss', output['distillation_loss'].item(), time.time())
+            bittensor.tbwriter.add_scalar('train loss', output['loss'].item(), time.time())
+            bittensor.tbwriter.add_scalar('train accuracy', accuracy, time.time())
+
     epoch = 0
     try:
         while True:
