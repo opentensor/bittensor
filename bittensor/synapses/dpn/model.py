@@ -24,15 +24,15 @@ class DPNSynapse(bittensor.Synapse):
         r""" Init a new DPN synapse module.
 
             Args:
-                config (:obj: `bittensor.dpn.dpn_configuration.DPNConfig`, `required`)
+                config (:obj: `bittensor.dpn.dpn_configuration.DPNConfig`, `required`, defaults to DPNConfig())
                     Model configuration object used to set up what the model should 
                     contain in terms of convolutional and dense layers. See :class: bittensor.dpn.dpn_configuration.DPNConfig
 
-                dendrite (:obj:`bittensor.Dendrite`, `optional`): 
+                dendrite (:obj:`bittensor.Dendrite`, `optional`, defaults to bittensor.dendrite): 
                     bittensor dendrite object used for queries to remote synapses.
                     Defaults to bittensor.dendrite global.
 
-                metagraph (:obj:`bittensor.Metagraph`, `optional`): 
+                metagraph (:obj:`bittensor.Metagraph`, `optional`, defaults to bittensor.metagraph): 
                     bittensor metagraph containing network graph information. 
                     Defaults to bittensor.metagraph global.
 
@@ -141,7 +141,7 @@ class DPNSynapse(bittensor.Synapse):
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
                     PIL.toTensor() encoded images.
 
-                targets (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, 10)`, `optional`): 
+                targets (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, config.target_size)`, `optional`): 
                     Image labels.
 
                 remote (:obj:`bool')`, `optional`):
@@ -155,7 +155,7 @@ class DPNSynapse(bittensor.Synapse):
                     local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
                         Hidden layer encoding produced by using student_context.
 
-                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, 10)`, `optional`):
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.target_size)`, `optional`):
                         DPN Target predictions using student_context. 
 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
@@ -164,7 +164,7 @@ class DPNSynapse(bittensor.Synapse):
                     remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
 
-                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, 10)`, `optional`):
+                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.target_size)`, `optional`):
                         DPN Target predictions using the remote_context.
 
                     remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
@@ -187,7 +187,7 @@ class DPNSynapse(bittensor.Synapse):
         
 
         r"""
-            Transform the images into a common shape (32x32) in this case
+            Transform the images into a common shape (32x32)
         """
         # transform: transform images to common shape.
         # transform.shape = [batch_size, self.transform_dim]
@@ -254,7 +254,7 @@ class DPNSynapse(bittensor.Synapse):
         if remote and targets is not None:
             # remote_target: projection of remote_hidden onto target dimension.
             # remote_target_loss: loss between remote_target and passed targets.
-            # remote_target.shape = [batch_size, 10]
+            # remote_target.shape = [batch_size, config.target_size]
             # remote_target_loss.shape = [1]
             remote_target = self.target_layer1(remote_hidden)
             remote_target = self.target_layer2(remote_target)
