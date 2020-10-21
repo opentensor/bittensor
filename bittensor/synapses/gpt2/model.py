@@ -8,7 +8,7 @@ from transformers import GPT2Config, GPT2Model
 from typing import List, Tuple, Dict, Optional
 
 
-class GPT2MLMConfig:
+class GPT2MLMConfig (bittensor.SynapseConfig):
     r"""
     This is the configuration class for a :class:`~GPT2LMSynapse`.
     
@@ -49,6 +49,7 @@ class GPT2MLMConfig:
                                                 )
     
     def __init__(self, **kwargs):
+        super(GPT2MLMConfig, self).__init__(**kwargs)
         self.huggingface_config = kwargs.pop("huggingface_config", self.__default_huggingface_config__)
         self.run_checks()
     
@@ -96,7 +97,7 @@ class GPT2LMSynapse(bittensor.Synapse):
                     Defaults to bittensor.metagraph global.
 
         """
-        super(GPT2LMSynapse, self).__init__()
+        super(GPT2LMSynapse, self).__init__(config = config)
 
         self.config = config
 
