@@ -165,7 +165,7 @@ class FFNNSynapse(bittensor.Synapse):
                         Total loss acumulation to be used by loss.backward()
 
                     local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
-                        Hidden layer encoding produced by using student_context.
+                        Hidden layer encoding produced using student_context.
 
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
                         MNIST Target predictions using student_context. 

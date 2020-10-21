@@ -64,7 +64,7 @@ class GPT2LMSynapse(bittensor.Synapse):
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
-                query (:obj:`bool')`, `optional`):
+                remote (:obj:`bool')`, `optional`):
                     Switch to True if this forward pass makes a remote call to the network. 
 
             dictionary with { 
@@ -72,8 +72,7 @@ class GPT2LMSynapse(bittensor.Synapse):
                         Total loss acumulation to be used by loss.backward()
 
                     local_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                        Output encoding of inputs produced by using the local student distillation model as 
-                        context rather than the network. 
+                        Hidden layer encoding produced using student_context.
 
                     network_output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Output encoding of inputs produced by using the network inputs as context to the local model rather than 
