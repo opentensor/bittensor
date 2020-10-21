@@ -3,6 +3,7 @@ from loguru import logger
 import os
 import random
 import sys
+import time
 import torch
 import torch.nn as nn
 import torchvision
@@ -12,7 +13,7 @@ import copy
 from typing import List, Tuple, Dict, Optional
 
 import bittensor
-from bittensor.synapses.mnist.model import MnistSynapse
+from bittensor.synapses.ffnn.model import FFNNSynapse, FFNNConfig
 
 def test_mnist_swarm_loss():
     n = 2
@@ -42,7 +43,8 @@ def test_mnist_swarm_loss():
         axon = bittensor.Axon(config)
         dendrite = bittensor.Dendrite(config)
         
-        synapse = MnistSynapse(dendrite, meta)
+        model_config = FFNNConfig()
+        synapse = FFNNSynapse(model_config, dendrite, meta)
         synapse.to( device )
         axon.serve( synapse )
         meta.subscribe( synapse )
@@ -99,6 +101,7 @@ def test_mnist_swarm_loss():
         log_interval = 10
         accuracies = [0 for _ in synapses]
         logger.info('Train ...')
+        time.sleep(2)
         for epoch in range(epochs):
             for i, model in enumerate(synapses):
                 correct = 0.0
@@ -111,13 +114,13 @@ def test_mnist_swarm_loss():
                     images = images.to(device)
                     
                     # Computes model outputs and loss.
-                    output = model(images, labels, query = True)
+                    output = model(images, labels, remote = True)
 
                     # Loss and step.
-                    max_logit = output['network_target'].data.max(1, keepdim=True)[1]
+                    max_logit = output['remote_target'].data.max(1, keepdim=True)[1]
                     correct += max_logit.eq( labels.data.view_as(max_logit) ).sum()
 
-                    loss = output['network_target_loss']
+                    loss = output['remote_target_loss']
                     loss.backward()
                     optimizers[i].step()
 
@@ -125,7 +128,7 @@ def test_mnist_swarm_loss():
                         n = len(train_data)
                         accuracy = (100. * correct.item()) / ((batch_idx + 1) * batch_size_train)
                         logger.info('Synapse {}, Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {}'.format(i,
-                            epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['network_target_loss'].item(), accuracy)) 
+                            epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['remote_target_loss'].item(), accuracy)) 
                         accuracies[i] = accuracy
 
                     if batch_idx > 100:
@@ -177,7 +180,7 @@ class NullSynapse(bittensor.Synapse):
             requests, _ = self.router.route( synapses, context, inputs )
             responses = self.dendrite.forward_tensor( synapses, requests )
             assert len(responses) == len(synapses)
-            network = self.router.join( responses )
+            _ = self.router.join( responses )
 
         output = inputs + torch.ones((batch_size, sequence_dim, network_dim))
         return output

@@ -41,16 +41,12 @@ def main(hparams):
     logger.info(config)
     bittensor.init( config )
     bittensor.start()
-
-    # Setup model toolbox
-    model_toolbox = ModelToolbox(config.datapath, "cifar")
-    model_toolbox.setup_model_directory()
     
     # Build local synapse to serve on the network.
     model_config = DPNConfig()
     model = DPNSynapse( model_config )
     model.to( device ) # Set model to device.
-    bittensor.serve( model )
+    bittensor.serve( model.deepcopy() )
 
     # Build the optimizer.
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
@@ -150,8 +146,10 @@ def main(hparams):
                 best_test_loss = test_loss
                 
                 # Save the best local model.
-                logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, config.datapath + model_toolbox.trial_id + '/model.torch')
-                model_toolbox.save_model(model, epoch, optimizer, test_loss)
+                logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, config.logdir + '/model.torch')
+                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, config.logdir + '/model.torch' )
+                bittensor.serve( model.deepcopy() )
+
             epoch += 1
 
         except Exception as e:

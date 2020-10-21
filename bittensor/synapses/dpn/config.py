@@ -16,6 +16,8 @@ class DPNConfig:
 
 
     Args:
+        target_size (:obj:`int`, `required`, defaults to (10)):
+            The number of logit heads used by the target layer.      
         in_planes (:obj:`tuple`, `required`, defaults to (96,192,384,768)):
             The inputs of convolutional layers 2, 3, 4, and 5. 
         out_planes (:obj:`tuple`, `required`, defaults to (256,512,1024,2048)):
@@ -28,13 +30,13 @@ class DPNConfig:
 
     Examples::
 
-        >>> from bittensor.synapses.dpn.dpn_configuration import DPNConfig
+        >>> from bittensor.synapses.dpn.config import DPNConfig
 
         >>> # Initializing a DPN configuration
         >>> configuration = DPNConfig()
 
-        >>> # Accessing the model configuration
-        >>> configuration = model ( configuration )
+        >>> # Initializing a DPN Synapse
+        >>> model = DPNSynapse ( configuration )
     """
 
     __default_target_size__ = 10
