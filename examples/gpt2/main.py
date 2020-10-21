@@ -7,15 +7,13 @@ Example:
 
 """
 import bittensor
-from bittensor.synapses.gpt2.config import GPT2Config
-from bittensor.synapses.gpt2.model import GPT2LMSynapse
+from bittensor.synapses.gpt2.model import GPT2LMSynapse, GPT2MLMConfig
 
 import argparse
 from datasets import load_dataset
 from loguru import logger
 import random
 import time
-from transformers import GPT2Config
 import torch
 
 def nextbatch(data, batch_size, tokenizer):
@@ -51,24 +49,7 @@ def main(hparams):
     bittensor.start()
 
     # Build Synapse
-    model_config = GPT2Config(  vocab_size=bittensor.__vocab_size__, 
-                                n_embd=bittensor.__network_dim__,
-                                n_layer=3,
-                                n_head=2, 
-                                n_inner=None, 
-                                activation_function='gelu_new', 
-                                resid_pdrop=0.1, 
-                                embd_pdrop=0.1, 
-                                attn_pdrop=0.1, 
-                                layer_norm_epsilon=1e-05, 
-                                initializer_range=0.02, 
-                                summary_type='cls_index', 
-                                summary_use_proj=True, 
-                                summary_activation=None, 
-                                summary_proj_to_labels=True, 
-                                summary_first_dropout=0.1, 
-                                bos_token_id=50256, 
-                                eos_token_id=50256)    
+    model_config = GPT2MLMConfig()  
     model = GPT2LMSynapse(model_config)
     model.to(device)
     bittensor.serve( model )
@@ -98,13 +79,12 @@ def main(hparams):
             scheduler.step()
 
             step += 1
-            logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
-                epoch, step, epoch_size, float(step * 100)/float(epoch_size), output['network_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
+            logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
+                epoch, step, epoch_size, float(step * 100)/float(epoch_size), output['remote_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
             bittensor.tbwriter.add_scalar('train remote target loss', output['remote_target_loss'].item(), time.time())
             bittensor.tbwriter.add_scalar('train local target loss', output['local_target_loss'].item(), time.time())
             bittensor.tbwriter.add_scalar('train distilation loss', output['distillation_loss'].item(), time.time())
             bittensor.tbwriter.add_scalar('train loss', output['loss'].item(), time.time())
-            bittensor.tbwriter.add_scalar('train accuracy', accuracy, time.time())
 
     epoch = 0
     try:
