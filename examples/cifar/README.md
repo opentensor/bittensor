@@ -1,4 +1,4 @@
-# BitTensor: Mnist Example
+# BitTensor: CIFAR Example
 
 ## Run locally
 1. Install python
@@ -11,10 +11,10 @@ pip install -r requirments.txt
 pip install -e .
 
 # Run server 1.
-python examples/mnist/main.py --port=8120
+python examples/cifar/main.py --port=8120
 
 # Run server 2.
-python examples/mnist/main.py --bootstrap='0.0.0.0:8120'
+python examples/cifar/main.py --bootstrap='0.0.0.0:8120'
 ```
 
 ## Run remote on Digital Ocean
@@ -36,7 +36,7 @@ $ eval $(docker-machine env bittensor)
 $ docker build -t bittensor .
 
 # Run the neuron.
-$ docker run -it -p 8888:8888 bittensor examples/mnist/main.py --port = 8765 --remoteip = ipaddress1
+$ docker run -it -p 8888:8888 bittensor examples/cifar/main.py --port = 8765 --remoteip = ipaddress1
 
 
 

@@ -29,13 +29,6 @@ def test_proof_of_work():
     synapse = Crypto.fill_proof_of_work(synapse, difficulty)
     assert Crypto.count_zeros(synapse.proof_of_work) >= difficulty
 
-def test_false_proof_of_work():
-    difficulty = 1
-    _, synapse = random_synapse()
-    synapse = Crypto.fill_proof_of_work(synapse, difficulty)
-    synapse.proof_of_work = os.urandom(256)
-    assert Crypto.count_zeros(synapse.proof_of_work) != difficulty
-
 def test_signature():
     private, synapse = random_synapse()
     synapse = Crypto.sign_synapse(private, synapse)

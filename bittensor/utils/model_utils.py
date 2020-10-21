@@ -1,18 +1,19 @@
 import torch
 import time
-
+from pathlib import Path
 
 class ModelToolbox:
     """
         Utility class to load, save, and modify existing models. 
     """
 
-    def __init__(self, dataset_name):
+    def __init__(self, datapath, dataset_name):
         # Log/data/model paths.
         self.trial_id = dataset_name + '-' + str(time.time()).split('.')[0]
-        self.data_path = "data/datasets/"
-        self.log_dir = 'data/' + self.trial_id + '/logs/'
-        self.model_path = 'data/' + self.trial_id + '/model.torch'
+        self.data_path = datapath + "datasets/"
+        self.log_dir = datapath + self.trial_id + '/logs/'
+        self.model_path = datapath + self.trial_id + '/model.torch'
+        self.trial_path = datapath + self.trial_id
 
     def save_model(self, model, epoch, optimizer, test_loss):
         torch.save(
@@ -31,3 +32,7 @@ class ModelToolbox:
         best_test_loss = checkpoint['test_loss']
 
         return present_model, optimizer, epoch, best_test_loss
+    
+    def setup_model_directory(self):
+        # Create model directory for saving if it does not exist.
+        Path(self.trial_path).mkdir(parents=True, exist_ok=True)
