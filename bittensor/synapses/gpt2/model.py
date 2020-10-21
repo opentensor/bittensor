@@ -8,21 +8,21 @@ from transformers import GPT2Config, GPT2Model
 from typing import List, Tuple, Dict, Optional
 
 
-class GPT2LMConfig:
+class GPT2MLMConfig:
     r"""
     This is the configuration class to store the configuration of a :class:`~GPT2LMSynapse`.
     
 
     Args:
-        huggingface_config (:obj:`transformers.GPT2Config`, `required`, defaults to GPT2LMConfig.__default_huggingface_config__):
+        huggingface_config (:obj:`transformers.GPT2Config`, `required`, defaults to GPT2MLMConfig.__default_huggingface_config__):
             The number of logit heads used by the target layer.      
 
     examples:
 
         >>> from bittensor.synapses.ffnn.model import GPT2LMConfig, GPT2LMSynapse
 
-        >>> # Initializing a GPTMLM configuration.
-        >>> configuration = GPT2LMConfig()
+        >>> # Initializing a GPT2MLMConfig configuration.
+        >>> configuration = GPT2MLMConfig()
 
         >>> # Initializing the model from configuration.
         >>> configuration = GPT2LMSynapse ( configuration )
@@ -53,7 +53,7 @@ class GPT2LMConfig:
         self.run_type_checks()
     
     def run_type_checks(self):
-        assert isinstance(self.huggingface_config, transformers.GPT2Config)a
+        assert isinstance(self.huggingface_config, transformers.GPT2Config)
         assert self.huggingface_config.n_embd == bittensor.__network_dim__, "GPT embedding dim {} != {}".format(self.huggingface_config.n_embd, bittensor.__network_dim__)
         assert self.huggingface_config.vocab_size == bittensor.__vocab_size__, "GPT vocab size must match bittensor.__vocab_size {} != {}".format(self.huggingface_config.vocab_size, bittensor.__vocab_size__)
 
@@ -78,13 +78,13 @@ class GPT2LMSynapse(bittensor.Synapse):
     """
 
     def __init__(self,
-                 config: GPT2LMConfig = None,
+                 config: GPT2MLMConfig,
                  dendrite: bittensor.Dendrite = None,
                  metagraph: bittensor.Metagraph = None):
         r""" Init a new ffnn synapse module.
 
             Args:
-                config (:obj:`GPT2LMConfig`, `optional`, defaults to GPT2LMConfig()): 
+                config (:obj:`GPT2MLMConfig`, `required`): 
                     GPTMLM configuration class.
 
                 dendrite (:obj:`bittensor.Dendrite`, `optional`, bittensor.dendrite): 
@@ -97,7 +97,9 @@ class GPT2LMSynapse(bittensor.Synapse):
 
         """
         super(GPT2LMSynapse, self).__init__()
-        
+
+        self.config = config
+
         # Bittensor dendrite object used for queries to remote synapses.
         # Defaults to bittensor.dendrite global object.
         self.dendrite = dendrite
@@ -110,10 +112,6 @@ class GPT2LMSynapse(bittensor.Synapse):
         if self.metagraph == None:
             self.metagraph = bittensor.metagraph
 
-        # Set config or use default huggingface config class.
-        self.config = config
-        if self.config == None:
-            self.config = GPT2LMConfig()
 
         # encoder_layer: encodes tokenized sequences to embedding size.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -200,13 +198,16 @@ class GPT2LMSynapse(bittensor.Synapse):
                 }
         """
 
-        # Return vars.
+        # Return vars to be filled.
         loss = torch.tensor(0.0)
-        local_output = None
-        network_output = None
-        network_target_loss = None
+        local_hidden = None
+        local_target = None
         local_target_loss = None
+        remote_hidden = None
+        remote_target = None
+        remote_target_loss = None
         distillation_loss = None
+        remote_context = None
 
         # encoding: encoded sentences into network_dim.
         # encoding.last_hidden_state.shape = [batch_size, sequence_len, bittensor.__network_dim__]
@@ -218,7 +219,7 @@ class GPT2LMSynapse(bittensor.Synapse):
 
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        if query:
+        if remote:
             # network = torch.Tensor(batch_size, bittensor.__network_dim__)
             synapses = bittensor.metagraph.synapses()  # Returns a list of synapses on the network.
             requests, _ = self.router.route(synapses, pooled, inputs)  # routes inputs to network.
