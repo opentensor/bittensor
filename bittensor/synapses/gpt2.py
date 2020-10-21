@@ -97,21 +97,10 @@ class GPT2LMSynapse(bittensor.Synapse):
                     Defaults to bittensor.metagraph global.
 
         """
-        super(GPT2LMSynapse, self).__init__(config = config)
-
-        # Bittensor dendrite object used for queries to remote synapses.
-        # Defaults to bittensor.dendrite global object.
-        self.dendrite = dendrite
-        if self.dendrite == None:
-            self.dendrite = bittensor.dendrite
-
-        # Bttensor metagraph containing network graph information.
-        # Defaults to bittensor.metagraph global object.
-        self.metagraph = metagraph
-        if self.metagraph == None:
-            self.metagraph = bittensor.metagraph
-
-
+        super(GPT2LMSynapse, self).__init__(
+            config = config,
+            dendrite = dendrite,
+            metagraph = metagraph)
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
         self.encoder_transformer = GPT2Model(self.config.huggingface_config)

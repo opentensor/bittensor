@@ -68,24 +68,11 @@ class FFNNSynapse(bittensor.Synapse):
                     Defaults to bittensor.metagraph global.
 
         """
-        super(FFNNSynapse, self).__init__(config = config)
-        self.config = config
-
-        # Bittensor dendrite object used for queries to remote synapses.
-        # Defaults to bittensor.dendrite global object.
-        self.dendrite = dendrite
-        if self.dendrite == None:
-            self.dendrite = bittensor.dendrite
-
-        # Bttensor metagraph containing network graph information.
-        # Defaults to bittensor.metagraph global object.
-        self.metagraph = metagraph
-        if self.metagraph == None:
-            self.metagraph = bittensor.metagraph
-
-        # Set up device.
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+        super(FFNNSynapse, self).__init__(
+            config = config,
+            dendrite = dendrite,
+            metagraph = metagraph)
+            
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
         self.transform = bittensor.utils.batch_transforms.Normalize((0.1307,), (0.3081,))
@@ -114,8 +101,6 @@ class FFNNSynapse(bittensor.Synapse):
         self.target_layer1 = nn.Linear(bittensor.__network_dim__, 256)
         self.target_layer2 = nn.Linear(256, self.config.target_dim)
         
-        self.to(self.device)
-
     def forward_image(self, images: torch.Tensor):
         r""" Forward image inputs through the FFNN synapse .
 
