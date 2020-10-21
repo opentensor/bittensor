@@ -115,13 +115,13 @@ class DPNSynapse(bittensor.Synapse):
             
             Returns:
                 hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
-                    Hidden layer encoding produced by using student_context.
+                    Hidden layer encoding produced by using local_context.
         """
         # images: remove sequence dimension from images.
         # images.shape = [batch_size, channels, rows, cols] 
         images = images.view(images.shape[0] * images.shape[1], images.shape[2], images.shape[3], images.shape[4])
 
-        # hidden: hidden layer using student context for local computation only.
+        # hidden: hidden layer using local context for local computation only.
         # hidden.shape = [batch_size, __network_dim__] 
         hidden = self.forward (images = images.to(self.device), remote = False) ['local_hidden']
         
@@ -145,7 +145,7 @@ class DPNSynapse(bittensor.Synapse):
                     Image labels.
 
                 remote (:obj:`bool')`, `optional`):
-                    Switch between student and remote context. If true, function makes quries to the remote network.
+                    Switch between local and remote context. If true, function makes quries to the remote network.
 
             Returns:
                 dictionary with { 
@@ -153,13 +153,13 @@ class DPNSynapse(bittensor.Synapse):
                         Total loss acumulation to be used by loss.backward()
 
                     local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
-                        Hidden layer encoding produced by using student_context.
+                        Hidden layer encoding produced by using local_context.
 
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.target_size)`, `optional`):
-                        DPN Target predictions using student_context. 
+                        DPN Target predictions using local_context. 
 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        DPN Classification loss using student_context.
+                        DPN Classification loss using local_context.
 
                     remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
@@ -171,7 +171,7 @@ class DPNSynapse(bittensor.Synapse):
                         DPN Classification loss using the remote_context.
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        Distillation loss between student_context and remote_context.
+                        Distillation loss between local_context and remote_context.
                 }
         """
         # Return vars to be filled.
@@ -212,19 +212,19 @@ class DPNSynapse(bittensor.Synapse):
             remote_context = self.router.join( responses ) # Joins responses based on scores..
             remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2]) # Squeeze the sequence dimension.
 
-        # student_context: distillation model for remote_context.
-        # student_context.shape = [batch_size, bittensor.__network_dim__]
+        # local_context: distillation model for remote_context.
+        # local_context.shape = [batch_size, bittensor.__network_dim__]
         local_context = self.context_layer1(transform.detach())
         local_context = self.context_layer2(local_context)
         local_context = self.context_layer3(local_context)
         
         if remote:
-            # distillation_loss: distillation loss between student_context and remote_context
+            # distillation_loss: distillation loss between local_context and remote_context
             # distillation_loss.shape = [1]
             distillation_loss = F.mse_loss(local_context, remote_context.detach())
             loss = loss + distillation_loss
 
-        # local_hidden: hidden layer encoding using student_context.
+        # local_hidden: hidden layer encoding using local_context.
         # local_hidden.shape = [batch_size, bittensor.__network_dim__]
         local_hidden = torch.cat([transform, local_context], dim=1)
         local_hidden = self.hidden_layer1(local_hidden)

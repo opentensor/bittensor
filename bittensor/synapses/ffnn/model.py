@@ -31,7 +31,7 @@ class FFNNConfig:
         >>> # Initializing a FFNN configuration
         >>> configuration = FFNNConfig()
 
-        >>> # Accessing the model configuration
+        >>> # Initializing the synapse from configuration.
         >>> configuration = FNNSynapse ( configuration )
     """
 
@@ -127,7 +127,7 @@ class FFNNSynapse(bittensor.Synapse):
             
             Returns:
                 hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
-                    Hidden layer encoding produced by using student_context.
+                    Hidden layer encoding produced by using local_context.
         """
         # images: remove sequence dimension from images.
         # images.shape = [batch_size, channels, rows, cols] 
@@ -165,13 +165,13 @@ class FFNNSynapse(bittensor.Synapse):
                         Total loss acumulation to be used by loss.backward()
 
                     local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
-                        Hidden layer encoding produced using student_context.
+                        Hidden layer encoding produced using local_context.
 
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
-                        MNIST Target predictions using student_context. 
+                        MNIST Target predictions using local_context. 
 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        MNIST Classification loss using student_context.
+                        MNIST Classification loss using local_context.
 
                     remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
@@ -183,7 +183,7 @@ class FFNNSynapse(bittensor.Synapse):
                         MNIST Classification loss using the remote_context.
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        Distillation loss between student_context and remote_context.
+                        Distillation loss between local_context and remote_context.
                 }
         """
 
@@ -216,18 +216,17 @@ class FFNNSynapse(bittensor.Synapse):
             remote_context = self.router.join( responses ) # Joins responses based on scores..
             remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2]) # Squeeze the sequence dimension.
 
-        # student_context: distillation model for remote_context.
-        # student_context.shape = [batch_size, bittensor.__network_dim__]
+        # local_context: distillation model for remote_context.
+        # local_context.shape = [batch_size, bittensor.__network_dim__]
         local_context = self.context_layer1(transform.detach())
         local_context = self.context_layer2(local_context)
-        
         if remote:
-            # distillation_loss: distillation loss between student_context and remote_context
+            # distillation_loss: distillation loss between local_context and remote_context
             # distillation_loss.shape = [1]
             distillation_loss = F.mse_loss(local_context, remote_context.detach())
             loss = loss + distillation_loss
 
-        # local_hidden: hidden layer encoding using student_context.
+        # local_hidden: hidden layer encoding using local_context.
         # local_hidden.shape = [batch_size, bittensor.__network_dim__]
         local_hidden = torch.cat((transform, local_context.detach()), dim=1)
         local_hidden = F.relu(self.hidden_layer1(local_hidden))
