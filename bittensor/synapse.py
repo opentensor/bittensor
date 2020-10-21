@@ -12,23 +12,21 @@ class Synapse(nn.Module):
     """ Bittensor synapse class.
     """
 
-    def __init__(self):
+    def __init__(self, config: bittensor.SynapseConfig):
         super().__init__()
-        self._synapse_key = bittensor.Crypto.public_key_to_string(
-            bittensor.Crypto.generate_private_ed25519().public_key())
-        self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu")
+        self.config = config
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def synapse_key(self) -> str:
-        return self._synapse_key
+        return self.config.synapse_key
 
     def set_synapse_key(self, key):
-        self._synapse_key = key
+        self.config.synapse_key = key
 
-    def deepcopy(self, config = None):
+    def deepcopy(self, config: bittensor.config.SynapseConfig = None):
         """ Returns a copy of this synapse by passing the model params to load_state_dict.
 
-            config: (:obj:`config.class`, `optional`, defaults to model.config): 
+            config: (:obj:`bittensor.config.SynapseConfig`, `optional`, defaults to model.config): 
                     model config used to re-init the model.
 
             Returns:

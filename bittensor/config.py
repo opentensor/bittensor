@@ -6,6 +6,28 @@ import random
 import bittensor
 from bittensor.crypto import Crypto
 
+class SynapseConfig(object):
+    r"""Base config for all synapse objects.
+    Handles a parameters common to all bittensor synapse objects.
+
+    Args:
+         synapse_key (:obj:`str(ed25519 key)`, `optional`, defaults to :obj:`random str(ed25519)`):
+            Cryptographic keys used by this synapse. Defaults to randomly generated ed25519 key.
+    """
+    __default_synapse_key__ = Crypto.public_key_to_string(
+        Crypto.generate_private_ed25519().public_key())
+
+    def __init__(self, **kwargs):
+        # Bittensor synapse key.
+        self.synapse_key = kwargs.pop("synapse_key", SynapseConfig.__default_synapse_key__)
+        self._base_run_type_checks()
+
+    def _base_run_type_checks(self):
+        assert isinstance(self.synapse_key, type(SynapseConfig.__default_synapse_key__))
+
+    def __str__(self):
+        return "\n synapse_key: {}".format( self.synapse_key )
+
 
 class Config(object):
     r"""Base config for all neuron objects.
