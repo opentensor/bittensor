@@ -113,9 +113,6 @@ class Dispatcher(object):
         combined = zeros.index_add(0, batch_index, flat_stitched.float())
 
         # reshape as original
-        try:
-          combined = combined.view(expert_out[0].shape)
-        except:
-          pass
+        combined = combined.view(expert_out[0].shape)
 
         return combined
