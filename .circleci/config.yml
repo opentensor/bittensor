@@ -36,7 +36,6 @@ jobs:
   "Run GPU Tests":
     machine:
       image: ubuntu-1604-cuda-10.1:201909-23
-    resource_class: gpu.nvidia.small 
     steps:
       - checkout
       - python/load-cache
