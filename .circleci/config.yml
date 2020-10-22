@@ -37,7 +37,7 @@ jobs:
     docker:
       - image: circleci/python:3.8.1
         auth: 
-           username: shibshib
+           username: $DOCKER_USER
            password: $DOCKERPASS
     steps:
       - checkout
