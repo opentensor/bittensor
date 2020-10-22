@@ -73,18 +73,13 @@ def main(hparams):
             # Compute full pass and get loss with a network query.
             output = model(inputs.to(device), training = True, remote = True)
             
-            loss = output['loss']
-            loss.backward()
+            output.loss.backward()
             optimizer.step()
             scheduler.step()
 
             step += 1
             logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
-                epoch, step, epoch_size, float(step * 100)/float(epoch_size), output['remote_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
-            bittensor.tbwriter.add_scalar('train remote target loss', output['remote_target_loss'].item(), time.time())
-            bittensor.tbwriter.add_scalar('train local target loss', output['local_target_loss'].item(), time.time())
-            bittensor.tbwriter.add_scalar('train distilation loss', output['distillation_loss'].item(), time.time())
-            bittensor.tbwriter.add_scalar('train loss', output['loss'].item(), time.time())
+                epoch, step, epoch_size, float(step * 100)/float(epoch_size), output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
 
     epoch = 0
     try:

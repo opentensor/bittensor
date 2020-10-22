@@ -72,7 +72,7 @@ def main(hparams):
             output = model(images, targets, remote = True)
 
             # Backprop.
-            loss = output['remote_target_loss'] + output['distillation_loss']
+            loss = output.remote_target_loss + output.distillation_loss
             loss.backward()
             optimizer.step()
             global_step += 1
@@ -80,19 +80,19 @@ def main(hparams):
             # Logs:
             if (batch_idx + 1) % log_interval == 0: 
                 n = len(train_data)
-                max_logit = output['remote_target'].data.max(1, keepdim=True)[1]
+                max_logit = output.remote_target.data.max(1, keepdim=True)[1]
                 correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
-                loss_item  = output['remote_target_loss'].item()
+                loss_item  = output.remote_target_loss.item()
                 processed = ((batch_idx + 1) * batch_size_train)
                 
                 progress = (100. * processed) / n
                 accuracy = (100.0 * correct) / batch_size_train
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}', 
                     epoch, processed, n, progress, loss_item, accuracy)
-                bittensor.tbwriter.add_scalar('train remote target loss', output['remote_target_loss'].item(), time.time())
-                bittensor.tbwriter.add_scalar('train local target loss', output['local_target_loss'].item(), time.time())
-                bittensor.tbwriter.add_scalar('train distilation loss', output['distillation_loss'].item(), time.time())
-                bittensor.tbwriter.add_scalar('train loss', output['loss'].item(), time.time())
+                bittensor.tbwriter.add_scalar('train remote target loss', output.remote_target_loss.item(), time.time())
+                bittensor.tbwriter.add_scalar('train local target loss', output.local_target_loss.item(), time.time())
+                bittensor.tbwriter.add_scalar('train distilation loss', output.distillation_loss.item(), time.time())
+                bittensor.tbwriter.add_scalar('train loss', output.loss.item(), time.time())
                 bittensor.tbwriter.add_scalar('train accuracy', accuracy, time.time())
                 bittensor.tbwriter.add_scalar('gs/t', log_interval / (time.time() - last_log), time.time())
                 last_log = time.time()

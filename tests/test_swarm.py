@@ -18,11 +18,9 @@ from bittensor.synapses.ffnn import FFNNSynapse, FFNNConfig
 class NullSynapse(bittensor.Synapse):
     """ Bittensor endpoint trained on PIL images to detect handwritten characters.
     """
-    def __init__(self, metagraph, dendrite):
-        super(NullSynapse, self).__init__()
+    def __init__(self, config, metagraph, dendrite):
+        super(NullSynapse, self).__init__(config, metagraph, dendrite)
         self.router = bittensor.Router(x_dim = bittensor.__network_dim__, key_dim = 100, topk = 10)
-        self.metagraph = metagraph
-        self.dendrite = dendrite
 
     def forward_tensor(self, tensor: torch.LongTensor):
         logger.info("accept forward tensor {}", tensor)
@@ -74,7 +72,8 @@ def test_null_synapse_swarm():
         axon = bittensor.Axon(config)
         dendrite = bittensor.Dendrite(config)
         
-        synapse = NullSynapse(meta, dendrite)
+        config = FFNNConfig()
+        synapse = NullSynapse(config, meta, dendrite)
         axon.serve(synapse)
         meta.subscribe(synapse)
 
@@ -133,7 +132,8 @@ def test_null_synapse():
     meta = bittensor.Metagraph(config)
     axon = bittensor.Axon(config)
     dendrite = bittensor.Dendrite(config)
-    synapse = NullSynapse(meta, dendrite)
+    config = FFNNConfig()
+    synapse = NullSynapse(config, meta, dendrite)
     axon.serve(synapse)
     meta.subscribe(synapse)
     try:
@@ -195,4 +195,5 @@ def test_metagraph_swarm():
             logger.info('stop {}', i)
 
 if __name__ == "__main__": 
+    test_null_synapse()
     test_mnist_swarm_loss()

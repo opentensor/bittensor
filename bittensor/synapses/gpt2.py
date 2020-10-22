@@ -97,21 +97,10 @@ class GPT2LMSynapse(bittensor.Synapse):
                     Defaults to bittensor.metagraph global.
 
         """
-        super(GPT2LMSynapse, self).__init__(config = config)
-
-        # Bittensor dendrite object used for queries to remote synapses.
-        # Defaults to bittensor.dendrite global object.
-        self.dendrite = dendrite
-        if self.dendrite == None:
-            self.dendrite = bittensor.dendrite
-
-        # Bttensor metagraph containing network graph information.
-        # Defaults to bittensor.metagraph global object.
-        self.metagraph = metagraph
-        if self.metagraph == None:
-            self.metagraph = bittensor.metagraph
-
-
+        super(GPT2LMSynapse, self).__init__(
+            config = config,
+            dendrite = dendrite,
+            metagraph = metagraph)
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
         self.encoder_transformer = GPT2Model(self.config.huggingface_config)
@@ -151,7 +140,7 @@ class GPT2LMSynapse(bittensor.Synapse):
                 hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Hidden layer representation produced using the local_context.
         """
-        hidden = self.forward(inputs=inputs.to(self.device), training = False, remote = False)['local_hidden']
+        hidden = self.forward(inputs=inputs.to(self.device), training = False, remote = False).local_hidden
         return hidden
 
     def forward(self, 
@@ -170,7 +159,7 @@ class GPT2LMSynapse(bittensor.Synapse):
                 remote (:obj:`bool')`, `optional`):
                     Switch to True if this forward pass queries the network for the remote_context.
 
-            dictionary with { 
+            bittensor.SynapseOutput (
                     loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
                         Total loss acumulation used by loss.backward()
 
@@ -194,19 +183,11 @@ class GPT2LMSynapse(bittensor.Synapse):
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
-                }
+                )
         """
 
         # Return vars to be filled.
-        loss = torch.tensor(0.0)
-        local_hidden = None
-        local_target = None
-        local_target_loss = None
-        remote_hidden = None
-        remote_target = None
-        remote_target_loss = None
-        distillation_loss = None
-        remote_context = None
+        output = bittensor.SynapseOutput(loss = torch.tensor(0.0))
 
         # encoding: transformer encoded sentences.
         # encoding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
@@ -232,16 +213,19 @@ class GPT2LMSynapse(bittensor.Synapse):
             # distillation_loss: distillation loss between local_context and remote_context
             # distillation_loss.shape = [1]
             distillation_loss = F.mse_loss(local_context, remote_context.detach())
-            loss = loss + distillation_loss
+            output.distillation_loss = distillation_loss
+            output.loss = output.loss + distillation_loss
 
         # local_hidden: hidden layer encoding of sequence with local_context.
         # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         local_hidden = torch.cat([encoding, local_context], dim=2)
         local_hidden = self.hidden_layer(local_hidden)
+        output.local_hidden = local_hidden
         if training:
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
             local_target = self.target_layer(local_hidden)
+            output.local_target = local_target
 
             # local_target_loss: MLM loss between local_target and passed targets.
             # local_target_loss.shape = [1]
@@ -249,7 +233,8 @@ class GPT2LMSynapse(bittensor.Synapse):
             shift_labels = inputs[..., 1:].contiguous()
             local_target_loss = self.loss_fct(
                 shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
-            loss = loss + local_target_loss
+            output.local_target_loss = local_target_loss
+            output.loss = output.loss + local_target_loss
 
 
         if remote:
@@ -257,11 +242,13 @@ class GPT2LMSynapse(bittensor.Synapse):
             # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
             remote_hidden = torch.cat([encoding, remote_context], dim=2)
             remote_hidden = self.hidden_layer(remote_hidden)
+            output.remote_hidden = remote_hidden
 
             if training:
                 # remote_target: projection of remote_hidden onto target dimension.
                 # remote_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
                 remote_target = self.target_layer(local_hidden)
+                output.remote_target = remote_target
 
                 # remote_target_loss: MLM loss between remote_target and passed targets.
                 # remote_target_loss.shape = [1]
@@ -269,15 +256,7 @@ class GPT2LMSynapse(bittensor.Synapse):
                 shift_labels = inputs[..., 1:].contiguous()
                 remote_target_loss = self.loss_fct(
                     shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
-                loss = loss + remote_target_loss
+                output.loss = output.loss + remote_target_loss
+                output.remote_target_loss = remote_target_loss
 
-        return {
-            'loss': loss,
-            'local_hidden': local_hidden,
-            'local_target': local_target,
-            'local_target_loss': local_target_loss,
-            'remote_hidden': remote_hidden,
-            'remote_target': remote_target,
-            'remote_target_loss': remote_target_loss,
-            'distillation_loss': distillation_loss,
-        }
+        return output

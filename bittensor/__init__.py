@@ -1,23 +1,17 @@
-from concurrent import futures
-import grpc
 from loguru import logger
 import os
-import random
-import requests
 import sys
-import threading
-import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from transformers import GPT2Tokenizer
-from typing import List
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from bittensor.config import Config
 from bittensor.config import SynapseConfig
 from bittensor.crypto import Crypto
 from bittensor.serializer import PyTorchSerializer
-from bittensor.synapse import Synapse
+from bittensor.synapse import Synapse, SynapseOutput
 from bittensor.axon import Axon
 from bittensor.dendrite import Dendrite
 from bittensor.metagraph import Metagraph
