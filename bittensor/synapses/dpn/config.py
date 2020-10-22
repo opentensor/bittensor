@@ -35,7 +35,7 @@ class DPNConfig:
         >>> # Initializing a DPN configuration
         >>> configuration = DPNConfig()
 
-        >>> # Initializing a DNP Synapse
+        >>> # Initializing a DPN Synapse
         >>> model = DPNSynapse ( configuration )
     """
 
