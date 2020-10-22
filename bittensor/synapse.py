@@ -2,18 +2,19 @@ from loguru import logger
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, TYPE_CHECKING
 
 import bittensor
+import bittensor.dendrite
+import bittensor.metagraph
 from bittensor import bittensor_pb2
-
 
 class Synapse(nn.Module):
     """ Bittensor synapse class.
     """
 
     def __init__(   self,
-                    config: bittensor.synapse.SynapseConfig,
+                    config: bittensor.SynapseConfig,
                     dendrite: bittensor.dendrite.Dendrite = None,
                     metagraph: bittensor.metagraph.Metagraph = None):
         r""" Init synapse module.

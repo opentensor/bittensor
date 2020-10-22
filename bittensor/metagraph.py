@@ -9,6 +9,7 @@ import time
 from typing import List
 
 import bittensor
+import bittensor.synapse 
 from bittensor import bittensor_pb2
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 
@@ -204,7 +205,7 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         for idx, synapse in enumerate(synapses):
             self._weights[synapse.synapse_key] = weights[idx]
 
-    def subscribe(self, synapse: bittensor.Synapse):
+    def subscribe(self, synapse):
         """Subscribes a synapse class object to the metagraph.
 
         Args:

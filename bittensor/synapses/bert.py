@@ -20,8 +20,8 @@ class BertSynapseConfig (bittensor.SynapseConfig):
 
         >>> from bittensor.synapses.bert import BertSynapseConfig, BertNSPSynapse
 
-        >>> # Initializing a BertNSPConfig configuration.
-        >>> configuration = BertNSPConfig()
+        >>> # Initializing a BertSynapseConfig configuration.
+        >>> configuration = BertSynapseConfig()
 
         >>> # Initializing the synapse
         >>> configuration = BertNSPSynapse ( configuration )
@@ -41,7 +41,7 @@ class BertSynapseConfig (bittensor.SynapseConfig):
         self.run_checks()
     
     def run_checks(self):
-        assert isinstance(self.huggingface_config, transformers.BERT2Config)
+        assert isinstance(self.huggingface_config, BertConfig)
         assert self.huggingface_config.hidden_size == bittensor.__network_dim__, "BERT hidden_size dim {} != {}".format(self.huggingface_config.hidden_size, bittensor.__network_dim__)
         assert self.huggingface_config.vocab_size == bittensor.__vocab_size__, "BERT vocab size must match bittensor.__vocab_size {} != {}".format(self.huggingface_config.vocab_size, bittensor.__vocab_size__)
 
@@ -76,7 +76,7 @@ class BertSynapseBase (bittensor.Synapse):
 
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
-        self.encode_transformer = BertModel(self.config, add_pooling_layer=True)
+        self.encoder_transformer = BertModel(self.config.huggingface_config, add_pooling_layer=True)
 
         # context_transformer: distills the remote_context from inputs
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -117,7 +117,7 @@ class BertSynapseBase (bittensor.Synapse):
                 remote (:obj:`bool')`, `optional`):
                     Switch to True if this forward pass queries the network for the remote_context.
 
-            dictionary with { 
+            SimpleNamespace ( 
                     loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
                         Total loss acumulation used by loss.backward()
 
@@ -129,7 +129,7 @@ class BertSynapseBase (bittensor.Synapse):
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
-                }
+                )
         """
 
         # Return vars to be filled.
@@ -142,7 +142,7 @@ class BertSynapseBase (bittensor.Synapse):
         # encoding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         encoding = self.encoder_transformer(input_ids=inputs, return_dict=True)
         encoding_hidden = encoding.last_hidden_state
-        encoding_pooled = encoding.pooled
+        encoding_pooled = encoding.pooler_output
 
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
@@ -208,7 +208,7 @@ class BertNSPSynapse (BertSynapseBase):
         
         # target_layer: maps from hidden layer to vocab dimension for each token. Used by MLM loss.
         # [batch_size, sequence_len, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__vocab_size__]
-        self.target_layer = transformers.modeling_bert.BertOnlyNSPHead(self.config)
+        self.target_layer = transformers.modeling_bert.BertOnlyNSPHead(self.config.huggingface_config)
 
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
@@ -258,7 +258,7 @@ class BertNSPSynapse (BertSynapseBase):
                 remote (:obj:`bool')`, `optional`):
                     Switch to True if this forward pass queries the network for the remote_context.
 
-            dictionary with { 
+            SimpleNamespace ( 
                     loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
                         Total loss acumulation used by loss.backward()
 
@@ -282,7 +282,7 @@ class BertNSPSynapse (BertSynapseBase):
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
-                }
+                )
         """
 
         # Call forward method from bert base.
@@ -350,7 +350,7 @@ class BertMLMSynapse (BertSynapseBase):
       
         # target_layer: maps from hidden layer to vocab dimension for each token. Used by MLM loss.
         # [batch_size, sequence_len, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__vocab_size__]
-        self.target_layer = transformers.modeling_bert.BertLMPredictionHead(self.config)
+        self.target_layer = transformers.modeling_bert.BertLMPredictionHead(self.config.huggingface_config)
 
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
@@ -389,7 +389,7 @@ class BertMLMSynapse (BertSynapseBase):
                 remote (:obj:`bool')`, `optional`):
                     Switch to True if this forward pass queries the network for the remote_context.
 
-            dictionary with { 
+            SimpleNamespace ( 
                     loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
                         Total loss acumulation used by loss.backward()
 
@@ -413,8 +413,12 @@ class BertMLMSynapse (BertSynapseBase):
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
-                }
+                )
         """
+        local_target = None
+        remote_target = None
+        local_target_loss = None
+        remote_target_loss = None
 
         # Call forward method from bert base.
         bert_output = BertSynapseBase.forward(self, inputs = inputs, remote = remote) 
@@ -439,7 +443,7 @@ class BertMLMSynapse (BertSynapseBase):
 
             # remote_target_loss: cross entropy between predicted token and realized.
             # remote_target_loss: [1]
-            remote_target_loss = self.loss_fct(remote_target.view(-1, bittensor.__vocab_size__), targets)
+            remote_target_loss = self.loss_fct(remote_target.view(-1, bittensor.__vocab_size__), targets.view(-1))
             bert_output.loss = bert_output.loss + remote_target_loss
 
         return SimpleNamespace (

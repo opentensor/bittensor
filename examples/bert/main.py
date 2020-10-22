@@ -84,10 +84,10 @@ def main(hparams):
         step = 0
         while step < epoch_size:
             # Next batch.
-            tensor_batch, labels = mlm_batch(dataset['train'], batch_size, bittensor.__tokenizer__, data_collator)
+            inputs, labels = mlm_batch(dataset['train'], batch_size, bittensor.__tokenizer__, data_collator)
             
             # Compute full pass and get loss with a network query.
-            output = model(tensor_batch.to(device), labels.to(device), query=True)
+            output = model( inputs.to(device), labels.to(device), remote = True)
             
             output.loss.backward()
             optimizer.step()
