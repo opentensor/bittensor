@@ -208,7 +208,6 @@ class _RemoteModuleCall(torch.autograd.Function):
     """ Internal autograd-friendly call of a remote module over grpc"""
 
     # TODO (const) signatures + nounce.
-    # TODO (const) check schema.
     # TODO (const) should take multiple input tensors and kwargs.
     @staticmethod
     def forward(ctx, caller: RemoteSynapse, dummy: torch.Tensor,

@@ -152,19 +152,19 @@ class FFNNSynapse(bittensor.Synapse):
                         Hidden layer encoding produced using local_context.
 
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
-                        MNIST Target predictions using local_context. 
+                        FFNN Target predictions using student_context. 
 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        MNIST Classification loss using local_context.
+                        FFNN Classification loss using student_context.
 
                     remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
 
                     remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
-                        MNIST Target predictions using the remote_context.
+                        FFNN Target predictions using the remote_context.
 
                     remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
-                        MNIST Classification loss using the remote_context.
+                        FFNN Classification loss using the remote_context.
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
