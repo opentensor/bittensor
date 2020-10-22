@@ -80,7 +80,7 @@ jobs:
       - run: echo "/usr/local/nvidia/lib64" | sudo tee -a /etc/ld.so.conf.d/nvidia.conf
       - run: echo 'export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}' | tee -a $BASH_ENV
       - run: sudo apt update && sudo apt install -y --no-install-recommends cuda-core-$CUDA_PKG_VERSION cuda-misc-headers-$CUDA_PKG_VERSION cuda-command-line-tools-$CUDA_PKG_VERSION cuda-nvrtc-dev-$CUDA_PKG_VERSION cuda-nvml-dev-$CUDA_PKG_VERSION cuda-nvgraph-dev-$CUDA_PKG_VERSION cuda-cusolver-dev-$CUDA_PKG_VERSION cuda-cublas-dev-$CUDA_PKG_VERSION cuda-cufft-dev-$CUDA_PKG_VERSION cuda-curand-dev-$CUDA_PKG_VERSION cuda-cusparse-dev-$CUDA_PKG_VERSION cuda-npp-dev-$CUDA_PKG_VERSION cuda-cudart-dev-$CUDA_PKG_VERSION cuda-driver-dev-$CUDA_PKG_VERSION   
-
+      - run: nvidia-smi
   "Push Production candidate to DockerHub":
     docker:
       - image: circleci/python:3.8.1
