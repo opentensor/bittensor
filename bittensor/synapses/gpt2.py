@@ -159,7 +159,7 @@ class GPT2LMSynapse(bittensor.Synapse):
                 remote (:obj:`bool')`, `optional`):
                     Switch to True if this forward pass queries the network for the remote_context.
 
-            dictionary with { 
+            bittensor.SynapseOutput { 
                     loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
                         Total loss acumulation used by loss.backward()
 
@@ -188,14 +188,6 @@ class GPT2LMSynapse(bittensor.Synapse):
 
         # Return vars to be filled.
         loss = torch.tensor(0.0)
-        local_hidden = None
-        local_target = None
-        local_target_loss = None
-        remote_hidden = None
-        remote_target = None
-        remote_target_loss = None
-        distillation_loss = None
-        remote_context = None
 
         # encoding: transformer encoded sentences.
         # encoding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
@@ -260,13 +252,13 @@ class GPT2LMSynapse(bittensor.Synapse):
                     shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
                 loss = loss + remote_target_loss
 
-        return {
-            'loss': loss,
-            'local_hidden': local_hidden,
-            'local_target': local_target,
-            'local_target_loss': local_target_loss,
-            'remote_hidden': remote_hidden,
-            'remote_target': remote_target,
-            'remote_target_loss': remote_target_loss,
-            'distillation_loss': distillation_loss,
+        return bittensor.SynapseOutput (
+            loss = loss,
+            local_hidden = local_hidden,
+            local_target = local_target,
+            local_target_loss = local_target_loss,
+            remote_hidden = remote_hidden,
+            remote_target = remote_target,
+            remote_target_loss = remote_target_loss,
+            distillation_loss = distillation_loss,
         }

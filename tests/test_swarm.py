@@ -117,10 +117,10 @@ def test_mnist_swarm_loss():
                     output = model(images, labels, remote = True)
 
                     # Loss and step.
-                    max_logit = output['remote_target'].data.max(1, keepdim=True)[1]
+                    max_logit = output.remote_target..data.max(1, keepdim=True)[1]
                     correct += max_logit.eq( labels.data.view_as(max_logit) ).sum()
 
-                    loss = output['remote_target_loss']
+                    loss = output.remote_target_loss
                     loss.backward()
                     optimizers[i].step()
 
@@ -128,7 +128,7 @@ def test_mnist_swarm_loss():
                         n = len(train_data)
                         accuracy = (100. * correct.item()) / ((batch_idx + 1) * batch_size_train)
                         logger.info('Synapse {}, Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {}'.format(i,
-                            epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output['remote_target_loss'].item(), accuracy)) 
+                            epoch, (batch_idx * batch_size_train), n, (100. * batch_idx * batch_size_train)/n, output.remote_target_loss.item(), accuracy)) 
                         accuracies[i] = accuracy
 
                     if batch_idx > 100:

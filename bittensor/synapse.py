@@ -9,6 +9,52 @@ import bittensor.dendrite
 import bittensor.metagraph
 from bittensor import bittensor_pb2
 
+class SynapseOutput(object):
+    """ Synapse output container.
+        loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
+            Total loss acumulation used by loss.backward()
+
+        local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+            Hidden layer encoding produced using local_context.
+
+        local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+            Target predictions produced using local_context. 
+
+        local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+            Target loss using local_context.
+
+        remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
+            Hidden layer encoding produced using the remote_context.
+
+        remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
+            Target predictions using the remote_context.
+
+        remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+            Target oss using the remote_context.
+
+        distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+            Distillation loss between local_context and remote_context.
+    """
+    def __init__(   
+                    self,
+                    loss: torch.Tensor = None,
+                    local_hidden: torch.Tensor  = None,
+                    local_target: torch.Tensor = None,
+                    local_target_loss: torch.Tensor = None,
+                    remote_hidden: torch.Tensor = None, 
+                    remote_target: torch.Tensor = None,
+                    remote_target_loss: torch.Tensor = None,
+                    distillation_loss: torch.Tensor = None,
+        ):
+        self.loss = loss
+        self.local_hidden = local_hidden
+        self.local_target = local_target
+        self.local_target_loss = local_target_loss
+        self.remote_hidden = remote_hidden
+        self.remote_target = remote_target
+        self.remote_target_loss = remote_target_loss
+        self.distillation_loss = distillation_loss
+
 class Synapse(nn.Module):
     """ Bittensor synapse class.
     """

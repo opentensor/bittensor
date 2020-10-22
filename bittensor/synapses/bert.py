@@ -5,7 +5,6 @@ from torch import nn
 import torch.nn.functional as F
 import transformers
 from transformers import BertModel, BertConfig
-from types import SimpleNamespace
 
 class BertSynapseConfig (bittensor.SynapseConfig):
     r"""
@@ -117,7 +116,7 @@ class BertSynapseBase (bittensor.Synapse):
                 remote (:obj:`bool')`, `optional`):
                     Switch to True if this forward pass queries the network for the remote_context.
 
-            SimpleNamespace ( 
+            bittensor.SynapseOutput ( 
                     loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
                         Total loss acumulation used by loss.backward()
 
@@ -133,10 +132,7 @@ class BertSynapseBase (bittensor.Synapse):
         """
 
         # Return vars to be filled.
-        loss = torch.tensor(0.0)
-        local_hidden = None
-        remote_hidden = None
-        distillation_loss = None
+        output = bittensor.SynapseOutput(loss = torch.tensor(0.0))
    
         # encoding: transformer encoded sentences.
         # encoding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
@@ -160,26 +156,23 @@ class BertSynapseBase (bittensor.Synapse):
             # distillation_loss: distillation loss between local_context and remote_context
             # distillation_loss.shape = [1]
             distillation_loss = F.mse_loss(local_context, remote_context.detach())
-            loss = loss + distillation_loss
+            output.distillation_loss = distillation_loss
+            output.loss = output.loss + distillation_loss
 
         # local_hidden: hidden layer encoding of sequence with local_context.
         # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         local_hidden = torch.cat([encoding_hidden, local_context], dim=2)
         local_hidden = self.hidden_layer(local_hidden)
+        output.local_hidden = local_hidden
 
         if remote:
             # remote_hidden: hidden layer encoding using remote_context.
             # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
             remote_hidden = torch.cat([encoding_hidden, remote_context], dim=2)
             remote_hidden = self.hidden_layer(remote_hidden)
+            output.remote_hidden = remote_hidden
 
-
-        return SimpleNamespace(
-            loss = loss,
-            local_hidden = local_hidden,
-            remote_hidden = remote_hidden,
-            distillation_loss = distillation_loss,
-        )
+        return output
 
 class BertNSPSynapse (BertSynapseBase):
     def __init__(   self,
@@ -258,7 +251,7 @@ class BertNSPSynapse (BertSynapseBase):
                 remote (:obj:`bool')`, `optional`):
                     Switch to True if this forward pass queries the network for the remote_context.
 
-            SimpleNamespace ( 
+            bittensor.SynapseOutput ( 
                     loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
                         Total loss acumulation used by loss.backward()
 
@@ -286,41 +279,36 @@ class BertNSPSynapse (BertSynapseBase):
         """
 
         # Call forward method from bert base.
-        bert_output = BertSynapseBase.forward(self, inputs = inputs, remote = remote) 
+        output = BertSynapseBase.forward(self, inputs = inputs, remote = remote) 
 
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
             # local_target.shape = [batch_size, 2]
-            local_target = self.target_layer(bert_output.local_hidden)
+            local_target = self.target_layer(output.local_hidden)
             local_target = F.softmax(local_target, dim=1)
+            output.local_target = local_target
             
             # local_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
             # local_target_loss: [1]
             local_target_loss = self.loss_fct(local_target.view(-1, 2), targets)
-            bert_output.loss = bert_output.loss + local_target_loss
+            output.local_target_loss = local_target_loss
+            output.loss = output.loss + local_target_loss
 
 
         if remote and targets is not None:
             # remote_target: projection the local_hidden to target dimension.
             # remote_target.shape = [batch_size, 2]
-            remote_target = self.target_layer(bert_output.remote_hidden)
+            remote_target = self.target_layer(output.remote_hidden)
             remote_target = F.softmax(remote_target, dim=1)
+            output.remote_target = remote_target
             
             # remote_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
             # remote_target_loss: [1]
             remote_target_loss = self.loss_fct(remote_target.view(-1, 2), targets)
-            bert_output.loss = bert_output.loss + remote_target_loss
+            output.remote_target_loss = remote_target_loss
+            output.loss = output.loss + remote_target_loss
 
-        return SimpleNamespace (
-            loss = bert_output.loss,
-            local_hidden = bert_output.local_hidden,
-            local_target = local_target,
-            local_target_loss = local_target_loss,
-            remote_hidden = bert_output.remote_hidden,
-            remote_target = remote_target,
-            remote_target_loss = remote_target_loss,
-            distillation_loss = bert_output.distillation_loss,
-        )
+        return output
 
 
 class BertMLMSynapse (BertSynapseBase):
@@ -389,7 +377,7 @@ class BertMLMSynapse (BertSynapseBase):
                 remote (:obj:`bool')`, `optional`):
                     Switch to True if this forward pass queries the network for the remote_context.
 
-            SimpleNamespace ( 
+            bittensor.SynapseOutput  ( 
                     loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
                         Total loss acumulation used by loss.backward()
 
@@ -415,44 +403,33 @@ class BertMLMSynapse (BertSynapseBase):
                         Distillation loss between local_context and remote_context.
                 )
         """
-        local_target = None
-        remote_target = None
-        local_target_loss = None
-        remote_target_loss = None
-
         # Call forward method from bert base.
-        bert_output = BertSynapseBase.forward(self, inputs = inputs, remote = remote) 
+        output = BertSynapseBase.forward(self, inputs = inputs, remote = remote) 
 
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
             # local_target.shape = [batch_size, bittensor.__vocab_size__]
-            local_target = self.target_layer(bert_output.local_hidden)
+            local_target = self.target_layer(output.local_hidden)
             local_target = F.softmax(local_target, dim=1)
+            output.local_target = local_target
             
             # local_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
             # local_target_loss: [1]
             local_target_loss = self.loss_fct(local_target.view(-1, bittensor.__vocab_size__), targets.view(-1))
-            bert_output.loss = bert_output.loss + local_target_loss
-
+            output.local_target_loss = local_target_loss
+            output.loss = output.loss + local_target_loss
 
         if remote and targets is not None:
             # remote_target: projection the local_hidden to target dimension.
             # remote_target.shape = [batch_size, bittensor.__vocab_size__]
-            remote_target = self.target_layer(bert_output.remote_hidden)
+            remote_target = self.target_layer(output.remote_hidden)
             remote_target = F.softmax(remote_target, dim=1)
+            output.remote_target = remote_target
 
             # remote_target_loss: cross entropy between predicted token and realized.
             # remote_target_loss: [1]
             remote_target_loss = self.loss_fct(remote_target.view(-1, bittensor.__vocab_size__), targets.view(-1))
-            bert_output.loss = bert_output.loss + remote_target_loss
+            output.remote_target_loss = remote_target_loss
+            output.loss = output.loss + remote_target_loss
 
-        return SimpleNamespace (
-            loss = bert_output.loss,
-            local_hidden = bert_output.local_hidden,
-            local_target = local_target,
-            local_target_loss = local_target_loss,
-            remote_hidden = bert_output.remote_hidden,
-            remote_target = remote_target,
-            remote_target_loss = remote_target_loss,
-            distillation_loss = bert_output.distillation_loss,
-        )
+        return output

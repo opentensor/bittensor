@@ -9,6 +9,7 @@ import bittensor
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from types import SimpleNamespace
 
 class DPNConfig (bittensor.SynapseConfig):
     r"""
@@ -175,7 +176,7 @@ class DPNSynapse(bittensor.Synapse):
 
         # hidden: hidden layer using local context for local computation only.
         # hidden.shape = [batch_size, __network_dim__] 
-        hidden = self.forward (images = images.to(self.device), remote = False) ['local_hidden']
+        hidden = self.forward (images = images.to(self.device), remote = False).local_hidden
         
         # hidden: re-add sequence dimension to outputs.
         # hidden.shape = [batch_size, sequence_dim, __network_dim__] 
@@ -200,7 +201,7 @@ class DPNSynapse(bittensor.Synapse):
                     Switch between local and remote context. If true, function makes quries to the remote network.
 
             Returns:
-                dictionary with { 
+                bittensor.SynapseOutput  (
                     loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
                         Total loss acumulation to be used by loss.backward()
 
@@ -224,20 +225,11 @@ class DPNSynapse(bittensor.Synapse):
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
-                }
+                )
         """
         # Return vars to be filled.
         loss = torch.tensor(0.0)
-        local_hidden = None
-        local_target = None
-        local_target_loss = None
-        remote_hidden = None
-        remote_target = None
-        remote_target_loss = None
-        distillation_loss = None
-        remote_context = None
-        
-
+    
         r"""
             Transform the images into a common shape (32x32)
         """
@@ -314,16 +306,16 @@ class DPNSynapse(bittensor.Synapse):
             remote_target_loss = F.nll_loss(remote_target, targets)
             loss = loss + remote_target_loss
 
-        return {
-            'loss': loss,
-            'local_hidden': local_hidden,
-            'local_target': local_target,
-            'local_target_loss': local_target_loss,
-            'remote_hidden': remote_hidden,
-            'remote_target': remote_target,
-            'remote_target_loss': remote_target_loss,
-            'distillation_loss': distillation_loss,
-        }
+        return bittensor.SynapseOutput (
+            loss = loss,
+            local_hidden = local_hidden,
+            local_target = local_target,
+            local_target_loss = local_target_loss,
+            remote_hidden = remote_hidden,
+            remote_target = remote_target,
+            remote_target_loss = remote_target_loss,
+            distillation_loss = distillation_loss,
+        )
 
     def _make_layer(self, in_planes, out_planes, num_blocks, dense_depth, stride):
         strides = [stride] + [1]*(num_blocks-1)

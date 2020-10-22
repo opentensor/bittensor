@@ -11,7 +11,7 @@ from bittensor.config import Config
 from bittensor.config import SynapseConfig
 from bittensor.crypto import Crypto
 from bittensor.serializer import PyTorchSerializer
-from bittensor.synapse import Synapse
+from bittensor.synapse import Synapse, SynapseOutput
 from bittensor.axon import Axon
 from bittensor.dendrite import Dendrite
 from bittensor.metagraph import Metagraph
