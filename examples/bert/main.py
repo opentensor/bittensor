@@ -7,7 +7,7 @@ Example:
 
 """
 import bittensor
-from bittensor.synapses.bert import BertMLMSynapse
+from bittensor.synapses.bert import BertSynapseConfig, BertMLMSynapse
 
 import argparse
 from datasets import load_dataset
@@ -60,7 +60,7 @@ def main(hparams):
     bittensor.start()
 
     # Build Synapse
-    model_config = transformers.modeling_bert.BertConfig(vocab_size=bittensor.__vocab_size__, hidden_size=bittensor.__network_dim__, num_hidden_layers=2, num_attention_heads=2, intermediate_size=512, is_decoder=False)
+    model_config = BertSynapseConfig()
     model = BertMLMSynapse(model_config)
     model.to(device)
     bittensor.serve( model )
@@ -84,19 +84,18 @@ def main(hparams):
         step = 0
         while step < epoch_size:
             # Next batch.
-            tensor_batch, labels = mlm_batch(dataset['train'], batch_size, bittensor.__tokenizer__, data_collator)
+            inputs, labels = mlm_batch(dataset['train'], batch_size, bittensor.__tokenizer__, data_collator)
             
             # Compute full pass and get loss with a network query.
-            output = model(tensor_batch.to(device), labels.to(device), query=True)
+            output = model( inputs.to(device), labels.to(device), remote = True)
             
-            loss = output['loss']
-            loss.backward()
+            output.loss.backward()
             optimizer.step()
             scheduler.step()
 
             step += 1
-            logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
-                epoch, step, epoch_size, float(step * 100)/float(epoch_size), output['network_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
+            logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
+                epoch, step, epoch_size, float(step * 100)/float(epoch_size), output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
       
     epoch = 0
     try:

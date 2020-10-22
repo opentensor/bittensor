@@ -2,20 +2,107 @@ from loguru import logger
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, TYPE_CHECKING
 
 import bittensor
+import bittensor.dendrite
+import bittensor.metagraph
 from bittensor import bittensor_pb2
 
+class SynapseOutput(object):
+    """ Synapse output container.
+        loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
+            Total loss acumulation used by loss.backward()
+
+        local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+            Hidden layer encoding produced using local_context.
+
+        local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+            Target predictions produced using local_context. 
+
+        local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+            Target loss using local_context.
+
+        remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
+            Hidden layer encoding produced using the remote_context.
+
+        remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
+            Target predictions using the remote_context.
+
+        remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+            Target oss using the remote_context.
+
+        distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+            Distillation loss between local_context and remote_context.
+    """
+    def __init__(   
+                    self,
+                    loss: torch.Tensor = None,
+                    local_hidden: torch.Tensor  = None,
+                    local_target: torch.Tensor = None,
+                    local_target_loss: torch.Tensor = None,
+                    remote_hidden: torch.Tensor = None, 
+                    remote_target: torch.Tensor = None,
+                    remote_target_loss: torch.Tensor = None,
+                    distillation_loss: torch.Tensor = None,
+        ):
+        self.loss = loss
+        self.local_hidden = local_hidden
+        self.local_target = local_target
+        self.local_target_loss = local_target_loss
+        self.remote_hidden = remote_hidden
+        self.remote_target = remote_target
+        self.remote_target_loss = remote_target_loss
+        self.distillation_loss = distillation_loss
 
 class Synapse(nn.Module):
     """ Bittensor synapse class.
     """
 
-    def __init__(self, config: bittensor.SynapseConfig):
+    def __init__(   self,
+                    config: bittensor.SynapseConfig,
+                    dendrite: bittensor.dendrite.Dendrite = None,
+                    metagraph: bittensor.metagraph.Metagraph = None):
+        r""" Init synapse module.
+
+            Args:
+                config (:obj:`bittensor.SynapseConfig`, `required`): 
+                    Base synapse config configuration class.
+
+                dendrite (:obj:`bittensor.dendrite.Dendrite`, `optional`, bittensor.dendrite): 
+                    bittensor dendrite object used for queries to remote synapses.
+                    Defaults to bittensor.dendrite global.
+
+                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`, bittensor.metagraph): 
+                    bittensor metagraph containing network graph information. 
+                    Defaults to bittensor.metagraph global.
+
+        """
         super().__init__()
+
         self.config = config
+        
+        # Bittensor dendrite object used for queries to remote synapses.
+        # Defaults to bittensor.dendrite global object.
+        self.dendrite = dendrite
+        if self.dendrite == None:
+            self.dendrite = bittensor.dendrite
+            if bittensor.dendrite == None:
+                raise Warning ('Synapse initialized without a valid dendrite. Call bittensor.init() to create a global dendrite instance.')
+
+        # Bttensor metagraph containing network graph information.
+        # Defaults to bittensor.metagraph global object.
+        self.metagraph = metagraph
+        if self.metagraph == None:
+            self.metagraph = bittensor.metagraph
+            if bittensor.metagraph == None:
+                raise Warning ('Synapse initialized without a valid metagraph. Call bittensor.init() to create a global metagraph instance.')
+
+
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # Send model to appropriate device (CPU or CUDA)
+        self.to(self.device)
 
     def synapse_key(self) -> str:
         return self.config.synapse_key
