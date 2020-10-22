@@ -14,6 +14,7 @@ from typing import List
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bittensor.config import Config
+from bittensor.config import SynapseConfig
 from bittensor.crypto import Crypto
 from bittensor.serializer import PyTorchSerializer
 from bittensor.synapse import Synapse
