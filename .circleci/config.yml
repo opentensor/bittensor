@@ -32,7 +32,64 @@ jobs:
       - run:
           command: codecov
           name: codecov
-  
+    
+  "Run GPU Tests":
+    docker:
+      - image: circleci/python:3.8.1
+        auth: 
+           username: $DOCKER_USER
+           password: $DOCKERPASS
+        environment:
+          NVIDIA_GPGKEY_SUM: d1be581509378368edeec8c1eb2958702feedf3bc3d17011adbf24efacce4ab5
+          NVIDIA_GPGKEY_FPR: ae09fe4bbd223a84b2ccfce3f60f4b3d7fa2af80
+          CUDA_VERSION: 8.0
+          CUDA_PKG_VERSION: 8-0=8.0.44-1
+          LD_LIBRARY_PATH: /usr/local/nvidia/lib:/usr/local/nvidia/lib64
+    steps:
+      - checkout
+      - python/load-cache
+      - setup_remote_docker:
+             version: 19.03.13
+      - run:
+          name: "Docker credentials"
+          command: echo $DOCKERPASS | docker login --username $DOCKER_USER --password-stdin
+      - run: 
+          name: "Extract distribution name"
+          command: echo 'export distribution="$(. /etc/os-release;echo $ID$VERSION_ID)"' >> $BASH_ENV
+      - run: 
+          name: "Add GPG Key"
+          command: curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+      - run: wget https://developer.nvidia.com/compute/cuda/8.0/prod/local_installers/cuda-repo-ubuntu1404-8-0-local_8.0.44-1_amd64-deb
+      - run: sudo apt update
+      - run: echo "export OS_RELEASE=$(uname -r)" >> $BASH_ENV
+      - run: sudo apt-get install -y linux-image-extra-$OS_RELEASE linux-headers-$OS_RELEASE linux-image-$OS_RELEASE
+      - run: sudo dpkg -i cuda-repo-ubuntu1404-8-0-local_8.0.44-1_amd64-deb
+      - run: sudo apt update
+      - run: sudo apt --yes --force-yes install cuda
+      - run: nvidia-smi
+      #- run: 
+      #    name: "Set up Nvidia Repository"
+      #    command: curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+      #- run: 
+      #    name: "Update repositories"
+      #    command: sudo apt update
+      #- run: 
+       #   name: "Install Nvidia-Docker"
+       #   command: sudo apt install -y nvidia-docker2
+      #- run: sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/7fa2af80.pub
+      #- run: sudo apt-key adv --export --no-emit-version -a $NVIDIA_GPGKEY_FPR | tail -n +2 > cudasign.pub
+      #- run: echo "$NVIDIA_GPGKEY_SUM  cudasign.pub" | sha256sum -c --strict - && rm cudasign.pub
+      #- run: echo "deb http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64 /" | sudo tee -a /etc/apt/sources.list.d/cuda.list
+      #- run: sudo apt update && sudo apt install -y --no-install-recommends cuda-nvrtc-$CUDA_PKG_VERSION cuda-nvgraph-$CUDA_PKG_VERSION cuda-cusolver-$CUDA_PKG_VERSION cuda-cublas-$CUDA_PKG_VERSION cuda-cufft-$CUDA_PKG_VERSION cuda-curand-$CUDA_PKG_VERSION cuda-cusparse-$CUDA_PKG_VERSION cuda-npp-$CUDA_PKG_VERSION cuda-cudart-$CUDA_PKG_VERSION
+      #- run: sudo ln -s cuda-$CUDA_VERSION /usr/local/cuda 
+      #- run: sudo rm -rf /var/lib/apt/lists/*
+      #- run: echo "/usr/local/cuda/lib64" | sudo tee -a /etc/ld.so.conf.d/cuda.conf && sudo ldconfig
+      #- run: echo "/usr/local/nvidia/lib" | sudo tee -a /etc/ld.so.conf.d/nvidia.conf
+      #- run: echo "/usr/local/nvidia/lib64" | sudo tee -a /etc/ld.so.conf.d/nvidia.conf
+      #- run: echo 'export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}' | tee -a $BASH_ENV
+      #- run: sudo apt update && sudo apt install -y --no-install-recommends cuda-core-$CUDA_PKG_VERSION cuda-misc-headers-$CUDA_PKG_VERSION cuda-command-line-tools-$CUDA_PKG_VERSION cuda-nvrtc-dev-$CUDA_PKG_VERSION cuda-nvml-dev-$CUDA_PKG_VERSION cuda-nvgraph-dev-$CUDA_PKG_VERSION cuda-cusolver-dev-$CUDA_PKG_VERSION cuda-cublas-dev-$CUDA_PKG_VERSION cuda-cufft-dev-$CUDA_PKG_VERSION cuda-curand-dev-$CUDA_PKG_VERSION cuda-cusparse-dev-$CUDA_PKG_VERSION cuda-npp-dev-$CUDA_PKG_VERSION cuda-cudart-dev-$CUDA_PKG_VERSION cuda-driver-dev-$CUDA_PKG_VERSION   
+      #- run
+
   "Push Production candidate to DockerHub":
     docker:
       - image: circleci/python:3.8.1
@@ -54,15 +111,18 @@ jobs:
 workflows:
   main:
     jobs:
-      - "Build Bittensor"
-      - "Run Unit Tests":
-              requires:
-                - "Build Bittensor"
-      - "Push Production candidate to DockerHub":
-              requires:
-                - "Build Bittensor"
-                - "Run Unit Tests"
-              filters:
-                branches:
-                  only:
-                    - master
+      #- "Build Bittensor"
+      #- "Run Unit Tests":
+      #        requires:
+       #         - "Build Bittensor"
+      - "Run GPU Tests"
+      #        requires:
+      #          - "Build Bittensor"
+      #- "Push Production candidate to DockerHub":
+      #        requires:
+      #          - "Build Bittensor"
+      #          - "Run Unit Tests"
+      #        filters:
+      #          branches:
+      #            only:
+      #              - master
