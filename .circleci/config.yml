@@ -55,10 +55,10 @@ jobs:
       - run: sudo apt update
       - run: 
           name: "Retrieving OS Release"
-          command: echo 'export OS_RELEASE="$(uname -r)"' >> $BASH_ENV
+          command: export os_release="$(uname -r)"
       - run: 
           name: "Installing Linux Headers"
-          command: sudo apt-get install -y linux-image-extra-${OS_RELEASE} linux-headers-${OS_RELEASE} linux-image-${OS_RELEASE}
+          command: sudo apt-get install -y linux-image-extra-$os_release linux-headers-$os_release linux-image-$os_release
       - run: sudo dpkg -i cuda-repo-ubuntu1404-8-0-local_8.0.44-1_amd64-deb
       - run: sudo apt update
       - run: sudo apt --yes --force-yes install cuda
