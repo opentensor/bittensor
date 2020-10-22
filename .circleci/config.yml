@@ -34,17 +34,9 @@ jobs:
           name: codecov
     
   "Run GPU Tests":
-    docker:
-      - image: circleci/python:3.8.1
-        auth: 
-           username: $DOCKER_USER
-           password: $DOCKERPASS
-        environment:
-          NVIDIA_GPGKEY_SUM: d1be581509378368edeec8c1eb2958702feedf3bc3d17011adbf24efacce4ab5
-          NVIDIA_GPGKEY_FPR: ae09fe4bbd223a84b2ccfce3f60f4b3d7fa2af80
-          CUDA_VERSION: 8.0
-          CUDA_PKG_VERSION: 8-0=8.0.44-1
-          LD_LIBRARY_PATH: /usr/local/nvidia/lib:/usr/local/nvidia/lib64
+    machine:
+      image: ubuntu-1604-cuda-10.1:201909-23
+    resource_class: gpu.nvidia.small 
     steps:
       - checkout
       - python/load-cache
