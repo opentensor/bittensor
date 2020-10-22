@@ -24,9 +24,9 @@ class DPNSynapse(bittensor.Synapse):
         r""" Init a new DPN synapse module.
 
             Args:
-                config (:obj: `bittensor.dpn.dpn_configuration.DPNConfig`, `required`, defaults to DPNConfig())
+                config (:obj: `bittensor.dpn.config.DPNConfig`, `required`, defaults to bittensor.dpn.config.DPNConfig())
                     Model configuration object used to set up what the model should 
-                    contain in terms of convolutional and dense layers. See :class: bittensor.dpn.dpn_configuration.DPNConfig
+                    contain in terms of convolutional and dense layers. See :class: bittensor.dpn.config.DPNConfig
 
                 dendrite (:obj:`bittensor.Dendrite`, `optional`, defaults to bittensor.dendrite): 
                     bittensor dendrite object used for queries to remote synapses.

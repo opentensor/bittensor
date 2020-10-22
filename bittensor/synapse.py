@@ -37,13 +37,13 @@ class Synapse(nn.Module):
         """
         SynapseClass = self.__class__
         
-        model_config = None
+        synapse_config = None
         if config == None:
             # If no passed config, try model config.
             if self.config == None:
                 raise ValueError('Deep copy requires a passed model config object or a member model.config')
-            model_config = self.config
-        synapse_copy = SynapseClass(model_config)
+            synapse_config = self.config
+        synapse_copy = SynapseClass(synapse_config)
         synapse_copy.load_state_dict(self.state_dict())
         synapse_copy.set_synapse_key(self._synapse_key)
         return synapse_copy
