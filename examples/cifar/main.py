@@ -76,17 +76,16 @@ def main(hparams):
             output = model(images, targets, remote = True)
 
             # Backprop.
-            loss = output['loss']
-            loss.backward()
+            output.loss.backward()
             optimizer.step()
             global_step += 1
                             
             # Logs:
             if batch_idx % log_interval == 0:            
                 n = len(train_data)
-                max_logit = output['remote_target'].data.max(1, keepdim=True)[1]
-                correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
-                loss_item  = output['remote_target_loss'].item()
+                max_logit = output.remote_target.data.max(1, keepdim=True)[1]
+                correct = max_logit.eq(targets.data.view_as(max_logit) ).sum()
+                loss_item  = output.remote_target_loss.item()
                 processed = ((batch_idx + 1) * batch_size_train)
                 
                 progress = (100. * processed) / n
@@ -116,10 +115,10 @@ def main(hparams):
                 
                 # Compute full pass and get loss.
                 outputs = model (images, labels, remote = False)
-                loss = loss + outputs['loss']
+                loss = loss + outputs.loss
                 
                 # Count accurate predictions.
-                max_logit = outputs['local_target'].data.max(1, keepdim=True)[1]
+                max_logit = outputs.local_target.data.max(1, keepdim=True)[1]
                 correct += max_logit.eq( labels.data.view_as(max_logit) ).sum()
         
         # # Log results.

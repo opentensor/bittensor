@@ -94,7 +94,7 @@ def main(hparams):
             scheduler.step()
 
             step += 1
-            logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
+            logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
                 epoch, step, epoch_size, float(step * 100)/float(epoch_size), output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
       
     epoch = 0

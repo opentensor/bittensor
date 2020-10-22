@@ -13,6 +13,7 @@ import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
 from typing import List, Tuple, Dict, Optional
+from types import SimpleNamespace
 
 class FFNNConfig (bittensor.SynapseConfig):
     r"""
@@ -118,7 +119,7 @@ class FFNNSynapse(bittensor.Synapse):
 
         # hidden: hidden layer using local_contextcontext for local computation only.
         # hidden.shape = [batch_size, __network_dim__] 
-        hidden = self.forward (images = images.to(self.device), remote = False) ['local_hidden']
+        hidden = self.forward (images = images.to(self.device), remote = False).local_hidden
         
         # hidden: re-add sequence dimension to outputs.
         # hidden.shape = [batch_size, sequence_dim, __network_dim__] 
@@ -143,7 +144,7 @@ class FFNNSynapse(bittensor.Synapse):
                     Switch between local_contextand remote context. If true, function makes quries to the remote network.
 
             Returns:
-                dictionary with { 
+                bittensor.SynapseOutput ( 
                     loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
                         Total loss acumulation to be used by loss.backward()
 
@@ -167,19 +168,11 @@ class FFNNSynapse(bittensor.Synapse):
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
-                }
+                )
         """
 
         # Return vars to be filled.
         loss = torch.tensor(0.0)
-        local_hidden = None
-        local_target = None
-        local_target_loss = None
-        remote_hidden = None
-        remote_target = None
-        remote_target_loss = None
-        distillation_loss = None
-        remote_context = None
         
         # transform: transform images to common shape.
         # transform.shape = [batch_size, self.transform_dim]
@@ -244,13 +237,13 @@ class FFNNSynapse(bittensor.Synapse):
             remote_target_loss = F.nll_loss(remote_target, targets)
             loss = loss + remote_target_loss
 
-        return {
-            'loss': loss,
-            'local_hidden': local_hidden,
-            'local_target': local_target,
-            'local_target_loss': local_target_loss,
-            'remote_hidden': remote_hidden,
-            'remote_target': remote_target,
-            'remote_target_loss': remote_target_loss,
-            'distillation_loss': distillation_loss,
-        }
+        return bittensor.SynapseOutput  (
+            loss = loss,
+            local_hidden = local_hidden,
+            local_target = local_target,
+            local_target_loss = local_target_loss,
+            remote_hidden = remote_hidden,
+            remote_target = remote_target,
+            remote_target_loss = remote_target_loss,
+            distillation_loss = distillation_loss,
+        )

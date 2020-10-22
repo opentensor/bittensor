@@ -73,8 +73,7 @@ def main(hparams):
             # Compute full pass and get loss with a network query.
             output = model(inputs.to(device), training = True, remote = True)
             
-            loss = output['loss']
-            loss.backward()
+            output.loss.backward()
             optimizer.step()
             scheduler.step()
 
