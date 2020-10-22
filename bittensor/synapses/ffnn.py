@@ -172,8 +172,8 @@ class FFNNSynapse(bittensor.Synapse):
         """
 
         # Return vars to be filled.
-        loss = torch.tensor(0.0)
-        
+        output = bittensor.SynapseOutput (loss = torch.tensor(0.0))
+
         # transform: transform images to common shape.
         # transform.shape = [batch_size, self.transform_dim]
         transform = self.transform(images)
@@ -200,24 +200,29 @@ class FFNNSynapse(bittensor.Synapse):
             # distillation_loss: distillation loss between local_context and remote_context
             # distillation_loss.shape = [1]
             distillation_loss = F.mse_loss(local_context, remote_context.detach())
-            loss = loss + distillation_loss
+            output.distillation_loss = distillation_loss
+            output.loss = output.loss + distillation_loss
 
         # local_hidden: hidden layer encoding using local_context.
         # local_hidden.shape = [batch_size, bittensor.__network_dim__]
         local_hidden = torch.cat((transform, local_context.detach()), dim=1)
         local_hidden = F.relu(self.hidden_layer1(local_hidden))
         local_hidden = F.relu(self.hidden_layer2(local_hidden))
+        output.local_hidden = local_hidden
         if targets is not None:
             # local_target: projection of local_hidden onto target dimension.
-            # local_target_loss: loss between local_target and passed targets.
             # local_target.shape = [batch_size, target_dim]
-            # local_target_loss.shape = [1]
             targets.to(self.device)
             local_target = self.target_layer1(local_hidden)
             local_target = self.target_layer2(local_target)
             local_target = F.log_softmax(local_target, dim=1)
+            output.local_target = local_target
+
+            # local_target_loss: loss between local_target and passed targets.
+            # local_target_loss.shape = [1]
             local_target_loss = F.nll_loss(local_target, targets)
-            loss = loss + local_target_loss
+            output.local_target_loss = local_target_loss
+            output.loss = output.loss + local_target_loss
 
         # remote_hidden: hidden layer encoding using remote_context.
         # remote_hidden.shape = [batch_size, bittensor.__network_dim__]
@@ -225,25 +230,20 @@ class FFNNSynapse(bittensor.Synapse):
             remote_hidden = torch.cat([transform, remote_context], dim=1)
             remote_hidden = self.hidden_layer1(remote_hidden)
             remote_hidden = self.hidden_layer2(remote_hidden)
+            output.remote_hidden = remote_hidden
         
         if remote and targets is not None:
             # remote_target: projection of remote_hidden onto target dimension.
-            # remote_target_loss: loss between remote_target and passed targets.
             # remote_target.shape = [batch_size, target_dim]
-            # remote_target_loss.shape = [1]
             remote_target = self.target_layer1(remote_hidden)
             remote_target = self.target_layer2(remote_target)
             remote_target = F.log_softmax(remote_target, dim=1)
-            remote_target_loss = F.nll_loss(remote_target, targets)
-            loss = loss + remote_target_loss
+            output.remote_target = remote_target
 
-        return bittensor.SynapseOutput  (
-            loss = loss,
-            local_hidden = local_hidden,
-            local_target = local_target,
-            local_target_loss = local_target_loss,
-            remote_hidden = remote_hidden,
-            remote_target = remote_target,
-            remote_target_loss = remote_target_loss,
-            distillation_loss = distillation_loss,
-        )
+            # remote_target_loss: loss between remote_target and passed targets.
+            # remote_target_loss.shape = [1]
+            remote_target_loss = F.nll_loss(remote_target, targets)
+            output.loss = output.loss + remote_target_loss
+            output.remote_target_loss = remote_target_loss
+
+        return output
