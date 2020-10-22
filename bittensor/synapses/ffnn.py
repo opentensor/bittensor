@@ -14,7 +14,7 @@ import torchvision
 import torchvision.transforms as transforms
 from typing import List, Tuple, Dict, Optional
 
-class FFNNConfig:
+class FFNNConfig (bittensor.SynapseConfig):
     r"""
     This is the configuration class to store the configuration of a :class:`~FFNNSynapse`.
     It is used to instantiate a Feed Forward model according to the specified arguments, 
@@ -26,7 +26,7 @@ class FFNNConfig:
 
     Examples::
 
-        >>> from bittensor.synapses.ffnn.model import FFNNConfig
+        >>> from bittensor.synapses.ffnn import FNNSynapse, FFNNConfig
 
         >>> # Initializing a FFNN configuration
         >>> configuration = FFNNConfig()
@@ -38,10 +38,11 @@ class FFNNConfig:
     __default_target_dim__ = 10
     
     def __init__(self, **kwargs):
+        super(FFNNConfig, self).__init__(**kwargs)
         self.target_dim = kwargs.pop("target_dim", self.__default_target_dim__)
-        self.run_type_checks()
+        self.run_checks()
     
-    def run_type_checks(self):
+    def run_checks(self):
         assert isinstance(self.target_dim, int)
 
 class FFNNSynapse(bittensor.Synapse):
@@ -49,13 +50,13 @@ class FFNNSynapse(bittensor.Synapse):
     """
 
     def __init__(self,
-                 config: FFNNConfig = None,
+                 config: FFNNConfig,
                  dendrite: bittensor.Dendrite = None,
                  metagraph: bittensor.Metagraph = None):
         r""" Init a new ffnn synapse module.
 
             Args:
-                config (:obj:`FFNNConfig`, `optional`, defaults to FNNConfig()): 
+                config (:obj:`bittensor.ffnn.FFNNConfig`, `required`): 
                     ffnn configuration class.
 
                 dendrite (:obj:`bittensor.Dendrite`, `optional`, bittensor.dendrite): 
@@ -67,7 +68,8 @@ class FFNNSynapse(bittensor.Synapse):
                     Defaults to bittensor.metagraph global.
 
         """
-        super(FFNNSynapse, self).__init__()
+        super(FFNNSynapse, self).__init__(config = config)
+        self.config = config
 
         # Bittensor dendrite object used for queries to remote synapses.
         # Defaults to bittensor.dendrite global object.
@@ -80,10 +82,6 @@ class FFNNSynapse(bittensor.Synapse):
         self.metagraph = metagraph
         if self.metagraph == None:
             self.metagraph = bittensor.metagraph
-
-        self.config = config
-        if self.config == None:
-            self.config = FFNNConfig()
 
         # Set up device.
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

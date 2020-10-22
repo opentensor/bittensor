@@ -8,7 +8,7 @@ from transformers import GPT2Config, GPT2Model
 from typing import List, Tuple, Dict, Optional
 
 
-class GPT2MLMConfig:
+class GPT2MLMConfig (bittensor.SynapseConfig):
     r"""
     This is the configuration class for a :class:`~GPT2LMSynapse`.
     
@@ -19,7 +19,7 @@ class GPT2MLMConfig:
 
     examples:
 
-        >>> from bittensor.synapses.ffnn.model import GPT2LMConfig, GPT2LMSynapse
+        >>> from bittensor.synapses.gpt2 import GPT2LMConfig, GPT2LMSynapse
 
         >>> # Initializing a GPT2MLMConfig configuration.
         >>> configuration = GPT2MLMConfig()
@@ -49,6 +49,7 @@ class GPT2MLMConfig:
                                                 )
     
     def __init__(self, **kwargs):
+        super(GPT2MLMConfig, self).__init__(**kwargs)
         self.huggingface_config = kwargs.pop("huggingface_config", self.__default_huggingface_config__)
         self.run_checks()
     
@@ -84,7 +85,7 @@ class GPT2LMSynapse(bittensor.Synapse):
         r""" Init a new ffnn synapse module.
 
             Args:
-                config (:obj:`GPT2MLMConfig`, `required`): 
+                config (:obj:`bittensor.gpt2.GPT2MLMConfig`, `required`): 
                     GPTMLM configuration class.
 
                 dendrite (:obj:`bittensor.Dendrite`, `optional`, bittensor.dendrite): 
@@ -96,9 +97,7 @@ class GPT2LMSynapse(bittensor.Synapse):
                     Defaults to bittensor.metagraph global.
 
         """
-        super(GPT2LMSynapse, self).__init__()
-
-        self.config = config
+        super(GPT2LMSynapse, self).__init__(config = config)
 
         # Bittensor dendrite object used for queries to remote synapses.
         # Defaults to bittensor.dendrite global object.

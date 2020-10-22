@@ -7,7 +7,7 @@ Example:
 
 """
 import bittensor
-from bittensor.synapses.bert.model import BertMLMSynapse
+from bittensor.synapses.bert import BertMLMSynapse
 
 import argparse
 from datasets import load_dataset
