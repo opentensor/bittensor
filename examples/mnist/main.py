@@ -80,7 +80,7 @@ def main(hparams):
             # Logs:
             if (batch_idx + 1) % log_interval == 0: 
                 n = len(train_data)
-                max_logit = output.remote_target..data.max(1, keepdim=True)[1]
+                max_logit = output.remote_target.data.max(1, keepdim=True)[1]
                 correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
                 loss_item  = output.remote_target_loss.item()
                 processed = ((batch_idx + 1) * batch_size_train)
