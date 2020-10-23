@@ -7,6 +7,7 @@ executors:
 
 orbs:
   python: circleci/python@0.2.1
+  shellcheck: circleci/shellcheck@2.0.0
 
 jobs:
   "Build Bittensor":
@@ -27,12 +28,25 @@ jobs:
       - python/load-cache
       - run: pip install codecov pytest
       - run:
-          command: pytest ./tests
-          name: tests
+          name: "Run unit tests"
+          command: pytest ./tests/unit_tests
       - run:
+          name: "Code Coverage"
           command: codecov
-          name: codecov
   
+  "Run Integration Tests":
+    executor: bittensor-executor
+    steps:
+      - checkout
+      - python/load-cache
+      - run: pip install codecov pytest
+      - run:
+          name: "Run Integration tests"
+          command: pytest ./tests/integration_tests/cpu_tests
+      - run:
+          name: "Code Coverage"
+          command: codecov
+
   "Push Production candidate to DockerHub":
     docker:
       - image: circleci/python:3.8.1
@@ -58,11 +72,14 @@ workflows:
       - "Run Unit Tests":
               requires:
                 - "Build Bittensor"
-      - "Push Production candidate to DockerHub":
+      - "Run Integration Tests":
               requires:
                 - "Build Bittensor"
-                - "Run Unit Tests"
-              filters:
-                branches:
-                  only:
-                    - master
+      #- "Push Production candidate to DockerHub":
+      #        requires:
+      #          - "Build Bittensor"
+      #          - "Run Unit Tests"
+      #        filters:
+      #          branches:
+      #            only:
+      #              - master
