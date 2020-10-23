@@ -2,8 +2,8 @@ from configparser import ConfigParser
 from loguru import logger
 import configparser
 import argparse
-import os
 import requests
+
 import validators
 import pathlib
 from bittensor.crypto import Crypto
@@ -413,13 +413,6 @@ class ConfigService:
 
             raise ValidationError
 
-
-
-
-
-
-
-
 class SynapseConfig(object):
     r"""Base config for all synapse objects.
     Handles a parameters common to all bittensor synapse objects.
@@ -440,8 +433,62 @@ class SynapseConfig(object):
         assert isinstance(self.synapse_key, type(SynapseConfig.__default_synapse_key__))
 
     def __str__(self):
-        return "\n synapse_key: {}".format(self.synapse_key)
+        return "\n chain_endpoint: {} \n neuron key: {} \n axon port: {} \n metagraph port: {} \n metagraph Size: {} \n bootpeer: {} \n remote_ip: {} \n datapath: {} \n logdir: {}".format(
+            self.chain_endpoint, self.neuron_key, self.axon_port, self.metagraph_port,
+            self.metagraph_size, self.bootstrap, self.remote_ip, self.datapath, self.logdir)
 
+    @staticmethod
+    def from_hparams(hparams):
+        config = Config()
+        config.set_hparams(hparams)
+        return config
 
+    def set_hparams(self, hparams):
+        for key, value in hparams.__dict__.items():
+            try:
+                setattr(self, key, value)
+            except AttributeError as err:
+                logger.error("Can't set {} with value {} for {}".format(
+                    key, value, self))
+                raise err
+        self.run_type_checks()
 
-
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser.add_argument('--chain_endpoint',
+                            default=Config.__chainendpoint_default__,
+                            type=str,
+                            help="bittensor chain endpoint.")
+        parser.add_argument('--axon_port',
+                            default=Config.__axon_port_default__,
+                            type=str,
+                            help="Axon terminal bind port")
+        parser.add_argument('--metagraph_port',
+                            default=Config.__metagraph_port_default__,
+                            type=str,
+                            help='Metagraph bind port.')
+        parser.add_argument('--metagraph_size',
+                            default=Config.__metagraph_size_default__,
+                            type=int,
+                            help='Metagraph cache size.')
+        parser.add_argument('--bootstrap',
+                            default=Config.__bootstrap_default__,
+                            type=str,
+                            help='Metagraph bootpeer')
+        parser.add_argument('--neuron_key',
+                            default=Config.__neuron_key_default__,
+                            type=str,
+                            help='Neuron key')
+        parser.add_argument('--remote_ip',
+                            default=Config.__remote_ip_default__,
+                            type=str,
+                            help='Remote serving ip.')
+        parser.add_argument('--datapath',
+                            default=Config.__datapath_default__,
+                            type=str,
+                            help='Path to datasets.')
+        parser.add_argument('--logdir',
+                            default=Config.__logdir_default__,
+                            type=str,
+                            help='Path to logs and saved models.')
+        return parser
