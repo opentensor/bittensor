@@ -36,15 +36,15 @@ class SynapseOutput(object):
             Distillation loss between local_context and remote_context.
     """
     def __init__(   
-                    self,
-                    loss: torch.Tensor = None,
-                    local_hidden: torch.Tensor  = None,
-                    local_target: torch.Tensor = None,
-                    local_target_loss: torch.Tensor = None,
-                    remote_hidden: torch.Tensor = None, 
-                    remote_target: torch.Tensor = None,
-                    remote_target_loss: torch.Tensor = None,
-                    distillation_loss: torch.Tensor = None,
+                self,
+                loss: torch.Tensor = None,
+                local_hidden: torch.Tensor  = None,
+                local_target: torch.Tensor = None,
+                local_target_loss: torch.Tensor = None,
+                remote_hidden: torch.Tensor = None, 
+                remote_target: torch.Tensor = None,
+                remote_target_loss: torch.Tensor = None,
+                distillation_loss: torch.Tensor = None,
         ):
         self.loss = loss
         self.local_hidden = local_hidden
