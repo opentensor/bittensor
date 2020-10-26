@@ -5,7 +5,7 @@ import random
 
 import bittensor
 from bittensor.crypto import Crypto
-from bittensor.exceptions.ResponseExceptions import RemoteIPException
+from bittensor.exceptions.Exceptions import RemoteIPException
 
 class SynapseConfig(object):
     r"""Base config for all synapse objects.
@@ -63,7 +63,12 @@ class Config(object):
         Crypto.generate_private_ed25519().public_key())
     try:
         __remote_ip_default__ = requests.get('https://api.ipify.org').text
+        
+        if not __remote_ip_default__:
+            raise RemoteIPException
+    
     except RemoteIPException as e:
+        logger.warn("This synapse is not connected to the internet, training will be local.")
         __remote_ip_default__ = 'localhost'
 
     __datapath_default__ = "data/"
@@ -129,7 +134,8 @@ class Config(object):
             self.chain_endpoint, self.neuron_key, self.axon_port, self.metagraph_port,
             self.metagraph_size, self.bootstrap, self.remote_ip, self.datapath, self.logdir)
 
-    def from_hparams(self, hparams):
+    @staticmethod
+    def from_hparams(hparams):
         config = Config()
         config.set_from_hparams(hparams)
         return config

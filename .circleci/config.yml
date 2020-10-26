@@ -41,11 +41,24 @@ jobs:
       - python/load-cache
       - run: pip install codecov pytest
       - run:
-          name: "Run Integration tests"
+          name: "Run Localized CPU Integration tests"
           command: pytest ./tests/integration_tests/cpu_tests
       - run:
           name: "Code Coverage"
           command: codecov
+  
+  "Run Remote Peer Integration Tests":
+    executor: bittensor-executor
+    steps:
+      - checkout
+      - python/load-cache
+      - run: pip install codecov pytest
+      - run:
+          name: Install Ngrok for TCP tunneling
+          command: sudo wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip . && sudo unzip ngrok-stable-linux-amd64.zip -d /usr/local/bin
+      - run:
+          name: Run Ngrok
+          command: ngrok tcp 
 
   "Push Production candidate to DockerHub":
     docker:
@@ -75,11 +88,11 @@ workflows:
       - "Run Integration Tests":
               requires:
                 - "Build Bittensor"
-      #- "Push Production candidate to DockerHub":
-      #        requires:
-      #          - "Build Bittensor"
-      #          - "Run Unit Tests"
-      #        filters:
-      #          branches:
-      #            only:
-      #              - master
+      - "Push Production candidate to DockerHub":
+              requires:
+                - "Build Bittensor"
+                - "Run Unit Tests"
+              filters:
+                branches:
+                  only:
+                    - master
