@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict, Optional
 
 import bittensor
 from bittensor import bittensor_pb2
-from bittensor.exceptions.ResponseExceptions import SerializationException
+from bittensor.exceptions.Exceptions import SerializationException
 
 
 def torch_dtype_to_bittensor_dtype(tdtype):

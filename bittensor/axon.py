@@ -9,7 +9,7 @@ import bittensor
 from bittensor import bittensor_pb2
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor.serializer import PyTorchSerializer
-from bittensor.exceptions.ResponseExceptions import RequestShapeException, SerializationException, NonExistentSynapseException
+from bittensor.exceptions.Exceptions import RequestShapeException, SerializationException, NonExistentSynapseException
 
 
 class Axon(bittensor_grpc.BittensorServicer):
