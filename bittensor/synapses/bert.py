@@ -6,6 +6,32 @@ import torch.nn.functional as F
 import transformers
 from transformers import BertModel, BertConfig
 
+def mlm_batch(data, batch_size, tokenizer, collator):
+    """ Returns a random batch from text dataset with 50 percent NSP.
+
+        Args:
+            data: (List[dict{'text': str}]): Dataset of text inputs.
+            batch_size: size of batch to create.
+        
+        Returns:
+            tensor_batch torch.Tensor (batch_size, sequence_length): List of tokenized sentences.
+            labels torch.Tensor (batch_size, sequence_length)
+    """
+    batch_text = []
+    for _ in range(batch_size):
+        batch_text.append(data[random.randint(0, len(data))]['text'])
+
+    # Tokenizer returns a dict { 'input_ids': list[], 'attention': list[] }
+    # but we need to convert to List [ dict ['input_ids': ..., 'attention': ... ]]
+    # annoying hack...
+    tokenized = tokenizer(batch_text)
+    tokenized = [dict(zip(tokenized,t)) for t in zip(*tokenized.values())]
+
+    # Produces the masked language model inputs aw dictionary dict {'inputs': tensor_batch, 'labels': tensor_batch}
+    # which can be used with the Bert Language model. 
+    collated_batch =  collator(tokenized)
+    return collated_batch['input_ids'], collated_batch['labels']
+
 class BertSynapseConfig (bittensor.SynapseConfig):
     r"""
     This is the configuration class for a :class:`~BERTNSPSynapse`.

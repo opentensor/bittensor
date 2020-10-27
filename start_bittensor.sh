@@ -207,12 +207,9 @@ function start_local_service() {
 
     log "=== run docker container locally ==="
     log "=== container image: $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG ==="
-
+    
     docker run --rm --name bittensor-$identity -d -t \
       --network=host \
-      --mount type=bind,source="$(pwd)"/scripts,target=/bittensor/scripts \
-      --mount type=bind,source="$(pwd)"/data,target=/bittensor/data \
-      --mount type=bind,source="$(pwd)"/examples,target=/bittensor/examples \
       $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG /bin/bash -c "$COMMAND"
 
     if [ $logging == 'true' ]; then
