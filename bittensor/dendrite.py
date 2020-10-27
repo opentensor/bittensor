@@ -10,7 +10,7 @@ import bittensor
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
 from bittensor.serializer import PyTorchSerializer
-from bittensor.exceptions.ResponseExceptions import EmptyTensorException, ResponseShapeException, SerializationException
+from bittensor.exceptions.Exceptions import EmptyTensorException, ResponseShapeException, SerializationException
 
 # dummy tensor that triggers autograd in RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
