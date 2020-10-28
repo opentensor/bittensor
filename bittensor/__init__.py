@@ -42,6 +42,7 @@ logger_config = {
 logger.configure(**logger_config)
 
 # Global bittensor neuron objects.
+__config = None
 metagraph = None
 dendrite = None
 axon = None
@@ -49,35 +50,36 @@ tbwriter = None
 
 
 def init(argparser: argparse.ArgumentParser):
-    config = Config("config.ini", argparser)
-    if not config.isValid():
+    global __config
+    __config = Config("config.ini", argparser)
+    if not __config.isValid():
         logger.error("Invalid configuration. Aborting")
         quit(-1)
 
-    config.log_config()
+    __config.log_config()
 
     # Build and start the metagraph background object.
     # The metagraph is responsible for connecting to the blockchain
     # and finding the other neurons on the network.
     global metagraph
-    metagraph = bittensor.Metagraph(config)
+    metagraph = bittensor.Metagraph(__config)
 
     # Build and start the Axon server.
     # The axon server serves synapse objects (models)
     # allowing other neurons to make queries through a dendrite.
     global axon
-    axon = bittensor.Axon(config)
+    axon = bittensor.Axon(__config)
 
     # Build the dendrite and router.
     # The dendrite is a torch nn.Module object which makes calls to synapses across the network
     # The router is responsible for learning which synapses to call.
     global dendrite
-    dendrite = bittensor.Dendrite(config)
+    dendrite = bittensor.Dendrite(__config)
 
     # Build bittensor tbwriter for tensorboard.
     # Logs are stored in datapath/neuronkey/logs/
     global tbwriter
-    tbwriter = SummaryWriter(log_dir=config.logdir)
+    tbwriter = SummaryWriter(log_dir=__config.logdir)
 
 
 def serve(synapse: Synapse):
@@ -102,3 +104,11 @@ def stop():
 
     # Stop background grpc threads for serving synapse objects.
     axon.stop()
+
+def get_config():
+    if not __config:
+        logger.error("INIT: bittensor is not initialized. Call bittensor.init() before getting the config")
+        quit(-1)
+
+    return __config
+
