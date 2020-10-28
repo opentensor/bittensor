@@ -5,6 +5,8 @@ from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from transformers import GPT2Tokenizer
 
+import argparse
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from bittensor.config import Config
@@ -29,7 +31,7 @@ __tokenizer__.mask_token = -100
 __vocab_size__ = 204483
 
 # Default logger
-config = {
+logger_config = {
     "handlers": [{
         "sink":
             sys.stdout,
@@ -37,7 +39,7 @@ config = {
             "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
     }]
 }
-logger.configure(**config)
+logger.configure(**logger_config)
 
 # Global bittensor neuron objects.
 metagraph = None
@@ -45,7 +47,15 @@ dendrite = None
 axon = None
 tbwriter = None
 
-def init(config: bittensor.Config):
+
+def init(argparser: argparse.ArgumentParser):
+    config = Config("config.ini", argparser)
+    if not config.isValid():
+        logger.error("Invalid configuration. Aborting")
+        quit(-1)
+
+    config.log_config()
+
     # Build and start the metagraph background object.
     # The metagraph is responsible for connecting to the blockchain
     # and finding the other neurons on the network.
@@ -67,7 +77,8 @@ def init(config: bittensor.Config):
     # Build bittensor tbwriter for tensorboard.
     # Logs are stored in datapath/neuronkey/logs/
     global tbwriter
-    tbwriter = SummaryWriter(log_dir = config.logdir)
+    tbwriter = SummaryWriter(log_dir=config.logdir)
+
 
 def serve(synapse: Synapse):
     # Subscribe the synapse object to the network.
