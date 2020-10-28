@@ -1,15 +1,14 @@
 #!/bin/python3
 
-from config import Config
+from bittensor.config import Config
+from bittensor.config import ConfigProcessor
 import argparse
 from loguru import logger
 
 parser = argparse.ArgumentParser(description='BitTensor - Crypto P2P Neural Networks')
 
-
-
-config = Config("../bittensor/config.ini", parser)
-if not config.isValid():
+config = ConfigProcessor().create("../bittensor/config.ini", parser)
+if not config:
     logger.error("Invalid configuration. Aborting")
 
 config.log_config()
