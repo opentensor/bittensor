@@ -41,6 +41,7 @@ def main():
     # config = bittensor.Config.from_hparams( hparams )
     # logger.info(config)
     bittensor.init( argparser )
+
     bittensor.start()
     
     # Build local synapse to serve on the network.

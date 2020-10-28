@@ -8,14 +8,18 @@ import validators
 import pathlib
 from bittensor.crypto import Crypto
 
+
 class InvalidConfigFile(Exception):
     pass
+
 
 class ValidationError(Exception):
     pass
 
+
 class PostProcessingError(Exception):
     pass
+
 
 class InvalidConfigError(Exception):
     pass
@@ -35,7 +39,7 @@ class Config:
 
     # Attributes to make parsing of a config file work
     parser = None
-    filename = None # This will be passed as a constructor arg
+    filename = None  # This will be passed as a constructor arg
 
     # The dict that hold the configuration
     config = dict()
@@ -43,8 +47,14 @@ class Config:
     # Attribute that tells if the configuration is valid
     valid = False
 
-    def __init__(self, filename, args):
+    # Command line arguments, filled during init
+    cl_args = None
+
+    def __init__(self, filename, argparser: argparse.ArgumentParser):
         self.filename = "%s/%s" % (str(pathlib.Path(__file__).parent.absolute()), filename)
+        self.argparse = argparser
+
+        self.add_cl_args(argparser)
 
         """
         This is what happens:
@@ -56,7 +66,7 @@ class Config:
         try:
             self.__setup_defaults()
             self.__load_config()
-            self.__parse_cl_args(args)
+            self.__parse_cl_args()
             self.__validate_config()
             self.__do_post_processing()
 
@@ -64,6 +74,25 @@ class Config:
 
         except InvalidConfigError:
             self.valid = False
+
+    def add_cl_args(self, parser: argparse.ArgumentParser):
+        parser.add_argument('--chain_endpoint', dest=self.CHAIN_ENDPOINT, type=str, help="bittensor chain endpoint")
+        parser.add_argument('--axon_port', dest=self.AXON_PORT, type=int,
+                            help="TCP port that will be used to receive axon connections")
+        parser.add_argument('--metagraph_port', dest=self.METAGRAPH_PORT, type=int,
+                            help='TCP port that will be used to receive metagraph connections')
+        parser.add_argument('--metagraph_size', dest=self.METAGRAPH_SIZE, type=int, help='Metagraph cache size')
+        parser.add_argument('--bp_host', dest=self.BOOTPEER_HOST, type=str,
+                            help='Hostname or IP of the first peer this neuron should connect to when signing onto the network.>')
+        parser.add_argument('--bp_port', dest=self.BOOTPEER_PORT, type=int,
+                            help='TCP Port the bootpeer is listening on')
+        parser.add_argument('--neuron_key', dest=self.NEURON_PUBKEY, type=str, help='Key of the neuron')
+        parser.add_argument('--ip', dest=self.IP, type=str,
+                            help='The IP address of this neuron that will be published to the network')
+        parser.add_argument('--datapath', dest=self.DATAPATH, type=str, help='Path to datasets')
+        parser.add_argument('--logdir', dest=self.LOGPATH, type=str, help='Path to logs and saved models')
+
+        self.cl_args = parser.parse_args()
 
     def isValid(self):
         return self.valid
@@ -127,8 +156,7 @@ class Config:
         self.load_str(self.BOOTPEER_HOST, "bootpeer", "host")
         self.load_int(self.BOOTPEER_PORT, "bootpeer", "port")
 
-
-    def __parse_cl_args(self, args: argparse.Namespace):
+    def __parse_cl_args(self):
         """
 
         This will loop over each command line argument. If it has a value,
@@ -140,9 +168,9 @@ class Config:
         Returns:
 
         """
-        args_dict = vars(args)
+        args_dict = vars(self.cl_args)
         for key in args_dict:
-            if args_dict[key] and key in self.config:
+            if args_dict[key]:
                 self.config[key] = args_dict[key]
 
     def __validate_config(self):
@@ -150,7 +178,7 @@ class Config:
 
         # Todo: Implement chain endpoint validation
         try:
-            #Chain endpoint is not implemented yet, no validation
+            # Chain endpoint is not implemented yet, no validation
 
             # self.validate_key(self.NEURON_PUBKEY, required=True)
 
@@ -177,7 +205,6 @@ class Config:
             logger.debug("CONFIG: post processing error.")
             raise InvalidConfigError
 
-
     def __obtain_ip_address(self):
         if self.config[self.IP]:
             return
@@ -192,7 +219,6 @@ class Config:
             raise PostProcessingError
 
         self.config[self.IP] = value
-
 
     def load_config_option(self, section, option):
         """
@@ -249,7 +275,9 @@ class Config:
             self.config[key] = value
 
         except ValueError:
-            logger.error("CONFIG: An error occured while parsing config.ini. Option '%s' in section '%s' should be an integer" % (option, section))
+            logger.error(
+                "CONFIG: An error occured while parsing config.ini. Option '%s' in section '%s' should be an integer" % (
+                option, section))
             raise ValueError
 
     # Validation routines
@@ -264,8 +292,6 @@ class Config:
 
         return False
 
-
-
     def validate_int_range(self, config_key, min, max, required=False):
 
         """
@@ -279,10 +305,10 @@ class Config:
         if not validators.between(value, min=min, max=max):
             logger.error(
                 "CONFIG: Validation error: %s should be between %i and %i." % (
-                   config_key, min, max))
+                    config_key, min, max))
             raise ValidationError
 
-    def validate_path(self, config_key, required=False ):
+    def validate_path(self, config_key, required=False):
         if self.has_valid_empty_value(config_key, required):
             return
 
@@ -290,7 +316,7 @@ class Config:
 
         if not os.path.exists(path):
             logger.error("CONFIG: Validation error: %s for option %s is does not exist" %
-                             (path, config_key))
+                         (path, config_key))
             raise ValidationError
 
         # Check if the path is writable
@@ -299,7 +325,7 @@ class Config:
             logger.error(
                 "CONFIG: Validation error: %s for option %s is not a writable" %
                 (path, config_key))
-            raise  ValidationError
+            raise ValidationError
 
     def validate_ip(self, config_key, required=False):
         if self.has_valid_empty_value(config_key, required):
@@ -327,18 +353,13 @@ class Config:
 
             raise ValidationError
 
-
     def log_config(self):
         for key in self.config:
             logger.info("CONFIG: %s: %s" % (key, self.config[key]))
 
-
     def __getattr__(self, item):
         if item in self.config:
             return self.config[item]
-        # else:
-            # return self.item
-
 
 
 
