@@ -20,7 +20,8 @@ import torchvision
 import torchvision.transforms as transforms
 import traceback
 
-def main(hparams):
+def main():
+    argparser = argparse.ArgumentParser()
      
     # Additional training params.
     batch_size_train = 64
@@ -37,9 +38,9 @@ def main(hparams):
     # Create background objects.
     # Connect the metagraph.
     # Start the axon server.
-    config = bittensor.Config.from_hparams( hparams )
-    logger.info(config)
-    bittensor.init( config )
+    # config = bittensor.Config.from_hparams( hparams )
+    # logger.info(config)
+    bittensor.init( argparser )
     bittensor.start()
     
     # Build local synapse to serve on the network.
@@ -160,7 +161,7 @@ def main(hparams):
             break
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    hparams = bittensor.Config.add_args(parser)
-    hparams = parser.parse_args()
-    main(hparams)
+    # parser = argparse.ArgumentParser()
+    # hparams = bittensor.Config.add_args(parser)
+    # hparams = parser.parse_args()
+    main()

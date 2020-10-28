@@ -16,3 +16,4 @@ torch
 torchvision
 transformers
 configparser
+validators

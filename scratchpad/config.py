@@ -8,6 +8,7 @@ import re
 import uuid
 import requests
 import validators
+from bittensor.crypto import Crypto
 
 class InvalidConfigFile(Exception):
     pass
@@ -29,14 +30,14 @@ class Config:
     METAGRAPH_SIZE = "metagraph_size"
     BOOTPEER_HOST = "bootpeer_host"
     BOOTPEER_PORT = "bootpeer_port"
-    NEURON_ID = "neuron_id"
+    NEURON_PUBKEY = "neuron_key"
     IP = "ip"
     DATAPATH = "datapath"
     LOGPATH = "logpath"
 
     # Attributes to make parsing of a config file work
     parser = None
-    filename = "configuration.ini"
+    filename = None # This will be passed as a constructor arg
 
     # The dict that hold the configuration
     config = dict()
@@ -44,7 +45,9 @@ class Config:
     # Attribute that tells if the configuration is valid
     valid = False
 
-    def __init__(self, args):
+    def __init__(self, filename, args):
+        self.filename = filename
+
         """
         This is what happens:
         1) The system defaults for the configuration is set
@@ -73,7 +76,7 @@ class Config:
         """
         self.config = dict({
             self.CHAIN_ENDPOINT: "DEFAULT",
-            self.NEURON_ID: uuid.uuid1(),
+            self.NEURON_PUBKEY: Crypto.public_key_to_string(Crypto.generate_private_ed25519().public_key()),
             self.DATAPATH: None,
             self.LOGPATH: None,
             self.IP: None,
@@ -113,7 +116,7 @@ class Config:
 
         # At this point, all sections and options are present. Now load the actual values according to type
         self.load_str(self.CHAIN_ENDPOINT, "general", "chain_endpoint")
-        self.load_str(self.NEURON_ID, "general", "neuron_id")
+        self.load_str(self.NEURON_PUBKEY, "general", "neuron_id")
         self.load_str(self.DATAPATH, "general", "datapath")
         self.load_str(self.LOGPATH, "general", "logdir")
 
@@ -141,7 +144,7 @@ class Config:
         """
         args_dict = vars(args)
         for key in args_dict:
-            if args_dict[key]:
+            if args_dict[key] and key in self.config:
                 self.config[key] = args_dict[key]
 
     def __validate_config(self):
@@ -151,7 +154,7 @@ class Config:
         try:
             #Chain endpoint is not implemented yet, no validation
 
-            self.validate_uuid(self.NEURON_ID, required=True)
+            # self.validate_key(self.NEURON_PUBKEY, required=True)
 
             self.validate_path(self.DATAPATH, required=True)
             self.validate_path(self.LOGPATH, required=True)
@@ -326,16 +329,6 @@ class Config:
 
             raise ValidationError
 
-    def validate_uuid(self, config_key, required=False):
-        if self.has_valid_empty_value(config_key, required):
-            return
-
-        value = self.config[config_key]
-
-        if not validators.uuid(value):
-            logger.error("CONFIG: %s for option %s is not a valid UUID" % (value, config_key))
-
-            raise ValidationError
 
     def log_config(self):
         for key in self.config:
@@ -345,8 +338,8 @@ class Config:
     def __getattr__(self, item):
         if item in self.config:
             return self.config[item]
-        else:
-            return self.item
+        # else:
+            # return self.item
 
 
 
