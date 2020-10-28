@@ -62,11 +62,12 @@ class Config(object):
     __neuron_key_default__ = Crypto.public_key_to_string(
         Crypto.generate_private_ed25519().public_key())
     try:
-        __remote_ip_default__ = requests.get('https://api.ipify.org').text
+        #__remote_ip_default__ = requests.get('https://api.ipify.org').text
         
-        if not __remote_ip_default__:
-            raise RemoteIPException
-    
+        # if not __remote_ip_default__:
+        #     raise RemoteIPException
+        None
+
     except RemoteIPException as e:
         logger.warn("This synapse is not connected to the internet, training will be local.")
         __remote_ip_default__ = 'localhost'
