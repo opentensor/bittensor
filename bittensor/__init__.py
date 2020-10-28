@@ -10,6 +10,7 @@ import argparse
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from bittensor.config import Config
+from bittensor.config import ConfigService
 from bittensor.config import SynapseConfig
 from bittensor.crypto import Crypto
 from bittensor.serializer import PyTorchSerializer
@@ -51,12 +52,14 @@ tbwriter = None
 
 def init(argparser: argparse.ArgumentParser):
     global __config
-    __config = Config("config.ini", argparser)
-    if not __config.isValid():
+
+    config_service = ConfigService()
+    __config = config_service.create("config.ini", argparser)
+    if not __config:
         logger.error("Invalid configuration. Aborting")
         quit(-1)
 
-    __config.log_config()
+    config_service.log_config(__config)
 
     # Build and start the metagraph background object.
     # The metagraph is responsible for connecting to the blockchain
