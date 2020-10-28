@@ -101,11 +101,13 @@ class Config:
         """
         Sets the system default configuration
         """
+        neuron_key = Crypto.public_key_to_string(Crypto.generate_private_ed25519().public_key())
+
         self.config = dict({
-            self.CHAIN_ENDPOINT: "DEFAULT",
-            self.NEURON_KEY: Crypto.public_key_to_string(Crypto.generate_private_ed25519().public_key()),
-            self.DATAPATH: None,
-            self.LOGDIR: None,
+            self.CHAIN_ENDPOINT: "",
+            self.NEURON_KEY: neuron_key,
+            self.DATAPATH: "data/",
+            self.LOGDIR: "data/" + neuron_key,
             self.REMOTE_IP: None,
             self.AXON_PORT: 8091,
             self.METAGRAPH_PORT: 8092,
@@ -322,17 +324,15 @@ class Config:
 
         path = self.config[config_key]
 
-        if not os.path.exists(path):
-            logger.error("CONFIG: Validation error: %s for option %s is does not exist" %
+        try:
+            pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            logger.error("CONFIG: Validation error: no permission to create path %s for option %s" %
                          (path, config_key))
             raise ValidationError
-
-        # Check if the path is writable
-
-        if not os.access(path, os.W_OK):
-            logger.error(
-                "CONFIG: Validation error: %s for option %s is not a writable" %
-                (path, config_key))
+        except:
+            logger.error("CONFIG: Validation error: An undefined error occured while trying to create path %s for option %s" %
+                         (path, config_key))
             raise ValidationError
 
     def validate_ip(self, config_key, required=False):
