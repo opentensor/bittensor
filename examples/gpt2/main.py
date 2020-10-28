@@ -32,7 +32,9 @@ def nextbatch(data, batch_size, tokenizer):
     batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True)['input_ids']
     return batch_inputs
             
-def main(hparams):
+def main():
+    argparser = argparse.ArgumentParser()
+
     # Args
     learning_rate = 0.01 
     batch_size = 20
@@ -43,9 +45,7 @@ def main(hparams):
     # Create background objects.
     # Connect the metagraph.
     # Start the axon server.
-    config = bittensor.Config.from_hparams( hparams )
-    logger.info(config)
-    bittensor.init( config )
+    bittensor.init(argparser)
     bittensor.start()
 
     # Build Synapse
@@ -93,7 +93,4 @@ def main(hparams):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    hparams = bittensor.Config.add_args(parser)
-    hparams = parser.parse_args()
-    main(hparams)
+    main()

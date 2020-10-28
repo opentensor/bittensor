@@ -41,8 +41,6 @@ def main():
     bittensor.init( argparser )
     bittensor.start()
 
-    bittensor.get_config()
-    
     # Build local synapse to serve on the network.
     model_config = FFNNConfig()
     model = FFNNSynapse(model_config)
@@ -162,7 +160,4 @@ def main():
             break
 
 if __name__ == "__main__":
-    # parser = argparse.ArgumentParser()
-    # hparams = bittensor.Config.add_args(parser)
-    # hparams = parser.parse_args()
     main()
