@@ -7,7 +7,6 @@ from loguru import logger
 parser = argparse.ArgumentParser(description='BitTensor - Crypto P2P Neural Networks')
 
 
-# args = parser.parse_args()
 
 config = Config("../bittensor/config.ini", parser)
 if not config.isValid():
@@ -15,3 +14,9 @@ if not config.isValid():
 
 config.log_config()
 
+
+
+#-----
+
+args = parser.parse_args()
+print(args)
