@@ -57,7 +57,7 @@ class Config(dict):
 
         # Override (or not) options with default settings
         for key, value in kwargs.items():
-           self[key] = value
+            self[key] = value
 
     def get_bootpeer(self):
         if self[self.BOOTPEER_HOST] and self[self.BOOTPEER_PORT]:
