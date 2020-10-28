@@ -5,8 +5,9 @@ import argparse
 import socket
 import sys,os
 import re
-# from bittensor.crypto import Crypto
+import uuid
 import requests
+import validators
 
 class InvalidConfigFile(Exception):
     pass
@@ -28,7 +29,7 @@ class Config:
     METAGRAPH_SIZE = "metagraph_size"
     BOOTPEER_HOST = "bootpeer_host"
     BOOTPEER_PORT = "bootpeer_port"
-    NEURON_KEY = "neuron_key"
+    NEURON_ID = "neuron_id"
     IP = "ip"
     DATAPATH = "datapath"
     LOGPATH = "logpath"
@@ -72,7 +73,7 @@ class Config:
         """
         self.config = dict({
             self.CHAIN_ENDPOINT: "DEFAULT",
-            self.NEURON_KEY: None,
+            self.NEURON_ID: uuid.uuid1(),
             self.DATAPATH: None,
             self.LOGPATH: None,
             self.IP: None,
@@ -112,7 +113,7 @@ class Config:
 
         # At this point, all sections and options are present. Now load the actual values according to type
         self.load_str(self.CHAIN_ENDPOINT, "general", "chain_endpoint")
-        self.load_str(self.NEURON_KEY, "general", "neuron_key")
+        self.load_str(self.NEURON_ID, "general", "neuron_id")
         self.load_str(self.DATAPATH, "general", "datapath")
         self.load_str(self.LOGPATH, "general", "logdir")
 
@@ -148,8 +149,9 @@ class Config:
 
         # Todo: Implement chain endpoint validation
         try:
-            #Neuron key will be deprecated soon, so no validation
             #Chain endpoint is not implemented yet, no validation
+
+            self.validate_uuid(self.NEURON_ID, required=True)
 
             self.validate_path(self.DATAPATH, required=True)
             self.validate_path(self.LOGPATH, required=True)
@@ -273,7 +275,7 @@ class Config:
 
         value = self.config[config_key]
 
-        if value < min or value > max:
+        if not validators.between(value, min=min, max=max):
             logger.error(
                 "CONFIG: Validation error: %s should be between %i and %i." % (
                    config_key, min, max))
@@ -304,10 +306,7 @@ class Config:
 
         value = self.config[config_key]
 
-        if not required and not  value:
-            return
-
-        if not self.__is_valid_ip(value):
+        if not validators.ipv4(value):
             logger.error(
                 "CONFIG: Validation error: %s for option %s is not a valid ip address" %
                 (value, config_key))
@@ -320,31 +319,27 @@ class Config:
 
         value = self.config[config_key]
 
-        if not self.__is_valid_ip(value) and not self.__is_valid_hostname(value):
+        if not validators.ipv4(value) and not validators.domain(value):
             logger.error(
                 "CONFIG: Validation error: %s for option %s is not a valid ip address or hostname" %
                 (value, config_key))
 
             raise ValidationError
 
+    def validate_uuid(self, config_key, required=False):
+        if self.has_valid_empty_value(config_key, required):
+            return
 
-    @staticmethod
-    def __is_valid_ip(value):
-        try:
-            socket.inet_aton(value)
-            return True
-        except socket.error:
-            return False
+        value = self.config[config_key]
 
+        if not validators.uuid(value):
+            logger.error("CONFIG: %s for option %s is not a valid UUID" % (value, config_key))
 
-    @staticmethod
-    def __is_valid_hostname(hostname):
-        if len(hostname) > 255:
-            return False
-        if hostname[-1] == ".":
-            hostname = hostname[:-1]  # strip exactly one dot from the right, if present
-        allowed = re.compile("(?!-)[A-Z\d-]{1,63}(?<!-)$", re.IGNORECASE)
-        return all(allowed.match(x) for x in hostname.split("."))
+            raise ValidationError
+
+    def log_config(self):
+        for key in self.config:
+            logger.info("CONFIG: %s: %s" % (key, self.config[key]))
 
 
     def __getattr__(self, item):
