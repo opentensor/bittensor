@@ -38,8 +38,6 @@ def main():
     # Create background objects.
     # Connect the metagraph.
     # Start the axon server.
-    # config = bittensor.Config.from_hparams( hparams )
-    # logger.info(config)
     bittensor.init( argparser )
     bittensor.start()
 
