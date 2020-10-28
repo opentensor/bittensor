@@ -15,7 +15,7 @@ def random_synapse():
         neuron_key = bittensor.crypto.Crypto.public_key_to_string(public_key),
         synapse_key = bittensor.crypto.Crypto.public_key_to_string(public_key),
         address = '0.0.0.0',
-        port = '12231',
+        port = 12231,
         block_hash = None
     )
     return synapse
