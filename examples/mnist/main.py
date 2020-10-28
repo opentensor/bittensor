@@ -41,8 +41,9 @@ def main():
     # config = bittensor.Config.from_hparams( hparams )
     # logger.info(config)
     bittensor.init( argparser )
-
     bittensor.start()
+
+    bittensor.get_config()
     
     # Build local synapse to serve on the network.
     model_config = FFNNConfig()
@@ -55,6 +56,7 @@ def main():
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10.0, gamma=0.1)
 
     # Load (Train, Test) datasets into memory.
+    config = bittensor.get_config()
     train_data = torchvision.datasets.MNIST(root = config.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
     trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size_train, shuffle=True, num_workers=2)
     test_data = torchvision.datasets.MNIST(root = config.datapath + "datasets/", train=False, download=True, transform=transforms.ToTensor())

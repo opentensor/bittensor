@@ -32,10 +32,10 @@ class Config:
     METAGRAPH_SIZE = "metagraph_size"
     BOOTPEER_HOST = "bootpeer_host"
     BOOTPEER_PORT = "bootpeer_port"
-    NEURON_PUBKEY = "neuron_key"
-    IP = "ip"
+    NEURON_KEY = "neuron_key"
+    REMOTE_IP = "remote_ip"
     DATAPATH = "datapath"
-    LOGPATH = "logpath"
+    LOGDIR = "logdir"
 
     # Attributes to make parsing of a config file work
     parser = None
@@ -86,11 +86,11 @@ class Config:
                             help='Hostname or IP of the first peer this neuron should connect to when signing onto the network.>')
         parser.add_argument('--bp_port', dest=self.BOOTPEER_PORT, type=int,
                             help='TCP Port the bootpeer is listening on')
-        parser.add_argument('--neuron_key', dest=self.NEURON_PUBKEY, type=str, help='Key of the neuron')
-        parser.add_argument('--ip', dest=self.IP, type=str,
+        parser.add_argument('--neuron_key', dest=self.NEURON_KEY, type=str, help='Key of the neuron')
+        parser.add_argument('--remote_up', dest=self.REMOTE_IP, type=str,
                             help='The IP address of this neuron that will be published to the network')
         parser.add_argument('--datapath', dest=self.DATAPATH, type=str, help='Path to datasets')
-        parser.add_argument('--logdir', dest=self.LOGPATH, type=str, help='Path to logs and saved models')
+        parser.add_argument('--logdir', dest=self.LOGDIR, type=str, help='Path to logs and saved models')
 
         self.cl_args = parser.parse_args()
 
@@ -103,15 +103,15 @@ class Config:
         """
         self.config = dict({
             self.CHAIN_ENDPOINT: "DEFAULT",
-            self.NEURON_PUBKEY: Crypto.public_key_to_string(Crypto.generate_private_ed25519().public_key()),
+            self.NEURON_KEY: Crypto.public_key_to_string(Crypto.generate_private_ed25519().public_key()),
             self.DATAPATH: None,
-            self.LOGPATH: None,
-            self.IP: None,
+            self.LOGDIR: None,
+            self.REMOTE_IP: None,
             self.AXON_PORT: 8091,
             self.METAGRAPH_PORT: 8092,
             self.METAGRAPH_SIZE: 10000,
             self.BOOTPEER_HOST: None,
-            self.BOOTPEER_PORT: 6000
+            self.BOOTPEER_PORT: None
         })
 
     def __load_config(self):
@@ -143,11 +143,11 @@ class Config:
 
         # At this point, all sections and options are present. Now load the actual values according to type
         self.load_str(self.CHAIN_ENDPOINT, "general", "chain_endpoint")
-        self.load_str(self.NEURON_PUBKEY, "general", "neuron_id")
+        self.load_str(self.NEURON_KEY, "general", "neuron_key")
         self.load_str(self.DATAPATH, "general", "datapath")
-        self.load_str(self.LOGPATH, "general", "logdir")
+        self.load_str(self.LOGDIR, "general", "logdir")
 
-        self.load_str(self.IP, "general", "ip")
+        self.load_str(self.REMOTE_IP, "general", "remote_ip")
         self.load_int(self.AXON_PORT, "axon", "port")
 
         self.load_int(self.METAGRAPH_PORT, "metagraph", "port")
@@ -183,16 +183,16 @@ class Config:
             # self.validate_key(self.NEURON_PUBKEY, required=True)
 
             self.validate_path(self.DATAPATH, required=True)
-            self.validate_path(self.LOGPATH, required=True)
-            self.validate_ip(self.IP, required=False)
+            self.validate_path(self.LOGDIR, required=True)
+            self.validate_ip(self.REMOTE_IP, required=False)
 
             self.validate_int_range(self.AXON_PORT, min=1024, max=65535, required=True)
 
             self.validate_int_range(self.METAGRAPH_PORT, min=1024, max=65535, required=True)
             self.validate_int_range(self.METAGRAPH_SIZE, min=5, max=20000, required=True)
 
-            self.validate_hostname(self.BOOTPEER_HOST, required=True)
-            self.validate_int_range(self.BOOTPEER_PORT, min=1024, max=65535, required=True)
+            self.validate_hostname(self.BOOTPEER_HOST, required=False)
+            self.validate_int_range(self.BOOTPEER_PORT, min=1024, max=65535, required=False)
 
         except ValidationError:
             logger.debug("CONFIG: Validation error")
@@ -201,12 +201,13 @@ class Config:
     def __do_post_processing(self):
         try:
             self.__obtain_ip_address()
+            self.__fix_paths()
         except PostProcessingError:
             logger.debug("CONFIG: post processing error.")
             raise InvalidConfigError
 
     def __obtain_ip_address(self):
-        if self.config[self.IP]:
+        if self.config[self.REMOTE_IP]:
             return
         try:
             value = requests.get('https://api.ipify.org').text
@@ -214,11 +215,18 @@ class Config:
             logger.error("CONFIG: Could not retrieve public facing IP from IP API.")
             raise PostProcessingError
 
-        if not self.__is_valid_ip(value):
+        if not validators.ipv4(value):
             logger.error("CONFIG: Response from IP API is not a valid IP.")
             raise PostProcessingError
 
-        self.config[self.IP] = value
+        self.config[self.REMOTE_IP] = value
+
+    def __fix_paths(self):
+        if self.config[self.DATAPATH] and self.config[self.DATAPATH][-1] != '/':
+            self.config[self.DATAPATH] += '/'
+
+        if self.config[self.LOGDIR] and self.config[self.LOGDIR][-1] != '/':
+            self.config[self.LOGDIR] += '/'
 
     def load_config_option(self, section, option):
         """
@@ -356,6 +364,12 @@ class Config:
     def log_config(self):
         for key in self.config:
             logger.info("CONFIG: %s: %s" % (key, self.config[key]))
+
+    def get_bootpeer(self):
+        if self.config[self.BOOTPEER_HOST] and self.config[self.BOOTPEER_PORT]:
+            return "%s:%s" % (self.config[self.BOOTPEER_HOST], str(self.config[self.BOOTPEER_PORT]))
+
+        return None
 
     def __getattr__(self, item):
         if item in self.config:

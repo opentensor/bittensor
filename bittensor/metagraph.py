@@ -29,8 +29,9 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
 
         # bittensor config
         self._config = config
-        if len(self._config.bootstrap) > 0:
-            self._peers.add(self._config.bootstrap)
+        bootpeer = self._config.get_bootpeer()
+        if bootpeer:
+            self._peers.add(bootpeer)
 
         # Init server objects.
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
