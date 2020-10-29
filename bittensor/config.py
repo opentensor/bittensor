@@ -29,8 +29,7 @@ class Config(dict):
     AXON_PORT = "axon_port"
     METAGRAPH_PORT = "metagraph_port"
     METAGRAPH_SIZE = "metagraph_size"
-    BOOTPEER_HOST = "bootpeer_host"
-    BOOTPEER_PORT = "bootpeer_port"
+    BOOTSTRAP = "bootstrap"
     NEURON_KEY = "neuron_key"
     REMOTE_IP = "remote_ip"
     DATAPATH = "datapath"
@@ -50,8 +49,7 @@ class Config(dict):
                 Config.AXON_PORT: 8091,
                 Config.METAGRAPH_PORT: 8092,
                 Config.METAGRAPH_SIZE: 10000,
-                Config.BOOTPEER_HOST: None,
-                Config.BOOTPEER_PORT: None
+                Config.BOOTSTRAP: None
             }
         )
 
@@ -59,9 +57,14 @@ class Config(dict):
         for key, value in kwargs.items():
             self[key] = value
 
+    def log(self):
+        for key in self:
+            logger.info("CONFIG: %s: %s" % (key, self[key]))
+
+
     def get_bootpeer(self):
-        if self[self.BOOTPEER_HOST] and self[self.BOOTPEER_PORT]:
-            return "%s:%s" % (self[self.BOOTPEER_HOST], str(self[self.BOOTPEER_PORT]))
+        if self[self.BOOTSTRAP]:
+            return self[self.BOOTSTRAP]
 
         return None
 
@@ -118,10 +121,8 @@ class ConfigService:
         parser.add_argument('--metagraph_port', dest=Config.METAGRAPH_PORT, type=int,
                             help='TCP port that will be used to receive metagraph connections')
         parser.add_argument('--metagraph_size', dest=Config.METAGRAPH_SIZE, type=int, help='Metagraph cache size')
-        parser.add_argument('--bp_host', dest=Config.BOOTPEER_HOST, type=str,
-                            help='Hostname or IP of the first peer this neuron should connect to when signing onto the network.>')
-        parser.add_argument('--bp_port', dest=Config.BOOTPEER_PORT, type=int,
-                            help='TCP Port the bootpeer is listening on')
+        parser.add_argument('--bootstrap', dest=Config.BOOTSTRAP, type=str,
+                            help='The socket of the bootstrap peer host:port')
         parser.add_argument('--neuron_key', dest=Config.NEURON_KEY, type=str, help='Key of the neuron')
         parser.add_argument('--remote_up', dest=Config.REMOTE_IP, type=str,
                             help='The IP address of this neuron that will be published to the network')
@@ -129,28 +130,6 @@ class ConfigService:
         parser.add_argument('--logdir', dest=Config.LOGDIR, type=str, help='Path to logs and saved models')
 
         self.cl_args = parser.parse_args()
-
-    def isValid(self):
-        return self.valid
-
-    def __setup_defaults(self):
-        """
-        Sets the system default configuration
-        """
-        neuron_key = Crypto.public_key_to_string(Crypto.generate_private_ed25519().public_key())
-
-        self.config = dict({
-            Config.CHAIN_ENDPOINT: "",
-            Config.NEURON_KEY: neuron_key,
-            Config.DATAPATH: "data/",
-            Config.LOGDIR: "data/" + neuron_key,
-            Config.REMOTE_IP: None,
-            Config.AXON_PORT: 8091,
-            Config.METAGRAPH_PORT: 8092,
-            Config.METAGRAPH_SIZE: 10000,
-            Config.BOOTPEER_HOST: None,
-            Config.BOOTPEER_PORT: None
-        })
 
     def __load_config(self):
         try:
@@ -191,8 +170,7 @@ class ConfigService:
         self.load_int(Config.METAGRAPH_PORT, "metagraph", "port")
         self.load_int(Config.METAGRAPH_SIZE, "metagraph", "size")
 
-        self.load_str(Config.BOOTPEER_HOST, "bootpeer", "host")
-        self.load_int(Config.BOOTPEER_PORT, "bootpeer", "port")
+        self.load_str(Config.BOOTSTRAP, "bootstrap", "socket")
 
     def __parse_cl_args(self):
         """
@@ -229,8 +207,7 @@ class ConfigService:
             self.validate_int_range(Config.METAGRAPH_PORT, min=1024, max=65535, required=True)
             self.validate_int_range(Config.METAGRAPH_SIZE, min=5, max=20000, required=True)
 
-            self.validate_hostname(Config.BOOTPEER_HOST, required=False)
-            self.validate_int_range(Config.BOOTPEER_PORT, min=1024, max=65535, required=False)
+            self.validate_socket(Config.BOOTSTRAP, required=False)
 
         except ValidationError:
             logger.debug("CONFIG: Validation error")
@@ -326,7 +303,9 @@ class ConfigService:
                 option, section))
             raise ValueError
 
-    # Validation routines
+    '''
+    Validation routines
+    '''
 
     def has_valid_empty_value(self, config_key, required):
         value = self.config[config_key]
@@ -397,10 +376,44 @@ class ConfigService:
 
             raise ValidationError
 
-    @staticmethod
-    def log_config(config):
-        for key in config:
-            logger.info("CONFIG: %s: %s" % (key, config[key]))
+    def validate_socket(self, config_key, required=False):
+        if self.has_valid_empty_value(config_key, required):
+            return
+
+        value = self.config[config_key]
+
+        try:
+            host, port =  value.split(":")
+        except ValueError:
+            logger.error(
+                "CONFIG: Validation error: %s for option %s is incorrectly formatted. Should be ip:port" %
+                (value, config_key))
+            raise ValidationError
+
+        if not validators.ipv4(host) and host != "localhost" and not validators.domain(host):
+            logger.error(
+                "CONFIG: Validation error: %s for option %s does not contain a valid ip address" %
+                (value, config_key))
+
+            raise ValidationError
+
+        try:
+            port = int(port)
+        except ValueError:
+            logger.error(
+                "CONFIG: Validation error: %s for option %s does contain not a valid port nr" %
+                (value, config_key))
+
+            raise ValidationError
+
+        if not validators.between(port, min=1024, max=65535):
+            logger.error(
+                "CONFIG: Validation error: %s for option %s port must be between 1024 and 65535" %
+                (value, config_key))
+
+            raise ValidationError
+
+
 
 
 
