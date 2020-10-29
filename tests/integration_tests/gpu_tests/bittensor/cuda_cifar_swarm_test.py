@@ -41,7 +41,7 @@ class TestCifarSwarm(unittest.TestCase):
                                         metagraph_port = metagraph_port,
                                         bp_host = bp_host,
                                         bp_port = bp_port)
-            logger.info('config: {}', config)
+            config.log()
                                         
             meta = bittensor.Metagraph(config)
             axon = bittensor.Axon(config)

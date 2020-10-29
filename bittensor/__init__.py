@@ -59,7 +59,7 @@ def init(argparser: argparse.ArgumentParser):
         logger.error("Invalid configuration. Aborting")
         quit(-1)
 
-    config_service.log_config(__config)
+    __config.log()
 
     # Build and start the metagraph background object.
     # The metagraph is responsible for connecting to the blockchain
