@@ -124,7 +124,7 @@ class ConfigService:
         parser.add_argument('--bootstrap', dest=Config.BOOTSTRAP, type=str,
                             help='The socket of the bootstrap peer host:port')
         parser.add_argument('--neuron_key', dest=Config.NEURON_KEY, type=str, help='Key of the neuron')
-        parser.add_argument('--remote_up', dest=Config.REMOTE_IP, type=str,
+        parser.add_argument('--remote_ip', dest=Config.REMOTE_IP, type=str,
                             help='The IP address of this neuron that will be published to the network')
         parser.add_argument('--datapath', dest=Config.DATAPATH, type=str, help='Path to datasets')
         parser.add_argument('--logdir', dest=Config.LOGDIR, type=str, help='Path to logs and saved models')
