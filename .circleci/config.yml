@@ -42,23 +42,37 @@ jobs:
       - run: pip install codecov pytest
       - run:
           name: "Run Localized CPU Integration tests"
-          command: pytest ./tests/integration_tests/cpu_tests
+          command: pytest ./tests/integration_tests/cpu_tests -k 'not MnistNode'
       - run:
           name: "Code Coverage"
           command: codecov
   
-  "Run Remote Peer Integration Tests":
+  MNIST-1:
     executor: bittensor-executor
     steps:
       - checkout
       - python/load-cache
-      - run: pip install codecov pytest
       - run:
-          name: Install Ngrok for TCP tunneling
-          command: sudo wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip . && sudo unzip ngrok-stable-linux-amd64.zip -d /usr/local/bin
+          name: Run MNIST node 1
+          command: pytest -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py
+
+  MNIST-2:
+    executor: bittensor-executor
+    steps:
+      - checkout
+      - python/load-cache
       - run:
-          name: Run Ngrok
-          command: ngrok tcp 
+          name: Run MNIST node 2
+          command: pytest -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py
+  
+  MNIST-3:
+    executor: bittensor-executor
+    steps:
+      - checkout
+      - python/load-cache
+      - run:
+          name: Run MNIST node 3
+          command: pytest -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py
 
   "Push Production candidate to DockerHub":
     docker:
@@ -77,6 +91,9 @@ jobs:
       - run:
           name: "Push production candidate"
           command: ./scripts/push_image.sh
+ 
+  
+            
 
 workflows:
   main:
@@ -88,11 +105,29 @@ workflows:
       - "Run Integration Tests":
               requires:
                 - "Build Bittensor"
-      - "Push Production candidate to DockerHub":
+      - MNIST-1:
               requires:
-                - "Build Bittensor"
-                - "Run Unit Tests"
-              filters:
-                branches:
-                  only:
-                    - master
+                - "Run Integration Tests"
+      - MNIST-2:
+              requires:
+                - "Run Integration Tests"
+
+      #- MNIST-2:
+      #        requires:
+      #          - "Run Integration Tests"
+
+      #- MNIST-3:
+      #        requires:
+      #          - "Run Integration Tests"
+
+      #- "Push Production candidate to DockerHub":
+      #        requires:
+      #          - "Build Bittensor"
+      #          - "Run Unit Tests"
+      #          - MNIST-1
+      #          - MNIST-2
+      #          - MNIST-3
+      #        filters:
+      #          branches:
+      #            only:
+      #              - master
