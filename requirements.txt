@@ -15,3 +15,5 @@ tensorboard
 torch
 torchvision
 transformers
+configparser
+validators

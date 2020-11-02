@@ -70,7 +70,7 @@ message Synapse {
 	// Port: [REQUIRED] Synapse endpoint listening port.
   	// i.e. '8081'
 	// SIZE: 32-bits (4-bytes)
-	string port = 5;
+	int32 port = 5;
 
 	// Block hash: [OPTIONAL] hash of latest chain block service definition creation.
 	// Links the bellow POW to a global-time protecting the cache from
