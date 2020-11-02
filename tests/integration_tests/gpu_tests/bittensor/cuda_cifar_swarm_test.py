@@ -29,16 +29,19 @@ class TestCifarSwarm(unittest.TestCase):
         assert self.device == torch.device("cuda")
         logger.info('Build swarm...')
         for i in range(self.num_nodes):
-            metagraph_port = str(self.meta_ports[i])
-            axon_port = str(self.axon_ports[i])
+            metagraph_port = self.meta_ports[i]
+            axon_port = self.axon_ports[i]
+            bp_host = "localhost"
             if i == 0:
-                bootstrap = 'localhost:' + str(self.meta_ports[-1])
+                bp_port = self.meta_ports[-1]
             else:
-                bootstrap = 'localhost:' + str(self.meta_ports[i-1])
+                bp_port = self.meta_ports[i-1]
+
             config = bittensor.Config(  axon_port = axon_port,
                                         metagraph_port = metagraph_port,
-                                        bootstrap = bootstrap)
-            logger.info('config: {}', config)
+                                        bp_host = bp_host,
+                                        bp_port = bp_port)
+            config.log()
                                         
             meta = bittensor.Metagraph(config)
             axon = bittensor.Axon(config)

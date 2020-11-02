@@ -174,9 +174,9 @@ class RemoteSynapse(nn.Module):
             ip = "localhost:"
             if config.remote_ip == "host.docker.internal":
                 ip = "host.docker.internal:"
-            self.endpoint = ip + synapse.port
+            self.endpoint = ip + str(synapse.port)
         else:
-            self.endpoint = synapse.address + ':' + synapse.port
+            self.endpoint = synapse.address + ':' + str(synapse.port)
         # TODO(const): should accept defaults. config = bittensor.config_or_defaults(config)
 
         self.channel = grpc.insecure_channel(

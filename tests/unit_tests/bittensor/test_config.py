@@ -30,13 +30,15 @@ def test_from_args():
 
 def test_defaults():
     config = bittensor.Config()
-    assert  config.chain_endpoint == bittensor.Config.__chainendpoint_default__
-    assert  config.axon_port == bittensor.Config.__axon_port_default__
-    assert  config.metagraph_port == bittensor.Config.__metagraph_port_default__
-    assert  config.metagraph_size == bittensor.Config.__metagraph_size_default__
-    assert  config.neuron_key == bittensor.Config.__neuron_key_default__
-    assert  config.remote_ip == bittensor.Config.__remote_ip_default__
-    assert  config.datapath == bittensor.Config.__datapath_default__
+    assert  config.chain_endpoint == ""
+    assert  config.axon_port == 8091
+    assert  config.metagraph_port == 8092
+    assert  config.metagraph_size == 10000
+    assert  config.remote_ip == None
+    assert  config.datapath == "data/"
+    assert config.bp_host == None
+    assert config.bp_port == None
+
 
 
 def test_type_check():

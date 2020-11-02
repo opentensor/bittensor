@@ -20,7 +20,8 @@ import torchvision
 import torchvision.transforms as transforms
 import traceback
 
-def main(hparams):
+def main():
+    argparser = argparse.ArgumentParser()
      
     # Additional training params.
     batch_size_train = 64
@@ -37,11 +38,9 @@ def main(hparams):
     # Create background objects.
     # Connect the metagraph.
     # Start the axon server.
-    config = bittensor.Config.from_hparams( hparams )
-    logger.info(config)
-    bittensor.init( config )
+    bittensor.init( argparser )
     bittensor.start()
-    
+
     # Build local synapse to serve on the network.
     model_config = FFNNConfig()
     model = FFNNSynapse(model_config)
@@ -53,6 +52,7 @@ def main(hparams):
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10.0, gamma=0.1)
 
     # Load (Train, Test) datasets into memory.
+    config = bittensor.get_config()
     train_data = torchvision.datasets.MNIST(root = config.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
     trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size_train, shuffle=True, num_workers=2)
     test_data = torchvision.datasets.MNIST(root = config.datapath + "datasets/", train=False, download=True, transform=transforms.ToTensor())
@@ -160,7 +160,4 @@ def main(hparams):
             break
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    hparams = bittensor.Config.add_args(parser)
-    hparams = parser.parse_args()
-    main(hparams)
+    main()

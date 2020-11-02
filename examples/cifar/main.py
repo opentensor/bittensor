@@ -19,7 +19,8 @@ import torchvision
 import torchvision.transforms as transforms
 import traceback
 
-def main(hparams):
+def main():
+    argparser = argparse.ArgumentParser()
      
     # Additional training params.
     batch_size_train = 32
@@ -31,14 +32,12 @@ def main(hparams):
     global_step = 0
     best_test_loss = math.inf
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-   
+
     # Setup Bittensor.
     # Create background objects.
     # Connect the metagraph.
     # Start the axon server.
-    config = bittensor.Config.from_hparams( hparams )
-    logger.info(config)
-    bittensor.init( config )
+    bittensor.init(argparser)
     bittensor.start()
     
     # Build local synapse to serve on the network.
@@ -51,6 +50,7 @@ def main(hparams):
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10.0, gamma=0.1)
 
+    config = bittensor.get_config()
     # Load (Train, Test) datasets into memory.
     train_data = torchvision.datasets.CIFAR10(
         root=config.datapath, train=True, download=True, transform=transforms.Compose([
@@ -156,7 +156,4 @@ def main(hparams):
             break
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    hparams = bittensor.Config.add_args(parser)
-    hparams = parser.parse_args()
-    main(hparams)
+   main()
