@@ -8,7 +8,6 @@ Example:
 
 import bittensor
 from bittensor.synapses.ffnn import FFNNSynapse, FFNNConfig
-from bittensor.utils.model_utils import ModelToolbox
 
 import argparse
 from loguru import logger
@@ -30,7 +29,6 @@ def main():
     momentum = 0.9
     log_interval = 10
     epoch = 0
-    global_step = 0
     best_test_loss = math.inf
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
    
@@ -57,9 +55,8 @@ def main():
     trainloader = torch.utils.data.DataLoader(train_data, batch_size = batch_size_train, shuffle=True, num_workers=2)
     test_data = torchvision.datasets.MNIST(root = config.datapath + "datasets/", train=False, download=True, transform=transforms.ToTensor())
     testloader = torch.utils.data.DataLoader(test_data, batch_size = batch_size_test, shuffle=False, num_workers=2)
-
     # Train loop: Single threaded training of MNIST.
-    def train(model, epoch, global_step):
+    def train(model, epoch):
         # Turn on Dropoutlayers BatchNorm etc.
         model.train()
         last_log = time.time()
@@ -75,7 +72,6 @@ def main():
             loss = output.remote_target_loss + output.distillation_loss
             loss.backward()
             optimizer.step()
-            global_step += 1
                             
             # Logs:
             if (batch_idx + 1) % log_interval == 0: 
@@ -87,8 +83,8 @@ def main():
                 
                 progress = (100. * processed) / n
                 accuracy = (100.0 * correct) / batch_size_train
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}', 
-                    epoch, processed, n, progress, loss_item, accuracy)
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nP: {}', 
+                    epoch, processed, n, progress, loss_item, accuracy, len(bittensor.metagraph.peers()))
                 bittensor.tbwriter.add_scalar('train remote target loss', output.remote_target_loss.item(), time.time())
                 bittensor.tbwriter.add_scalar('train local target loss', output.local_target_loss.item(), time.time())
                 bittensor.tbwriter.add_scalar('train distilation loss', output.distillation_loss.item(), time.time())
@@ -100,7 +96,7 @@ def main():
     # Test loop.
     # Evaluates the local model on the hold-out set.
     # Returns the test_accuracy and test_loss.
-    def test( model: bittensor.Synapse, global_step):
+    def test( model: bittensor.Synapse):
         
         # Turns off Dropoutlayers, BatchNorm etc.
         model.eval()
@@ -118,10 +114,10 @@ def main():
 
                 # Compute full pass and get loss.
                 outputs = model.forward(images, labels, remote = False)
-                loss = loss + outputs['loss']
+                loss = loss + outputs.loss
                 
                 # Count accurate predictions.
-                max_logit = outputs['local_target'].data.max(1, keepdim=True)[1]
+                max_logit = outputs.local_target.data.max(1, keepdim=True)[1]
                 correct = correct + max_logit.eq( labels.data.view_as(max_logit) ).sum()
         
         # # Log results.
@@ -132,14 +128,13 @@ def main():
         bittensor.tbwriter.add_scalar('test loss', loss, time.time())
         return loss, accuracy
     
-    global_step = 0
     while True:
         try:
             # Train model
-            train( model, epoch, global_step )
+            train( model, epoch )
             scheduler.step()
             # Test model.
-            test_loss, _ = test( model, global_step )
+            test_loss, _ = test( model )
         
             # Save best model. 
             if test_loss < best_test_loss:
