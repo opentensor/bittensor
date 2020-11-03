@@ -256,9 +256,9 @@ class TestMnistSwarm(unittest.TestCase):
                 logger.info('start meta {}', i)
 
             logger.info('Connecting metagraphs ...')
-            for j in range(self.num_nodes*self.num_nodes):
-                for i, meta in enumerate(self.metagraphs):
-                    meta.do_gossip()
+            for i, meta in enumerate(self.metagraphs):
+                meta.do_gossip()
+
             for i, meta in enumerate(self.metagraphs):
                 if len(meta.peers()) != self.num_nodes:
                     logger.error("peers not fully connected")
