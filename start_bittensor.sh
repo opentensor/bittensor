@@ -24,7 +24,7 @@ function print_help () {
   echo " -m, --metagraph_port Metagraph bind port."
   echo " -s, --metagraph_size Metagraph cache size."
   echo " -b, --bootstrap      Metagraph boot peer."
-  echo " -k, --neuron_key     Neuron Public Key."
+  echo " -uri, --substrate_uri  Substrate URI i.e ALICE."
   echo " -r, --remote_ip      Remote IP of container."
   echo " -mp, --model_path    Path to a saved version of the model to resume training."
 }
@@ -65,8 +65,9 @@ remote_ip="host.docker.internal"
 # Bootstrap port
 bootstrap_port=$default_bootstrap_port
 bootstrap='none'
-# Neuron key
-neuron_key='none'
+# Substrate URI
+defualt_substrate_uri='ALICE'
+substrate_uri='none'
 # Model path
 model_path='none'
 # DO token
@@ -76,7 +77,7 @@ logging='false'
 
 
 # Read command line args
-while test 12 -gt 0; do
+while test 16 -gt 0; do
   case "$1" in
     -h|--help)
       print_help
@@ -153,6 +154,11 @@ while test 12 -gt 0; do
       shift
       shift
       ;;
+    -uri|--substrate_uri)
+      substrate_uri=${2:-$defualt_substrate_uri}
+      shift
+      shift
+      ;;
     *)
       break
       ;;
@@ -196,7 +202,7 @@ function start_local_service() {
     # Build start command
     bittensor_script="./scripts/bittensor.sh"
 
-    COMMAND="$bittensor_script $identity $serve_address $port $logdir $neuron $chain_endpoint $axon_port $metagraph_port $metagraph_size $bootstrap $neuron_key $remote_ip $model_path"
+    COMMAND="$bittensor_script $identity $serve_address $port $logdir $neuron $chain_endpoint $axon_port $metagraph_port $metagraph_size $bootstrap $remote_ip $model_path"
     log "Run command: $COMMAND"
 
     # Run docker service

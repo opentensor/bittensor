@@ -11,6 +11,7 @@ pickle-mixin
 pycryptodome
 pycrypto
 pytest
+substrate-interface
 tensorboard
 torch
 torchvision

@@ -1,4 +1,5 @@
 from configparser import ConfigParser
+from substrateinterface import Keypair
 from loguru import logger
 import configparser
 import argparse
@@ -30,21 +31,21 @@ class Config(dict):
     METAGRAPH_PORT = "metagraph_port"
     METAGRAPH_SIZE = "metagraph_size"
     BOOTSTRAP = "bootstrap"
-    NEURON_KEY = "neuron_key"
+    KEYPAIR = "keypair"
+    SUBSTRATE_URI = "substrate_uri"
     REMOTE_IP = "remote_ip"
     DATAPATH = "datapath"
     LOGDIR = "logdir"
 
     def __init__(self, *args, **kwargs):
         super().__init__()
-        neuron_key = Crypto.public_key_to_string(Crypto.generate_private_ed25519().public_key())
 
         self.update(
             {
-                Config.CHAIN_ENDPOINT: "",
-                Config.NEURON_KEY: neuron_key,
+                Config.CHAIN_ENDPOINT: "http://127.0.0.1:9933",
                 Config.DATAPATH: "data/",
-                Config.LOGDIR: "data/" + neuron_key,
+                Config.SUBSTRATE_URI: "Alice",
+                Config.LOGDIR: "data/",
                 Config.REMOTE_IP: None,
                 Config.AXON_PORT: 8091,
                 Config.METAGRAPH_PORT: 8092,
@@ -123,7 +124,7 @@ class ConfigService:
         parser.add_argument('--metagraph_size', dest=Config.METAGRAPH_SIZE, type=int, help='Metagraph cache size')
         parser.add_argument('--bootstrap', dest=Config.BOOTSTRAP, type=str,
                             help='The socket of the bootstrap peer host:port')
-        parser.add_argument('--neuron_key', dest=Config.NEURON_KEY, type=str, help='Key of the neuron')
+        parser.add_argument('--substrate_uri', dest=Config.SUBSTRATE_URI, type=str, help='Substrate URI e.g. ALICE')
         parser.add_argument('--remote_ip', dest=Config.REMOTE_IP, type=str,
                             help='The IP address of this neuron that will be published to the network')
         parser.add_argument('--datapath', dest=Config.DATAPATH, type=str, help='Path to datasets')
@@ -160,7 +161,7 @@ class ConfigService:
 
         # At this point, all sections and options are present. Now load the actual values according to type
         self.load_str(Config.CHAIN_ENDPOINT, "general", "chain_endpoint")
-        self.load_str(Config.NEURON_KEY, "general", "neuron_key")
+        self.load_str(Config.SUBSTRATE_URI, "general", "substrate_uri")
         self.load_str(Config.DATAPATH, "general", "datapath")
         self.load_str(Config.LOGDIR, "general", "logdir")
 
@@ -195,8 +196,7 @@ class ConfigService:
         # Todo: Implement chain endpoint validation
         try:
             # Chain endpoint is not implemented yet, no validation
-
-            # self.validate_key(self.NEURON_PUBKEY, required=True)
+            self.validate_substrate_uri(Config.SUBSTRATE_URI, required=True)
 
             self.validate_path(Config.DATAPATH, required=True)
             self.validate_path(Config.LOGDIR, required=True)
@@ -316,6 +316,22 @@ class ConfigService:
             return True
 
         return False
+
+
+    def validate_substrate_uri(self, config_key, required=False):
+        """
+        Validates the uri is in specific set \in [Alice, Bob]
+        """
+        
+        value = self.config[config_key]
+
+        if value not in ['Alice', 'Bob']:
+            logger.error(
+                "CONFIG: Validation error: %s for option %s is not a valid substrate uri." %
+                (value, config_key))
+
+            raise ValidationError
+
 
     def validate_int_range(self, config_key, min, max, required=False):
 

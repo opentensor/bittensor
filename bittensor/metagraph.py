@@ -3,6 +3,7 @@ from loguru import logger
 import math
 import grpc
 import random
+from substrateinterface import Keypair
 import threading
 import torch
 import time
@@ -16,7 +17,7 @@ from bittensor import bittensor_pb2_grpc as bittensor_grpc
 
 class Metagraph(bittensor_grpc.MetagraphServicer):
 
-    def __init__(self, config: bittensor.Config):
+    def __init__(self, config: bittensor.Config, keypair: Keypair):
         """Initializes a new Metagraph POW-cache object.
         Args:
             config (bittensor.Config): An bittensor cache config object.
@@ -26,6 +27,9 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         self._synapses = {}
         self._weights = {}
         self._heartbeat = {}
+
+        # bittensor substrate keypair
+        self._keypair = keypair
 
         # bittensor config
         self._config = config
@@ -215,7 +219,7 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         # Create a new bittensor_pb2.Synapse proto.
         synapse_proto = bittensor_pb2.Synapse(
             version=bittensor.__version__,
-            neuron_key=self._config.neuron_key,
+            neuron_key=self._keypair.public_key,
             synapse_key=synapse.synapse_key(),
             address=self._config.remote_ip,
             port=self._config.axon_port,

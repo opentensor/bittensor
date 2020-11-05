@@ -1,6 +1,7 @@
 from loguru import logger
 import os
 import grpc
+from substrateinterface import Keypair
 import torch
 import torch.nn as nn
 from torch.autograd.function import once_differentiable
@@ -47,10 +48,12 @@ class Dendrite(nn.Module):
     """
     def __init__ (
         self, 
-        config: bittensor.Config
+        config: bittensor.Config,
+        keypair: Keypair,
     ):
         super().__init__()
         self._config = config
+        self._keypair = keypair
         self._remotes = {}
 
     def forward_text(self, synapses: List[bittensor_pb2.Synapse],
@@ -147,7 +150,7 @@ class Dendrite(nn.Module):
                 remote_synapse = self._remotes[synapse.synapse_key]
             else:
                 # Create remote connection.
-                remote_synapse = RemoteSynapse(synapse, self._config)
+                remote_synapse = RemoteSynapse(synapse, self._config, self._keypair)
                 self._remotes[synapse.synapse_key] = remote_synapse
 
             # Call remote synapse.
@@ -164,11 +167,13 @@ class RemoteSynapse(nn.Module):
     """ Class which bundles a grpc connection to a remote host as a standard auto-grad torch.nn.Module.
     """
 
-    def __init__(self, synapse: bittensor_pb2.Synapse,
-                 config: bittensor.Config):
+    def __init__(   self, 
+                    synapse: bittensor_pb2.Synapse,
+                    config: bittensor.Config,
+                    keypair: Keypair):
         super().__init__()
         self.synapse = synapse
-        self.local_neuron_key = config.neuron_key
+        self.local_neuron_key = keypair.public_key
         # Loop back if the synapse is local.
         if synapse.address == config.remote_ip:
             ip = "localhost:"

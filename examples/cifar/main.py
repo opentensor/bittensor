@@ -115,7 +115,7 @@ def main():
                 
                 # Compute full pass and get loss.
                 outputs = model (images, labels, remote = False)
-                loss = loss + outputs.loss
+                loss = loss + outputs.local_target_loss.item()
                 
                 # Count accurate predictions.
                 max_logit = outputs.local_target.data.max(1, keepdim=True)[1]

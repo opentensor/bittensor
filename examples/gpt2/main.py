@@ -12,6 +12,7 @@ from bittensor.synapses.gpt2 import GPT2LMSynapse, GPT2MLMConfig
 import argparse
 from datasets import load_dataset
 from loguru import logger
+import math
 import random
 import time
 import torch
@@ -37,8 +38,8 @@ def main():
 
     # Args
     learning_rate = 0.01 
-    batch_size = 20
-    epoch_size = 50
+    mini_batch_size = 10
+    full_batch_size = 100
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Setup Bittensor.
@@ -52,7 +53,7 @@ def main():
     model_config = GPT2MLMConfig()  
     model = GPT2LMSynapse(model_config)
     model.to(device)
-    bittensor.serve( model )
+    bittensor.serve( model.deepcopy() )
 
     # Dataset: 74 million sentences pulled from books.
     dataset = load_dataset('bookcorpus')['train']
@@ -61,36 +62,54 @@ def main():
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
     
-    def train(dataset, model, epoch):
+    def train(dataset, model):
         model.train()  # Turn on the train mode.
-        optimizer.zero_grad() # Zero out lingering gradients.
 
-        step = 0
-        while step < epoch_size:
-            # Next batch.
-            inputs = nextbatch(dataset, batch_size, bittensor.__tokenizer__)
+        full_step = 0
+        mini_step = 0
+        best_loss = math.inf
+        while True:
+
+            # Run full training step.
+            optimizer.zero_grad()
+            full_loss = 0.0
+            n_mini_steps = int(full_batch_size/mini_batch_size)
+            for mini_step in range(n_mini_steps):
+                # Next mini batch.
+                inputs = nextbatch(dataset, mini_batch_size, bittensor.__tokenizer__)
             
-            # Compute full pass and get loss with a network query.
-            output = model(inputs.to(device), training = True, remote = True)
+                # Compute full pass and get loss with a network query.
+                output = model(inputs.to(device), training = True, remote = True)
             
-            output.loss.backward()
+                # Aggregate grads.
+                loss = output.loss.item()
+                loss = loss / n_mini_steps # Fixes the learning rate over multiple steps.
+                loss.backward()
+
+                # Mini log.
+                full_loss += output.local_target_loss.item() / n_mini_steps
+                logger.info('Block: {}, Full Step: {}, Mini Step: [{}/{} ({:.1f}%)]\t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
+                    bittensor.height(), full_step, mini_step, n_mini_steps, float(mini_step * 100)/float(n_mini_steps), output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
+             
+            # Apply grads on Full step.
+            full_step += 1
             optimizer.step()
             scheduler.step()
 
-            step += 1
-            logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
-                epoch, step, epoch_size, float(step * 100)/float(epoch_size), output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
+            # Serve next best model.
+            if full_loss < best_loss:
+                best_loss = full_loss
+                copy = model.deepcopy() # Make model copy for serving.
+                copy.eval() # Set to eval.
+                bittensor.serve( copy ) # Serve to axon.
+                logger.info('Serve model: Block {}, Full Step: {}, Loss: {}', bittensor.height(), full_step, best_loss)
 
-    epoch = 0
     try:
-        while True:
-            train(dataset, model, epoch)
-            epoch += 1
+        train(dataset, model)
     except Exception as e:
         logger.exception(e)
         bittensor.stop()
         
-
 
 if __name__ == "__main__":
     main()
