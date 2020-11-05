@@ -30,7 +30,7 @@ def test_from_args():
 
 def test_defaults():
     config = bittensor.Config()
-    assert  config.chain_endpoint == ""
+    assert  config.chain_endpoint == "http://127.0.0.1:9933"
     assert  config.axon_port == 8091
     assert  config.metagraph_port == 8092
     assert  config.metagraph_size == 10000
