@@ -28,6 +28,9 @@ jobs:
       - python/load-cache
       - run: pip install codecov pytest
       - run:
+          command: pip install -e .
+          name: setup
+      - run:
           name: "Run unit tests"
           command: pytest ./tests/unit_tests
       - run:
@@ -41,24 +44,74 @@ jobs:
       - python/load-cache
       - run: pip install codecov pytest
       - run:
+          command: pip install -e .
+          name: setup
+      - run:
           name: "Run Localized CPU Integration tests"
-          command: pytest ./tests/integration_tests/cpu_tests
+          command: pytest ./tests/integration_tests/cpu_tests -k 'not MnistNode'
       - run:
           name: "Code Coverage"
           command: codecov
   
-  "Run Remote Peer Integration Tests":
+  MNIST-1:
     executor: bittensor-executor
     steps:
       - checkout
       - python/load-cache
-      - run: pip install codecov pytest
       - run:
-          name: Install Ngrok for TCP tunneling
-          command: sudo wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip . && sudo unzip ngrok-stable-linux-amd64.zip -d /usr/local/bin
+          name: setup
+          command: pip install -e .
       - run:
-          name: Run Ngrok
-          command: ngrok tcp 
+          name: Unset HTTP Proxy
+          command: unset https_proxy;unset http_proxy
+      - run:
+          name: Run MNIST node
+          command: pytest -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py
+
+  MNIST-2:
+    executor: bittensor-executor
+    steps:
+      - checkout
+      - python/load-cache
+      - run:
+          name: setup
+          command: pip install -e .
+      - run:
+          name: Unset HTTP Proxy
+          command: unset https_proxy;unset http_proxy
+      - run:
+          name: Run MNIST node
+          command: pytest -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py
+  
+  MNIST-3:
+    executor: bittensor-executor
+    steps:
+      - checkout
+      - python/load-cache
+      - run:
+          name: setup
+          command: pip install -e .
+      - run:
+          name: Unset HTTP Proxy
+          command: unset https_proxy;unset http_proxy
+      - run:
+          name: Run MNIST node
+          command: pytest -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py
+  
+  MNIST-4:
+    executor: bittensor-executor
+    steps:
+      - checkout
+      - python/load-cache
+      - run:
+          name: setup
+          command: pip install -e .
+      - run:
+          name: Unset HTTP Proxy
+          command: unset https_proxy;unset http_proxy
+      - run:
+          name: Run MNIST node
+          command: pytest -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py
 
   "Push Production candidate to DockerHub":
     docker:
@@ -77,7 +130,7 @@ jobs:
       - run:
           name: "Push production candidate"
           command: ./scripts/push_image.sh
-
+ 
 workflows:
   main:
     jobs:
@@ -88,10 +141,27 @@ workflows:
       - "Run Integration Tests":
               requires:
                 - "Build Bittensor"
+      - MNIST-1:
+              requires:
+                - "Run Integration Tests"
+      - MNIST-2:
+              requires:
+                - "Run Integration Tests"
+      - MNIST-3:
+              requires: 
+                - "Run Integration Tests"
+      - MNIST-4:
+              requires:
+                - "Run Integration Tests"
+
       - "Push Production candidate to DockerHub":
               requires:
                 - "Build Bittensor"
                 - "Run Unit Tests"
+                - MNIST-1
+                - MNIST-2
+                - MNIST-3
+                - MNIST-4
               filters:
                 branches:
                   only:

@@ -226,7 +226,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             # Serialize inputs to bytest buffer.
             try:
                 serialized_inputs = PyTorchSerializer.serialize(inputs, mode)
-            except:
+            except SerializationException:
                 raise SerializationException
 
             ctx.serialized_inputs = serialized_inputs
@@ -241,7 +241,7 @@ class _RemoteModuleCall(torch.autograd.Function):
                 tensors=[serialized_inputs])
 
             # Forward tensor.
-            response = ctx.caller.stub.Forward(request)
+            response = ctx.caller.stub.Forward(request, timeout=1.0)
 
             # Deserialize outputs and return.
             if len(response.tensors) > 0:
@@ -292,7 +292,7 @@ class _RemoteModuleCall(torch.autograd.Function):
 
         try:
             # Attain backward response
-            response = ctx.caller.stub.Backward(request)
+            response = ctx.caller.stub.Backward(request, timeout=1.0)
             deserialized_grad_inputs = PyTorchSerializer.deserialize(
                 response.tensors[0])
             return (None, None, deserialized_grad_inputs, None)

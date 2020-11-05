@@ -90,8 +90,8 @@ def main():
                 
                 progress = (100. * processed) / n
                 accuracy = (100.0 * correct) / batch_size_train
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}', 
-                    epoch, processed, n, progress, loss_item, accuracy)
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\tnP:{}', 
+                    epoch, processed, n, progress, loss_item, accuracy, len(bittensor.metagraph.peers()))
 
     # Test loop.
     # Evaluates the local model on the hold-out set.
@@ -125,7 +125,7 @@ def main():
         n = len(test_data)
         loss /= n
         accuracy = (100. * correct) / n
-        logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))        
+        logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\tnP:{}'.format(loss, correct, n, accuracy, len(bittensor.metagraph.peers())))        
         return loss, accuracy
     
     

@@ -17,12 +17,28 @@ service Metagraph {
 // Batch of neuron service definitions.
 message GossipBatch {
 	// SIZE: 32-bits (4-bytes)
-	float version = 1;
+	string version = 1;
 	// List of metagraph peer addresses..
-	repeated string peers = 2;
+	repeated PeerDescription peers = 2;
 	// Synapse endpoint definitions.
 	// SIZE: 304-bytes * N
 	repeated Synapse synapses = 3;
+
+	// The source peer (peer that is sending the request) neuron key
+	string source_neuron_key = 4;
+}
+
+// Description of each peer to the network, with its address and neuron key to distinguish it from other peers. 
+message PeerDescription {
+	// IP address of this peer in the form of address:port
+	string address = 1;
+
+	// Public key of the peer's neuron
+	string neuron_key = 2;
+
+	// the last time this peer connected
+	float heartbeat = 3;
+
 }
 
 // "Synapse" or "Expert" endpoint definition.

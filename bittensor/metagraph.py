@@ -1,5 +1,4 @@
-from concurrent import futures
-from loguru import logger
+
 import math
 import grpc
 import random
@@ -7,13 +6,15 @@ from substrateinterface import Keypair
 import threading
 import torch
 import time
-from typing import List
-
+import os
 import bittensor
 import bittensor.synapse 
+
+from typing import List
+from concurrent import futures
+from loguru import logger
 from bittensor import bittensor_pb2
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
-
 
 class Metagraph(bittensor_grpc.MetagraphServicer):
 
@@ -23,22 +24,26 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
             config (bittensor.Config): An bittensor cache config object.
         """
         # Internal state
-        self._peers = set()
+        self._peers = []
         self._synapses = {}
         self._weights = {}
         self._heartbeat = {}
-
-        # bittensor substrate keypair
-        self._keypair = keypair
-
+        self._ttl = 1800 # 30 minute time-to-live for testing
         # bittensor config
+        self._keypair = keypair
         self._config = config
-        bootpeer = self._config.get_bootpeer()
-        if bootpeer:
-            self._peers.add(bootpeer)
+        self.bootpeer = self._config.get_bootpeer()
+        if self.bootpeer:
+            self.bootstrap_peer = {
+                                    "address": self.bootpeer,
+                                    "neuron_key": None,
+                                    "heartbeat": time.time()
+            }
+            self._peers.append(self.bootstrap_peer)
+
 
         # Init server objects.
-        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=100))
         bittensor_grpc.add_MetagraphServicer_to_server(self, self._server)
         self._server.add_insecure_port('[::]:' +
                                        str(self._config.metagraph_port))
@@ -47,6 +52,11 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         self._update_thread = None
         self._server_thread = None
         self._running = False
+
+        if os.environ.get('https_proxy'):
+            del os.environ['https_proxy']
+        if os.environ.get('http_proxy'):
+            del os.environ['http_proxy']
 
     def synapses(self, n: int = 1000) -> List[bittensor_pb2.Synapse]:
         """ Returns min(n, len(synapses)) synapse from the graph sorted by score.
@@ -74,15 +84,50 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         min_n = min(len(peer_list), n)
         return peer_list[:min_n]
 
-    def _sink(self, request: bittensor_pb2.GossipBatch):
+    def _sink(self, payload: bittensor_pb2.GossipBatch):
         """Sinks a gossip request to the metagraph.
 
         Args:
             request (bittensor_pb2.SynapseBatch): [description]
         """
-        for peer in request.peers:
-            self._peers.add(peer)
-        for synapse in request.synapses:
+        known_peer_keys = [p['neuron_key'] for p in self._peers]
+        
+        # Special case: If we only have one peer with no neuron key, then this payload 
+        # is coming from that peer, and its neuron key should be set for our records.
+        if len(self._peers) == 1:
+            if not self._peers[0]["neuron_key"]:
+                self._peers[0]["neuron_key"] = payload.source_neuron_key
+
+        try:
+            for i in range(len(payload.peers)):
+                peer_stats = {
+                                "address": payload.peers[i].address,
+                                "neuron_key": payload.peers[i].neuron_key,
+                                "heartbeat": time.time()
+                            }
+
+                if payload.peers[i].neuron_key not in known_peer_keys:
+                    self._peers.append(peer_stats)
+                else:
+                   # First, let's find the source peer -- that is, the peer that sent this request.
+                   source_peer_neuron_key = payload.source_neuron_key
+                   # Let's make sure we are not the source peer 
+                   if source_peer_neuron_key != self._config.neuron_key:
+                        # We are not the source, so we should update the source's heartbeat
+                        # Find the source node
+                        src_idx_local = next((index for (index, d) in enumerate(self._peers) if d["neuron_key"] == payload.source_neuron_key), None)
+                        src_idx_remote = next((index for (index,d) in enumerate(payload.peers) if d.neuron_key == payload.source_neuron_key), None)
+                        # If the src idx doesn't exist here, it means we're talking to a metagraph. 
+                        if src_idx_local:
+                            now = time.time()
+                            # Update the source peer's last heartbeat in our records if they haven't exceeded the ttl
+                            # otherwise delete
+                            if now - payload.peers[src_idx_remote].heartbeat <= self._ttl:
+                                self._peers[src_idx_local].update({"heartbeat": time.time()})
+        except Exception as e:
+            logger.error("Exception occured: {}".format(e))
+
+        for synapse in payload.synapses:
             self._synapses[synapse.synapse_key] = synapse
             self._heartbeat[synapse.synapse_key] = time.time()
 
@@ -90,7 +135,7 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
         synapses = self.synapses(1000)
         peers = self.peers(10)
         self._sink(request)
-        response = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses)
+        response = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses, source_neuron_key=self._config.neuron_key)
         return response
 
     def do_gossip(self):
@@ -100,27 +145,46 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
 
         synapses = self.synapses(1000)
         peers = self.peers(10)
-        metagraph_address = random.choice(list(self._peers))
-        realized_address = metagraph_address
-        if metagraph_address.split(':')[0] == self._config.remote_ip:
+        random_peer = random.choice(list(self._peers))
+        random_peer_address = random_peer['address']
+        realized_address = random_peer_address
+        if random_peer_address.split(':')[0] == self._config.remote_ip:
             realized_address = 'localhost:' + str(
-                metagraph_address.split(":")[1])
-        try:
-            channel = grpc.insecure_channel(realized_address)
-            stub = bittensor_grpc.MetagraphStub(channel)
-            request = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses)
-            response = stub.Gossip(request, timeout=0.5)
-            self._sink(response)
-        except Exception as e:
-            # Faulty peer.
-            logger.info("Faulty peer!: {}".format(metagraph_address))
-            logger.error("ERROR: {}".format(e))
-            self._peers.remove(metagraph_address)
+                random_peer_address.split(":")[1])
+        
+        retries = 0
+        peer_reached = False
+        backoff = 1
+        while (retries < 3):
+            try:
+                channel = grpc.insecure_channel(realized_address, options=(('grpc.enable_http_proxy', 0),))
+                stub = bittensor_grpc.MetagraphStub(channel)
+                request = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses, source_neuron_key=self._config.neuron_key)
+                response = stub.Gossip(request)
+                channel.close()
+                self._sink(response)
+                peer_reached = True
+            except Exception as e:
+                # Faulty peer.
+                logger.warning("Faulty peer!: {}".format(random_peer))
+                logger.error("ERROR: {}".format(e))
+                #self._peers.remove(random_peer)
+                time.sleep(backoff * 2)
+                retries += 1
+                backoff += 1
+                logger.info("Retry number: {}".format(retries))
+                continue
+            break
+        
+        if not peer_reached:
+            logger.error("Peer {} is unreachable".format(random_peer))
+            self._peers.remove(random_peer)
+
 
     def do_clean(self, ttl: int):
         """Cleans lingering metagraph elements
         Args:
-            ttl (int): time to live.
+            ttl (int): time to live. (in minutes)
         """
         now = time.time()
         for uid in list(self._synapses):
@@ -128,17 +192,20 @@ class Metagraph(bittensor_grpc.MetagraphServicer):
                 del self._synapses[uid]
                 del self._heartbeat[uid]
 
+        for peer in list(self._peers):
+            time_elapsed_since_last_heartbeat = now - peer['heartbeat']
+            if time_elapsed_since_last_heartbeat > self._ttl:
+                logger.info("It appears peer {} has dropped off, last heartbeat was {:.2f} minutes ago".format(peer, time_elapsed_since_last_heartbeat/60))
+                self._peers.remove(peer)
+
     def _update(self):
         """ Internal update thread. Keeps the metagraph up to date. """
         try:
             while self._running:
                 self.do_gossip()
                 if len(self._peers) > 0:
-                    self.do_clean(15)
-                for _ in range(10 * 10):
-                    time.sleep(0.1)
-                    if not self._running:
-                        break
+                    self.do_clean(self._ttl)
+        
         except (KeyboardInterrupt, SystemExit) as e:
             logger.info('stop metagraph')
             self._running = False
