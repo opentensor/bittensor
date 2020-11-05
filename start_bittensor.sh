@@ -66,8 +66,8 @@ remote_ip="host.docker.internal"
 bootstrap_port=$default_bootstrap_port
 bootstrap='none'
 # Substrate URI
-defualt_substrate_uri='ALICE'
-substrate_uri='none'
+default_substrate_uri='Alice'
+substrate_uri='Alice'
 # Model path
 model_path='none'
 # DO token
@@ -77,7 +77,7 @@ logging='false'
 
 
 # Read command line args
-while test 16 -gt 0; do
+while test 17 -gt 0; do
   case "$1" in
     -h|--help)
       print_help
@@ -155,7 +155,7 @@ while test 16 -gt 0; do
       shift
       ;;
     -uri|--substrate_uri)
-      substrate_uri=${2:-$defualt_substrate_uri}
+      substrate_uri=${2:-$default_substrate_uri}
       shift
       shift
       ;;
@@ -202,7 +202,7 @@ function start_local_service() {
     # Build start command
     bittensor_script="./scripts/bittensor.sh"
 
-    COMMAND="$bittensor_script $identity $serve_address $port $logdir $neuron $chain_endpoint $axon_port $metagraph_port $metagraph_size $bootstrap $remote_ip $model_path"
+    COMMAND="$bittensor_script $identity $serve_address $port $logdir $neuron $chain_endpoint $axon_port $metagraph_port $metagraph_size $bootstrap $substrate_uri $remote_ip $model_path"
     log "Run command: $COMMAND"
 
     # Run docker service
@@ -280,7 +280,7 @@ function start_remote_service() {
   bittensor_script="./scripts/bittensor.sh"
   remote_ip=$droplet_ip_address
 
-  COMMAND="$bittensor_script $identity $serve_address $port $logdir $neuron $chain_endpoint $axon_port $metagraph_port $metagraph_size $bootstrap $neuron_key $remote_ip $model_path"
+  COMMAND="$bittensor_script $identity $serve_address $port $logdir $neuron $chain_endpoint $axon_port $metagraph_port $metagraph_size $bootstrap $substrate_uri $remote_ip $model_path"
   log "Run command: $COMMAND"
   
   # Run docker service
@@ -323,6 +323,7 @@ log "logdir: $logdir"
 log "neuron: $neuron"
 log "bootstrap: $bootstrap_port"
 log "Axon port: $axon_port"
+log "URI: $substrate_uri"
 log "Follow logging: $logging"
 
 if [ "$token" == "none" ]; then

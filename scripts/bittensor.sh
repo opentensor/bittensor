@@ -23,8 +23,8 @@ METAGRAPH_PORT=$8
 METAGRAPH_SIZE=$9
 # Bootstrap peer
 BOOTSTRAP_PEER=${10}
-# Neuron key
-NEURON_KEY=${11}
+# Subtrate URI
+SUBSTRATE_URI=${11}
 # Remote or local run
 REMOTE_IP=${12}
 # MODEL PATH
@@ -33,12 +33,6 @@ MODEL_PATH=${13}
 function start_neuron() {
     log ""
     log "=== start Neuron ==="
-
-    #COMMAND="python3 ./examples/$NEURON/main.py --metagraph_port=$METAGRAPH_PORT --axon_port=$AXON_PORT --remote_ip=$REMOTE_IP"
-
-    #if [ $METAGRAPH_PORT == 'none' ]; then
-    #  COMMAND="python3 ./examples/$NEURON/main.py --bootstrap='$SERVE_ADDRESS:$BOOTSTRAP_PORT' --axon_port=$AXON_PORT --remote_ip=$REMOTE_IP"
-    #fi
 
     COMMAND="python3 ./examples/$NEURON/main.py"
 
@@ -62,8 +56,8 @@ function start_neuron() {
       COMMAND="${COMMAND} --bootstrap=${BOOTSTRAP_PEER}"
     fi
 
-    if [ $NEURON_KEY != 'none' ]; then
-      COMMAND="${COMMAND} --neuron_key=${NEURON_KEY}"
+    if [ $SUBSTRATE_URI != 'none' ]; then
+      COMMAND="${COMMAND} --substrate_uri=${SUBSTRATE_URI}"
     fi    
 
     if [ $REMOTE_IP != 'none' ]; then
@@ -90,7 +84,7 @@ function main() {
     log "   SERVE_ADDRESS: $SERVE_ADDRESS"
     log "   PORT: $PORT"
     log "   LOGDIR: $LOGDIR"
-    log "   NEURON: neurons/$NEURON/main.py"
+    log "   NEURON: examples/$NEURON/main.py"
     log "}"
     log ""
 
