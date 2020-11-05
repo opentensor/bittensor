@@ -69,15 +69,9 @@ def main():
             output = model(images, targets, remote = True)
 
             # Backprop.
-<<<<<<< HEAD
             output.loss.backward()
             optimizer.step() # Apply gradient step.
             global_step += 1
-=======
-            loss = output.remote_target_loss + output.distillation_loss
-            loss.backward()
-            optimizer.step()
->>>>>>> 00d8197023bc39480eb0cce6271dfe143236aaad
                             
             # Logs:
             if (batch_idx + 1) % log_interval == 0: 
@@ -89,20 +83,9 @@ def main():
                 
                 progress = (100. * processed) / n
                 accuracy = (100.0 * correct) / batch_size_train
-<<<<<<< HEAD
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)] Balance: {:.2f}     Block: {}    GS: {}    Local Loss: {:.6f}    Accuracy: {:.6f}', 
-                    epoch, processed, n, progress, bittensor.balance(), bittensor.height(), global_step, loss_item, accuracy)
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)] Balance: {:.2f}     Block: {}    GS: {}    Local Loss: {:.6f}    Accuracy: {:.6f}    nP: {}'', 
+                    epoch, processed, n, progress, bittensor.balance(), bittensor.height(), global_step, loss_item, accuracy, len(bittensor.metagraph.peers()))
                 bittensor.log_output(global_step, output)
-=======
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nP: {}', 
-                    epoch, processed, n, progress, loss_item, accuracy, len(bittensor.metagraph.peers()))
-                bittensor.tbwriter.add_scalar('train remote target loss', output.remote_target_loss.item(), time.time())
-                bittensor.tbwriter.add_scalar('train local target loss', output.local_target_loss.item(), time.time())
-                bittensor.tbwriter.add_scalar('train distilation loss', output.distillation_loss.item(), time.time())
-                bittensor.tbwriter.add_scalar('train loss', output.loss.item(), time.time())
-                bittensor.tbwriter.add_scalar('train accuracy', accuracy, time.time())
-                bittensor.tbwriter.add_scalar('gs/t', log_interval / (time.time() - last_log), time.time())
->>>>>>> 00d8197023bc39480eb0cce6271dfe143236aaad
                 last_log = time.time()
 
     # Test loop.
@@ -126,11 +109,7 @@ def main():
 
                 # Compute full pass and get loss.
                 outputs = model.forward(images, labels, remote = False)
-<<<<<<< HEAD
                 loss = loss + outputs.local_target_loss.item()
-=======
-                loss = loss + outputs.loss
->>>>>>> 00d8197023bc39480eb0cce6271dfe143236aaad
                 
                 # Count accurate predictions.
                 max_logit = outputs.local_target.data.max(1, keepdim=True)[1]
