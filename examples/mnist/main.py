@@ -59,7 +59,6 @@ def main():
     def train(model, epoch):
         # Turn on Dropoutlayers BatchNorm etc.
         model.train()
-        last_log = time.time()
         for batch_idx, (images, targets) in enumerate(trainloader):
             optimizer.zero_grad() # Clear lingering gradients if present.
             
@@ -71,7 +70,6 @@ def main():
             # Backprop.
             output.loss.backward()
             optimizer.step() # Apply gradient step.
-            global_step += 1
                             
             # Logs:
             if (batch_idx + 1) % log_interval == 0: 
@@ -83,15 +81,14 @@ def main():
                 
                 progress = (100. * processed) / n
                 accuracy = (100.0 * correct) / batch_size_train
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)] Balance: {:.2f}     Block: {}    GS: {}    Local Loss: {:.6f}    Accuracy: {:.6f}    nP: {}'', 
-                    epoch, processed, n, progress, bittensor.balance(), bittensor.height(), global_step, loss_item, accuracy, len(bittensor.metagraph.peers()))
-                bittensor.log_output(global_step, output)
-                last_log = time.time()
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)] Balance: {:.2f}     Block: {}    Local Loss: {:.6f}    Accuracy: {:.6f}    nP: {}',
+                    epoch, processed, n, progress, bittensor.balance(), bittensor.height(), loss_item, accuracy, len(bittensor.metagraph.peers()))
+                bittensor.log_output(time.time(), output)
 
     # Test loop.
     # Evaluates the local model on the hold-out set.
     # Returns the test_accuracy and test_loss.
-    def test( model: bittensor.Synapse):
+    def test( model: bittensor.Synapse, global_step):
         
         # Turns off Dropoutlayers, BatchNorm etc.
         model.eval()
@@ -120,16 +117,16 @@ def main():
         loss /= n
         accuracy = (100. * correct) / n
         logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))  
-        bittensor.tbwriter.add_scalar('test loss', loss, global_step)
+        bittensor.tbwriter.add_scalar('test loss', loss, time.time())
         return loss, accuracy
     
     while True:
         try:
             # Train model
-            train( model, epoch )
+            train( model, epoch)
             scheduler.step()
             # Test model.
-            test_loss, _ = test( model )
+            test_loss, _ = test( model)
         
             # Save best model. 
             if test_loss < best_test_loss:
