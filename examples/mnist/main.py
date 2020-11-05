@@ -88,7 +88,7 @@ def main():
     # Test loop.
     # Evaluates the local model on the hold-out set.
     # Returns the test_accuracy and test_loss.
-    def test( model: bittensor.Synapse, global_step):
+    def test( model: bittensor.Synapse):
         
         # Turns off Dropoutlayers, BatchNorm etc.
         model.eval()
@@ -126,7 +126,7 @@ def main():
             train( model, epoch)
             scheduler.step()
             # Test model.
-            test_loss, _ = test( model)
+            test_loss, _ = test(model)
         
             # Save best model. 
             if test_loss < best_test_loss:
