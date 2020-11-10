@@ -108,5 +108,5 @@ class TestSerialization(unittest.TestCase):
             PyTorchSerializer.deserialize(tensor_message)
     
     def test_bittensor_dtype_to_torch_dtype(self):
-        with pytest.raises(SerializationException):
+        with pytest.raises(DeserializationException):
             bittensor_dtype_to_torch_dtype(11)

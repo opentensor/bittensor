@@ -47,7 +47,7 @@ def bittensor_dtype_to_torch_dtype(bdtype):
     elif bdtype == bittensor_pb2.DataType.INT64:
         dtype = torch.int64
     else:
-        raise SerializationException(
+        raise DeserializationException(
             'Unknown bittensor.Dtype or no equivalent torch.dtype for bittensor.dtype = {}'
             .format(bdtype))
     return dtype
