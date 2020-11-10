@@ -1,13 +1,10 @@
 """ An interface for serializing and deserializing bittensor tensors"""
-from loguru import logger
 import numpy as np
-import pickle
 import torch
-from typing import List, Tuple, Dict, Optional
 
 import bittensor
 from bittensor import bittensor_pb2
-from bittensor.exceptions.Exceptions import SerializationException
+from bittensor.exceptions.Exceptions import SerializationException, DeserializationException
 
 
 def torch_dtype_to_bittensor_dtype(tdtype):
@@ -103,7 +100,7 @@ class PyTorchSerializer():
             return PyTorchSerializer.deserialize_tensor(proto)
 
         else:
-            raise NotImplementedError
+            raise DeserializationException("Deserialization modality {} not implemented.".format(proto.modality))
 
     @staticmethod
     def serialize(tensor: torch.Tensor,
@@ -127,7 +124,7 @@ class PyTorchSerializer():
             return PyTorchSerializer.serialize_tensor(tensor)
 
         else:
-            raise NotImplementedError
+            raise SerializationException("Serialization modality {} not implemented.".format(modality))
 
     @staticmethod
     def serialize_text(tensor: torch.Tensor) -> bittensor_pb2.Tensor:
@@ -147,7 +144,7 @@ class PyTorchSerializer():
                                      shape=shape,
                                      dtype=dtype,
                                      modality=bittensor_pb2.Modality.TEXT,
-                                     requires_grad=False)
+                                     requires_grad=tensor.requires_grad)
         return proto
 
     @staticmethod
@@ -202,7 +199,7 @@ class PyTorchSerializer():
         Returns:
             torch.Tensor: deserialized image tensor.
         """
-        dtype = np.float32
+        dtype = bittensor_dtype_np_dtype(proto.dtype)
         array = np.frombuffer(proto.buffer, dtype=np.dtype(dtype)).copy()
         shape = tuple(proto.shape)
         tensor = torch.as_tensor(array).view(shape).requires_grad_(

@@ -17,6 +17,10 @@ class SerializationException(Exception):
     """ Raised when message serialization fails """
     pass
 
+class DeserializationException(Exception):
+    """ Raised when message deserialization fails """
+    pass
+
 
 class NonExistentSynapseException(Exception):
     """ Raised when the called synapse is not in the local synapse set """

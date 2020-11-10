@@ -1,3 +1,4 @@
+import random
 import bittensor
 
 import torch
@@ -5,8 +6,22 @@ from torch import nn
 import torch.nn.functional as F
 import transformers
 from transformers import GPT2Config, GPT2Model
-from typing import List, Tuple, Dict, Optional
 
+def nextbatch(data, batch_size, tokenizer):
+    """ Returns a random batch of sentences from text dataset.
+
+        Args:
+            data: (List[dict{'text': str}]): Dataset of text inputs.
+            batch_size: size of batch to create.
+        
+        Returns:
+            batch_inputs torch.Tensor (batch_size, sequence_length): List of tokenized sentences.
+    """
+    batch_text = []
+    for _ in range(batch_size):
+        batch_text.append(data[random.randint(0, len(data))]['text'])
+    batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True)['input_ids']
+    return batch_inputs
 
 class GPT2MLMConfig (bittensor.SynapseConfig):
     r"""
@@ -72,7 +87,6 @@ class GPT2Pooler(nn.Module):
         pooled_output = self.dense(first_token_tensor)
         pooled_output = self.activation(pooled_output)
         return pooled_output
-
 
 class GPT2LMSynapse(bittensor.Synapse):
     """ A Bittensor Synapse training GPT2 with Masked Language Modelling (MLM)
