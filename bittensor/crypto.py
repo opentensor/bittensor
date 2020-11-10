@@ -5,6 +5,9 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
+from cryptography.exceptions import InvalidSignature
+from loguru import logger
+from numpy.core.numeric import identity
 import requests
 import binascii
 
@@ -51,7 +54,8 @@ class Crypto():
         public_key = Crypto.public_key_from_string(synapse.neuron_key)
         try:
             public_key.verify(synapse.signature, digest)
-        except:
+        except InvalidSignature as e:
+            logger.warning("Exception occured while verifying public key: {}".format(e))
             return False
         return True
 
@@ -81,6 +85,15 @@ class Crypto():
         return len(hex_string) - len(hex_string.lstrip('0'))
 
     @staticmethod
+    def update_proof_of_work(synapse_digest, nounce):
+        proof_of_work = hashes.Hash(hashes.SHA256(),
+                                        backend=default_backend())
+        proof_of_work.update(synapse_digest)
+        proof_of_work.update(bytes(nounce))
+        proof_of_work = proof_of_work.finalize()
+        return proof_of_work
+
+    @staticmethod
     def fill_proof_of_work(synapse: bittensor_pb2.Synapse,
                            difficulty: int) -> bittensor_pb2.Synapse:
         """ Fills the synapse.proof_of_work with a pow digest with difficulty.
@@ -100,20 +113,17 @@ class Crypto():
         digest.update(str(synapse.port).encode('utf-8'))
         digest.update(synapse.block_hash.encode('utf-8'))
         synapse_digest = digest.finalize()
-        while True:
-            proof_of_work = hashes.Hash(hashes.SHA256(),
-                                        backend=default_backend())
-            proof_of_work.update(synapse_digest)
-            proof_of_work.update(bytes(nounce))
-            proof_of_work = proof_of_work.finalize()
-            if Crypto.count_zeros(proof_of_work) >= difficulty:
-                break
-            else:
-                nounce = nounce + 1
+        
+        proof_of_work = Crypto.update_proof_of_work(synapse_digest, nounce)
+        while Crypto.count_zeros(proof_of_work) < difficulty:
+            nounce = nounce + 1
+            proof_of_work = Crypto.update_proof_of_work(synapse_digest, nounce)
+
         # fill digest.
         synapse.nounce = nounce
         synapse.proof_of_work = proof_of_work
         return synapse
+
 
     @staticmethod
     def sign_synapse(private_key: Ed25519PrivateKey,
@@ -201,7 +211,7 @@ class Crypto():
         Returns:
             Ed25519PublicKey: Public key object.
         """
-        result = Identity.public_bytes_from_string(string)
+        result = identity.public_bytes_from_string(string)
         public_key = ed25519.Ed25519PublicKey.from_public_bytes(result)
         return public_key
 
@@ -230,7 +240,10 @@ class Crypto():
         Returns:
             bytes: Signature.
         """
-        return private_key.sign(digest)
+        if isinstance(private_key, Ed25519PrivateKey):
+            return private_key.sign(digest)
+        
+        raise TypeError
 
     @staticmethod
     def verify_synapse(synapse: bittensor_pb2.Synapse) -> bool:
@@ -261,6 +274,7 @@ class Crypto():
         """
         try:
             public_key.verify(signature, data)
-        except:
+        except InvalidSignature as e:
+            logger.warning("Exception occured while verifying public key: {}".format(e))
             return False
         return True
