@@ -22,6 +22,7 @@ from bittensor.utils.keys import Keys
 from bittensor.utils.gate import Gate
 from bittensor.utils.dispatcher import Dispatcher
 from bittensor.utils.router import Router
+from bittensor.synapse import Synapse
 import bittensor.utils.batch_transforms
 
 __version__ = '0.0.0'
