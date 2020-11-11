@@ -1,10 +1,8 @@
-from loguru import logger
-import os
 import grpc
 import torch
 import torch.nn as nn
 from torch.autograd.function import once_differentiable
-from typing import List, Tuple, Dict, Optional
+from typing import List, Optional
 
 import bittensor
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
