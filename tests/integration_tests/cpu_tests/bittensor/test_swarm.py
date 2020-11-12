@@ -1,16 +1,12 @@
 from multiprocessing import Process
 from loguru import logger 
 import os
-import random
 import sys
 import time
 import torch
-import torch.nn as nn
 import torchvision
 import torch.optim as optim
 import torchvision.transforms as transforms
-import copy
-from typing import List, Tuple, Dict, Optional
 import unittest
 
 import bittensor

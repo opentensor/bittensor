@@ -1,10 +1,10 @@
 import grpc
 import torch
 import torch.nn as nn
+import bittensor
 from torch.autograd.function import once_differentiable
 from typing import List, Optional
-
-import bittensor
+from loguru import logger
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
 from bittensor.serializer import PyTorchSerializer
@@ -149,7 +149,10 @@ class Dendrite(nn.Module):
                 self._remotes[synapse.synapse_key] = remote_synapse
 
             # Call remote synapse.
-            results.append(remote_synapse(forward_inputs, mode))
+            try:
+                results.append(remote_synapse(forward_inputs, mode))
+            except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
+                logger.error("Exception occured: {}".format(e))
 
         return results
 
@@ -195,7 +198,12 @@ class RemoteSynapse(nn.Module):
         # TODO (const): consistend packing.
         # flattened = flatten(inputs)
         # Note: (hivemind) we send DUMMY to prevent torch from excluding expert from backward if no other inputs require grad
-        outputs = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
+        try:
+            outputs = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
+        except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
+            logger.warning("Exception occured in RemoteSynapse forward call: {}".format(e))
+            outputs = torch.zeros(
+                (inputs.size(0), inputs.size(1), bittensor.__network_dim__))
         # TODO (const) consitent unpacking
         # return unpack_to_schema(outputs, structure = self.synapse.output_schema)
         return outputs
@@ -215,7 +223,6 @@ class _RemoteModuleCall(torch.autograd.Function):
         ctx.caller = caller
         ctx.mode = mode
         try:
-
             # Serialize inputs to bytest buffer.
             try:
                 serialized_inputs = PyTorchSerializer.serialize(inputs, mode)
@@ -235,7 +242,6 @@ class _RemoteModuleCall(torch.autograd.Function):
 
             # Forward tensor.
             response = ctx.caller.stub.Forward(request, timeout=1.0)
-
             # Deserialize outputs and return.
             if len(response.tensors) > 0:
                 outputs = PyTorchSerializer.deserialize_tensor(
