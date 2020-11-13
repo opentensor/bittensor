@@ -29,3 +29,7 @@ class NonExistentSynapseException(Exception):
 class RemoteIPException(Exception):
     """ Raised when a failure occurs trying to set a remote IP """
     pass
+
+class InvalidRequestException(Exception):
+    """ Raised when an incoming request is invalid, e.g. it's missing a `tensors` object """
+    pass

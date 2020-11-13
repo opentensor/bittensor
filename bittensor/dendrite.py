@@ -274,26 +274,29 @@ class _RemoteModuleCall(torch.autograd.Function):
     @once_differentiable
     def backward(ctx, grads: torch.Tensor) -> Optional[torch.Tensor]:
 
-        # Serialize inputs to bytes.
-        serialized_grads = PyTorchSerializer.serialize_tensor(grads)
-        serialized_inputs = ctx.serialized_inputs
-
-        # Build request for forward.
-        request = bittensor_pb2.TensorMessage(
-            version=bittensor.__version__,
-            neuron_key=ctx.caller.local_neuron_key,
-            synapse_key=ctx.caller.synapse.synapse_key,
-            nounce=ctx.caller.nounce,
-            signature=ctx.caller.signature,
-            tensors=[serialized_inputs, serialized_grads])
-
         deserialized_grad_inputs = torch.zeros(1, 1)
-
         try:
+            # Serialize inputs to bytes.
+            serialized_grads = PyTorchSerializer.serialize_tensor(grads)
+            serialized_inputs = ctx.serialized_inputs
+
+            # Build request for forward.
+            request = bittensor_pb2.TensorMessage(
+                version=bittensor.__version__,
+                neuron_key=ctx.caller.local_neuron_key,
+                synapse_key=ctx.caller.synapse.synapse_key,
+                nounce=ctx.caller.nounce,
+                signature=ctx.caller.signature,
+                tensors=[serialized_inputs, serialized_grads])
+
             # Attain backward response
             response = ctx.caller.stub.Backward(request, timeout=1.0)
             deserialized_grad_inputs = PyTorchSerializer.deserialize(
                 response.tensors[0])
             return (None, None, deserialized_grad_inputs, None)
         except grpc._channel._InactiveRpcError as _:
+            logger.warning("gRPC Channel RPC Error occured. Check timeouts.")
+            return (None, None, deserialized_grad_inputs, None)
+        except SerializationException as _:
+            logger.warning("Serialization of gradients {} failed".format(grads))
             return (None, None, deserialized_grad_inputs, None)
