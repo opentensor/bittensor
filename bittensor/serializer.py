@@ -136,7 +136,11 @@ class PyTorchSerializer():
         Returns:
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
         """
-        data_buffer = tensor.cpu().numpy().tobytes()
+        if tensor.requires_grad:
+            data_buffer = tensor.cpu().detach().numpy().tobytes()
+        else:
+            data_buffer = tensor.cpu().numpy().tobytes()
+        
         dtype = torch_dtype_to_bittensor_dtype(tensor.dtype)
         shape = list(tensor.shape)
         proto = bittensor_pb2.Tensor(version=bittensor.__version__,
@@ -157,7 +161,11 @@ class PyTorchSerializer():
         Returns:
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
         """
-        data_buffer = tensor.cpu().numpy().tobytes()
+        if tensor.requires_grad:
+            data_buffer = tensor.cpu().detach().numpy().tobytes()
+        else:
+            data_buffer = tensor.cpu().numpy().tobytes()
+
         dtype = torch_dtype_to_bittensor_dtype(tensor.dtype)
         shape = list(tensor.shape)
         proto = bittensor_pb2.Tensor(version=bittensor.__version__,
@@ -178,7 +186,11 @@ class PyTorchSerializer():
         Returns:
             bittensor_pb2.Tensor: Serialized tensor as bittensor_pb2.proto. 
         """
-        data_buffer = tensor.cpu().numpy().tobytes()
+        if tensor.requires_grad:
+            data_buffer = tensor.cpu().detach().numpy().tobytes()
+        else:
+            data_buffer = tensor.cpu().numpy().tobytes()
+
         dtype = torch_dtype_to_bittensor_dtype(tensor.dtype)
         shape = list(tensor.shape)
         proto = bittensor_pb2.Tensor(version=bittensor.__version__,

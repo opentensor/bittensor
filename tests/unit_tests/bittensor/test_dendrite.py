@@ -123,13 +123,12 @@ class TestRemoteModuleCall(unittest.TestCase):
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])
         self.stub = bittensor_grpc.BittensorStub(self.channel)
-        self.remote_synapse = RemoteSynapse(self.synapse, self._config)
-        
+        self.remote_synapse = RemoteSynapse(self.synapse, self._config)        
 
-    def test_remote_module_forward_serialization(self):
+    def test_remote_module_forward(self):
         # Let's create some tensor
         x = torch.rand(3, 3, bittensor.__network_dim__)
-        
+        x.requires_grad = True
         # Mock remote module call
         fwd_return_value = bittensor_pb2.TensorMessage(
             version=bittensor.__version__,
