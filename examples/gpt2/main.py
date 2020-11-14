@@ -7,31 +7,13 @@ Example:
 
 """
 import bittensor
-from bittensor.synapses.gpt2 import GPT2LMSynapse, GPT2MLMConfig
+from bittensor.synapses.gpt2 import GPT2LMSynapse, GPT2MLMConfig, nextbatch
 
 import argparse
 from datasets import load_dataset
 from loguru import logger
-import random
-import time
 import torch
 
-def nextbatch(data, batch_size, tokenizer):
-    """ Returns a random batch of sentences from text dataset.
-
-        Args:
-            data: (List[dict{'text': str}]): Dataset of text inputs.
-            batch_size: size of batch to create.
-        
-        Returns:
-            batch_inputs torch.Tensor (batch_size, sequence_length): List of tokenized sentences.
-    """
-    batch_text = []
-    for _ in range(batch_size):
-        batch_text.append(data[random.randint(0, len(data))]['text'])
-    batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True)['input_ids']
-    return batch_inputs
-            
 def main():
     argparser = argparse.ArgumentParser()
 
