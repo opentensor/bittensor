@@ -193,3 +193,4 @@ yarn-error.log*
 **/bittensor_pb2_grpc.py
 
 **/.bash_history
+**/*.xml
