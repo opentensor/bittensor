@@ -17,6 +17,10 @@ class SerializationException(Exception):
     """ Raised when message serialization fails """
     pass
 
+class DeserializationException(Exception):
+    """ Raised when message deserialization fails """
+    pass
+
 
 class NonExistentSynapseException(Exception):
     """ Raised when the called synapse is not in the local synapse set """
@@ -24,4 +28,8 @@ class NonExistentSynapseException(Exception):
 
 class RemoteIPException(Exception):
     """ Raised when a failure occurs trying to set a remote IP """
+    pass
+
+class InvalidRequestException(Exception):
+    """ Raised when an incoming request is invalid, e.g. it's missing a `tensors` object """
     pass
