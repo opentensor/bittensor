@@ -1,4 +1,5 @@
 argparse
+autobahn
 coverage
 cryptography
 datasets
