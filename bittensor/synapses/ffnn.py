@@ -5,7 +5,7 @@ Simple feed forward NN for images.
 """
 
 import bittensor
-from bittensor.router import Router
+from bittensor.utils.router import Router
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseConfig
 from bittensor.synapse import SynapseOutput
