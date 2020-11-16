@@ -5,19 +5,9 @@ import socket
 
 from loguru import logger
 from bittensor import bittensor_pb2
-from substrateinterface import SubstrateInterface, Keypair
+from bittensor.pysubtensor import WSClient
+from substrateinterface import Keypair
 from typing import List
-
-# Substrate custom type interface.
-custom_type_registry = {
-    "runtime_id": 2, 
-    "types": {
-            "NeuronMetadata": {
-                    "type": "struct", 
-                    "type_mapping": [["ip", "u128"], ["port", "u16"], ["ip_type", "u8"]]
-                }
-        }
-}
 
 # Helper functions for converting between IPs and integers.
 def ip2int(addr):
@@ -35,12 +25,7 @@ class Metagraph():
         """
         self._config = config
         self.__keypair = keypair
-        self.substrate = SubstrateInterface(
-            url=self._config.session_settings.chain_endpoint,
-            address_type=42,
-            type_registry_preset='substrate-node-template',
-            type_registry=custom_type_registry
-        )
+        self.substrate = WSClient(self._config.session_settings.chain_endpoint, self.__keypair)
 
     def synapses (self) -> List[bittensor_pb2.Synapse]:
         neurons = self.substrate.iterate_map(

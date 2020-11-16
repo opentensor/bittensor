@@ -14,7 +14,7 @@ from substrateinterface import Keypair
 from torch.utils.tensorboard import SummaryWriter
 
 class SubtensorProcess:
-    def __init__(sefl, config):
+    def __init__(self, config):
         self._config = config
         self._process = process
     
