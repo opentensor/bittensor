@@ -61,21 +61,16 @@ class Synapse(nn.Module):
 
     def __init__(   self,
                     config: bittensor.SynapseConfig,
-                    dendrite: bittensor.dendrite.Dendrite = None,
-                    metagraph: bittensor.metagraph.Metagraph = None):
+                    session = None):
         r""" Init synapse module.
 
             Args:
                 config (:obj:`bittensor.SynapseConfig`, `required`): 
                     Base synapse config configuration class.
 
-                dendrite (:obj:`bittensor.dendrite.Dendrite`, `optional`, bittensor.dendrite): 
-                    bittensor dendrite object used for queries to remote synapses.
-                    Defaults to bittensor.dendrite global.
-
-                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`, bittensor.metagraph): 
-                    bittensor metagraph containing network graph information. 
-                    Defaults to bittensor.metagraph global.
+                session (:obj:`bittensor.BTSession`, `optional`): 
+                    bittensor training session.
+                    Defaults to bittensor.session global if exists.
 
         """
         super().__init__()
@@ -84,20 +79,12 @@ class Synapse(nn.Module):
         
         # Bittensor dendrite object used for queries to remote synapses.
         # Defaults to bittensor.dendrite global object.
-        self.dendrite = dendrite
-        if self.dendrite == None:
-            self.dendrite = bittensor.dendrite
-            if bittensor.dendrite == None:
-                raise Warning ('Synapse initialized without a valid dendrite. Call bittensor.init() to create a global dendrite instance.')
-
-        # Bttensor metagraph containing network graph information.
-        # Defaults to bittensor.metagraph global object.
-        self.metagraph = metagraph
-        if self.metagraph == None:
-            self.metagraph = bittensor.metagraph
-            if bittensor.metagraph == None:
-                raise Warning ('Synapse initialized without a valid metagraph. Call bittensor.init() to create a global metagraph instance.')
-
+        self.session = session
+        if self.session == None:
+            # Get global session.
+            self.session = bittensor.session
+            if self.session  == None:
+                raise Warning ('Synapse initialized without a valid session. Pass a bittensor session or ensure that a global bittensor.session exists by calling bittensor.init()')
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

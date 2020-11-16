@@ -1,0 +1,10 @@
+neuron:
+  neuron_path: /bittensor/neurons/cifar
+  axon_port: 80809
+  chain_endpoint: 192.168.123
+  client: light
+
+training:
+  learning_rate: 0.01
+  momentum: 0.9
+

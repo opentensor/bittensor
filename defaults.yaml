@@ -1,0 +1,9 @@
+neuron:
+  neuron_path: /bittensor/neurons/mnist
+  axon_port: 8080
+  chain_endpoint: 192.168.123
+
+training:
+  learning_rate: 0.01
+  momentum: 0.9
+
