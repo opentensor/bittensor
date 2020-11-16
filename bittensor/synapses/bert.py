@@ -1,4 +1,9 @@
 import bittensor
+from bittensor.router import Router
+from bittensor.synapse import Synapse
+from bittensor.synapse import SynapseConfig
+from bittensor.synapse import SynapseOutput
+from bittensor.session import BTSession
 
 import torch
 from torch import nn
@@ -32,7 +37,7 @@ def mlm_batch(data, batch_size, tokenizer, collator):
     collated_batch =  collator(tokenized)
     return collated_batch['input_ids'], collated_batch['labels']
 
-class BertSynapseConfig (bittensor.SynapseConfig):
+class BertSynapseConfig (SynapseConfig):
     r"""
     This is the configuration class for a :class:`~BERTNSPSynapse`.
     
@@ -70,10 +75,10 @@ class BertSynapseConfig (bittensor.SynapseConfig):
         assert self.huggingface_config.hidden_size == bittensor.__network_dim__, "BERT hidden_size dim {} != {}".format(self.huggingface_config.hidden_size, bittensor.__network_dim__)
         assert self.huggingface_config.vocab_size == bittensor.__vocab_size__, "BERT vocab size must match bittensor.__vocab_size {} != {}".format(self.huggingface_config.vocab_size, bittensor.__vocab_size__)
 
-class BertSynapseBase (bittensor.Synapse):
+class BertSynapseBase (Synapse):
     def __init__(   self,
                 config: BertSynapseConfig,
-                session: bittensor.Session):
+                session: BTSession):
         r""" Init a new base-bert synapse.
 
             Args:
@@ -88,7 +93,7 @@ class BertSynapseBase (bittensor.Synapse):
             config = config,
             session = session)
         
-        self.router = bittensor.Router(x_dim=bittensor.__network_dim__,
+        self.router = Router(x_dim=bittensor.__network_dim__,
                                        key_dim=100,
                                        topk=10)
 
@@ -151,7 +156,7 @@ class BertSynapseBase (bittensor.Synapse):
         """
 
         # Return vars to be filled.
-        output = bittensor.SynapseOutput(loss = torch.tensor(0.0))
+        output = SynapseOutput(loss = torch.tensor(0.0))
    
         # encoding: transformer encoded sentences.
         # encoding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
@@ -163,9 +168,9 @@ class BertSynapseBase (bittensor.Synapse):
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         if remote:
             # network = torch.Tensor(batch_size, bittensor.__network_dim__)
-            synapses = bittensor.metagraph.synapses()  # Returns a list of synapses on the network.
+            synapses = self.session.metagraph.synapses()  # Returns a list of synapses on the network.
             requests, _ = self.router.route(synapses, encoding_pooled, inputs)  # routes inputs to network.
-            responses = bittensor.dendrite.forward_text(synapses, requests)  # Makes network calls.
+            responses = self.session.dendrite.forward_text(synapses, requests)  # Makes network calls.
             remote_context = self.router.join(responses)  # Join responses with scores.
 
         # local_context: distilled version of remote_context.
@@ -196,27 +201,19 @@ class BertSynapseBase (bittensor.Synapse):
 class BertNSPSynapse (BertSynapseBase):
     def __init__(   self,
                     config: BertSynapseConfig,
-                    dendrite: bittensor.Dendrite = None,
-                    metagraph: bittensor.Metagraph = None):
+                    dendrite: BTSession):
         r""" Init a new bert nsp synapse module.
 
             Args:
                 config (:obj:`bittensor.bert.BertSynapseConfig`, `required`): 
                     BertNSP configuration class.
 
-                dendrite (:obj:`bittensor.Dendrite`, `optional`, bittensor.dendrite): 
-                    bittensor dendrite object used for queries to remote synapses.
-                    Defaults to bittensor.dendrite global.
-
-                metagraph (:obj:`bittensor.Metagraph`, `optional`, bittensor.metagraph): 
-                    bittensor metagraph containing network graph information. 
-                    Defaults to bittensor.metagraph global.
-
+                session (:obj:`bittensor.Session`, `required`): 
+                    bittensor session object. 
         """
         super(BertNSPSynapse, self).__init__(
             config = config,
-            dendrite = dendrite,
-            metagraph = metagraph)
+            session = session)
         
         # target_layer: maps from hidden layer to vocab dimension for each token. Used by MLM loss.
         # [batch_size, sequence_len, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__vocab_size__]
@@ -333,27 +330,19 @@ class BertNSPSynapse (BertSynapseBase):
 class BertMLMSynapse (BertSynapseBase):
     def __init__(   self,
                     config: BertSynapseConfig,
-                    dendrite: bittensor.Dendrite = None,
-                    metagraph: bittensor.Metagraph = None):
+                    session: BTSession):
         r""" Bert synapse for MLM training
 
             Args:
                 config (:obj:`bittensor.bert.BertSynapseConfig`, `required`): 
                     BertNSP configuration class.
 
-                dendrite (:obj:`bittensor.Dendrite`, `optional`, bittensor.dendrite): 
-                    bittensor dendrite object used for queries to remote synapses.
-                    Defaults to bittensor.dendrite global.
-
-                metagraph (:obj:`bittensor.Metagraph`, `optional`, bittensor.metagraph): 
-                    bittensor metagraph containing network graph information. 
-                    Defaults to bittensor.metagraph global.
-
+                session (:obj:`bittensor.Session`, `required`): 
+                    bittensor session object. 
         """
         super(BertMLMSynapse, self).__init__(
             config = config,
-            dendrite = dendrite,
-            metagraph = metagraph)
+            session = session)
       
         # target_layer: maps from hidden layer to vocab dimension for each token. Used by MLM loss.
         # [batch_size, sequence_len, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__vocab_size__]

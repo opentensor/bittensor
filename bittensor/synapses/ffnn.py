@@ -5,8 +5,12 @@ Simple feed forward NN for images.
 """
 
 import bittensor
+from bittensor.router import Router
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseConfig
+from bittensor.synapse import SynapseOutput
+from bittensor.session import BTSession
+
 
 from loguru import logger
 import torch
@@ -54,16 +58,15 @@ class FFNNSynapse(Synapse):
 
     def __init__(self,
                  config: FFNNConfig,
-                 session = None):
+                 session: BTSession):
         r""" Init a new ffnn synapse module.
 
             Args:
                 config (:obj:`bittensor.ffnn.FFNNConfig`, `required`): 
                     ffnn configuration class.
 
-                session (:obj:`bittensor.Session`, `optional`): 
+                session (:obj:`bittensor.Session`, `required`): 
                     bittensor session object. 
-                    Defaults to bittensor.session global if exists.
         """
         super(FFNNSynapse, self).__init__(
             config = config,
@@ -80,7 +83,7 @@ class FFNNSynapse(Synapse):
 
         # router: (PKM layer) queries network using transform as context.
         # [batch_size, transform_dim] -> topk * [batch_size, bittensor.__network_dim__]
-        self.router = bittensor.Router(x_dim = self.transform_dim, key_dim=100, topk=10)
+        self.router = Router(x_dim = self.transform_dim, key_dim=100, topk=10)
 
         # context_layer: distills the remote_context from the transform layer.
         # [batch_size, transform_dim] -> [batch_size, bittensor.__network_dim__]
@@ -167,7 +170,7 @@ class FFNNSynapse(Synapse):
         """
 
         # Return vars to be filled.
-        output = bittensor.SynapseOutput (loss = torch.tensor(0.0))
+        output = SynapseOutput (loss = torch.tensor(0.0))
 
         # transform: transform images to common shape.
         # transform.shape = [batch_size, self.transform_dim]
