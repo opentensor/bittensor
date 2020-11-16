@@ -3,15 +3,18 @@
 
     Bittensor endpoint trained on PIL images to detect objects using DPN.
 """
-
 import bittensor
+from bittensor.router import Router
+from bittensor.synapse import Synapse
+from bittensor.synapse import SynapseConfig
+from bittensor.synapse import SynapseOutput
+from bittensor.session import BTSession
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from types import SimpleNamespace
 
-class DPNConfig (bittensor.SynapseConfig):
+class DPNConfig (SynapseConfig):
     r"""
     This is the configuration class to store the configuration of a :class:`~DPNSynapse`.
     It is used to instantiate a Dual Path model according to the specified
@@ -81,14 +84,13 @@ class DPNConfig (bittensor.SynapseConfig):
         assert isinstance(self.dense_depth, tuple)
     
 
-class DPNSynapse(bittensor.Synapse):
+class DPNSynapse(Synapse):
     """ Bittensor endpoint trained on PIL images to detect objects using DPN.
     """
 
     def __init__(   self, 
                     config: DPNConfig,
-                    dendrite: bittensor.Dendrite = None,
-                    metagraph: bittensor.Metagraph = None
+                    session: BTSession,
                 ):
         r""" Init a new DPN synapse module.
 
@@ -97,19 +99,12 @@ class DPNSynapse(bittensor.Synapse):
                     Model configuration object used to set up what the model should 
                     contain in terms of convolutional and dense layers. See :class: bittensor.dpn.DPNConfig
 
-                dendrite (:obj:`bittensor.Dendrite`, `optional`, defaults to bittensor.dendrite): 
-                    bittensor dendrite object used for queries to remote synapses.
-                    Defaults to bittensor.dendrite global.
-
-                metagraph (:obj:`bittensor.Metagraph`, `optional`, defaults to bittensor.metagraph): 
-                    bittensor metagraph containing network graph information. 
-                    Defaults to bittensor.metagraph global.
-
+                 session (:obj:`bittensor.Session`, `required`): 
+                    bittensor session object. 
         """
         super(DPNSynapse, self).__init__(
             config = config,
-            dendrite = dendrite,
-            metagraph = metagraph)
+            session = session)
 
         in_planes, out_planes = config.in_planes, config.out_planes
         num_blocks, dense_depth = config.block_config, config.dense_depth
@@ -136,7 +131,7 @@ class DPNSynapse(bittensor.Synapse):
         
         # Router object for training network connectivity.
         # [Transform] -> [ROUTER] -> [Synapses] -> [ROUTER]
-        self.router = bittensor.Router(x_dim = self.transform_dim , key_dim = 100, topk = 10)
+        self.router = Router(x_dim = self.transform_dim , key_dim = 100, topk = 10)
 
         # Context layers.
         """
@@ -228,7 +223,7 @@ class DPNSynapse(bittensor.Synapse):
                 )
         """
         # Return vars to be filled.
-        output = bittensor.SynapseOutput (loss = torch.tensor(0.0))
+        output = SynapseOutput (loss = torch.tensor(0.0))
     
         r"""
             Transform the images into a common shape (32x32)
@@ -250,9 +245,9 @@ class DPNSynapse(bittensor.Synapse):
         if remote:
             # If query == True make a remote call.
             images = torch.unsqueeze(images, 1) # Add sequence dimension.
-            synapses = self.metagraph.synapses() # Returns a list of synapses on the network.
+            synapses = self.session.metagraph.synapses() # Returns a list of synapses on the network.
             requests, _ = self.router.route( synapses, transform, images ) # routes inputs to network.
-            responses = self.dendrite.forward_image( synapses, requests ) # Makes network calls.
+            responses = self.session.dendrite.forward_image( synapses, requests ) # Makes network calls.
             remote_context = self.router.join( responses ) # Joins responses based on scores..
             remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2]) # Squeeze the sequence dimension.
 
