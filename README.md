@@ -33,6 +33,6 @@ You'll need to install our own custom substrate interface in order for bittensor
 This is for a system wide installation
 ```bash
 git clone git@github.com:opentensor/py-subtensork-interface.git
-cd py-substrate-interface
-export GITHUB_REF=refs/tags/v3.0 && python3 ./setup.py install --user
+cd py-subtensor-interface
+python3 ./setup.py install --user
 ```
