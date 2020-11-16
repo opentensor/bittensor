@@ -1,4 +1,4 @@
-# Bittensor 
+``# Bittensor 
 [![Build status](https://circleci.com/gh/opentensor/bittensor.svg?style=shield)](https://circleci.com/gh/opentensor/bittensor)
 [![Documentation Status](https://readthedocs.org/projects/bittensor-docs/badge/?version=latest)](https://bittensor-docs.readthedocs.io/en/latest/?badge=latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -34,5 +34,5 @@ This is for a system wide installation
 ```bash
 git clone git@github.com:opentensor/py-substrate-interface.git
 cd py-substrate-interface
-sudo export GITHUB_REF=refs/tags/v3.0 && python3 ./setup.py install
+export GITHUB_REF=refs/tags/v3.0 && python3 ./setup.py install --user
 ```
