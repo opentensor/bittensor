@@ -5,6 +5,8 @@ Simple feed forward NN for images.
 """
 
 import bittensor
+from bittensor.synapse import Synapse
+from bittensor.synapse import SynapseConfig
 
 from loguru import logger
 import torch
@@ -15,7 +17,7 @@ import torchvision.transforms as transforms
 from typing import List, Tuple, Dict, Optional
 from types import SimpleNamespace
 
-class FFNNConfig (bittensor.SynapseConfig):
+class FFNNConfig (SynapseConfig):
     r"""
     This is the configuration class to store the configuration of a :class:`~FFNNSynapse`.
     It is used to instantiate a Feed Forward model according to the specified arguments, 
@@ -46,7 +48,7 @@ class FFNNConfig (bittensor.SynapseConfig):
     def run_checks(self):
         assert isinstance(self.target_dim, int)
 
-class FFNNSynapse(bittensor.Synapse):
+class FFNNSynapse(Synapse):
     """ Simple feed forward NN for images.
     """
 

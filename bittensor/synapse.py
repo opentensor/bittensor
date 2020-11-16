@@ -5,9 +5,10 @@ import torch.optim as optim
 from typing import List, Tuple, Dict, Optional, TYPE_CHECKING
 
 import bittensor
-import bittensor.dendrite
-import bittensor.metagraph
 from bittensor import bittensor_pb2
+
+class SynapseConfig:
+    pass
 
 class SynapseOutput(object):
     """ Synapse output container.
@@ -55,17 +56,19 @@ class SynapseOutput(object):
         self.remote_target_loss = remote_target_loss
         self.distillation_loss = distillation_loss
 
+
 class Synapse(nn.Module):
-    """ Bittensor synapse class.
+    """ Bittensor synapse class. 
+
     """
 
     def __init__(   self,
-                    config: bittensor.SynapseConfig,
+                    config: SynapseConfig,
                     session = None):
         r""" Init synapse module.
 
             Args:
-                config (:obj:`bittensor.SynapseConfig`, `required`): 
+                config (:obj:`SynapseConfig`, `required`): 
                     Base synapse config configuration class.
 
                 session (:obj:`bittensor.BTSession`, `optional`): 

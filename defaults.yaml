@@ -1,9 +1,10 @@
-neuron:
-  neuron_path: /bittensor/neurons/mnist
+session_settings:
   axon_port: 8080
   chain_endpoint: 192.168.123
+  remote_ip: 127.0.0.1
+  logdir: /tmp/
 
-training:
-  learning_rate: 0.01
-  momentum: 0.9
+neuron:
+    neuron_path: /bittensor/neurons/mnist
+    datapath: /tmp/
 

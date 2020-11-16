@@ -6,6 +6,7 @@ import threading
 import torch
 
 import bittensor
+from bittensor import synapse
 from bittensor import bittensor_pb2
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor.serializer import PyTorchSerializer
@@ -15,13 +16,14 @@ from bittensor.exceptions.Exceptions import DeserializationException, InvalidReq
 class Axon(bittensor_grpc.BittensorServicer):
     """ Processes Fwd and Bwd requests for a set of local Synapses """
 
-    def __init__(self, config: bittensor.Config):
+    def __init__(self, config, keypair):
         self._config = config
+        self.__keypair = keypair
 
         # Init server objects.
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         bittensor_grpc.add_BittensorServicer_to_server(self, self._server)
-        self._server.add_insecure_port('[::]:' + str(self._config.axon_port))
+        self._server.add_insecure_port('[::]:' + str(self._config.session_settings.axon_port))
 
         # Local synapses
         self._local_synapses = {}
@@ -50,7 +52,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         """ Stop the synapse terminal server """
         self._server.stop(0)
 
-    def serve(self, synapse: bittensor.Synapse):
+    def serve(self, synapse: bittensor.synapse.Synapse):
         """ Adds an Synapse to the serving set """
         self._local_synapses[synapse.synapse_key()] = synapse
 
@@ -112,7 +114,7 @@ class Axon(bittensor_grpc.BittensorServicer):
             # Build response.
             response = bittensor_pb2.TensorMessage(
                 version=bittensor.__version__,
-                neuron_key=self._config.neuron_key,
+                neuron_key=self.__keypair.publickey,
                 synapse_key=request.synapse_key,
                 tensors=y_serialized)
 
@@ -121,7 +123,7 @@ class Axon(bittensor_grpc.BittensorServicer):
             # Build null response.
             response = bittensor_pb2.TensorMessage(
                 version=bittensor.__version__,
-                neuron_key=self._config.neuron_key,
+                neuron_key=self.__keypair.publickey,
                 synapse_key=request.synapse_key)
 
         return response
@@ -153,7 +155,7 @@ class Axon(bittensor_grpc.BittensorServicer):
 
                     response = bittensor_pb2.TensorMessage(
                         version=bittensor.__version__,
-                        neuron_key=self._config.neuron_key,
+                        neuron_key=self.__keypair.publickey,
                         synapse_key=request.synapse_key,
                         tensors=[dx_serialized])
                 except SerializationException as _:
@@ -167,7 +169,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 # Build null response.
                 response = bittensor_pb2.TensorMessage(
                     version=bittensor.__version__,
-                    neuron_key=self._config.neuron_key,
+                    neuron_key=self.__keypair.publickey,
                     synapse_key=request.synapse_key)
         
         return response

@@ -1,5 +1,7 @@
 
 import bittensor
+import struct 
+import socket
 
 from loguru import logger
 from bittensor import bittensor_pb2
@@ -26,14 +28,15 @@ def int2ip(addr):
 
 class Metagraph():
 
-    def __init__(self, config: bittensor.Config):
+    def __init__(self, config, keypair):
         """Initializes a new Metagraph subtensor interface.
         Args:
             config (bittensor.Config): An bittensor config object.
         """
-        self.config = config
+        self._config = config
+        self.__keypair = keypair
         self.substrate = SubstrateInterface(
-            url=self.config.chain_endpoint,
+            url=self._config.session_settings.chain_endpoint,
             address_type=42,
             type_registry_preset='substrate-node-template',
             type_registry=custom_type_registry
@@ -57,8 +60,8 @@ class Metagraph():
         return synapses
 
     def subscribe (self):
-        params = {'ip': ip2int(self.config.remote_ip), 'port': self.config.axon_port, 'ip_type': 4}
-        logger.info('Subscribe to chain endpoint {} with params {}', self.config.chain_endpoint, params)
+        params = {'ip': ip2int(self._config.session_settings.remote_ip), 'port': self._config.session_settings.axon_port, 'ip_type': 4}
+        logger.info('Subscribe to chain endpoint {} with params {}', self._config.session_settings.chain_endpoint, params)
         call = self.substrate.compose_call(
             call_module='SubtensorModule',
             call_function='subscribe',
