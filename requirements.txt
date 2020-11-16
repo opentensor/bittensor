@@ -6,6 +6,7 @@ google-api-python-client
 grpcio
 grpcio-tools
 loguru
+munch
 numpy
 pickle-mixin
 pycryptodome
