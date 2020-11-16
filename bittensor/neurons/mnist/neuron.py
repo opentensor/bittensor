@@ -7,6 +7,8 @@ Example:
 """
 
 import bittensor
+from bittensor import BTSession
+from bittensor.neuron import Neuron
 from bittensor.synapses.ffnn import FFNNSynapse, FFNNConfig
 
 from loguru import logger
@@ -17,8 +19,8 @@ import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 
-class Neuron (bittensor.Neuron):
-    def __init__(self, config: bittensor.Config, session: bittensor.BTSession):
+class Neuron (Neuron):
+    def __init__(self, config, session: BTSession):
         self.config = config
         self.bt_session = session
 

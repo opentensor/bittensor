@@ -13,7 +13,6 @@ from bittensor.exceptions.Exceptions import EmptyTensorException, ResponseShapeE
 # dummy tensor that triggers autograd in RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
 
-
 class Dendrite(nn.Module):
     r"""
     This is the bittensr object used to make calls to the network. It can be used like a normal torch nn.Module
@@ -45,10 +44,12 @@ class Dendrite(nn.Module):
     """
     def __init__ (
         self, 
-        config: bittensor.Config
+        config,
+        keypair,
     ):
         super().__init__()
         self._config = config
+        self.__keypair = keypair
         self._remotes = {}
 
     def forward_text(self, synapses: List[bittensor_pb2.Synapse],
@@ -145,7 +146,7 @@ class Dendrite(nn.Module):
                 remote_synapse = self._remotes[synapse.synapse_key]
             else:
                 # Create remote connection.
-                remote_synapse = RemoteSynapse(synapse, self._config)
+                remote_synapse = RemoteSynapse(synapse, self._config, self.__keypair)
                 self._remotes[synapse.synapse_key] = remote_synapse
 
             # Call remote synapse.
@@ -165,15 +166,15 @@ class RemoteSynapse(nn.Module):
     """ Class which bundles a grpc connection to a remote host as a standard auto-grad torch.nn.Module.
     """
 
-    def __init__(self, synapse: bittensor_pb2.Synapse,
-                 config: bittensor.Config):
+    def __init__(self, synapse: bittensor_pb2.Synapse, config, keypair):
         super().__init__()
         self.synapse = synapse
-        self.local_neuron_key = config.neuron_key
+        self.config = config
+        self.keypair = keypair
         # Loop back if the synapse is local.
-        if synapse.address == config.remote_ip:
+        if synapse.address == config.session_settings.remote_ip:
             ip = "localhost:"
-            if config.remote_ip == "host.docker.internal":
+            if config.session_settings.remote_ip == "host.docker.internal":
                 ip = "host.docker.internal:"
             self.endpoint = ip + str(synapse.port)
         else:
@@ -234,7 +235,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             # Build request for forward.
             request = bittensor_pb2.TensorMessage(
                 version=bittensor.__version__,
-                neuron_key=ctx.caller.local_neuron_key,
+                neuron_key=ctx.caller.keypair.publickey,
                 synapse_key=ctx.caller.synapse.synapse_key,
                 nounce=ctx.caller.nounce,
                 signature=ctx.caller.signature,
@@ -283,7 +284,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             # Build request for forward.
             request = bittensor_pb2.TensorMessage(
                 version=bittensor.__version__,
-                neuron_key=ctx.caller.local_neuron_key,
+                neuron_key=ctx.caller.keypair.publickey,
                 synapse_key=ctx.caller.synapse.synapse_key,
                 nounce=ctx.caller.nounce,
                 signature=ctx.caller.signature,

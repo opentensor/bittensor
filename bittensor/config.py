@@ -1,189 +1,109 @@
-from configparser import ConfigParser
 from loguru import logger
-import configparser
 import argparse
+import munch
+import os
 import requests
 import time
-
 import validators
-import pathlib
-from bittensor.crypto import Crypto
+import yaml
 
+# Overwrites the values from nested dictionary A with nested dictionary B
+def overwrite(items_a, items_b):
+    for k, v in items_a.items():
+        if k in items_b:
+            if isinstance(v, dict):
+                overwrite(v, items_b[k])
+            else:
+                if items_b != None:
+                    items_a[k] = items_b[k]
+    return items_a
 
-class InvalidConfigFile(Exception):
-    pass
+def add(items_a, items_b):
+    for k, v in items_b.items():
+        if k not in items_a:
+            items_a[k] = items_b[k]
+        if k in items_a:
+            if isinstance(v, dict):
+                add(items_a[k], items_b[k])
+    return items_a
 
+def overwrite_add(items_a, items_b):
+    items_a = overwrite(items_a, items_b)
+    items_a = add(items_a, items_b)
+    return items_a
 
-class ValidationError(Exception):
-    pass
+class Config:
+    def toString(config, depth=0):
+        for k, v in config.items():
+            if isinstance(v, dict):
+                print ('\t' * depth, '{}:'.format(k))
+                Config.toString(v, depth = depth + 1)
+            else:
+                print ('\t' * depth, '{}: {}'.format(k, v) )
 
+    def load (config_path: str = None):
+        # 1. Load defaults from defaults.yaml.
+        if not os.path.isfile('defaults.yaml'):
+                raise FileNotFoundError('Cannot find default configuration at defaults.yaml')
+        with open('defaults.yaml', 'r') as f:
+            try:
+                config_items = yaml.safe_load(f)
+            except yaml.YAMLError as exc:
+                print(exc)
 
-class PostProcessingError(Exception):
-    pass
+        # 2. Load items from optional passed config_path
+        passed_items = None
+        if config_path != None:
+            if not os.path.isfile(config_path):
+                raise FileNotFoundError('Cannot find a configuration file at', config_path)
+            with open(config_path, 'r') as f:
+                try:
+                    passed_items = yaml.safe_load(f)
+                except yaml.YAMLError as exc:
+                    print(exc)
 
+        # Overwrite defaults with passed items.
+        if passed_items != None:
+            config_items = overwrite_add(config_items, passed_items)
 
-class InvalidConfigError(Exception):
-    pass
+        # 3. Load items from optional passed config_path
+        neuron_items = None
+        if config_items['neuron']['neuron_path'] != None:
+            neuron_config_path = os.getcwd() + str(config_items['neuron']['neuron_path']) + '/config.yaml'
+            if not os.path.isfile(neuron_config_path):
+                raise FileNotFoundError('Cannot find a neuron configuration file at', neuron_config_path)
+            with open(neuron_config_path, 'r') as f:
+                try:
+                    neuron_items = yaml.safe_load(f)
+                except yaml.YAMLError as exc:
+                    print(exc)
 
-class Config(dict):
-    CHAIN_ENDPOINT = "chain_endpoint"
-    AXON_PORT = "axon_port"
-    METAGRAPH_PORT = "metagraph_port"
-    METAGRAPH_SIZE = "metagraph_size"
-    BOOTSTRAP = "bootstrap"
-    REMOTE_IP = "remote_ip"
-    DATAPATH = "datapath"
-    LOGDIR = "logdir"
+        # Overwrite items with neuron items.
+        if neuron_items != None:
+            config_items = overwrite_add(config_items, neuron_items)
 
-    def __init__(self, neuron_path: str, *args, **kwargs):
-        super().__init__()
-        self.update(
-            {
-                Config.CHAIN_ENDPOINT: "",
-                Config.DATAPATH: "data/",
-                Config.NEURON_PATH: neuron_path,
-                Config.LOGDIR: neuron_path + '/logs/' + str(time.time()),
-                Config.REMOTE_IP: None,
-                Config.AXON_PORT: 8091,
-                Config.METAGRAPH_PORT: 8092,
-                Config.METAGRAPH_SIZE: 10000,
-                Config.BOOTSTRAP: None
-            }
-        )
+        # 4. Load items from optional passed --config_path
+        commandline_items = None
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--config_file', default=None, help='path to a configuration file')
+        params = parser.parse_args()
+        if params.config_file != None:
+            if not os.path.isfile(params.config_file):
+                raise FileNotFoundError('Cannot find a configuration file at', params.config_file)
+            else:
+                with open(params.config_file, 'r') as f:
+                    commandline_items = yaml.safe_load(f)
 
-        # Override (or not) options with default settings
-        for key, value in kwargs.items():
-            self[key] = value
+        # Overwrite items with commandline_items
+        if commandline_items != None:
+            config_items = overwrite_add(config_items, commandline_items)
+                    
+        # 5. Validate config items.
+        #validate_config(config_items)
 
-    def log(self):
-        for key in self:
-            logger.info("CONFIG: %s: %s" % (key, self[key]))
-
-
-    def get_bootpeer(self):
-        if self[self.BOOTSTRAP]:
-            return self[self.BOOTSTRAP]
-
-        return None
-
-    def __getattr__(self, item):
-        if item in self:
-            return self[item]
-        
-
-
-class ConfigService:
-    # Attributes to make parsing of a config file work
-    parser = None
-    filename = None  # This will be passed as a constructor arg
-
-    # The dict that hold the configuration
-    config = Config()
-
-    # Attribute that tells if the configuration is valid
-    valid = False
-
-    # Command line arguments, filled during init
-    cl_args = None
-
-    def create(self, filename, argparser: argparse.ArgumentParser):
-        self.filename = "%s/%s" % (str(pathlib.Path(__file__).parent.absolute()), filename)
-        self.argparse = argparser
-        self.add_cl_args(argparser)
-
-    # def create(self):
-
-        """
-        This is what happens:
-        1) The system defaults for the configuration is set
-        2) Then, config.ini is loaded and any value set there is used to overwrite the configuration
-        3) Then, the command line is parsed for options and used in the configuration.
-        4) Ultimately some post processing is applied. Specifically, an IP address is obtained from an IP if not configured
-        """
-        try:
-            # self.__setup_defaults()
-            self.__load_config()
-            self.__parse_cl_args()
-            self.__validate_config()
-            self.__do_post_processing()
-
-            return self.config
-
-        except InvalidConfigError:
-            return None
-
-    def add_cl_args(self, parser: argparse.ArgumentParser):
-        parser.add_argument('--chain_endpoint', dest=Config.CHAIN_ENDPOINT, type=str, help="bittensor chain endpoint")
-        parser.add_argument('--axon_port', dest=Config.AXON_PORT, type=int,
-                            help="TCP port that will be used to receive axon connections")
-        parser.add_argument('--metagraph_port', dest=Config.METAGRAPH_PORT, type=int,
-                            help='TCP port that will be used to receive metagraph connections')
-        parser.add_argument('--metagraph_size', dest=Config.METAGRAPH_SIZE, type=int, help='Metagraph cache size')
-        parser.add_argument('--bootstrap', dest=Config.BOOTSTRAP, type=str,
-                            help='The socket of the bootstrap peer host:port')
-        parser.add_argument('--remote_ip', dest=Config.REMOTE_IP, type=str,
-                            help='The IP address of this neuron that will be published to the network')
-        parser.add_argument('--datapath', dest=Config.DATAPATH, type=str, help='Path to datasets')
-        parser.add_argument('--logdir', dest=Config.LOGDIR, type=str, help='Path to logs and saved models')
-
-        self.cl_args = parser.parse_args()
-
-    def __load_config(self):
-        try:
-            self.__parse_config_file()
-        except FileNotFoundError:
-            logger.debug("CONFIG: Warning: %s not found" % self.filename)
-        except (InvalidConfigFile, ValueError):
-            logger.error(
-                "CONFIG: %s is invalid. Try copying and adapting the default configuration file." % self.filename)
-            raise InvalidConfigError
-        except Exception:
-            logger.error("CONFIG: An unspecified error occured.")
-            raise InvalidConfigError
-
-    def __parse_config_file(self):
-        """
-        Loads and parses config.ini
-
-        Throws:
-            FileNotFoundError
-
-        """
-        self.parser = ConfigParser(allow_no_value=True)
-
-        files_read = self.parser.read(self.filename)
-        if self.filename not in files_read:
-            raise FileNotFoundError
-
-        # At this point, all sections and options are present. Now load the actual values according to type
-        self.load_str(Config.CHAIN_ENDPOINT, "general", "chain_endpoint")
-        self.load_str(Config.DATAPATH, "general", "datapath")
-        self.load_str(Config.LOGDIR, "general", "logdir")
-
-        self.load_str(Config.REMOTE_IP, "general", "remote_ip")
-        self.load_int(Config.AXON_PORT, "axon", "port")
-
-        self.load_int(Config.METAGRAPH_PORT, "metagraph", "port")
-        self.load_int(Config.METAGRAPH_SIZE, "metagraph", "size")
-
-        self.load_str(Config.BOOTSTRAP, "bootstrap", "socket")
-
-    def __parse_cl_args(self):
-        """
-
-        This will loop over each command line argument. If it has a value,
-        it is used to overwrite the already existing configuration
-
-        Args:
-            args: The output of the argparse parser's .parse_args() function
-
-        Returns:
-
-        """
-        args_dict = vars(self.cl_args)
-        for key in args_dict:
-            if args_dict[key]:
-                self.config[key] = args_dict[key]
+        # 6. Munchify
+        items = munch.munchify(config_items)
+        return items
 
     def __validate_config(self):
         # Now validate all settings
@@ -192,7 +112,7 @@ class ConfigService:
         try:
             # Chain endpoint is not implemented yet, no validation
 
-            self.validate_path(Config.NEURON_PATH, required=True)
+            validate_path(Config.NEURON_PATH, required=True)
             self.validate_path(Config.DATAPATH, required=True)
             self.validate_path(Config.LOGDIR, required=True)
             self.validate_ip(Config.REMOTE_IP, required=False)
@@ -407,83 +327,3 @@ class ConfigService:
                 (value, config_key))
 
             raise ValidationError
-
-class SynapseConfig(object):
-    r"""Base config for all synapse objects.
-    Handles a parameters common to all bittensor synapse objects.
-
-    Args:
-         synapse_key (:obj:`str(ed25519 key)`, `optional`, defaults to :obj:`random str(ed25519)`):
-            Cryptographic keys used by this synapse. Defaults to randomly generated ed25519 key.
-    """
-    __default_synapse_key__ = Crypto.public_key_to_string(
-        Crypto.generate_private_ed25519().public_key())
-
-    def __init__(self, **kwargs):
-        # Bittensor synapse key.
-        self.synapse_key = kwargs.pop("synapse_key", SynapseConfig.__default_synapse_key__)
-        self._base_run_type_checks()
-
-    def _base_run_type_checks(self):
-        assert isinstance(self.synapse_key, type(SynapseConfig.__default_synapse_key__))
-
-    def __str__(self):
-        return "\n chain_endpoint: {} \n neuron path: {} \n axon port: {} \n metagraph port: {} \n metagraph Size: {} \n bootpeer: {} \n remote_ip: {} \n datapath: {} \n logdir: {}".format(
-            self.chain_endpoint, self.neuron_path, self.axon_port, self.metagraph_port,
-            self.metagraph_size, self.bootstrap, self.remote_ip, self.datapath, self.logdir)
-
-    @staticmethod
-    def from_hparams(hparams):
-        config = Config()
-        config.set_hparams(hparams)
-        return config
-
-    def set_hparams(self, hparams):
-        for key, value in hparams.__dict__.items():
-            try:
-                setattr(self, key, value)
-            except AttributeError as err:
-                logger.error("Can't set {} with value {} for {}".format(
-                    key, value, self))
-                raise err
-        self.run_type_checks()
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
-        parser.add_argument('--chain_endpoint',
-                            default=Config.__chainendpoint_default__,
-                            type=str,
-                            help="bittensor chain endpoint.")
-        parser.add_argument('--axon_port',
-                            default=Config.__axon_port_default__,
-                            type=str,
-                            help="Axon terminal bind port")
-        parser.add_argument('--metagraph_port',
-                            default=Config.__metagraph_port_default__,
-                            type=str,
-                            help='Metagraph bind port.')
-        parser.add_argument('--metagraph_size',
-                            default=Config.__metagraph_size_default__,
-                            type=int,
-                            help='Metagraph cache size.')
-        parser.add_argument('--bootstrap',
-                            default=Config.__bootstrap_default__,
-                            type=str,
-                            help='Metagraph bootpeer')
-        parser.add_argument('--neuron_key',
-                            default=Config.__neuron_path_default__,
-                            type=str,
-                            help='Neuron path')
-        parser.add_argument('--remote_ip',
-                            default=Config.__remote_ip_default__,
-                            type=str,
-                            help='Remote serving ip.')
-        parser.add_argument('--datapath',
-                            default=Config.__datapath_default__,
-                            type=str,
-                            help='Path to datasets.')
-        parser.add_argument('--logdir',
-                            default=Config.__logdir_default__,
-                            type=str,
-                            help='Path to logs and saved models.')
-        return parser
