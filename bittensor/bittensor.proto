@@ -9,38 +9,6 @@ service Bittensor {
 	rpc Backward (TensorMessage) returns (TensorMessage) {}
 }
 
-// Service definition for a pow based cache for sharing bittensor synapses.
-service Metagraph {
-	rpc Gossip (GossipBatch) returns (GossipBatch) {}
-}
-
-// Batch of neuron service definitions.
-message GossipBatch {
-	// SIZE: 32-bits (4-bytes)
-	string version = 1;
-	// List of metagraph peer addresses..
-	repeated PeerDescription peers = 2;
-	// Synapse endpoint definitions.
-	// SIZE: 304-bytes * N
-	repeated Synapse synapses = 3;
-
-	// The source peer (peer that is sending the request) neuron key
-	string source_neuron_key = 4;
-}
-
-// Description of each peer to the network, with its address and neuron key to distinguish it from other peers. 
-message PeerDescription {
-	// IP address of this peer in the form of address:port
-	string address = 1;
-
-	// Public key of the peer's neuron
-	string neuron_key = 2;
-
-	// the last time this peer connected
-	float heartbeat = 3;
-
-}
-
 // "Synapse" or "Expert" endpoint definition.
 // Fully describes a tensor processing service for hivemind and bittensor.
 // SIZE: (256 * 4) + (512 * 2) + (128 * 3) = 2432-bits (304 bytes)
@@ -87,59 +55,6 @@ message Synapse {
   	// i.e. '8081'
 	// SIZE: 32-bits (4-bytes)
 	int32 port = 5;
-
-	// Block hash: [OPTIONAL] hash of latest chain block service definition creation.
-	// Links the bellow POW to a global-time protecting the cache from
-	// long range POW attacks. Allows services to gossip synpase definitions that 
-	// are globally 'new'.
-	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d
-	// 784c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
-	// NOTE: hashes are likely to change from bitcoin to bittensor.
-	// SIZE: 512-bits (64-bytes)
-	// $ python
-	// >> import requests
-	// >> last_block_hash = requests.get('https://blockchain.info/latestblock').json()['hash']
-	// >> height_now = requests.get('https://blockchain.info/rawblock/$last_block_hash').json()['height']
-	// >> height_of_msg = requests.get('https://blockchain.info/rawblock/$msg.block_hash').json()['height']
-	// >> work_by_time = difficulty(msg.proof_of_work) / (height_now - height_of_msg) 
-	string block_hash = 8;
-
-	// Nounce: [OPTIONAL] incrementing nounce.
-	// Used to generate unique proof of work hashes.
-	// i.e. 12
-	// SIZE: 32-bits (4-bytes)
-	int32 nounce = 9;
-
-	// Proof of work: [OPTIONAL] Work hash which ensures service definition creation 
-	// was computationally expensive. Protects the network cache from flooding attacks.
-	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
-	// SIZE: 256-bits (32-bytes)
-	// >>> from cryptography.hazmat.backends import default_backend
-	// >>> from cryptography.hazmat.primitives import hashes
-	// >>> nounce = 0
-	// >>> do {
-	// >>> 	 nounce += 1
-	// >>> 	 digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-	// >>> 	 digest.update(neuron_key.encode('utf-8'))
-	// >>> 	 digest.update(synapse_key.encode('utf-8'))
-  	// >>> 	 digest.update(address.encode('utf-8'))
-  	// >>> 	 digest.update(port.encode('utf-8))
-	// >>> 	 digest.update(block_hash.encode('utf-8'))
-	// >>> 	 digest.update(bytes(nounce))
-	// >>> 	 digest = digest.finalize()
-	// >>> while( count_zeros(digest) < difficulty )
-	// >>> proof_of_work = digest
-	bytes proof_of_work = 10;
-  
-	// Signature: [OPTIONAL] ed25519 public_key signature for this synapse definition.
-	// Ensures that the connected neuron_key signed this proto.
-	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d931561484
-	// 29d784c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
-	// SIZE: 512-bits (64-bytes)
-  	// $ python
-	// signature = private_key.sign(digest) # to create.
-	// >>> source_key.verify(signature, digest) # to verify.
-	bytes signature = 11;
 }	
 
 // TensorMessage

@@ -52,27 +52,20 @@ class FFNNSynapse(bittensor.Synapse):
 
     def __init__(self,
                  config: FFNNConfig,
-                 dendrite: bittensor.Dendrite = None,
-                 metagraph: bittensor.Metagraph = None):
+                 session = None):
         r""" Init a new ffnn synapse module.
 
             Args:
                 config (:obj:`bittensor.ffnn.FFNNConfig`, `required`): 
                     ffnn configuration class.
 
-                dendrite (:obj:`bittensor.Dendrite`, `optional`, bittensor.dendrite): 
-                    bittensor dendrite object used for queries to remote synapses.
-                    Defaults to bittensor.dendrite global.
-
-                metagraph (:obj:`bittensor.Metagraph`, `optional`, bittensor.metagraph): 
-                    bittensor metagraph containing network graph information. 
-                    Defaults to bittensor.metagraph global.
-
+                session (:obj:`bittensor.Session`, `optional`): 
+                    bittensor session object. 
+                    Defaults to bittensor.session global if exists.
         """
         super(FFNNSynapse, self).__init__(
             config = config,
-            dendrite = dendrite,
-            metagraph = metagraph)
+            session = session)
             
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
@@ -186,9 +179,9 @@ class FFNNSynapse(bittensor.Synapse):
         if remote:
             # If query == True make a remote call.
             images = torch.unsqueeze(images, 1) # Add sequence dimension.
-            synapses = self.metagraph.synapses() # Returns a list of synapses on the network.
+            synapses = self.session.metagraph.synapses() # Returns a list of synapses on the network.
             requests, _ = self.router.route( synapses, transform, images ) # routes inputs to network.
-            responses = self.dendrite.forward_image( synapses, requests ) # Makes network calls.
+            responses = self.session.dendrite.forward_image( synapses, requests ) # Makes network calls.
             remote_context = self.router.join( responses ) # Joins responses based on scores..
             remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2]) # Squeeze the sequence dimension.
 

@@ -73,27 +73,20 @@ class BertSynapseConfig (bittensor.SynapseConfig):
 class BertSynapseBase (bittensor.Synapse):
     def __init__(   self,
                 config: BertSynapseConfig,
-                dendrite: bittensor.Dendrite = None,
-                metagraph: bittensor.Metagraph = None):
+                session: bittensor.Session):
         r""" Init a new base-bert synapse.
 
             Args:
                 config (:obj:`bittensor.bert.BertSynapseConfig`, `required`): 
                     BertNSP configuration class.
 
-                dendrite (:obj:`bittensor.Dendrite`, `optional`, bittensor.dendrite): 
-                    bittensor dendrite object used for queries to remote synapses.
-                    Defaults to bittensor.dendrite global.
-
-                metagraph (:obj:`bittensor.Metagraph`, `optional`, bittensor.metagraph): 
-                    bittensor metagraph containing network graph information. 
-                    Defaults to bittensor.metagraph global.
+                btsession (:obj:`bittensor.Session`, `optional`): 
+                    bittensor training session.
 
         """
         super(BertSynapseBase, self).__init__(
             config = config,
-            dendrite = dendrite,
-            metagraph = metagraph)
+            session = session)
         
         self.router = bittensor.Router(x_dim=bittensor.__network_dim__,
                                        key_dim=100,

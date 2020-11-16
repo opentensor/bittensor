@@ -3,6 +3,7 @@ from loguru import logger
 import configparser
 import argparse
 import requests
+import time
 
 import validators
 import pathlib
@@ -30,21 +31,18 @@ class Config(dict):
     METAGRAPH_PORT = "metagraph_port"
     METAGRAPH_SIZE = "metagraph_size"
     BOOTSTRAP = "bootstrap"
-    NEURON_KEY = "neuron_key"
     REMOTE_IP = "remote_ip"
     DATAPATH = "datapath"
     LOGDIR = "logdir"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, neuron_path: str, *args, **kwargs):
         super().__init__()
-        neuron_key = Crypto.public_key_to_string(Crypto.generate_private_ed25519().public_key())
-
         self.update(
             {
                 Config.CHAIN_ENDPOINT: "",
-                Config.NEURON_KEY: neuron_key,
                 Config.DATAPATH: "data/",
-                Config.LOGDIR: "data/" + neuron_key,
+                Config.NEURON_PATH: neuron_path,
+                Config.LOGDIR: neuron_path + '/logs/' + str(time.time()),
                 Config.REMOTE_IP: None,
                 Config.AXON_PORT: 8091,
                 Config.METAGRAPH_PORT: 8092,
@@ -99,7 +97,7 @@ class ConfigService:
         This is what happens:
         1) The system defaults for the configuration is set
         2) Then, config.ini is loaded and any value set there is used to overwrite the configuration
-        3) Then, the command line is parsed for options and used in the configuratoin
+        3) Then, the command line is parsed for options and used in the configuration.
         4) Ultimately some post processing is applied. Specifically, an IP address is obtained from an IP if not configured
         """
         try:
@@ -123,7 +121,6 @@ class ConfigService:
         parser.add_argument('--metagraph_size', dest=Config.METAGRAPH_SIZE, type=int, help='Metagraph cache size')
         parser.add_argument('--bootstrap', dest=Config.BOOTSTRAP, type=str,
                             help='The socket of the bootstrap peer host:port')
-        parser.add_argument('--neuron_key', dest=Config.NEURON_KEY, type=str, help='Key of the neuron')
         parser.add_argument('--remote_ip', dest=Config.REMOTE_IP, type=str,
                             help='The IP address of this neuron that will be published to the network')
         parser.add_argument('--datapath', dest=Config.DATAPATH, type=str, help='Path to datasets')
@@ -160,7 +157,6 @@ class ConfigService:
 
         # At this point, all sections and options are present. Now load the actual values according to type
         self.load_str(Config.CHAIN_ENDPOINT, "general", "chain_endpoint")
-        self.load_str(Config.NEURON_KEY, "general", "neuron_key")
         self.load_str(Config.DATAPATH, "general", "datapath")
         self.load_str(Config.LOGDIR, "general", "logdir")
 
@@ -196,8 +192,7 @@ class ConfigService:
         try:
             # Chain endpoint is not implemented yet, no validation
 
-            # self.validate_key(self.NEURON_PUBKEY, required=True)
-
+            self.validate_path(Config.NEURON_PATH, required=True)
             self.validate_path(Config.DATAPATH, required=True)
             self.validate_path(Config.LOGDIR, required=True)
             self.validate_ip(Config.REMOTE_IP, required=False)
@@ -433,8 +428,8 @@ class SynapseConfig(object):
         assert isinstance(self.synapse_key, type(SynapseConfig.__default_synapse_key__))
 
     def __str__(self):
-        return "\n chain_endpoint: {} \n neuron key: {} \n axon port: {} \n metagraph port: {} \n metagraph Size: {} \n bootpeer: {} \n remote_ip: {} \n datapath: {} \n logdir: {}".format(
-            self.chain_endpoint, self.neuron_key, self.axon_port, self.metagraph_port,
+        return "\n chain_endpoint: {} \n neuron path: {} \n axon port: {} \n metagraph port: {} \n metagraph Size: {} \n bootpeer: {} \n remote_ip: {} \n datapath: {} \n logdir: {}".format(
+            self.chain_endpoint, self.neuron_path, self.axon_port, self.metagraph_port,
             self.metagraph_size, self.bootstrap, self.remote_ip, self.datapath, self.logdir)
 
     @staticmethod
@@ -476,9 +471,9 @@ class SynapseConfig(object):
                             type=str,
                             help='Metagraph bootpeer')
         parser.add_argument('--neuron_key',
-                            default=Config.__neuron_key_default__,
+                            default=Config.__neuron_path_default__,
                             type=str,
-                            help='Neuron key')
+                            help='Neuron path')
         parser.add_argument('--remote_ip',
                             default=Config.__remote_ip_default__,
                             type=str,
