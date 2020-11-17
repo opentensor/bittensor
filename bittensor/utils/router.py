@@ -3,10 +3,11 @@ from typing import List, Tuple
 import torch
 import torch.nn as nn
 
+import bittensor
+from bittensor.utils.keys import Keys
+from bittensor.utils.gate import Gate
+from bittensor.utils.dispatcher import Dispatcher
 from bittensor import bittensor_pb2
-import bittensor
-import bittensor
-
 
 class Router(nn.Module):
 
@@ -18,13 +19,13 @@ class Router(nn.Module):
 
         # Keys object.
         # projects from/to bittensor_pb2.Synapse to a variable sized key tensor.
-        self.keymap = bittensor.Keys(self.key_dim)
+        self.keymap = Keys(self.key_dim)
 
         # Trainable gating object.
-        self.gate = bittensor.Gate(self.x_dim, self.topk, self.key_dim)
+        self.gate = Gate(self.x_dim, self.topk, self.key_dim)
 
         # Object for dispatching / combining gated inputs
-        self.dispatcher = bittensor.Dispatcher()
+        self.dispatcher = Dispatcher()
 
     def route(self, synapses: List[bittensor_pb2.Synapse],
               gate_inputs: torch.Tensor,
