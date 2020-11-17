@@ -30,6 +30,7 @@ class TestAxon(unittest.TestCase):
             )
         self.synapse = bittensor.Synapse(synapse_config, dendrite, meta)
         self.neuron_key=bittensor.crypto.Crypto.public_key_to_string(public_key)
+        self.tblogger = bittensor.TBLogger("./tests/tmp")
     
     def test_serve(self):
         assert len(self.axon._local_synapses) == 0
@@ -44,6 +45,7 @@ class TestAxon(unittest.TestCase):
         request = bittensor_pb2.TensorMessage()
 
         # Check for null response by sending a request with no tensors in it
+        bittensor.tbwriter = MagicMock(return_value=self.tblogger)
         response = self.axon.Forward(request, None)
         assert response == bittensor_pb2.TensorMessage(
                                 version=bittensor.__version__,
@@ -76,7 +78,7 @@ class TestAxon(unittest.TestCase):
             synapse_key=self.synapse.synapse_key(),
             tensors=[PyTorchSerializer.serialize_tensor(x)]
         )
-
+        bittensor.tbwriter = MagicMock(return_value=self.tblogger)
         self.axon._local_synapses[request.synapse_key].call_forward = MagicMock(return_value=x)
         response = self.axon.Backward(request, None)
 

@@ -9,6 +9,7 @@ from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
 from bittensor.serializer import PyTorchSerializer
 from bittensor.exceptions.Exceptions import EmptyTensorException, ResponseShapeException, SerializationException
+import time
 
 # dummy tensor that triggers autograd in RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
@@ -241,7 +242,13 @@ class _RemoteModuleCall(torch.autograd.Function):
                 tensors=[serialized_inputs])
 
             # Forward tensor.
-            response = ctx.caller.stub.Forward(request, timeout=1.0)
+            pre_response_time = time.time() # in seconds
+            response = ctx.caller.stub.Forward(request)
+            # Time (in seconds) response took
+            elapsed_time = time.time() - pre_response_time
+            bittensor.tbwriter.write_dendrite_network_data('Remote Module Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
+            bittensor.tbwriter.write_dendrite_network_data('Remote Module Forward Call Turnaround latency (seconds)', round(elapsed_time, 2))
+
             # Deserialize outputs and return.
             if len(response.tensors) > 0:
                 outputs = PyTorchSerializer.deserialize_tensor(
@@ -290,12 +297,15 @@ class _RemoteModuleCall(torch.autograd.Function):
                 tensors=[serialized_inputs, serialized_grads])
 
             # Attain backward response
-            response = ctx.caller.stub.Backward(request, timeout=1.0)
+            pre_response_time = time.time()
+            response = ctx.caller.stub.Backward(request)
+            elapsed_time = time.time() - pre_response_time
+            bittensor.tbwriter.write_dendrite_network_data('Remote Module Backward Call Response Message Size (MB)', response.ByteSize() / 1024)
+            bittensor.tbwriter.write_dendrite_network_data('Remote Module Backward Call Turnaround latency (seconds)', round(elapsed_time, 2))
             deserialized_grad_inputs = PyTorchSerializer.deserialize(
                 response.tensors[0])
             return (None, None, deserialized_grad_inputs, None)
         except grpc._channel._InactiveRpcError as _:
-            logger.warning("gRPC Channel RPC Error occured. Check timeouts.")
             return (None, None, deserialized_grad_inputs, None)
         except SerializationException as _:
             logger.warning("Serialization of gradients {} failed".format(grads))

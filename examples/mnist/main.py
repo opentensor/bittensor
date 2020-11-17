@@ -85,12 +85,13 @@ def main():
                 accuracy = (100.0 * correct) / batch_size_train
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nP: {}', 
                     epoch, processed, n, progress, loss_item, accuracy, len(bittensor.metagraph.peers()))
-                bittensor.tbwriter.add_scalar('train remote target loss', output.remote_target_loss.item(), time.time())
-                bittensor.tbwriter.add_scalar('train local target loss', output.local_target_loss.item(), time.time())
-                bittensor.tbwriter.add_scalar('train distilation loss', output.distillation_loss.item(), time.time())
-                bittensor.tbwriter.add_scalar('train loss', output.loss.item(), time.time())
-                bittensor.tbwriter.add_scalar('train accuracy', accuracy, time.time())
-                bittensor.tbwriter.add_scalar('gs/t', log_interval / (time.time() - last_log), time.time())
+                bittensor.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())
+                bittensor.tbwriter.write_loss('train local target loss', output.local_target_loss.item())
+                bittensor.tbwriter.write_loss('train distilation loss', output.distillation_loss.item())
+                bittensor.tbwriter.write_loss('train loss', output.loss.item())
+                bittensor.tbwriter.write_accuracy('train accuracy', accuracy)
+                bittensor.tbwriter.write_custom('global step v.s. time elapsed', log_interval / (time.time() - last_log))
+                bittensor.tbwriter.write_network_data('Num Peers', len(bittensor.metagraph.peers()))
                 last_log = time.time()
 
     # Test loop.
@@ -125,7 +126,8 @@ def main():
         loss /= n
         accuracy = (100. * correct) / n
         logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))  
-        bittensor.tbwriter.add_scalar('test loss', loss, time.time())
+        bittensor.tbwriter.write_loss('test loss', loss)
+        bittensor.tbwriter.write_accuracy('test accuracy', accuracy)
         return loss, accuracy
     
     while True:
