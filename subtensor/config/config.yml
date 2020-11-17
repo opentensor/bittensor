@@ -13,21 +13,21 @@ genesis:
       changesTrieConfig:
     palletAura:
       authorities: [
-#                     SS58 Addresses go here
+#                     SS58 Addresses go here (SR25529)
                      "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",  # Alice
                      "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",   # Bob
                      "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y"   # Charlie
                      ]
     palletGrandpa:
       authorities: [
-#                     list [SS58 Address, weight] lists go here
-                      ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1],
-                      ["5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty", 1],
-                      ["5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y", 1]
+#                     list [SS58 Address, weight] lists go here (ED25519)
+                      ["5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu", 1], # //Alice
+                      ["5GoNkf6WdbxCFnPdAnYYQyCjAKPJgLNxXwPjwTh6DGg6gN3E", 1], # //Bob
+                      ["5DbKjhNLpqX3zqZdNBc9BGb4fHU1cRBaDhJUskrvkwfraDi6", 1] # //Charlie
       ]
     palletBalances:
       balances: [
-  #                  list of [SS58 Address, balance] lists go here
+  #                  list of [SS58 Address, balance] lists go here (SR25519)
                   ['5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', 10000000000000], # Alice's balance  10.000.000.000.000
                   ['5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty', 20000000000000], # Bob's balance    20.000.000.000.000
                   ['5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y', 30000000000000] # Charlie's balance  30.000.000.000.000
