@@ -13,9 +13,8 @@ from loguru import logger
 from substrateinterface import Keypair
 from torch.utils.tensorboard import SummaryWriter
 
-
 class SubtensorProcess:
-    def __init__(sefl, config):
+    def __init__(self, config):
         self._config = config
         self._process = process
     
@@ -26,6 +25,7 @@ class SubtensorProcess:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
+
     def stop(self):
         self._process.kill()
 
@@ -37,7 +37,7 @@ class BTSession:
         self.axon = Axon(self.config, self.__keypair)
         self.dendrite = Dendrite(self.config, self.__keypair)
         self.tbwriter = SummaryWriter(log_dir=self.config.session_settings.logdir)
-        self.substrate_process = SubtensorProcess(self.config)
+        self.subtensor_process = SubtensorProcess(self.config)
 
     def serve(self, synapse: Synapse):
         # Serve the synapse object on the grpc endpoint.
