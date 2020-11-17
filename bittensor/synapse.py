@@ -5,10 +5,26 @@ import torch.optim as optim
 from typing import List, Tuple, Dict, Optional, TYPE_CHECKING
 
 import bittensor
+from bittensor.crypto import Crypto
 from bittensor import bittensor_pb2
 
-class SynapseConfig:
-    pass
+class SynapseConfig(object):
+    r"""Base config for all synapse objects.
+    Handles a parameters common to all bittensor synapse objects.
+    Args:
+         synapse_key (:obj:`str(ed25519 key)`, `optional`, defaults to :obj:`random str(ed25519)`):
+            Cryptographic keys used by this synapse. Defaults to randomly generated ed25519 key.
+    """
+    __default_synapse_key__ = Crypto.public_key_to_string(
+        Crypto.generate_private_ed25519().public_key())
+
+    def __init__(self, **kwargs):
+        # Bittensor synapse key.
+        self.synapse_key = kwargs.pop("synapse_key", SynapseConfig.__default_synapse_key__)
+        self._base_run_type_checks()
+
+    def _base_run_type_checks(self):
+        assert isinstance(self.synapse_key, type(SynapseConfig.__default_synapse_key__))
 
 class SynapseOutput(object):
     """ Synapse output container.
@@ -64,7 +80,7 @@ class Synapse(nn.Module):
 
     def __init__(   self,
                     config: SynapseConfig,
-                    session = None):
+                    session):
         r""" Init synapse module.
 
             Args:
@@ -73,32 +89,16 @@ class Synapse(nn.Module):
 
                 session (:obj:`bittensor.BTSession`, `optional`): 
                     bittensor training session.
-                    Defaults to bittensor.session global if exists.
-
         """
         super().__init__()
 
         self.config = config
-        
-        # Bittensor dendrite object used for queries to remote synapses.
-        # Defaults to bittensor.dendrite global object.
         self.session = session
-        if self.session == None:
-            # Get global session.
-            self.session = bittensor.session
-            if self.session  == None:
-                raise Warning ('Synapse initialized without a valid session. Pass a bittensor session or ensure that a global bittensor.session exists by calling bittensor.init()')
-
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        # Send model to appropriate device (CPU or CUDA)
         self.to(self.device)
 
     def synapse_key(self) -> str:
         return self.config.synapse_key
-
-    def set_synapse_key(self, key):
-        self.config.synapse_key = key
 
     def deepcopy(self):
         """ Returns a copy of this synapse by passing the model params to load_state_dict.
@@ -108,7 +108,7 @@ class Synapse(nn.Module):
                     Deep copy synapse object.
         """
         SynapseClass = self.__class__
-        synapse_copy = SynapseClass(self.config)
+        synapse_copy = SynapseClass(self.config, self.session)
         synapse_copy.load_state_dict(self.state_dict())
         return synapse_copy
 

@@ -172,7 +172,7 @@ class RemoteSynapse(nn.Module):
         self.config = config
         self.keypair = keypair
         # Loop back if the synapse is local.
-        if synapse.address == config.session_settings.remote_ip:
+        if synapse.address == self.config.session_settings.remote_ip:
             ip = "localhost:"
             if config.session_settings.remote_ip == "host.docker.internal":
                 ip = "host.docker.internal:"
@@ -235,7 +235,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             # Build request for forward.
             request = bittensor_pb2.TensorMessage(
                 version=bittensor.__version__,
-                neuron_key=ctx.caller.keypair.publickey,
+                neuron_key=ctx.caller.keypair.public_key,
                 synapse_key=ctx.caller.synapse.synapse_key,
                 nounce=ctx.caller.nounce,
                 signature=ctx.caller.signature,
@@ -284,7 +284,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             # Build request for forward.
             request = bittensor_pb2.TensorMessage(
                 version=bittensor.__version__,
-                neuron_key=ctx.caller.keypair.publickey,
+                neuron_key=ctx.caller.keypair.public_key,
                 synapse_key=ctx.caller.synapse.synapse_key,
                 nounce=ctx.caller.nounce,
                 signature=ctx.caller.signature,

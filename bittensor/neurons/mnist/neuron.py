@@ -43,9 +43,9 @@ class Neuron (Neuron):
         optimizer = optim.SGD(model.parameters(), lr=self.config.training.learning_rate, momentum=self.config.training.momentum)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10.0, gamma=0.1)
 
-        train_data = torchvision.datasets.MNIST(root = self.config.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
+        train_data = torchvision.datasets.MNIST(root = self.config.neuron.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
         trainloader = torch.utils.data.DataLoader(train_data, batch_size = self.config.training.batch_size_train, shuffle=True, num_workers=2)
-        test_data = torchvision.datasets.MNIST(root = self.config.datapath + "datasets/", train=False, download=True, transform=transforms.ToTensor())
+        test_data = torchvision.datasets.MNIST(root = self.config.neuron.datapath + "datasets/", train=False, download=True, transform=transforms.ToTensor())
         testloader = torch.utils.data.DataLoader(test_data, batch_size = self.config.training.batch_size_test, shuffle=False, num_workers=2)
     
         # Train loop: Single threaded training of MNIST.

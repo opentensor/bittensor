@@ -209,7 +209,7 @@ decl_module! {
 			
 			// Check sig.
 			let neuron = ensure_signed(origin)?;
-			debug::info!("add_stake sent by: {:?}", Neuron);
+			debug::info!("add_stake sent by: {:?}", neuron);
 			debug::info!("stake_amount {:?}", stake_amount);
 
 			// Check subscribed.
@@ -251,7 +251,7 @@ decl_module! {
 
 			// Update Neuron count.
 			let neuron_count = NeuronCount::get();
-			neuronCount::put(neuron_count + 1); // overflow check not necessary because of maximum
+			NeuronCount::put(neuron_count + 1); // overflow check not necessary because of maximum
 			debug::info!("neuron_count: {:?}", neuron_count + 1);
 
 			// Add current block to last emit under Neuron account.
@@ -268,7 +268,7 @@ decl_module! {
 			WeightKeys::<T>::insert(&new_neuron, &Vec::new());
 
 			// Emit event.
-			Self::deposit_event(RawEvent::neuronAdded(new_neuron));
+			Self::deposit_event(RawEvent::NeuronAdded(new_neuron));
 			Ok(())
 		}
 		
@@ -282,7 +282,7 @@ decl_module! {
 			debug::info!("unsubscribe sent by: {:?}", old_neuron);
 
 			// Check that the Neuron already exists.
-			ensure!(neurons::<T>::contains_key(&old_neuron), Error::<T>::NotActive);
+			ensure!(Neurons::<T>::contains_key(&old_neuron), Error::<T>::NotActive);
 		
 			// Remove Neuron.
 			Neurons::<T>::remove(&old_neuron);
@@ -303,7 +303,7 @@ decl_module! {
 			debug::info!("remove weights.");
 
 			// Emit event.
-			Self::deposit_event(RawEvent::neuronRemoved(old_neuron));
+			Self::deposit_event(RawEvent::NeuronRemoved(old_neuron));
 			Ok(())
 		}
 

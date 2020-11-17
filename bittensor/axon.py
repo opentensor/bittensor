@@ -114,7 +114,7 @@ class Axon(bittensor_grpc.BittensorServicer):
             # Build response.
             response = bittensor_pb2.TensorMessage(
                 version=bittensor.__version__,
-                neuron_key=self.__keypair.publickey,
+                neuron_key=self.__keypair.public_key,
                 synapse_key=request.synapse_key,
                 tensors=y_serialized)
 
@@ -123,7 +123,7 @@ class Axon(bittensor_grpc.BittensorServicer):
             # Build null response.
             response = bittensor_pb2.TensorMessage(
                 version=bittensor.__version__,
-                neuron_key=self.__keypair.publickey,
+                neuron_key=self.__keypair.public_key,
                 synapse_key=request.synapse_key)
 
         return response
@@ -155,7 +155,7 @@ class Axon(bittensor_grpc.BittensorServicer):
 
                     response = bittensor_pb2.TensorMessage(
                         version=bittensor.__version__,
-                        neuron_key=self.__keypair.publickey,
+                        neuron_key=self.__keypair.public_key,
                         synapse_key=request.synapse_key,
                         tensors=[dx_serialized])
                 except SerializationException as _:
@@ -169,7 +169,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 # Build null response.
                 response = bittensor_pb2.TensorMessage(
                     version=bittensor.__version__,
-                    neuron_key=self.__keypair.publickey,
+                    neuron_key=self.__keypair.public_key,
                     synapse_key=request.synapse_key)
         
         return response

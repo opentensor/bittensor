@@ -7,16 +7,15 @@ from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
-from bittensor.pysubtensor import WSClient
 
 from loguru import logger
-from substrateinterface import Keypair
+from substrateinterface import SubstrateInterface, Keypair
 from torch.utils.tensorboard import SummaryWriter
 
 class SubtensorProcess:
     def __init__(self, config):
         self._config = config
-        self._process = process
+        self._process = None
     
     def start(self):
         args = ['./subtensor/target/release/node-subtensor', '--dev']
@@ -27,7 +26,8 @@ class SubtensorProcess:
         )
 
     def stop(self):
-        self._process.kill()
+        if self._process != None:
+            self._process.kill()
 
 class BTSession:
     def __init__(self, config, keypair: Keypair):
