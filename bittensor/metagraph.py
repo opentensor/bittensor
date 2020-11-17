@@ -41,28 +41,60 @@ class Metagraph():
             type_registry=custom_type_registry
         )
 
+    def neurons (self) -> List[bittensor_pb2.Neuron]:
+        
+        # Get current block for filtering.
+        current_block = self.substrate.get_block_number(None)
 
-    def synapses (self) -> List[bittensor_pb2.Synapse]:
-        neurons = self.substrate.iterate_map(
+        # Pull the last emit data from all nodes.
+        last_emit_data = self.substrate.iterate_map(
+            module='SubtensorModule',
+            storage_function='LastEmit'
+        )
+        last_emit_map = {}
+        for el in last_emit_data:
+            last_emit_map[el[0]] = int(el[1])
+
+        # Pull all neuron metadata.
+        neuron_metadata = self.substrate.iterate_map(
             module='SubtensorModule',
             storage_function='Neurons'
         )
-        # Add from list.
-        synapses = []
-        for synapse in neurons:
-            if synapse[0] != self.__keypair.public_key:
-                # Create a new bittensor_pb2.Synapse proto.
-                synapse_proto = bittensor_pb2.Synapse(
-                    version=bittensor.__version__,
-                    neuron_key=synapse[0],
-                    synapse_key=synapse[0],
-                    address=int_to_ip(synapse[1]['ip']),
-                    port=int(synapse[1]['port']),
-                )
-                synapses.append(synapse_proto)
-        for syn in synapses:
-            logger.info('synapse {}', syn)
-        return synapses
+
+        # Filter neurons.
+        neuron_map = {}
+        for n_meta in neuron_metadata:
+            # Create a new bittensor_pb2.Neuron proto.
+            public_key = n_meta[0]
+
+            # Filter nodes based on neuron last emit.
+            if current_block - int(last_emit_map[public_key]) > 100:
+                continue
+
+            # Create neuron proto.
+            ipstr = int_to_ip(n_meta[1]['ip'])
+            port = int(n_meta[1]['port'])
+            neuron_proto = bittensor_pb2.Neuron(
+                version=bittensor.__version__,
+                public_key=public_key,
+                address=ipstr,
+                port=port
+            )
+
+            # Check overlap ip-port, take the most recent neuron.
+            ip_port = ipstr + str(port)
+            if ip_port not in neuron_map:
+                neuron_map[ip_port] = neuron_proto
+            else:
+                public_key2 = neuron_map[ip_port].public_key
+                last_emit_1 = last_emit_map[public_key]
+                last_emit_2 = last_emit_map[public_key2]
+                if last_emit_1 >= last_emit_2:
+                    neuron_map[ip_port] = neuron_proto
+                
+        # Return list of non-filtered neurons.
+        neurons_list = neuron_map.values()
+        return neurons_list
 
     def connect(self, timeout) -> bool:
         time_elapsed = 0

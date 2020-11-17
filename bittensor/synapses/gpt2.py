@@ -1,5 +1,5 @@
 import bittensor
-from bittensor.router import Router
+from bittensor.utils.router import Router
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseConfig
 from bittensor.synapse import SynapseOutput
@@ -213,9 +213,9 @@ class GPT2LMSynapse(Synapse):
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         if remote:
             # network = torch.Tensor(batch_size, bittensor.__network_dim__)
-            synapses = self.session.metagraph.synapses()  # Returns a list of synapses on the network.
-            requests, _ = self.router.route(synapses, pooled, inputs)  # routes inputs to network.
-            responses = self.sessio.dendrite.forward_text(synapses, requests)  # Makes network calls.
+            neurons = self.session.metagraph.neurons()  # Returns a list of neurons on the network.
+            requests, _ = self.router.route(neurons, pooled, inputs)  # routes inputs to network.
+            responses = self.session.dendrite.forward_text(neurons, requests)  # Makes network calls.
             remote_context = self.router.join(responses)  # Join responses with scores.
 
         # local_context: distilled version of remote_context.

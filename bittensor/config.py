@@ -84,9 +84,40 @@ class Config:
         if passed_items != None:
             config_items = overwrite_add(config_items, passed_items)
 
-        # 3. Load items from optional passed config_path
+        # 3. Load neuron path from optional passed --neuron_path
+        commandline_items = None
+        params = None
+        try:
+            parser = argparse.ArgumentParser()
+            parser.add_argument('--neuron_path', default=None, help='path to a neuron configuration file')
+            params = parser.parse_args()
+        except:
+            pass
+        if params and params.neuron_path != None:
+            neuron_config_path = os.getcwd() + params.neuron_path + '/config.yaml'
+            if not os.path.isfile(neuron_config_path):
+                logger.error('CONFIG: failed parsing command line config file at {}', neuron_config_path)
+                raise FileNotFoundError('Cannot find a configuration file at', neuron_config_path)
+            else:
+                with open(neuron_config_path, 'r') as f:
+                    try:
+                        commandline_items = yaml.safe_load(f)
+                    except yaml.YAMLError as exc:
+                        logger.error('CONFIG: cannot parse commandline configuration file at {}', neuron_config_path)
+                        raise InvalidConfigFile
+            
+            # Set neuron_path properly
+            if 'neuron' not in commandline_items:
+                commandline_items['neuron'] = munch.Munch()
+            commandline_items['neuron']['neuron_path'] = params.neuron_path
+
+        # Overwrite items with commandline_items
+        if commandline_items != None:
+            config_items = overwrite_add(config_items, commandline_items)
+
+        # 4. Load items from optional passed config_path
         neuron_items = None
-        if config_items['neuron']['neuron_path'] != None:
+        if not commandline_items and config_items['neuron']['neuron_path'] != None:
             neuron_config_path = os.getcwd() + str(config_items['neuron']['neuron_path']) + '/config.yaml'
             if not os.path.isfile(neuron_config_path):
                 logger.error('CONFIG: failed parsing neuron_path config file at {}', neuron_config_path)
@@ -102,31 +133,7 @@ class Config:
         if neuron_items != None:
             config_items = overwrite_add(config_items, neuron_items)
 
-        # 4. Load items from optional passed --config_path
-        commandline_items = None
-        params = None
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('--config_file', default=None, help='path to a configuration file')
-            params = parser.parse_args()
-        except:
-            pass
-        if params and params.config_file != None:
-            if not os.path.isfile(params.config_file):
-                logger.error('CONFIG: failed parsing command line config file at {}', params.config_file)
-                raise FileNotFoundError('Cannot find a configuration file at', params.config_file)
-            else:
-                with open(params.config_file, 'r') as f:
-                    try:
-                        commandline_items = yaml.safe_load(f)
-                    except yaml.YAMLError as exc:
-                        logger.error('CONFIG: cannot parse commandline configuration file at {}', params.config_file)
-                        raise InvalidConfigFile
-
-        # Overwrite items with commandline_items
-        if commandline_items != None:
-            config_items = overwrite_add(config_items, commandline_items)
-
+        
         # 5. Load items from passed yaml
         passed_yaml_items = None
         if from_yaml != None:

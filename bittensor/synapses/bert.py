@@ -1,10 +1,11 @@
 import bittensor
-from bittensor.router import Router
+from bittensor.utils.router import Router
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseConfig
 from bittensor.synapse import SynapseOutput
 from bittensor.session import BTSession
 
+import random
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -56,7 +57,6 @@ class BertSynapseConfig (SynapseConfig):
         >>> # Initializing the synapse
         >>> configuration = BertNSPSynapse ( configuration )
     """
-
     __default_huggingface_config__ = BertConfig(vocab_size=bittensor.__vocab_size__, 
                                                 hidden_size=bittensor.__network_dim__, 
                                                 num_hidden_layers=2, 
@@ -107,7 +107,7 @@ class BertSynapseBase (Synapse):
 
         # router: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, bittensor.__network_dim__] -> topk * [batch_size, bittensor.__network_dim__]
-        self.router = bittensor.Router(x_dim=bittensor.__network_dim__, key_dim=100, topk=10)
+        self.router = Router(x_dim=bittensor.__network_dim__, key_dim=100, topk=10)
 
         # hidden_layer: transforms context and encoding to network_dim hidden units.
         # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -168,9 +168,9 @@ class BertSynapseBase (Synapse):
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         if remote:
             # network = torch.Tensor(batch_size, bittensor.__network_dim__)
-            synapses = self.session.metagraph.synapses()  # Returns a list of synapses on the network.
-            requests, _ = self.router.route(synapses, encoding_pooled, inputs)  # routes inputs to network.
-            responses = self.session.dendrite.forward_text(synapses, requests)  # Makes network calls.
+            neurons = self.session.metagraph.neurons()  # Returns a list of synapses on the network.
+            requests, _ = self.router.route(neurons, encoding_pooled, inputs)  # routes inputs to network.
+            responses = self.session.dendrite.forward_text(neurons, requests)  # Makes network calls.
             remote_context = self.router.join(responses)  # Join responses with scores.
 
         # local_context: distilled version of remote_context.
@@ -201,7 +201,7 @@ class BertSynapseBase (Synapse):
 class BertNSPSynapse (BertSynapseBase):
     def __init__(   self,
                     config: BertSynapseConfig,
-                    dendrite: BTSession):
+                    session: BTSession):
         r""" Init a new bert nsp synapse module.
 
             Args:

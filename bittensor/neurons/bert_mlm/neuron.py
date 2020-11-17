@@ -31,9 +31,9 @@ class Neuron (Neuron):
 
         # Build Synapse
         model_config = BertSynapseConfig()
-        model = BertMLMSynapse(model_config)
+        model = BertMLMSynapse(model_config, session)
         model.to(device)
-        self.session.serve( model )
+        session.serve( model )
 
         # Dataset: 74 million sentences pulled from books.
         # The collator accepts a list [ dict{'input_ids, ...; } ] where the internal dict 
@@ -54,7 +54,7 @@ class Neuron (Neuron):
             step = 0
             while step < self.config.training.epoch_size:
                 # Next batch.
-                inputs, labels = mlm_batch(dataset['train'], batch_size, bittensor.__tokenizer__, data_collator)
+                inputs, labels = mlm_batch(dataset['train'], self.config.training.batch_size, bittensor.__tokenizer__, data_collator)
                 
                 # Compute full pass and get loss with a network query.
                 output = model( inputs.to(device), labels.to(device), remote = True)

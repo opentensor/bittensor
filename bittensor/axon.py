@@ -14,7 +14,7 @@ from bittensor.exceptions.Exceptions import DeserializationException, InvalidReq
 
 
 class Axon(bittensor_grpc.BittensorServicer):
-    """ Processes Fwd and Bwd requests for a set of local Synapses """
+    """ Processes Fwd and Bwd requests for the local neuron's synapse """
 
     def __init__(self, config, keypair):
         self._config = config
@@ -25,8 +25,8 @@ class Axon(bittensor_grpc.BittensorServicer):
         bittensor_grpc.add_BittensorServicer_to_server(self, self._server)
         self._server.add_insecure_port('[::]:' + str(self._config.session_settings.axon_port))
 
-        # Local synapses
-        self._local_synapses = {}
+        # Local synapse.
+        self._synapse = None
 
         # Serving thread.
         self._thread = None
@@ -49,22 +49,17 @@ class Axon(bittensor_grpc.BittensorServicer):
             logger.error(e)
 
     def stop(self):
-        """ Stop the synapse terminal server """
+        """ Stop the axon terminal server """
         if self._server != None:
             self._server.stop(0)
 
     def serve(self, synapse: Synapse):
-        """ Adds an Synapse to the serving set """
-        self._local_synapses[self.__keypair.public_key] = synapse
+        """ Adds an Synapse for serving. """
+        self._synapse = synapse
 
     def Forward(self, request: bittensor_pb2.TensorMessage,
                 context: grpc.ServicerContext):
         try:
-            if request.synapse_key not in self._local_synapses:
-                raise NonExistentSynapseException("There is no record of this caller's synapse key ({}) in the local synapses".format(request.synapse_key))
-
-            synapse = self._local_synapses[request.synapse_key]
-
             # Single tensor requests only.
             if len(request.tensors) > 0:
                 inputs = request.tensors[0]
@@ -107,7 +102,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                             len(x.shape)))
 
             # Call forward network. May call NotImplementedError:
-            y = synapse.call_forward(x, inputs.modality)
+            y = self._synapse.call_forward(x, inputs.modality)
 
             # Serialize.
             y_serialized = [PyTorchSerializer.serialize_tensor(y)]
@@ -115,8 +110,7 @@ class Axon(bittensor_grpc.BittensorServicer):
             # Build response.
             response = bittensor_pb2.TensorMessage(
                 version=bittensor.__version__,
-                neuron_key=self.__keypair.public_key,
-                synapse_key=request.synapse_key,
+                public_key=self.__keypair.public_key,
                 tensors=y_serialized)
 
         except (RequestShapeException, NonExistentSynapseException,
@@ -124,8 +118,7 @@ class Axon(bittensor_grpc.BittensorServicer):
             # Build null response.
             response = bittensor_pb2.TensorMessage(
                 version=bittensor.__version__,
-                neuron_key=self.__keypair.public_key,
-                synapse_key=request.synapse_key)
+                public_key=self.__keypair.public_key)
 
         return response
 
@@ -135,11 +128,6 @@ class Axon(bittensor_grpc.BittensorServicer):
         # TODO (const): Exceptions.
         # Return null response if the target does not exist.
         try:
-            if request.synapse_key not in self._local_synapses:
-                raise NonExistentSynapseException("Backward: There is no record of this caller's synapse key ({}) in the local synapses".format(request.synapse_key))
-
-            synapse = self._local_synapses[request.synapse_key]
-
             # Make local call.
             if len(request.tensors) != 2:
                 raise InvalidRequestException("Backward: There are {} tensors in the request, expected 2.".format(len(request.tensors)))
@@ -151,14 +139,13 @@ class Axon(bittensor_grpc.BittensorServicer):
                     raise DeserializationException("Failed to deserialize {} and {}".format(request.tensors[0], request.tensors[1]))
                 
                 try:
-                    dx = synapse.call_backward(x, dy)
+                    dx = self._synapse.call_backward(x, dy)
                     dx_serialized = PyTorchSerializer.serialize_tensor(dx)
-
                     response = bittensor_pb2.TensorMessage(
                         version=bittensor.__version__,
-                        neuron_key=self.__keypair.public_key,
-                        synapse_key=request.synapse_key,
+                        public_key=self.__keypair.public_key,
                         tensors=[dx_serialized])
+
                 except SerializationException as _:
                     raise SerializationException("Failed to serialize.")
                 except NotImplementedError as _:
@@ -170,7 +157,6 @@ class Axon(bittensor_grpc.BittensorServicer):
                 # Build null response.
                 response = bittensor_pb2.TensorMessage(
                     version=bittensor.__version__,
-                    neuron_key=self.__keypair.public_key,
-                    synapse_key=request.synapse_key)
+                    public_key=self.__keypair.public_key)
         
         return response
