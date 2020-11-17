@@ -7,12 +7,10 @@ class Neuron(object):
     def __init__(   
                 self,
                 config,
-                session: BTSession
         ):
         self.config = config
-        self.session = session
 
-    def start(self):
+    def start(self, session: BTSession):
         raise NotImplementedError
     
     def stop(self):

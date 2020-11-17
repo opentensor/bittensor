@@ -8,6 +8,7 @@ grpcio
 grpcio-tools
 loguru
 munch
+netaddr
 numpy
 pickle-mixin
 pycryptodome

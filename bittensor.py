@@ -46,37 +46,12 @@ def main():
         quit(-1)
 
     # 4. Main try catch.
-    neuron = None
-    session = None
-    try:
-        # 4.1 Init the bittensor session
-        logger.info('Init session.')
-        session = bittensor.init(config, keypair)
-
-        # 4.2 Start the bittensor session.
-        logger.info('Start session.')
-        session.start()
-        time.sleep(2)
-
-        logger.info('Subscribe neuron.')
-        session.subscribe()
-
-
-        # 4.3 Start the bittensor neuron.
-        logger.info('Run neuron.')
-        neuron = neuron_module.Neuron( config, session )
-        neuron.start()
-    
-    except Exception as e:
-        logger.error("Exception while running neuron occured. Message: {}".format(e))
-        raise
-    
-    # 5. Wrap up and tear down.  
-    if neuron != None:
-        neuron.stop()
-    if session != None:
-        session.unsubscribe()
-        session.stop()
+    neuron = neuron_module.Neuron( config )
+    session = bittensor.init(config, keypair)
+    with session:
+        logger.info('here')
+        neuron.start( session ) 
+        logger.info('here')
 
 if __name__ == "__main__":
     main()

@@ -7,6 +7,14 @@ service Bittensor {
 	
 	// Backward tensor request i.e. gradient.
 	rpc Backward (TensorMessage) returns (TensorMessage) {}
+
+	// Backward tensor request i.e. gradient.
+	rpc Query (Empty) returns (Synapses) {}
+}
+
+message Empty {}
+message Query {
+	repeated Synapses = 1;
 }
 
 // "Synapse" or "Expert" endpoint definition.

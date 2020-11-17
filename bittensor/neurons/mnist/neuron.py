@@ -21,23 +21,22 @@ import torchvision
 import torchvision.transforms as transforms
 
 class Neuron (Neuron):
-    def __init__(self, config, session: BTSession):
+    def __init__(self, config):
         self.config = config
-        self.session = session
 
     def stop(self):
         pass
 
-    def start(self): 
+    def start(self, session: BTSession): 
         epoch = 0
         best_test_loss = math.inf
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Build local synapse to serve on the network.
         model_config = FFNNConfig()
-        model = FFNNSynapse(model_config, self.session)
+        model = FFNNSynapse(model_config, session)
         model.to( device ) # Set model to device.
-        self.session.serve( model.deepcopy() )
+        session.serve( model.deepcopy() )
 
         # Build the optimizer.
         optimizer = optim.SGD(model.parameters(), lr=self.config.training.learning_rate, momentum=self.config.training.momentum)
@@ -78,13 +77,13 @@ class Neuron (Neuron):
                     progress = (100. * processed) / n
                     accuracy = (100.0 * correct) / self.config.training.batch_size_train
                     logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nS: {}', 
-                        epoch, processed, n, progress, loss_item, accuracy, len(self.session.metagraph.synapses()))
-                    self.session.tbwriter.add_scalar('train remote target loss', output.remote_target_loss.item(), time.time())
-                    self.session.tbwriter.add_scalar('train local target loss', output.local_target_loss.item(), time.time())
-                    self.session.tbwriter.add_scalar('train distilation loss', output.distillation_loss.item(), time.time())
-                    self.session.tbwriter.add_scalar('train loss', output.loss.item(), time.time())
-                    self.session.tbwriter.add_scalar('train accuracy', accuracy, time.time())
-                    self.session.tbwriter.add_scalar('gs/t', self.config.training.log_interval / (time.time() - last_log), time.time())
+                        epoch, processed, n, progress, loss_item, accuracy, len(session.metagraph.synapses()))
+                    session.tbwriter.add_scalar('train remote target loss', output.remote_target_loss.item(), time.time())
+                    session.tbwriter.add_scalar('train local target loss', output.local_target_loss.item(), time.time())
+                    session.tbwriter.add_scalar('train distilation loss', output.distillation_loss.item(), time.time())
+                    session.tbwriter.add_scalar('train loss', output.loss.item(), time.time())
+                    session.tbwriter.add_scalar('train accuracy', accuracy, time.time())
+                    session.tbwriter.add_scalar('gs/t', self.config.training.log_interval / (time.time() - last_log), time.time())
                     last_log = time.time()
 
         # Test loop.
@@ -119,7 +118,7 @@ class Neuron (Neuron):
             loss /= n
             accuracy = (100. * correct) / n
             logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))  
-            self.session.tbwriter.add_scalar('test loss', loss, time.time())
+            session.tbwriter.add_scalar('test loss', loss, time.time())
             return loss, accuracy
     
         while True:
@@ -138,7 +137,7 @@ class Neuron (Neuron):
                 # Save and serve the new best local model.
                 logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.neuron.logdir + '/model.torch' )
                 torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.logdir + '/model.torch' )
-                self.session.serve( model.deepcopy() )
+                session.serve( model.deepcopy() )
 
             epoch += 1
 

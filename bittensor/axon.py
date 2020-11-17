@@ -6,7 +6,7 @@ import threading
 import torch
 
 import bittensor
-from bittensor import synapse
+from bittensor.synapse import Synapse
 from bittensor import bittensor_pb2
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor.serializer import PyTorchSerializer
@@ -50,11 +50,12 @@ class Axon(bittensor_grpc.BittensorServicer):
 
     def stop(self):
         """ Stop the synapse terminal server """
-        self._server.stop(0)
+        if self._server != None:
+            self._server.stop(0)
 
-    def serve(self, synapse: bittensor.synapse.Synapse):
+    def serve(self, synapse: Synapse):
         """ Adds an Synapse to the serving set """
-        self._local_synapses[synapse.synapse_key()] = synapse
+        self._local_synapses[self.__keypair.public_key] = synapse
 
     def Forward(self, request: bittensor_pb2.TensorMessage,
                 context: grpc.ServicerContext):
