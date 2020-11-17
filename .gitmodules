@@ -1,0 +1,3 @@
+[submodule "subtensor"]
+	path = subtensor
+	url = git@github.com:opentensor/subtensor.git
