@@ -76,7 +76,7 @@ class FFNNSynapse(bittensor.Synapse):
             
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
-        self.transform = bittensor.utils.batch_transforms.Normalize((0.1307,), (0.3081,))
+        self.transform = bittensor.utils.batch_transforms.Normalize((0.1307,), (0.3081,), device=self.device)
         self.transform_pool = nn.AdaptiveAvgPool2d((28, 28))
         self.transform_conv1 = nn.Conv2d(1, 10, kernel_size=5)
         self.transform_conv2 = nn.Conv2d(10, 20, kernel_size=5)
@@ -101,6 +101,8 @@ class FFNNSynapse(bittensor.Synapse):
         # [batch_size, bittensor.__network_dim__] -> [batch_size, self.target_dim]
         self.target_layer1 = nn.Linear(bittensor.__network_dim__, 256)
         self.target_layer2 = nn.Linear(256, self.config.target_dim)
+
+        self.to(self.device)
         
     def forward_image(self, images: torch.Tensor):
         r""" Forward image inputs through the FFNN synapse .
@@ -176,7 +178,7 @@ class FFNNSynapse(bittensor.Synapse):
 
         # transform: transform images to common shape.
         # transform.shape = [batch_size, self.transform_dim]
-        transform = self.transform(images)
+        transform = self.transform(images).to(self.device)
         transform = F.relu(F.max_pool2d(self.transform_conv1(transform), 2))
         transform = F.relu(F.max_pool2d(self.transform_drop(self.transform_conv2(transform)),2))
         transform = transform.view(-1, self.transform_dim)

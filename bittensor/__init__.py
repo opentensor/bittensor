@@ -1,3 +1,4 @@
+from bittensor.tb_logger import TBLogger
 from loguru import logger
 import os
 import sys
@@ -83,7 +84,7 @@ def init(argparser: argparse.ArgumentParser):
     # Build bittensor tbwriter for tensorboard.
     # Logs are stored in datapath/neuronkey/logs/
     global tbwriter
-    tbwriter = SummaryWriter(log_dir=__config.logdir)
+    tbwriter = TBLogger(__config.logdir)
 
 
 def serve(synapse: Synapse):
