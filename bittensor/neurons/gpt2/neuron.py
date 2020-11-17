@@ -17,22 +17,21 @@ from loguru import logger
 import torch
 
 class Neuron (Neuron):
-    def __init__(self, config, session: BTSession):
+    def __init__(self, config):
         self.config = config
-        self.session = session
 
     def stop(self):
         pass
 
-    def start(self):
+    def start(self, session: BTSession): 
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Build Synapse
         model_config = GPT2MLMConfig()  
-        model = GPT2LMSynapse(model_config, self.session)
+        model = GPT2LMSynapse(model_config, session)
         model.to(device)
-        self.session.serve( model )
+        session.serve( model )
 
         # Dataset: 74 million sentences pulled from books.
         dataset = load_dataset('bookcorpus')['train']

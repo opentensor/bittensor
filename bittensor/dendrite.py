@@ -30,10 +30,6 @@ class Dendrite(nn.Module):
         >>> # Initialize config defaults.
         >>> config = bittensor.Config()
 
-        >>> # Build metagraph object for network connectivity
-        >>> metagraph = bittensor.Metagraph(config)
-        >>> metagraph.start() # Begin gossip.
-
         >>> # Create Dendrite nn.module
         >>> dendrite = bittensor.Dendrite(config)
 
@@ -172,7 +168,7 @@ class RemoteSynapse(nn.Module):
         self.config = config
         self.keypair = keypair
         # Loop back if the synapse is local.
-        if synapse.address == self.config.session_settings.remote_ip:
+        if synapse.address == config.session_settings.remote_ip:
             ip = "localhost:"
             if config.session_settings.remote_ip == "host.docker.internal":
                 ip = "host.docker.internal:"
@@ -223,6 +219,7 @@ class _RemoteModuleCall(torch.autograd.Function):
         # Save for backward call.
         ctx.caller = caller
         ctx.mode = mode
+        ctx.inputs = inputs
         try:
             # Serialize inputs to bytest buffer.
             try:
@@ -275,7 +272,7 @@ class _RemoteModuleCall(torch.autograd.Function):
     @once_differentiable
     def backward(ctx, grads: torch.Tensor) -> Optional[torch.Tensor]:
 
-        deserialized_grad_inputs = torch.zeros(1, 1)
+        deserialized_grad_inputs = torch.zeros_like(ctx.inputs)
         try:
             # Serialize inputs to bytes.
             serialized_grads = PyTorchSerializer.serialize_tensor(grads)
@@ -295,9 +292,15 @@ class _RemoteModuleCall(torch.autograd.Function):
             deserialized_grad_inputs = PyTorchSerializer.deserialize(
                 response.tensors[0])
             return (None, None, deserialized_grad_inputs, None)
+            
         except grpc._channel._InactiveRpcError as _:
             logger.warning("gRPC Channel RPC Error occured. Check timeouts.")
             return (None, None, deserialized_grad_inputs, None)
+
         except SerializationException as _:
             logger.warning("Serialization of gradients {} failed".format(grads))
+            return (None, None, deserialized_grad_inputs, None)
+
+        except Exception as e:
+            logger.warning("Uncaught excpetion {}", e)
             return (None, None, deserialized_grad_inputs, None)

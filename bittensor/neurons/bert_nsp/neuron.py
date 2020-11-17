@@ -57,14 +57,13 @@ def nsp_batch(data, batch_size, tokenizer):
     return tokenized, torch.tensor(batch_labels, dtype=torch.long)
 
 class Neuron (Neuron):
-    def __init__(self, config, session: BTSession):
+    def __init__(self, config):
         self.config = config
-        self.session = session
 
     def stop(self):
         pass
 
-    def start(self):
+    def start(self, session: BTSession): 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Build Synapse

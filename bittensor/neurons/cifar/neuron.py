@@ -22,14 +22,14 @@ import torchvision.transforms as transforms
 import traceback
 
 class Neuron (Neuron):
-    def __init__(self, config, session: BTSession):
+    def __init__(self, config):
         self.config = config
-        self.session = session
 
     def stop(self):
         pass
 
-    def start(self):
+    def start(self, session: BTSession): 
+        
         # Build local synapse to serve on the network.
         model_config = DPNConfig()
         model = DPNSynapse( model_config )
