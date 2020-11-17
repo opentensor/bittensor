@@ -3,6 +3,7 @@ import asyncio
 import bittensor
 import struct 
 import socket
+import time
 
 from loguru import logger
 from bittensor import bittensor_pb2
@@ -78,6 +79,22 @@ class Metagraph():
         )
         extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
         self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        time_elapsed = 0
+        is_not_subscribed = True
+        while is_not_subscribed:
+            time.sleep(3)
+            logger.info('.')
+            time_elapsed += 3
+            neurons = self.substrate.iterate_map(
+                module='SubtensorModule',
+                storage_function='Neurons'
+            )
+            for n in neurons:
+                if n[0] == self.__keypair.public_key:
+                    is_not_subscribed = False
+                    logger.info('Subscribed.')
+                    break
+            
 
     def unsubscribe (self):
         logger.info('Unsubscribe from chain endpoint')

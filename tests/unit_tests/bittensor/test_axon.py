@@ -10,14 +10,14 @@ import torch
 class TestAxon(unittest.TestCase):
     def setUp(self):
         axon_port = random.randint(8000, 9000)
-        metagraph_port = random.randint(8000, 9000)
         bp_host = 'localhost'
         bp_port = metagraph_port
-        self._config = bittensor.Config(axon_port = axon_port,
-                                        metagraph_port = metagraph_port,
-                                        bp_host = bp_host,
-                                        bp_port = bp_port
-                                    )
+        self._config = Config.load(
+                                            axon_port = axon_port,
+                                            metagraph_port = metagraph_port,
+                                            bp_host = bp_host,
+                                            bp_port = bp_port
+                                        )
         self._config.log()
         dendrite = bittensor.Dendrite(self._config)
         self.axon = bittensor.Axon(self._config)
