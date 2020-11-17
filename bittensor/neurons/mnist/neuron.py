@@ -60,10 +60,11 @@ class Neuron (Neuron):
                 images = images.to(device)
                 targets = torch.LongTensor(targets).to(device)
                 output = model(images, targets, remote = True)
-
+                
                 # Backprop.
                 loss = output.remote_target_loss + output.distillation_loss
                 loss.backward()
+
                 optimizer.step()
                                 
                 # Logs:
