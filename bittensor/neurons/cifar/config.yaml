@@ -1,0 +1,6 @@
+training:
+  batch_size_train: 32
+  batch_size_test: 16
+  learning_rate: 0.001
+  momentum: 0.9
+  log_interval: 10

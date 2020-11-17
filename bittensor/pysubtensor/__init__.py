@@ -1,17 +1,27 @@
 from substrateinterface import SubstrateWSInterface, Keypair
 import asyncio
 
+
+# Substrate custom type interface.
+custom_type_registry = {
+    "runtime_id": 2, 
+    "types": {
+            "NeuronMetadata": {
+                    "type": "struct", 
+                    "type_mapping": [["ip", "u128"], ["port", "u16"], ["ip_type", "u8"]]
+                }
+        }
+}
 class WSClient:
     def __init__(self, socket : str, keypair: Keypair):
         host, port = socket.split(":")
-
         self.substrate = SubstrateWSInterface(
             host=host,
             port=int(port),
             address_type = 42,
-            type_registry_preset = 'substrate-node-template'
+            type_registry_preset = 'substrate-node-template',
+            type_registry = custom_type_registry,
         )
-
         self.keypair = keypair
 
     def connect(self, program):
