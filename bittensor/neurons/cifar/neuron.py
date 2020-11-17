@@ -32,10 +32,10 @@ class Neuron (Neuron):
         
         # Build local synapse to serve on the network.
         model_config = DPNConfig()
-        model = DPNSynapse( model_config )
+        model = DPNSynapse( model_config, session )
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model.to( device ) # Set model to device.
-        self.session.serve( model.deepcopy() )
+        session.serve( model.deepcopy() )
 
         # Build the optimizer.
         optimizer = optim.SGD(model.parameters(), lr=self.config.training.learning_rate, momentum=self.config.training.momentum)
@@ -81,7 +81,7 @@ class Neuron (Neuron):
                     progress = (100. * processed) / n
                     accuracy = (100.0 * correct) / self.config.training.batch_size_train
                     logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\tnP:{}', 
-                        epoch, processed, n, progress, loss_item, accuracy, len(self.session.metagraph.synapses()))
+                        epoch, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()))
 
         # Test loop.
         # Evaluates the local model on the hold-out set.
@@ -137,6 +137,6 @@ class Neuron (Neuron):
                 # Save the best local model.
                 logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.session_settings.logdir + '/model.torch')
                 torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.session_settings.logdir + '/model.torch' )
-                self.session.serve( model.deepcopy() )
+                session.serve( model.deepcopy() )
 
             epoch += 1

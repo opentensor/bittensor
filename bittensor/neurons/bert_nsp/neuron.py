@@ -11,7 +11,7 @@ import bittensor
 from bittensor import BTSession
 from bittensor.neuron import Neuron
 from bittensor.synapse import Synapse
-from bittensor.synapses.bert import BertNSPSynapse
+from bittensor.synapses.bert import BertNSPSynapse, BertSynapseConfig
 
 from datasets import load_dataset, list_metrics, load_metric
 from loguru import logger
@@ -67,10 +67,10 @@ class Neuron (Neuron):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Build Synapse
-        model_config = transformers.modeling_bert.BertConfig(vocab_size=bittensor.__vocab_size__, hidden_size=bittensor.__network_dim__, num_hidden_layers=2, num_attention_heads=2, intermediate_size=512, is_decoder=False)
-        model = BertNSPSynapse(model_config, self.session)
+        model_config = BertSynapseConfig()
+        model = BertNSPSynapse(model_config, session)
         model.to(device)
-        self.session.serve( model )
+        session.serve( model )
 
         # Dataset: 74 million sentences pulled from books.
         dataset = load_dataset('bookcorpus')
@@ -84,15 +84,15 @@ class Neuron (Neuron):
             optimizer.zero_grad() # Zero out lingering gradients.
 
             step = 0
-            while step < epoch_size:
+            while step < self.config.training.epoch_size:
                 # Next batch.
-                inputs, labels = nsp_batch(dataset['train'], self.config.training.batch_size, bittensor.__tokenizer__)
+                inputs, targets = nsp_batch(dataset['train'], self.config.training.batch_size, bittensor.__tokenizer__)
                 
                 # Compute full pass and get loss with a network query.
                 output = model (inputs = inputs['input_ids'], 
                                 attention_mask = inputs ['attention_mask'],
-                                labels = labels,
-                                query=True )
+                                targets = targets,
+                                remote = True )
                 
                 loss = output['loss']
                 loss.backward()
@@ -101,7 +101,7 @@ class Neuron (Neuron):
 
                 step += 1
                 logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
-                    epoch, step, self.config.training.epoch_size, float(step * 100)/float(self.config.training.epoch_size), output['network_target_loss'].item(), output['local_target_loss'].item(), output['distillation_loss'].item()))
+                    epoch, step, self.config.training.epoch_size, float(step * 100)/float(self.config.training.epoch_size), output.network_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
         
         epoch = 0
         while True:

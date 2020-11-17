@@ -67,7 +67,7 @@ class BTSession:
         self.stop()
 
     def start(self):
-        # Stop background grpc threads for serving synapse objects.
+        # Stop background grpc threads for serving the synapse object.
         logger.info('Start axon server...')
         try:
             self.axon.start()
@@ -122,8 +122,8 @@ class BTSession:
         except Exception as e:
             logger.error('SESSION: Error while stopping subtensor process: {} ', e)
 
-    def synapses (self):
-       return self.metagraph.synapses()
+    def neurons (self):
+       return self.metagraph.neurons()
 
     def subscribe (self):
        self.metagraph.subscribe()

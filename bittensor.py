@@ -49,9 +49,7 @@ def main():
     neuron = neuron_module.Neuron( config )
     session = bittensor.init(config, keypair)
     with session:
-        logger.info('here')
         neuron.start( session ) 
-        logger.info('here')
 
 if __name__ == "__main__":
     main()
