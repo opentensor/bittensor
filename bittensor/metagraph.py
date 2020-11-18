@@ -110,6 +110,8 @@ class Metagraph():
 
     def subscribe (self, timeout) -> bool:
         params = {'ip': ip_to_int(self._config.session_settings.remote_ip), 'port': self._config.session_settings.axon_port, 'ip_type': 4}
+
+        logger.info(params)
         call = self.substrate.compose_call(
             call_module='SubtensorModule',
             call_function='subscribe',
@@ -119,7 +121,7 @@ class Metagraph():
         self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
         time_elapsed = 0
         while time_elapsed < timeout:
-            time.sleep(1)
+            time.sleep(5)
             time_elapsed += 1
             neurons = self.substrate.iterate_map(
                 module='SubtensorModule',
