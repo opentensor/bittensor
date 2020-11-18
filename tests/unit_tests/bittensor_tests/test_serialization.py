@@ -1,5 +1,7 @@
 from bittensor.exceptions.Exceptions import DeserializationException, SerializationException
 from bittensor.serializer import PyTorchSerializer, torch_dtype_to_bittensor_dtype, bittensor_dtype_to_torch_dtype
+from bittensor.config import Config
+from substrateinterface import Keypair
 from random import randrange
 
 from datasets import load_dataset
@@ -17,9 +19,9 @@ class TestSerialization(unittest.TestCase):
     config = None
 
     def setUp(self):
-        self.config = bittensor.Config()
-        self.synapse_key = "test_synapse_key"
-        self.neuron_key = "test_neuron_key"
+        self.config = Config.load()
+        mnemonic = Keypair.generate_mnemonic()
+        self.keypair = Keypair.create_from_mnemonic(mnemonic)
 
     def test_serialize(self):
         for _ in range(10):
@@ -30,7 +32,7 @@ class TestSerialization(unittest.TestCase):
             
     def test_serialize_modality(self):
         # Let's grab some image data
-        data = torchvision.datasets.MNIST(root = self.config.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
+        data = torchvision.datasets.MNIST(root = self.config.neuron.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
         
         # Let's grab a random image, and try and de-serialize it incorrectly.
         image = data[randrange(len(data))][0]
@@ -40,7 +42,7 @@ class TestSerialization(unittest.TestCase):
     
     def test_serialize_deserialize_image(self):
         # Let's grab some image data
-        data = torchvision.datasets.MNIST(root = self.config.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
+        data = torchvision.datasets.MNIST(root = self.config.neuron.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
         
         # Let's grab a random image, and give it a crazy type to break the system
         image = data[randrange(len(data))][0]
