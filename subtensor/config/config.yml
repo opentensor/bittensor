@@ -1,0 +1,37 @@
+name: 'Bittensor'
+id: 'devnet'
+chainType: 'Local'
+bootNodes: [] # See docs for proper format of bootnodes
+telemetryEndpoints:
+protocolId:
+properties:
+consensusEngine:
+lightSyncState:
+genesis:
+  runtime:
+    frameSystem:
+      changesTrieConfig:
+    palletAura:
+      authorities: [
+#                     SS58 Addresses go here
+                     "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",  # Alice
+                     "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",   # Bob
+                     "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y"   # Charlie
+                     ]
+    palletGrandpa:
+      authorities: [
+#                     list [SS58 Address, weight] lists go here
+                      ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1],
+                      ["5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty", 1],
+                      ["5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y", 1]
+      ]
+    palletBalances:
+      balances: [
+  #                  list of [SS58 Address, balance] lists go here
+                  ['5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', 10000000000000], # Alice's balance  10.000.000.000.000
+                  ['5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty', 20000000000000], # Bob's balance    20.000.000.000.000
+                  ['5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y', 30000000000000] # Charlie's balance  30.000.000.000.000
+
+      ]
+    palletSudo:
+      key: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'# Alice's key
