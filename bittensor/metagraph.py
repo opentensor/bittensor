@@ -38,7 +38,7 @@ class Metagraph():
             url=self._config.session_settings.chain_endpoint,
             address_type=42,
             type_registry_preset='substrate-node-template',
-            type_registry=custom_type_registry
+            type_registry=custom_type_registry,
         )
 
     def neurons (self) -> List[bittensor_pb2.Neuron]:
@@ -121,7 +121,7 @@ class Metagraph():
         self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
         time_elapsed = 0
         while time_elapsed < timeout:
-            time.sleep(5)
+            time.sleep(1)
             time_elapsed += 1
             neurons = self.substrate.iterate_map(
                 module='SubtensorModule',
@@ -130,7 +130,6 @@ class Metagraph():
             for n in neurons:
                 if n[0] == self.__keypair.public_key:
                     return True
-                    break
         return False
             
 
