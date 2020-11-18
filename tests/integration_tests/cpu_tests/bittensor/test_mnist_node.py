@@ -25,8 +25,9 @@ import unittest
 default_config = """
     session_settings:
         axon_port: 8081
-        chain_endpoint: http:// 99.238.136.56:12345
+        chain_endpoint: http://99.238.136.56:12345
         logdir: /tmp/
+        run_local_chain: false
 
     training:
         datapath: /tmp/
