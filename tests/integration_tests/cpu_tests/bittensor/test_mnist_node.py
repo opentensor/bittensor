@@ -22,10 +22,10 @@ import torchvision.transforms as transforms
 import traceback
 import unittest
 
-defualt_config = """
+default_config = """
     session_settings:
         axon_port: 8081
-        chain_endpoint: http://127.0.0.1:9933
+        chain_endpoint: http:// 99.238.136.56:12345
         logdir: /tmp/
 
     training:
@@ -43,7 +43,7 @@ class MnistNode(unittest.TestCase):
 
     def setUp(self):
         # Load config, keys, and build session.
-        self.config = Config.load_from_yaml_string(yaml_str = defualt_config)
+        self.config = Config.load_from_yaml_string(yaml_str = default_config)
         self.config = Config.obtain_ip_address(self.config)
         mnemonic = Keypair.generate_mnemonic()
         self.keypair = Keypair.create_from_mnemonic(mnemonic)
