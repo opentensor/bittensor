@@ -1,6 +1,7 @@
 
 import asyncio
 import bittensor
+import math
 import netaddr
 import time
 
@@ -40,10 +41,11 @@ class Metagraph():
             type_registry_preset='substrate-node-template',
             type_registry=custom_type_registry,
         )
+        self._since_last_poll = math.inf
+        self._neurons = []
 
-    def neurons (self) -> List[bittensor_pb2.Neuron]:
-        
-        # Get current block for filtering.
+    def _pollchain(self):
+          # Get current block for filtering.
         current_block = self.substrate.get_block_number(None)
 
         # Pull the last emit data from all nodes.
@@ -94,8 +96,14 @@ class Metagraph():
                 
         # Return list of non-filtered neurons.
         neurons_list = neuron_map.values()
-        return neurons_list
+        self._neurons = neurons_list
 
+    def neurons (self, poll_every_seconds: int = 15) -> List[bittensor_pb2.Neuron]:
+        if (time.time() - self._since_last_poll) > poll_every_seconds:
+            self._since_last_poll = time.time()
+            self._pollchain()
+        return self._neurons
+        
     def connect(self, timeout) -> bool:
         time_elapsed = 0
         while time_elapsed < timeout:

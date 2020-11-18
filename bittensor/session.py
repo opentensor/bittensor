@@ -75,12 +75,13 @@ class BTSession:
             logger.error('SESSION: Failed to start axon server with error: {}', e)
             raise FailedToEnterSession
 
-        logger.info('Start chain ...')
-        try:
-            self.subtensor_process.start()
-        except Exception as e:
-            logger.error('SESSION: Failed to create subtensor subprocess with error: {}', e)
-            raise FailedToEnterSession
+        if self.config.session_settings.run_local_chain == True:
+            logger.info('Start chain ...')
+            try:
+                self.subtensor_process.start()
+            except Exception as e:
+                logger.error('SESSION: Failed to create subtensor subprocess with error: {}', e)
+                raise FailedToEnterSession
 
         logger.info('Connect to chain ...')
         try:
@@ -116,11 +117,12 @@ class BTSession:
         except Exception as e:
             logger.error('SESSION: Error while stopping axon server: {} ', e)
 
-        logger.info('Stopping subtensor process ...')
-        try:
-            self.subtensor_process.stop()
-        except Exception as e:
-            logger.error('SESSION: Error while stopping subtensor process: {} ', e)
+        if self.config.session_settings.run_local_chain == True:
+            logger.info('Stopping subtensor process ...')
+            try:
+                self.subtensor_process.stop()
+            except Exception as e:
+                logger.error('SESSION: Error while stopping subtensor process: {} ', e)
 
     def neurons (self):
        return self.metagraph.neurons()

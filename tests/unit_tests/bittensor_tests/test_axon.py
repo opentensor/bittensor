@@ -10,7 +10,7 @@ import unittest
 import random
 import torch
 
-defualt_config = """
+default_config = """
     session_settings:
         axon_port: 8081
         chain_endpoint: http://127.0.0.1:9933
@@ -25,7 +25,7 @@ defualt_config = """
 
 class TestAxon(unittest.TestCase):
     def setUp(self):
-        self.config = Config.load(from_yaml = defualt_config)
+        self.config = Config.load(from_yaml = default_config)
         mnemonic = Keypair.generate_mnemonic()
         self.keypair = Keypair.create_from_mnemonic(mnemonic)
         self.session = bittensor.init(self.config, self.keypair)

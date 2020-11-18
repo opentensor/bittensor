@@ -25,8 +25,9 @@ import unittest
 defualt_config = """
     session_settings:
         axon_port: 8081
-        chain_endpoint: http://127.0.0.1:9933
+        chain_endpoint: https://206.189.254.5:9932
         logdir: /tmp/
+        run_local_chain: false
 
     training:
         datapath: /tmp/
