@@ -7,7 +7,7 @@ import requests
 import time
 import validators
 import yaml
-
+from munch import Munch
 
 class InvalidConfigFile(Exception):
     pass
@@ -21,136 +21,151 @@ class PostProcessingError(Exception):
 class InvalidConfigError(Exception):
     pass
 
-# Overwrites the values from nested dictionary A with nested dictionary B
-def overwrite(items_a, items_b):
-    for k, v in items_a.items():
-        if k in items_b:
-            if isinstance(v, dict):
-                overwrite(v, items_b[k])
-            else:
-                if items_b != None:
-                    items_a[k] = items_b[k]
-    return items_a
-
-def add(items_a, items_b):
-    for k, v in items_b.items():
-        if k not in items_a:
-            items_a[k] = items_b[k]
-        if k in items_a:
-            if isinstance(v, dict):
-                add(items_a[k], items_b[k])
-    return items_a
-
-def overwrite_add(items_a, items_b):
-    items_a = overwrite(items_a, items_b)
-    items_a = add(items_a, items_b)
-    return items_a
-
 class Config:
-    def toString(config, depth=0):
-        for k, v in config.items():
-            if isinstance(v, dict):
-                print ('\t' * depth, '{}:'.format(k))
-                Config.toString(v, depth = depth + 1)
-            else:
-                print ('\t' * depth, '{}: {}'.format(k, v) )
 
-    def load (config_path: str = None, from_yaml: str = None):
+    @staticmethod
+    def load (config_path: str = None, from_yaml: str = None) -> Munch:
+        r""" Loads and returns a Munched config object from args/defaults.
+
+            Args:
+                config_path (str, `optional`): 
+                    Relative path to a config.yaml file which overrides defaults.
+
+                from_yaml (str, `optional`)
+                    String yaml parsed by yaml.safe_load(str).
+                
+            Returns:
+                config  (:obj:`Munch` `required`):
+                    Python Munch object with dot syntax config items e.g. config.neuron.neuron_path.
+        """
+        config = Config.load_from_defaults()
+
+        if config_path != None:
+            passed_items = Config.load_from_relative_path(config_path)
+            config = Config.overwrite_add(config, passed_items)
+
+        neuron_config = Config.load_from_neuron_path(config)
+        config = Config.overwrite_add(config, neuron_config)
+
+        if from_yaml != None:
+            yaml_items = Config.load_from_yaml_string(from_yaml)
+            config = Config.overwrite_add(config, yaml_items)
+
+        Config.post_process(config)
+        Config.validate(config)
+
+        return config
+
+    @staticmethod   
+    def load_from_defaults() -> Munch:
+        r""" Loads and returns a Munched config object from defaults.
+    
+            Returns:
+                defaults  (:obj:`Munch` `required`):
+                    Python Munch object with values from bittensor/neurons/defaults.yaml
+        """
         # 1. Load defaults from defaults.yaml.
-        if not os.path.isfile('defaults.yaml'):
+        defaults = munch.Munch()
+        defaults_path = 'bittensor/neurons/defaults.yaml'
+        if not os.path.isfile(defaults_path):
                 raise FileNotFoundError('Cannot find default configuration at defaults.yaml')
-        with open('defaults.yaml', 'r') as f:
+        with open(defaults_path, 'r') as f:
             try:
-                config_items = yaml.safe_load(f)
+                defaults = yaml.safe_load(f)
+                defaults = munch.munchify(defaults)
             except yaml.YAMLError as exc:
                 logger.error('CONFIG: cannot parse default configuration file at defaults.yaml')
                 raise InvalidConfigFile
+        return defaults
 
-        # 2. Load items from optional passed config_path
-        passed_items = None
-        if config_path != None:
-            passed_config_path = os.getcwd() + '/' + config_path
-            if not os.path.isfile(passed_config_path):
-                logger.error('CONFIG: cannot find passed configuration file at {}', passed_config_path)
-                raise FileNotFoundError('Cannot find a configuration file at', passed_config_path)
-            with open(passed_config_path, 'r') as f:
-                try:
-                    passed_items = yaml.safe_load(f)
-                except yaml.YAMLError as exc:
-                    logger.error('CONFIG: cannot parse passed configuration file at {}', passed_config_path)
-                    raise InvalidConfigFile
-
-        # Overwrite defaults with passed items.
-        if passed_items != None:
-            config_items = overwrite_add(config_items, passed_items)
-
-        # 3. Load neuron path from optional passed --neuron_path
-        commandline_items = None
-        params = None
+    @staticmethod   
+    def load_from_neuron_path(items: Munch = None) -> Munch:
+        r""" Loads and returns a Munched config object from --neuron_path arg on command line.
+    
+            Returns:
+                defaults  (:obj:`Munch` `required`):
+                    Python Munch object with values from bittensor/neurons/defaults.yaml
+        """
+        # 1. Load args or defaults.yaml neuron path.
+        params_path = None
         try:
             parser = argparse.ArgumentParser()
             parser.add_argument('--neuron_path', default=None, help='path to a neuron configuration file')
             params = parser.parse_args()
+            params_path = params.neuron_path
         except:
             pass
-        if params and params.neuron_path != None:
-            neuron_config_path = os.getcwd() + params.neuron_path + '/config.yaml'
-            if not os.path.isfile(neuron_config_path):
-                logger.error('CONFIG: failed parsing command line config file at {}', neuron_config_path)
-                raise FileNotFoundError('Cannot find a configuration file at', neuron_config_path)
-            else:
-                with open(neuron_config_path, 'r') as f:
-                    try:
-                        commandline_items = yaml.safe_load(f)
-                    except yaml.YAMLError as exc:
-                        logger.error('CONFIG: cannot parse commandline configuration file at {}', neuron_config_path)
-                        raise InvalidConfigFile
-            
-            # Set neuron_path properly
-            if 'neuron' not in commandline_items:
-                commandline_items['neuron'] = munch.Munch()
-            commandline_items['neuron']['neuron_path'] = params.neuron_path
 
-        # Overwrite items with commandline_items
-        if commandline_items != None:
-            config_items = overwrite_add(config_items, commandline_items)
-
-        # 4. Load items from optional passed config_path
         neuron_items = None
-        if not commandline_items and config_items['neuron']['neuron_path'] != None:
-            neuron_config_path = os.getcwd() + str(config_items['neuron']['neuron_path']) + '/config.yaml'
-            if not os.path.isfile(neuron_config_path):
-                logger.error('CONFIG: failed parsing neuron_path config file at {}', neuron_config_path)
-                raise FileNotFoundError('Cannot find a neuron configuration file at', neuron_config_path)
-            with open(neuron_config_path, 'r') as f:
-                try:
-                    neuron_items = yaml.safe_load(f)
-                except yaml.YAMLError as exc:
-                    logger.error('CONFIG: cannot parse neuron configuration file at {}', neuron_config_path)
-                    raise InvalidConfigFile
-                    
-        # Overwrite items with neuron items.
-        if neuron_items != None:
-            config_items = overwrite_add(config_items, neuron_items)
+        try:
+            neuron_items = items.neuron.neuron_path
+        except:
+            pass
 
+        # If neither has neuron path throw error.
+        if params_path == None and neuron_items == None:
+            logger.error('CONFIG: must specify a neuron path either through --neuron_path or in the passed item.neuron.neuron_path')
+            raise InvalidConfigFile
+
+        if params_path != None:
+            return Config.load_from_relative_path(params_path)
         
-        # 5. Load items from passed yaml
-        passed_yaml_items = None
-        if from_yaml != None:
+        else:
+            return Config.load_from_relative_path(neuron_items + '/config.yaml')
+
+    @staticmethod   
+    def load_from_yaml_string(yaml_str: str)  -> Munch:
+        r""" Loads and returns a Munched config object from a passed string
+
+            Args:
+                yaml_str (str, `required`): 
+                    String representation of yaml file.
+    
+            Returns:
+                config  (:obj:`Munch` `required`):
+                    Python Munch object with values from parsed string.
+        """
+        # Load items yaml string.
+        yaml_items = munch.Munch()
+        if yaml_str != None:
             try:
-                passed_yaml_items = yaml.safe_load(from_yaml)
+                yaml_items = yaml.safe_load(yaml_str)
+                yaml_items = munch.munchify(yaml_items)
             except:
-                logger.error('CONFIG: failed parsing passed yaml with input {}', from_yaml)
+                logger.error('CONFIG: failed parsing passed yaml with input {}', yaml_str)
                 raise InvalidConfigFile
+        return yaml_items
 
-        #  Overwrite items with passed yaml.
-        if passed_yaml_items != None:
-            config_items = overwrite_add(config_items, passed_yaml_items)
+    @staticmethod
+    def load_from_relative_path(path: str)  -> Munch:
+        r""" Loads and returns a Munched config object from a relative path.
 
-        # 6. Munchify
-        items = munch.munchify(config_items)
+            Args:
+                path (str, `required`): 
+                    Path to config.yaml file. full_path = cwd() + path
+    
+            Returns:
+                config  (:obj:`Munch` `required`):
+                    Python Munch object with values from config under path.
+        """
+        # Load items from relative path.
+        path_items = munch.Munch()
+        if path != None:
+            path = os.getcwd() + '/' + path
+            if not os.path.isfile(path):
+                logger.error('CONFIG: cannot find passed configuration file at {}', path)
+                raise FileNotFoundError('Cannot find a configuration file at', path)
+            with open(path, 'r') as f:
+                try:
+                    path_items = yaml.safe_load(f)
+                    path_items = munch.munchify(path_items)
+                except yaml.YAMLError as exc:
+                    logger.error('CONFIG: cannot parse passed configuration file at {}', path)
+                    raise InvalidConfigFile
+        return path_items
 
-        # 7. Post process.
+    @staticmethod
+    def post_process(items):
         try:
             # 7.1 Optain remote ip.
             Config.obtain_ip_address(items)
@@ -162,12 +177,8 @@ class Config:
             logger.debug("CONFIG: post processing error.")
             raise InvalidConfigError
 
-        # 8. Validate config items.
-        Config.validate_config(items)
-
-        return items
-
-    def validate_config(items):
+    @staticmethod
+    def validate(items):
         try:
             try:
                 items.session_settings.remote_ip
@@ -199,11 +210,13 @@ class Config:
             logger.debug("CONFIG: Validation error")
             raise InvalidConfigError
 
+    @staticmethod
     def validate_ip(key, value):
         if not validators.ipv4(value):
             logger.error("CONFIG: Validation error: {} for option {} is not a valid ip address", value, key)
             raise ValidationError
-
+    
+    @staticmethod
     def validate_int_range(key, value, min, max):
         """
         Validates if a specifed integer falls in the specified range
@@ -213,6 +226,7 @@ class Config:
                 "CONFIG: Validation error: {} should be between {} and {}.", key, min, max)
             raise ValidationError
 
+    @staticmethod
     def validate_path_create(key, value):
         try:
             full_neuron_path = os.getcwd() + '/' + value
@@ -223,13 +237,15 @@ class Config:
         except:
             logger.error("CONFIG: Validation error: An undefined error occured while trying to create path {} for option {}", value, key)
             raise ValidationError
-
+    
+    @staticmethod
     def validate_neuron_file(key, value):
         full_path = os.getcwd() + value + '/neuron.py'
         if not os.path.isfile(full_path):
             logger.error("CONFIG: Neuron path does not point to valid neuron at {} and derived path {}", value, full_path)
             raise ValidationError
 
+    @staticmethod
     def obtain_ip_address(items):
         try:
             items.session_settings.remote_ip
@@ -245,8 +261,9 @@ class Config:
         if not validators.ipv4(value):
             logger.error("CONFIG: Response from IP API is not a valid IP.")
             raise PostProcessingError
-        items['session_settings']['remote_ip'] = value
+        items.session_settings.remote_ip = value
 
+    @staticmethod
     def fix_paths(items):
         if items.neuron.datapath and items.neuron.datapath[-1] != '/':
             items.neuron.datapath = items.neuron.datapath + '/'
@@ -254,52 +271,81 @@ class Config:
         if items.session_settings.logdir and items.session_settings.logdir[-1] != '/':
             items.session_settings.logdir = items.session_settings.logdir + '/'
 
-    # def validate_hostname(key, required=False):
-    #     if self.has_valid_empty_value(config_key, required):
-    #         return
+    @staticmethod
+    def toString(config, depth=0):
+        for k, v in config.items():
+            if isinstance(v, dict):
+                print ('\t' * depth, '{}:'.format(k))
+                Config.toString(v, depth = depth + 1)
+            else:
+                print ('\t' * depth, '{}: {}'.format(k, v) )
 
-    #     value = self.config[config_key]
+    @staticmethod
+    def overwrite_add(items_a, items_b):
+        r""" Overwrites and adds values from items A with items B. Returns 
 
-    #     if not validators.ipv4(value) and not validators.domain(value):
-    #         logger.error(
-    #             "CONFIG: Validation error: %s for option %s is not a valid ip address or hostname" %
-    #             (value, config_key))
+            Args:
+                items_a (obj:Munch, `required`): 
+                    Items to overrite into
 
-    #         raise ValidationError
+                items_b (obj:Munch, `required`): 
+                    Items to overrite from
+    
+            Returns:
+                items  (:obj:`Munch` `Optional`):
+                    Overritten items or None if both are None.
+        """
+        if items_b == None:
+            return items_a
+        if items_a == None:
+            return items_b
+        items_a = Config.overwrite(items_a, items_b)
+        items_a = Config.add(items_a, items_b)
+        return items_a
 
-    # def validate_socket(self, config_key, required=False):
-    #     if self.has_valid_empty_value(config_key, required):
-    #         return
+    @staticmethod
+    def overwrite(items_a, items_b):
+        r""" Overwrites values from items_b into items b.
 
-    #     value = self.config[config_key]
+            Args:
+                items_a (obj:Munch, `required`): 
+                    Items to overrite into
 
-    #     try:
-    #         host, port =  value.split(":")
-    #     except ValueError:
-    #         logger.error(
-    #             "CONFIG: Validation error: %s for option %s is incorrectly formatted. Should be ip:port" %
-    #             (value, config_key))
-    #         raise ValidationError
+                items_b (obj:Munch, `required`): 
+                    Items to overrite from
+    
+            Returns:
+                items  (:obj:`Munch` `Optional`):
+                    Items with overwrite from B to A.
+        """
+        for k, v in items_a.items():
+            if k in items_b:
+                if isinstance(v, dict):
+                    Config.overwrite(v, items_b[k])
+                else:
+                    if items_b != None:
+                        items_a[k] = items_b[k]
+        return items_a
 
-    #     if not validators.ipv4(host) and host != "localhost" and not validators.domain(host):
-    #         logger.error(
-    #             "CONFIG: Validation error: %s for option %s does not contain a valid ip address" %
-    #             (value, config_key))
+    @staticmethod
+    def add(items_a, items_b):
+        r""" Adds values from items b into items b.
 
-    #         raise ValidationError
+            Args:
+                items_a (obj:Munch, `required`): 
+                    Items to overrite into
 
-    #     try:
-    #         port = int(port)
-    #     except ValueError:
-    #         logger.error(
-    #             "CONFIG: Validation error: %s for option %s does contain not a valid port nr" %
-    #             (value, config_key))
-
-    #         raise ValidationError
-
-    #     if not validators.between(port, min=1024, max=65535):
-    #         logger.error(
-    #             "CONFIG: Validation error: %s for option %s port must be between 1024 and 65535" %
-    #             (value, config_key))
-
-    #         raise ValidationError
+                items_b (obj:Munch, `required`): 
+                    Items to overrite from
+    
+            Returns:
+                items  (:obj:`Munch` `Optional`):
+                    Items with union from A and B.
+        """
+        for k, v in items_b.items():
+            if k not in items_a:
+                items_a[k] = items_b[k]
+            if k in items_a:
+                if isinstance(v, dict):
+                    Config.add(items_a[k], items_b[k])
+        return items_a
