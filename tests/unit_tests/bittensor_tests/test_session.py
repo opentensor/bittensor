@@ -15,17 +15,5 @@ def new_session():# 1. Init Config item.
 def test_new_session():
     new_session()
 
-def test_new_session_start_stop():
-    session = new_session()
-    session.start()
-    session.stop()
-
-def test_new_session_subscribe_unsubscribe():
-    with new_session() as session:
-        logger.info('with sess {}', session)
-
-
 if __name__ == "__main__":
-    #test_new_session()
-    #test_new_session_start_stop()
-    test_new_session_subscribe_unsubscribe()
+    test_new_session()

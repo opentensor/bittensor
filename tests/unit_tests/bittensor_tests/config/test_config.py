@@ -6,7 +6,7 @@ import bittensor
 def test_empty_config():
     c = Config.load()
     assert c.session_settings.axon_port == 8080
-    assert c.session_settings.chain_endpoint == 'http://127.0.0.1:9933'
+    assert c.session_settings.chain_endpoint == 'http://99.238.136.56:12345'
     assert c.session_settings.logdir == '/tmp/'
     assert c.neuron.neuron_path == '/bittensor/neurons/mnist'
     assert c.neuron.datapath == '/tmp/'
@@ -14,7 +14,7 @@ def test_empty_config():
 def test_overwrite_config():
     c1 = Config.load()
     c2 = Config.load('tests/unit_tests/bittensor_tests/config/defaults_overwrite.yaml')
-    assert c1.session_settings != c2.session_settings
+    assert c1.session_settings.axon_port != c2.session_settings.axon_port
 
 
 def test_overwrite_config_from_passed_yaml():
