@@ -11,43 +11,27 @@ from substrateinterface import Keypair
 
 def main():
 
-    # 1. Init Config item.
-    logger.info('Load config.')
-    try:
-        config = Config.load()
-    except Exception as e:
-        logger.error("Invalid configuration. Aborting with error {}", e)
-        quit(-1)
-    logger.info('Config: {')
-    Config.toString(config)
-    logger.info('} \n')
+    # 1. Load Config.
+    logger.info('Load Config ...')
+    config = Config.load()
+    logger.info(config.toJSON())
 
-    
-    # 2. Load keypair.
-    logger.info('Load keyfile')
-    # TODO(const): check path to keypem exists.
-    try:
-        mnemonic = Keypair.generate_mnemonic()
-        keypair = Keypair.create_from_mnemonic(mnemonic)
-    except:
-        logger.error('Unable to load keypair with error {}', e)
-        quit(-1)
-
-    # 3. Load Neuron module.
-    logger.info('Load neuron module.')
-    full_neuron_path = os.getcwd() + config.neuron.neuron_path + '/neuron.py'
-    if not os.path.isfile(full_neuron_path):
-        raise FileNotFoundError('Cannot find neuron.py on path:', full_neuron_path)
-        quit(-1)
-    try:
-        neuron_module = SourceFileLoader("Neuron", full_neuron_path).load_module()
-    except Exception as e:
-        logger.error('Unable to load Neuron module at {} with error {}', full_neuron_path, e)
-        quit(-1)
-
-    # 4. Main try catch.
+    # 2. Load Keypair.
+    logger.info('Load Keyfile ...')
+    mnemonic = Keypair.generate_mnemonic()
+    keypair = Keypair.create_from_mnemonic(mnemonic)
+   
+    # 3. Load Neuron.
+    logger.info('Load Neuron ... ')
+    neuron_module = SourceFileLoader("Neuron", os.getcwd() + '/' + config.neuron.neuron_path + '/neuron.py').load_module()
     neuron = neuron_module.Neuron( config )
+
+    # 4. Load Session.
+    logger.info('Build Session ... ')
     session = bittensor.init(config, keypair)
+
+    # 5. Start Neuron.
+    logger.info('Start ... ')
     with session:
         neuron.start( session ) 
 
