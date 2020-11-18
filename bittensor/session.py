@@ -1,9 +1,3 @@
-import struct
-import socket
-import bittensor
-import subprocess
-import time
-
 from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
@@ -56,12 +50,13 @@ class BTSession:
             logger.error('SESSION: Failed to start axon server with error: {}', e)
             raise FailedToEnterSession
 
-        logger.info('Start chain ...')
-        try:
-            self.subtensor_process.start()
-        except Exception as e:
-            logger.error('SESSION: Failed to create subtensor subprocess with error: {}', e)
-            raise FailedToEnterSession
+        if self.config.session_settings.run_local_chain == True:
+            logger.info('Start chain ...')
+            try:
+                self.subtensor_process.start()
+            except Exception as e:
+                logger.error('SESSION: Failed to create subtensor subprocess with error: {}', e)
+                raise FailedToEnterSession
 
         logger.info('Connect to chain ...')
         try:
