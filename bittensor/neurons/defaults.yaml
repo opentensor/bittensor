@@ -1,6 +1,7 @@
 session_settings:
   axon_port: 8080
   chain_endpoint: http://127.0.0.1:9933
+  run_local_chain: true
   logdir: /tmp/
 
 neuron:
