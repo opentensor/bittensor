@@ -8,9 +8,9 @@ from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
+from substrateinterface import SubstrateInterface, Keypair
 
 from loguru import logger
-from substrateinterface import SubstrateInterface, Keypair
 from torch.utils.tensorboard import SummaryWriter
 
 class FailedConnectToChain(Exception):
