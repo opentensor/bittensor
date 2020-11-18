@@ -262,6 +262,7 @@ class Config:
             logger.error("CONFIG: Response from IP API is not a valid IP.")
             raise PostProcessingError
         items.session_settings.remote_ip = value
+        return items
 
     @staticmethod
     def fix_paths(items):
