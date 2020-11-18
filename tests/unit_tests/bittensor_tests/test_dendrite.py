@@ -32,18 +32,6 @@ defualt_config = """
 
 class TestDendrite(unittest.TestCase):
 
-    # def __init__(self):
-    #     self.config = Config.load(from_yaml = defualt_config)
-    #     mnemonic = Keypair.generate_mnemonic()
-    #     self.keypair = Keypair.create_from_mnemonic(mnemonic)
-    #     self.session = bittensor.init(self.config, self.keypair)
-    #     self.neuron = bittensor_pb2.Neuron(
-    #         version = bittensor.__version__,
-    #         public_key = self.keypair.public_key,
-    #         address = '0.0.0.0',
-    #         port = 12345,
-    #     )
-
     def setUp(self):
         self.config = Config.load(from_yaml = defualt_config)
         mnemonic = Keypair.generate_mnemonic()
@@ -157,8 +145,3 @@ class TestRemoteModuleCall(unittest.TestCase):
         output = _RemoteModuleCall.apply(self, self.dummy, x, modality)
         assert len(output) == x.size(0)
         assert torch.all(output == x)
-
-
-if __name__ == "__main__":
-    td = TestDendrite()
-    td.test_dendrite_forward_tensor()

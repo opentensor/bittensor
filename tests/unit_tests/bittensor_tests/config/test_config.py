@@ -13,7 +13,7 @@ def test_empty_config():
 
 def test_overwrite_config():
     c1 = Config.load()
-    c2 = Config.load('tests/unit_tests/bittensor/config/defaults_overwrite.yaml')
+    c2 = Config.load('tests/unit_tests/bittensor_tests/config/defaults_overwrite.yaml')
     assert c1.session_settings != c2.session_settings
 
 
@@ -27,12 +27,12 @@ def test_overwrite_config_from_passed_yaml():
 
 def test_overwrite_config():
     c1 = Config.load()
-    c2 = Config.load('tests/unit_tests/bittensor/config/defaults_overwrite.yaml')
+    c2 = Config.load('tests/unit_tests/bittensor_tests/config/defaults_overwrite.yaml')
     assert c1.session_settings.remote_ip != c2.session_settings.remote_ip
 
 def test_overwrite_fail_path():
     try:
-        Config.load('tests/unit_tests/bittensor/config/defaults_overwrite_fail.yaml')
+        Config.load('tests/unit_tests/bittensor_tests/config/defaults_overwrite_fail.yaml')
         assert False
     except FileNotFoundError:
         assert True
