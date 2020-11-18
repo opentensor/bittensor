@@ -22,24 +22,6 @@ class FailedSubscribeToChain(Exception):
 class FailedToEnterSession(Exception):
     pass
 
-class SubtensorProcess:
-    def __init__(self, config):
-        self._config = config
-        self._process = None
-    
-    def start(self):
-        args = ['./subtensor/target/release/node-subtensor', '--dev']
-        self._process = subprocess.Popen(
-            args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-
-    def stop(self):
-        if self._process != None:
-            self._process.terminate()
-            self._process.kill()
-            
 class BTSession:
     def __init__(self, config, keypair: Keypair):
         self.config = config 
@@ -48,7 +30,6 @@ class BTSession:
         self.axon = Axon(self.config, self.__keypair)
         self.dendrite = Dendrite(self.config, self.__keypair)
         self.tbwriter = SummaryWriter(log_dir=self.config.session_settings.logdir)
-        self.subtensor_process = SubtensorProcess(self.config)
 
     def __del__(self):
         self.stop()
@@ -59,7 +40,7 @@ class BTSession:
 
     def __enter__(self):
         logger.info('session enter')
-        self.start()
+        #self.start()
         return self
 
     def __exit__(self, *args):
@@ -115,12 +96,6 @@ class BTSession:
             self.axon.stop()
         except Exception as e:
             logger.error('SESSION: Error while stopping axon server: {} ', e)
-
-        logger.info('Stopping subtensor process ...')
-        try:
-            self.subtensor_process.stop()
-        except Exception as e:
-            logger.error('SESSION: Error while stopping subtensor process: {} ', e)
 
     def neurons (self):
        return self.metagraph.neurons()

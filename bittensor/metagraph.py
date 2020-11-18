@@ -68,9 +68,11 @@ class Metagraph():
             public_key = n_meta[0]
 
             # Filter nodes based on neuron last emit.
-            if current_block - int(last_emit_map[public_key]) > 100:
+            if public_key in last_emit_map.keys():
+                if current_block - int(last_emit_map[public_key]) > 100:
+                    continue
+            else:
                 continue
-
             # Create neuron proto.
             ipstr = int_to_ip(n_meta[1]['ip'])
             port = int(n_meta[1]['port'])
