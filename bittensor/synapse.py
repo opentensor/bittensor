@@ -5,9 +5,14 @@ import torch.optim as optim
 from typing import List, Tuple, Dict, Optional, TYPE_CHECKING
 
 import bittensor
-import bittensor.dendrite
-import bittensor.metagraph
 from bittensor import bittensor_pb2
+
+class SynapseConfig(object):
+    r"""Base config for all synapse objects.
+    Handles a parameters common to all bittensor synapse objects.
+    """
+    def __init__(self, **kwargs):
+       pass
 
 class SynapseOutput(object):
     """ Synapse output container.
@@ -55,60 +60,30 @@ class SynapseOutput(object):
         self.remote_target_loss = remote_target_loss
         self.distillation_loss = distillation_loss
 
+
 class Synapse(nn.Module):
-    """ Bittensor synapse class.
+    """ Bittensor synapse class. 
+
     """
 
     def __init__(   self,
-                    config: bittensor.SynapseConfig,
-                    dendrite: bittensor.dendrite.Dendrite = None,
-                    metagraph: bittensor.metagraph.Metagraph = None):
+                    config: SynapseConfig,
+                    session):
         r""" Init synapse module.
 
             Args:
-                config (:obj:`bittensor.SynapseConfig`, `required`): 
+                config (:obj:`SynapseConfig`, `required`): 
                     Base synapse config configuration class.
 
-                dendrite (:obj:`bittensor.dendrite.Dendrite`, `optional`, bittensor.dendrite): 
-                    bittensor dendrite object used for queries to remote synapses.
-                    Defaults to bittensor.dendrite global.
-
-                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`, bittensor.metagraph): 
-                    bittensor metagraph containing network graph information. 
-                    Defaults to bittensor.metagraph global.
-
+                session (:obj:`bittensor.BTSession`, `optional`): 
+                    bittensor training session.
         """
         super().__init__()
 
         self.config = config
-        
-        # Bittensor dendrite object used for queries to remote synapses.
-        # Defaults to bittensor.dendrite global object.
-        self.dendrite = dendrite
-        if self.dendrite == None:
-            self.dendrite = bittensor.dendrite
-            if bittensor.dendrite == None:
-                raise Warning ('Synapse initialized without a valid dendrite. Call bittensor.init() to create a global dendrite instance.')
-
-        # Bttensor metagraph containing network graph information.
-        # Defaults to bittensor.metagraph global object.
-        self.metagraph = metagraph
-        if self.metagraph == None:
-            self.metagraph = bittensor.metagraph
-            if bittensor.metagraph == None:
-                raise Warning ('Synapse initialized without a valid metagraph. Call bittensor.init() to create a global metagraph instance.')
-
-
+        self.session = session
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        # Send model to appropriate device (CPU or CUDA)
         self.to(self.device)
-
-    def synapse_key(self) -> str:
-        return self.config.synapse_key
-
-    def set_synapse_key(self, key):
-        self.config.synapse_key = key
 
     def deepcopy(self):
         """ Returns a copy of this synapse by passing the model params to load_state_dict.
@@ -118,7 +93,7 @@ class Synapse(nn.Module):
                     Deep copy synapse object.
         """
         SynapseClass = self.__class__
-        synapse_copy = SynapseClass(self.config)
+        synapse_copy = SynapseClass(self.config, self.session)
         synapse_copy.load_state_dict(self.state_dict())
         return synapse_copy
 

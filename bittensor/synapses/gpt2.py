@@ -1,6 +1,11 @@
-import random
 import bittensor
+from bittensor.utils.router import Router
+from bittensor.synapse import Synapse
+from bittensor.synapse import SynapseConfig
+from bittensor.synapse import SynapseOutput
+from bittensor.session import BTSession
 
+import random
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -23,7 +28,7 @@ def nextbatch(data, batch_size, tokenizer):
     batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True)['input_ids']
     return batch_inputs
 
-class GPT2MLMConfig (bittensor.SynapseConfig):
+class GPT2MLMConfig (SynapseConfig):
     r"""
     This is the configuration class for a :class:`~GPT2LMSynapse`.
     
@@ -88,33 +93,26 @@ class GPT2Pooler(nn.Module):
         pooled_output = self.activation(pooled_output)
         return pooled_output
 
-class GPT2LMSynapse(bittensor.Synapse):
+class GPT2LMSynapse(Synapse):
     """ A Bittensor Synapse training GPT2 with Masked Language Modelling (MLM)
     """
 
     def __init__(self,
                  config: GPT2MLMConfig,
-                 dendrite: bittensor.Dendrite = None,
-                 metagraph: bittensor.Metagraph = None):
+                 session: BTSession):
         r""" Init a new ffnn synapse module.
 
             Args:
                 config (:obj:`bittensor.gpt2.GPT2MLMConfig`, `required`): 
                     GPTMLM configuration class.
 
-                dendrite (:obj:`bittensor.Dendrite`, `optional`, bittensor.dendrite): 
-                    bittensor dendrite object used for queries to remote synapses.
-                    Defaults to bittensor.dendrite global.
-
-                metagraph (:obj:`bittensor.Metagraph`, `optional`, bittensor.metagraph): 
-                    bittensor metagraph containing network graph information. 
-                    Defaults to bittensor.metagraph global.
-
+                session (:obj:`bittensor.BTSession`, `required`): 
+                    bittensor session object. 
+                    Defaults to bittensor.session global if exists.
         """
         super(GPT2LMSynapse, self).__init__(
             config = config,
-            dendrite = dendrite,
-            metagraph = metagraph)
+            session = session)
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
         self.encoder_transformer = GPT2Model(self.config.huggingface_config)
@@ -125,7 +123,7 @@ class GPT2LMSynapse(bittensor.Synapse):
 
         # router: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, bittensor.__network_dim__] -> topk * [batch_size, bittensor.__network_dim__]
-        self.router = bittensor.Router(x_dim=bittensor.__network_dim__, key_dim=100, topk=10)
+        self.router = Router(x_dim=bittensor.__network_dim__, key_dim=100, topk=10)
 
         # context_transformer: distills the remote_context from inputs
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -201,7 +199,7 @@ class GPT2LMSynapse(bittensor.Synapse):
         """
 
         # Return vars to be filled.
-        output = bittensor.SynapseOutput(loss = torch.tensor(0.0))
+        output = SynapseOutput(loss = torch.tensor(0.0))
 
         # encoding: transformer encoded sentences.
         # encoding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
@@ -215,9 +213,9 @@ class GPT2LMSynapse(bittensor.Synapse):
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         if remote:
             # network = torch.Tensor(batch_size, bittensor.__network_dim__)
-            synapses = bittensor.metagraph.synapses()  # Returns a list of synapses on the network.
-            requests, _ = self.router.route(synapses, pooled, inputs)  # routes inputs to network.
-            responses = bittensor.dendrite.forward_text(synapses, requests)  # Makes network calls.
+            neurons = self.session.metagraph.neurons()  # Returns a list of neurons on the network.
+            requests, _ = self.router.route(neurons, pooled, inputs)  # routes inputs to network.
+            responses = self.session.dendrite.forward_text(neurons, requests)  # Makes network calls.
             remote_context = self.router.join(responses)  # Join responses with scores.
 
         # local_context: distilled version of remote_context.

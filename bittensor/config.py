@@ -1,229 +1,257 @@
-from configparser import ConfigParser
 from loguru import logger
-import configparser
 import argparse
-import requests
-
-import validators
+import munch
+import os
 import pathlib
-from bittensor.crypto import Crypto
-
+import requests
+import time
+import validators
+import yaml
+from munch import Munch
 
 class InvalidConfigFile(Exception):
     pass
 
-
 class ValidationError(Exception):
     pass
-
 
 class PostProcessingError(Exception):
     pass
 
-
 class InvalidConfigError(Exception):
     pass
 
-class Config(dict):
-    CHAIN_ENDPOINT = "chain_endpoint"
-    AXON_PORT = "axon_port"
-    METAGRAPH_PORT = "metagraph_port"
-    METAGRAPH_SIZE = "metagraph_size"
-    BOOTSTRAP = "bootstrap"
-    NEURON_KEY = "neuron_key"
-    REMOTE_IP = "remote_ip"
-    DATAPATH = "datapath"
-    LOGDIR = "logdir"
+class Config:
 
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        neuron_key = Crypto.public_key_to_string(Crypto.generate_private_ed25519().public_key())
+    @staticmethod
+    def load (config_path: str = None, from_yaml: str = None) -> Munch:
+        r""" Loads and returns a Munched config object from args/defaults.
 
-        self.update(
-            {
-                Config.CHAIN_ENDPOINT: "",
-                Config.NEURON_KEY: neuron_key,
-                Config.DATAPATH: "data/",
-                Config.LOGDIR: "data/" + neuron_key,
-                Config.REMOTE_IP: None,
-                Config.AXON_PORT: 8091,
-                Config.METAGRAPH_PORT: 8092,
-                Config.METAGRAPH_SIZE: 10000,
-                Config.BOOTSTRAP: None
-            }
-        )
+            Args:
+                config_path (str, `optional`): 
+                    Relative path to a config.yaml file which overrides defaults.
 
-        # Override (or not) options with default settings
-        for key, value in kwargs.items():
-            self[key] = value
+                from_yaml (str, `optional`)
+                    String yaml parsed by yaml.safe_load(str).
+                
+            Returns:
+                config  (:obj:`Munch` `required`):
+                    Python Munch object with dot syntax config items e.g. config.neuron.neuron_path.
+        """
+        config = Config.load_from_defaults()
 
-    def log(self):
-        for key in self:
-            logger.info("CONFIG: %s: %s" % (key, self[key]))
+        if config_path != None:
+            passed_items = Config.load_from_relative_path(config_path)
+            config = Config.overwrite_add(config, passed_items)
 
+        neuron_config = Config.load_from_neuron_path(config)
+        config = Config.overwrite_add(config, neuron_config)
 
-    def get_bootpeer(self):
-        if self[self.BOOTSTRAP]:
-            return self[self.BOOTSTRAP]
+        if from_yaml != None:
+            yaml_items = Config.load_from_yaml_string(from_yaml)
+            config = Config.overwrite_add(config, yaml_items)
 
-        return None
+        Config.post_process(config)
+        Config.validate(config)
 
-    def __getattr__(self, item):
-        if item in self:
-            return self[item]
+        return config
+
+    @staticmethod   
+    def load_from_defaults() -> Munch:
+        r""" Loads and returns a Munched config object from defaults.
+    
+            Returns:
+                defaults  (:obj:`Munch` `required`):
+                    Python Munch object with values from bittensor/neurons/defaults.yaml
+        """
+        # 1. Load defaults from defaults.yaml.
+        defaults = munch.Munch()
+        defaults_path = 'bittensor/neurons/defaults.yaml'
+        if not os.path.isfile(defaults_path):
+                raise FileNotFoundError('Cannot find default configuration at defaults.yaml')
+        with open(defaults_path, 'r') as f:
+            try:
+                defaults = yaml.safe_load(f)
+                defaults = munch.munchify(defaults)
+            except yaml.YAMLError as exc:
+                logger.error('CONFIG: cannot parse default configuration file at defaults.yaml')
+                raise InvalidConfigFile
+        return defaults
+
+    @staticmethod   
+    def load_from_neuron_path(items: Munch = None) -> Munch:
+        r""" Loads and returns a Munched config object from --neuron_path arg on command line.
+    
+            Returns:
+                defaults  (:obj:`Munch` `required`):
+                    Python Munch object with values from bittensor/neurons/defaults.yaml
+        """
+        # 1. Load args or defaults.yaml neuron path.
+        params_path = None
+        try:
+            parser = argparse.ArgumentParser()
+            parser.add_argument('--neuron_path', default=None, help='path to a neuron configuration file')
+            params = parser.parse_args()
+            params_path = params.neuron_path
+        except:
+            pass
+
+        neuron_items = None
+        try:
+            neuron_items = items.neuron.neuron_path
+        except:
+            pass
+
+        # If neither has neuron path throw error.
+        if params_path == None and neuron_items == None:
+            logger.error('CONFIG: must specify a neuron path either through --neuron_path or in the passed item.neuron.neuron_path')
+            raise InvalidConfigFile
+
+        if params_path != None:
+            return Config.load_from_relative_path(params_path)
         
+        else:
+            return Config.load_from_relative_path(neuron_items + '/config.yaml')
 
+    @staticmethod   
+    def load_from_yaml_string(yaml_str: str)  -> Munch:
+        r""" Loads and returns a Munched config object from a passed string
 
-class ConfigService:
-    # Attributes to make parsing of a config file work
-    parser = None
-    filename = None  # This will be passed as a constructor arg
-
-    # The dict that hold the configuration
-    config = Config()
-
-    # Attribute that tells if the configuration is valid
-    valid = False
-
-    # Command line arguments, filled during init
-    cl_args = None
-
-    def create(self, filename, argparser: argparse.ArgumentParser):
-        self.filename = "%s/%s" % (str(pathlib.Path(__file__).parent.absolute()), filename)
-        self.argparse = argparser
-        self.add_cl_args(argparser)
-
-    # def create(self):
-
+            Args:
+                yaml_str (str, `required`): 
+                    String representation of yaml file.
+    
+            Returns:
+                config  (:obj:`Munch` `required`):
+                    Python Munch object with values from parsed string.
         """
-        This is what happens:
-        1) The system defaults for the configuration is set
-        2) Then, config.ini is loaded and any value set there is used to overwrite the configuration
-        3) Then, the command line is parsed for options and used in the configuratoin
-        4) Ultimately some post processing is applied. Specifically, an IP address is obtained from an IP if not configured
+        # Load items yaml string.
+        yaml_items = munch.Munch()
+        if yaml_str != None:
+            try:
+                yaml_items = yaml.safe_load(yaml_str)
+                yaml_items = munch.munchify(yaml_items)
+            except:
+                logger.error('CONFIG: failed parsing passed yaml with input {}', yaml_str)
+                raise InvalidConfigFile
+        return yaml_items
+
+    @staticmethod
+    def load_from_relative_path(path: str)  -> Munch:
+        r""" Loads and returns a Munched config object from a relative path.
+
+            Args:
+                path (str, `required`): 
+                    Path to config.yaml file. full_path = cwd() + path
+    
+            Returns:
+                config  (:obj:`Munch` `required`):
+                    Python Munch object with values from config under path.
         """
+        # Load items from relative path.
+        path_items = munch.Munch()
+        if path != None:
+            path = os.getcwd() + '/' + path
+            if not os.path.isfile(path):
+                logger.error('CONFIG: cannot find passed configuration file at {}', path)
+                raise FileNotFoundError('Cannot find a configuration file at', path)
+            with open(path, 'r') as f:
+                try:
+                    path_items = yaml.safe_load(f)
+                    path_items = munch.munchify(path_items)
+                except yaml.YAMLError as exc:
+                    logger.error('CONFIG: cannot parse passed configuration file at {}', path)
+                    raise InvalidConfigFile
+        return path_items
+
+    @staticmethod
+    def post_process(items):
         try:
-            # self.__setup_defaults()
-            self.__load_config()
-            self.__parse_cl_args()
-            self.__validate_config()
-            self.__do_post_processing()
+            # 7.1 Optain remote ip.
+            Config.obtain_ip_address(items)
 
-            return self.config
+            # 7.2 Fix paths.
+            Config.fix_paths(items)
 
-        except InvalidConfigError:
-            return None
-
-    def add_cl_args(self, parser: argparse.ArgumentParser):
-        parser.add_argument('--chain_endpoint', dest=Config.CHAIN_ENDPOINT, type=str, help="bittensor chain endpoint")
-        parser.add_argument('--axon_port', dest=Config.AXON_PORT, type=int,
-                            help="TCP port that will be used to receive axon connections")
-        parser.add_argument('--metagraph_port', dest=Config.METAGRAPH_PORT, type=int,
-                            help='TCP port that will be used to receive metagraph connections')
-        parser.add_argument('--metagraph_size', dest=Config.METAGRAPH_SIZE, type=int, help='Metagraph cache size')
-        parser.add_argument('--bootstrap', dest=Config.BOOTSTRAP, type=str,
-                            help='The socket of the bootstrap peer host:port')
-        parser.add_argument('--neuron_key', dest=Config.NEURON_KEY, type=str, help='Key of the neuron')
-        parser.add_argument('--remote_ip', dest=Config.REMOTE_IP, type=str,
-                            help='The IP address of this neuron that will be published to the network')
-        parser.add_argument('--datapath', dest=Config.DATAPATH, type=str, help='Path to datasets')
-        parser.add_argument('--logdir', dest=Config.LOGDIR, type=str, help='Path to logs and saved models')
-
-        self.cl_args = parser.parse_args()
-
-    def __load_config(self):
-        try:
-            self.__parse_config_file()
-        except FileNotFoundError:
-            logger.debug("CONFIG: Warning: %s not found" % self.filename)
-        except (InvalidConfigFile, ValueError):
-            logger.error(
-                "CONFIG: %s is invalid. Try copying and adapting the default configuration file." % self.filename)
-            raise InvalidConfigError
-        except Exception:
-            logger.error("CONFIG: An unspecified error occured.")
-            raise InvalidConfigError
-
-    def __parse_config_file(self):
-        """
-        Loads and parses config.ini
-
-        Throws:
-            FileNotFoundError
-
-        """
-        self.parser = ConfigParser(allow_no_value=True)
-
-        files_read = self.parser.read(self.filename)
-        if self.filename not in files_read:
-            raise FileNotFoundError
-
-        # At this point, all sections and options are present. Now load the actual values according to type
-        self.load_str(Config.CHAIN_ENDPOINT, "general", "chain_endpoint")
-        self.load_str(Config.NEURON_KEY, "general", "neuron_key")
-        self.load_str(Config.DATAPATH, "general", "datapath")
-        self.load_str(Config.LOGDIR, "general", "logdir")
-
-        self.load_str(Config.REMOTE_IP, "general", "remote_ip")
-        self.load_int(Config.AXON_PORT, "axon", "port")
-
-        self.load_int(Config.METAGRAPH_PORT, "metagraph", "port")
-        self.load_int(Config.METAGRAPH_SIZE, "metagraph", "size")
-
-        self.load_str(Config.BOOTSTRAP, "bootstrap", "socket")
-
-    def __parse_cl_args(self):
-        """
-
-        This will loop over each command line argument. If it has a value,
-        it is used to overwrite the already existing configuration
-
-        Args:
-            args: The output of the argparse parser's .parse_args() function
-
-        Returns:
-
-        """
-        args_dict = vars(self.cl_args)
-        for key in args_dict:
-            if args_dict[key]:
-                self.config[key] = args_dict[key]
-
-    def __validate_config(self):
-        # Now validate all settings
-
-        # Todo: Implement chain endpoint validation
-        try:
-            # Chain endpoint is not implemented yet, no validation
-
-            # self.validate_key(self.NEURON_PUBKEY, required=True)
-
-            self.validate_path(Config.DATAPATH, required=True)
-            self.validate_path(Config.LOGDIR, required=True)
-            self.validate_ip(Config.REMOTE_IP, required=False)
-
-            self.validate_int_range(Config.AXON_PORT, min=1024, max=65535, required=True)
-
-            self.validate_int_range(Config.METAGRAPH_PORT, min=1024, max=65535, required=True)
-            self.validate_int_range(Config.METAGRAPH_SIZE, min=5, max=20000, required=True)
-
-            self.validate_socket(Config.BOOTSTRAP, required=False)
-
-        except ValidationError:
-            logger.debug("CONFIG: Validation error")
-            raise InvalidConfigError
-
-    def __do_post_processing(self):
-        try:
-            self.__obtain_ip_address()
-            self.__fix_paths()
         except PostProcessingError:
             logger.debug("CONFIG: post processing error.")
             raise InvalidConfigError
 
-    def __obtain_ip_address(self):
-        if self.config[Config.REMOTE_IP]:
+    @staticmethod
+    def validate(items):
+        try:
+            try:
+                items.session_settings.remote_ip
+            except:
+                logger.error("CONFIG: An error occured while parsing configuration. {} is required", 'session_settings.remote_ip')
+            try:
+                items.neuron.datapath
+            except:
+                logger.error("CONFIG: An error occured while parsing configuration. {} is required", 'neuron.datapath')
+            try:
+                items.session_settings.logdir
+            except:
+                logger.error("CONFIG: An error occured while parsing configuration. {} is required", 'session_settings.logdir')
+            try:
+                items.neuron.neuron_path
+            except:
+                logger.error("CONFIG: An error occured while parsing configuration. {} is required", 'neuron.neuron_path)')
+            try:
+                items.session_settings.axon_port
+            except:
+                logger.error("CONFIG: An error occured while parsing configuration. {} is required", 'neuron.datapath')
+            Config.validate_path_create('neuron.datapath', items.neuron.datapath)
+            Config.validate_path_create('session_settings.logdir', items.session_settings.logdir)
+            Config.validate_neuron_file('neuron.neuron_path', items.neuron.neuron_path)
+            Config.validate_ip('session_settings.remote_ip', items.session_settings.remote_ip)
+            Config.validate_int_range('session_settings.axon_port', items.session_settings.axon_port, min=1024, max=65535)
+        
+        except ValidationError:
+            logger.debug("CONFIG: Validation error")
+            raise InvalidConfigError
+
+    @staticmethod
+    def validate_ip(key, value):
+        if not validators.ipv4(value):
+            logger.error("CONFIG: Validation error: {} for option {} is not a valid ip address", value, key)
+            raise ValidationError
+    
+    @staticmethod
+    def validate_int_range(key, value, min, max):
+        """
+        Validates if a specifed integer falls in the specified range
+        """
+        if not validators.between(value, min=min, max=max):
+            logger.error(
+                "CONFIG: Validation error: {} should be between {} and {}.", key, min, max)
+            raise ValidationError
+
+    @staticmethod
+    def validate_path_create(key, value):
+        try:
+            full_neuron_path = os.getcwd() + '/' + value
+            pathlib.Path(full_neuron_path).mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            logger.error("CONFIG: Validation error: no permission to create path {} for option {}", value, key)
+            raise ValidationError
+        except:
+            logger.error("CONFIG: Validation error: An undefined error occured while trying to create path {} for option {}", value, key)
+            raise ValidationError
+    
+    @staticmethod
+    def validate_neuron_file(key, value):
+        full_path = os.getcwd() + value + '/neuron.py'
+        if not os.path.isfile(full_path):
+            logger.error("CONFIG: Neuron path does not point to valid neuron at {} and derived path {}", value, full_path)
+            raise ValidationError
+
+    @staticmethod
+    def obtain_ip_address(items):
+        try:
+            items.session_settings.remote_ip
             return
+        except:
+            pass
         try:
             value = requests.get('https://api.ipify.org').text
         except:
@@ -233,262 +261,92 @@ class ConfigService:
         if not validators.ipv4(value):
             logger.error("CONFIG: Response from IP API is not a valid IP.")
             raise PostProcessingError
-
-        self.config[Config.REMOTE_IP] = value
-
-    def __fix_paths(self):
-        if self.config[Config.DATAPATH] and self.config[Config.DATAPATH][-1] != '/':
-            self.config[Config.DATAPATH] += '/'
-
-        if self.config[Config.LOGDIR] and self.config[Config.LOGDIR][-1] != '/':
-            self.config[Config.LOGDIR] += '/'
-
-    def load_config_option(self, section, option):
-        """
-
-        This function loads a config option from the config file.
-        Note: Do not use this directly, instead use the wrapper functions
-        * load_str
-        * load_int
-
-        As they cast the value to the right type
-
-        Args:
-            key:   Key of the config dict
-            section:  section of the config file
-            option:  the option of the config file
-
-        Returns:
-            * None when the config option does not exist
-            * The string encoded value of the option (if there is not value, the string will be empty)
-
-        Throws:
-            InvalidConfigFile in case of a section not being present
-        """
-        try:
-            return self.parser.get(section, option)
-        except configparser.NoSectionError:
-            logger.error("Section %s not found in config.ini" % section)
-            raise InvalidConfigFile
-        except configparser.NoOptionError:
-            return None
-
-    def load_str(self, key, section, option):
-        """
-        Loads values that should be parsed as string
-        """
-        value = self.load_config_option(section, option)
-        if value is None:
-            return
-
-        self.config[key] = value
-
-    def load_int(self, key, section, option):
-        """
-        Loads values that should be parsed as an int
-        """
-        try:
-            # Return None if option has no value
-            value = self.load_config_option(section, option)
-            if value is None:
-                return
-
-            value = int(value)
-
-            self.config[key] = value
-
-        except ValueError:
-            logger.error(
-                "CONFIG: An error occured while parsing config.ini. Option '%s' in section '%s' should be an integer" % (
-                option, section))
-            raise ValueError
-
-    '''
-    Validation routines
-    '''
-
-    def has_valid_empty_value(self, config_key, required):
-        value = self.config[config_key]
-        if not value and required:
-            logger.error("CONFIG: An error occured while parsing configuration. %s is required" % config_key)
-            raise ValidationError
-        if not value and not required:
-            return True
-
-        return False
-
-    def validate_int_range(self, config_key, min, max, required=False):
-
-        """
-        Validates if a specifed integer falls in the specified range
-        """
-        if self.has_valid_empty_value(config_key, required):
-            return
-
-        value = self.config[config_key]
-
-        if not validators.between(value, min=min, max=max):
-            logger.error(
-                "CONFIG: Validation error: %s should be between %i and %i." % (
-                    config_key, min, max))
-            raise ValidationError
-
-    def validate_path(self, config_key, required=False):
-        if self.has_valid_empty_value(config_key, required):
-            return
-
-        path = self.config[config_key]
-
-        try:
-            pathlib.Path(path).mkdir(parents=True, exist_ok=True)
-        except PermissionError:
-            logger.error("CONFIG: Validation error: no permission to create path %s for option %s" %
-                         (path, config_key))
-            raise ValidationError
-        except:
-            logger.error("CONFIG: Validation error: An undefined error occured while trying to create path %s for option %s" %
-                         (path, config_key))
-            raise ValidationError
-
-    def validate_ip(self, config_key, required=False):
-        if self.has_valid_empty_value(config_key, required):
-            return
-
-        value = self.config[config_key]
-
-        if not validators.ipv4(value):
-            logger.error(
-                "CONFIG: Validation error: %s for option %s is not a valid ip address" %
-                (value, config_key))
-
-            raise ValidationError
-
-    def validate_hostname(self, config_key, required=False):
-        if self.has_valid_empty_value(config_key, required):
-            return
-
-        value = self.config[config_key]
-
-        if not validators.ipv4(value) and not validators.domain(value):
-            logger.error(
-                "CONFIG: Validation error: %s for option %s is not a valid ip address or hostname" %
-                (value, config_key))
-
-            raise ValidationError
-
-    def validate_socket(self, config_key, required=False):
-        if self.has_valid_empty_value(config_key, required):
-            return
-
-        value = self.config[config_key]
-
-        try:
-            host, port =  value.split(":")
-        except ValueError:
-            logger.error(
-                "CONFIG: Validation error: %s for option %s is incorrectly formatted. Should be ip:port" %
-                (value, config_key))
-            raise ValidationError
-
-        if not validators.ipv4(host) and host != "localhost" and not validators.domain(host):
-            logger.error(
-                "CONFIG: Validation error: %s for option %s does not contain a valid ip address" %
-                (value, config_key))
-
-            raise ValidationError
-
-        try:
-            port = int(port)
-        except ValueError:
-            logger.error(
-                "CONFIG: Validation error: %s for option %s does contain not a valid port nr" %
-                (value, config_key))
-
-            raise ValidationError
-
-        if not validators.between(port, min=1024, max=65535):
-            logger.error(
-                "CONFIG: Validation error: %s for option %s port must be between 1024 and 65535" %
-                (value, config_key))
-
-            raise ValidationError
-
-class SynapseConfig(object):
-    r"""Base config for all synapse objects.
-    Handles a parameters common to all bittensor synapse objects.
-
-    Args:
-         synapse_key (:obj:`str(ed25519 key)`, `optional`, defaults to :obj:`random str(ed25519)`):
-            Cryptographic keys used by this synapse. Defaults to randomly generated ed25519 key.
-    """
-    __default_synapse_key__ = Crypto.public_key_to_string(
-        Crypto.generate_private_ed25519().public_key())
-
-    def __init__(self, **kwargs):
-        # Bittensor synapse key.
-        self.synapse_key = kwargs.pop("synapse_key", SynapseConfig.__default_synapse_key__)
-        self._base_run_type_checks()
-
-    def _base_run_type_checks(self):
-        assert isinstance(self.synapse_key, type(SynapseConfig.__default_synapse_key__))
-
-    def __str__(self):
-        return "\n chain_endpoint: {} \n neuron key: {} \n axon port: {} \n metagraph port: {} \n metagraph Size: {} \n bootpeer: {} \n remote_ip: {} \n datapath: {} \n logdir: {}".format(
-            self.chain_endpoint, self.neuron_key, self.axon_port, self.metagraph_port,
-            self.metagraph_size, self.bootstrap, self.remote_ip, self.datapath, self.logdir)
+        items.session_settings.remote_ip = value
+        return items
 
     @staticmethod
-    def from_hparams(hparams):
-        config = Config()
-        config.set_hparams(hparams)
-        return config
+    def fix_paths(items):
+        if items.neuron.datapath and items.neuron.datapath[-1] != '/':
+            items.neuron.datapath = items.neuron.datapath + '/'
 
-    def set_hparams(self, hparams):
-        for key, value in hparams.__dict__.items():
-            try:
-                setattr(self, key, value)
-            except AttributeError as err:
-                logger.error("Can't set {} with value {} for {}".format(
-                    key, value, self))
-                raise err
-        self.run_type_checks()
+        if items.session_settings.logdir and items.session_settings.logdir[-1] != '/':
+            items.session_settings.logdir = items.session_settings.logdir + '/'
 
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
-        parser.add_argument('--chain_endpoint',
-                            default=Config.__chainendpoint_default__,
-                            type=str,
-                            help="bittensor chain endpoint.")
-        parser.add_argument('--axon_port',
-                            default=Config.__axon_port_default__,
-                            type=str,
-                            help="Axon terminal bind port")
-        parser.add_argument('--metagraph_port',
-                            default=Config.__metagraph_port_default__,
-                            type=str,
-                            help='Metagraph bind port.')
-        parser.add_argument('--metagraph_size',
-                            default=Config.__metagraph_size_default__,
-                            type=int,
-                            help='Metagraph cache size.')
-        parser.add_argument('--bootstrap',
-                            default=Config.__bootstrap_default__,
-                            type=str,
-                            help='Metagraph bootpeer')
-        parser.add_argument('--neuron_key',
-                            default=Config.__neuron_key_default__,
-                            type=str,
-                            help='Neuron key')
-        parser.add_argument('--remote_ip',
-                            default=Config.__remote_ip_default__,
-                            type=str,
-                            help='Remote serving ip.')
-        parser.add_argument('--datapath',
-                            default=Config.__datapath_default__,
-                            type=str,
-                            help='Path to datasets.')
-        parser.add_argument('--logdir',
-                            default=Config.__logdir_default__,
-                            type=str,
-                            help='Path to logs and saved models.')
-        return parser
+    def toString(config, depth=0):
+        for k, v in config.items():
+            if isinstance(v, dict):
+                print ('\t' * depth, '{}:'.format(k))
+                Config.toString(v, depth = depth + 1)
+            else:
+                print ('\t' * depth, '{}: {}'.format(k, v) )
+
+    @staticmethod
+    def overwrite_add(items_a, items_b):
+        r""" Overwrites and adds values from items A with items B. Returns 
+
+            Args:
+                items_a (obj:Munch, `required`): 
+                    Items to overrite into
+
+                items_b (obj:Munch, `required`): 
+                    Items to overrite from
+    
+            Returns:
+                items  (:obj:`Munch` `Optional`):
+                    Overritten items or None if both are None.
+        """
+        if items_b == None:
+            return items_a
+        if items_a == None:
+            return items_b
+        items_a = Config.overwrite(items_a, items_b)
+        items_a = Config.add(items_a, items_b)
+        return items_a
+
+    @staticmethod
+    def overwrite(items_a, items_b):
+        r""" Overwrites values from items_b into items b.
+
+            Args:
+                items_a (obj:Munch, `required`): 
+                    Items to overrite into
+
+                items_b (obj:Munch, `required`): 
+                    Items to overrite from
+    
+            Returns:
+                items  (:obj:`Munch` `Optional`):
+                    Items with overwrite from B to A.
+        """
+        for k, v in items_a.items():
+            if k in items_b:
+                if isinstance(v, dict):
+                    Config.overwrite(v, items_b[k])
+                else:
+                    if items_b != None:
+                        items_a[k] = items_b[k]
+        return items_a
+
+    @staticmethod
+    def add(items_a, items_b):
+        r""" Adds values from items b into items b.
+
+            Args:
+                items_a (obj:Munch, `required`): 
+                    Items to overrite into
+
+                items_b (obj:Munch, `required`): 
+                    Items to overrite from
+    
+            Returns:
+                items  (:obj:`Munch` `Optional`):
+                    Items with union from A and B.
+        """
+        for k, v in items_b.items():
+            if k not in items_a:
+                items_a[k] = items_b[k]
+            if k in items_a:
+                if isinstance(v, dict):
+                    Config.add(items_a[k], items_b[k])
+        return items_a

@@ -1,301 +1,181 @@
 
-import math
-import grpc
-import random
-import threading
-import torch
-import time
-import os
+import asyncio
 import bittensor
-import bittensor.synapse 
+import math
+import netaddr
+import time
 
-from typing import List
-from concurrent import futures
 from loguru import logger
 from bittensor import bittensor_pb2
-from bittensor import bittensor_pb2_grpc as bittensor_grpc
+from substrateinterface import SubstrateInterface, Keypair
+from typing import List
 
-class Metagraph(bittensor_grpc.MetagraphServicer):
+custom_type_registry = {
+    "runtime_id": 2, 
+    "types": {
+            "NeuronMetadata": {
+                    "type": "struct", 
+                    "type_mapping": [["ip", "u128"], ["port", "u16"], ["ip_type", "u8"]]
+                }
+        }
+}
 
-    def __init__(self, config: bittensor.Config):
-        """Initializes a new Metagraph POW-cache object.
+def int_to_ip(int_val):
+    return str(netaddr.IPAddress(int_val))
+ 
+def ip_to_int(str_val):
+    return int(netaddr.IPAddress(str_val))
+
+class Metagraph():
+
+    def __init__(self, config, keypair):
+        """Initializes a new Metagraph subtensor interface.
         Args:
-            config (bittensor.Config): An bittensor cache config object.
+            config (bittensor.Config): An bittensor config object.
         """
-        # Internal state
-        self._peers = []
-        self._synapses = {}
-        self._weights = {}
-        self._heartbeat = {}
-        self._ttl = 1800 # 30 minute time-to-live for testing
-        # bittensor config
         self._config = config
-        self.bootpeer = self._config.get_bootpeer()
-        if self.bootpeer:
-            self.bootstrap_peer = {
-                                    "address": self.bootpeer,
-                                    "neuron_key": None,
-                                    "heartbeat": time.time()
-            }
-            self._peers.append(self.bootstrap_peer)
-
-
-        # Init server objects.
-        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=100))
-        bittensor_grpc.add_MetagraphServicer_to_server(self, self._server)
-        self._server.add_insecure_port('[::]:' +
-                                       str(self._config.metagraph_port))
-
-        # Update thread.
-        self._update_thread = None
-        self._server_thread = None
-        self._running = False
-
-        if os.environ.get('https_proxy'):
-            del os.environ['https_proxy']
-        if os.environ.get('http_proxy'):
-            del os.environ['http_proxy']
-
-    def synapses(self, n: int = 1000) -> List[bittensor_pb2.Synapse]:
-        """ Returns min(n, len(synapses)) synapse from the graph sorted by score.
-        Args:
-            n (int): min(n, len(synapses)) synapses to return.
-
-        Returns:
-            List[bittensor_pb2.Synapse]: List of synapse endpoints.
-        """
-        # TODO (const) sort synapse array
-        synapse_list = list(self._synapses.values())
-        min_n = min(len(synapse_list), n)
-        return synapse_list[:min_n]
-
-    def peers(self, n: int = 10) -> List[str]:
-        """ Return min(n, len(peers)) peer endpoints from the active set.
-
-        Args:
-            n (int): min(n, len(synapses)) peers to return.
-
-        Returns:
-            List[str]: List of peers.
-        """
-        peer_list = list(self._peers)
-        min_n = min(len(peer_list), n)
-        return peer_list[:min_n]
-
-    def _sink(self, payload: bittensor_pb2.GossipBatch):
-        """Sinks a gossip request to the metagraph.
-
-        Args:
-            request (bittensor_pb2.SynapseBatch): [description]
-        """
-        known_peer_keys = [p['neuron_key'] for p in self._peers]
-        
-        # Special case: If we only have one peer with no neuron key, then this payload 
-        # is coming from that peer, and its neuron key should be set for our records.
-        if len(self._peers) == 1:
-            if not self._peers[0]["neuron_key"]:
-                self._peers[0]["neuron_key"] = payload.source_neuron_key
-
-        try:
-            for i in range(len(payload.peers)):
-                peer_stats = {
-                                "address": payload.peers[i].address,
-                                "neuron_key": payload.peers[i].neuron_key,
-                                "heartbeat": time.time()
-                            }
-
-                if payload.peers[i].neuron_key not in known_peer_keys:
-                    self._peers.append(peer_stats)
-                else:
-                   # First, let's find the source peer -- that is, the peer that sent this request.
-                   source_peer_neuron_key = payload.source_neuron_key
-                   # Let's make sure we are not the source peer 
-                   if source_peer_neuron_key != self._config.neuron_key:
-                        # We are not the source, so we should update the source's heartbeat
-                        # Find the source node
-                        src_idx_local = next((index for (index, d) in enumerate(self._peers) if d["neuron_key"] == payload.source_neuron_key), None)
-                        src_idx_remote = next((index for (index,d) in enumerate(payload.peers) if d.neuron_key == payload.source_neuron_key), None)
-                        # If the src idx doesn't exist here, it means we're talking to a metagraph. 
-                        if src_idx_local:
-                            now = time.time()
-                            # Update the source peer's last heartbeat in our records if they haven't exceeded the ttl
-                            # otherwise delete
-                            if now - payload.peers[src_idx_remote].heartbeat <= self._ttl:
-                                self._peers[src_idx_local].update({"heartbeat": time.time()})
-        except Exception as e:
-            logger.error("Exception occured: {}".format(e))
-
-        for synapse in payload.synapses:
-            self._synapses[synapse.synapse_key] = synapse
-            self._heartbeat[synapse.synapse_key] = time.time()
-
-    def Gossip(self, request: bittensor_pb2.GossipBatch, context):
-        synapses = self.synapses(1000)
-        peers = self.peers(10)
-        self._sink(request)
-        response = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses, source_neuron_key=self._config.neuron_key)
-        return response
-
-    def do_gossip(self):
-        """ Sends gossip query to random peer"""
-        if len(self._peers) == 0:
-            return
-
-        synapses = self.synapses(1000)
-        peers = self.peers(10)
-        random_peer = random.choice(list(self._peers))
-        random_peer_address = random_peer['address']
-        realized_address = random_peer_address
-        if random_peer_address.split(':')[0] == self._config.remote_ip:
-            realized_address = 'localhost:' + str(
-                random_peer_address.split(":")[1])
-        
-        retries = 0
-        peer_reached = False
-        backoff = 1
-        while (retries < 3):
-            try:
-                channel = grpc.insecure_channel(realized_address, options=(('grpc.enable_http_proxy', 0),))
-                stub = bittensor_grpc.MetagraphStub(channel)
-                request = bittensor_pb2.GossipBatch(peers=peers, synapses=synapses, source_neuron_key=self._config.neuron_key)
-                response = stub.Gossip(request)
-                channel.close()
-                self._sink(response)
-                peer_reached = True
-            except Exception as e:
-                # Faulty peer.
-                logger.warning("Faulty peer!: {}".format(random_peer))
-                logger.error("ERROR: {}".format(e))
-                #self._peers.remove(random_peer)
-                time.sleep(backoff * 2)
-                retries += 1
-                backoff += 1
-                logger.info("Retry number: {}".format(retries))
-                continue
-            break
-        
-        if not peer_reached:
-            logger.error("Peer {} is unreachable".format(random_peer))
-            self._peers.remove(random_peer)
-
-
-    def do_clean(self, ttl: int):
-        """Cleans lingering metagraph elements
-        Args:
-            ttl (int): time to live. (in minutes)
-        """
-        now = time.time()
-        for uid in list(self._synapses):
-            if now - self._heartbeat[uid] > ttl:
-                del self._synapses[uid]
-                del self._heartbeat[uid]
-
-        for peer in list(self._peers):
-            time_elapsed_since_last_heartbeat = now - peer['heartbeat']
-            if time_elapsed_since_last_heartbeat > self._ttl:
-                logger.info("It appears peer {} has dropped off, last heartbeat was {:.2f} minutes ago".format(peer, time_elapsed_since_last_heartbeat/60))
-                self._peers.remove(peer)
-
-    def _update(self):
-        """ Internal update thread. Keeps the metagraph up to date. """
-        try:
-            while self._running:
-                self.do_gossip()
-                if len(self._peers) > 0:
-                    self.do_clean(self._ttl)
-        
-        except (KeyboardInterrupt, SystemExit) as e:
-            logger.info('stop metagraph')
-            self._running = False
-            self.stop()
-            raise e
-
-    def _serve(self):
-        try:
-            self._server.start()
-        except (KeyboardInterrupt, SystemExit) as ex:
-            self.stop()
-            raise ex
-        except Exception as e:
-            logger.error(e)
-
-    def __del__(self):
-        self.stop()
-
-    def stop(self):
-        """ Stops the gossip thread """
-        self._running = False
-        if self._update_thread:
-            self._update_thread.join()
-        self._server.stop(0)
-
-    def start(self):
-        """ Starts the gossip thread """
-        self._running = True
-        self._update_thread = threading.Thread(target=self._update, daemon=True)
-        self._server_thread = threading.Thread(target=self._serve, daemon=True)
-        self._update_thread.start()
-        self._server_thread.start()
-
-    def getweights(self, synapses: List[bittensor_pb2.Synapse]) -> torch.Tensor:
-        """Get the weights for list of Synapse endpoints.
-
-        Args:
-            synapses (List[bittensor_pb2.Synapse]): Synapses to get weights for.
-
-        Returns:
-            [type]: Weights set for each synapse.
-        """
-        return torch.Tensor(self._getweights(synapses))
-
-    def _getweights(self, synapses: List[bittensor_pb2.Synapse]) -> List[float]:
-        """ Get local weights for a list of synapses """
-        result = []
-        for syn in synapses:
-            if syn.synapse_key not in self._weights:
-                result.append(0.0)
-            else:
-                result.append(self._weights[syn.synapse_key])
-        return result
-
-    def setweights(self, synapses: List[bittensor_pb2.Synapse],
-                   weights: torch.Tensor):
-        """Sets the weights for these synapses given equal length list of weights.
-
-        Args:
-            synapses (List[bittensor_pb2.Synapse]): Synapses to set weights.
-            weights (torch.Tensor): Weights to set.
-        """
-        weights = weights.cpu().detach().numpy().tolist()
-        self._setweights(synapses, weights)
-
-    def _setweights(self, synapses: List[bittensor_pb2.Synapse],
-                    weights: List[float]):
-        """ Set local scores for each passed node """
-        for idx, synapse in enumerate(synapses):
-            self._weights[synapse.synapse_key] = weights[idx]
-
-    def subscribe(self, synapse):
-        """Subscribes a synapse class object to the metagraph.
-
-        Args:
-            module (bittensor.Synapse): bittensor.Synapse class object to subscribe.
-        """
-        # Create a new bittensor_pb2.Synapse proto.
-        synapse_proto = bittensor_pb2.Synapse(
-            version=bittensor.__version__,
-            neuron_key=self._config.neuron_key,
-            synapse_key=synapse.synapse_key(),
-            address=self._config.remote_ip,
-            port=self._config.axon_port,
+        self.__keypair = keypair
+        self.substrate = SubstrateInterface(
+            url=self._config.session_settings.chain_endpoint,
+            address_type=42,
+            type_registry_preset='substrate-node-template',
+            type_registry=custom_type_registry,
         )
-        self._subscribe(synapse_proto)
+        self._last_poll = -math.inf
+        self._neurons = []
 
-    def _subscribe(self, synapse_proto: bittensor_pb2.Synapse):
-        self._synapses[synapse_proto.synapse_key] = synapse_proto
-        self._weights[synapse_proto.synapse_key] = math.inf
-        self._heartbeat[synapse_proto.synapse_key] = time.time()
+    def _pollchain(self):
+          # Get current block for filtering.
+        current_block = self.substrate.get_block_number(None)
 
-    @property
-    def weights(self):
-        return self._weights
+        # Pull the last emit data from all nodes.
+        last_emit_data = self.substrate.iterate_map(
+            module='SubtensorModule',
+            storage_function='LastEmit'
+        )
+        last_emit_map = {}
+        for el in last_emit_data:
+            last_emit_map[el[0]] = int(el[1])
+
+        # Pull all neuron metadata.
+        neuron_metadata = self.substrate.iterate_map(
+            module='SubtensorModule',
+            storage_function='Neurons'
+        )
+
+        # Filter neurons.
+        neuron_map = {}
+
+        # Fill self.
+        self_neuron_proto = bittensor_pb2.Neuron(
+                version=bittensor.__version__,
+                public_key=self.__keypair.public_key,
+                address=self._config.session_settings.remote_ip,
+                port=self._config.session_settings.axon_port
+        )
+        self_endpoint_key = str(self_neuron_proto.address) + str(self_neuron_proto.port)
+        neuron_map[self_endpoint_key] = self_neuron_proto
+
+        for n_meta in neuron_metadata:
+            # Create a new bittensor_pb2.Neuron proto.
+            public_key = n_meta[0]
+
+            # Filter nodes based on neuron last emit.
+            if public_key in last_emit_map.keys():
+                if current_block - int(last_emit_map[public_key]) > 100:
+                    continue
+            else:
+                continue
+            # Create neuron proto.
+            ipstr = int_to_ip(n_meta[1]['ip'])
+            port = int(n_meta[1]['port'])
+            neuron_proto = bittensor_pb2.Neuron(
+                version=bittensor.__version__,
+                public_key=public_key,
+                address=ipstr,
+                port=port
+            )
+
+            # Check overlap ip-port, take the most recent neuron.
+            ip_port = ipstr + str(port)
+            if ip_port not in neuron_map:
+                neuron_map[ip_port] = neuron_proto
+            else:
+                public_key2 = neuron_map[ip_port].public_key
+                last_emit_1 = last_emit_map[public_key]
+                last_emit_2 = last_emit_map[public_key2]
+                if last_emit_1 >= last_emit_2:
+                    neuron_map[ip_port] = neuron_proto
+                
+        # Return list of non-filtered neurons.
+        neurons_list = neuron_map.values()
+        self._neurons = neurons_list
+
+    def neurons (self, poll_every_seconds: int = 15) -> List[bittensor_pb2.Neuron]:
+        if (time.time() - self._last_poll) > poll_every_seconds:
+            self._last_poll = time.time()
+            self._pollchain()
+        return self._neurons
+        
+    def connect(self, timeout) -> bool:
+        time_elapsed = 0
+        while time_elapsed < timeout:
+            time.sleep(1)
+            time_elapsed += 1
+            try:
+                self.substrate.get_runtime_block()
+                return True
+            except Exception as e:
+                logger.warn("Exception occured during connection: {}".format)
+                continue
+        return False
+
+    def subscribe (self, timeout) -> bool:
+        params = {'ip': ip_to_int(self._config.session_settings.remote_ip), 'port': self._config.session_settings.axon_port, 'ip_type': 4}
+
+        logger.info(params)
+        call = self.substrate.compose_call(
+            call_module='SubtensorModule',
+            call_function='subscribe',
+            call_params=params
+        )
+        extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
+        self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        time_elapsed = 0
+        while time_elapsed < timeout:
+            time.sleep(1)
+            time_elapsed += 1
+            neurons = self.substrate.iterate_map(
+                module='SubtensorModule',
+                storage_function='Neurons'
+            )
+            for n in neurons:
+                if n[0] == self.__keypair.public_key:
+                    return True
+        return False
+            
+
+    def unsubscribe (self, timeout):
+        logger.info('Unsubscribe from chain endpoint')
+        call = self.substrate.compose_call(
+            call_module='SubtensorModule',
+            call_function='unsubscribe'
+        )
+        extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
+        self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        time_elapsed = 0
+        while time_elapsed < timeout:
+            neurons = self.substrate.iterate_map(
+                module='SubtensorModule',
+                storage_function='Neurons'
+            )
+            i_exist = False
+            for n in neurons:
+                if n[0] == self.__keypair.public_key:
+                    i_exist = True
+                    break
+            if i_exist == False:
+                return True
+            time.sleep(1)
+            time_elapsed += 1
+        return False
