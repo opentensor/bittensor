@@ -25,9 +25,8 @@ import unittest
 default_config = """
     session_settings:
         axon_port: 8081
-        chain_endpoint: http://99.238.136.56:12345
+        chain_endpoint: http://206.189.254.5:12345
         logdir: /tmp/
-        run_local_chain: false
 
     training:
         datapath: /tmp/
@@ -77,7 +76,7 @@ class MnistNode(unittest.TestCase):
             while epoch < total_epochs:
 
                 self.train(self.model, epoch)
-                test_loss, accuracy = self.test(self.model)
+                test_loss, accuracy = self.validate(self.model)
                 self.scheduler.step()
                 epoch += 1
 
@@ -87,7 +86,7 @@ class MnistNode(unittest.TestCase):
                     logger.info("Best test loss: {}".format(best_loss))
                     self.session.serve( self.model.deepcopy() )
 
-            assert best_test_loss <= 0.1
+            assert best_loss <= 0.1
             assert best_accuracy >= 75 
             # Neurons should be 3, but we are setting to >= 2 due to the
             # unpredictability of circleci booting up neurons, some neurons might

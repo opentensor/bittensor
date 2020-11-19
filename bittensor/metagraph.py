@@ -41,7 +41,7 @@ class Metagraph():
             type_registry_preset='substrate-node-template',
             type_registry=custom_type_registry,
         )
-        self._since_last_poll = math.inf
+        self._last_poll = -math.inf
         self._neurons = []
 
     def _pollchain(self):
@@ -101,8 +101,8 @@ class Metagraph():
         self._neurons = neurons_list
 
     def neurons (self, poll_every_seconds: int = 15) -> List[bittensor_pb2.Neuron]:
-        if (time.time() - self._since_last_poll) > poll_every_seconds:
-            self._since_last_poll = time.time()
+        if (time.time() - self._last_poll) > poll_every_seconds:
+            self._last_poll = time.time()
             self._pollchain()
         return self._neurons
         
