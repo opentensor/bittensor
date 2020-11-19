@@ -1,0 +1,4 @@
+training:
+  learning_rate: 0.01 
+  batch_size: 20
+  epoch_size: 50

@@ -3,10 +3,11 @@ from typing import List, Tuple
 import torch
 import torch.nn as nn
 
+import bittensor
+from bittensor.utils.keys import Keys
+from bittensor.utils.gate import Gate
+from bittensor.utils.dispatcher import Dispatcher
 from bittensor import bittensor_pb2
-import bittensor
-import bittensor
-
 
 class Router(nn.Module):
 
@@ -17,21 +18,21 @@ class Router(nn.Module):
         self.topk = topk
 
         # Keys object.
-        # projects from/to bittensor_pb2.Synapse to a variable sized key tensor.
-        self.keymap = bittensor.Keys(self.key_dim)
+        # projects from/to bittensor_pb2.Neuron to a variable sized key tensor.
+        self.keymap = Keys(self.key_dim)
 
         # Trainable gating object.
-        self.gate = bittensor.Gate(self.x_dim, self.topk, self.key_dim)
+        self.gate = Gate(self.x_dim, self.topk, self.key_dim)
 
         # Object for dispatching / combining gated inputs
-        self.dispatcher = bittensor.Dispatcher()
+        self.dispatcher = Dispatcher()
 
-    def route(self, synapses: List[bittensor_pb2.Synapse],
+    def route(self, neurons: List[bittensor_pb2.Neuron],
               gate_inputs: torch.Tensor,
               raw_inputs: object) -> Tuple[List[torch.Tensor], torch.Tensor]:
-        # Get synapses from the metagraph.
-        # and map synapses to torch keys.
-        keys = self.keymap.toKeys(synapses)  # (n_keys, key_dim)
+        # Get neurons from the metagraph.
+        # and map neurons to torch keys.
+        keys = self.keymap.toKeys(neurons)  # (n_keys, key_dim)
 
         # Learning a map from the gate_inputs to keys
         # scores[i, j] = score for the jth key for input i

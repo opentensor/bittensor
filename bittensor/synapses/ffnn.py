@@ -5,6 +5,12 @@ Simple feed forward NN for images.
 """
 
 import bittensor
+from bittensor.utils.router import Router
+from bittensor.synapse import Synapse
+from bittensor.synapse import SynapseConfig
+from bittensor.synapse import SynapseOutput
+from bittensor.session import BTSession
+from bittensor.utils.batch_transforms import Normalize
 
 from loguru import logger
 import torch
@@ -15,7 +21,7 @@ import torchvision.transforms as transforms
 from typing import List, Tuple, Dict, Optional
 from types import SimpleNamespace
 
-class FFNNConfig (bittensor.SynapseConfig):
+class FFNNConfig (SynapseConfig):
     r"""
     This is the configuration class to store the configuration of a :class:`~FFNNSynapse`.
     It is used to instantiate a Feed Forward model according to the specified arguments, 
@@ -46,37 +52,29 @@ class FFNNConfig (bittensor.SynapseConfig):
     def run_checks(self):
         assert isinstance(self.target_dim, int)
 
-class FFNNSynapse(bittensor.Synapse):
+class FFNNSynapse(Synapse):
     """ Simple feed forward NN for images.
     """
 
     def __init__(self,
                  config: FFNNConfig,
-                 dendrite: bittensor.Dendrite = None,
-                 metagraph: bittensor.Metagraph = None):
+                 session: BTSession):
         r""" Init a new ffnn synapse module.
 
             Args:
                 config (:obj:`bittensor.ffnn.FFNNConfig`, `required`): 
                     ffnn configuration class.
 
-                dendrite (:obj:`bittensor.Dendrite`, `optional`, bittensor.dendrite): 
-                    bittensor dendrite object used for queries to remote synapses.
-                    Defaults to bittensor.dendrite global.
-
-                metagraph (:obj:`bittensor.Metagraph`, `optional`, bittensor.metagraph): 
-                    bittensor metagraph containing network graph information. 
-                    Defaults to bittensor.metagraph global.
-
+                session (:obj:`bittensor.Session`, `required`): 
+                    bittensor session object. 
         """
         super(FFNNSynapse, self).__init__(
             config = config,
-            dendrite = dendrite,
-            metagraph = metagraph)
+            session = session)
             
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
-        self.transform = bittensor.utils.batch_transforms.Normalize((0.1307,), (0.3081,))
+        self.transform = Normalize((0.1307,), (0.3081,))
         self.transform_pool = nn.AdaptiveAvgPool2d((28, 28))
         self.transform_conv1 = nn.Conv2d(1, 10, kernel_size=5)
         self.transform_conv2 = nn.Conv2d(10, 20, kernel_size=5)
@@ -85,7 +83,7 @@ class FFNNSynapse(bittensor.Synapse):
 
         # router: (PKM layer) queries network using transform as context.
         # [batch_size, transform_dim] -> topk * [batch_size, bittensor.__network_dim__]
-        self.router = bittensor.Router(x_dim = self.transform_dim, key_dim=100, topk=10)
+        self.router = Router(x_dim = self.transform_dim, key_dim=100, topk=10)
 
         # context_layer: distills the remote_context from the transform layer.
         # [batch_size, transform_dim] -> [batch_size, bittensor.__network_dim__]
@@ -101,6 +99,8 @@ class FFNNSynapse(bittensor.Synapse):
         # [batch_size, bittensor.__network_dim__] -> [batch_size, self.target_dim]
         self.target_layer1 = nn.Linear(bittensor.__network_dim__, 256)
         self.target_layer2 = nn.Linear(256, self.config.target_dim)
+
+        self.to(self.device)
         
     def forward_image(self, images: torch.Tensor):
         r""" Forward image inputs through the FFNN synapse .
@@ -172,7 +172,7 @@ class FFNNSynapse(bittensor.Synapse):
         """
 
         # Return vars to be filled.
-        output = bittensor.SynapseOutput (loss = torch.tensor(0.0))
+        output = SynapseOutput (loss = torch.tensor(0.0))
 
         # transform: transform images to common shape.
         # transform.shape = [batch_size, self.transform_dim]
@@ -186,9 +186,9 @@ class FFNNSynapse(bittensor.Synapse):
         if remote:
             # If query == True make a remote call.
             images = torch.unsqueeze(images, 1) # Add sequence dimension.
-            synapses = self.metagraph.synapses() # Returns a list of synapses on the network.
-            requests, _ = self.router.route( synapses, transform, images ) # routes inputs to network.
-            responses = self.dendrite.forward_image( synapses, requests ) # Makes network calls.
+            neurons = self.session.metagraph.neurons() # Returns a list of neurons on the network.
+            requests, _ = self.router.route( neurons, transform, images ) # routes inputs to network.
+            responses = self.session.dendrite.forward_image( neurons, requests ) # Makes network calls.
             remote_context = self.router.join( responses ) # Joins responses based on scores..
             remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2]) # Squeeze the sequence dimension.
 

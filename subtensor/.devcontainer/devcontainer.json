@@ -1,0 +1,26 @@
+{
+  "name": "Substrate Node Subtensor",
+  "context": "..",
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash",
+    "lldb.executable": "/usr/bin/lldb"
+  },
+  "extensions": [
+    "rust-lang.rust",
+    "bungcip.better-toml",
+    "vadimcn.vscode-lldb"
+  ],
+  "forwardPorts": [
+    3000,
+    9944
+  ],
+  "preCreateCommand": "cargo build --release && cargo check",
+  "postStartCommand": "./target/release/node-subtensor --dev --ws-external",
+  "menuActions": [
+    {"id": "polkadotjs",
+     "label": "Open PolkadotJS Apps",
+     "type": "external-preview",
+     "args": ["https://polkadot.js.org/apps/?rpc=wss%3A%2F%2F/$HOST/wss"]}
+  ],
+  "image": "paritytech/substrate-playground-template-node-template:latest"
+}
