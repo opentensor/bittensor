@@ -68,7 +68,7 @@ class Metagraph():
 
         # Fill self.
         self_neuron_proto = bittensor_pb2.Neuron(
-                version=bittensor.version,
+                version=bittensor.__version__,
                 public_key=self.__keypair.public_key,
                 address=self._config.session_settings.remote_ip,
                 port=self._config.session_settings.axon_port
