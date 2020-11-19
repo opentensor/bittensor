@@ -27,26 +27,26 @@ class Keys():
 
     def __init__(self, key_dim):
         self._key_dim = key_dim
-        self._key_for_synapse = {}
-        self._synapse_for_key = {}
+        self._key_for_neuron = {}
+        self._neuron_for_key = {}
 
-    def addSynapse(self, synapse):
+    def addNeuron(self, neuron):
         key = new_key(self._key_dim)
-        self._key_for_synapse[synapse.synapse_key] = key
-        self._synapse_for_key[torch_to_bytes(key)] = synapse
+        self._key_for_neuron[neuron.public_key] = key
+        self._neuron_for_key[torch_to_bytes(key)] = neuron
 
-    def toKeys(self, synapses: List[bittensor_pb2.Synapse]):
+    def toKeys(self, neurons: List[bittensor_pb2.Neuron]):
         torch_keys = []
-        for synapse in synapses:
-            if synapse.synapse_key not in self._key_for_synapse:
-                self.addSynapse(synapse)
-            torch_keys.append(self._key_for_synapse[synapse.synapse_key])
+        for neuron in neurons:
+            if neuron.public_key not in self._key_for_neuron:
+                self.addNeuron(neuron)
+            torch_keys.append(self._key_for_neuron[neuron.public_key])
         return torch.cat(torch_keys, dim=0).view(-1, self._key_dim)
 
-    def toSynapses(self, keys):
-        synapses = []
+    def toNeurons(self, keys):
+        neurons = []
         for k in keys:
             kb = torch_to_bytes(k)
-            assert (kb in self._synapse_for_key)
-            synapses.append(self._synapse_for_key[kb])
-        return synapses
+            assert (kb in self._neuron_for_key)
+            neurons.append(self._neuron_for_key[kb])
+        return neurons

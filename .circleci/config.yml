@@ -26,7 +26,8 @@ jobs:
     steps:
       - checkout
       - python/load-cache
-      - run: pip install codecov pytest
+      - run: pip install substrate-interface munch pyyaml codecov pytest netaddr
+      - run: ./scripts/build_protos.sh
       - run:
           command: pip install -e .
           name: setup
@@ -42,7 +43,8 @@ jobs:
     steps:
       - checkout
       - python/load-cache
-      - run: pip install codecov pytest
+      - run: pip install substrate-interface munch pyyaml codecov pytest netaddr
+      - run: ./scripts/build_protos.sh
       - run:
           command: pip install -e .
           name: setup
@@ -58,6 +60,9 @@ jobs:
     steps:
       - checkout
       - python/load-cache
+      - run: pip install -r requirements.txt
+      - run: pip install pyyaml
+      - run: ./scripts/build_protos.sh
       - run:
           name: setup
           command: pip install -e .
@@ -73,6 +78,9 @@ jobs:
     steps:
       - checkout
       - python/load-cache
+      - run: pip install -r requirements.txt
+      - run: pip install pyyaml
+      - run: ./scripts/build_protos.sh
       - run:
           name: setup
           command: pip install -e .
@@ -88,6 +96,9 @@ jobs:
     steps:
       - checkout
       - python/load-cache
+      - run: pip install -r requirements.txt
+      - run: pip install pyyaml
+      - run: ./scripts/build_protos.sh
       - run:
           name: setup
           command: pip install -e .
@@ -103,6 +114,9 @@ jobs:
     steps:
       - checkout
       - python/load-cache
+      - run: pip install -r requirements.txt
+      - run: pip install pyyaml
+      - run: ./scripts/build_protos.sh
       - run:
           name: setup
           command: pip install -e .
