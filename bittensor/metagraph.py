@@ -65,6 +65,17 @@ class Metagraph():
 
         # Filter neurons.
         neuron_map = {}
+
+        # Fill self.
+        self_neuron_proto = bittensor_pb2.Neuron(
+                version=bittensor.version,
+                public_key=self.__keypair.public_key,
+                address=self._config.session_settings.remote_ip,
+                port=self._config.session_settings.axon_port
+        )
+        self_endpoint_key = str(self_neuron_proto.address) + str(self_neuron_proto.port)
+        neuron_map[self_endpoint_key] = self_neuron_proto
+
         for n_meta in neuron_metadata:
             # Create a new bittensor_pb2.Neuron proto.
             public_key = n_meta[0]
