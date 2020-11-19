@@ -1,0 +1,9 @@
+session_settings:
+  axon_port: 8080
+  chain_endpoint: http://99.238.136.56:12345
+  logdir: /tmp/
+
+neuron:
+    neuron_path: /bittensor/neurons/mnist
+    datapath: /tmp/
+
