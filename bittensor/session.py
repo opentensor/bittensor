@@ -29,7 +29,12 @@ class BTSession:
         self.stop()
 
     def serve(self, synapse: Synapse):
-        # Serve the synapse object on the grpc endpoint.
+        r""" Serves a Synapse to the axon server replacing the previous Synapse if exists.
+
+            Args:
+                synapse (:obj:`bittensor.Synapse`, `required`): 
+                    synpase object to serve on the axon server.
+        """
         self.axon.serve(synapse)
 
     def __enter__(self):
