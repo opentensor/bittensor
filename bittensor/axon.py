@@ -17,6 +17,14 @@ class Axon(bittensor_grpc.BittensorServicer):
     """ Processes Fwd and Bwd requests for the local neuron's synapse """
 
     def __init__(self, config, keypair):
+        r""" Serves a Synapse to the axon server replacing the previous Synapse if exists.
+
+            Args:
+                config (:obj:`Munch`, `required`): 
+                    bittensor Munch config.
+                keypair (:obj:`substrateinterface.Keypair`, `required`): 
+                    bittensor keypair.
+        """
         self._config = config
         self.__keypair = keypair
 
@@ -32,11 +40,13 @@ class Axon(bittensor_grpc.BittensorServicer):
         self._thread = None
 
     def __del__(self):
-        """ Delete the synapse terminal. """
+        r""" Called when this axon is deleted, ensures background threads shut down properly.
+        """
         self.stop()
 
     def start(self):
-        """ Start the synapse terminal server. """
+        r""" Starts the standalone axon GRPC server thread.
+        """
         self._thread = threading.Thread(target=self._serve, daemon=True)
         self._thread.start()
 
@@ -49,16 +59,31 @@ class Axon(bittensor_grpc.BittensorServicer):
             logger.error(e)
 
     def stop(self):
-        """ Stop the axon terminal server """
+        r""" Stop the axon grpc server.
+        """
         if self._server != None:
             self._server.stop(0)
 
     def serve(self, synapse: Synapse):
-        """ Adds an Synapse for serving. """
+        r""" Serves a Synapse to the axon server replacing the previous Synapse if exists.
+
+            Args:
+                synapse (:obj:`bittensor.Synapse`, `required`): 
+                    synpase object to serve on the axon server.
+        """
         self._synapse = synapse
 
     def Forward(self, request: bittensor_pb2.TensorMessage,
                 context: grpc.ServicerContext):
+
+        r""" Function called by remote GRPC Forward requests by other neurons.
+
+            Args:
+                request (:obj:`bittensor_pb2`, `required`): 
+                    Tensor request Proto.
+                context (:obj:`grpc.ServicerContext`, `required`): 
+                    grpc server context.
+        """
         try:
             # Single tensor requests only.
             if len(request.tensors) > 0:
