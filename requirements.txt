@@ -21,3 +21,4 @@ torchvision
 transformers
 configparser
 validators
+pyyaml
