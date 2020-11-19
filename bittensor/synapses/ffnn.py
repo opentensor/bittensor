@@ -99,6 +99,8 @@ class FFNNSynapse(Synapse):
         # [batch_size, bittensor.__network_dim__] -> [batch_size, self.target_dim]
         self.target_layer1 = nn.Linear(bittensor.__network_dim__, 256)
         self.target_layer2 = nn.Linear(256, self.config.target_dim)
+
+        self.to(self.device)
         
     def forward_image(self, images: torch.Tensor):
         r""" Forward image inputs through the FFNN synapse .

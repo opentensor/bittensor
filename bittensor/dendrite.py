@@ -2,6 +2,7 @@ import grpc
 import torch
 import torch.nn as nn
 import bittensor
+import time
 from torch.autograd.function import once_differentiable
 from typing import List, Optional
 from loguru import logger
