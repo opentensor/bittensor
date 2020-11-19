@@ -45,8 +45,11 @@ class Metagraph():
             type_registry_preset='substrate-node-template',
             type_registry=custom_type_registry,
         )
+<<<<<<< HEAD
         
         # Record of the last poll iteration.
+=======
+>>>>>>> 17e573b1164c6034b62724702fc09755da3ca859
         self._last_poll = -math.inf
         self._neurons = []
         self._ranks = None
@@ -105,6 +108,7 @@ class Metagraph():
             neuron_meta_map[key] = val
         del neuron_meta_list
 
+<<<<<<< HEAD
         # Fill full neuron set
         # Contains all staked nodes + ranked nodes + weighted nodes
         neurons_set = set()
@@ -115,6 +119,24 @@ class Metagraph():
         for n_key in weight_keys_map.keys():
             for j_key in weight_keys_map[n_key]:
                 neurons_set.add(j_key)
+=======
+        # Filter neurons.
+        neuron_map = {}
+
+        # Fill self.
+        self_neuron_proto = bittensor_pb2.Neuron(
+                version=bittensor.__version__,
+                public_key=self.__keypair.public_key,
+                address=self._config.session_settings.remote_ip,
+                port=self._config.session_settings.axon_port
+        )
+        self_endpoint_key = str(self_neuron_proto.address) + str(self_neuron_proto.port)
+        neuron_map[self_endpoint_key] = self_neuron_proto
+
+        for n_meta in neuron_metadata:
+            # Create a new bittensor_pb2.Neuron proto.
+            public_key = n_meta[0]
+>>>>>>> 17e573b1164c6034b62724702fc09755da3ca859
 
         # Filter neurons into active set.
         # Map from ip+port key to neuron meta.
@@ -158,6 +180,7 @@ class Metagraph():
                 if last_emit_a >= last_emit_b:
                     active_neurons_map[endpoint_key] = neuron_proto
 
+<<<<<<< HEAD
             # Add neuron to active set.
             else:
                 active_neurons_map[endpoint_key] = neuron_proto
@@ -218,6 +241,9 @@ class Metagraph():
         
 
     def neurons (self, poll_every_seconds: int = 20) -> List[bittensor_pb2.Neuron]:
+=======
+    def neurons (self, poll_every_seconds: int = 15) -> List[bittensor_pb2.Neuron]:
+>>>>>>> 17e573b1164c6034b62724702fc09755da3ca859
         if (time.time() - self._last_poll) > poll_every_seconds:
             self._last_poll = time.time()
             self._pollchain()
@@ -244,7 +270,8 @@ class Metagraph():
             try:
                 self.substrate.get_runtime_block()
                 return True
-            except:
+            except Exception as e:
+                logger.warn("Exception occured during connection: {}".format)
                 continue
         return False
 

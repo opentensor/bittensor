@@ -39,7 +39,7 @@ class BTSession:
 
     def __enter__(self):
         logger.info('session enter')
-        #self.start()
+        self.start()
         return self
 
     def __exit__(self, *args):
@@ -54,14 +54,6 @@ class BTSession:
         except Exception as e:
             logger.error('SESSION: Failed to start axon server with error: {}', e)
             raise FailedToEnterSession
-
-        if self.config.session_settings.run_local_chain == True:
-            logger.info('Start chain ...')
-            try:
-                self.subtensor_process.start()
-            except Exception as e:
-                logger.error('SESSION: Failed to create subtensor subprocess with error: {}', e)
-                raise FailedToEnterSession
 
         logger.info('Connect to chain ...')
         try:
