@@ -125,7 +125,8 @@ class Metagraph():
             try:
                 self.substrate.get_runtime_block()
                 return True
-            except:
+            except Exception as e:
+                logger.warn("Exception occured during connection: {}".format)
                 continue
         return False
 
