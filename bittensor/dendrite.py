@@ -2,6 +2,7 @@ import grpc
 import torch
 import torch.nn as nn
 import bittensor
+import time
 from torch.autograd.function import once_differentiable
 from typing import List, Optional
 from loguru import logger
@@ -233,7 +234,11 @@ class _RemoteModuleCall(torch.autograd.Function):
                 tensors=[serialized_inputs])
 
             # Forward tensor.
+            start_time = time.time()
+            logger.info("Sending request...")
             response = ctx.caller.stub.Forward(request, timeout=1.0)
+            elapsed_time = time.time() - start_time
+            logger.info("Response time: {}".format(elapsed_time))
             # Deserialize outputs and return.
             if len(response.tensors) > 0:
                 outputs = PyTorchSerializer.deserialize_tensor(
