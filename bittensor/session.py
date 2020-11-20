@@ -2,10 +2,9 @@ from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
+from bittensor.tb_logger import TBLogger
 from substrateinterface import SubstrateInterface, Keypair
-
 from loguru import logger
-from torch.utils.tensorboard import SummaryWriter
 
 class FailedConnectToChain(Exception):
     pass
@@ -26,7 +25,7 @@ class BTSession:
         self.metagraph = Metagraph(self.config, self.__keypair)
         self.axon = Axon(self.config, self.__keypair)
         self.dendrite = Dendrite(self.config, self.__keypair)
-        self.tbwriter = SummaryWriter(log_dir=self.config.session_settings.logdir)
+        self.tbwriter = TBLogger(self.config.session_settings.logdir)
 
     def __del__(self):
         self.stop()
@@ -50,14 +49,6 @@ class BTSession:
         self.stop()
 
     def start(self):
-        # Stop background grpc threads for serving the synapse object.
-        logger.info('Start axon server...')
-        try:
-            self.axon.start()
-        except Exception as e:
-            logger.error('SESSION: Failed to start axon server with error: {}', e)
-            raise FailedToEnterSession
-
         logger.info('Connect to chain ...')
         try:
             if not self.metagraph.connect(5):
@@ -82,6 +73,20 @@ class BTSession:
         except Exception as e:
             logger.error('SESSION: Failed during poll to chain with error: {}', e)
             raise FailedToPollChain
+
+        logger.info('Start polling thread ...')
+        try:
+            self.metagraph.start()
+        except Exception as e:
+            logger.error('SESSION: Failed during poll to chain with error: {}', e)
+            raise FailedToPollChain
+
+        logger.info('Start axon server...')
+        try:
+            self.axon.start()
+        except Exception as e:
+            logger.error('SESSION: Failed to start axon server with error: {}', e)
+            raise FailedToEnterSession
 
 
     def stop(self):

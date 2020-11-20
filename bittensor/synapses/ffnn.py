@@ -12,14 +12,9 @@ from bittensor.synapse import SynapseOutput
 from bittensor.session import BTSession
 from bittensor.utils.batch_transforms import Normalize
 
-from loguru import logger
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision
-import torchvision.transforms as transforms
-from typing import List, Tuple, Dict, Optional
-from types import SimpleNamespace
 
 class FFNNConfig (SynapseConfig):
     r"""
@@ -74,7 +69,8 @@ class FFNNSynapse(Synapse):
             
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
-        self.transform = Normalize((0.1307,), (0.3081,))
+
+        self.transform = Normalize((0.1307,), (0.3081,),  device=self.device)
         self.transform_pool = nn.AdaptiveAvgPool2d((28, 28))
         self.transform_conv1 = nn.Conv2d(1, 10, kernel_size=5)
         self.transform_conv2 = nn.Conv2d(10, 20, kernel_size=5)
@@ -176,7 +172,7 @@ class FFNNSynapse(Synapse):
 
         # transform: transform images to common shape.
         # transform.shape = [batch_size, self.transform_dim]
-        transform = self.transform(images)
+        transform = self.transform(images).to(self.device)
         transform = F.relu(F.max_pool2d(self.transform_conv1(transform), 2))
         transform = F.relu(F.max_pool2d(self.transform_drop(self.transform_conv2(transform)),2))
         transform = transform.view(-1, self.transform_dim)

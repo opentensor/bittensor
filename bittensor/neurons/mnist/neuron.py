@@ -24,9 +24,6 @@ class Neuron (Neuron):
     def __init__(self, config):
         self.config = config
 
-    def stop(self):
-        pass
-
     def start(self, session: BTSession): 
         epoch = 0
         best_test_loss = math.inf
@@ -78,12 +75,12 @@ class Neuron (Neuron):
                     accuracy = (100.0 * correct) / self.config.training.batch_size_train
                     logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nS: {}', 
                         epoch, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()))
-                    session.tbwriter.add_scalar('train remote target loss', output.remote_target_loss.item(), time.time())
-                    session.tbwriter.add_scalar('train local target loss', output.local_target_loss.item(), time.time())
-                    session.tbwriter.add_scalar('train distilation loss', output.distillation_loss.item(), time.time())
-                    session.tbwriter.add_scalar('train loss', output.loss.item(), time.time())
-                    session.tbwriter.add_scalar('train accuracy', accuracy, time.time())
-                    session.tbwriter.add_scalar('gs/t', self.config.training.log_interval / (time.time() - last_log), time.time())
+                    session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())
+                    session.tbwriter.write_loss('train local target loss', output.local_target_loss.item())
+                    session.tbwriter.write_loss('train distilation loss', output.distillation_loss.item())
+                    session.tbwriter.write_loss('train loss', output.loss.item())
+                    session.tbwriter.write_accuracy('train accuracy', accuracy)
+                    session.tbwriter.write_custom('global step/global step v.s. time', self.config.training.log_interval / (time.time() - last_log))
                     last_log = time.time()
 
         # Test loop.
@@ -118,7 +115,8 @@ class Neuron (Neuron):
             loss /= n
             accuracy = (100. * correct) / n
             logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))  
-            session.tbwriter.add_scalar('test loss', loss, time.time())
+            session.tbwriter.write_loss('test loss', loss)
+            session.tbwriter.write_accuracy('test accuracy', accuracy)
             return loss, accuracy
     
         while True:
@@ -135,8 +133,8 @@ class Neuron (Neuron):
                 best_test_loss = test_loss
                 
                 # Save and serve the new best local model.
-                logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.neuron.logdir + '/model.torch' )
-                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.logdir + '/model.torch' )
+                logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.session_settings.logdir + '/model.torch' )
+                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.session_settings.logdir + '/model.torch' )
                 session.serve( model.deepcopy() )
 
             epoch += 1
