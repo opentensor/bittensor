@@ -1,7 +1,7 @@
 from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
-# from bittensor.metagraph import Metagraph
+from bittensor.metagraph import Metagraph
 # from substrateinterface import SubstrateInterface, Keypair
 import asyncio
 
@@ -23,8 +23,7 @@ class BTSession:
     def __init__(self, config, keypair: Keypair):
         self.config = config 
         self.__keypair = keypair
-        self.metagraph = WSClient(self.config.session_settings.chain_endpoint, self.__keypair)
-        # self.metagraph = Metagraph(self.config, self.__keypair)
+        self.metagraph = Metagraph(self.config, self.__keypair)
         self.axon = Axon(self.config, self.__keypair)
         self.dendrite = Dendrite(self.config, self.__keypair)
         self.tbwriter = SummaryWriter(log_dir=self.config.session_settings.logdir)
@@ -66,8 +65,7 @@ class BTSession:
 
         logger.info('Connect to chain ...')
         try:
-            self.metagraph.connect()
-            connected = await self.metagraph.is_connected()
+            connected = await self.metagraph.connect()
             if not connected:
                 logger.error('SESSION: Timeout while subscribing to the chain endpoint')
                 raise FailedConnectToChain
@@ -77,7 +75,7 @@ class BTSession:
 
         logger.info('Subscribe to chain ...')
         try:
-            await self.metagraph.subscribe(self.config.session_settings.remote_ip, self.config.session_settings.axon_port)
+            await self.metagraph.subscribe()
                 # logger.error('SESSION: Timeout while subscribing to the chain endpoint')
                 # raise FailedSubscribeToChain
         except Exception as e:

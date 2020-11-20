@@ -133,6 +133,15 @@ class WSClient:
 
 
 
+    async def neurons(self):
+        neurons = await self.substrate.iterate_map(
+            module='SubtensorModule',
+            storage_function='Neurons'
+        )
+
+        return neurons
+
+
 
 
 
