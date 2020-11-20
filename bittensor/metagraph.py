@@ -122,10 +122,10 @@ class Metagraph():
         return self._neurons
     
     def poll_chain(self, poll_every_seconds: int = 15):
-        self._pollchain()
         while self._running:
             if (time.time() - self._last_poll) > poll_every_seconds:
                 self._last_poll = time.time()
+                self._pollchain()
             time.sleep(poll_every_seconds)
 
     def connect(self, timeout) -> bool:
@@ -169,7 +169,7 @@ class Metagraph():
                     logger.info("Polling chain for the first time...")
                     self._pollchain()
                     self.chain_polling_thread.start()
-                    logger.info("Starting chain polling thread...")
+                    logger.info("Started chain polling thread...")
                     return True
         return False
             
