@@ -1,4 +1,5 @@
 from bittensor.subtensor import SubstrateWSInterface, Keypair
+import netaddr
 
 class WSClient:
     def __init__(self, socket : str, keypair: Keypair):
@@ -13,19 +14,36 @@ class WSClient:
 
         self.keypair = keypair
 
+    '''
+    PRIVATE METHODS
+    '''
+
+    def __int_to_ip(self, int_val):
+        return str(netaddr.IPAddress(int_val))
+
+    def __ip_to_int(self, str_val):
+        return int(netaddr.IPAddress(str_val))
+
+
+    '''
+    PUBLIC METHODS
+    '''
+
+
     def connect(self):
         self.substrate.connect()
 
     def is_connected(self):
         return self.substrate.is_connected()
 
-    async def subscribe(self, keypair = None):
-        if not keypair:
-            keypair = self.keypair
+    async def subscribe(self, ip: str, port: int):
+        params = {'ip': self.__ip_to_int(ip),
+                  'port': port, 'ip_type': 4}
 
         call = await self.substrate.compose_call(
             call_module='SubtensorModule',
-            call_function='subscribe'
+            call_function='subscribe',
+            call_params=params
         )
 
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
