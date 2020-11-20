@@ -113,7 +113,6 @@ class Metagraph():
         await self.pollchain()
 
     def neurons (self, poll_every_seconds: int = 15) -> List[bittensor_pb2.Neuron]:
-        logger.debug(self._neurons)
         return self._neurons
 
     async def connect(self) -> bool:
