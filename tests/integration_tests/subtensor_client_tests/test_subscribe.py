@@ -4,7 +4,7 @@ from loguru import logger
 import pytest
 import unittest
 
-logger.remove() # Shut up loguru
+# logger.remove() # Shut up loguru
 
 
 socket = "localhost:9944"
@@ -13,7 +13,11 @@ client = WSClient(socket, keypair)
 
 
 @pytest.mark.asyncio
-async def test_connect():
+async def test_subscribe():
     client.connect()
-    result = await client.is_connected()
-    assert result == True
+    await client.is_connected()
+
+    await client.subscribe("127.0.0.1", 666)
+
+
+
