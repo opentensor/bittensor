@@ -2,6 +2,7 @@ import argparse
 import bittensor
 import os
 import time
+import asyncio
 
 from bittensor.config import Config
 
@@ -33,7 +34,12 @@ def main():
     # 5. Start Neuron.
     logger.info('Start ... ')
     with session:
-        neuron.start( session ) 
+        neuron.start( session )
+
+
+
+
+
 
 if __name__ == "__main__":
     main()

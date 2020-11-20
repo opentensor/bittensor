@@ -1,8 +1,10 @@
 from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
-from bittensor.metagraph import Metagraph
+# from bittensor.metagraph import Metagraph
 # from substrateinterface import SubstrateInterface, Keypair
+import asyncio
+
 from bittensor.subtensor import WSClient, Keypair
 
 from loguru import logger
@@ -21,14 +23,16 @@ class BTSession:
     def __init__(self, config, keypair: Keypair):
         self.config = config 
         self.__keypair = keypair
-        self.metagraph = Metagraph(self.config, self.__keypair)
+        self.metagraph = WSClient(self.config.session_settings.chain_endpoint, self.__keypair)
+        # self.metagraph = Metagraph(self.config, self.__keypair)
         self.axon = Axon(self.config, self.__keypair)
         self.dendrite = Dendrite(self.config, self.__keypair)
         self.tbwriter = SummaryWriter(log_dir=self.config.session_settings.logdir)
-        self.st_client = WSClient(self.config.session_settings.chain_endpoint, self.__keypair)
+
 
     def __del__(self):
-        self.stop()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.stop())
 
     def serve(self, synapse: Synapse):
         r""" Serves a Synapse to the axon server replacing the previous Synapse if exists.
@@ -41,14 +45,17 @@ class BTSession:
 
     def __enter__(self):
         logger.info('session enter')
-        self.start()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.start())
         return self
 
     def __exit__(self, *args):
         logger.info('session exit')
-        self.stop()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.stop())
 
-    def start(self):
+
+    async def start(self):
         # Stop background grpc threads for serving the synapse object.
         logger.info('Start axon server...')
         try:
@@ -59,7 +66,9 @@ class BTSession:
 
         logger.info('Connect to chain ...')
         try:
-            if not self.metagraph.connect(5):
+            self.metagraph.connect()
+            connected = await self.metagraph.is_connected()
+            if not connected:
                 logger.error('SESSION: Timeout while subscribing to the chain endpoint')
                 raise FailedConnectToChain
         except Exception as e:
@@ -68,15 +77,15 @@ class BTSession:
 
         logger.info('Subscribe to chain ...')
         try:
-            if not self.metagraph.subscribe(10):
-                logger.error('SESSION: Timeout while subscribing to the chain endpoint')
-                raise FailedSubscribeToChain
+            await self.metagraph.subscribe(self.config.session_settings.remote_ip, self.config.session_settings.axon_port)
+                # logger.error('SESSION: Timeout while subscribing to the chain endpoint')
+                # raise FailedSubscribeToChain
         except Exception as e:
             logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
             raise FailedToEnterSession
 
 
-    def stop(self):
+    async def stop(self):
         # Stop background grpc threads for serving synapse objects.
         logger.info('Unsubscribe from chain ...')
         try:

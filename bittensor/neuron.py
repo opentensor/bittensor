@@ -10,8 +10,8 @@ class Neuron(object):
         ):
         self.config = config
 
-    def start(self, session: BTSession):
+    async def start(self, session: BTSession):
         raise NotImplementedError
     
-    def stop(self):
+    async def stop(self):
         raise NotImplementedError
