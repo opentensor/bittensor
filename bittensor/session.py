@@ -16,6 +16,9 @@ class FailedSubscribeToChain(Exception):
 class FailedToEnterSession(Exception):
     pass
 
+class FailedToPollChain(Exception):
+    pass
+
 class BTSession:
     def __init__(self, config, keypair: Keypair):
         self.config = config 
@@ -72,6 +75,13 @@ class BTSession:
         except Exception as e:
             logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
             raise FailedToEnterSession
+
+        logger.info('Poll chain ...')
+        try:
+            self.metagraph.pollchain()
+        except Exception as e:
+            logger.error('SESSION: Failed during poll to chain with error: {}', e)
+            raise FailedToPollChain
 
 
     def stop(self):
