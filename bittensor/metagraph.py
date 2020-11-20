@@ -62,22 +62,27 @@ class Metagraph():
         # List of bittensor_pb2.Neurons ordered by index
         self._neurons_list = []
 
+        # Unique integer key for neurons
+        self._next_unique_key = 0
+        self._keys_list = []
+        self._keys_torch: torch.LongTensor = None
+
         # List of List of weight_keys ordered by index
         self._weight_keys = []
         self._weight_vals = []
-        self._weights_torch = None
+        self._weights_torch: torch.FloatTensor = None
 
         # List of stake values ordered by index
         self._stake_list = []
-        self._stake_torch = None
+        self._stake_torch: torch.LongTensor = None
 
         # List of emit values ordered by index
         self._emit_list = []
-        self._emit_torch = None
+        self._emit_torch: torch.LongTensor = None
 
         # List of last poll ordered by index
         self._poll_list = []
-        self._poll_torch = None
+        self._poll_torch: torch.LongTensor = None
 
     def n (self) -> int:
         """ Returns the number of neurons in the network.
@@ -87,15 +92,28 @@ class Metagraph():
         """
         return self._n
 
-    def neurons(self) -> List[bittensor_pb2.Neuron]:
+    def neurons(self, keys: torch.LongTensor = None) -> List[bittensor_pb2.Neuron]:
         """ Returns the neurons information of each active in the network.
+
+        Args:
+            keys (bittensor.Config): 
+                An bittensor config object.
 
         Returns:
             neurons: (List[bittensor_pb2.Neuron]): neuron info ordered by index.
         """
-        return self._neurons_list
+        if keys == None:
+            return self._neurons_list
 
-    def emit (self) -> torch.Tensor:
+    def keys(self) -> torch.LongTensor:
+        """ Returns a torch tensor of unique integer keys for neurons.
+
+        Returns:
+            keys (:obj:`torch.LongTensor` of shape :obj:`(self.n)`): unique keys for neurons.
+        """
+        return self._keys_torch
+
+    def emit (self) -> torch.LongTensor:
         """ Returns the last block emit time of each active neuron in the network.
 
         Returns:
@@ -103,7 +121,7 @@ class Metagraph():
         """
         return self._emit_torch
 
-    def poll (self) -> torch.Tensor:
+    def poll (self) -> torch.LongTensor:
         """ Returns the metagraph poll block of each active neuron in the network.
 
         Returns:
@@ -111,7 +129,7 @@ class Metagraph():
         """
         return self._poll_torch
 
-    def stake (self) -> torch.Tensor:
+    def stake (self) -> torch.LongTensor:
         """ Returns the stake of each active neuron in the network.
 
         Returns:
@@ -119,7 +137,7 @@ class Metagraph():
         """
         return self._stake_torch
 
-    def weights (self) -> torch.Tensor:
+    def weights (self) -> torch.FloatTensor:
         """ Returns the stake of each active neuron in the network.
 
         Returns:
@@ -195,6 +213,7 @@ class Metagraph():
                 append = False
             else:
                 index = self._n
+                key = self._next_unique_key + 1
                 self._n += 1
                 self._pubkey_index_map[pubkey] = index
                 append = True
@@ -245,6 +264,8 @@ class Metagraph():
                 self._weight_keys.append( list(w_keys) )
                 self._weight_vals.append( list(w_vals) )
                 self._poll_list.append( current_block )
+                self._keys_list.append( key )
+
         except Exception as e:
             # Failure here if the node data is corrupted.
             pass
@@ -254,12 +275,13 @@ class Metagraph():
 
         """
         # Set torch tensors from weights.
-        self._stake_torch = torch.Tensor(self._stake_list)
-        self._emit_torch = torch.Tensor(self._emit_list)
-        self._poll_torch = torch.Tensor(self._poll_list)
+        self._stake_torch = torch.Tensor(self._stake_list, dtype=torch.long)
+        self._emit_torch = torch.Tensor(self._emit_list, dtype=torch.long)
+        self._poll_torch = torch.Tensor(self._poll_list, dtype=torch.long)
+        self._keys_torch = torch.Tensor(self._keys_list, dtype=torch.long)
         
         # Fill weights
-        weights_numpy = numpy.zeros( (self._n, self._n) )
+        weights_numpy = numpy.zeros( (self._n, self._n), , dtype=torch.float))
         for index_i, (keys, vals) in enumerate(list(zip(self._weight_keys, self._weight_vals))):
             val_sum = sum(vals)
             for k, val in list(zip(keys, vals)):
