@@ -28,6 +28,11 @@ default_config = """
         chain_endpoint: http://206.189.254.5:12345
         logdir: /tmp/
 
+    metagraph:
+        polls_every_sec: 15
+        re_poll_neuron_every_blocks: 5
+        stale_emit_limit: 30
+
     training:
         datapath: /tmp/
         batch_size: 10
