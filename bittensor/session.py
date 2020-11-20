@@ -89,8 +89,9 @@ class BTSession:
         # Stop background grpc threads for serving synapse objects.
         logger.info('Unsubscribe from chain ...')
         try:
-            if not self.metagraph.unsubscribe(10):
-                logger.error('SESSION: Timeout while unsubscribing to the chain endpoint')
+            await self.metagraph.unsubscribe()
+            # if not self.metagraph.unsubscribe(10):
+            #     logger.error('SESSION: Timeout while unsubscribing to the chain endpoint')
         except Exception as e:
             logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
 

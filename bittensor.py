@@ -34,7 +34,8 @@ def main():
     # 5. Start Neuron.
     logger.info('Start ... ')
     with session:
-        neuron.start( session )
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(neuron.start( session ))
 
 
 
