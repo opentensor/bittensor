@@ -7,7 +7,8 @@ import time
 
 from loguru import logger
 from bittensor import bittensor_pb2
-from substrateinterface import SubstrateInterface, Keypair
+# from substrateinterface import SubstrateInterface, Keypair
+from bittensor.subtensor import WSClient, Keypair
 from typing import List
 
 custom_type_registry = {
@@ -35,12 +36,14 @@ class Metagraph():
         """
         self._config = config
         self.__keypair = keypair
-        self.substrate = SubstrateInterface(
-            url=self._config.session_settings.chain_endpoint,
-            address_type=42,
-            type_registry_preset='substrate-node-template',
-            type_registry=custom_type_registry,
-        )
+        self.substrate = WSClient(self._config.session_settings.chain_endpoint, self.__keypair)
+
+        # self.substrate = SubstrateInterface(
+        #     url=self._config.session_settings.chain_endpoint,
+        #     address_type=42,
+        #     type_registry_preset='substrate-node-template',
+        #     type_registry=custom_type_registry,
+        # )
         self._last_poll = -math.inf
         self._neurons = []
 
@@ -117,58 +120,63 @@ class Metagraph():
             self._pollchain()
         return self._neurons
         
-    def connect(self, timeout) -> bool:
+    async def connect(self) -> bool:
+        # time_elapsed = 0
+        # while time_elapsed < timeout:
+        #     time.sleep(1)
+        #     time_elapsed += 1
+        #     try:
+        #         self.substrate.get_runtime_block()
+        #         return True
+        #     except Exception as e:
+        #         logger.warn("Exception occured during connection: {}".format)
+        #         continue
+        # return False
+        self.substrate.connect()
+        connected = await self.substrate.is_connected()
+        return connected
+
+
+    async def subscribe (self, timeout = 10) -> bool:
+        # params = {'ip': ip_to_int(self._config.session_settings.remote_ip), 'port': self._config.session_settings.axon_port, 'ip_type': 4}
+        #
+        # logger.info(params)
+        # call = self.substrate.compose_call(
+        #     call_module='SubtensorModule',
+        #     call_function='subscribe',
+        #     call_params=params
+        # )
+        # extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
+        # self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+
+        await self.substrate.subscribe(self._config.session_settings.remote_ip, self._config.session_settings.axon_port)
+
         time_elapsed = 0
         while time_elapsed < timeout:
             time.sleep(1)
             time_elapsed += 1
-            try:
-                self.substrate.get_runtime_block()
-                return True
-            except Exception as e:
-                logger.warn("Exception occured during connection: {}".format)
-                continue
-        return False
-
-    def subscribe (self, timeout) -> bool:
-        params = {'ip': ip_to_int(self._config.session_settings.remote_ip), 'port': self._config.session_settings.axon_port, 'ip_type': 4}
-
-        logger.info(params)
-        call = self.substrate.compose_call(
-            call_module='SubtensorModule',
-            call_function='subscribe',
-            call_params=params
-        )
-        extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
-        self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
-        time_elapsed = 0
-        while time_elapsed < timeout:
-            time.sleep(1)
-            time_elapsed += 1
-            neurons = self.substrate.iterate_map(
-                module='SubtensorModule',
-                storage_function='Neurons'
-            )
+            neurons = await self.substrate.neurons()
             for n in neurons:
                 if n[0] == self.__keypair.public_key:
                     return True
         return False
             
 
-    def unsubscribe (self, timeout):
+    async def unsubscribe (self, timeout):
         logger.info('Unsubscribe from chain endpoint')
-        call = self.substrate.compose_call(
-            call_module='SubtensorModule',
-            call_function='unsubscribe'
-        )
-        extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
-        self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        # call = self.substrate.compose_call(
+        #     call_module='SubtensorModule',
+        #     call_function='unsubscribe'
+        # )
+        # extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
+        # self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+
+
+        await self.substrate.unsubscribe()
+
         time_elapsed = 0
         while time_elapsed < timeout:
-            neurons = self.substrate.iterate_map(
-                module='SubtensorModule',
-                storage_function='Neurons'
-            )
+            neurons = self.substrate.neurons()
             i_exist = False
             for n in neurons:
                 if n[0] == self.__keypair.public_key:
