@@ -12,7 +12,7 @@ class WSClient:
             type_registry_preset = 'substrate-node-template'
         )
 
-        self.keypair = keypair
+        self.__keypair = keypair
 
     '''
     PRIVATE METHODS
@@ -46,12 +46,12 @@ class WSClient:
             call_params=params
         )
 
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
+        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)  # Waiting for inclusion and other does not work
 
     async def unsubscribe(self, keypair=None):
         if not keypair:
-            keypair = self.keypair
+            keypair = self.__keypair
 
         call = await self.substrate.compose_call(
             call_module='SubtensorModule',
