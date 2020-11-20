@@ -191,7 +191,7 @@ class Metagraph():
         current_block = self.substrate.get_block_number(None)
         if pubkey in self._pubkey_index_map.keys():
             index = self._pubkey_index_map[pubkey]
-            append = False
+            #append = False
         else:
             index = self._n
             self._n += 1
