@@ -136,7 +136,7 @@ class Neuron (Neuron):
                 
                 # Save and serve the new best local model.
                 logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.neuron.logdir + '/model.torch' )
-                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.logdir + '/model.torch' )
+                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.neuron.logdir + '/model.torch' )
                 session.serve( model.deepcopy() )
 
             epoch += 1
