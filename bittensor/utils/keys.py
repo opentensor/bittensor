@@ -41,6 +41,7 @@ class Keys():
             if neuron.public_key not in self._key_for_neuron:
                 self.addNeuron(neuron)
             torch_keys.append(self._key_for_neuron[neuron.public_key])
+
         return torch.cat(torch_keys, dim=0).view(-1, self._key_dim)
 
     def toNeurons(self, keys):
