@@ -20,8 +20,8 @@ from unittest.mock import MagicMock
 from scalecodec import ScaleBytes
 from scalecodec.metadata import MetadataDecoder
 
-from subtensorinterface import SubstrateInterface
-from test.fixtures import metadata_v12_hex
+from bittensor.subtensor import SubstrateWSInterface
+from .fixtures import metadata_v12_hex
 
 
 class TestRuntimeState(unittest.TestCase):
@@ -29,7 +29,7 @@ class TestRuntimeState(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
 
-        cls.substrate = SubstrateInterface(url='dummy', address_type=42, type_registry_preset='kusama')
+        cls.substrate = SubstrateWSInterface(url='dummy', address_type=42, type_registry_preset='kusama')
 
     def test_plaintype_call(self):
 

@@ -23,8 +23,8 @@ import unittest
 
 from scalecodec.base import RuntimeConfiguration, ScaleType
 
-from subtensorinterface import SubstrateInterface, Keypair, SubstrateRequestException
-from test import settings
+from bittensor.subtensor.interface import SubstrateWSInterface, Keypair, SubstrateRequestException
+from .settings import *
 
 
 class KusamaTypeRegistryTestCase(unittest.TestCase):

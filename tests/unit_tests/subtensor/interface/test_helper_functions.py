@@ -20,8 +20,8 @@ from unittest.mock import MagicMock
 from scalecodec import ScaleBytes, Bytes
 from scalecodec.metadata import MetadataDecoder
 
-from subtensorinterface import SubstrateInterface
-from test.fixtures import metadata_v12_hex
+from bittensor.subtensor.interface import SubstrateWSInterface
+from .fixtures import metadata_v12_hex
 
 
 class TestHelperFunctions(unittest.TestCase):
@@ -29,7 +29,7 @@ class TestHelperFunctions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
 
-        cls.substrate = SubstrateInterface(url='dummy', address_type=42, type_registry_preset='kusama')
+        cls.substrate = SubstrateWSInterface(host="dummy", port=666, address_type=42, type_registry_preset='kusama')
         metadata_decoder = MetadataDecoder(ScaleBytes(metadata_v12_hex))
         metadata_decoder.decode()
         cls.substrate.get_block_metadata = MagicMock(return_value=metadata_decoder)
