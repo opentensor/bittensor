@@ -4,6 +4,7 @@ import bittensor
 import math
 import netaddr
 import time
+import threading
 
 from loguru import logger
 from bittensor import bittensor_pb2
@@ -44,6 +45,11 @@ class Metagraph():
         self._last_poll = -math.inf
         self._neurons = []
 
+        # Thread variables
+        self.chain_polling_thread = None
+        self.poll_every_seconds = 15
+        self._running = False
+
     def _pollchain(self):
           # Get current block for filtering.
         current_block = self.substrate.get_block_number(None)
@@ -53,6 +59,7 @@ class Metagraph():
             module='SubtensorModule',
             storage_function='LastEmit'
         )
+
         last_emit_map = {}
         for el in last_emit_data:
             last_emit_map[el[0]] = int(el[1])
@@ -111,12 +118,16 @@ class Metagraph():
         neurons_list = neuron_map.values()
         self._neurons = neurons_list
 
-    def neurons (self, poll_every_seconds: int = 15) -> List[bittensor_pb2.Neuron]:
-        if (time.time() - self._last_poll) > poll_every_seconds:
-            self._last_poll = time.time()
-            self._pollchain()
+    def neurons (self) -> List[bittensor_pb2.Neuron]:
         return self._neurons
-        
+    
+    def poll_chain(self, poll_every_seconds: int = 15):
+        self._pollchain()
+        while self._running:
+            if (time.time() - self._last_poll) > poll_every_seconds:
+                self._last_poll = time.time()
+            time.sleep(poll_every_seconds)
+
     def connect(self, timeout) -> bool:
         time_elapsed = 0
         while time_elapsed < timeout:
@@ -126,14 +137,13 @@ class Metagraph():
                 self.substrate.get_runtime_block()
                 return True
             except Exception as e:
-                logger.warn("Exception occured during connection: {}".format)
+                logger.warning("Exception occured during connection: {}".format(e))
                 continue
         return False
 
     def subscribe (self, timeout) -> bool:
         params = {'ip': ip_to_int(self._config.session_settings.remote_ip), 'port': self._config.session_settings.axon_port, 'ip_type': 4}
 
-        logger.info(params)
         call = self.substrate.compose_call(
             call_module='SubtensorModule',
             call_function='subscribe',
@@ -141,6 +151,10 @@ class Metagraph():
         )
         extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
         self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+
+        # set up chain polling thread
+        self.chain_polling_thread = threading.Thread(target=self.poll_chain, args=(self.poll_every_seconds,), daemon=True)
+
         time_elapsed = 0
         while time_elapsed < timeout:
             time.sleep(1)
@@ -151,6 +165,11 @@ class Metagraph():
             )
             for n in neurons:
                 if n[0] == self.__keypair.public_key:
+                    self._running = True
+                    logger.info("Polling chain for the first time...")
+                    self._pollchain()
+                    self.chain_polling_thread.start()
+                    logger.info("Starting chain polling thread...")
                     return True
         return False
             
@@ -164,6 +183,11 @@ class Metagraph():
         extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
         self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
         time_elapsed = 0
+
+        if self.chain_polling_thread:
+            self._running = False
+            self.chain_polling_thread.join()
+
         while time_elapsed < timeout:
             neurons = self.substrate.iterate_map(
                 module='SubtensorModule',

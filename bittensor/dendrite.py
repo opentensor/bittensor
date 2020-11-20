@@ -8,6 +8,7 @@ from typing import List, Optional
 from loguru import logger
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
+from bittensor.tb_logger import TBLogger
 from bittensor.serializer import PyTorchSerializer
 from bittensor.exceptions.Exceptions import EmptyTensorException, ResponseShapeException, SerializationException
 import time
@@ -239,8 +240,8 @@ class _RemoteModuleCall(torch.autograd.Function):
             response = ctx.caller.stub.Forward(request)
             # Time (in seconds) response took
             elapsed_time = time.time() - pre_response_time
-            bittensor.tbwriter.write_dendrite_network_data('Remote Module Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
-            bittensor.tbwriter.write_dendrite_network_data('Remote Module Forward Call Turnaround latency (seconds)', round(elapsed_time, 2))
+            bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
+            bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Forward Call Turnaround latency (seconds)', round(elapsed_time, 2))
 
             # Deserialize outputs and return.
             if len(response.tensors) > 0:
@@ -292,8 +293,8 @@ class _RemoteModuleCall(torch.autograd.Function):
             pre_response_time = time.time()
             response = ctx.caller.stub.Backward(request)
             elapsed_time = time.time() - pre_response_time
-            bittensor.tbwriter.write_dendrite_network_data('Remote Module Backward Call Response Message Size (MB)', response.ByteSize() / 1024)
-            bittensor.tbwriter.write_dendrite_network_data('Remote Module Backward Call Turnaround latency (seconds)', round(elapsed_time, 2))
+            bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Backward Call Response Message Size (MB)', response.ByteSize() / 1024)
+            bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Backward Call Turnaround latency (seconds)', round(elapsed_time, 2))
             deserialized_grad_inputs = PyTorchSerializer.deserialize(
                 response.tensors[0])
             return (None, None, deserialized_grad_inputs, None)

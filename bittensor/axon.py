@@ -145,7 +145,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 version=bittensor.__version__,
                 public_key=self.__keypair.public_key)
 
-        bittensor.tbwriter.write_axon_network_data('Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
+        bittensor.session.tbwriter.write_axon_network_data('Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
         return response
 
     def Backward(self, request: bittensor_pb2.TensorMessage,
@@ -185,5 +185,5 @@ class Axon(bittensor_grpc.BittensorServicer):
                     version=bittensor.__version__,
                     public_key=self.__keypair.public_key)
         
-        bittensor.tbwriter.write_axon_network_data('Backward Call Response Message Size (MB)', response.ByteSize() / 1024)
+        bittensor.session.tbwriter.write_axon_network_data('Backward Call Response Message Size (MB)', response.ByteSize() / 1024)
         return response
