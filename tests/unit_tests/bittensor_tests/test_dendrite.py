@@ -4,7 +4,6 @@ import torchvision.transforms as transforms
 import torch
 import unittest
 import bittensor
-import random
 import pytest
 import torchvision
 
@@ -20,7 +19,7 @@ from bittensor.serializer import PyTorchSerializer
 defualt_config = """
     session_settings:
         axon_port: 8081
-        chain_endpoint: http://127.0.0.1:9933
+        chain_endpoint: http://206.189.254.5:12345
         logdir: /tmp/
         remote_ip: 127.0.0.1
     neuron:
@@ -119,7 +118,7 @@ class TestRemoteModuleCall(unittest.TestCase):
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])          
         self.stub = bittensor_grpc.BittensorStub(self.channel)
-        self.remote_synapse = RemoteSynapse(self.synapse, self._config)        
+        # = RemoteSynapse(self.synapse, self._config)        
         self.tblogger = bittensor.TBLogger("./tests/tmp")
         self.dummy = torch.empty(0, requires_grad=True)
     
