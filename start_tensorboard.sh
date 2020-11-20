@@ -4,8 +4,9 @@ set -o errexit
 # Change to script's directory
 cd "$(dirname "$0")"
 
-# Load constants
-source ./scripts/constant.sh
+function log() {
+    python3 -c "from loguru import logger; logger.add(\"data/$IDENTITY/bittensor_logs.out\"); logger.debug(\"$1\")"
+}
 
 neuron='mnist'
 

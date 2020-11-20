@@ -2,10 +2,9 @@ from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
+from bittensor.tb_logger import TBLogger
 from substrateinterface import SubstrateInterface, Keypair
-
 from loguru import logger
-from torch.utils.tensorboard import SummaryWriter
 
 class FailedConnectToChain(Exception):
     pass
@@ -23,7 +22,7 @@ class BTSession:
         self.metagraph = Metagraph(self.config, self.__keypair)
         self.axon = Axon(self.config, self.__keypair)
         self.dendrite = Dendrite(self.config, self.__keypair)
-        self.tbwriter = SummaryWriter(log_dir=self.config.session_settings.logdir)
+        self.tbwriter = TBLogger(self.config.session_settings.logdir)
 
     def __del__(self):
         self.stop()
