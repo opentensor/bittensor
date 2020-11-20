@@ -189,14 +189,15 @@ class Metagraph():
         
         """
         current_block = self.substrate.get_block_number(None)
-        if pubkey in self._pubkey_index_map.keys():
+        if pubkey in self._pubkey_index_map:
             index = self._pubkey_index_map[pubkey]
-            #append = False
+            append = False
         else:
             index = self._n
             self._n += 1
             self._pubkey_index_map[pubkey] = index
             append = True
+        
         stake = self.substrate.get_runtime_state(
                     module='SubtensorModule',
                     storage_function='Stake',
@@ -230,7 +231,8 @@ class Metagraph():
                 address=ipstr,
                 port=port
         )
-        if append == False:
+
+        if not append:
             self._neurons_list[index] = neuron
             self._stake_list[index] = int(stake)
             self._emit_list[index] = int(emit)
