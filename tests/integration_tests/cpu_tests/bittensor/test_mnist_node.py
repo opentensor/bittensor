@@ -150,7 +150,7 @@ class MnistNode(unittest.TestCase):
                 labels = torch.LongTensor(labels).to(self.device)
 
                 # Compute full pass and get loss.
-                outputs = model.forward(images, labels, remote = False)
+                outputs = model(images, labels, remote = False)
                 loss = loss + outputs.loss
                 
                 # Count accurate predictions.
