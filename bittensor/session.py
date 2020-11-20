@@ -90,6 +90,19 @@ class BTSession:
 
 
     def stop(self):
+        logger.info('Stopping polling thread ...')
+        try:
+            self.metagraph.stop()
+        except Exception as e:
+            logger.error('SESSION: Failed during poll to chain with error: {}', e)
+            raise FailedToPollChain
+
+        logger.info('Stopping axon server..')
+        try:
+            self.axon.stop()
+        except Exception as e:
+            logger.error('SESSION: Error while stopping axon server: {} ', e)
+
         # Stop background grpc threads for serving synapse objects.
         logger.info('Unsubscribe from chain ...')
         try:
@@ -97,12 +110,6 @@ class BTSession:
                 logger.error('SESSION: Timeout while unsubscribing to the chain endpoint')
         except Exception as e:
             logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
-
-        logger.info('Stopping axon server..')
-        try:
-            self.axon.stop()
-        except Exception as e:
-            logger.error('SESSION: Error while stopping axon server: {} ', e)
 
     def neurons (self):
        return self.metagraph.neurons()

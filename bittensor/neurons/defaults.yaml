@@ -1,14 +1,13 @@
 session_settings:
   axon_port: 8091
-  chain_endpoint: http://206.189.254.5:12345
+  chain_endpoint:  http://127.0.0.1:9933
   logdir: data/
 
   metagraph:
     polls_every_sec: 25
-    poll_neuron_every_blocks: 20
+    re_poll_neuron_every_blocks: 20
     stale_emit_limit: 1000
 
 neuron:
     neuron_path: /bittensor/neurons/mnist
     datapath: data/
-
