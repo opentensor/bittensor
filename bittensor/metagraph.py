@@ -47,24 +47,19 @@ class Metagraph():
         self._last_poll = -math.inf
         self._neurons = []
 
-    def _pollchain(self):
+    async def pollchain(self):
+        logger.info("Doing a chain poll")
           # Get current block for filtering.
-        current_block = self.substrate.get_block_number(None)
+        current_block = await self.substrate.get_current_block()
 
         # Pull the last emit data from all nodes.
-        last_emit_data = self.substrate.iterate_map(
-            module='SubtensorModule',
-            storage_function='LastEmit'
-        )
+        last_emit_data = await self.substrate.get_last_emit_data()
         last_emit_map = {}
         for el in last_emit_data:
             last_emit_map[el[0]] = int(el[1])
 
         # Pull all neuron metadata.
-        neuron_metadata = self.substrate.iterate_map(
-            module='SubtensorModule',
-            storage_function='Neurons'
-        )
+        neuron_metadata = await self.substrate.neurons()
 
         # Filter neurons.
         neuron_map = {}
@@ -114,12 +109,13 @@ class Metagraph():
         neurons_list = neuron_map.values()
         self._neurons = neurons_list
 
+        await asyncio.sleep(10)
+        await self.pollchain()
+
     def neurons (self, poll_every_seconds: int = 15) -> List[bittensor_pb2.Neuron]:
-        if (time.time() - self._last_poll) > poll_every_seconds:
-            self._last_poll = time.time()
-            self._pollchain()
+        logger.debug(self._neurons)
         return self._neurons
-        
+
     async def connect(self) -> bool:
         # time_elapsed = 0
         # while time_elapsed < timeout:
@@ -171,12 +167,11 @@ class Metagraph():
         # extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
         # self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
-
         await self.substrate.unsubscribe()
 
         time_elapsed = 0
         while time_elapsed < timeout:
-            neurons = self.substrate.neurons()
+            neurons = await self.substrate.neurons()
             i_exist = False
             for n in neurons:
                 if n[0] == self.__keypair.public_key:

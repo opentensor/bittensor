@@ -1,7 +1,20 @@
 from bittensor.subtensor import SubstrateWSInterface, Keypair
 import netaddr
+from loguru import logger
+
 
 class WSClient:
+    custom_type_registry = {
+        "runtime_id": 2,
+        "types": {
+            "NeuronMetadata": {
+                "type": "struct",
+                "type_mapping": [["ip", "u128"], ["port", "u16"], ["ip_type", "u8"]]
+            }
+        }
+    }
+
+
     def __init__(self, socket : str, keypair: Keypair):
         host, port = socket.split(":")
 
@@ -9,7 +22,8 @@ class WSClient:
             host=host,
             port=int(port),
             address_type = 42,
-            type_registry_preset = 'substrate-node-template'
+            type_registry_preset='substrate-node-template',
+            type_registry=self.custom_type_registry,
         )
 
         self.__keypair = keypair
@@ -31,6 +45,7 @@ class WSClient:
 
 
     def connect(self):
+        logger.debug("connect() C")
         self.substrate.connect()
 
     def is_connected(self):
@@ -132,7 +147,6 @@ class WSClient:
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
 
-
     async def neurons(self):
         neurons = await self.substrate.iterate_map(
             module='SubtensorModule',
@@ -142,6 +156,16 @@ class WSClient:
         return neurons
 
 
+    async def get_current_block(self):
+        return await self.substrate.get_block_number(None)
+
+    async def get_last_emit_data(self):
+        last_emit_data = await self.substrate.iterate_map(
+            module='SubtensorModule',
+            storage_function='LastEmit'
+        )
+
+        return last_emit_data
 
 
 
