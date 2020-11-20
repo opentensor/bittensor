@@ -3,7 +3,11 @@ session_settings:
   chain_endpoint: http://206.189.254.5:12345
   logdir: data/
 
+  metagraph:
+    polls_every_sec: 25
+    re_poll_neuron_every_blocks: 20
+    stale_emit_limit: 1000
+
 neuron:
     neuron_path: /bittensor/neurons/mnist
     datapath: data/
-
