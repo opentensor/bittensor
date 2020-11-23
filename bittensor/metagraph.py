@@ -249,7 +249,7 @@ class Metagraph():
                 self._weight_vals.append( list(w_vals) )
                 self._poll_list.append( current_block )
         except Exception as e:
-            logger.error("Exception occured: {}".format(e))
+            logger.error("Exception occurred: {}".format(e))
             traceback.print_exc()
 
 
