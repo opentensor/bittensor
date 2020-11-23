@@ -24,10 +24,10 @@ class Neuron (Neuron):
     def __init__(self, config):
         self.config = config
 
-    async def stop(self):
+    def stop(self):
         pass
 
-    async def start(self, session: BTSession):
+    def start(self, session: BTSession):
         epoch = 0
         best_test_loss = math.inf
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
