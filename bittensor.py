@@ -3,6 +3,7 @@ import bittensor
 import os
 import time
 import asyncio
+from  bittensor.utils.asyncio import Asyncio
 
 from bittensor.config import Config
 
@@ -34,8 +35,10 @@ def main():
     # 5. Start Neuron.
     logger.info('Start ... ')
     with session:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(neuron.start( session ))
+        Asyncio.start_in_thread(neuron.start, session)
+        Asyncio.run_forever()
+
+
 
 
 
