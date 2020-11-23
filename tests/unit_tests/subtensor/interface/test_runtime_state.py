@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import unittest
+import pytest
 from unittest.mock import MagicMock
 
 from scalecodec import ScaleBytes
@@ -29,9 +30,10 @@ class TestRuntimeState(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
 
-        cls.substrate = SubstrateWSInterface(url='dummy', address_type=42, type_registry_preset='kusama')
+        cls.substrate = SubstrateWSInterface(host='dummy', port=666, address_type=42, type_registry_preset='kusama')
 
-    def test_plaintype_call(self):
+    @pytest.mark.asyncio
+    async def test_plaintype_call(self):
 
         def mocked_request(method, params):
             if method == 'chain_getRuntimeVersion':
@@ -52,7 +54,7 @@ class TestRuntimeState(unittest.TestCase):
         self.substrate.get_block_metadata = MagicMock(return_value=metadata_decoder)
         self.substrate.rpc_request = MagicMock(side_effect=mocked_request)
 
-        response = self.substrate.get_runtime_state(
+        response = await self.substrate.get_runtime_state(
             module='System',
             storage_function='Events'
         )
@@ -64,7 +66,8 @@ class TestRuntimeState(unittest.TestCase):
         self.assertEqual(response['result'][1]['module_id'], 'System')
         self.assertEqual(response['result'][1]['event_id'], 'ExtrinsicSuccess')
 
-    def test_maptype_call(self):
+    @pytest.mark.asyncio
+    async def test_maptype_call(self):
 
         def mocked_request(method, params):
             if method == 'chain_getRuntimeVersion':
@@ -85,7 +88,7 @@ class TestRuntimeState(unittest.TestCase):
         metadata_decoder.decode()
         self.substrate.get_block_metadata = MagicMock(return_value=metadata_decoder)
 
-        response = self.substrate.get_runtime_state(
+        response = await self.substrate.get_runtime_state(
             module='System',
             storage_function='Account',
             params=['5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY']
@@ -103,7 +106,8 @@ class TestRuntimeState(unittest.TestCase):
                 'refcount': 3
         })
 
-    def test_iterate_map(self):
+    @pytest.mark.asyncio
+    async def test_iterate_map(self):
 
         def mocked_request(method, params):
             if method == 'chain_getRuntimeVersion':

@@ -20,6 +20,7 @@ import sys
 sys.path.append(os.path.abspath('../../py-scale-codec'))
 
 import unittest
+import pytest
 
 from scalecodec.base import RuntimeConfiguration, ScaleType
 
@@ -31,15 +32,17 @@ class KusamaTypeRegistryTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.substrate = SubstrateInterface(
-            url=settings.KUSAMA_NODE_URL,
+        cls.substrate = SubstrateWSInterface(
+            host="dummy",
+            port=666,
             address_type=2,
             type_registry_preset='kusama'
         )
 
-    def test_type_registry_compatibility(self):
+    @pytest.mark.asyncio
+    async def test_type_registry_compatibility(self):
 
-        for scale_type in self.substrate.get_type_registry():
+        for scale_type in await self.substrate.get_type_registry():
             obj = RuntimeConfiguration().get_decoder_class(scale_type)
 
             self.assertIsNotNone(obj, '{} not supported'.format(scale_type))
@@ -49,15 +52,17 @@ class PolkadotTypeRegistryTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.substrate = SubstrateInterface(
-            url=settings.POLKADOT_NODE_URL,
+        cls.substrate = SubstrateWSInterface(
+            host='dummy',
+            port=666,
             address_type=0,
             type_registry_preset='polkadot'
         )
 
-    def test_type_registry_compatibility(self):
+    @pytest.mark.asyncio
+    async def test_type_registry_compatibility(self):
 
-        for scale_type in self.substrate.get_type_registry():
+        for scale_type in await self.substrate.get_type_registry():
 
             obj = RuntimeConfiguration().get_decoder_class(scale_type)
 

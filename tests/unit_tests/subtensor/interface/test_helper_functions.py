@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import unittest
+import pytest
 from unittest.mock import MagicMock
 
 from scalecodec import ScaleBytes, Bytes
@@ -47,11 +48,12 @@ class TestHelperFunctions(unittest.TestCase):
     def test_decode_scale(self):
         self.assertEqual(self.substrate.decode_scale('Compact<u32>', '0x08'), 2)
 
-    def test_encode_scale(self):
+    async def test_encode_scale(self):
         self.assertEqual(self.substrate.encode_scale('Compact<u32>', 3), '0x0c')
 
-    def test_get_type_definition(self):
-        self.assertDictEqual(self.substrate.get_type_definition('Bytes'), {
+    @pytest.mark.asyncio
+    async def test_get_type_definition(self):
+        self.assertDictEqual(await self.substrate.get_type_definition('Bytes'), {
             'decoder_class': 'Bytes',
             'is_primitive_core': False,
             'is_primitive_runtime': True,
@@ -59,38 +61,44 @@ class TestHelperFunctions(unittest.TestCase):
             'type_string': 'Bytes'}
         )
 
-    def test_get_metadata_modules(self):
-        for module in self.substrate.get_metadata_modules():
+    @pytest.mark.asyncio
+    async def test_get_metadata_modules(self):
+        for module in await self.substrate.get_metadata_modules():
             self.assertIn('module_id', module)
             self.assertIn('name', module)
             self.assertEqual(module['spec_version'], 2023)
 
-    def test_get_metadata_call_function(self):
-        call_function = self.substrate.get_metadata_call_function("Balances", "transfer")
+    @pytest.mark.asyncio
+    async def test_get_metadata_call_function(self):
+        call_function = await self.substrate.get_metadata_call_function("Balances", "transfer")
         self.assertEqual(call_function['module_name'], "Balances")
         self.assertEqual(call_function['call_name'], "transfer")
         self.assertEqual(call_function['spec_version'], 2023)
 
-    def test_get_metadata_event(self):
-        event = self.substrate.get_metadata_event("Balances", "Transfer")
+    @pytest.mark.asyncio
+    async def test_get_metadata_event(self):
+        event = await self.substrate.get_metadata_event("Balances", "Transfer")
         self.assertEqual(event['module_name'], "Balances")
         self.assertEqual(event['event_name'], "Transfer")
         self.assertEqual(event['spec_version'], 2023)
 
-    def test_get_metadata_constant(self):
-        constant = self.substrate.get_metadata_constant("System", "BlockHashCount")
+    @pytest.mark.asyncio
+    async def test_get_metadata_constant(self):
+        constant = await self.substrate.get_metadata_constant("System", "BlockHashCount")
         self.assertEqual(constant['module_name'], "System")
         self.assertEqual(constant['constant_name'], "BlockHashCount")
         self.assertEqual(constant['spec_version'], 2023)
 
-    def test_get_metadata_storage_function(self):
-        storage = self.substrate.get_metadata_storage_function("System", "Account")
+    @pytest.mark.asyncio
+    async def test_get_metadata_storage_function(self):
+        storage = await self.substrate.get_metadata_storage_function("System", "Account")
         self.assertEqual(storage['module_name'], "System")
         self.assertEqual(storage['storage_name'], "Account")
         self.assertEqual(storage['spec_version'], 2023)
 
-    def test_get_metadata_error(self):
-        error = self.substrate.get_metadata_error("System", "InvalidSpecName")
+    @pytest.mark.asyncio
+    async def test_get_metadata_error(self):
+        error = await self.substrate.get_metadata_error("System", "InvalidSpecName")
         self.assertEqual(error['module_name'], "System")
         self.assertEqual(error['error_name'], "InvalidSpecName")
         self.assertEqual(error['spec_version'], 2023)
