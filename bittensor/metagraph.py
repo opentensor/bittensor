@@ -133,7 +133,7 @@ class Metagraph():
         logger.info('start')
         if self._running == False:
             self._running = True
-            self._polling_thread = threading.Thread(target=self._continous_poll, daemon=True)
+            self._polling_thread = threading.Thread(target=self._continous_poll, daemon=False)
             self._polling_thread.start()
 
     def stop(self):
