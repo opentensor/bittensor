@@ -168,8 +168,6 @@ workflows:
                 - "Run Unit Tests"
                 - MNIST-1
                 - MNIST-2
-                - MNIST-3
-                - MNIST-4
               filters:
                 branches:
                   only:
