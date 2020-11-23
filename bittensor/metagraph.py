@@ -48,7 +48,7 @@ class Metagraph():
         self._neurons = []
 
     async def pollchain(self):
-        logger.info("Doing a chain poll")
+        logger.error("***** Doing a chain poll *****")
           # Get current block for filtering.
         current_block = await self.substrate.get_current_block()
 
@@ -108,6 +108,7 @@ class Metagraph():
         # Return list of non-filtered neurons.
         neurons_list = neuron_map.values()
         self._neurons = neurons_list
+
 
         await asyncio.sleep(10)
         await self.pollchain()

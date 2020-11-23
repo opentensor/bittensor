@@ -4,6 +4,7 @@ from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
 # from substrateinterface import SubstrateInterface, Keypair
 import asyncio
+from bittensor.utils.asyncio import Asyncio
 
 from bittensor.subtensor import WSClient, Keypair
 
@@ -83,9 +84,8 @@ class BTSession:
             raise FailedToEnterSession
 
         logger.info("Starting polling of chain for neurons")
-        loop = asyncio.get_event_loop()
-        loop.create_task(self.metagraph.pollchain())
 
+        Asyncio.add_task(self.metagraph.pollchain())
 
     async def stop(self):
         # Stop background grpc threads for serving synapse objects.
