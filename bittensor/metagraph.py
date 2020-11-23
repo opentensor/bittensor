@@ -7,6 +7,7 @@ import numpy
 import time
 import threading
 import torch
+import traceback
 
 from loguru import logger
 from bittensor import bittensor_pb2
@@ -198,54 +199,58 @@ class Metagraph():
             self._pubkey_index_map[pubkey] = index
             append = True
         
-        stake = self.substrate.get_runtime_state(
-                    module='SubtensorModule',
-                    storage_function='Stake',
-                    params=[pubkey]
-        )['result']
-        emit = self.substrate.get_runtime_state(
-                    module='SubtensorModule',
-                    storage_function='LastEmit',
-                    params=[pubkey]
-        )['result']
-        info = self.substrate.get_runtime_state(
-                    module='SubtensorModule',
-                    storage_function='Neurons',
-                    params=[pubkey]
-        )['result']
-        w_keys = self.substrate.get_runtime_state(
-                    module='SubtensorModule',
-                    storage_function='WeightKeys',
-                    params=[pubkey]
-        )['result']
-        w_vals = self.substrate.get_runtime_state(
-                    module='SubtensorModule',
-                    storage_function='WeightVals',
-                    params=[pubkey]
-        )['result']
-        ipstr = int_to_ip(info['ip'])
-        port = int(info['port'])
-        neuron = bittensor_pb2.Neuron (
-                version=bittensor.__version__,
-                public_key=pubkey,
-                address=ipstr,
-                port=port
-        )
+        try:
+            stake = self.substrate.get_runtime_state(
+                        module='SubtensorModule',
+                        storage_function='Stake',
+                        params=[pubkey]
+            )['result']
+            emit = self.substrate.get_runtime_state(
+                        module='SubtensorModule',
+                        storage_function='LastEmit',
+                        params=[pubkey]
+            )['result']
+            info = self.substrate.get_runtime_state(
+                        module='SubtensorModule',
+                        storage_function='Neurons',
+                        params=[pubkey]
+            )['result']
+            w_keys = self.substrate.get_runtime_state(
+                        module='SubtensorModule',
+                        storage_function='WeightKeys',
+                        params=[pubkey]
+            )['result']
+            w_vals = self.substrate.get_runtime_state(
+                        module='SubtensorModule',
+                        storage_function='WeightVals',
+                        params=[pubkey]
+            )['result']
+            ipstr = int_to_ip(info['ip'])
+            port = int(info['port'])
+            neuron = bittensor_pb2.Neuron (
+                    version=bittensor.__version__,
+                    public_key=pubkey,
+                    address=ipstr,
+                    port=port
+            )
 
-        if not append:
-            self._neurons_list[index] = neuron
-            self._stake_list[index] = int(stake)
-            self._emit_list[index] = int(emit)
-            self._weight_keys[index] = list(w_keys)
-            self._weight_vals[index] = list(w_vals)
-            self._poll_list[index] = current_block
-        else:
-            self._neurons_list.append( neuron )
-            self._stake_list.append( int(stake) )
-            self._emit_list.append( int(emit) )
-            self._weight_keys.append( list(w_keys) )
-            self._weight_vals.append( list(w_vals) )
-            self._poll_list.append( current_block )
+            if not append:
+                self._neurons_list[index] = neuron
+                self._stake_list[index] = int(stake)
+                self._emit_list[index] = int(emit)
+                self._weight_keys[index] = list(w_keys)
+                self._weight_vals[index] = list(w_vals)
+                self._poll_list[index] = current_block
+            else:
+                self._neurons_list.append( neuron )
+                self._stake_list.append( int(stake) )
+                self._emit_list.append( int(emit) )
+                self._weight_keys.append( list(w_keys) )
+                self._weight_vals.append( list(w_vals) )
+                self._poll_list.append( current_block )
+        except Exception as e:
+            logger.error("Exception occured: {}".format(e))
+            traceback.print_exc()
 
 
     def _build_torch_tensors(self):
