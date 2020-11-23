@@ -205,10 +205,41 @@ class Config:
             Config.validate_neuron_file('neuron.neuron_path', items.neuron.neuron_path)
             Config.validate_ip('session_settings.remote_ip', items.session_settings.remote_ip)
             Config.validate_int_range('session_settings.axon_port', items.session_settings.axon_port, min=1024, max=65535)
+            Config.validate_socket('session_settings.chain_endpoint', items.session_settings.chain_endpoint)
         
         except ValidationError:
             logger.debug("CONFIG: Validation error")
             raise InvalidConfigError
+
+    @staticmethod
+    def validate_socket(key, value: str):
+        def error():
+            message = "CONFIG: Validation error: {} for option {} is not a valid socket definition : <ip/hostname>:<port>"
+            logger.error(message, value, key)
+            raise ValidationError
+
+        if ':' not in value:
+            error()
+
+        elems = value.split(":")
+        if len(elems) != 2:
+            error()
+
+        ip, port = elems
+        if not validators.ipv4(ip) and not validators.domain(ip) and ip != "localhost":
+            error()
+
+        if not validators.between(int(port), min=1, max=65535):
+            error()
+
+
+
+
+
+
+
+
+
 
     @staticmethod
     def validate_ip(key, value):
