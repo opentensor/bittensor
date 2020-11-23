@@ -56,7 +56,7 @@ class Metagraph():
         # Map from neuron pubkey -> neuron index
         self._pubkey_index_map = {}
 
-        # Number of neruons in graph.
+        # Number of neurons in graph.
         self._n = 0
 
         # List of bittensor_pb2.Neurons ordered by index
@@ -133,7 +133,7 @@ class Metagraph():
         logger.info('start')
         if self._running == False:
             self._running = True
-            self._polling_thread = threading.Thread(target=self._continous_poll, daemon=False)
+            self._polling_thread = threading.Thread(target=self._continuous_poll, daemon=False)
             self._polling_thread.start()
 
     def stop(self):
@@ -143,10 +143,10 @@ class Metagraph():
             self._running = False
             self._polling_thread.join()
 
-    def _continous_poll(self):
-        """ Continously polls chain updating metagraph state until self._running is False
+    def _continuous_poll(self):
+        """ continuously polls chain updating metagraph state until self._running is False
         """
-        logger.info('_continous_poll')
+        logger.info('_continuous_poll')
         while self._running:
             logger.info('running')
             if (time.time() - self._last_poll) > self._config.session_settings.metagraph.polls_every_sec:
