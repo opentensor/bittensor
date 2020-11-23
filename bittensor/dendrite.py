@@ -138,23 +138,22 @@ class Dendrite(nn.Module):
         results = []
         logger.info("NEURONS:{}".format(neurons))
         for idx, neuron in enumerate(neurons):
-            if idx < len(x):
-                forward_inputs = x[idx]
+            forward_inputs = x[idx]
 
-                # Get or create remote_neuron.
-                remote_neuron = None
-                if neuron.public_key in self._remotes:
-                    remote_neuron = self._remotes[neuron.public_key]
-                else:
-                    # Create remote connection.
-                    remote_neuron = RemoteNeuron(neuron, self._config, self.__keypair)
-                    self._remotes[neuron.public_key] = remote_neuron
+            # Get or create remote_neuron.
+            remote_neuron = None
+            if neuron.public_key in self._remotes:
+                remote_neuron = self._remotes[neuron.public_key]
+            else:
+                # Create remote connection.
+                remote_neuron = RemoteNeuron(neuron, self._config, self.__keypair)
+                self._remotes[neuron.public_key] = remote_neuron
 
-                # Call remote neuron.
-                try:
-                    results.append(remote_neuron(forward_inputs, mode))
-                except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
-                    logger.error("Exception occured: {}".format(e))
+            # Call remote neuron.
+            try:
+                results.append(remote_neuron(forward_inputs, mode))
+            except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
+                logger.error("Exception occured: {}".format(e))
 
         return results
 
