@@ -147,14 +147,11 @@ class Metagraph():
     def _continuous_poll(self):
         """ continuously polls chain updating metagraph state until self._running is False
         """
-        logger.info('_continuous_poll')
+        logger.info('_continuous_poll...')
         while self._running:
-            logger.info('running')
             if (time.time() - self._last_poll) > self._config.session_settings.metagraph.polls_every_sec:
                 self._last_poll = time.time()
-                logger.info('Polling chain state ...')
                 self.pollchain()
-                logger.info('Done. ')
             time.sleep(self._config.session_settings.metagraph.polls_every_sec/2)
 
     def pollchain(self):
