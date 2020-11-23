@@ -136,7 +136,6 @@ class Dendrite(nn.Module):
                     Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
         """
         results = []
-        logger.info("NEURONS:{}".format(neurons))
         for idx, neuron in enumerate(neurons):
             forward_inputs = x[idx]
 
