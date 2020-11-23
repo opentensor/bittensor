@@ -161,6 +161,9 @@ workflows:
       - MNIST-2:
               requires:
                 - "Run Integration Tests"
+      - MNIST-3:
+              requires:
+                - "Run Integration Tests"
 
       - "Push Production candidate to DockerHub":
               requires:
@@ -168,6 +171,7 @@ workflows:
                 - "Run Unit Tests"
                 - MNIST-1
                 - MNIST-2
+                - MNIST-3
               filters:
                 branches:
                   only:
