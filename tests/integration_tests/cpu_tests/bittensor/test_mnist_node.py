@@ -53,6 +53,8 @@ class MnistNode(unittest.TestCase):
         mnemonic = Keypair.generate_mnemonic()
         self.keypair = Keypair.create_from_mnemonic(mnemonic)
         self.session = bittensor.init(self.config, self.keypair)
+
+        self.config.session_settings.axon_port = random.randint(8000, 9000)
     
         # Build and server the synapse.
         model_config = FFNNConfig()
