@@ -67,13 +67,13 @@ class Neuron (Neuron):
         session.serve( model.deepcopy() )
 
         # Build the optimizer.
-        optimizer = optim.SGD(model.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.training.momentum)
+        optimizer = optim.SGD(model.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10.0, gamma=0.1)
 
         train_data = torchvision.datasets.MNIST(root = self.config.neuron.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
-        trainloader = torch.utils.data.DataLoader(train_data, batch_size = self.config.training.batch_size_train, shuffle=True, num_workers=2)
+        trainloader = torch.utils.data.DataLoader(train_data, batch_size = self.config.neuron.batch_size_train, shuffle=True, num_workers=2)
         test_data = torchvision.datasets.MNIST(root = self.config.neuron.datapath + "datasets/", train=False, download=True, transform=transforms.ToTensor())
-        testloader = torch.utils.data.DataLoader(test_data, batch_size = self.config.training.batch_size_test, shuffle=False, num_workers=2)
+        testloader = torch.utils.data.DataLoader(test_data, batch_size = self.config.neuron.batch_size_test, shuffle=False, num_workers=2)
     
         # Train loop: Single threaded training of MNIST.
         def train(model, epoch):
@@ -100,10 +100,10 @@ class Neuron (Neuron):
                     max_logit = output.remote_target.data.max(1, keepdim=True)[1]
                     correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
                     loss_item  = output.remote_target_loss.item()
-                    processed = ((batch_idx + 1) * self.config.training.batch_size_train)
+                    processed = ((batch_idx + 1) * self.config.neuron.batch_size_train)
                     
                     progress = (100. * processed) / n
-                    accuracy = (100.0 * correct) / self.config.neuron.training.batch_size_train
+                    accuracy = (100.0 * correct) / self.config.neuron.neuron.batch_size_train
                     logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nS: {}', 
                         epoch, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()))
                     session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())

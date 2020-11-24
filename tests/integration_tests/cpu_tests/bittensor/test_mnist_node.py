@@ -9,7 +9,7 @@ Example:
 import bittensor
 from bittensor.synapse import Synapse
 from bittensor.config import Config
-from bittensor.synapses.ffnn import FFNNSynapse, FFNNConfig
+from bittensor.synapses.ffnn import FFNNSynapse
 from substrateinterface import Keypair
 
 import random

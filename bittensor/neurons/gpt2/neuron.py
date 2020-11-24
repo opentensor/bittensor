@@ -60,7 +60,7 @@ class Neuron (Neuron):
         dataset = load_dataset('bookcorpus')['train']
     
         # Optimizer.
-        optimizer = torch.optim.SGD(model.parameters(), lr=self.neuron.training.learning_rate)
+        optimizer = torch.optim.SGD(model.parameters(), lr=self.neuron.neuron.learning_rate)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
         
         def train(dataset, model, epoch):
