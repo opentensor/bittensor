@@ -1,10 +1,8 @@
-from bittensor.subtensor import WSClient
-from subtensorinterface import Keypair
+from bittensor.subtensor import WSClient, Keypair
 from loguru import logger
 import pytest
-import unittest
 
-# logger.remove() # Shut up loguru
+logger.remove() # Shut up loguru
 
 
 socket = "localhost:9944"
