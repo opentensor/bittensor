@@ -2,10 +2,9 @@ from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
+from bittensor.tb_logger import TBLogger
 from substrateinterface import SubstrateInterface, Keypair
-
 from loguru import logger
-from torch.utils.tensorboard import SummaryWriter
 
 class FailedConnectToChain(Exception):
     pass
@@ -16,6 +15,9 @@ class FailedSubscribeToChain(Exception):
 class FailedToEnterSession(Exception):
     pass
 
+class FailedToPollChain(Exception):
+    pass
+
 class BTSession:
     def __init__(self, config, keypair: Keypair):
         self.config = config 
@@ -23,7 +25,7 @@ class BTSession:
         self.metagraph = Metagraph(self.config, self.__keypair)
         self.axon = Axon(self.config, self.__keypair)
         self.dendrite = Dendrite(self.config, self.__keypair)
-        self.tbwriter = SummaryWriter(log_dir=self.config.session_settings.logdir)
+        self.tbwriter = TBLogger(self.config.session_settings.logdir)
 
     def __del__(self):
         self.stop()
@@ -47,14 +49,6 @@ class BTSession:
         self.stop()
 
     def start(self):
-        # Stop background grpc threads for serving the synapse object.
-        logger.info('Start axon server...')
-        try:
-            self.axon.start()
-        except Exception as e:
-            logger.error('SESSION: Failed to start axon server with error: {}', e)
-            raise FailedToEnterSession
-
         logger.info('Connect to chain ...')
         try:
             if not self.metagraph.connect(5):
@@ -73,8 +67,42 @@ class BTSession:
             logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
             raise FailedToEnterSession
 
+        logger.info('Poll chain ...')
+        try:
+            self.metagraph.pollchain()
+        except Exception as e:
+            logger.error('SESSION: Failed during poll to chain with error: {}', e)
+            raise FailedToPollChain
+
+        logger.info('Start polling thread ...')
+        try:
+            self.metagraph.start()
+        except Exception as e:
+            logger.error('SESSION: Failed during poll to chain with error: {}', e)
+            raise FailedToPollChain
+
+        logger.info('Start axon server...')
+        try:
+            self.axon.start()
+        except Exception as e:
+            logger.error('SESSION: Failed to start axon server with error: {}', e)
+            raise FailedToEnterSession
+
 
     def stop(self):
+        logger.info('Stopping polling thread ...')
+        try:
+            self.metagraph.stop()
+        except Exception as e:
+            logger.error('SESSION: Failed during poll to chain with error: {}', e)
+            raise FailedToPollChain
+
+        logger.info('Stopping axon server..')
+        try:
+            self.axon.stop()
+        except Exception as e:
+            logger.error('SESSION: Error while stopping axon server: {} ', e)
+
         # Stop background grpc threads for serving synapse objects.
         logger.info('Unsubscribe from chain ...')
         try:
@@ -82,12 +110,6 @@ class BTSession:
                 logger.error('SESSION: Timeout while unsubscribing to the chain endpoint')
         except Exception as e:
             logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
-
-        logger.info('Stopping axon server..')
-        try:
-            self.axon.stop()
-        except Exception as e:
-            logger.error('SESSION: Error while stopping axon server: {} ', e)
 
     def neurons (self):
        return self.metagraph.neurons()
