@@ -137,22 +137,26 @@ class Dendrite(nn.Module):
         """
         results = []
         for idx, neuron in enumerate(neurons):
-            forward_inputs = x[idx]
+            # TODO: This is a bandaid solution to the length of x and neurons not being equal in some cases.
+            if idx < len(x):
+                forward_inputs = x[idx]
 
-            # Get or create remote_neuron.
-            remote_neuron = None
-            if neuron.public_key in self._remotes:
-                remote_neuron = self._remotes[neuron.public_key]
+                # Get or create remote_neuron.
+                remote_neuron = None
+                if neuron.public_key in self._remotes:
+                    remote_neuron = self._remotes[neuron.public_key]
+                else:
+                    # Create remote connection.
+                    remote_neuron = RemoteNeuron(neuron, self._config, self.__keypair)
+                    self._remotes[neuron.public_key] = remote_neuron
+
+                # Call remote neuron.
+                try:
+                    results.append(remote_neuron(forward_inputs, mode))
+                except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
+                    logger.error("Exception occured: {}".format(e))
             else:
-                # Create remote connection.
-                remote_neuron = RemoteNeuron(neuron, self._config, self.__keypair)
-                self._remotes[neuron.public_key] = remote_neuron
-
-            # Call remote neuron.
-            try:
-                results.append(remote_neuron(forward_inputs, mode))
-            except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
-                logger.error("Exception occured: {}".format(e))
+                results.append(torch.zeros(x[0].size(0), x[0].size(1), bittensor.__network_dim__))
 
         return results
 
@@ -237,7 +241,7 @@ class _RemoteModuleCall(torch.autograd.Function):
 
             # Forward tensor.
             pre_response_time = time.time() # in seconds
-            response = ctx.caller.stub.Forward(request)
+            response = ctx.caller.stub.Forward(request, timeout=0.5)
             # Time (in seconds) response took
             elapsed_time = time.time() - pre_response_time
             bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
@@ -291,7 +295,7 @@ class _RemoteModuleCall(torch.autograd.Function):
 
             # Attain backward response
             pre_response_time = time.time()
-            response = ctx.caller.stub.Backward(request)
+            response = ctx.caller.stub.Backward(request, timeout=0.5)
             elapsed_time = time.time() - pre_response_time
             bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Backward Call Response Message Size (MB)', response.ByteSize() / 1024)
             bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Backward Call Turnaround latency (seconds)', round(elapsed_time, 2))
