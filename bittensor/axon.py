@@ -26,8 +26,8 @@ def obtain_ip(config: Munch) -> Munch:
         logger.error("CONIG: Could not retrieve public facing IP from IP API.")
         raise SystemError('CONFIG: Could not retrieve public facing IP from IP API.')
     if not validators.ipv4(value):
-        logger.error("CONFIG: Response from IP API is not a valid IP.")
-        raise SystemError('CONFIG: Response from IP API is not a valid IP.')
+        logger.error("CONFIG: Response from IP API is not a valid IP with ip {}", value)
+        raise SystemError('CONFIG: Response from IP API is not a valid IP with ip {}'.format(value))
     config.axon.remote_ip = value
     return config
 
@@ -70,7 +70,6 @@ class Axon(bittensor_grpc.BittensorServicer):
 
     @staticmethod   
     def check_config(config: Munch) -> Munch:
-        logger.info('check axon.')
         config = obtain_ip(config)
         assert config.axon.port > 1024 and config.axon.port < 65535, 'config.axon.port must be in range [1024, 65535]'
         return config
