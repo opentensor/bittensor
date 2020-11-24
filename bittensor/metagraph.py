@@ -144,6 +144,9 @@ class Metagraph():
 
         self._build_torch_tensors()
 
+        await asyncio.sleep(15)
+        await self.pollchain()
+
     def neurons(self) -> List[bittensor_pb2.Neuron]:
         """ Returns the neurons information of each active in the network.
 
@@ -160,7 +163,7 @@ class Metagraph():
         info from the local pubkey -> index mapping.
 
         """
-        current_block = self.subtensor_client.get_current_block()
+        current_block = await self.subtensor_client.get_current_block()
         if pubkey in self._pubkey_index_map:
             index = self._pubkey_index_map[pubkey]
             append = False
