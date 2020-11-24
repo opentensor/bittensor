@@ -8,6 +8,7 @@ import numpy
 import time
 import threading
 import torch
+import traceback
 
 from munch import Munch
 from loguru import logger
@@ -58,7 +59,7 @@ class Metagraph():
         # Map from neuron pubkey -> neuron index
         self._pubkey_index_map = {}
 
-        # Number of neruons in graph.
+        # Number of neurons in graph.
         self._n = 0
 
         # List of bittensor_pb2.Neurons ordered by index
@@ -176,7 +177,7 @@ class Metagraph():
         logger.info('start')
         if self._running == False:
             self._running = True
-            self._polling_thread = threading.Thread(target=self._continous_poll, daemon=True)
+            self._polling_thread = threading.Thread(target=self._continuous_poll, daemon=False)
             self._polling_thread.start()
 
     def stop(self):
@@ -186,15 +187,14 @@ class Metagraph():
             self._running = False
             self._polling_thread.join()
 
-    def _continous_poll(self):
-        """ Continously polls chain updating metagraph state until self._running is False
+    def _continuous_poll(self):
+        """ continuously polls chain updating metagraph state until self._running is False
         """
-        logger.info('_continous_poll')
+        logger.info('_continuous_poll...')
         while self._running:
-            logger.info('running')
-            if (time.time() - self._last_poll) > self._config.metagraph.metagraph.polls_every_sec:
+            if (time.time() - self._last_poll) > self._config.metagraph.polls_every_sec:
+                logger.info('Pollchain...')
                 self._last_poll = time.time()
-                logger.info('Polling chain state ...')
                 self.pollchain()
                 logger.info('Done. ')
             time.sleep(self._config.metagraph.polls_every_sec/2)
@@ -210,12 +210,12 @@ class Metagraph():
         )
         for (key, val) in emits:
             # Filter on stale.
-            if (current_block - val) > self._config.metagraph.metagraph.stale_emit_limit:
+            if (current_block - val) > self._config.metagraph.stale_emit_limit:
                 continue
 
             # Filter on recent poll.
             last_poll = self._poll_list[self._pubkey_index_map[key]] if key in self._pubkey_index_map else -math.inf
-            if (current_block - last_poll) < self._config.metagraph.metagraph.re_poll_neuron_every_blocks:
+            if (current_block - last_poll) < self._config.metagraph.re_poll_neuron_every_blocks:
                 continue
 
             # Poll.
@@ -275,7 +275,8 @@ class Metagraph():
                     address=ipstr,
                     port=port
             )
-            if append == False:
+
+            if not append:
                 self._neurons_list[index] = neuron
                 self._stake_list[index] = int(stake)
                 self._emit_list[index] = int(emit)
@@ -292,8 +293,9 @@ class Metagraph():
                 self._keys_list.append( key )
 
         except Exception as e:
-            # Failure here if the node data is corrupted.
-            pass
+            logger.error("Exception occurred: {}".format(e))
+            traceback.print_exc()
+
 
     def _build_torch_tensors(self):
         """ Builds torch objects from python polled state.
