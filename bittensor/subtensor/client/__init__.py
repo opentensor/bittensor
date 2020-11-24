@@ -105,11 +105,16 @@ class WSClient:
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
-    async def get_stake(self):
-        result = await self.substrate.iterate_map(
+    async def get_stake(self, pubkey):
+        stake = await self.substrate.get_runtime_state(
             module='SubtensorModule',
-            storage_function='Stake')
-        return result
+            storage_function='Stake',
+            params=[pubkey]
+        )
+
+        return stake['result']
+
+
 
     async def set_weights(self, destinations, values, keypair):
         call = await self.substrate.compose_call(
@@ -122,21 +127,25 @@ class WSClient:
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
 
-    async def weight_keys(self):
-        result = await self.substrate.iterate_map(
+    async def weight_keys(self, pubkey):
+        result = await self.substrate.get_runtime_state(
             module='SubtensorModule',
-            storage_function='Weight_keys',
+            storage_function='WeightKeys',
+            params=[pubkey]
         )
 
-        return result
+        return result['result']
 
-    async def weight_vals(self):
-        result = await self.substrate.iterate_map(
+
+
+    async def weight_vals(self, pubkey):
+        result = await self.substrate.get_runtime_state(
             module='SubtensorModule',
-            storage_function='Weight_vals',
+            storage_function='WeightVals',
+            params=[pubkey]
         )
 
-        return result
+        return result['result']
 
     async def emit(self, keypair):
         call = await self.substrate.compose_call(
@@ -147,25 +156,43 @@ class WSClient:
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
 
-    async def neurons(self):
-        neurons = await self.substrate.iterate_map(
-            module='SubtensorModule',
-            storage_function='Neurons'
-        )
+    async def neurons(self, pubkey=None):
+        if pubkey:
+            result = await self.substrate.get_runtime_state(
+                module='SubtensorModule',
+                storage_function='Neurons',
+                params=[pubkey]
+            )
 
-        return neurons
+            return result['result']
+        else:
+            neurons = await self.substrate.iterate_map(
+                module='SubtensorModule',
+                storage_function='Neurons'
+            )
+
+            return neurons
 
 
     async def get_current_block(self):
         return await self.substrate.get_block_number(None)
 
-    async def get_last_emit_data(self):
-        last_emit_data = await self.substrate.iterate_map(
-            module='SubtensorModule',
-            storage_function='LastEmit'
-        )
+    async def get_last_emit_data(self, pubkey=None):
+        if pubkey:
+            result = await self.substrate.get_runtime_state(
+                module='SubtensorModule',
+                storage_function='LastEmit',
+                params=[pubkey]
+            )
 
-        return last_emit_data
+            return result['result']
+        else:
+            result = await self.substrate.iterate_map(
+                module='SubtensorModule',
+                storage_function='LastEmit'
+            )
+
+        return result
 
 
 

@@ -140,7 +140,7 @@ class Metagraph():
                 continue
 
             # Poll.
-            self._pollpubkey(key)
+            await self._pollpubkey(key)
 
         self._build_torch_tensors()
 
@@ -152,7 +152,7 @@ class Metagraph():
         """
         return self._neurons_list
 
-    def _pollpubkey(self, pubkey):
+    async def _pollpubkey(self, pubkey):
         """ Polls info from the chain for a specific pubkey.
 
         Function call updates or appends new information to the stake vectors. If the neuron pubkey
@@ -171,31 +171,11 @@ class Metagraph():
             append = True
 
         try:
-            stake = self.subtensor_client.get_runtime_state(
-                module='SubtensorModule',
-                storage_function='Stake',
-                params=[pubkey]
-            )['result']
-            emit = self.subtensor_client.get_runtime_state(
-                module='SubtensorModule',
-                storage_function='LastEmit',
-                params=[pubkey]
-            )['result']
-            info = self.subtensor_client.get_runtime_state(
-                module='SubtensorModule',
-                storage_function='Neurons',
-                params=[pubkey]
-            )['result']
-            w_keys = self.subtensor_client.get_runtime_state(
-                module='SubtensorModule',
-                storage_function='WeightKeys',
-                params=[pubkey]
-            )['result']
-            w_vals = self.subtensor_client.get_runtime_state(
-                module='SubtensorModule',
-                storage_function='WeightVals',
-                params=[pubkey]
-            )['result']
+            stake = await self.subtensor_client.get_stake(pubkey)
+            emit = await self.subtensor_client.get_last_emit_data(pubkey)
+            info = await self.subtensor_client.neurons(pubkey)
+            w_keys = await self.subtensor_client.weight_keys(pubkey)
+            w_vals = await self.subtensor_client.weight_vals(pubkey)
             ipstr = int_to_ip(info['ip'])
             port = int(info['port'])
             neuron = bittensor_pb2.Neuron(
