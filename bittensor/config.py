@@ -170,6 +170,27 @@ class Config:
             raise InvalidConfigError
 
     @staticmethod
+    def validate_socket(key, value: str):
+        def error():
+            message = "CONFIG: Validation error: {} for option {} is not a valid socket definition : <ip/hostname>:<port>"
+            logger.error(message, value, key)
+            raise ValidationError
+
+        if ':' not in value:
+            error()
+
+        elems = value.split(":")
+        if len(elems) != 2:
+            error()
+
+        ip, port = elems
+        if not validators.ipv4(ip) and not validators.domain(ip) and ip != "localhost":
+            error()
+
+        if not validators.between(int(port), min=1, max=65535):
+            error()
+
+    @staticmethod
     def validate_ip(key, value):
         if not validators.ipv4(value):
             logger.error("CONFIG: Validation error: {} for option {} is not a valid ip address", value, key)
