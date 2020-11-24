@@ -24,7 +24,10 @@ def blocking_task():
 loop = asyncio.get_event_loop()
 loop.create_task(task1())
 loop.create_task(task2())
+loop.create_task(blocking_task())
 
+
+quit()
 
 # Create a limited thread pool.
 executor = concurrent.futures.ThreadPoolExecutor(
