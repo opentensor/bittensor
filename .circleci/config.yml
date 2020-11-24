@@ -57,6 +57,7 @@ jobs:
   
   MNIST-1:
     executor: bittensor-executor
+    resource_class: xlarge
     steps:
       - checkout
       - python/load-cache
@@ -75,6 +76,7 @@ jobs:
 
   MNIST-2:
     executor: bittensor-executor
+    resource_class: xlarge
     steps:
       - checkout
       - python/load-cache
@@ -93,6 +95,7 @@ jobs:
   
   MNIST-3:
     executor: bittensor-executor
+    resource_class: xlarge
     steps:
       - checkout
       - python/load-cache
@@ -111,6 +114,7 @@ jobs:
   
   MNIST-4:
     executor: bittensor-executor
+    resource_class: xlarge
     steps:
       - checkout
       - python/load-cache
