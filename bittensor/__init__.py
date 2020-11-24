@@ -1,3 +1,4 @@
+from bittensor.tb_logger import TBLogger
 from loguru import logger
 import os
 import sys

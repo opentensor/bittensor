@@ -2,14 +2,12 @@ from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
-# from substrateinterface import SubstrateInterface, Keypair
-import asyncio
 from bittensor.utils.asyncio import Asyncio
-
-from bittensor.subtensor import WSClient, Keypair
-
+from bittensor.subtensor import Keypair
+from bittensor.tb_logger import TBLogger
 from loguru import logger
-from torch.utils.tensorboard import SummaryWriter
+import asyncio
+
 
 class FailedConnectToChain(Exception):
     pass
@@ -20,6 +18,9 @@ class FailedSubscribeToChain(Exception):
 class FailedToEnterSession(Exception):
     pass
 
+class FailedToPollChain(Exception):
+    pass
+
 class BTSession:
     def __init__(self, config, keypair: Keypair):
         self.config = config 
@@ -27,8 +28,7 @@ class BTSession:
         self.metagraph = Metagraph(self.config, self.__keypair)
         self.axon = Axon(self.config, self.__keypair)
         self.dendrite = Dendrite(self.config, self.__keypair)
-        self.tbwriter = SummaryWriter(log_dir=self.config.session_settings.logdir)
-
+        self.tbwriter = TBLogger(self.config.session_settings.logdir)
 
     def __del__(self):
         loop = asyncio.get_event_loop()
@@ -102,6 +102,14 @@ class BTSession:
             self.axon.stop()
         except Exception as e:
             logger.error('SESSION: Error while stopping axon server: {} ', e)
+
+        # Stop background grpc threads for serving synapse objects.
+        logger.info('Unsubscribe from chain ...')
+        try:
+            if not self.metagraph.unsubscribe(10):
+                logger.error('SESSION: Timeout while unsubscribing to the chain endpoint')
+        except Exception as e:
+            logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
 
     def neurons (self):
        return self.metagraph.neurons()

@@ -8,8 +8,8 @@ from bittensor import bittensor_pb2
 
 
 def torch_to_bytes(key):
-    key = key.cpu().detach().numpy()
-    key = key.tobytes()
+    #key = key.cpu().detach().numpy()
+    key = key.encode()
     return key
 
 
@@ -33,7 +33,7 @@ class Keys():
     def addNeuron(self, neuron):
         key = new_key(self._key_dim)
         self._key_for_neuron[neuron.public_key] = key
-        self._neuron_for_key[torch_to_bytes(key)] = neuron
+        self._neuron_for_key[torch_to_bytes(neuron.public_key)] = neuron
 
     def toKeys(self, neurons: List[bittensor_pb2.Neuron]):
         torch_keys = []
