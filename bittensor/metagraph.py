@@ -128,8 +128,7 @@ class Metagraph():
         Returns:
             neurons: (List[bittensor_pb2.Neuron]): neuron info ordered by index.
         """
-        if keys == None:
-            return self._neurons_list
+        return copy.deepcopy(self._neurons_list)
 
     def keys(self) -> torch.LongTensor:
         """ Returns a torch tensor of unique integer keys for neurons.

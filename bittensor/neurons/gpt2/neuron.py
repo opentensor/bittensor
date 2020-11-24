@@ -9,7 +9,7 @@ Example:
 import bittensor
 from bittensor.session import BTSession
 from bittensor.config import Config
-from bittensor.neuron import Neuron
+from bittensor.neuron import NeuronBase
 from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
 
 import argparse
@@ -18,7 +18,7 @@ from datasets import load_dataset
 from loguru import logger
 import torch
 
-class Neuron (Neuron):
+class Neuron (NeuronBase):
     def __init__(self, config):
         self.config = config
 
