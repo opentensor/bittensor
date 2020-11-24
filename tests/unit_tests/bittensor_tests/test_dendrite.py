@@ -19,7 +19,7 @@ from bittensor.serializer import PyTorchSerializer
 defualt_config = """
     session_settings:
         axon_port: 8081
-        chain_endpoint: http://206.189.254.5:12345
+        chain_endpoint: 206.189.254.5:12345
         logdir: /tmp/
         remote_ip: 127.0.0.1
     neuron:
