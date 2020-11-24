@@ -53,6 +53,8 @@ class MnistNode(unittest.TestCase):
         mnemonic = Keypair.generate_mnemonic()
         self.keypair = Keypair.create_from_mnemonic(mnemonic)
         self.session = bittensor.init(self.config, self.keypair)
+
+        self.config.session_settings.axon_port = random.randint(8000, 9000)
     
         # Build and server the synapse.
         model_config = FFNNConfig()
@@ -150,7 +152,7 @@ class MnistNode(unittest.TestCase):
                 labels = torch.LongTensor(labels).to(self.device)
 
                 # Compute full pass and get loss.
-                outputs = model.forward(images, labels, remote = False)
+                outputs = model(images, labels, remote = False)
                 loss = loss + outputs.loss
                 
                 # Count accurate predictions.
