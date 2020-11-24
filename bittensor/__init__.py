@@ -2,7 +2,7 @@ from bittensor.tb_logger import TBLogger
 from loguru import logger
 import os
 import sys
-from substrateinterface import Keypair
+from bittensor.subtensor import Keypair
 from transformers import GPT2Tokenizer
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

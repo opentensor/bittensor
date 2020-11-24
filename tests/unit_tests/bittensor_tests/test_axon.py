@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
 from bittensor.config import Config
-from substrateinterface import Keypair
+from bittensor.subtensor import Keypair
 from bittensor.synapse import Synapse, SynapseConfig
 from bittensor.serializer import PyTorchSerializer, torch_dtype_to_bittensor_dtype, bittensor_dtype_to_torch_dtype
 from bittensor import bittensor_pb2

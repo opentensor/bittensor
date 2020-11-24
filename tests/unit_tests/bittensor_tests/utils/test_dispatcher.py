@@ -6,7 +6,7 @@ import bittensor
 import os
 import pytest
 import random
-from substrateinterface import Keypair
+from bittensor.subtensor import Keypair
 import torch
 
 def random_neuron():
