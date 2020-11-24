@@ -104,37 +104,6 @@ class FFNNSynapse(Synapse):
 
         return hidden
 
-    def remote( self,
-                context: torch.Tensor,
-                images: torch.Tensor ):
-        r""" Makes a remote query using the context to select which neurons to send images to.
-
-            Args:
-                context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, transform_dim)`, `required`): 
-                    Tensor used as context to select which neurons to send images to.
-
-                images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
-                    PIL.toTensor() encoded images to send to remote neurons.
-
-            Returns:
-                remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
-                    Joined responses from network.
-        """
-        # images: added sequence dimension to images.
-        # images.shape = [batch_size, sequence_dim, channels, rows, cols] 
-        images = torch.unsqueeze(images, 1)
-
-        # neurons_keys: list of neuron indices on the network.
-        # neurons_keys.shape = [ self.session.metagraph.n() ]
-        # neurons_keys.type = torch.LongTensor
-        neurons_keys = self.session.metagraph.keys()
-
-        requests, _ = self.router.route( neurons, transform, images ) # routes inputs to network.
-        responses = self.session.dendrite.forward_image( neurons, requests ) # Makes network calls.
-        remote_context = self.router.join( responses ) # Joins responses based on scores..
-        remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2]) # Squeeze the sequence dimension.
-
-
     def forward(self,
                 images: torch.Tensor,
                 targets: torch.Tensor = None,
@@ -192,8 +161,14 @@ class FFNNSynapse(Synapse):
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         if remote:
-            remote_context = self.query(transform, images)
-        
+            # If query == True make a remote call.
+            images = torch.unsqueeze(images, 1) # Add sequence dimension.
+            neurons = self.session.metagraph.neurons() # Returns a list of neurons on the network.
+            requests, _ = self.router.route( neurons, transform, images ) # routes inputs to network.
+            responses = self.session.dendrite.forward_image( neurons, requests ) # Makes network calls.
+            remote_context = self.router.join( responses ) # Joins responses based on scores..
+            remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2]) # Squeeze the sequence dimension.
+
         # local_context: distillation model for remote_context.
         # local_context.shape = [batch_size, bittensor.__network_dim__]
         local_context = self.context_layer1(transform.detach())
