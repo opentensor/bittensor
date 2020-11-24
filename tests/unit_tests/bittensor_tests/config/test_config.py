@@ -6,7 +6,7 @@ import bittensor
 def test_empty_config():
     c = Config.load()
     assert c.session_settings.axon_port == 8091
-    assert c.session_settings.chain_endpoint == 'http://206.189.254.5:12345'
+    assert c.session_settings.chain_endpoint == '206.189.254.5:12345'
     assert c.session_settings.logdir == 'data/'
     assert c.neuron.neuron_path == '/bittensor/neurons/mnist'
     assert c.neuron.datapath == 'data/'

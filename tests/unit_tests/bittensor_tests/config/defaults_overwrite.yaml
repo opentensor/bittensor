@@ -1,6 +1,6 @@
 session_settings:
   axon_port: 8081
-  chain_endpoint: http://99.238.136.56:12345
+  chain_endpoint: 99.238.136.56:12345
   logdir: /tmp/
   remote_ip: 127.0.0.1
 
