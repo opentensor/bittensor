@@ -1,3 +1,6 @@
+import argparse
+from munch import Munch
+
 from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
@@ -28,7 +31,15 @@ class BTSession:
         self.metagraph = Metagraph(self.config, self.__keypair)
         self.axon = Axon(self.config, self.__keypair)
         self.dendrite = Dendrite(self.config, self.__keypair)
-        self.tbwriter = TBLogger(self.config.session_settings.logdir)
+        self.tbwriter = TBLogger(self.config)
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        return config
 
     def __del__(self):
         loop = asyncio.get_event_loop()

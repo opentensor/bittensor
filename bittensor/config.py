@@ -1,13 +1,19 @@
 from loguru import logger
 import argparse
+from importlib.machinery import SourceFileLoader
 import munch
 import os
 import pathlib
-import requests
 import time
 import validators
 import yaml
 from munch import Munch
+
+from bittensor.axon import Axon
+from bittensor.session import BTSession
+from bittensor.dendrite import Dendrite
+from bittensor.metagraph import Metagraph
+from bittensor.tb_logger import TBLogger
 
 class InvalidConfigFile(Exception):
     pass
@@ -21,98 +27,99 @@ class PostProcessingError(Exception):
 class InvalidConfigError(Exception):
     pass
 
+class MustPassNeuronPath(Exception):
+    pass
+
 class Config:
+    @staticmethod
+    def toString(items) -> str:
+        yaml_munch = items.toYAML()
+        data = yaml.safe_load(yaml_munch)
+        return '\n' + yaml.dump(data)
 
     @staticmethod
-    def load (config_path: str = None, from_yaml: str = None) -> Munch:
-        r""" Loads and returns a Munched config object from args/defaults.
+    def load(neuron_path: str = '/bittensor/neurons/mnist'):
+        r""" Loads and validates cl params from bittensor backend services and neuron path.
 
             Args:
-                config_path (str, `optional`): 
-                    Relative path to a config.yaml file which overrides defaults.
-
-                from_yaml (str, `optional`)
-                    String yaml parsed by yaml.safe_load(str).
-                
+                neuron_path (str, `optional`, defaults to bittensor/neurons/mnist): 
+                    Path neuron directory.
+    
             Returns:
                 config  (:obj:`Munch` `required`):
-                    Python Munch object with dot syntax config items e.g. config.neuron.neuron_path.
+                    Python Munch object with values from config under path.
         """
-        config = Config.load_from_defaults()
-
-        if config_path != None:
-            passed_items = Config.load_from_relative_path(config_path)
-            config = Config.overwrite_add(config, passed_items)
-
-        neuron_config = Config.load_from_neuron_path(config)
-        config = Config.overwrite_add(config, neuron_config)
-
-        if from_yaml != None:
-            yaml_items = Config.load_from_yaml_string(from_yaml)
-            config = Config.overwrite_add(config, yaml_items)
-
-        Config.post_process(config)
-        Config.validate(config)
-
+        config = Config.load_from_args(neuron_path)
+        config = Config.validate(config, neuron_path)
         return config
 
-    @staticmethod   
-    def load_from_defaults() -> Munch:
-        r""" Loads and returns a Munched config object from defaults.
+    @staticmethod
+    def load_from_relative_path(path: str)  -> Munch:
+        r""" Loads and returns a Munched config object from a relative path.
+
+            Args:
+                path (str, `required`): 
+                    Path to config.yaml file. full_path = cwd() + path
     
             Returns:
-                defaults  (:obj:`Munch` `required`):
-                    Python Munch object with values from bittensor/neurons/defaults.yaml
+                config  (:obj:`Munch` `required`):
+                    Python Munch object with values from config under path.
         """
-        # 1. Load defaults from defaults.yaml.
-        defaults = munch.Munch()
-        defaults_path = 'bittensor/neurons/defaults.yaml'
-        if not os.path.isfile(defaults_path):
-                raise FileNotFoundError('Cannot find default configuration at defaults.yaml')
-        with open(defaults_path, 'r') as f:
-            try:
-                defaults = yaml.safe_load(f)
-                defaults = munch.munchify(defaults)
-            except yaml.YAMLError as exc:
-                logger.error('CONFIG: cannot parse default configuration file at defaults.yaml')
-                raise InvalidConfigFile
-        return defaults
+        # Load yaml items from relative path.
+        path_items = munch.Munch()
+        if path != None:
+            path = os.getcwd() + '/' + path + '/config.yaml'
+            if not os.path.isfile(path):
+                logger.error('CONFIG: cannot find passed configuration file at {}', path)
+                raise FileNotFoundError('Cannot find a configuration file at', path)
+            with open(path, 'r') as f:
+                try:
+                    path_items = yaml.safe_load(f)
+                    path_items = munch.munchify(path_items)
+                except yaml.YAMLError as exc:
+                    logger.error('CONFIG: cannot parse passed configuration file at {}', path)
+                    raise InvalidConfigFile
+        return path_items
 
     @staticmethod   
-    def load_from_neuron_path(items: Munch = None) -> Munch:
-        r""" Loads and returns a Munched config object from --neuron_path arg on command line.
-    
+    def load_from_args(neuron_path: str)  -> Munch:
+        r""" Loads and returns a Munched config object from the passed arguments.
+
             Returns:
-                defaults  (:obj:`Munch` `required`):
-                    Python Munch object with values from bittensor/neurons/defaults.yaml
+                config  (:obj:`Munch` `required`):
+                    Python Munch object with values from parsed string.
         """
-        # 1. Load args or defaults.yaml neuron path.
-        params_path = None
-        try:
-            parser = argparse.ArgumentParser()
-            parser.add_argument('--neuron_path', default=None, help='path to a neuron configuration file')
-            params = parser.parse_args()
-            params_path = params.neuron_path
-        except:
-            pass
+        # 1. Load args from bittensor backend components.
+        parser = argparse.ArgumentParser()
+        parser = Axon.add_args(parser)
+        parser = Dendrite.add_args(parser)
+        parser = BTSession.add_args(parser)
+        parser = Metagraph.add_args(parser)
+        parser = TBLogger.add_args(parser)
 
-        neuron_items = None
-        try:
-            neuron_items = items.neuron.neuron_path
-        except:
-            pass
+        # 2. Load args from neuron.
+        neuron_module = SourceFileLoader("Neuron", os.getcwd() + '/' + neuron_path + '/neuron.py').load_module()
+        parser = neuron_module.Neuron.add_args( parser )
 
-        # If neither has neuron path throw error.
-        if params_path == None and neuron_items == None:
-            logger.error('CONFIG: must specify a neuron path either through --neuron_path or in the passed item.neuron.neuron_path')
-            raise InvalidConfigFile
+        # 3. Parse.
+        params = parser.parse_known_args()[0]
 
-        if params_path != None:
-            return Config.load_from_relative_path(params_path)
-        
-        else:
-            return Config.load_from_relative_path(neuron_items + '/config.yaml')
-
+        # 4. Splits params on dot synatax i.e session.axon_port
+        # Fills a munch config with items.
+        config = Munch()
+        for arg_key, arg_val in params.__dict__.items():
+            split_keys = arg_key.split('.')
+            if len(split_keys) == 1:
+                config[arg_key] = arg_val
+            else:
+                head = config
+                for key in split_keys[:-1]:
+                    if key not in config:
+                        head[key] = Munch()
+                    head = head[key] 
+                head[split_keys[-1]] = arg_val
+        return config
+            
     @staticmethod   
     def load_from_yaml_string(yaml_str: str)  -> Munch:
         r""" Loads and returns a Munched config object from a passed string
@@ -137,32 +144,17 @@ class Config:
         return yaml_items
 
     @staticmethod
-    def load_from_relative_path(path: str)  -> Munch:
-        r""" Loads and returns a Munched config object from a relative path.
+    def validate(config, neuron_path) -> Munch:
+        # 1. Run session checks.
+        config = Dendrite.check_config(config)
+        config = BTSession.check_config(config)
+        config = Metagraph.check_config(config)
+        config = Axon.check_config(config)
 
-            Args:
-                path (str, `required`): 
-                    Path to config.yaml file. full_path = cwd() + path
-    
-            Returns:
-                config  (:obj:`Munch` `required`):
-                    Python Munch object with values from config under path.
-        """
-        # Load items from relative path.
-        path_items = munch.Munch()
-        if path != None:
-            path = os.getcwd() + '/' + path
-            if not os.path.isfile(path):
-                logger.error('CONFIG: cannot find passed configuration file at {}', path)
-                raise FileNotFoundError('Cannot find a configuration file at', path)
-            with open(path, 'r') as f:
-                try:
-                    path_items = yaml.safe_load(f)
-                    path_items = munch.munchify(path_items)
-                except yaml.YAMLError as exc:
-                    logger.error('CONFIG: cannot parse passed configuration file at {}', path)
-                    raise InvalidConfigFile
-        return path_items
+        # 2. Run neuron checks.
+        neuron_module = SourceFileLoader("Neuron", os.getcwd() + '/' + neuron_path + '/neuron.py').load_module()
+        config = neuron_module.Neuron.check_config( config )
+        return config
 
     @staticmethod
     def post_process(items):
@@ -175,40 +167,6 @@ class Config:
 
         except PostProcessingError:
             logger.debug("CONFIG: post processing error.")
-            raise InvalidConfigError
-
-    @staticmethod
-    def validate(items):
-        try:
-            try:
-                items.session_settings.remote_ip
-            except:
-                logger.error("CONFIG: An error occured while parsing configuration. {} is required", 'session_settings.remote_ip')
-            try:
-                items.neuron.datapath
-            except:
-                logger.error("CONFIG: An error occured while parsing configuration. {} is required", 'neuron.datapath')
-            try:
-                items.session_settings.logdir
-            except:
-                logger.error("CONFIG: An error occured while parsing configuration. {} is required", 'session_settings.logdir')
-            try:
-                items.neuron.neuron_path
-            except:
-                logger.error("CONFIG: An error occured while parsing configuration. {} is required", 'neuron.neuron_path)')
-            try:
-                items.session_settings.axon_port
-            except:
-                logger.error("CONFIG: An error occured while parsing configuration. {} is required", 'neuron.datapath')
-            Config.validate_path_create('neuron.datapath', items.neuron.datapath)
-            Config.validate_path_create('session_settings.logdir', items.session_settings.logdir)
-            Config.validate_neuron_file('neuron.neuron_path', items.neuron.neuron_path)
-            Config.validate_ip('session_settings.remote_ip', items.session_settings.remote_ip)
-            Config.validate_int_range('session_settings.axon_port', items.session_settings.axon_port, min=1024, max=65535)
-            Config.validate_socket('session_settings.chain_endpoint', items.session_settings.chain_endpoint)
-        
-        except ValidationError:
-            logger.debug("CONFIG: Validation error")
             raise InvalidConfigError
 
     @staticmethod
@@ -231,15 +189,6 @@ class Config:
 
         if not validators.between(int(port), min=1, max=65535):
             error()
-
-
-
-
-
-
-
-
-
 
     @staticmethod
     def validate_ip(key, value):
@@ -268,18 +217,11 @@ class Config:
         except:
             logger.error("CONFIG: Validation error: An undefined error occured while trying to create path {} for option {}", value, key)
             raise ValidationError
-    
-    @staticmethod
-    def validate_neuron_file(key, value):
-        full_path = os.getcwd() + value + '/neuron.py'
-        if not os.path.isfile(full_path):
-            logger.error("CONFIG: Neuron path does not point to valid neuron at {} and derived path {}", value, full_path)
-            raise ValidationError
 
     @staticmethod
     def obtain_ip_address(items):
         try:
-            items.session_settings.remote_ip
+            items.axon.remote_ip
             return
         except:
             pass
@@ -292,25 +234,8 @@ class Config:
         if not validators.ipv4(value):
             logger.error("CONFIG: Response from IP API is not a valid IP.")
             raise PostProcessingError
-        items.session_settings.remote_ip = value
+        items.axon.remote_ip = value
         return items
-
-    @staticmethod
-    def fix_paths(items):
-        if items.neuron.datapath and items.neuron.datapath[-1] != '/':
-            items.neuron.datapath = items.neuron.datapath + '/'
-
-        if items.session_settings.logdir and items.session_settings.logdir[-1] != '/':
-            items.session_settings.logdir = items.session_settings.logdir + '/'
-
-    @staticmethod
-    def toString(config, depth=0):
-        for k, v in config.items():
-            if isinstance(v, dict):
-                print ('\t' * depth, '{}:'.format(k))
-                Config.toString(v, depth = depth + 1)
-            else:
-                print ('\t' * depth, '{}: {}'.format(k, v) )
 
     @staticmethod
     def overwrite_add(items_a, items_b):

@@ -1,9 +1,14 @@
-from concurrent import futures
+import argparse
 import grpc
-from loguru import logger
 import random
+import requests
 import threading
 import torch
+import validators
+
+from concurrent import futures
+from munch import Munch
+from loguru import logger
 
 import bittensor
 from bittensor.synapse import Synapse
@@ -12,10 +17,25 @@ from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor.serializer import PyTorchSerializer
 from bittensor.exceptions.Exceptions import DeserializationException, InvalidRequestException, RequestShapeException, SerializationException, NonExistentSynapseException
 
+def obtain_ip(config: Munch) -> Munch:
+    if config.axon.remote_ip != None:
+        return config
+    try:
+        value = requests.get('https://api.ipify.org').text
+    except:
+        logger.error("CONIG: Could not retrieve public facing IP from IP API.")
+        raise SystemError('CONFIG: Could not retrieve public facing IP from IP API.')
+    if not validators.ipv4(value):
+        logger.error("CONFIG: Response from IP API is not a valid IP with ip {}", value)
+        raise SystemError('CONFIG: Response from IP API is not a valid IP with ip {}'.format(value))
+    config.axon.remote_ip = value
+    return config
 
 class Axon(bittensor_grpc.BittensorServicer):
-    """ Processes Fwd and Bwd requests for the local neuron's synapse """
-
+    r"""
+    The Axon serves a bittensor.synapse.Synapse to recieve remote Forward & Backward calls on the network.
+    
+    """
     def __init__(self, config, keypair):
         r""" Serves a Synapse to the axon server replacing the previous Synapse if exists.
 
@@ -31,13 +51,28 @@ class Axon(bittensor_grpc.BittensorServicer):
         # Init server objects.
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         bittensor_grpc.add_BittensorServicer_to_server(self, self._server)
-        self._server.add_insecure_port('[::]:' + str(self._config.session_settings.axon_port))
+        self._server.add_insecure_port('[::]:' + str(self._config.axon.port))
 
         # Local synapse.
         self._synapse = None
 
         # Serving thread.
         self._thread = None
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        parser.add_argument('--axon.port', default=8091, type=int, 
+                            help='Port to serve axon')
+
+        parser.add_argument('--axon.remote_ip', default=None, type=str, 
+                            help='Remote IP to serve to chain.')
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        config = obtain_ip(config)
+        assert config.axon.port > 1024 and config.axon.port < 65535, 'config.axon.port must be in range [1024, 65535]'
+        return config
 
     def __del__(self):
         r""" Called when this axon is deleted, ensures background threads shut down properly.
