@@ -18,8 +18,7 @@ def main():
 
     # 2. Load Config.
     logger.info('Load Config ...')
-    config = Config.load_from_args(params.neuron_path)
-    Config.validate(config, params.neuron_path)
+    config = Config.load(params.neuron_path)
     logger.info(Config.toString(config))
 
     # 3. Load Keypair.

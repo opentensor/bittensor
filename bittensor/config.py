@@ -51,6 +51,12 @@ class Config:
         return '\n' + yaml.dump(data)
 
     @staticmethod
+    def load(neuron_path: str):
+        config = Config.load_from_args(neuron_path)
+        config = Config.validate(config, neuron_path)
+        return config
+
+    @staticmethod
     def load_from_relative_path(path: str)  -> Munch:
         r""" Loads and returns a Munched config object from a relative path.
 
@@ -86,7 +92,7 @@ class Config:
                 config  (:obj:`Munch` `required`):
                     Python Munch object with values from parsed string.
         """
-        # 1. Load args or defaults.yaml neuron path.
+        # 1. Load args from bittensor backend components.
         parser = argparse.ArgumentParser()
         parser = Axon.add_args(parser)
         parser = Dendrite.add_args(parser)
