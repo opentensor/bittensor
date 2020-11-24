@@ -44,8 +44,6 @@ class Router(nn.Module):
         requests = self.dispatcher.dispatch(raw_inputs,
                                             self.scores)  # List[(?, 784)]
 
-        #logger.info("requests: {}".format(requests))
-
         return requests, self.scores
 
     def join(self, responses: List[torch.Tensor]) -> torch.Tensor:
