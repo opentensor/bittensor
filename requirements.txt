@@ -19,8 +19,6 @@ transformers
 configparser
 validators
 pyyaml
-
-
 docker==4.3.1
 autobahn==20.7.1
 base58==2.0.1
@@ -32,5 +30,4 @@ scalecodec==0.10.30
 py-sr25519-bindings==0.1.2
 py-ed25519-bindings==0.1.1
 py-bip39-bindings>=0.1.6
-
 pytest-asyncio
