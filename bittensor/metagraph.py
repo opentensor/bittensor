@@ -1,5 +1,7 @@
 
 import asyncio
+import copy
+import argparse
 import bittensor
 import math
 import netaddr
@@ -8,8 +10,8 @@ import time
 import threading
 import torch
 import traceback
-import copy
 
+from munch import Munch
 from loguru import logger
 from bittensor import bittensor_pb2
 # from substrateinterface import SubstrateInterface, Keypair
@@ -33,7 +35,7 @@ def ip_to_int(str_val):
     return int(netaddr.IPAddress(str_val))
 
 class Metagraph():
-
+ 
     def __init__(self, config, keypair):
         r"""Initializes a new Metagraph subtensor interface.
         Args:
@@ -44,7 +46,7 @@ class Metagraph():
         """
         self._config = config
         self.__keypair = keypair
-        self.subtensor_client = WSClient(self._config.session_settings.chain_endpoint, self.__keypair)
+        self.subtensor_client = WSClient(self._config.metagraph.chain_endpoint, self.__keypair)
 
         self._last_poll = -math.inf
         self._running = False
@@ -58,22 +60,50 @@ class Metagraph():
         # List of bittensor_pb2.Neurons ordered by index
         self._neurons_list = []
 
+        # Unique integer key for neurons
+        self._next_unique_key = 0
+        self._keys_list = []
+        self._keys_numpy: torch.LongTensor = None
+
         # List of List of weight_keys ordered by index
         self._weight_keys = []
         self._weight_vals = []
-        self._weights_torch = None
+        self._weights_torch: torch.FloatTensor = None
 
         # List of stake values ordered by index
         self._stake_list = []
-        self._stake_torch = None
+        self._stake_torch: torch.LongTensor = None
 
         # List of emit values ordered by index
         self._emit_list = []
-        self._emit_torch = None
+        self._emit_torch: torch.LongTensor = None
 
         # List of last poll ordered by index
         self._poll_list = []
-        self._poll_torch = None
+        self._poll_torch: torch.LongTensor = None
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        
+        parser.add_argument('--metagraph.chain_endpoint', default='206.189.254.5:12345', type=str, 
+                            help='chain endpoint.')
+
+        parser.add_argument('--metagraph.polls_every_sec', default=25, type=int, 
+                            help='Second until the next chain poll.')
+
+        parser.add_argument('--metagraph.re_poll_neuron_every_blocks', default=20, type=int, 
+                            help='Re poll info from neurons every n blocks.')
+
+        parser.add_argument('--metagraph.stale_emit_limit', default=1000, 
+                            help='Filter neurons with block time since emission greater than this value.')
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        assert config.metagraph.polls_every_sec > 5 and config.metagraph.polls_every_sec < 1000, 'metagraph.polls_every_sec must be in range [5, 1000]'
+        assert config.metagraph.re_poll_neuron_every_blocks > 5 and config.metagraph.re_poll_neuron_every_blocks < 1000, 'metagraph.re_poll_neuron_every_blocks must be in range [5, 1000]'
+        assert config.metagraph.stale_emit_limit > 1 and config.metagraph.re_poll_neuron_every_blocks < math.inf, 'metagraph.stale_emit_limit must be in range [1, inf]'
+        return config
 
     def n (self) -> int:
         """ Returns the number of neurons in the network.
@@ -89,9 +119,17 @@ class Metagraph():
        Returns:
             neurons: (List[bittensor_pb2.Neuron]): neuron info ordered by index.
         """
-        return copy.deepcopy(self._neurons_list)
+        return [copy.deepcopy(el) for el in self._neurons_list]
 
-    def emit (self) -> torch.Tensor:
+    def keys(self) -> torch.LongTensor:
+        """ Returns a torch tensor of unique integer keys for neurons.
+
+        Returns:
+            keys (:obj:`torch.LongTensor` of shape :obj:`(self.n)`): unique keys for neurons.
+        """
+        return self._keys_torch
+
+    def emit (self) -> torch.LongTensor:
         """ Returns the last block emit time of each active neuron in the network.
 
         Returns:
@@ -99,7 +137,7 @@ class Metagraph():
         """
         return self._emit_torch
 
-    def poll (self) -> torch.Tensor:
+    def poll (self) -> torch.LongTensor:
         """ Returns the metagraph poll block of each active neuron in the network.
 
         Returns:
@@ -107,7 +145,7 @@ class Metagraph():
         """
         return self._poll_torch
 
-    def stake (self) -> torch.Tensor:
+    def stake (self) -> torch.LongTensor:
         """ Returns the stake of each active neuron in the network.
 
         Returns:
@@ -115,7 +153,7 @@ class Metagraph():
         """
         return self._stake_torch
 
-    def weights (self) -> torch.Tensor:
+    def weights (self) -> torch.FloatTensor:
         """ Returns the stake of each active neuron in the network.
 
         Returns:
@@ -132,12 +170,12 @@ class Metagraph():
 
         for (key, val) in emits:
             # Filter on stale.
-            if (current_block - val) > self._config.session_settings.metagraph.stale_emit_limit:
+            if (current_block - val) > self._config.metagraph.stale_emit_limit:
                 continue
 
             # Filter on recent poll.
             last_poll = self._poll_list[self._pubkey_index_map[key]] if key in self._pubkey_index_map else -math.inf
-            if (current_block - last_poll) < self._config.session_settings.metagraph.re_poll_neuron_every_blocks:
+            if (current_block - last_poll) < self._config.metagraph.re_poll_neuron_every_blocks:
                 continue
 
             # Poll.
@@ -170,6 +208,8 @@ class Metagraph():
             append = False
         else:
             index = self._n
+            key = self._next_unique_key
+            self._next_unique_key += 1
             self._n += 1
             self._pubkey_index_map[pubkey] = index
             append = True
@@ -203,6 +243,8 @@ class Metagraph():
                 self._weight_keys.append(list(w_keys))
                 self._weight_vals.append(list(w_vals))
                 self._poll_list.append(current_block)
+                self._keys_list.append( key )
+
         except Exception as e:
             logger.error("Exception occurred: {}".format(e))
             traceback.print_exc()
@@ -215,9 +257,10 @@ class Metagraph():
         self._stake_torch = torch.Tensor(self._stake_list)
         self._emit_torch = torch.Tensor(self._emit_list)
         self._poll_torch = torch.Tensor(self._poll_list)
-
+        self._keys_torch = torch.Tensor(self._keys_list)
+        
         # Fill weights
-        weights_numpy = numpy.zeros((self._n, self._n))
+        weights_numpy = numpy.zeros( (self._n, self._n))
         for index_i, (keys, vals) in enumerate(list(zip(self._weight_keys, self._weight_vals))):
             val_sum = sum(vals)
             for k, val in list(zip(keys, vals)):
@@ -232,7 +275,7 @@ class Metagraph():
         return connected
 
     async def subscribe (self, timeout) -> bool:
-        await self.subtensor_client.subscribe(self._config.session_settings.remote_ip, self._config.session_settings.axon_port)
+        await self.subtensor_client.subscribe(self._config.axon.remote_ip, self._config.axon.port)
 
         time_elapsed = 0
         while time_elapsed < timeout:
@@ -247,12 +290,5 @@ class Metagraph():
 
     async def unsubscribe (self, timeout):
         logger.info('Unsubscribe from chain endpoint')
-        # call = self.substrate.compose_call(
-        #     call_module='SubtensorModule',
-        #     call_function='unsubscribe'
-        # )
-        # extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
-        # self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
-
         await self.subtensor_client.unsubscribe()
 

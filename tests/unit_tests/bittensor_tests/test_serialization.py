@@ -15,11 +15,12 @@ import bittensor
 import torchvision
 import pytest
 
+
 class TestSerialization(unittest.TestCase):
     config = None
 
     def setUp(self):
-        self.config = Config.load()
+        self.config = Config.load(neuron_path='bittensor/neurons/mnist')
         mnemonic = Keypair.generate_mnemonic()
         self.keypair = Keypair.create_from_mnemonic(mnemonic)
 

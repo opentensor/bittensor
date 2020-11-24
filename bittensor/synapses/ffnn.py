@@ -7,58 +7,30 @@ Simple feed forward NN for images.
 import bittensor
 from bittensor.utils.router import Router
 from bittensor.synapse import Synapse
-from bittensor.synapse import SynapseConfig
 from bittensor.synapse import SynapseOutput
 from bittensor.session import BTSession
 from bittensor.utils.batch_transforms import Normalize
 
+import argparse
+from munch import Munch
+from loguru import logger
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class FFNNConfig (SynapseConfig):
-    r"""
-    This is the configuration class to store the configuration of a :class:`~FFNNSynapse`.
-    It is used to instantiate a Feed Forward model according to the specified arguments, 
-    defining the model architecture. 
-
-    Args:
-        target_dim (:obj:`int`, `required`, defaults to (10)):
-            The number of logit heads used by the target layer.      
-
-    Examples::
-
-        >>> from bittensor.synapses.ffnn import FNNSynapse, FFNNConfig
-
-        >>> # Initializing a FFNN configuration
-        >>> configuration = FFNNConfig()
-
-        >>> # Initializing the synapse from configuration.
-        >>> configuration = FNNSynapse ( configuration )
-    """
-
-    __default_target_dim__ = 10
-    
-    def __init__(self, **kwargs):
-        super(FFNNConfig, self).__init__(**kwargs)
-        self.target_dim = kwargs.pop("target_dim", self.__default_target_dim__)
-        self.run_checks()
-    
-    def run_checks(self):
-        assert isinstance(self.target_dim, int)
 
 class FFNNSynapse(Synapse):
     """ Simple feed forward NN for images.
     """
 
     def __init__(self,
-                 config: FFNNConfig,
+                 config: Munch,
                  session: BTSession):
         r""" Init a new ffnn synapse module.
 
             Args:
-                config (:obj:`bittensor.ffnn.FFNNConfig`, `required`): 
-                    ffnn configuration class.
+                config (:obj:`munch.Munch`, `required`): 
+                    munch namespace config item.
 
                 session (:obj:`bittensor.Session`, `required`): 
                     bittensor session object. 
@@ -94,10 +66,21 @@ class FFNNSynapse(Synapse):
         # target_layer: Maps from hidden layer to target dimension
         # [batch_size, bittensor.__network_dim__] -> [batch_size, self.target_dim]
         self.target_layer1 = nn.Linear(bittensor.__network_dim__, 256)
-        self.target_layer2 = nn.Linear(256, self.config.target_dim)
+        self.target_layer2 = nn.Linear(256, self.config.synapse.target_dim)
 
         self.to(self.device)
-        
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+        parser.add_argument('--synapse.target_dim', default=10, type=int, 
+                            help='Final logit layer dimension. i.e. 10 for MNIST.')
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        assert config.synapse.target_dim > 0, "target dimension must be greater than 0."
+        return config
+
     def forward_image(self, images: torch.Tensor):
         r""" Forward image inputs through the FFNN synapse .
 
