@@ -251,7 +251,7 @@ class _RemoteModuleCall(torch.autograd.Function):
 
             # Forward tensor.
             pre_response_time = time.time() # in seconds
-            response = ctx.caller.stub.Forward(request)
+            response = ctx.caller.stub.Forward(request, timeout=0.5)
             # Time (in seconds) response took
             elapsed_time = time.time() - pre_response_time
             bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
@@ -310,7 +310,7 @@ class _RemoteModuleCall(torch.autograd.Function):
 
             # Attain backward response
             pre_response_time = time.time()
-            response = ctx.caller.stub.Backward(request)
+            response = ctx.caller.stub.Backward(request, timeout=0.5)
             elapsed_time = time.time() - pre_response_time
             bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Backward Call Response Message Size (MB)', response.ByteSize() / 1024)
             bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Backward Call Turnaround latency (seconds)', round(elapsed_time, 2))

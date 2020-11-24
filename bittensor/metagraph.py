@@ -68,7 +68,7 @@ class Metagraph():
         # Unique integer key for neurons
         self._next_unique_key = 0
         self._keys_list = []
-        self._keys_torch: torch.LongTensor = None
+        self._keys_numpy: torch.LongTensor = None
 
         # List of List of weight_keys ordered by index
         self._weight_keys = []
