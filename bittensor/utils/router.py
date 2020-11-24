@@ -50,7 +50,7 @@ class Router(nn.Module):
                                             self.scores)  # List[(?, 784)]
 
         logger.info("requests length: {}".format(len(requests)))
-        logger.info("requests: {}".format(requests))
+        #logger.info("requests: {}".format(requests))
 
         return requests, self.scores
 
