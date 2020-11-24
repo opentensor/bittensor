@@ -18,12 +18,13 @@ from bittensor.utils.asyncio import Asyncio
 # dummy tensor that triggers autograd in RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
 
+
 class Dendrite(nn.Module):
     r"""
     This is the bittensr object used to make calls to the network. It can be used like a normal torch nn.Module
     and is differentiable. Messages passed through this module will be sent to neuron objects, either remote
     or local, and return response torch tensors. Gradients passing through this module on a .backward() call will trigger
-    the Backward rpc calls, passing gradients to the remote neuron instances called during the Forward operation.   
+    the Backward rpc calls, passing gradients to the remote neuron instances called during the Forward operation.
 
     Args:
         config (:obj:`bittensor.Config`, `required`):
@@ -43,10 +44,11 @@ class Dendrite(nn.Module):
         >>>     responses = dendrite (requests, metagraph.neurons()) # Make network queries.
         >>>     responses[0].backward() # Backprop through dendrite.
     """
-    def __init__ (
-        self, 
-        config,
-        keypair,
+
+    def __init__(
+            self,
+            config,
+            keypair,
     ):
         super().__init__()
         self._config = config
@@ -58,15 +60,15 @@ class Dendrite(nn.Module):
         r""" Forward text inputs to neurons.
 
             Args:
-                neurons (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`): 
+                neurons (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`):
                     List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
 
-                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len])`, `required`): 
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len])`, `required`):
                     List of tensors to send to corresponsing neurons. Tensors are text input_ids encoded using the
                     bittensor tokenizer of shape [batch_size, sequence_len].
-            
+
             Returns:
-                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`): 
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`):
                     Output encodings of inputs produced by remote neurons. Non-responses are zeroes of common shape.
         """
         if len(x[0].shape) != 2:
@@ -79,15 +81,15 @@ class Dendrite(nn.Module):
         r""" Forward image inputs to neurons.
 
             Args:
-                neurons (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`): 
+                neurons (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`):
                     List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
-             
-                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, channels, rows, cols])`, `required`): 
+
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, channels, rows, cols])`, `required`):
                     List of image-tensors to send to corresponsing neurons. Tensors are images encoded using the
                     torch.toTensor() or other encoding which produces the shape [batch_size, channels, rows, cols].
-            
+
             Returns:
-                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`): 
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`):
                     Output encodings of images produced by remote neurons. Non-responses are zeroes of common shape.
         """
         # TODO(const): Checks across all tensors and other shape checks.
@@ -101,15 +103,15 @@ class Dendrite(nn.Module):
         r""" Forward tensor inputs to neurons.
 
             Args:
-                neurons (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`): 
+                neurons (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`):
                     List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
 
-                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, feature_len])`, `required`): 
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, feature_len])`, `required`):
                     List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and
                     with shape [batch_size, sequence_len, feature_len].
-            
+
             Returns:
-                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.network_size)]`, `required`): 
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
                     Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
         """
         if len(x[0].shape) != 3:
@@ -123,18 +125,18 @@ class Dendrite(nn.Module):
         r""" Forward tensor inputs to neurons.
 
             Args:
-                neurons (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`): 
+                neurons (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`):
                     List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
 
-                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [shape])`, `required`): 
-                    List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and shape depending on the 
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [shape])`, `required`):
+                    List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and shape depending on the
                     modality.
 
-                mode (:obj:`bittensor_pb2.Modality` of shape :obj:`(1)`, `required`): 
+                mode (:obj:`bittensor_pb2.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
-            
+
             Returns:
-                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.network_size)]`, `required`): 
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
                     Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
         """
         results = []
@@ -150,28 +152,30 @@ class Dendrite(nn.Module):
                 remote_neuron = RemoteNeuron(neuron, self._config, self.__keypair)
                 self._remotes[neuron.public_key] = remote_neuron
 
+
             # Call remote neuron.
             try:
-                result = Asyncio.run_in_new_loop(self.gather(remote_neuron(forward_inputs, mode)))
 
-                logger.error(result)
+                loop = asyncio.new_event_loop()
+                result = loop.run_until_complete(self.gather(loop, remote_neuron.forward, forward_inputs, mode))
+                loop.stop()
 
+                result = result[0]
 
                 results.append(result)
             except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
                 logger.error("Exception occured: {}".format(e))
 
+        #logger.error(results)
+
         return results
 
-    async def gather(self, task):
-        result = await asyncio.gather(self.wrapper(task))
-
-        logger.error(result)
+    async def gather(self, loop: asyncio.base_events.BaseEventLoop, method, forward_inputs, mode):
+        result = await asyncio.gather(
+            loop.run_in_executor(None, method, forward_inputs, mode)
+        )
 
         return result
-
-    async def wrapper(self, task):
-        return task()
 
 
 # NOTE: (const) This code has been ported from hivemind thanks to Yozh and Max.
@@ -253,12 +257,14 @@ class _RemoteModuleCall(torch.autograd.Function):
                 tensors=[serialized_inputs])
 
             # Forward tensor.
-            pre_response_time = time.time() # in seconds
+            pre_response_time = time.time()  # in seconds
             response = ctx.caller.stub.Forward(request, timeout=0.5)
             # Time (in seconds) response took
             elapsed_time = time.time() - pre_response_time
-            bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
-            bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Forward Call Turnaround latency (seconds)', round(elapsed_time, 2))
+            bittensor.session.tbwriter.write_dendrite_network_data(
+                'Remote Module Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
+            bittensor.session.tbwriter.write_dendrite_network_data(
+                'Remote Module Forward Call Turnaround latency (seconds)', round(elapsed_time, 2))
 
             # Deserialize outputs and return.
             if len(response.tensors) > 0:
@@ -269,12 +275,12 @@ class _RemoteModuleCall(torch.autograd.Function):
                     'Forward request returned no tensors.')
 
             # Check batch_size.
-            if     outputs.size(0) != inputs.size(0) \
-                or outputs.size(1) != inputs.size(1) \
-                or outputs.size(2) != bittensor.__network_dim__:
+            if outputs.size(0) != inputs.size(0) \
+                    or outputs.size(1) != inputs.size(1) \
+                    or outputs.size(2) != bittensor.__network_dim__:
                 raise ResponseShapeException(
                     'Forward request returned tensor with incorrect shape {}'.
-                    format(list(outputs.shape)))
+                        format(list(outputs.shape)))
 
             # Safe catch NaNs and replace with 0.0.
             outputs = torch.where(torch.isnan(outputs),
@@ -310,12 +316,14 @@ class _RemoteModuleCall(torch.autograd.Function):
             pre_response_time = time.time()
             response = ctx.caller.stub.Backward(request, timeout=0.5)
             elapsed_time = time.time() - pre_response_time
-            bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Backward Call Response Message Size (MB)', response.ByteSize() / 1024)
-            bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Backward Call Turnaround latency (seconds)', round(elapsed_time, 2))
+            bittensor.session.tbwriter.write_dendrite_network_data(
+                'Remote Module Backward Call Response Message Size (MB)', response.ByteSize() / 1024)
+            bittensor.session.tbwriter.write_dendrite_network_data(
+                'Remote Module Backward Call Turnaround latency (seconds)', round(elapsed_time, 2))
             deserialized_grad_inputs = PyTorchSerializer.deserialize(
                 response.tensors[0])
             return (None, None, deserialized_grad_inputs, None)
-            
+
         except grpc._channel._InactiveRpcError as _:
             return (None, None, deserialized_grad_inputs, None)
 
