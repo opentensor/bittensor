@@ -11,5 +11,3 @@ session_settings:
 neuron:
     neuron_path: /bittensor/neurons/mnist
     datapath: /tmp/
-    logdir: /tmp/
-
