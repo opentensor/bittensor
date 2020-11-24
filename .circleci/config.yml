@@ -148,27 +148,7 @@ jobs:
 workflows:
   main:
     jobs:
-#      - "Build Bittensor"
-#      - "Run Unit Tests":
-#              requires:
-#                - "Build Bittensor"
-#      - "Run Integration Tests":
-#              requires:
-#                - "Build Bittensor"
       - MNIST-1
       - MNIST-2
       - MNIST-3
       - MNIST-4
-
-      - "Push Production candidate to DockerHub":
-              requires:
-                - "Build Bittensor"
-                - "Run Unit Tests"
-                - MNIST-1
-                - MNIST-2
-                - MNIST-3
-                - MNIST-4
-              filters:
-                branches:
-                  only:
-                    - master
