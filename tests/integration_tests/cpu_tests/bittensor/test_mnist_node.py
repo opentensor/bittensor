@@ -26,8 +26,11 @@ import unittest
 class MnistNode(unittest.TestCase):
 
     def setUp(self):
-        # Load config, keys, and build session.
+        # Load config set axon port.
         self.config = Config.load(neuron_path='bittensor/neurons/mnist')
+        self.config.axon.port = random.randint(8000, 9000)
+
+        # Load random keys.
         mnemonic = Keypair.generate_mnemonic()
         self.keypair = Keypair.create_from_mnemonic(mnemonic)
         self.session = bittensor.init(self.config, self.keypair)
@@ -127,7 +130,7 @@ class MnistNode(unittest.TestCase):
                 labels = torch.LongTensor(labels).to(self.device)
 
                 # Compute full pass and get loss.
-                outputs = model.forward(images, labels, remote = False)
+                outputs = model(images, labels, remote = False)
                 loss = loss + outputs.loss
                 
                 # Count accurate predictions.

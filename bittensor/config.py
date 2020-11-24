@@ -33,25 +33,22 @@ class MustPassNeuronPath(Exception):
 class Config:
     @staticmethod
     def toString(items) -> str:
-
-        def string_repr(items):
-            for key in items:
-                print (key, items[key])
-                if isinstance(items[key], Munch):
-                    items[key] = string_repr(items[key])
-                elif isinstance(items[key], object):
-                    items[key] = '' + str(items[key])
-                    print ('object')
-
-            return items
-        items = string_repr(items)
-        print (items)
         yaml_munch = items.toYAML()
         data = yaml.safe_load(yaml_munch)
         return '\n' + yaml.dump(data)
 
     @staticmethod
-    def load(neuron_path: str):
+    def load(neuron_path: str = '/bittensor/neurons/mnist'):
+        r""" Loads and validates cl params from bittensor backend services and neuron path.
+
+            Args:
+                neuron_path (str, `optional`, defaults to bittensor/neurons/mnist): 
+                    Path neuron directory.
+    
+            Returns:
+                config  (:obj:`Munch` `required`):
+                    Python Munch object with values from config under path.
+        """
         config = Config.load_from_args(neuron_path)
         config = Config.validate(config, neuron_path)
         return config
