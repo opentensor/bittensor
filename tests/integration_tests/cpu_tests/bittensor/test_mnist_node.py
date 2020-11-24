@@ -28,6 +28,11 @@ default_config = """
         chain_endpoint: 206.189.254.5:12345
         logdir: /tmp/
 
+        metagraph:
+            polls_every_sec: 15
+            re_poll_neuron_every_blocks: 5
+            stale_emit_limit: 30
+
     training:
         datapath: /tmp/
         batch_size: 10
@@ -48,6 +53,8 @@ class MnistNode(unittest.TestCase):
         mnemonic = Keypair.generate_mnemonic()
         self.keypair = Keypair.create_from_mnemonic(mnemonic)
         self.session = bittensor.init(self.config, self.keypair)
+
+        self.config.session_settings.axon_port = random.randint(8000, 9000)
     
         # Build and server the synapse.
         model_config = FFNNConfig()
@@ -145,7 +152,7 @@ class MnistNode(unittest.TestCase):
                 labels = torch.LongTensor(labels).to(self.device)
 
                 # Compute full pass and get loss.
-                outputs = model.forward(images, labels, remote = False)
+                outputs = model(images, labels, remote = False)
                 loss = loss + outputs.loss
                 
                 # Count accurate predictions.
