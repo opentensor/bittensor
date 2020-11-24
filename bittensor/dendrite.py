@@ -176,9 +176,9 @@ class Dendrite(nn.Module):
         if len(x) < 1:
             error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
             raise ValueError(error_msg)
-        
+
         results = []
-        for idx, (forward_inputs, neuron) in enumerate(list(zip(x,neurons))):
+        for idx, (forward_inputs, neuron) in enumerate(list(zip(x, neurons))):
             # Get or create remote_neuron.
             remote_neuron = None
             if neuron.public_key in self._remotes:
