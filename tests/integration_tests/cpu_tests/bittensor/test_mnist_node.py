@@ -10,7 +10,7 @@ import bittensor
 from bittensor.synapse import Synapse
 from bittensor.config import Config
 from bittensor.synapses.ffnn import FFNNSynapse, FFNNConfig
-from substrateinterface import Keypair
+from bittensor.subtensor import Keypair
 
 import random
 from loguru import logger

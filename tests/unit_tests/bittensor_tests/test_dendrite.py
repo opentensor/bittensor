@@ -8,7 +8,7 @@ import pytest
 import torchvision
 
 from bittensor.config import Config
-from substrateinterface import Keypair
+from bittensor.subtensor import Keypair
 from bittensor.dendrite import RemoteNeuron, _RemoteModuleCall
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2

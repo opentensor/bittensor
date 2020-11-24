@@ -2,7 +2,7 @@
 from loguru import logger
 import bittensor
 from bittensor.config import Config
-from substrateinterface import SubstrateInterface, Keypair
+from bittensor.subtensor import Keypair
 
 def new_session():# 1. Init Config item.
     config = Config.load()

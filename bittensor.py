@@ -9,7 +9,7 @@ from bittensor.config import Config
 
 from loguru import logger
 from importlib.machinery import SourceFileLoader
-from substrateinterface import Keypair
+from bittensor.subtensor import Keypair
 
 def main():
 

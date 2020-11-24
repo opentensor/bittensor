@@ -17,7 +17,7 @@
 import unittest
 
 from scalecodec import ScaleBytes
-from subtensorinterface import Keypair, KeypairType, extract_derive_path, ConfigurationError, DEV_PHRASE
+from bittensor.subtensor.interface import Keypair, KeypairType, extract_derive_path, ConfigurationError, DEV_PHRASE
 from bip39 import bip39_validate
 
 
