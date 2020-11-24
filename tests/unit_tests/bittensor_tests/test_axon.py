@@ -12,7 +12,7 @@ import torch
 
 class TestAxon(unittest.TestCase):
     def setUp(self):
-        self.config = Config.load_from_args(neuron_path='bittensor/neurons/mnist')
+        self.config = Config.load(neuron_path='bittensor/neurons/mnist')
         mnemonic = Keypair.generate_mnemonic()
         self.keypair = Keypair.create_from_mnemonic(mnemonic)
         self.session = bittensor.init(self.config, self.keypair)

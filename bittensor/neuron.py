@@ -14,7 +14,7 @@ class Neuron(object):
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        pass
+        return parser
 
     @staticmethod   
     def check_config(config: Munch) -> Munch:

@@ -6,7 +6,7 @@ from substrateinterface import SubstrateInterface, Keypair
 
 def new_session():
     # 1. Init Config item.
-    config = Config.load_from_args(neuron_path='bittensor/neurons/mnist')
+    config = Config.load(neuron_path='bittensor/neurons/mnist')
     logger.info(Config.toString(config))
     mnemonic = Keypair.generate_mnemonic()
     keypair = Keypair.create_from_mnemonic(mnemonic)
