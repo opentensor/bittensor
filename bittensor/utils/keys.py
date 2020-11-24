@@ -8,7 +8,6 @@ from bittensor import bittensor_pb2
 
 
 def torch_to_bytes(key):
-    #key = key.cpu().detach().numpy()
     key = key.encode()
     return key
 

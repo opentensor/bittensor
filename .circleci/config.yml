@@ -56,19 +56,17 @@ jobs:
           command: codecov
   
   MNIST-1:
-    docker:
-      - image: circleci/python:3.8.1
-        auth: 
-           username: $DOCKER_USER
-           password: $DOCKERPASS
+    executor: bittensor-executor
+    resource_class: xlarge
     steps:
       - checkout
-#      - python/load-cache
-      - run: pip install -r requirements.txt
+      - python/load-cache
+      - run: pip3 install -r requirements.txt
+      - run: pip3 install pyyaml
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
-          command: pip install -e .
+          command: pip3 install -e .
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
@@ -77,19 +75,17 @@ jobs:
           command: pytest -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py
 
   MNIST-2:
-    docker:
-      - image: circleci/python:3.8.1
-        auth: 
-           username: $DOCKER_USER
-           password: $DOCKERPASS
+    executor: bittensor-executor
+    resource_class: xlarge
     steps:
       - checkout
-#      - python/load-cache
-      - run: pip install -r requirements.txt
+      - python/load-cache
+      - run: pip3 install -r requirements.txt
+      - run: pip3 install pyyaml
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
-          command: pip install -e .
+          command: pip3 install -e .
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
@@ -99,15 +95,16 @@ jobs:
   
   MNIST-3:
     executor: bittensor-executor
+    resource_class: xlarge
     steps:
       - checkout
-#      - python/load-cache
-      - run: pip install -r requirements.txt
-      - run: pip install pyyaml
+      - python/load-cache
+      - run: pip3 install -r requirements.txt
+      - run: pip3 install pyyaml
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
-          command: pip install -e .
+          command: pip3 install -e .
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
@@ -117,15 +114,16 @@ jobs:
   
   MNIST-4:
     executor: bittensor-executor
+    resource_class: xlarge
     steps:
       - checkout
-#      - python/load-cache
-      - run: pip install -r requirements.txt
-      - run: pip install pyyaml
+      - python/load-cache
+      - run: pip3 install -r requirements.txt
+      - run: pip3 install pyyaml
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
-          command: pip install -e .
+          command: pip3 install -e .
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
@@ -161,14 +159,27 @@ workflows:
       - "Run Integration Tests":
               requires:
                 - "Build Bittensor"
-      - MNIST-1
-      - MNIST-2
+      - MNIST-1:
+              requires:
+                - "Run Integration Tests"
+      - MNIST-2:
+              requires:
+                - "Run Integration Tests"
+      - MNIST-3:
+              requires:
+                - "Run Integration Tests"
+      - MNIST-4:
+              requires:
+                - "Run Integration Tests"
 
       - "Push Production candidate to DockerHub":
               requires:
                 - "Build Bittensor"
                 - "Run Unit Tests"
                 - MNIST-1
+                - MNIST-2
+                - MNIST-3
+                - MNIST-4
               filters:
                 branches:
                   only:

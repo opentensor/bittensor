@@ -8,6 +8,7 @@ import time
 import threading
 import torch
 import traceback
+import copy
 
 from loguru import logger
 from bittensor import bittensor_pb2
@@ -88,7 +89,7 @@ class Metagraph():
        Returns:
             neurons: (List[bittensor_pb2.Neuron]): neuron info ordered by index.
         """
-        return self._neurons_list
+        return copy.deepcopy(self._neurons_list)
 
     def emit (self) -> torch.Tensor:
         """ Returns the last block emit time of each active neuron in the network.
