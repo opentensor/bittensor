@@ -13,9 +13,11 @@ from bittensor.utils.batch_transforms import Normalize
 
 import argparse
 from munch import Munch
+from loguru import logger
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 
 class FFNNSynapse(Synapse):
     """ Simple feed forward NN for images.

@@ -103,7 +103,7 @@ class Neuron (NeuronBase):
                     processed = ((batch_idx + 1) * self.config.neuron.batch_size_train)
                     
                     progress = (100. * processed) / n
-                    accuracy = (100.0 * correct) / self.config.neuron.neuron.batch_size_train
+                    accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
                     logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nS: {}', 
                         epoch, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()))
                     session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())

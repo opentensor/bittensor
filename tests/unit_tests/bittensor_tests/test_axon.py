@@ -1,13 +1,8 @@
 from unittest.mock import MagicMock
 
 from bittensor.config import Config
-<<<<<<< HEAD
-from substrateinterface import Keypair
-from bittensor.synapse import Synapse
-=======
 from bittensor.subtensor import Keypair
-from bittensor.synapse import Synapse, SynapseConfig
->>>>>>> 1146994a60568ce5b36f180d9f5c0e33735670d5
+from bittensor.synapse import Synapse
 from bittensor.serializer import PyTorchSerializer, torch_dtype_to_bittensor_dtype, bittensor_dtype_to_torch_dtype
 from bittensor import bittensor_pb2
 import bittensor
@@ -15,22 +10,6 @@ import unittest
 import random
 import torch
 
-<<<<<<< HEAD
-=======
-default_config = """
-    session_settings:
-        axon_port: 8081
-        chain_endpoint: 206.189.254.5:12345
-        logdir: /tmp/
-        remote_ip: 127.0.0.1
-    neuron:
-        neuron_path: /bittensor/neurons/mnist
-        datapath: /tmp/
-    training:
-        batch_size: 10
-"""
-
->>>>>>> 1146994a60568ce5b36f180d9f5c0e33735670d5
 class TestAxon(unittest.TestCase):
     def setUp(self):
         self.config = Config.load(neuron_path='bittensor/neurons/mnist')
