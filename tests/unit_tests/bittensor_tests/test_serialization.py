@@ -1,7 +1,7 @@
 from bittensor.exceptions.Exceptions import DeserializationException, SerializationException
 from bittensor.serializer import PyTorchSerializer, torch_dtype_to_bittensor_dtype, bittensor_dtype_to_torch_dtype
 from bittensor.config import Config
-from substrateinterface import Keypair
+from bittensor.subtensor import Keypair
 from random import randrange
 
 from datasets import load_dataset

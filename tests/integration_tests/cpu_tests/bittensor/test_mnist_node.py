@@ -10,7 +10,7 @@ import bittensor
 from bittensor.synapse import Synapse
 from bittensor.config import Config
 from bittensor.synapses.ffnn import FFNNSynapse, FFNNConfig
-from substrateinterface import Keypair
+from bittensor.subtensor import Keypair
 
 import random
 from loguru import logger
@@ -25,7 +25,7 @@ import unittest
 default_config = """
     session_settings:
         axon_port: 8081
-        chain_endpoint: http://206.189.254.5:12345
+        chain_endpoint: 206.189.254.5:12345
         logdir: /tmp/
 
         metagraph:
