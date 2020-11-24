@@ -59,10 +59,13 @@ class Dendrite(nn.Module):
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         parser.add_argument('--dendrite.pass_gradients', default=True, type=bool, 
                             help='Switch to true is the neuron passes gradients to downstream peers.')
+        parser.add_argument('--dendrite.timeout', default=0.5, type=float, 
+                            help='Per request RPC timeout.')
         return parser
 
     @staticmethod   
     def check_config(config: Munch) -> Munch:
+        assert config.dendrite.timeout >= 0, 'timeout must be positive value, got {}'.format(config.dendrite.timeout)
         return config
 
     def forward_text(self, neurons: List[bittensor_pb2.Neuron],
@@ -251,7 +254,7 @@ class _RemoteModuleCall(torch.autograd.Function):
 
             # Forward tensor.
             pre_response_time = time.time() # in seconds
-            response = ctx.caller.stub.Forward(request, timeout=0.5)
+            response = ctx.caller.stub.Forward(request, timeout=self._config.dendrite.timeout)
             # Time (in seconds) response took
             elapsed_time = time.time() - pre_response_time
             bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
@@ -310,7 +313,7 @@ class _RemoteModuleCall(torch.autograd.Function):
 
             # Attain backward response
             pre_response_time = time.time()
-            response = ctx.caller.stub.Backward(request, timeout=0.5)
+            response = ctx.caller.stub.Backward(request, timeout=self._config.dendrite.timeout)
             elapsed_time = time.time() - pre_response_time
             bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Backward Call Response Message Size (MB)', response.ByteSize() / 1024)
             bittensor.session.tbwriter.write_dendrite_network_data('Remote Module Backward Call Turnaround latency (seconds)', round(elapsed_time, 2))

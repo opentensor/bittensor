@@ -301,13 +301,13 @@ class Metagraph():
 
         """
         # Set torch tensors from weights.
-        self._stake_torch = torch.Tensor(self._stake_list, dtype=torch.long)
-        self._emit_torch = torch.Tensor(self._emit_list, dtype=torch.long)
-        self._poll_torch = torch.Tensor(self._poll_list, dtype=torch.long)
-        self._keys_torch = torch.Tensor(self._keys_list, dtype=torch.long)
+        self._stake_torch = torch.Tensor(self._stake_list)
+        self._emit_torch = torch.Tensor(self._emit_list)
+        self._poll_torch = torch.Tensor(self._poll_list)
+        self._keys_torch = torch.Tensor(self._keys_list)
         
         # Fill weights
-        weights_numpy = numpy.zeros( (self._n, self._n), dtype=torch.float)
+        weights_numpy = numpy.zeros( (self._n, self._n))
         for index_i, (keys, vals) in enumerate(list(zip(self._weight_keys, self._weight_vals))):
             val_sum = sum(vals)
             for k, val in list(zip(keys, vals)):
