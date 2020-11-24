@@ -26,7 +26,6 @@ jobs:
     steps:
       - checkout
       - python/load-cache
-#      - run: pip install substrate-interface munch pyyaml codecov pytest netaddr
       - run: ./scripts/build_protos.sh
       - run:
           command: pip install -e .
@@ -43,7 +42,6 @@ jobs:
     steps:
       - checkout
       - python/load-cache
-      - run: pip install substrate-interface munch pyyaml codecov pytest netaddr
       - run: ./scripts/build_protos.sh
       - run:
           command: pip install -e .
@@ -61,8 +59,6 @@ jobs:
     steps:
       - checkout
       - python/load-cache
-      - run: pip3 install -r requirements.txt
-      - run: pip3 install pyyaml
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
@@ -80,8 +76,6 @@ jobs:
     steps:
       - checkout
       - python/load-cache
-      - run: pip3 install -r requirements.txt
-      - run: pip3 install pyyaml
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
@@ -99,8 +93,6 @@ jobs:
     steps:
       - checkout
       - python/load-cache
-      - run: pip3 install -r requirements.txt
-      - run: pip3 install pyyaml
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
@@ -118,8 +110,6 @@ jobs:
     steps:
       - checkout
       - python/load-cache
-      - run: pip3 install -r requirements.txt
-      - run: pip3 install pyyaml
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
@@ -139,7 +129,7 @@ jobs:
            password: $DOCKERPASS
     steps:
       - checkout
-      - python/load-cache
+#      - python/load-cache
       - setup_remote_docker:
              version: 19.03.13
       - run:
