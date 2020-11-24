@@ -8,13 +8,16 @@ Example:
 
 import bittensor
 from bittensor import BTSession
+from bittensor.config import Config
 from bittensor.synapse import Synapse
 from bittensor.neuron import Neuron
-from bittensor.synapses.dpn import DPNSynapse, DPNConfig
+from bittensor.synapses.dpn import DPNSynapse
 from bittensor.utils.model_utils import ModelToolbox
 
+import argparse
 from loguru import logger
 import math
+from munch import Munch
 import torch
 import torch.optim as optim
 import torchvision
@@ -25,14 +28,38 @@ class Neuron (Neuron):
     def __init__(self, config):
         self.config = config
 
-    def stop(self):
-        pass
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+        parser.add_argument('--neuron.datapath', default='data/', type=str, 
+                            help='Path to load and save data.')
+        parser.add_argument('--neuron.learning_rate', default=0.01, type=float, 
+                            help='Training initial learning rate.')
+        parser.add_argument('--neuron.momentum', default=0.9, type=float, 
+                            help='Training initial momentum for SGD.')
+        parser.add_argument('--neuron.batch_size_train', default=32, type=int, 
+                            help='Training batch size.')
+        parser.add_argument('--neuron.batch_size_test', default=16, type=int, 
+                            help='Testing batch size.')
+        parser.add_argument('--neuron.log_interval', default=10, type=int, 
+                            help='Batches until neuron prints log statements.')
+        parser = DPNSynapse.add_args(parser)
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        assert config.neuron.log_interval > 0, "log_interval dimension must positive"
+        assert config.neuron.momentum > 0 and config.neuron.momentum < 1, "momentum must be a value between 0 and 1"
+        assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
+        assert config.neuron.batch_size_test > 0, "batch_size_test must a positive value"
+        assert config.neuron.learning_rate > 0, "learning rate must be a positive value."
+        Config.validate_path_create('neuron.datapath', config.neuron.datapath)
+        config = DPNSynapse.check_config(config)
+        return config
 
     def start(self, session: BTSession): 
         
         # Build local synapse to serve on the network.
-        model_config = DPNConfig()
-        model = DPNSynapse( model_config, session )
+        model = DPNSynapse( self.config, session )
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model.to( device ) # Set model to device.
         session.serve( model.deepcopy() )
@@ -135,8 +162,8 @@ class Neuron (Neuron):
                 best_test_loss = test_loss
                 
                 # Save the best local model.
-                logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.session_settings.logdir + '/model.torch')
-                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.session_settings.logdir + '/model.torch' )
+                logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.logger.logdir + '/model.torch')
+                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.logger.logdir + '/model.torch' )
                 session.serve( model.deepcopy() )
 
             epoch += 1

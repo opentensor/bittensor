@@ -1,11 +1,15 @@
+import argparse
 import grpc
 import torch
 import torch.nn as nn
 import bittensor
 import time
+
 from torch.autograd.function import once_differentiable
 from typing import List, Optional
 from loguru import logger
+from munch import Munch
+
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
 from bittensor.tb_logger import TBLogger
@@ -31,7 +35,7 @@ class Dendrite(nn.Module):
         >>> from bittensor
 
         >>> # Initialize config defaults.
-        >>> config = bittensor.Config()
+        >>> config = Config.load()
 
         >>> # Create Dendrite nn.module
         >>> dendrite = bittensor.Dendrite(config)
@@ -50,6 +54,16 @@ class Dendrite(nn.Module):
         self._config = config
         self.__keypair = keypair
         self._remotes = {}
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        parser.add_argument('--dendrite.pass_gradients', default=True, type=bool, 
+                            help='Switch to true is the neuron passes gradients to downstream peers.')
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        return config
 
     def forward_text(self, neurons: List[bittensor_pb2.Neuron],
                      x: List[torch.Tensor]) -> List[torch.Tensor]:
@@ -171,9 +185,9 @@ class RemoteNeuron(nn.Module):
         self.config = config
         self.keypair = keypair
         # Loop back if the neuron is local.
-        if neuron.address == config.session_settings.remote_ip:
+        if neuron.address == config.axon.remote_ip:
             ip = "localhost:"
-            if config.session_settings.remote_ip == "host.docker.internal":
+            if config.axon.remote_ip == "host.docker.internal":
                 ip = "host.docker.internal:"
             self.endpoint = ip + str(neuron.port)
         else:
@@ -276,6 +290,11 @@ class _RemoteModuleCall(torch.autograd.Function):
     def backward(ctx, grads: torch.Tensor) -> Optional[torch.Tensor]:
 
         deserialized_grad_inputs = torch.zeros_like(ctx.inputs)
+
+        # Swtich for passing gradients.
+        if not self._config.pass_gradients:
+            return (None, None, deserialized_grad_inputs, None)
+
         try:
             # Serialize inputs to bytes.
             serialized_grads = PyTorchSerializer.serialize_tensor(grads)
