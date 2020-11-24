@@ -76,7 +76,7 @@ class BTSession:
 
         logger.info('Subscribe to chain ...')
         try:
-            await self.metagraph.subscribe()
+            await self.metagraph.subscribe(10)
                 # logger.error('SESSION: Timeout while subscribing to the chain endpoint')
                 # raise FailedSubscribeToChain
         except Exception as e:

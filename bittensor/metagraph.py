@@ -43,7 +43,7 @@ class Metagraph():
         """
         self._config = config
         self.__keypair = keypair
-        self.substrate = WSClient(self._config.session_settings.chain_endpoint, self.__keypair)
+        self.subtensor_client = WSClient(self._config.session_settings.chain_endpoint, self.__keypair)
 
         self._last_poll = -math.inf
         self._running = False
@@ -124,10 +124,10 @@ class Metagraph():
 
     async def pollchain(self):
         logger.error("***** Doing a chain poll *****")
-        current_block = await self.substrate.get_current_block()
+        current_block = await self.subtensor_client.get_current_block()
 
         # Pull the last emit data from all nodes.
-        last_emit_data = await self.substrate.get_last_emit_data()
+        emits = await self.subtensor_client.get_last_emit_data()
 
         for (key, val) in emits:
             # Filter on stale.
@@ -160,7 +160,7 @@ class Metagraph():
         info from the local pubkey -> index mapping.
 
         """
-        current_block = self.substrate.get_block_number(None)
+        current_block = self.subtensor_client.get_current_block()
         if pubkey in self._pubkey_index_map:
             index = self._pubkey_index_map[pubkey]
             append = False
@@ -171,27 +171,27 @@ class Metagraph():
             append = True
 
         try:
-            stake = self.substrate.get_runtime_state(
+            stake = self.subtensor_client.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='Stake',
                 params=[pubkey]
             )['result']
-            emit = self.substrate.get_runtime_state(
+            emit = self.subtensor_client.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='LastEmit',
                 params=[pubkey]
             )['result']
-            info = self.substrate.get_runtime_state(
+            info = self.subtensor_client.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='Neurons',
                 params=[pubkey]
             )['result']
-            w_keys = self.substrate.get_runtime_state(
+            w_keys = self.subtensor_client.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='WeightKeys',
                 params=[pubkey]
             )['result']
-            w_vals = self.substrate.get_runtime_state(
+            w_vals = self.subtensor_client.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='WeightVals',
                 params=[pubkey]
@@ -242,19 +242,19 @@ class Metagraph():
                     weights_numpy[index_i, index_j] = float(val) / float(val_sum)
         self._weights_torch = torch.Tensor(weights_numpy)
 
-    def connect(self, timeout) -> bool:
-        self.substrate.connect()
-        connected = await self.substrate.is_connected()
+    async def connect(self) -> bool:
+        self.subtensor_client.connect()
+        connected = await self.subtensor_client.is_connected()
         return connected
 
-    def subscribe (self, timeout) -> bool:
-        await self.substrate.subscribe(self._config.session_settings.remote_ip, self._config.session_settings.axon_port)
+    async def subscribe (self, timeout) -> bool:
+        await self.subtensor_client.subscribe(self._config.session_settings.remote_ip, self._config.session_settings.axon_port)
 
         time_elapsed = 0
         while time_elapsed < timeout:
             time.sleep(1)
             time_elapsed += 1
-            neurons = await self.substrate.neurons()
+            neurons = await self.subtensor_client.neurons()
             for n in neurons:
                 if n[0] == self.__keypair.public_key:
                     return True
@@ -270,5 +270,5 @@ class Metagraph():
         # extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
         # self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
-        await self.substrate.unsubscribe()
+        await self.subtensor_client.unsubscribe()
 
