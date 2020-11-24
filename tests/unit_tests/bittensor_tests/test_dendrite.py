@@ -8,13 +8,30 @@ import pytest
 import torchvision
 
 from bittensor.config import Config
-from substrateinterface import Keypair
+from bittensor.subtensor import Keypair
 from bittensor.dendrite import RemoteNeuron, _RemoteModuleCall
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
 from unittest.mock import MagicMock
 from bittensor.serializer import PyTorchSerializer
 
+<<<<<<< HEAD
+=======
+
+defualt_config = """
+    session_settings:
+        axon_port: 8081
+        chain_endpoint: 206.189.254.5:12345
+        logdir: /tmp/
+        remote_ip: 127.0.0.1
+    neuron:
+        neuron_path: /bittensor/neurons/mnist
+        datapath: /tmp/
+    training:
+        batch_size: 10
+"""
+
+>>>>>>> 1146994a60568ce5b36f180d9f5c0e33735670d5
 class TestDendrite(unittest.TestCase):
 
     def setUp(self):

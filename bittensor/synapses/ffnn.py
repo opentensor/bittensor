@@ -164,10 +164,13 @@ class FFNNSynapse(Synapse):
             # If query == True make a remote call.
             images = torch.unsqueeze(images, 1) # Add sequence dimension.
             neurons = self.session.metagraph.neurons() # Returns a list of neurons on the network.
-            requests, _ = self.router.route( neurons, transform, images ) # routes inputs to network.
-            responses = self.session.dendrite.forward_image( neurons, requests ) # Makes network calls.
-            remote_context = self.router.join( responses ) # Joins responses based on scores..
-            remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2]) # Squeeze the sequence dimension.
+            if (len(neurons) > 0):
+                requests, _ = self.router.route( neurons, transform, images ) # routes inputs to network.
+                responses = self.session.dendrite.forward_image( neurons, requests ) # Makes network calls.
+                remote_context = self.router.join( responses ) # Joins responses based on scores..
+                remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2]) # Squeeze the sequence dimension.
+            else:
+                remote_context = torch.zeros(size=(images.shape[0], bittensor.__network_dim__))
 
         # local_context: distillation model for remote_context.
         # local_context.shape = [batch_size, bittensor.__network_dim__]

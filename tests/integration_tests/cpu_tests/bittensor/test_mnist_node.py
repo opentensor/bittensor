@@ -9,8 +9,13 @@ Example:
 import bittensor
 from bittensor.synapse import Synapse
 from bittensor.config import Config
+<<<<<<< HEAD
 from bittensor.synapses.ffnn import FFNNSynapse
 from substrateinterface import Keypair
+=======
+from bittensor.synapses.ffnn import FFNNSynapse, FFNNConfig
+from bittensor.subtensor import Keypair
+>>>>>>> 1146994a60568ce5b36f180d9f5c0e33735670d5
 
 import random
 from loguru import logger

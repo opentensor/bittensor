@@ -5,9 +5,12 @@ from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
+from bittensor.utils.asyncio import Asyncio
+from bittensor.subtensor import Keypair
 from bittensor.tb_logger import TBLogger
-from substrateinterface import SubstrateInterface, Keypair
 from loguru import logger
+import asyncio
+
 
 class FailedConnectToChain(Exception):
     pass
@@ -39,7 +42,8 @@ class BTSession:
         return config
 
     def __del__(self):
-        self.stop()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.stop())
 
     def serve(self, synapse: Synapse):
         r""" Serves a Synapse to the axon server replacing the previous Synapse if exists.
@@ -52,17 +56,29 @@ class BTSession:
 
     def __enter__(self):
         logger.info('session enter')
-        self.start()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.start())
         return self
 
     def __exit__(self, *args):
         logger.info('session exit')
-        self.stop()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.stop())
 
-    def start(self):
+
+    async def start(self):
+        # Stop background grpc threads for serving the synapse object.
+        logger.info('Start axon server...')
+        try:
+            self.axon.start()
+        except Exception as e:
+            logger.error('SESSION: Failed to start axon server with error: {}', e)
+            raise FailedToEnterSession
+
         logger.info('Connect to chain ...')
         try:
-            if not self.metagraph.connect(5):
+            connected = await self.metagraph.connect()
+            if not connected:
                 logger.error('SESSION: Timeout while subscribing to the chain endpoint')
                 raise FailedConnectToChain
         except Exception as e:
@@ -71,42 +87,26 @@ class BTSession:
 
         logger.info('Subscribe to chain ...')
         try:
-            if not self.metagraph.subscribe(10):
-                logger.error('SESSION: Timeout while subscribing to the chain endpoint')
-                raise FailedSubscribeToChain
+            await self.metagraph.subscribe(10)
+                # logger.error('SESSION: Timeout while subscribing to the chain endpoint')
+                # raise FailedSubscribeToChain
         except Exception as e:
             logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
             raise FailedToEnterSession
 
-        logger.info('Poll chain ...')
-        try:
-            self.metagraph.pollchain()
-        except Exception as e:
-            logger.error('SESSION: Failed during poll to chain with error: {}', e)
-            raise FailedToPollChain
+        logger.info("Starting polling of chain for neurons")
 
-        logger.info('Start polling thread ...')
-        try:
-            self.metagraph.start()
-        except Exception as e:
-            logger.error('SESSION: Failed during poll to chain with error: {}', e)
-            raise FailedToPollChain
+        Asyncio.add_task(self.metagraph.pollchain())
 
-        logger.info('Start axon server...')
+    async def stop(self):
+        # Stop background grpc threads for serving synapse objects.
+        logger.info('Unsubscribe from chain ...')
         try:
-            self.axon.start()
+            await self.metagraph.unsubscribe(10)
+            # if not self.metagraph.unsubscribe(10):
+            #     logger.error('SESSION: Timeout while unsubscribing to the chain endpoint')
         except Exception as e:
-            logger.error('SESSION: Failed to start axon server with error: {}', e)
-            raise FailedToEnterSession
-
-
-    def stop(self):
-        logger.info('Stopping polling thread ...')
-        try:
-            self.metagraph.stop()
-        except Exception as e:
-            logger.error('SESSION: Failed during poll to chain with error: {}', e)
-            raise FailedToPollChain
+            logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
 
         logger.info('Stopping axon server..')
         try:
