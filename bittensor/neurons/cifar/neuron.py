@@ -10,7 +10,7 @@ import bittensor
 from bittensor import BTSession
 from bittensor.config import Config
 from bittensor.synapse import Synapse
-from bittensor.neuron import Neuron
+from bittensor.neuron import NeuronBase
 from bittensor.synapses.dpn import DPNSynapse
 from bittensor.utils.model_utils import ModelToolbox
 
@@ -24,7 +24,7 @@ import torchvision
 import torchvision.transforms as transforms
 import traceback
 
-class Neuron (Neuron):
+class Neuron (NeuronBase):
     def __init__(self, config):
         self.config = config
 

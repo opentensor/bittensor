@@ -3,7 +3,7 @@ from munch import Munch
 import bittensor
 from bittensor.session import BTSession
 
-class Neuron(object):
+class NeuronBase(object):
     """ 
     """
     def __init__(   

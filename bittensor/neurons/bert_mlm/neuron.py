@@ -19,7 +19,7 @@ import torch
 import transformers
 from transformers import DataCollatorForLanguageModeling
 
-class Neuron (Neuron):
+class Neuron (NeuronBase):
     def __init__(self, config):
         self.config = config
 

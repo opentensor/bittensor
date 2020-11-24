@@ -19,11 +19,11 @@ from loguru import logger
 import bittensor
 from bittensor import BTSession
 from bittensor.config import Config
-from bittensor.neuron import Neuron
+from bittensor.neuron import NeuronBase
 from bittensor.synapse import Synapse
 from bittensor.synapses.ffnn import FFNNSynapse
 
-class Neuron (Neuron):
+class Neuron (NeuronBase):
     def __init__(self, config):
         self.config = config
 

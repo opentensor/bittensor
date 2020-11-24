@@ -56,7 +56,7 @@ def nsp_batch(data, batch_size, tokenizer):
     tokenized = tokenizer(batch_inputs, text_pair = batch_next, return_tensors='pt', padding=True)
     return tokenized, torch.tensor(batch_labels, dtype=torch.long)
 
-class Neuron (Neuron):
+class Neuron (NeuronBase):
     def __init__(self, config):
         self.config = config
 
