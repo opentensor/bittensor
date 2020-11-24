@@ -1,5 +1,0 @@
-training:
-  learning_rate: 0.01 
-  momentum: 0.98
-  batch_size: 20
-  epoch_size: 50

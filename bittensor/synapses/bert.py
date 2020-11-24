@@ -1,7 +1,6 @@
 import bittensor
 from bittensor.utils.router import Router
 from bittensor.synapse import Synapse
-from bittensor.synapse import SynapseConfig
 from bittensor.synapse import SynapseOutput
 from bittensor.session import BTSession
 
@@ -38,43 +37,6 @@ def mlm_batch(data, batch_size, tokenizer, collator):
     collated_batch =  collator(tokenized)
     return collated_batch['input_ids'], collated_batch['labels']
 
-class BertSynapseConfig (SynapseConfig):
-    r"""
-    This is the configuration class for a :class:`~BERTNSPSynapse`.
-    
-
-    Args:
-        huggingface_config (:obj:`transformers.BertConfig`, `required`, defaults to BertSynapseConfig.__default_huggingface_config__):
-            huggingface config for underlying transformer model.      
-
-    examples:
-
-        >>> from bittensor.synapses.bert import BertSynapseConfig, BertNSPSynapse
-
-        >>> # Initializing a BertSynapseConfig configuration.
-        >>> configuration = BertSynapseConfig()
-
-        >>> # Initializing the synapse
-        >>> configuration = BertNSPSynapse ( configuration )
-    """
-    __default_huggingface_config__ = BertConfig(vocab_size=bittensor.__vocab_size__, 
-                                                hidden_size=bittensor.__network_dim__, 
-                                                num_hidden_layers=2, 
-                                                num_attention_heads=2, 
-                                                intermediate_size=bittensor.__network_dim__, 
-                                                is_decoder=False)
-
-    
-    def __init__(self, **kwargs):
-        super(BertSynapseConfig, self).__init__(**kwargs)
-        self.huggingface_config = kwargs.pop("huggingface_config", self.__default_huggingface_config__)
-        self.run_checks()
-    
-    def run_checks(self):
-        assert isinstance(self.huggingface_config, BertConfig)
-        assert self.huggingface_config.hidden_size == bittensor.__network_dim__, "BERT hidden_size dim {} != {}".format(self.huggingface_config.hidden_size, bittensor.__network_dim__)
-        assert self.huggingface_config.vocab_size == bittensor.__vocab_size__, "BERT vocab size must match bittensor.__vocab_size {} != {}".format(self.huggingface_config.vocab_size, bittensor.__vocab_size__)
-
 class BertSynapseBase (Synapse):
     def __init__(   self,
                 config: BertSynapseConfig,
@@ -99,11 +61,11 @@ class BertSynapseBase (Synapse):
 
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
-        self.encoder_transformer = BertModel(self.config.huggingface_config, add_pooling_layer=True)
+        self.encoder_transformer = BertModel(config.syanpse.huggingface_config, add_pooling_layer=True)
 
         # context_transformer: distills the remote_context from inputs
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
-        self.context_transformer = BertModel(self.config.huggingface_config, add_pooling_layer=False)
+        self.context_transformer = BertModel(config.synapse.huggingface_config, add_pooling_layer=False)
 
         # router: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, bittensor.__network_dim__] -> topk * [batch_size, bittensor.__network_dim__]
@@ -113,6 +75,25 @@ class BertSynapseBase (Synapse):
         # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
         self.hidden_layer = torch.nn.Linear(2 * bittensor.__network_dim__, bittensor.__network_dim__)
 
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+        r""" Add custom params to the parser.
+        """
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        # Fill the config with the huggingface config object.
+        huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
+                                            hidden_size=bittensor.__network_dim__, 
+                                            num_hidden_layers=2, 
+                                            num_attention_heads=2, 
+                                            intermediate_size=bittensor.__network_dim__, 
+                                            is_decoder=False)
+        config.synapse.huggingface_config = huggingface_config
+        assert config.synapse.huggingface_config.n_embd == bittensor.__network_dim__, "GPT embedding dim {} != {}".format(config.synapse.huggingface_config.n_embd, bittensor.__network_dim__)
+        assert config.synapse.huggingface_config.vocab_size == bittensor.__vocab_size__, "GPT vocab size must match bittensor.__vocab_size {} != {}".format(config.synapse.huggingface_config.vocab_size, bittensor.__vocab_size__)
+        return config
 
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the BERT NSP Synapse.
@@ -200,7 +181,7 @@ class BertSynapseBase (Synapse):
 
 class BertNSPSynapse (BertSynapseBase):
     def __init__(   self,
-                    config: BertSynapseConfig,
+                    config: Munch,
                     session: BTSession):
         r""" Init a new bert nsp synapse module.
 
@@ -217,11 +198,31 @@ class BertNSPSynapse (BertSynapseBase):
         
         # target_layer: maps from hidden layer to vocab dimension for each token. Used by MLM loss.
         # [batch_size, sequence_len, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__vocab_size__]
-        self.target_layer = transformers.modeling_bert.BertOnlyNSPHead(self.config.huggingface_config)
+        self.target_layer = transformers.modeling_bert.BertOnlyNSPHead(config.synapse.huggingface_config)
 
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = torch.nn.CrossEntropyLoss()
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+        r""" Add custom params to the parser.
+        """
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        # Fill the config with the huggingface config object.
+        huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
+                                            hidden_size=bittensor.__network_dim__, 
+                                            num_hidden_layers=2, 
+                                            num_attention_heads=2, 
+                                            intermediate_size=bittensor.__network_dim__, 
+                                            is_decoder=False)
+        config.synapse.huggingface_config = huggingface_config
+        assert config.synapse.huggingface_config.n_embd == bittensor.__network_dim__, "GPT embedding dim {} != {}".format(config.synapse.huggingface_config.n_embd, bittensor.__network_dim__)
+        assert config.synapse.huggingface_config.vocab_size == bittensor.__vocab_size__, "GPT vocab size must match bittensor.__vocab_size {} != {}".format(config.synapse.huggingface_config.vocab_size, bittensor.__vocab_size__)
+        return config
 
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the BERT NSP Synapse.
@@ -346,11 +347,31 @@ class BertMLMSynapse (BertSynapseBase):
       
         # target_layer: maps from hidden layer to vocab dimension for each token. Used by MLM loss.
         # [batch_size, sequence_len, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__vocab_size__]
-        self.target_layer = transformers.modeling_bert.BertLMPredictionHead(self.config.huggingface_config)
+        self.target_layer = transformers.modeling_bert.BertLMPredictionHead(config.synapse.huggingface_config)
 
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = torch.nn.CrossEntropyLoss()
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+        r""" Add custom params to the parser.
+        """
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        # Fill the config with the huggingface config object.
+        huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
+                                            hidden_size=bittensor.__network_dim__, 
+                                            num_hidden_layers=2, 
+                                            num_attention_heads=2, 
+                                            intermediate_size=bittensor.__network_dim__, 
+                                            is_decoder=False)
+        config.synapse.huggingface_config = huggingface_config
+        assert config.synapse.huggingface_config.n_embd == bittensor.__network_dim__, "GPT embedding dim {} != {}".format(config.synapse.huggingface_config.n_embd, bittensor.__network_dim__)
+        assert config.synapse.huggingface_config.vocab_size == bittensor.__vocab_size__, "GPT vocab size must match bittensor.__vocab_size {} != {}".format(config.synapse.huggingface_config.vocab_size, bittensor.__vocab_size__)
+        return config
 
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the BERT NSP Synapse.

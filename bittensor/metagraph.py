@@ -1,5 +1,6 @@
 
 import asyncio
+import argparse
 import bittensor
 import math
 import netaddr
@@ -8,6 +9,7 @@ import time
 import threading
 import torch
 
+from munch import Munch
 from loguru import logger
 from bittensor import bittensor_pb2
 from substrateinterface import SubstrateInterface, Keypair
@@ -30,7 +32,7 @@ def ip_to_int(str_val):
     return int(netaddr.IPAddress(str_val))
 
 class Metagraph():
-
+ 
     def __init__(self, config, keypair):
         r"""Initializes a new Metagraph subtensor interface.
         Args:
@@ -42,7 +44,7 @@ class Metagraph():
         self._config = config
         self.__keypair = keypair
         self.substrate = SubstrateInterface(
-            url=self._config.session_settings.chain_endpoint,
+            url=self._config.metagraph.chain_endpoint,
             address_type=42,
             type_registry_preset='substrate-node-template',
             type_registry=custom_type_registry,
@@ -83,6 +85,29 @@ class Metagraph():
         # List of last poll ordered by index
         self._poll_list = []
         self._poll_torch: torch.LongTensor = None
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        
+        parser.add_argument('--metagraph.chain_endpoint', default='http://206.189.254.5:12345', type=str, 
+                            help='chain endpoint.')
+
+        parser.add_argument('--metagraph.polls_every_sec', default=25, type=int, 
+                            help='Second until the next chain poll.')
+
+        parser.add_argument('--metagraph.re_poll_neuron_every_blocks', default=20, type=int, 
+                            help='Re poll info from neurons every n blocks.')
+
+        parser.add_argument('--metagraph.stale_emit_limit', default=1000, 
+                            help='Filter neurons with block time since emission greater than this value.')
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        assert config.metagraph.polls_every_sec > 5 and config.metagraph.polls_every_sec < 1000, 'metagraph.polls_every_sec must be in range [5, 1000]'
+        assert config.metagraph.re_poll_neuron_every_blocks > 5 and config.metagraph.re_poll_neuron_every_blocks < 1000, 'metagraph.re_poll_neuron_every_blocks must be in range [5, 1000]'
+        assert config.metagraph.stale_emit_limit > 1 and config.metagraph.re_poll_neuron_every_blocks < math.inf, 'metagraph.stale_emit_limit must be in range [1, inf]'
+        return config
 
     def n (self) -> int:
         """ Returns the number of neurons in the network.
@@ -167,12 +192,12 @@ class Metagraph():
         logger.info('_continous_poll')
         while self._running:
             logger.info('running')
-            if (time.time() - self._last_poll) > self._config.session_settings.metagraph.polls_every_sec:
+            if (time.time() - self._last_poll) > self._config.metagraph.metagraph.polls_every_sec:
                 self._last_poll = time.time()
                 logger.info('Polling chain state ...')
                 self.pollchain()
                 logger.info('Done. ')
-            time.sleep(self._config.session_settings.metagraph.polls_every_sec/2)
+            time.sleep(self._config.metagraph.polls_every_sec/2)
 
     def pollchain(self):
         """ Polls the chain state for information about peers.
@@ -185,12 +210,12 @@ class Metagraph():
         )
         for (key, val) in emits:
             # Filter on stale.
-            if (current_block - val) > self._config.session_settings.metagraph.stale_emit_limit:
+            if (current_block - val) > self._config.metagraph.metagraph.stale_emit_limit:
                 continue
 
             # Filter on recent poll.
             last_poll = self._poll_list[self._pubkey_index_map[key]] if key in self._pubkey_index_map else -math.inf
-            if (current_block - last_poll) < self._config.session_settings.metagraph.re_poll_neuron_every_blocks:
+            if (current_block - last_poll) < self._config.metagraph.metagraph.re_poll_neuron_every_blocks:
                 continue
 
             # Poll.
@@ -281,7 +306,7 @@ class Metagraph():
         self._keys_torch = torch.Tensor(self._keys_list, dtype=torch.long)
         
         # Fill weights
-        weights_numpy = numpy.zeros( (self._n, self._n), , dtype=torch.float))
+        weights_numpy = numpy.zeros( (self._n, self._n), dtype=torch.float)
         for index_i, (keys, vals) in enumerate(list(zip(self._weight_keys, self._weight_vals))):
             val_sum = sum(vals)
             for k, val in list(zip(keys, vals)):
@@ -316,7 +341,7 @@ class Metagraph():
             timeout: (int): subscribe will ttl after length timeout seconds.
         
         """
-        params = {'ip': ip_to_int(self._config.session_settings.remote_ip), 'port': self._config.session_settings.axon_port, 'ip_type': 4}
+        params = {'ip': ip_to_int(self._config.axon.remote_ip), 'port': self._config.axon.port, 'ip_type': 4}
 
         logger.info(params)
         call = self.substrate.compose_call(

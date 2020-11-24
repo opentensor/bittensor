@@ -3,34 +3,40 @@ import bittensor
 import os
 import time
 
-from bittensor.config import Config
-
 from loguru import logger
 from importlib.machinery import SourceFileLoader
 from substrateinterface import Keypair
 
+from bittensor.config import Config
+
 def main():
 
-    # 1. Load Config.
-    logger.info('Load Config ...')
-    config = Config.load()
-    logger.info(config.toJSON())
+    # 1. Load passed --neuron_path for custom config.
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--neuron_path', required=True, help='path to a neuron configuration file')
+    params = parser.parse_known_args()[0]
 
-    # 2. Load Keypair.
+    # 2. Load Config.
+    logger.info('Load Config ...')
+    config = Config.load_from_args(params.neuron_path)
+    Config.validate(config, params.neuron_path)
+    logger.info(Config.toString(config))
+
+    # 3. Load Keypair.
     logger.info('Load Keyfile ...')
     mnemonic = Keypair.generate_mnemonic()
     keypair = Keypair.create_from_mnemonic(mnemonic)
    
-    # 3. Load Neuron.
+    # 4. Load Neuron.
     logger.info('Load Neuron ... ')
-    neuron_module = SourceFileLoader("Neuron", os.getcwd() + '/' + config.neuron.neuron_path + '/neuron.py').load_module()
+    neuron_module = SourceFileLoader("Neuron", os.getcwd() + '/' + params.neuron_path + '/neuron.py').load_module()
     neuron = neuron_module.Neuron( config )
 
-    # 4. Load Session.
+    # 5. Load Session.
     logger.info('Build Session ... ')
     session = bittensor.init(config, keypair)
 
-    # 5. Start Neuron.
+    # 6. Start Neuron.
     logger.info('Start ... ')
     with session:
         neuron.start( session ) 

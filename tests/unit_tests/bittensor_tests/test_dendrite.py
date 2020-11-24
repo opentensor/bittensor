@@ -15,24 +15,10 @@ from bittensor import bittensor_pb2
 from unittest.mock import MagicMock
 from bittensor.serializer import PyTorchSerializer
 
-
-defualt_config = """
-    session_settings:
-        axon_port: 8081
-        chain_endpoint: http://206.189.254.5:12345
-        logdir: /tmp/
-        remote_ip: 127.0.0.1
-    neuron:
-        neuron_path: /bittensor/neurons/mnist
-        datapath: /tmp/
-    training:
-        batch_size: 10
-"""
-
 class TestDendrite(unittest.TestCase):
 
     def setUp(self):
-        self.config = Config.load(from_yaml = defualt_config)
+        self.config = Config.load_from_args(neuron_path='bittensor/neurons/mnist')
         mnemonic = Keypair.generate_mnemonic()
         self.keypair = Keypair.create_from_mnemonic(mnemonic)
         self.session = bittensor.init(self.config, self.keypair)
@@ -57,7 +43,7 @@ class TestDendrite(unittest.TestCase):
     def test_dendrite_forward_image(self):
         # Let's grab some image data
         data = torchvision.datasets.MNIST(root = self.config.neuron.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
-        trainloader = torch.utils.data.DataLoader(data, batch_size = self.config.training.batch_size, shuffle=True, num_workers=2)
+        trainloader = torch.utils.data.DataLoader(data, batch_size = self.config.neuron.batch_size_train, shuffle=True, num_workers=2)
         # Let's grab a random image, and give it a crazy type to break the system
 
         image = None
@@ -69,7 +55,7 @@ class TestDendrite(unittest.TestCase):
         sequenced_image = image.unsqueeze(1)
         output = self.session.dendrite.forward_image([self.neuron], [sequenced_image])
         assert len(output) == 1
-        assert output[0].shape == torch.Size([self.config.training.batch_size, 1, bittensor.__network_dim__])
+        assert output[0].shape == torch.Size([self.config.neuron.batch_size_train, 1, bittensor.__network_dim__])
 
         # Let's try and break the forward_image call
         with pytest.raises(ValueError):
@@ -100,7 +86,7 @@ class TestDendrite(unittest.TestCase):
 class TestRemoteModuleCall(unittest.TestCase):
 
     def setUp(self):
-        self.config = Config.load(from_yaml = defualt_config)
+        self.config = Config.load_from_args(neuron_path='bittensor/neurons/mnist')
         mnemonic = Keypair.generate_mnemonic()
         self.keypair = Keypair.create_from_mnemonic(mnemonic)
         self.session = bittensor.init(self.config, self.keypair)
@@ -119,7 +105,7 @@ class TestRemoteModuleCall(unittest.TestCase):
                      ('grpc.max_receive_message_length', -1)])          
         self.stub = bittensor_grpc.BittensorStub(self.channel)
         # = RemoteSynapse(self.synapse, self._config)        
-        self.tblogger = bittensor.TBLogger("./tests/tmp")
+        self.tblogger = bittensor.TBLogger(self.config)
         self.dummy = torch.empty(0, requires_grad=True)
     
     def test_remote_module_forward(self):

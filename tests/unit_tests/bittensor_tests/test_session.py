@@ -4,9 +4,10 @@ import bittensor
 from bittensor.config import Config
 from substrateinterface import SubstrateInterface, Keypair
 
-def new_session():# 1. Init Config item.
-    config = Config.load()
-    Config.toString(config)
+def new_session():
+    # 1. Init Config item.
+    config = Config.load_from_args(neuron_path='bittensor/neurons/mnist')
+    logger.info(Config.toString(config))
     mnemonic = Keypair.generate_mnemonic()
     keypair = Keypair.create_from_mnemonic(mnemonic)
     session = bittensor.init(config, keypair)

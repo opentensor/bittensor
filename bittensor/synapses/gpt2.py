@@ -1,10 +1,11 @@
 import bittensor
 from bittensor.utils.router import Router
 from bittensor.synapse import Synapse
-from bittensor.synapse import SynapseConfig
 from bittensor.synapse import SynapseOutput
 from bittensor.session import BTSession
 
+import argparse
+from munch import Munch
 import random
 import torch
 from torch import nn
@@ -28,56 +29,6 @@ def nextbatch(data, batch_size, tokenizer):
     batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True)['input_ids']
     return batch_inputs
 
-class GPT2MLMConfig (SynapseConfig):
-    r"""
-    This is the configuration class for a :class:`~GPT2LMSynapse`.
-    
-
-    Args:
-        huggingface_config (:obj:`transformers.GPT2Config`, `required`, defaults to GPT2MLMConfig.__default_huggingface_config__):
-            huggingface config for underlying transformer model.      
-
-    examples:
-
-        >>> from bittensor.synapses.gpt2 import GPT2LMConfig, GPT2LMSynapse
-
-        >>> # Initializing a GPT2MLMConfig configuration.
-        >>> configuration = GPT2MLMConfig()
-
-        >>> # Initializing the model from configuration.
-        >>> configuration = GPT2LMSynapse ( configuration )
-    """
-
-    __default_huggingface_config__ = GPT2Config(    vocab_size=bittensor.__vocab_size__, 
-                                                    n_embd=bittensor.__network_dim__,
-                                                    n_layer=3,
-                                                    n_head=2, 
-                                                    n_inner=None, 
-                                                    activation_function='gelu_new', 
-                                                    resid_pdrop=0.1, 
-                                                    embd_pdrop=0.1, 
-                                                    attn_pdrop=0.1, 
-                                                    layer_norm_epsilon=1e-05, 
-                                                    initializer_range=0.02, 
-                                                    summary_type='cls_index', 
-                                                    summary_use_proj=True, 
-                                                    summary_activation=None, 
-                                                    summary_proj_to_labels=True, 
-                                                    summary_first_dropout=0.1, 
-                                                    bos_token_id=50256, 
-                                                    eos_token_id=50256
-                                                )
-    
-    def __init__(self, **kwargs):
-        super(GPT2MLMConfig, self).__init__(**kwargs)
-        self.huggingface_config = kwargs.pop("huggingface_config", self.__default_huggingface_config__)
-        self.run_checks()
-    
-    def run_checks(self):
-        assert isinstance(self.huggingface_config, transformers.GPT2Config)
-        assert self.huggingface_config.n_embd == bittensor.__network_dim__, "GPT embedding dim {} != {}".format(self.huggingface_config.n_embd, bittensor.__network_dim__)
-        assert self.huggingface_config.vocab_size == bittensor.__vocab_size__, "GPT vocab size must match bittensor.__vocab_size {} != {}".format(self.huggingface_config.vocab_size, bittensor.__vocab_size__)
-
 class GPT2Pooler(nn.Module):
 
     def __init__(self, config):
@@ -98,7 +49,7 @@ class GPT2LMSynapse(Synapse):
     """
 
     def __init__(self,
-                 config: GPT2MLMConfig,
+                 config: Munch,
                  session: BTSession):
         r""" Init a new ffnn synapse module.
 
@@ -115,11 +66,11 @@ class GPT2LMSynapse(Synapse):
             session = session)
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
-        self.encoder_transformer = GPT2Model(self.config.huggingface_config)
+        self.encoder_transformer = GPT2Model(config.synapse.huggingface_config)
 
         # pooler_layer: pools transformed sequence to network_dim for router.
         # [batch_size, bittensor.__network_dim__, sequence_len] -> [batch_size, bittensor.__network_dim__]
-        self.pooler = GPT2Pooler(self.config.huggingface_config)
+        self.pooler = GPT2Pooler(config.synapse.huggingface_config)
 
         # router: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, bittensor.__network_dim__] -> topk * [batch_size, bittensor.__network_dim__]
@@ -127,7 +78,7 @@ class GPT2LMSynapse(Synapse):
 
         # context_transformer: distills the remote_context from inputs
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
-        self.context_transformer = GPT2Model(self.config.huggingface_config)
+        self.context_transformer = GPT2Model(config.synapse.huggingface_config)
 
         # hidden_layer: transforms context and encoding to network_dim hidden units.
         # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -140,6 +91,41 @@ class GPT2LMSynapse(Synapse):
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = torch.nn.CrossEntropyLoss()
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+        r""" Add custom params to the parser.
+        """
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        # Fill the huggingface config object.
+        huggingface_config = GPT2Config(    vocab_size=bittensor.__vocab_size__, 
+                                    n_embd=bittensor.__network_dim__,
+                                    n_layer=3,
+                                    n_head=2, 
+                                    n_inner=None, 
+                                    activation_function='gelu_new', 
+                                    resid_pdrop=0.1, 
+                                    embd_pdrop=0.1, 
+                                    attn_pdrop=0.1, 
+                                    layer_norm_epsilon=1e-05, 
+                                    initializer_range=0.02, 
+                                    summary_type='cls_index', 
+                                    summary_use_proj=True, 
+                                    summary_activation=None, 
+                                    summary_proj_to_labels=True, 
+                                    summary_first_dropout=0.1, 
+                                    bos_token_id=50256, 
+                                    eos_token_id=50256
+                                )
+        if 'synapse' not in config:
+            config['synapse'] = Munch()
+        config.synapse.huggingface_config = huggingface_config
+        assert config.synapse.huggingface_config.n_embd == bittensor.__network_dim__, "GPT embedding dim {} != {}".format(config.synapse.huggingface_config.n_embd, bittensor.__network_dim__)
+        assert config.synapse.huggingface_config.vocab_size == bittensor.__vocab_size__, "GPT vocab size must match bittensor.__vocab_size {} != {}".format(config.synapse.huggingface_config.vocab_size, bittensor.__vocab_size__)
+        return config
 
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the MLM GPT Synapse.
