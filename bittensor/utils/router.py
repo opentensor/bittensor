@@ -29,6 +29,7 @@ class Router(nn.Module):
     def route(self, neurons: List[bittensor_pb2.Neuron],
               gate_inputs: torch.Tensor,
               raw_inputs: object) -> Tuple[List[torch.Tensor], torch.Tensor]:
+
         # Get neurons from the metagraph.
         # and map neurons to torch keys.
         keys = self.keymap.toKeys(neurons)  # (n_keys, key_dim)
