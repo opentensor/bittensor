@@ -9,7 +9,7 @@ Example:
 import bittensor
 from bittensor.config import Config
 from bittensor import BTSession
-from bittensor.neuron import Neuron
+from bittensor.neuron import NeuronBase
 from bittensor.synapse import Synapse
 from bittensor.synapses.bert import BertNSPSynapse
 

@@ -9,8 +9,8 @@ Example:
 import bittensor
 from bittensor.config import Config
 from bittensor import BTSession
-from bittensor.neuron import Neuron
-from bittensor.synapses.bert import BertSynapseConfig, BertMLMSynapse, mlm_batch
+from bittensor.neuron import NeuronBase
+from bittensor.synapses.bert import BertMLMSynapse, mlm_batch
 
 from datasets import load_dataset
 from loguru import logger
