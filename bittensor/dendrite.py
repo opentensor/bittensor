@@ -12,6 +12,8 @@ from bittensor.tb_logger import TBLogger
 from bittensor.serializer import PyTorchSerializer
 from bittensor.exceptions.Exceptions import EmptyTensorException, ResponseShapeException, SerializationException
 import time
+import asyncio
+from bittensor.utils.asyncio import Asyncio
 
 # dummy tensor that triggers autograd in RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
@@ -150,11 +152,26 @@ class Dendrite(nn.Module):
 
             # Call remote neuron.
             try:
-                results.append(remote_neuron(forward_inputs, mode))
+                result = Asyncio.run_in_new_loop(self.gather(remote_neuron(forward_inputs, mode)))
+
+                logger.error(result)
+
+
+                results.append(result)
             except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
                 logger.error("Exception occured: {}".format(e))
 
         return results
+
+    async def gather(self, task):
+        result = await asyncio.gather(self.wrapper(task))
+
+        logger.error(result)
+
+        return result
+
+    async def wrapper(self, task):
+        return task()
 
 
 # NOTE: (const) This code has been ported from hivemind thanks to Yozh and Max.
