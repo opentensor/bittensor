@@ -137,27 +137,23 @@ class Dendrite(nn.Module):
         """
         results = []
         for idx, neuron in enumerate(neurons):
-            # TODO: This is a bandaid solution to the length of x and neurons not being equal in some cases.
-            if idx < len(x):
-                forward_inputs = x[idx]
+            forward_inputs = x[idx]
 
-                # Get or create remote_neuron.
-                remote_neuron = None
-                if neuron.public_key in self._remotes:
-                    remote_neuron = self._remotes[neuron.public_key]
-                else:
-                    # Create remote connection.
-                    remote_neuron = RemoteNeuron(neuron, self._config, self.__keypair)
-                    self._remotes[neuron.public_key] = remote_neuron
-
-                # Call remote neuron.
-                try:
-                    results.append(remote_neuron(forward_inputs, mode))
-                except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
-                    logger.error("Exception occured: {}".format(e))
+            # Get or create remote_neuron.
+            remote_neuron = None
+            if neuron.public_key in self._remotes:
+                remote_neuron = self._remotes[neuron.public_key]
             else:
-                results.append(torch.zeros(x[0].size(0), x[0].size(1), bittensor.__network_dim__))
+                # Create remote connection.
+                remote_neuron = RemoteNeuron(neuron, self._config, self.__keypair)
+                self._remotes[neuron.public_key] = remote_neuron
 
+            # Call remote neuron.
+            try:
+                results.append(remote_neuron(forward_inputs, mode))
+            except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
+                logger.error("Exception occured: {}".format(e))
+        
         return results
 
 
