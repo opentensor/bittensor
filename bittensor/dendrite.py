@@ -153,7 +153,7 @@ class Dendrite(nn.Module):
                 results.append(remote_neuron(forward_inputs, mode))
             except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
                 logger.error("Exception occured: {}".format(e))
-        
+
         return results
 
 
