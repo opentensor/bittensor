@@ -35,6 +35,7 @@ def main():
     # 5. Start Neuron.
     logger.info('Start ... ')
     with session:
+        Asyncio.init()
         Asyncio.start_in_thread(neuron.start, session)
         Asyncio.run_forever()
 

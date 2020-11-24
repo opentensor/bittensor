@@ -1,38 +1,68 @@
 import asyncio
-from loguru import logger
 import time
-import concurrent
-
-async def task1():
-    logger.info("Task 1")
-    await asyncio.sleep(1)
-    await task1()
+from loguru import logger
+from  bittensor.utils.asyncio import Asyncio
 
 
-async def task2():
-    logger.info("Task 2")
-    await asyncio.sleep(2)
-    await task2()
+def mother(bleh):
+
+    logger.info("Entered blocking task")
+    time.sleep(1)
 
 
-def blocking_task():
-    logger.info("This task is blocking")
-    time.sleep(10)
-    logger.info("Blocking task complete")
 
 
-loop = asyncio.get_event_loop()
-loop.create_task(task1())
-loop.create_task(task2())
-loop.create_task(blocking_task())
+    # future = asyncio.run_coroutine_threadsafe(do_gather(), Asyncio.loop)
+
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(do_gather())
+    loop.stop()
+
+    logger.info("DONE")
 
 
-quit()
 
-# Create a limited thread pool.
-executor = concurrent.futures.ThreadPoolExecutor(
-    max_workers=3,
-)
 
-loop.run_in_executor(executor, blocking_task)
-loop.run_forever()
+
+async def do_gather():
+    result = await asyncio.gather(
+        blocking_task(1,1),
+        blocking_task(1,2),
+        blocking_task(4,3),
+        blocking_task(10,4),
+        blocking_task(5,5)
+
+    )
+
+    print(result)
+
+
+
+async def blocking_task(delay, retval):
+    return await asyncio.sleep(delay, retval)
+
+
+async def task_1():
+    logger.info("task_1")
+
+
+async def task_2():
+    logger.info("task_2")
+
+
+async def task_from_thread():
+    logger.info("Entered async task from thread")
+
+
+if __name__ == '__main__':
+
+    Asyncio.init()
+
+
+    Asyncio.start_in_thread(mother, Asyncio.loop)
+    Asyncio.add_task(task_1())
+    Asyncio.add_task(task_2())
+
+
+    Asyncio.run_forever()
+
