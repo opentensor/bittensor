@@ -106,6 +106,14 @@ class FFNNSynapse(Synapse):
 
         return hidden
 
+    def filter_stale_keys(self, keys):
+
+        # Filter on block emit staleness.
+        block = self.session.metagraph.block()
+        emit = self.session.metagraph.emit()
+        staleness = (block - emit)
+        return keys[torch.where(staleness < 100)] 
+
     def forward(self,
                 images: torch.Tensor,
                 targets: torch.Tensor = None,
@@ -165,7 +173,9 @@ class FFNNSynapse(Synapse):
         if remote:
             # If query == True make a remote call.
             images = torch.unsqueeze(images, 1) # Add sequence dimension.
-            neurons = self.session.metagraph.neurons() # Returns a list of neurons on the network.
+            keys = self.session.metagraph.keys() # Returns a list of neuron keys.
+            keys = self.filter_stale_keys(keys) # Filters stake neurons.
+            neurons = self.session.metagraph.neurons_for_keys(keys)
             if (len(neurons) > 0):
                 requests, _ = self.router.route( neurons, transform, images ) # routes inputs to network.
                 responses = self.session.dendrite.forward_image( neurons, requests ) # Makes network calls.    
