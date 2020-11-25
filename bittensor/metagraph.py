@@ -7,17 +7,13 @@ import math
 import netaddr
 import numpy
 import time
-import threading
 import torch
 import traceback
-
-from threading import Thread, Lock
 
 from munch import Munch
 from loguru import logger
 from bittensor import bittensor_pb2
-# from substrateinterface import SubstrateInterface, Keypair
-from bittensor.subtensor import WSClient, Keypair
+from bittensor.subtensor import WSClient
 from typing import List
 
 custom_type_registry = {
@@ -255,11 +251,11 @@ class Metagraph():
             w_keys = await self.subtensor_client.weight_keys(pubkey)
             w_vals = await self.subtensor_client.weight_vals(pubkey)
 
-            #logger.info("Stake: {}", stake)
-            #logger.info("Emit: {}", emit)
-            #logger.info("Neurons: {}", info)
-            #logger.info("Weight keys: {}", w_keys)
-            #logger.info("Weight vals: {}", w_vals)
+            logger.info("Stake: {}", stake)
+            logger.info("Emit: {}", emit)
+            logger.info("Neurons: {}", info)
+            logger.info("Weight keys: {}", w_keys)
+            logger.info("Weight vals: {}", w_vals)
 
             ipstr = int_to_ip(info['ip'])
             port = int(info['port'])
@@ -286,6 +282,9 @@ class Metagraph():
                 self._poll_list.append(self._current_block)
                 self._keys_list.append( key )
                 self._index_for_key[key] = index
+
+            # Record number of peers on tblogger
+            bittensor.session.tbwriter.write_network_data("# Peers", len(self._neurons_list))
 
         except Exception as e:
             logger.error("Exception occurred: {}".format(e))

@@ -14,11 +14,8 @@ from bittensor.synapses.bert import BertMLMSynapse, mlm_batch
 
 from datasets import load_dataset
 from loguru import logger
-import random
 import torch
-import transformers
 from transformers import DataCollatorForLanguageModeling
-
 class Neuron (NeuronBase):
     def __init__(self, config):
         self.config = config

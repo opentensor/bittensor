@@ -10,16 +10,11 @@ import bittensor
 from bittensor.config import Config
 from bittensor import BTSession
 from bittensor.neuron import NeuronBase
-from bittensor.synapse import Synapse
 from bittensor.synapses.bert import BertNSPSynapse
 
-from datasets import load_dataset, list_metrics, load_metric
 from loguru import logger
-import os, sys
-import math
+import os
 import random
-import time
-import transformers
 import torch
 
 def nsp_batch(data, batch_size, tokenizer):
