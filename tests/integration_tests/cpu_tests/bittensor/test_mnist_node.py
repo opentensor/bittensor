@@ -53,31 +53,37 @@ class MnistNode(unittest.TestCase):
     
     # Test training.
     def test(self):
-        with self.session:
-            best_loss = math.inf
-            best_accuracy = 0
-            epoch = 0
-            total_epochs = 1
-            while epoch < total_epochs:
+        logger.info('Start ... ')
+        with session:
+            Asyncio.start_in_thread(self.start, session)
+            Asyncio.run_forever()
 
-                self.train(self.model, epoch)
-                test_loss, accuracy = self.validate(self.model)
-                self.scheduler.step()
-                epoch += 1
+    def start(self):
+        # Starts test within the session context and asyncio thread.
+        best_loss = math.inf
+        best_accuracy = 0
+        epoch = 0
+        total_epochs = 1
+        while epoch < total_epochs:
 
-                best_accuracy = accuracy if accuracy >= best_accuracy else best_accuracy
-                if test_loss < best_loss:
-                    best_loss = test_loss
-                    logger.info("Best test loss: {}".format(best_loss))
-                    self.session.serve( self.model.deepcopy() )
+            self.train(self.model, epoch)
+            test_loss, accuracy = self.validate(self.model)
+            self.scheduler.step()
+            epoch += 1
 
-            assert best_loss <= 0.1
-            assert best_accuracy >= 75 
-            # Neurons should be 3, but we are setting to >= 2 due to the
-            # unpredictability of circleci booting up neurons, some neurons might
-            # start and finish before others even boot up.
-            # TODO: bring back this assert once chain issues are resolved
-            #assert len(self.session.metagraph.neurons()) >= 2
+            best_accuracy = accuracy if accuracy >= best_accuracy else best_accuracy
+            if test_loss < best_loss:
+                best_loss = test_loss
+                logger.info("Best test loss: {}".format(best_loss))
+                self.session.serve( self.model.deepcopy() )
+
+        assert best_loss <= 0.1
+        assert best_accuracy >= 75 
+        # Neurons should be 3, but we are setting to >= 2 due to the
+        # unpredictability of circleci booting up neurons, some neurons might
+        # start and finish before others even boot up.
+        # TODO: bring back this assert once chain issues are resolved
+        #assert len(self.session.metagraph.neurons()) >= 2
 
     # Train loop: Single threaded training of MNIST.
     def train(self, model, epoch):

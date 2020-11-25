@@ -161,6 +161,14 @@ class Axon(bittensor_grpc.BittensorServicer):
                         "tensor input shape exception len(shape) = {} ".format(
                             len(x.shape)))
 
+
+            # filter on weight filter on size filter
+            queue.append(y)
+
+            ...
+
+            x = queue.pop()
+
             # Call forward network. May call NotImplementedError:
             y = self._synapse.call_forward(x, inputs.modality)
 
