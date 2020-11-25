@@ -15,7 +15,7 @@ def main():
 
     # 1. Load passed --neuron_path for custom config.
     parser = argparse.ArgumentParser()
-    parser.add_argument('--neuron_path', required=True, help='directoty path to a neuron.py class.')
+    parser.add_argument('--neuron_path', default='/bittensor/neurons/mnist/', type=str, help='directoty path to a neuron.py class.')
     params = parser.parse_known_args()[0]
 
     # 2. Load Config.
