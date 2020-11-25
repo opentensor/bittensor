@@ -84,13 +84,13 @@ class Neuron(NeuronBase):
                 n_str = colored('{}'.format(n), 'red')
                 
                 loss_item = output.remote_target_loss.item()
-                loss_item_str = colored('{:.6f}'.format(loss_item), 'green')
+                loss_item_str = colored('{:.3f}'.format(loss_item), 'green')
 
                 processed = ((batch_idx + 1) * self.config.neuron.batch_size_train)
                 processed_str = colored('{}'.format(processed), 'green')
 
                 progress = (100. * processed) / n
-                progress_str = colored('{:.3f}%'.format(progress), 'green')
+                progress_str = colored('{:.2f}%'.format(progress), 'green')
 
                 accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
                 accuracy_str = colored('{:.3f}'.format(accuracy), 'green')
@@ -101,7 +101,7 @@ class Neuron(NeuronBase):
                 nA = len(output.keys.tolist())
                 nA_str = colored('{}'.format(nA), 'green')
 
-                logger.info('Train Epoch: {} [{}/{} ({})] | Loss: {} | Acc: {} | Active/Total: {}/{}', 
+                logger.info('Epoch: {} [{}/{} ({})] | Loss: {} | Acc: {} | Act/Tot: {}/{}', 
                     1, processed_str, n_str, progress_str, loss_item_str, accuracy_str, nA_str, nN_str)
 
         time_elapsed = time.time() - start_time
