@@ -30,7 +30,6 @@ class Asyncio:
     def run_forever():
         Asyncio.loop.run_forever()
 
-
     @staticmethod
     def run_in_new_loop(task):
         loop = asyncio.new_event_loop()

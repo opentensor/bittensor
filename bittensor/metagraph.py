@@ -119,7 +119,7 @@ class Metagraph():
        Returns:
             neurons: (List[bittensor_pb2.Neuron]): neuron info ordered by index.
         """
-        return [copy.deepcopy(el) for el in self._neurons_list]
+        return copy.deepcopy(self._neurons_list)
 
     def keys(self) -> torch.LongTensor:
         """ Returns a torch tensor of unique integer keys for neurons.
@@ -185,14 +185,6 @@ class Metagraph():
 
         await asyncio.sleep(self._config.metagraph.polls_every_sec)
         await self.pollchain()
-
-    def neurons(self) -> List[bittensor_pb2.Neuron]:
-        """ Returns the neurons information of each active in the network.
-
-        Returns:
-            neurons: (List[bittensor_pb2.Neuron]): neuron info ordered by index.
-        """
-        return self._neurons_list
 
     async def _pollpubkey(self, pubkey):
         """ Polls info from the chain for a specific pubkey.

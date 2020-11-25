@@ -13,6 +13,8 @@ from bittensor.synapses.ffnn import FFNNSynapse
 from bittensor.subtensor import Keypair
 from bittensor.utils.asyncio import Asyncio
 
+
+import asyncio
 import random
 from loguru import logger
 import math
@@ -89,7 +91,7 @@ class Neuron(NeuronBase):
 
         assert best_loss <= 0.1
         assert best_accuracy > 0.80
-        exit(0)
+        Asyncio.loop.stop()
         
 def main():
     # 1. Load Config.
