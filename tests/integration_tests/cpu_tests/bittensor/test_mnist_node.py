@@ -14,17 +14,13 @@ from bittensor.subtensor import Keypair
 from bittensor.utils.asyncio import Asyncio
 
 
-import asyncio
-import random
 from loguru import logger
 import math
 import torch
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-import traceback
-import unittest
-import pytest
+import time
 
 
 class Neuron(NeuronBase):
@@ -51,6 +47,7 @@ class Neuron(NeuronBase):
         model.train()
         best_loss = math.inf
         best_accuracy = 0
+        start_time = time.time()
         for batch_idx, (images, targets) in enumerate(trainloader):
             # Clear gradients.
             optimizer.zero_grad()
@@ -89,8 +86,13 @@ class Neuron(NeuronBase):
                 logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nN: {}', 
                     1, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()))
 
+        time_elapsed = time.time() - start_time
+        logger.info("Total time elapsed: {}".format(time_elapsed))
+
         assert best_loss <= 0.1
         assert best_accuracy > 0.80
+        assert len(session.metagraph.neurons()) > 0
+        assert time_elapsed < 300 # 1 epoch of MNIST should take less than 5 mins.
         Asyncio.loop.stop()
         
 def main():
