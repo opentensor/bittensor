@@ -6,6 +6,7 @@ Example:
         $ python examples/mnist/main.py
 """
 import argparse
+import asyncio
 import math
 import time
 import torch
@@ -13,6 +14,7 @@ import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 
+from itertools import islice
 from munch import Munch
 from loguru import logger
 
@@ -22,6 +24,8 @@ from bittensor.config import Config
 from bittensor.neuron import NeuronBase
 from bittensor.synapse import Synapse
 from bittensor.synapses.ffnn import FFNNSynapse
+from bittensor.utils.asyncio import Asyncio
+
 
 class Neuron (NeuronBase):
     def __init__(self, config):
@@ -80,39 +84,51 @@ class Neuron (NeuronBase):
             # Turn on Dropoutlayers BatchNorm etc.
             model.train()
             last_log = time.time()
-            for batch_idx, (images, targets) in enumerate(trainloader):
-                # Clear gradients.
-                optimizer.zero_grad()
-                # Forward pass.
-                images = images.to(device)
-                targets = torch.LongTensor(targets).to(device)
-                output = model(images, targets, remote = True)
-                
-                # Backprop.
-                loss = output.remote_target_loss + output.distillation_loss
-                loss.backward()
 
+            n_async = 10
+            n_iters = 60000 / (n_async * self.config.neuron.batch_size_train)
+
+            for batch_index in range(int(n_iters)):
+                optimizer.zero_grad()
+
+                # Call n_async forward calls.
+                async def forward_n(loop, n):
+                    calls = []
+                    for _, (images, targets) in enumerate(islice(trainloader, n)):
+                        # Forward pass.
+                        images = images.to(device)
+                        targets = torch.LongTensor(targets).to(device)
+                        forward_i = loop.run_in_executor(None, model.forward, images, targets, True )
+                        calls.append( forward_i )
+                    return await asyncio.gather(*calls)
+                
+                # Run async calls and gather results.
+                loop = asyncio.new_event_loop()
+                results = loop.run_until_complete( forward_n(loop, n_async) )
+                loop.stop()
+
+                # Aggregate loss.
+                loss = torch.zeros((1))
+                for output in results:
+                    loss += (output.remote_target_loss + output.distillation_loss) / n_async
+                    loss.backward(retain_graph=True)
+
+                # Apply major gradient step.
                 optimizer.step()
+
+                # Log to console.
+                n = len(train_data)
+                processed = batch_index * self.config.neuron.batch_size_train * n_async
+                progress = (batch_index + 1)/ n_iters
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t nN: {}', 
+                    epoch, processed, n, progress, loss.item(), len(session.metagraph.neurons()))
+                session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())
+                session.tbwriter.write_loss('train local target loss', output.local_target_loss.item())
+                session.tbwriter.write_loss('train distilation loss', output.distillation_loss.item())
+                session.tbwriter.write_loss('train loss', output.loss.item())
+                session.tbwriter.write_custom('global step/global step v.s. time', self.config.neuron.log_interval / (time.time() - last_log))
+                last_log = time.time()
                                 
-                # Logs:
-                if (batch_idx + 1) % self.config.neuron.log_interval == 0: 
-                    n = len(train_data)
-                    max_logit = output.remote_target.data.max(1, keepdim=True)[1]
-                    correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
-                    loss_item  = output.remote_target_loss.item()
-                    processed = ((batch_idx + 1) * self.config.neuron.batch_size_train)
-                    
-                    progress = (100. * processed) / n
-                    accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
-                    logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nN: {}', 
-                        epoch, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()))
-                    session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())
-                    session.tbwriter.write_loss('train local target loss', output.local_target_loss.item())
-                    session.tbwriter.write_loss('train distilation loss', output.distillation_loss.item())
-                    session.tbwriter.write_loss('train loss', output.loss.item())
-                    session.tbwriter.write_accuracy('train accuracy', accuracy)
-                    session.tbwriter.write_custom('global step/global step v.s. time', self.config.neuron.log_interval / (time.time() - last_log))
-                    last_log = time.time()
 
         # Test loop.
         # Evaluates the local model on the hold-out set.
