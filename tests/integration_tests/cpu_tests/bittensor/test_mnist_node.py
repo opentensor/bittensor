@@ -11,6 +11,8 @@ from bittensor.synapse import Synapse
 from bittensor.config import Config
 from bittensor.synapses.ffnn import FFNNSynapse
 from bittensor.subtensor import Keypair
+from bittensor.utils.asyncio import Asyncio
+
 
 import random
 from loguru import logger
@@ -54,8 +56,8 @@ class MnistNode(unittest.TestCase):
     # Test training.
     def test(self):
         logger.info('Start ... ')
-        with session:
-            Asyncio.start_in_thread(self.start, session)
+        with self.session:
+            Asyncio.start_in_thread(self.start, self.session)
             Asyncio.run_forever()
 
     def start(self):
