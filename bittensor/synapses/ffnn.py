@@ -168,7 +168,7 @@ class FFNNSynapse(Synapse):
             neurons = self.session.metagraph.neurons() # Returns a list of neurons on the network.
             if (len(neurons) > 0):
                 requests, _ = self.router.route( neurons, transform, images ) # routes inputs to network.
-                responses = self.session.dendrite.forward_image( neurons, requests ) # Makes network calls.
+                responses = self.session.dendrite.forward_image( neurons, requests ) # Makes network calls.    
                 remote_context = self.router.join( responses ) # Joins responses based on scores..
                 remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2]) # Squeeze the sequence dimension.
             else:
