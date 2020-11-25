@@ -105,7 +105,7 @@ class TestRemoteModuleCall(unittest.TestCase):
                      ('grpc.max_receive_message_length', -1)])          
         self.stub = bittensor_grpc.BittensorStub(self.channel)
         # = RemoteSynapse(self.synapse, self._config)        
-        self.tblogger = bittensor.TBLogger(self.config)
+        self.tblogger = bittensor.Metadata(self.config)
         self.dummy = torch.empty(0, requires_grad=True)
     
     def test_remote_module_forward(self):

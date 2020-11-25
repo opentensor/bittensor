@@ -7,9 +7,10 @@ from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
 from bittensor.utils.asyncio import Asyncio
 from bittensor.subtensor import Keypair
-from bittensor.tb_logger import TBLogger
+from bittensor.metadata import Metadata
 from loguru import logger
 import asyncio
+import replicate
 
 
 class FailedConnectToChain(Exception):
@@ -31,10 +32,20 @@ class BTSession:
         self.metagraph = Metagraph(self.config, self.__keypair)
         self.axon = Axon(self.config, self.__keypair)
         self.dendrite = Dendrite(self.config, self.__keypair)
-        self.tbwriter = TBLogger(self.config)
+        self.tbwriter = Metadata(self.config)
+
+        self.experiment = replicate.init(
+            path=self.config.neuron.datapath,
+            params={"learning_rate": self.config.neuron.learning_rate,
+                    "momentum": self.config.neuron.momentum,
+                    "batch_size_train": self.config.neuron.batch_size_train,
+                    "batch_size_test": self.config.neuron.batch_size_test}
+        )
 
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+        parser.add_argument('--session.checkout_experiment', type=str, 
+                            help='ID of replicate.ai experiment to check out.')
         return parser
 
     @staticmethod   
@@ -50,7 +61,7 @@ class BTSession:
 
             Args:
                 synapse (:obj:`bittensor.Synapse`, `required`): 
-                    synpase object to serve on the axon server.
+                    synapse object to serve on the axon server.
         """
         self.axon.serve(synapse)
 
@@ -88,8 +99,6 @@ class BTSession:
         logger.info('Subscribe to chain ...')
         try:
             await self.metagraph.subscribe(10)
-                # logger.error('SESSION: Timeout while subscribing to the chain endpoint')
-                # raise FailedSubscribeToChain
         except Exception as e:
             logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
             raise FailedToEnterSession
@@ -103,8 +112,6 @@ class BTSession:
         logger.info('Unsubscribe from chain ...')
         try:
             await self.metagraph.unsubscribe(10)
-            # if not self.metagraph.unsubscribe(10):
-            #     logger.error('SESSION: Timeout while unsubscribing to the chain endpoint')
         except Exception as e:
             logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
 
@@ -121,6 +128,13 @@ class BTSession:
                 logger.error('SESSION: Timeout while unsubscribing to the chain endpoint')
         except Exception as e:
             logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
+        
+        # Stop replicate experiment if still running
+        try:
+            if self.experiment:
+                self.experiment.stop()
+        except Exception as e:
+            logger.error('SESSION: Could not stop Replicate experiment: {}', e)
 
     def neurons (self):
        return self.metagraph.neurons()
@@ -130,3 +144,14 @@ class BTSession:
 
     def unsubscribe (self):
         self.metagraph.unsubscribe()
+    
+    def checkpoint_experiment(self, epoch, **experiment_metrics):
+        # Create a checkpoint within the experiment.
+        # This saves the metrics at that point, and makes a copy of the file
+        # or directory given, which could weights and any other artifacts.
+        self.experiment.checkpoint(
+            path=self.config.neuron.datapath + self.config.neuron.neuron_name + "/model.torch",
+            step=epoch,
+            metrics=experiment_metrics,
+            primary_metric=("loss", "minimize"),
+        )
