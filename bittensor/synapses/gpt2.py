@@ -123,6 +123,8 @@ class GPT2LMSynapse(Synapse):
                             help='Number of hidden layers in the Transformer encoder.')
         parser.add_argument('--synapse.n_head', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
+        parser.add_argument('--synapse.n_layer', default=12, type=int, 
+                            help='Number of hidden layers in the Transformer encoder.')
         parser.add_argument('--synapse.n_inner', default=None, type=int, 
                             help='The dimensionality of the inner feed-forward layers. :obj:`None` will set it to 4 times n_embd')
         parser.add_argument('--synapse.activation_function', default='gelu_new', type=str, 
@@ -135,8 +137,19 @@ class GPT2LMSynapse(Synapse):
                             help='GPT attention dropout probability.')
         parser.add_argument('--synapse.layer_norm_epsilon', default=1e-05, type=float, 
                             help='GPT the epsilon to use in the layer normalization layers')
+        parser.add_argument('--synapse.summary_type', default='cls_index', type=str, 
+                            help='Supply a Tensor of classification token position (like GPT/GPT-2).')
         parser.add_argument('--synapse.initializer_range', default=0.02, type=float, 
                             help='The standard deviation of the truncated_normal_initializer for initializing all weight matrices.')
+        parser.add_argument('--synapse.summary_use_proj', default=True, type=bool, 
+                            help='Whether or not to add a projection after the vector extraction.')
+        parser.add_argument('--synapse.summary_activation', type=str, 
+                            help='Pass "tanh" for a tanh activation to the output, any other value will result in no activation.')
+        parser.add_argument('--synapse.summary_proj_to_labels', default=True, type=bool, 
+                            help='Whether the projection outputs should have config.num_labels or config.hidden_size classes.')
+        parser.add_argument('--synapse.summary_first_dropout', default=0.1, type=float, 
+                            help='The dropout ratio to be used after the projection and activation.')
+        
         return parser
 
     def forward_text(self, inputs: torch.LongTensor):
