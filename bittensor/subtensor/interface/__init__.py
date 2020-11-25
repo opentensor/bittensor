@@ -290,7 +290,7 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
         self.factory.connected.set_result(True)
 
     def onMessage(self, payload, isBinary):
-        logger.debug("Message received: {}", payload)
+        logger.trace("Message received: {}", payload)
 
         str_payload = json.loads(payload)
         id = str_payload['id']
@@ -300,14 +300,12 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
         else:
             logger.debug("Deferred with id {} not in list", id)
 
-
-
     def onClose(self, wasClean, code, reason):
-        logger.debug("Connection closed.")
+        logger.trace("Connection closed.")
         #Todo implement
 
     def sendMessage(self, payload, isBinary=False, fragmentSize=None, sync=False, doNotCompress=False):
-        logger.debug("Sending message {}", payload)
+        logger.trace("Sending message {}", payload)
 
         super().sendMessage(payload, isBinary, fragmentSize, sync, doNotCompress)
 
