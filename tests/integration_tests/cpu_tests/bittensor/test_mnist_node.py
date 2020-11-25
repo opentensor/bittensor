@@ -83,8 +83,8 @@ class Neuron(NeuronBase):
                 processed = ((batch_idx + 1) * self.config.neuron.batch_size_train)
                 progress = (100. * processed) / n
                 accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nN: {}', 
-                    1, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()))
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nN: {}, nA: {}', 
+                    1, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()), len(output.keys.tolist()))
 
         time_elapsed = time.time() - start_time
         logger.info("Total time elapsed: {}".format(time_elapsed))
