@@ -80,16 +80,33 @@ class Neuron(NeuronBase):
 
             # Logs:
             if (batch_idx + 1) % self.config.neuron.log_interval == 0:
-                loss_colo = colored(str(loss_item))
                 n = len(train_data)
                 max_logit = output.remote_target.data.max(1, keepdim=True)[1]
                 correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
-                loss_item  = output.remote_target_loss.item()
+
+                n = len(train_data)
+                n_str = colored('{}'.format(n), 'red')
+                
+                loss_item = output.remote_target_loss.item()
+                loss_item_str = colored('{:.6f}'.format(loss_item), 'green')
+
                 processed = ((batch_idx + 1) * self.config.neuron.batch_size_train)
+                processed_str = colored('{}'.format(processed), 'green')
+
                 progress = (100. * processed) / n
+                progress_str = colored('{:.3f}%'.format(progress), 'green')
+
                 accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f} Acc: {:.6f} nN: {} nA: {}', 
-                    1, processed, n, progress, loss_colo, accuracy, len(session.metagraph.neurons()), len(output.keys.tolist()))
+                accuracy_str = colored('{:.3f}'.format(accuracy), 'green')
+
+                nN = len(session.metagraph.neurons())
+                nN_str = colored('{}'.format(nN), 'red')
+
+                nA = len(output.keys.tolist())
+                nA_str = colored('{}'.format(nA), 'green')
+
+                logger.info('Train Epoch: {} [{}/{} ({})] | Loss: {} | Acc: {} | Active/Total: {}/{}', 
+                    1, processed_str, n_str, progress_str, loss_item_str, accuracy_str, nA_str, nN_str)
 
         assert best_loss <= 0.1
         assert best_accuracy > 0.80
