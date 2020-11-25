@@ -1,1 +1,0 @@
-../../bittensor/neurons/mnist/neuron.py

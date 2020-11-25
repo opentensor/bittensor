@@ -8,37 +8,64 @@ Example:
 
 import bittensor
 from bittensor import BTSession
+from bittensor.config import Config
 from bittensor.synapse import Synapse
-from bittensor.neuron import Neuron
-from bittensor.synapses.dpn import DPNSynapse, DPNConfig
+from bittensor.neuron import NeuronBase
+from bittensor.synapses.dpn import DPNSynapse
 from bittensor.utils.model_utils import ModelToolbox
 
+import argparse
 from loguru import logger
 import math
+from munch import Munch
 import torch
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 import traceback
 
-class Neuron (Neuron):
+class Neuron (NeuronBase):
     def __init__(self, config):
         self.config = config
 
-    def stop(self):
-        pass
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+        parser.add_argument('--neuron.datapath', default='data/', type=str, 
+                            help='Path to load and save data.')
+        parser.add_argument('--neuron.learning_rate', default=0.01, type=float, 
+                            help='Training initial learning rate.')
+        parser.add_argument('--neuron.momentum', default=0.9, type=float, 
+                            help='Training initial momentum for SGD.')
+        parser.add_argument('--neuron.batch_size_train', default=32, type=int, 
+                            help='Training batch size.')
+        parser.add_argument('--neuron.batch_size_test', default=16, type=int, 
+                            help='Testing batch size.')
+        parser.add_argument('--neuron.log_interval', default=10, type=int, 
+                            help='Batches until neuron prints log statements.')
+        parser = DPNSynapse.add_args(parser)
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        assert config.neuron.log_interval > 0, "log_interval dimension must positive"
+        assert config.neuron.momentum > 0 and config.neuron.momentum < 1, "momentum must be a value between 0 and 1"
+        assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
+        assert config.neuron.batch_size_test > 0, "batch_size_test must a positive value"
+        assert config.neuron.learning_rate > 0, "learning rate must be a positive value."
+        Config.validate_path_create('neuron.datapath', config.neuron.datapath)
+        config = DPNSynapse.check_config(config)
+        return config
 
     def start(self, session: BTSession): 
         
         # Build local synapse to serve on the network.
-        model_config = DPNConfig()
-        model = DPNSynapse( model_config, session )
+        model = DPNSynapse( self.config, session )
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model.to( device ) # Set model to device.
         session.serve( model.deepcopy() )
 
         # Build the optimizer.
-        optimizer = optim.SGD(model.parameters(), lr=self.config.training.learning_rate, momentum=self.config.training.momentum)
+        optimizer = optim.SGD(model.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10.0, gamma=0.1)
 
         # Load (Train, Test) datasets into memory.
@@ -48,9 +75,9 @@ class Neuron (Neuron):
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
         ]))
-        trainloader = torch.utils.data.DataLoader(train_data, batch_size = self.config.training.batch_size_train, shuffle=True, num_workers=2)
+        trainloader = torch.utils.data.DataLoader(train_data, batch_size = self.config.neuron.batch_size_train, shuffle=True, num_workers=2)
         test_data = torchvision.datasets.CIFAR10(root=self.config.neuron.datapath, train=False, download=True, transform=transforms.ToTensor())
-        testloader = torch.utils.data.DataLoader(test_data, batch_size = self.config.training.batch_size_test, shuffle=False, num_workers=2)
+        testloader = torch.utils.data.DataLoader(test_data, batch_size = self.config.neuron.batch_size_test, shuffle=False, num_workers=2)
 
         # Train loop: Single threaded training of MNIST.
         def train(model, epoch, global_step):
@@ -71,15 +98,15 @@ class Neuron (Neuron):
                 global_step += 1
                                 
                 # Logs:
-                if batch_idx % self.config.training.log_interval == 0:            
+                if batch_idx % self.config.neuron.log_interval == 0:            
                     n = len(train_data)
                     max_logit = output.remote_target.data.max(1, keepdim=True)[1]
                     correct = max_logit.eq(targets.data.view_as(max_logit) ).sum()
                     loss_item  = output.remote_target_loss.item()
-                    processed = ((batch_idx + 1) * self.config.training.batch_size_train)
+                    processed = ((batch_idx + 1) * self.config.neuron.batch_size_train)
                     
                     progress = (100. * processed) / n
-                    accuracy = (100.0 * correct) / self.config.training.batch_size_train
+                    accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
                     logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\tnP:{}', 
                         epoch, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()))
 
@@ -115,7 +142,7 @@ class Neuron (Neuron):
             n = len(test_data)
             loss /= n
             accuracy = (100. * correct) / n
-            logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\tnP:{}'.format(loss, correct, n, accuracy, len(bittensor.metagraph.peers())))        
+            logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\tnP:{}'.format(loss, correct, n, accuracy, len(bittensor.metagraph.neurons())))        
             return loss, accuracy
         
         
@@ -135,8 +162,8 @@ class Neuron (Neuron):
                 best_test_loss = test_loss
                 
                 # Save the best local model.
-                logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.session_settings.logdir + '/model.torch')
-                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.session_settings.logdir + '/model.torch' )
+                logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.logger.logdir + '/model.torch')
+                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.logger.logdir + '/model.torch' )
                 session.serve( model.deepcopy() )
 
             epoch += 1

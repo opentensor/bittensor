@@ -1,11 +1,15 @@
+import argparse
 import grpc
 import torch
 import torch.nn as nn
 import bittensor
 import time
+
 from torch.autograd.function import once_differentiable
 from typing import List, Optional
 from loguru import logger
+from munch import Munch
+
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
 from bittensor.tb_logger import TBLogger
@@ -34,7 +38,7 @@ class Dendrite(nn.Module):
         >>> from bittensor
 
         >>> # Initialize config defaults.
-        >>> config = bittensor.Config()
+        >>> config = Config.load()
 
         >>> # Create Dendrite nn.module
         >>> dendrite = bittensor.Dendrite(config)
@@ -55,6 +59,19 @@ class Dendrite(nn.Module):
         self.__keypair = keypair
         self._remotes = {}
 
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        parser.add_argument('--dendrite.pass_gradients', default=True, type=bool, 
+                            help='Switch to true is the neuron passes gradients to downstream peers.')
+        parser.add_argument('--dendrite.timeout', default=0.5, type=float, 
+                            help='Per request RPC timeout.')
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        assert config.dendrite.timeout >= 0, 'timeout must be positive value, got {}'.format(config.dendrite.timeout)
+        return config
+
     def forward_text(self, neurons: List[bittensor_pb2.Neuron],
                      x: List[torch.Tensor]) -> List[torch.Tensor]:
         r""" Forward text inputs to neurons.
@@ -73,6 +90,12 @@ class Dendrite(nn.Module):
         """
         if len(x[0].shape) != 2:
             error_msg = 'Text inputs should rank 2 with semantic shape: [batch_size, sequence_len]'
+            raise ValueError(error_msg)
+        if len(x) != len(neurons):
+            error_msg = 'List of text inputs x should have the same length as passed destination neurons, got {} and {}'.format(len(x), len(neurons))
+            raise ValueError(error_msg)
+        if len(x) < 1:
+            error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
             raise ValueError(error_msg)
         return self.forward(neurons, x, bittensor_pb2.Modality.TEXT)
 
@@ -96,6 +119,12 @@ class Dendrite(nn.Module):
         if len(x[0].shape) != 5:
             error_msg = 'Image inputs should be rank 5 with semantic shape: [batch_size, sequence_dim, channels, rows, cols]'
             raise ValueError(error_msg)
+        if len(x) != len(neurons):
+            error_msg = 'List of image inputs x should have the same length as passed destination neurons, got {} and {}'.format(len(x), len(neurons))
+            raise ValueError(error_msg)
+        if len(x) < 1:
+            error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
+            raise ValueError(error_msg)
         return self.forward(neurons, x, bittensor_pb2.Modality.IMAGE)
 
     def forward_tensor(self, neurons: List[bittensor_pb2.Neuron],
@@ -116,6 +145,12 @@ class Dendrite(nn.Module):
         """
         if len(x[0].shape) != 3:
             error_msg = 'Tensor inputs should be rank 3 with semantic shape: [batch_size, sequence_len, feature_len]'
+            raise ValueError(error_msg)
+        if len(x) != len(neurons):
+            error_msg = 'List of tensor inputs x should have the same length as passed destination neurons, got {} and {}'.format(len(x), len(neurons))
+            raise ValueError(error_msg)
+        if len(x) < 1:
+            error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
             raise ValueError(error_msg)
         return self.forward(neurons, x, bittensor_pb2.Modality.TENSOR)
 
@@ -139,10 +174,15 @@ class Dendrite(nn.Module):
                 forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
                     Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
         """
-        results = []
-        for idx, neuron in enumerate(neurons):
-            forward_inputs = x[idx]
+        if len(x) != len(neurons):
+            error_msg = 'List of inputs x should have the same length as passed destination neurons, got {} and {}'.format(len(x), len(neurons))
+            raise ValueError(error_msg)
+        if len(x) < 1:
+            error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
+            raise ValueError(error_msg)
 
+        results = []
+        for idx, (forward_inputs, neuron) in enumerate(list(zip(x, neurons))):
             # Get or create remote_neuron.
             remote_neuron = None
             if neuron.public_key in self._remotes:
@@ -165,8 +205,6 @@ class Dendrite(nn.Module):
                 results.append(result)
             except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
                 logger.error("Exception occured: {}".format(e))
-
-        #logger.error(results)
 
         return results
 
@@ -192,9 +230,9 @@ class RemoteNeuron(nn.Module):
         self.config = config
         self.keypair = keypair
         # Loop back if the neuron is local.
-        if neuron.address == config.session_settings.remote_ip:
+        if neuron.address == config.axon.remote_ip:
             ip = "localhost:"
-            if config.session_settings.remote_ip == "host.docker.internal":
+            if config.axon.remote_ip == "host.docker.internal":
                 ip = "host.docker.internal:"
             self.endpoint = ip + str(neuron.port)
         else:
@@ -257,8 +295,8 @@ class _RemoteModuleCall(torch.autograd.Function):
                 tensors=[serialized_inputs])
 
             # Forward tensor.
-            pre_response_time = time.time()  # in seconds
-            response = ctx.caller.stub.Forward(request, timeout=0.5)
+            pre_response_time = time.time() # in seconds
+            response = ctx.caller.stub.Forward(request, timeout=caller.config.dendrite.timeout)
             # Time (in seconds) response took
             elapsed_time = time.time() - pre_response_time
             bittensor.session.tbwriter.write_dendrite_network_data(
@@ -299,6 +337,11 @@ class _RemoteModuleCall(torch.autograd.Function):
     def backward(ctx, grads: torch.Tensor) -> Optional[torch.Tensor]:
 
         deserialized_grad_inputs = torch.zeros_like(ctx.inputs)
+
+        # Swtich for passing gradients.
+        if not ctx.caller.config.dendrite.pass_gradients:
+            return (None, None, deserialized_grad_inputs, None)
+
         try:
             # Serialize inputs to bytes.
             serialized_grads = PyTorchSerializer.serialize_tensor(grads)
@@ -314,7 +357,7 @@ class _RemoteModuleCall(torch.autograd.Function):
 
             # Attain backward response
             pre_response_time = time.time()
-            response = ctx.caller.stub.Backward(request, timeout=0.5)
+            response = ctx.caller.stub.Backward(request, timeout=ctx.caller.config.dendrite.timeout)
             elapsed_time = time.time() - pre_response_time
             bittensor.session.tbwriter.write_dendrite_network_data(
                 'Remote Module Backward Call Response Message Size (MB)', response.ByteSize() / 1024)

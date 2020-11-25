@@ -1,4 +1,6 @@
+import argparse
 from loguru import logger
+from munch import Munch
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -6,13 +8,6 @@ from typing import List, Tuple, Dict, Optional, TYPE_CHECKING
 
 import bittensor
 from bittensor import bittensor_pb2
-
-class SynapseConfig(object):
-    r"""Base config for all synapse objects.
-    Handles a parameters common to all bittensor synapse objects.
-    """
-    def __init__(self, **kwargs):
-       pass
 
 class SynapseOutput(object):
     """ Synapse output container.
@@ -67,7 +62,7 @@ class Synapse(nn.Module):
     """
 
     def __init__(   self,
-                    config: SynapseConfig,
+                    config: Munch,
                     session):
         r""" Init synapse module.
 
@@ -84,6 +79,14 @@ class Synapse(nn.Module):
         self.session = session
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.to(self.device)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser: 
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        return config
 
     def deepcopy(self):
         """ Returns a copy of this synapse by passing the model params to load_state_dict.
