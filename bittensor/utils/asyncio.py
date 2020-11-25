@@ -14,6 +14,11 @@ class Asyncio:
         loop.create_task(method)
 
     @staticmethod
+    def stop():
+        loop = asyncio.get_event_loop()
+        loop.stop()
+
+    @staticmethod
     def start_in_thread(method, args):
         executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=3,

@@ -84,11 +84,12 @@ class Neuron(NeuronBase):
                 processed = ((batch_idx + 1) * self.config.neuron.batch_size_train)
                 progress = (100. * processed) / n
                 accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nP: {}', 
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nN: {}', 
                     1, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()))
 
         assert best_loss <= 0.1
         assert best_accuracy > 0.80
+        exit(0)
         
 def main():
     # 1. Load Config.

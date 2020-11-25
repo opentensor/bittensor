@@ -22,6 +22,8 @@ from bittensor.utils.asyncio import Asyncio
 # dummy tensor that triggers autograd in RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
 
+def nill_response_for(inputs):
+    return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__) )
 
 class Dendrite(nn.Module):
     r"""
@@ -187,6 +189,9 @@ class Dendrite(nn.Module):
         loop.stop()
         return results
 
+    def fill_zeros(self, inputs):
+        return torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__))
+
     async def gather(self, loop: asyncio.base_events.BaseEventLoop, inputs, neurons, mode):
             
         # Fill async calls.
@@ -199,7 +204,8 @@ class Dendrite(nn.Module):
             remote = self._remotes[neuron_i.public_key]
 
             # Append async call.
-            calls.append( loop.run_in_executor(None, remote.forward, i, inputs_i, mode) )
+            #calls.append( loop.run_in_executor(None, self.fill_zeros, inputs_i) )
+            calls.append( loop.run_in_executor(None, remote.forward, inputs_i, mode) )
         
         # Gather results and return.
         results = await asyncio.gather(*calls)
@@ -241,14 +247,13 @@ class RemoteNeuron(nn.Module):
         if self.channel is not None:
             self.channel.close()
 
-    def forward(self, id2, inputs: torch.Tensor,
+    def forward(self, inputs: torch.Tensor,
                 mode: bittensor_pb2.Modality) -> torch.Tensor:
         try:
             outputs = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
         except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
             logger.warning("Exception occured in Remoteneuron forward call: {}".format(e))
-            outputs = torch.zeros(
-                (inputs.size(0), inputs.size(1), bittensor.__network_dim__))
+            outputs = nill_response_for(inputs)
         return outputs
 
 
@@ -273,9 +278,8 @@ class _RemoteModuleCall(torch.autograd.Function):
                 serialized_inputs = PyTorchSerializer.serialize(inputs, mode)
             except SerializationException:
                 raise SerializationException
+            ctx.serialized_inputs =  serialized_inputs
 
-            ctx.serialized_inputs = serialized_inputs
-            
             # Build request for forward.
             request = bittensor_pb2.TensorMessage(
                 version=bittensor.__version__,
@@ -317,8 +321,7 @@ class _RemoteModuleCall(torch.autograd.Function):
         # Catch Errors and return zeros.
         except (grpc._channel._InactiveRpcError, EmptyTensorException,
                 SerializationException, ResponseShapeException) as e:
-            outputs = torch.zeros(
-                (inputs.size(0), inputs.size(1), bittensor.__network_dim__))
+            outputs = nill_response_for(inputs)
 
         return outputs
 
@@ -326,44 +329,30 @@ class _RemoteModuleCall(torch.autograd.Function):
     @once_differentiable
     def backward(ctx, grads: torch.Tensor) -> Optional[torch.Tensor]:
 
-        deserialized_grad_inputs = torch.zeros_like(ctx.inputs)
+        # Fill zeros response. Gradient do not pass through peers.
+        zeros = nill_response_for(ctx.inputs)
 
         # Swtich for passing gradients.
         if not ctx.caller.config.dendrite.pass_gradients:
-            return (None, None, deserialized_grad_inputs, None)
+            return (None, None, zeros, None)
 
-        try:
-            # Serialize inputs to bytes.
-            serialized_grads = PyTorchSerializer.serialize_tensor(grads)
-            serialized_inputs = ctx.serialized_inputs
+        else:
+            try:
+                # Serialize inputs to bytes.
+                serialized_grads = PyTorchSerializer.serialize_tensor(grads)
+                serialized_inputs = ctx.serialized_inputs
 
-            # Build request for forward.
-            request = bittensor_pb2.TensorMessage(
-                version=bittensor.__version__,
-                public_key=ctx.caller.keypair.public_key,
-                nounce=ctx.caller.nounce,
-                signature=ctx.caller.signature,
-                tensors=[serialized_inputs, serialized_grads])
+                # Build request for forward.
+                request = bittensor_pb2.TensorMessage(
+                    version=bittensor.__version__,
+                    public_key=ctx.caller.keypair.public_key,
+                    nounce=ctx.caller.nounce,
+                    signature=ctx.caller.signature,
+                    tensors=[serialized_inputs, serialized_grads])
 
-            # Attain backward response
-            pre_response_time = time.time()
-            response = ctx.caller.stub.Backward(request, timeout=ctx.caller.config.dendrite.timeout)
-            elapsed_time = time.time() - pre_response_time
-            bittensor.session.tbwriter.write_dendrite_network_data(
-                'Remote Module Backward Call Response Message Size (MB)', response.ByteSize() / 1024)
-            bittensor.session.tbwriter.write_dendrite_network_data(
-                'Remote Module Backward Call Turnaround latency (seconds)', round(elapsed_time, 2))
-            deserialized_grad_inputs = PyTorchSerializer.deserialize(
-                response.tensors[0])
-            return (None, None, deserialized_grad_inputs, None)
+                # Non blocking future.
+                ctx.caller.stub.Backward.future(request, timeout=ctx.caller.config.dendrite.timeout)
+                return (None, None, zeros, None)
+            except:
+                return (None, None, zeros, None)
 
-        except grpc._channel._InactiveRpcError as _:
-            return (None, None, deserialized_grad_inputs, None)
-
-        except SerializationException as _:
-            logger.warning("Serialization of gradients {} failed".format(grads))
-            return (None, None, deserialized_grad_inputs, None)
-
-        except Exception as e:
-            logger.warning("Uncaught exception {}", e)
-            return (None, None, deserialized_grad_inputs, None)
