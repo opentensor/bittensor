@@ -287,6 +287,9 @@ class Metagraph():
                 self._keys_list.append( key )
                 self._index_for_key[key] = index
 
+            # Record number of peers on tblogger
+            bittensor.session.tbwriter.write_network_data("# Peers", len(self._neurons_list))
+
         except Exception as e:
             logger.error("Exception occurred: {}".format(e))
             traceback.print_exc()

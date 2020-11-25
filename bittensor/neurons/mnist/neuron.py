@@ -20,10 +20,17 @@ from bittensor.config import Config
 from bittensor.neuron import NeuronBase
 from bittensor.synapse import Synapse
 from bittensor.synapses.ffnn import FFNNSynapse
+import replicate
 
 class Neuron (NeuronBase):
     def __init__(self, config):
         self.config = config
+        # Create an "experiment". This represents a run of your training script.
+        # It saves the training code at the given path and any hyperparameters.
+        self.experiment = replicate.init(
+            path=".",
+            params={"learning_rate": self.config.neuron.learning_rate},
+        )
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
@@ -75,6 +82,7 @@ class Neuron (NeuronBase):
     
         # Train loop: Single threaded training of MNIST.
         def train(model, epoch):
+            
             # Turn on Dropoutlayers BatchNorm etc.
             model.train()
             last_log = time.time()
@@ -102,7 +110,7 @@ class Neuron (NeuronBase):
                     
                     progress = (100. * processed) / n
                     accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
-                    logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nS: {}', 
+                    logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nN: {}', 
                         epoch, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()))
                     session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())
                     session.tbwriter.write_loss('train local target loss', output.local_target_loss.item())
@@ -162,8 +170,19 @@ class Neuron (NeuronBase):
                 best_test_loss = test_loss
                 
                 # Save and serve the new best local model.
-                logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.logger.logdir + '/model.torch' )
-                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.logger.logdir + '/model.torch' )
+                logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.meta_logger.log_dir + '/model.torch' )
+                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.meta_logger.log_dir + '/model.torch' )
+
+                # Create a checkpoint within the experiment.
+                # This saves the metrics at that point, and makes a copy of the file
+                # or directory given, which could weights and any other artifacts.
+                self.experiment.checkpoint(
+                    path=self.config.meta_logger.log_dir+"/model.torch",
+                    step=epoch,
+                    metrics={"loss": test_loss},
+                    primary_metric=("loss", "minimize"),
+                )
+
                 session.serve( model.deepcopy() )
 
             epoch += 1
