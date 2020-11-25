@@ -122,8 +122,11 @@ class FFNNSynapse(Synapse):
                 remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`): 
                     Joined context vector from remote peer neurons.
 
-                keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `required`): 
+                keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `optional`): 
                     keys of neurons queried during this remote call.
+
+                scores (:obj:`torch.LongTensor` of shape :obj:`(batch_size, len(keys))`, `optional`): 
+                    scores for each active key per example.
         """
         # images: re-add sequence dimension to input images.
         # hidden.shape = [batch_size, sequence_dim, channels, rows, cols] 
@@ -140,7 +143,7 @@ class FFNNSynapse(Synapse):
 
         # Return zeros if there are no remaining peer neurons.
         if torch.numel(keys) == 0:
-            return torch.zeros(size=(images.shape[0], bittensor.__network_dim__)), keys
+            return torch.zeros(size=(images.shape[0], bittensor.__network_dim__)), None, None
 
         # neurons: endpoint information for filtered keys.
         # neurons.shape = [keys.size]
@@ -148,7 +151,7 @@ class FFNNSynapse(Synapse):
         
         # request: image inputs routeed to peers using context to filter topk.
         # request.shape = neurons.size * [-1, sequence_dim, channels, rows, cols]
-        requests, _ = self.router.route( neurons, context, images ) 
+        requests, scores = self.router.route( neurons, context, images ) 
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
@@ -158,7 +161,7 @@ class FFNNSynapse(Synapse):
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         remote_context = self.router.join( responses )
         remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2])
-        return remote_context, keys
+        return remote_context, keys, scores
 
     def forward(self,
                 images: torch.Tensor,
@@ -202,8 +205,11 @@ class FFNNSynapse(Synapse):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    keys (:obj:`torch.LongTensor` of shape :obj:`(1)`, `optional`): 
+                    keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `optional`): 
                         Keys for queried neurons.
+
+                    scores (:obj:`torch.LongTensor` of shape :obj:`(batch_size, len(keys))`, `optional`): 
+                        scores for each active key per example.
                 )
         """
 
@@ -220,8 +226,9 @@ class FFNNSynapse(Synapse):
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         if remote:
-            remote_context, keys = self.call_remote(images, transform)
+            remote_context, keys, scores = self.call_remote(images, transform)
             output.keys = keys
+            output.scores = scores
 
         # local_context: distillation model for remote_context.
         # local_context.shape = [batch_size, bittensor.__network_dim__]

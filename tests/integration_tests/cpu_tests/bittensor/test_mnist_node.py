@@ -13,6 +13,7 @@ from bittensor.synapses.ffnn import FFNNSynapse
 from bittensor.subtensor import Keypair
 from bittensor.utils.asyncio import Asyncio
 
+import numpy as np
 from loguru import logger
 import math
 from termcolor import colored
@@ -82,7 +83,7 @@ class Neuron(NeuronBase):
 
                 n = len(train_data)
                 n_str = colored('{}'.format(n), 'red')
-                
+
                 loss_item = output.remote_target_loss.item()
                 loss_item_str = colored('{:.3f}'.format(loss_item), 'green')
 
@@ -98,11 +99,22 @@ class Neuron(NeuronBase):
                 nN = len(session.metagraph.neurons())
                 nN_str = colored('{}'.format(nN), 'red')
 
-                nA = len(output.keys.tolist())
+                nA = len(output.keys.tolist()) if (output.keys != None) else 0
                 nA_str = colored('{}'.format(nA), 'green')
 
                 logger.info('Epoch: {} [{}/{} ({})] | Loss: {} | Acc: {} | Act/Tot: {}/{}', 
                     1, processed_str, n_str, progress_str, loss_item_str, accuracy_str, nA_str, nN_str)
+
+                if output.scores != None and output.keys != None:
+                    np.set_printoptions(precision=2, suppress=True, linewidth=500)
+                    numpy_keys = np.array(output.keys.tolist())
+                    scores_mean = torch.mean(output.scores, axis=0) 
+                    scores_norm = scores_mean/ torch.sum(scores_mean)
+                    numpy_scores = np.array(scores_norm.tolist())
+                    numpy_stack = np.stack((numpy_keys, numpy_scores), axis=0)
+                    stack_str = colored(numpy_stack, 'green')
+                    logger.info('Scores: \n {}', stack_str)
+
 
         time_elapsed = time.time() - start_time
         logger.info("Total time elapsed: {}".format(time_elapsed))
