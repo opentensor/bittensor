@@ -3,7 +3,7 @@
 [![Documentation Status](https://readthedocs.org/projects/bittensor-docs/badge/?version=latest)](https://bittensor-docs.readthedocs.io/en/latest/?badge=latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Bittensor is a peer-to-peer neural network which rewards the information produced by the computers which compose it.
+Neural networks which mine crypto by producing information for their peers.
 
 ## Links
 - [Documentation](https://bittensor-docs.readthedocs.io/en/latest/index.html)
