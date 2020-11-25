@@ -74,6 +74,8 @@ class FFNNSynapse(Synapse):
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
         parser.add_argument('--synapse.target_dim', default=10, type=int, 
                             help='Final logit layer dimension. i.e. 10 for MNIST.')
+        parser.add_argument('--synapse.n_block_filter', default=100, type=int, 
+                            help='Stale neurons are filtered after this many blocks.')
         return parser
 
     @staticmethod   
@@ -105,6 +107,58 @@ class FFNNSynapse(Synapse):
         hidden = torch.unsqueeze(hidden, 1)
 
         return hidden
+
+    def call_remote(self, images, context):
+        r""" Makes remote calls to neurons.
+
+            Args:
+                images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
+                    Image tensors to send.
+                
+                context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, transform_dim)`, `required`): 
+                    Per example tensor used to select which neuron to send each example to.
+            
+            Returns:
+                remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`): 
+                    Joined context vector from remote peer neurons.
+
+                keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `required`): 
+                    keys of neurons queried during this remote call.
+        """
+        # images: re-add sequence dimension to input images.
+        # hidden.shape = [batch_size, sequence_dim, channels, rows, cols] 
+        images = torch.unsqueeze(images, 1) 
+
+        # keys: unique keys for peer neurons.
+        # keys.shape = [metagraph.n]
+        keys = self.session.metagraph.keys() # Returns a list of neuron keys.
+       
+        # keys: keys with an emit call in the last 100 blocks.
+        # keys = [-1]
+        staleness = (self.session.metagraph.block() - self.session.metagraph.emit())
+        keys = keys[torch.where(staleness < self.config.synapse.n_block_filter)] 
+
+        # Return zeros if there are no remaining peer neurons.
+        if torch.numel(keys) == 0:
+            return torch.zeros(size=(images.shape[0], bittensor.__network_dim__)), keys
+
+        # neurons: endpoint information for filtered keys.
+        # neurons.shape = [keys.size]
+        neurons = self.session.metagraph.neurons_for_keys(keys)
+        
+        # request: image inputs routeed to peers using context to filter topk.
+        # request.shape = neurons.size * [-1, sequence_dim, channels, rows, cols]
+        requests, _ = self.router.route( neurons, context, images ) 
+
+        # responses: image responses from neurons.
+        # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
+        responses = self.session.dendrite.forward_image( neurons, requests )
+
+        # remote_context: Responses weighted and joined along the __network_dim__.
+        # remote_context.shape = [batch_size, bittensor.__network_dim__]
+        remote_context = self.router.join( responses )
+        remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2])
+        return remote_context, keys
 
     def forward(self,
                 images: torch.Tensor,
@@ -147,6 +201,9 @@ class FFNNSynapse(Synapse):
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
+
+                    keys (:obj:`torch.LongTensor` of shape :obj:`(1)`, `optional`): 
+                        Keys for queried neurons.
                 )
         """
 
@@ -163,16 +220,8 @@ class FFNNSynapse(Synapse):
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         if remote:
-            # If query == True make a remote call.
-            images = torch.unsqueeze(images, 1) # Add sequence dimension.
-            neurons = self.session.metagraph.neurons() # Returns a list of neurons on the network.
-            if (len(neurons) > 0):
-                requests, _ = self.router.route( neurons, transform, images ) # routes inputs to network.
-                responses = self.session.dendrite.forward_image( neurons, requests ) # Makes network calls.    
-                remote_context = self.router.join( responses ) # Joins responses based on scores..
-                remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2]) # Squeeze the sequence dimension.
-            else:
-                remote_context = torch.zeros(size=(images.shape[0], bittensor.__network_dim__))
+            remote_context, keys = self.call_remote(images, transform)
+            output.keys = keys
 
         # local_context: distillation model for remote_context.
         # local_context.shape = [batch_size, bittensor.__network_dim__]
