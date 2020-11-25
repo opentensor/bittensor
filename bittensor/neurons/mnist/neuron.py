@@ -1,7 +1,5 @@
 """Training a MNIST Neuron.
-
 This file demonstrates a training pipeline for an MNIST Neuron.
-
 Example:
         $ python examples/mnist/main.py
 """
@@ -169,4 +167,3 @@ class Neuron (NeuronBase):
                 session.serve( model.deepcopy() )
 
             epoch += 1
-

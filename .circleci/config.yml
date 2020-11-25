@@ -70,7 +70,7 @@ jobs:
           command: unset https_proxy;unset http_proxy
       - run:
           name: Run MNIST node
-          command: pytest -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py
+          command: python3 -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py
 
   MNIST-2:
     executor: bittensor-executor
@@ -87,7 +87,7 @@ jobs:
           command: unset https_proxy;unset http_proxy
       - run:
           name: Run MNIST node
-          command: pytest -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py
+          command: python3 ./tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.1
   
   MNIST-3:
     executor: bittensor-executor
@@ -104,7 +104,7 @@ jobs:
           command: unset https_proxy;unset http_proxy
       - run:
           name: Run MNIST node
-          command: pytest -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py
+          command: python3 ./tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.1
   
   MNIST-4:
     executor: bittensor-executor
@@ -121,7 +121,7 @@ jobs:
           command: unset https_proxy;unset http_proxy
       - run:
           name: Run MNIST node
-          command: pytest -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py
+          command: python3 ./tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.1
 
   "Push Production candidate to DockerHub":
     docker:

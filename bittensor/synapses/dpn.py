@@ -61,7 +61,7 @@ class DPNSynapse(Synapse):
         self.transform_dim = (out_planes[3] * 4)+(((num_blocks[3]+1) * 4)*dense_depth[3])
         
         # Router object for training network connectivity.
-        # [Transform] -> [ROUTER] -> [Synapses] -> [ROUTER]
+        # [Transform] -> [ROUTER] -> [Neurons] -> [ROUTER]
         self.router = Router(x_dim = self.transform_dim , key_dim = 100, topk = 10)
 
         # Context layers.
