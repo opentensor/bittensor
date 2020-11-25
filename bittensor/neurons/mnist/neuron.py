@@ -75,6 +75,7 @@ class Neuron (NeuronBase):
     
         # Train loop: Single threaded training of MNIST.
         def train(model, epoch):
+            
             # Turn on Dropoutlayers BatchNorm etc.
             model.train()
             last_log = time.time()
@@ -102,7 +103,7 @@ class Neuron (NeuronBase):
                     
                     progress = (100. * processed) / n
                     accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
-                    logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nS: {}', 
+                    logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nN: {}', 
                         epoch, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()))
                     session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())
                     session.tbwriter.write_loss('train local target loss', output.local_target_loss.item())
@@ -154,7 +155,7 @@ class Neuron (NeuronBase):
             scheduler.step()
 
             # Test model.
-            test_loss, _ = test( model )
+            test_loss, test_accuracy = test( model )
         
             # Save best model. 
             if test_loss < best_test_loss:
@@ -162,8 +163,11 @@ class Neuron (NeuronBase):
                 best_test_loss = test_loss
                 
                 # Save and serve the new best local model.
-                logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.logger.logdir + '/model.torch' )
-                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.logger.logdir + '/model.torch' )
+                logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, test_loss, self.config.neuron.datapath, self.config.neuron.neuron_name)
+                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss},"{}/{}/model.torch".format(self.config.neuron.datapath , self.config.neuron.neuron_name  ))
+                
+                # Save experiment metrics
+                session.checkpoint_experiment(epoch, loss=test_loss, accuracy=test_accuracy)
                 session.serve( model.deepcopy() )
 
             epoch += 1
