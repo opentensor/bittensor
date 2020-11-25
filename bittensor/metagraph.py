@@ -162,7 +162,7 @@ class Metagraph():
         return self._weights_torch
 
     async def pollchain(self):
-        logger.error("***** Doing a chain poll *****")
+        logger.info("***** Doing a chain poll *****")
         current_block = await self.subtensor_client.get_current_block()
 
         # Pull the last emit data from all nodes.
@@ -183,7 +183,7 @@ class Metagraph():
 
         self._build_torch_tensors()
 
-        await asyncio.sleep(15)
+        await asyncio.sleep(self._config.metagraph.polls_every_sec)
         await self.pollchain()
 
     def neurons(self) -> List[bittensor_pb2.Neuron]:

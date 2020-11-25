@@ -40,7 +40,6 @@ class Neuron(NeuronBase):
 
         # Build the optimizer.
         optimizer = optim.SGD(model.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10.0, gamma=0.1)
 
         # Load (Train, Test) datasets into memory.
         train_data = torchvision.datasets.MNIST(root = self.config.neuron.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
@@ -58,7 +57,7 @@ class Neuron(NeuronBase):
             images = images.to(device)
             targets = torch.LongTensor(targets).to(device)
             output = model(images, targets, remote = True)
-            
+
             # Backprop.
             loss = output.remote_target_loss + output.distillation_loss
             loss.backward()
@@ -97,22 +96,23 @@ def main():
     config = Config.load(neuron_path='bittensor/neurons/mnist')
     logger.info(Config.toString(config))
 
-    # 3. Load Keypair.
+    # 2. Load Keypair.
     logger.info('Load Keyfile ...')
     mnemonic = Keypair.generate_mnemonic()
     keypair = Keypair.create_from_mnemonic(mnemonic)
    
-    # 4. Load Neuron.
+    # 3. Load Neuron.
     logger.info('Load Neuron ... ')
     neuron = Neuron( config )
 
-    # 5. Load Session.
+    # 4. Load Session.
     logger.info('Build Session ... ')
     session = bittensor.init(config, keypair)
 
-    # 6. Start Neuron.
+    # 5. Start Neuron.
     logger.info('Start ... ')
     with session:
+        Asyncio.init()
         Asyncio.start_in_thread(neuron.start, session)
         Asyncio.run_forever()
 
