@@ -16,7 +16,6 @@ from bittensor.utils.asyncio import Asyncio
 import numpy as np
 from loguru import logger
 import math
-from termcolor import colored
 import torch
 import torch.optim as optim
 import torchvision
