@@ -4,7 +4,6 @@ from importlib.machinery import SourceFileLoader
 import munch
 import os
 import pathlib
-import time
 import validators
 import yaml
 from munch import Munch
@@ -13,7 +12,7 @@ from bittensor.axon import Axon
 from bittensor.session import BTSession
 from bittensor.dendrite import Dendrite
 from bittensor.metagraph import Metagraph
-from bittensor.tb_logger import TBLogger
+from bittensor.metadata import Metadata
 
 class InvalidConfigFile(Exception):
     pass
@@ -95,7 +94,7 @@ class Config:
         parser = Dendrite.add_args(parser)
         parser = BTSession.add_args(parser)
         parser = Metagraph.add_args(parser)
-        parser = TBLogger.add_args(parser)
+        parser = Metadata.add_args(parser)
 
         # 2. Load args from neuron.
         neuron_module = SourceFileLoader("Neuron", os.getcwd() + '/' + neuron_path + '/neuron.py').load_module()

@@ -1,8 +1,6 @@
 import argparse
 import bittensor
 import os
-import time
-import asyncio
 from  bittensor.utils.asyncio import Asyncio
 
 from loguru import logger
@@ -15,7 +13,7 @@ def main():
 
     # 1. Load passed --neuron_path for custom config.
     parser = argparse.ArgumentParser()
-    parser.add_argument('--neuron_path', default='/bittensor/neurons/mnist/', type=str, help='directoty path to a neuron.py class.')
+    parser.add_argument('--neuron_path', default='/bittensor/neurons/mnist/', type=str, help='directory path to a neuron.py class.')
     params = parser.parse_known_args()[0]
 
     # 2. Load Config.

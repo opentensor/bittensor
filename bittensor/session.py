@@ -7,7 +7,7 @@ from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
 from bittensor.utils.asyncio import Asyncio
 from bittensor.subtensor import Keypair
-from bittensor.tb_logger import TBLogger
+from bittensor.metadata import Metadata
 from loguru import logger
 import asyncio
 
@@ -31,7 +31,7 @@ class BTSession:
         self.metagraph = Metagraph(self.config, self.__keypair)
         self.axon = Axon(self.config, self.__keypair)
         self.dendrite = Dendrite(self.config, self.__keypair)
-        self.tbwriter = TBLogger(self.config)
+        self.tbwriter = Metadata(self.config)
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
