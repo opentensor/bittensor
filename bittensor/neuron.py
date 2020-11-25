@@ -1,7 +1,9 @@
+import argparse
+from munch import Munch
 import bittensor
 from bittensor.session import BTSession
 
-class Neuron(object):
+class NeuronBase(object):
     """ 
     """
     def __init__(   
@@ -9,6 +11,14 @@ class Neuron(object):
                 config,
         ):
         self.config = config
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        return config
 
     def start(self, session: BTSession):
         raise NotImplementedError

@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 from bittensor.config import Config
 from bittensor.subtensor import Keypair
-from bittensor.synapse import Synapse, SynapseConfig
+from bittensor.synapse import Synapse
 from bittensor.serializer import PyTorchSerializer, torch_dtype_to_bittensor_dtype, bittensor_dtype_to_torch_dtype
 from bittensor import bittensor_pb2
 import bittensor
@@ -10,22 +10,9 @@ import unittest
 import random
 import torch
 
-default_config = """
-    session_settings:
-        axon_port: 8081
-        chain_endpoint: 206.189.254.5:12345
-        logdir: /tmp/
-        remote_ip: 127.0.0.1
-    neuron:
-        neuron_path: /bittensor/neurons/mnist
-        datapath: /tmp/
-    training:
-        batch_size: 10
-"""
-
 class TestAxon(unittest.TestCase):
     def setUp(self):
-        self.config = Config.load(from_yaml = default_config)
+        self.config = Config.load(neuron_path='bittensor/neurons/mnist')
         mnemonic = Keypair.generate_mnemonic()
         self.keypair = Keypair.create_from_mnemonic(mnemonic)
         self.session = bittensor.init(self.config, self.keypair)
@@ -35,8 +22,7 @@ class TestAxon(unittest.TestCase):
             address = '0.0.0.0',
             port = 12345,
         )
-        self.synapse_config = SynapseConfig()
-        self.synapse = Synapse(self.synapse_config, self.session)
+        self.synapse = Synapse(self.config, self.session)
     
     def test_serve(self):
         assert self.session.axon._synapse == None

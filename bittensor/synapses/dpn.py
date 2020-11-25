@@ -6,99 +6,29 @@
 import bittensor
 from bittensor.utils.router import Router
 from bittensor.synapse import Synapse
-from bittensor.synapse import SynapseConfig
 from bittensor.synapse import SynapseOutput
 from bittensor.session import BTSession
 from bittensor.utils.batch_transforms import Normalize
 
+import argparse
+from munch import Munch
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-class DPNConfig (SynapseConfig):
-    r"""
-    This is the configuration class to store the configuration of a :class:`~DPNSynapse`.
-    It is used to instantiate a Dual Path model according to the specified
-    arguments, defining the model architecture. Instantiating a configuration with the defaults will yield a 
-    "shallow" DPN-26 configuration. 
-
-    For deeper network configurations, it is possible to set the num_blocks parameter to (3, 4, 20, 3) for a
-    DPN-92. 
-    
-    For DPN-98 set the following:
-    in_planes: (160, 320, 640, 1280)
-    out_planes: (256, 512, 1024, 2048)
-    num_blocks: (3, 6, 20, 3)
-    dense_depth: (16, 32, 32, 128)
-
-
-    Args:
-        target_size (:obj:`int`, `required`, defaults to (10)):
-            The number of logit heads used by the target layer.      
-        in_planes (:obj:`tuple`, `required`, defaults to (96,192,384,768)):
-            The inputs of convolutional layers 2, 3, 4, and 5. 
-        out_planes (:obj:`tuple`, `required`, defaults to (256,512,1024,2048)):
-            Output planes of convolutional layers 2, 3, 4, and 5.
-        num_blocks (:obj:`tuple`, `required`, defaults to (2,2,2,2)):
-            How many blocks of layers to create for layers 2, 3, 4, and 5
-        dense_depth (:obj:`tuple`, `required`, defaults to (16,32,24,128):
-            Width increment of the densely connected path.
-      
-
-    Examples::
-
-        >>> from bittensor.synapses.dpn import DPNConfig, DPNSynapse
-
-        >>> # Initializing a DPN configuration
-        >>> configuration = DPNConfig()
-
-        >>> # Initializing a DNP Synapse
-        >>> model = DPNSynapse ( configuration )
-    """
-
-    __default_target_size__ = 10
-    __default_in_planes__ = (96,192,384,768)
-    __default_out_planes__ = (256,512,1024,2048)
-    __default_block_config__ = (2,2,2,2)
-    __default_dense_depth__ = (16,32,24,128)
-    
-    def __init__(self, **kwargs):
-        super(DPNConfig, self).__init__(**kwargs)
-        self.target_size = kwargs.pop("target_size",
-                                         self.__default_target_size__)
-        self.in_planes = kwargs.pop("in_planes",
-                                         self.__default_in_planes__)
-        self.out_planes = kwargs.pop("out_planes",
-                                         self.__default_out_planes__)
-        self.block_config = kwargs.pop("block_config",
-                                         self.__default_block_config__)
-        self.dense_depth = kwargs.pop("dense_depth",
-                                         self.__default_dense_depth__)
-
-        self.run_type_checks()
-    
-    def run_type_checks(self):
-        assert isinstance(self.target_size, int)
-        assert isinstance(self.in_planes, tuple)
-        assert isinstance(self.out_planes, tuple)
-        assert isinstance(self.block_config, tuple)
-        assert isinstance(self.dense_depth, tuple)
-    
 
 class DPNSynapse(Synapse):
     """ Bittensor endpoint trained on PIL images to detect objects using DPN.
     """
 
     def __init__(   self, 
-                    config: DPNConfig,
+                    config: Munch,
                     session: BTSession,
                 ):
         r""" Init a new DPN synapse module.
 
             Args:
-                config (:obj: `bittensor.dpn.DPNConfig`, `required`)
-                    Model configuration object used to set up what the model should 
-                    contain in terms of convolutional and dense layers. See :class: bittensor.dpn.DPNConfig
+                config (:obj: `munch.Munch`, `required`)
+                    munch namespace config item.
 
                  session (:obj:`bittensor.Session`, `required`): 
                     bittensor session object. 
@@ -107,8 +37,8 @@ class DPNSynapse(Synapse):
             config = config,
             session = session)
 
-        in_planes, out_planes = config.in_planes, config.out_planes
-        num_blocks, dense_depth = config.block_config, config.dense_depth
+        in_planes, out_planes = config.synapse.in_planes, config.synapse.out_planes
+        num_blocks, dense_depth = config.synapse.block_config, config.synapse.dense_depth
 
         # Transform Network
         """ Transform network.
@@ -153,6 +83,41 @@ class DPNSynapse(Synapse):
         # (number of classes)
         self.target_layer1 = nn.Linear(bittensor.__network_dim__, 128)
         self.target_layer2 = nn.Linear(128, config.target_size)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        r""" This function adds the configuration items for the DPN synapse.
+        These args are use to instantiate a Dual Path model. 
+        Instantiating a configuration with the defaults will yield a "shallow" DPN-26 configuration. 
+
+        For deeper network configurations, it is possible to set the num_blocks parameter to (3, 4, 20, 3) for a
+        DPN-92. 
+        
+        For DPN-98 set the following:
+            in_planes: (160, 320, 640, 1280)
+            out_planes: (256, 512, 1024, 2048)
+            num_blocks: (3, 6, 20, 3)
+            dense_depth: (16, 32, 32, 128)
+        """
+        def to_list(arg):
+            return [int(i) for i in arg.split(",")]
+        parser.add_argument('--synapse.in_planes', default='160, 320, 640, 1280', action="append", type=to_list)
+        parser.add_argument('--synapse.out_planes', default='256, 512, 1024, 2048', action="append", type=to_list)
+        parser.add_argument('--synapse.num_blocks', default='3, 6, 20, 3', action="append", type=to_list)
+        parser.add_argument('--synapse.dense_depth', default='16, 32, 32, 128', action="append", type=to_list)
+        return parser
+    
+    @staticmethod
+    def check_config(config: Munch) -> Munch:
+        assert isinstance(config.synapse.in_planes, list), 'synapse.in_planes must be a tuple, got {}'.format(config.synapse.in_planes)
+        assert isinstance(config.synapse.out_planes, list), 'synapse.out_planes must be a tuple, got {}'.format(config.synapse.out_planes)
+        assert isinstance(config.synapse.num_blocks, list), 'synapse.num_blocks must be a tuple, got {}'.format(config.synapse.num_blocks)
+        assert isinstance(config.synapse.dense_depth, list), 'synapse.dense_depth must be a tuple, got {}'.format(config.synapse.dense_depth)
+        assert all(isinstance(el, int) for el in config.synapse.in_planes), 'synapse.in_planes must be a tuple of ints, got {}'.format(config.synapse.in_planes)
+        assert all(isinstance(el, int) for el in config.synapse.out_planes), 'synapse.out_planes must be a tuple of ints, got {}'.format(config.synapse.out_planes)
+        assert all(isinstance(el, int) for el in config.synapse.num_blocks), 'synapse.num_blocks must be a tuple of ints, got {}'.format(config.synapse.num_blocks)
+        assert all(isinstance(el, int) for el in config.synapse.dense_depth), 'synapse.dense_depth must be a tuple of ints, got {}'.format(config.synapse.dense_depth)
+        return config
     
     def forward_image (     self,  
                             images: torch.Tensor):
