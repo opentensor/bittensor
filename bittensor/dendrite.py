@@ -181,40 +181,29 @@ class Dendrite(nn.Module):
             error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
             raise ValueError(error_msg)
 
-        results = []
-        for idx, (forward_inputs, neuron) in enumerate(list(zip(x, neurons))):
-            # Get or create remote_neuron.
-            remote_neuron = None
-            if neuron.public_key in self._remotes:
-                remote_neuron = self._remotes[neuron.public_key]
-            else:
-                # Create remote connection.
-                remote_neuron = RemoteNeuron(neuron, self._config, self.__keypair)
-                self._remotes[neuron.public_key] = remote_neuron
-
-
-            # Call remote neuron.
-            try:
-
-                loop = asyncio.new_event_loop()
-                result = loop.run_until_complete(self.gather(loop, remote_neuron.forward, forward_inputs, mode))
-                loop.stop()
-
-                result = result[0]
-
-                results.append(result)
-            except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
-                logger.error("Exception occured: {}".format(e))
-
+        # Run async calls.
+        loop = asyncio.new_event_loop()
+        results = loop.run_until_complete(self.gather(loop, x, neurons, mode))
+        loop.stop()
         return results
 
-    async def gather(self, loop: asyncio.base_events.BaseEventLoop, method, forward_inputs, mode):
-        result = await asyncio.gather(
-            loop.run_in_executor(None, method, forward_inputs, mode)
-        )
+    async def gather(self, loop: asyncio.base_events.BaseEventLoop, inputs, neurons, mode):
+            
+        # Fill async calls.
+        calls = []
+        for inputs_i, neuron_i in list(zip(inputs, neurons)):
+            
+            # Find remote or create one.
+            if neuron_i.public_key not in self._remotes:
+                self._remotes[neuron_i.public_key] = RemoteNeuron(neuron_i, self._config, self.__keypair)
+            remote = self._remotes[neuron_i.public_key]
 
-        return result
-
+            # Append async call.
+            calls.append( loop.run_in_executor(None, remote.forward, inputs_i, mode) )
+        
+        # Gather results and return.
+        results = await asyncio.gather(*calls)
+        return results
 
 # NOTE: (const) This code has been ported from hivemind thanks to Yozh and Max.
 # Credit to them for designing this structure and api around torch. Here being ported to
