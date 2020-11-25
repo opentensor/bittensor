@@ -267,66 +267,60 @@ class _RemoteModuleCall(torch.autograd.Function):
         ctx.mode = mode
         ctx.inputs = inputs
 
-        # return torch.zeros(
-        #         (inputs.size(0), inputs.size(1), bittensor.__network_dim__))
-
-        #try:
-        # Serialize inputs to bytest buffer.
         try:
-            serialized_inputs = PyTorchSerializer.serialize(inputs, mode)
-        except SerializationException:
-            raise SerializationException
+            # Serialize inputs to bytest buffer.
+            try:
+                serialized_inputs = PyTorchSerializer.serialize(inputs, mode)
+            except SerializationException:
+                raise SerializationException
 
-        ctx.serialized_inputs = serialized_inputs
-        return torch.zeros(
-            (inputs.size(0), inputs.size(1), bittensor.__network_dim__))
-        
+            ctx.serialized_inputs = serialized_inputs
+            
+            # Build request for forward.
+            request = bittensor_pb2.TensorMessage(
+                version=bittensor.__version__,
+                public_key=ctx.caller.keypair.public_key,
+                nounce=ctx.caller.nounce,
+                signature=ctx.caller.signature,
+                tensors=[serialized_inputs])
 
-        #     # Build request for forward.
-        #     request = bittensor_pb2.TensorMessage(
-        #         version=bittensor.__version__,
-        #         public_key=ctx.caller.keypair.public_key,
-        #         nounce=ctx.caller.nounce,
-        #         signature=ctx.caller.signature,
-        #         tensors=[serialized_inputs])
+            # Forward tensor.
+            pre_response_time = time.time() # in seconds
+            response = ctx.caller.stub.Forward(request, timeout=caller.config.dendrite.timeout)
+            # Time (in seconds) response took
+            elapsed_time = time.time() - pre_response_time
+            bittensor.session.tbwriter.write_dendrite_network_data(
+                'Remote Module Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
+            bittensor.session.tbwriter.write_dendrite_network_data(
+                'Remote Module Forward Call Turnaround latency (seconds)', round(elapsed_time, 2))
 
-        #     # Forward tensor.
-        #     pre_response_time = time.time() # in seconds
-        #     response = ctx.caller.stub.Forward(request, timeout=caller.config.dendrite.timeout)
-        #     # Time (in seconds) response took
-        #     elapsed_time = time.time() - pre_response_time
-        #     bittensor.session.tbwriter.write_dendrite_network_data(
-        #         'Remote Module Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
-        #     bittensor.session.tbwriter.write_dendrite_network_data(
-        #         'Remote Module Forward Call Turnaround latency (seconds)', round(elapsed_time, 2))
+            # Deserialize outputs and return.
+            if len(response.tensors) > 0:
+                outputs = PyTorchSerializer.deserialize_tensor(
+                    response.tensors[0])
+            else:
+                raise EmptyTensorException(
+                    'Forward request returned no tensors.')
 
-        #     # Deserialize outputs and return.
-        #     if len(response.tensors) > 0:
-        #         outputs = PyTorchSerializer.deserialize_tensor(
-        #             response.tensors[0])
-        #     else:
-        #         raise EmptyTensorException(
-        #             'Forward request returned no tensors.')
+            # Check batch_size.
+            if outputs.size(0) != inputs.size(0) \
+                    or outputs.size(1) != inputs.size(1) \
+                    or outputs.size(2) != bittensor.__network_dim__:
+                raise ResponseShapeException(
+                    'Forward request returned tensor with incorrect shape {}'.
+                        format(list(outputs.shape)))
 
-        #     # Check batch_size.
-        #     if outputs.size(0) != inputs.size(0) \
-        #             or outputs.size(1) != inputs.size(1) \
-        #             or outputs.size(2) != bittensor.__network_dim__:
-        #         raise ResponseShapeException(
-        #             'Forward request returned tensor with incorrect shape {}'.
-        #                 format(list(outputs.shape)))
+            # Safe catch NaNs and replace with 0.0.
+            outputs = torch.where(torch.isnan(outputs),
+                                  torch.zeros_like(outputs), outputs)
 
-        #     # Safe catch NaNs and replace with 0.0.
-        #     outputs = torch.where(torch.isnan(outputs),
-        #                           torch.zeros_like(outputs), outputs)
+        # Catch Errors and return zeros.
+        except (grpc._channel._InactiveRpcError, EmptyTensorException,
+                SerializationException, ResponseShapeException) as e:
+            outputs = torch.zeros(
+                (inputs.size(0), inputs.size(1), bittensor.__network_dim__))
 
-        # # Catch Errors and return zeros.
-        # except (grpc._channel._InactiveRpcError, EmptyTensorException,
-        #         SerializationException, ResponseShapeException) as e:
-        #     outputs = torch.zeros(
-        #         (inputs.size(0), inputs.size(1), bittensor.__network_dim__))
-
-        # return outputs
+        return outputs
 
     @staticmethod
     @once_differentiable
