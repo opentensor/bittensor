@@ -16,6 +16,7 @@ from bittensor.utils.asyncio import Asyncio
 
 import asyncio
 import random
+from termcolor import colored
 from loguru import logger
 import math
 import torch
@@ -78,7 +79,8 @@ class Neuron(NeuronBase):
                 session.serve( model.deepcopy() )
 
             # Logs:
-            if (batch_idx + 1) % self.config.neuron.log_interval == 0: 
+            if (batch_idx + 1) % self.config.neuron.log_interval == 0:
+                loss_colo = colored(str(loss_item))
                 n = len(train_data)
                 max_logit = output.remote_target.data.max(1, keepdim=True)[1]
                 correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
@@ -86,8 +88,8 @@ class Neuron(NeuronBase):
                 processed = ((batch_idx + 1) * self.config.neuron.batch_size_train)
                 progress = (100. * processed) / n
                 accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
-                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nN: {}, nA: {}', 
-                    1, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()), len(output.keys.tolist()))
+                logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f} Acc: {:.6f} nN: {} nA: {}', 
+                    1, processed, n, progress, loss_colo, accuracy, len(session.metagraph.neurons()), len(output.keys.tolist()))
 
         assert best_loss <= 0.1
         assert best_accuracy > 0.80
