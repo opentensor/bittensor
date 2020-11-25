@@ -191,7 +191,7 @@ class Dendrite(nn.Module):
             
         # Fill async calls.
         calls = []
-        for inputs_i, neuron_i in list(zip(inputs, neurons)):
+        for id2, (inputs_i, neuron_i) in enumerate(list(zip(inputs, neurons))):
             
             # Find remote or create one.
             if neuron_i.public_key not in self._remotes:
@@ -199,7 +199,7 @@ class Dendrite(nn.Module):
             remote = self._remotes[neuron_i.public_key]
 
             # Append async call.
-            calls.append( loop.run_in_executor(None, remote.forward, inputs_i, mode) )
+            calls.append( loop.run_in_executor(None, remote.forward, 'f', id2, inputs_i, mode) )
         
         # Gather results and return.
         results = await asyncio.gather(*calls)
@@ -241,8 +241,9 @@ class RemoteNeuron(nn.Module):
         if self.channel is not None:
             self.channel.close()
 
-    def forward(self, inputs: torch.Tensor,
+    def forward(self, id1, id2, inputs: torch.Tensor,
                 mode: bittensor_pb2.Modality) -> torch.Tensor:
+        logger.info('f2 id1{} id2{}', id1, id2)
         try:
             outputs = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
         except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
