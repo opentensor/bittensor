@@ -98,11 +98,17 @@ class Config:
 
         # 2. Load args from neuron.
         neuron_module = SourceFileLoader("Neuron", os.getcwd() + '/' + neuron_path + '/neuron.py').load_module()
+
+        # Clip neuron name from the last directory of neuron path
+        neuron_name = neuron_path.rsplit("/",1)[1]
+
+        # Update replicate yaml file to this neuron name. 
+        Config.update_replicate_yaml(neuron_name)
+        
         parser = neuron_module.Neuron.add_args( parser )
 
         # 3. Parse.
         params = parser.parse_known_args()[0]
-
         # 4. Splits params on dot synatax i.e session.axon_port
         # Fills a munch config with items.
         config = Munch()
@@ -305,3 +311,13 @@ class Config:
                 if isinstance(v, dict):
                     Config.add(items_a[k], items_b[k])
         return items_a
+
+    @staticmethod
+    def update_replicate_yaml(neuron_name):
+        with open("replicate.yaml") as replicate_file:
+            replicate_yaml = yaml.safe_load(replicate_file)
+
+        replicate_yaml['repository'] = "file://data/{}/.replicate".format(neuron_name)
+        
+        with open("replicate.yaml", "w") as f:
+            yaml.dump(replicate_yaml, f)

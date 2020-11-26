@@ -38,7 +38,7 @@ class DPNSynapse(Synapse):
             session = session)
 
         in_planes, out_planes = config.synapse.in_planes, config.synapse.out_planes
-        num_blocks, dense_depth = config.synapse.block_config, config.synapse.dense_depth
+        num_blocks, dense_depth = config.synapse.num_blocks, config.synapse.dense_depth
 
         # Transform Network
         """ Transform network.
@@ -82,7 +82,7 @@ class DPNSynapse(Synapse):
         # Layers to project target down to target size passed by config
         # (number of classes)
         self.target_layer1 = nn.Linear(bittensor.__network_dim__, 128)
-        self.target_layer2 = nn.Linear(128, config.target_size)
+        self.target_layer2 = nn.Linear(128, self.config.synapse.target_dim)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -105,6 +105,7 @@ class DPNSynapse(Synapse):
         parser.add_argument('--synapse.out_planes', default='256, 512, 1024, 2048', action="append", type=to_list)
         parser.add_argument('--synapse.num_blocks', default='3, 6, 20, 3', action="append", type=to_list)
         parser.add_argument('--synapse.dense_depth', default='16, 32, 32, 128', action="append", type=to_list)
+        parser.add_argument('--synapse.target_dim', default=10, type=int, help='Final logit layer dimension. i.e. 10 for CIFAR-10.')
         return parser
     
     @staticmethod

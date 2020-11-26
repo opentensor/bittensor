@@ -10,9 +10,8 @@ import bittensor
 from bittensor import BTSession
 from bittensor.config import Config
 from bittensor.synapse import Synapse
-from bittensor.neuron import NeuronBase
 from bittensor.synapses.dpn import DPNSynapse
-from bittensor.utils.model_utils import ModelToolbox
+from bittensor.neuron import NeuronBase
 
 import argparse
 from loguru import logger
@@ -22,7 +21,6 @@ import torch
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-import traceback
 
 class Neuron (NeuronBase):
     def __init__(self, config):
