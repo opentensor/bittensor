@@ -84,6 +84,8 @@ class DPNSynapse(Synapse):
         self.target_layer1 = nn.Linear(bittensor.__network_dim__, 128)
         self.target_layer2 = nn.Linear(128, self.config.synapse.target_dim)
 
+        self.to(self.device)
+
     @staticmethod
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         r""" This function adds the configuration items for the DPN synapse.
