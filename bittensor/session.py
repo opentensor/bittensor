@@ -10,6 +10,7 @@ from bittensor.subtensor import Keypair
 from bittensor.metadata import Metadata
 from loguru import logger
 import asyncio
+import replicate
 
 
 class FailedConnectToChain(Exception):
@@ -32,6 +33,14 @@ class BTSession:
         self.axon = Axon(self.config, self.__keypair)
         self.dendrite = Dendrite(self.config, self.__keypair)
         self.tbwriter = Metadata(self.config)
+        self.experiment = replicate.init(
+            path=self.config.neuron.datapath,
+            params={"learning_rate": self.config.neuron.learning_rate,
+                    "momentum": self.config.neuron.momentum,
+                    "batch_size_train": self.config.neuron.batch_size_train,
+                    "batch_size_test": self.config.neuron.batch_size_test,
+                    "log_interval": self.config.neuron.log_interval}
+        )
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -130,3 +139,18 @@ class BTSession:
 
     def unsubscribe (self):
         self.metagraph.unsubscribe()
+    
+    def checkpoint_experiment(self, epoch, **experiment_metrics):
+        # Create a checkpoint within the experiment.
+        # This saves the metrics at that point, and makes a copy of the file
+        # or directory given, which could weights and any other artifacts.
+        metrics = {}
+        for key, value in experiment_metrics.items():
+            metrics[key] = value
+
+        self.experiment.checkpoint(
+            path=self.config.meta_logger.log_dir+"/model.torch",
+            step=epoch,
+            metrics=metrics,
+            primary_metric=("loss", "minimize"),
+        )
