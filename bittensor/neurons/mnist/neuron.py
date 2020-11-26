@@ -20,17 +20,10 @@ from bittensor.config import Config
 from bittensor.neuron import NeuronBase
 from bittensor.synapse import Synapse
 from bittensor.synapses.ffnn import FFNNSynapse
-import replicate
 
 class Neuron (NeuronBase):
     def __init__(self, config):
         self.config = config
-        # Create an "experiment". This represents a run of your training script.
-        # It saves the training code at the given path and any hyperparameters.
-        self.experiment = replicate.init(
-            path=".",
-            params={"learning_rate": self.config.neuron.learning_rate},
-        )
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
@@ -162,7 +155,7 @@ class Neuron (NeuronBase):
             scheduler.step()
 
             # Test model.
-            test_loss, _ = test( model )
+            test_loss, test_accuracy = test( model )
         
             # Save best model. 
             if test_loss < best_test_loss:
@@ -172,17 +165,9 @@ class Neuron (NeuronBase):
                 # Save and serve the new best local model.
                 logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.meta_logger.log_dir + '/model.torch' )
                 torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.meta_logger.log_dir + '/model.torch' )
-
-                # Create a checkpoint within the experiment.
-                # This saves the metrics at that point, and makes a copy of the file
-                # or directory given, which could weights and any other artifacts.
-                self.experiment.checkpoint(
-                    path=self.config.meta_logger.log_dir+"/model.torch",
-                    step=epoch,
-                    metrics={"loss": test_loss},
-                    primary_metric=("loss", "minimize"),
-                )
-
+                
+                # Save experiment metrics
+                session.checkpoint_experiment(epoch, loss=test_loss, accuracy=test_accuracy)
                 session.serve( model.deepcopy() )
 
             epoch += 1
