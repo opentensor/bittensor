@@ -44,8 +44,7 @@ class BTSession:
             params={"learning_rate": self.config.neuron.learning_rate,
                     "momentum": self.config.neuron.momentum,
                     "batch_size_train": self.config.neuron.batch_size_train,
-                    "batch_size_test": self.config.neuron.batch_size_test,
-                    "log_interval": self.config.neuron.log_interval}
+                    "batch_size_test": self.config.neuron.batch_size_test}
         )
 
     @staticmethod   
