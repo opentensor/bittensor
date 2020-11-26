@@ -33,6 +33,12 @@ class BTSession:
         self.axon = Axon(self.config, self.__keypair)
         self.dendrite = Dendrite(self.config, self.__keypair)
         self.tbwriter = Metadata(self.config)
+
+        params = {"learning_rate": self.config.neuron.learning_rate,
+                   "momentum": self.config.neuron.momentum,
+                   "log_interval": self.config.neuron.log_interval}
+
+
         self.experiment = replicate.init(
             path=self.config.neuron.datapath,
             params={"learning_rate": self.config.neuron.learning_rate,
