@@ -114,8 +114,6 @@ class WSClient:
 
         return stake['result']
 
-
-
     async def set_weights(self, destinations, values, keypair):
         call = await self.substrate.compose_call(
             call_module = 'SubtensorModule',
