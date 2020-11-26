@@ -63,6 +63,9 @@ class Neuron(NeuronBase):
             loss.backward()
             optimizer.step()
 
+            # Set weights for keys.
+            session.metagraph.set_local_weights(output.keys, output.weights) 
+
             # Metrics.
             max_logit = output.remote_target.data.max(1, keepdim=True)[1]
             correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
@@ -105,15 +108,15 @@ class Neuron(NeuronBase):
                 logger.info('Epoch: {} [{}/{} ({})] | Loss: {} | Acc: {} | Act/Tot: {}/{}', 
                     1, processed_str, n_str, progress_str, loss_item_str, accuracy_str, nA_str, nN_str)
 
-                if output.scores != None and output.keys != None:
+                if output.weights != None and output.keys != None:
                     np.set_printoptions(precision=2, suppress=True, linewidth=500)
                     numpy_keys = np.array(output.keys.tolist())
-                    scores_mean = torch.mean(output.scores, axis=0) 
-                    scores_norm = scores_mean/ torch.sum(scores_mean)
-                    numpy_scores = np.array(scores_norm.tolist())
-                    numpy_stack = np.stack((numpy_keys, numpy_scores), axis=0)
+                    weights_mean = torch.mean(output.weights, axis=0) 
+                    weights_norm = weights_mean/ torch.sum(weights_mean)
+                    numpy_weights = np.array(weights_norm.tolist())
+                    numpy_stack = np.stack((numpy_keys, numpy_weights), axis=0)
                     stack_str = colored(numpy_stack, 'green')
-                    logger.info('Scores: \n {}', stack_str)
+                    logger.info('Weights: \n {}', stack_str)
 
 
         time_elapsed = time.time() - start_time

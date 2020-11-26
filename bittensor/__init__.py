@@ -11,6 +11,7 @@ from bittensor.tb_logger import TBLogger
 from bittensor.session import BTSession
 
 __version__ = '0.0.0'
+__blocktime__ = 6 # seconds
 __network_dim__ = 512
 __tokenizer__ = GPT2Tokenizer.from_pretrained("gpt2")
 __tokenizer__.pad_token = '[PAD]'

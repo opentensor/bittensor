@@ -97,6 +97,8 @@ class BTSession:
         logger.info("Starting polling of chain for neurons")
 
         Asyncio.add_task(self.metagraph.pollchain())
+        Asyncio.add_task(self.metagraph.do_emit())
+
 
     async def stop(self):
         # Stop background grpc threads for serving synapse objects.
