@@ -163,8 +163,8 @@ class Neuron (NeuronBase):
                 best_test_loss = test_loss
                 
                 # Save and serve the new best local model.
-                logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.meta_logger.log_dir + '/model.torch' )
-                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.meta_logger.log_dir + '/model.torch' )
+                logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, test_loss, self.config.neuron.datapath, self.config.neuron.neuron_name)
+                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss},"{}/{}/model.torch".format(self.config.neuron.datapath , self.config.neuron.neuron_name  ))
                 
                 # Save experiment metrics
                 session.checkpoint_experiment(epoch, loss=test_loss, accuracy=test_accuracy)
