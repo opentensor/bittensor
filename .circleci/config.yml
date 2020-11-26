@@ -146,7 +146,7 @@ jobs:
            password: $DOCKERPASS
     steps:
       - checkout
-#      - python/load-cache
+      - python/load-cache
       - setup_remote_docker:
              version: 19.03.13
       - run:

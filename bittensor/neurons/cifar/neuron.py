@@ -140,7 +140,7 @@ class Neuron (NeuronBase):
             n = len(test_data)
             loss /= n
             accuracy = (100. * correct) / n
-            logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\tnP:{}'.format(loss, correct, n, accuracy, len(bittensor.metagraph.neurons())))        
+            logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\tnN:{}'.format(loss, correct, n, accuracy, len(session.metagraph.neurons())))        
             return loss, accuracy
         
         
@@ -152,7 +152,7 @@ class Neuron (NeuronBase):
             train( model, epoch, global_step )
             scheduler.step()
             # Test model.
-            test_loss, _ = test( model )
+            test_loss, accuracy = test( model )
         
             # Save best model. 
             if test_loss < best_test_loss:
@@ -162,6 +162,7 @@ class Neuron (NeuronBase):
                 # Save the best local model.
                 logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.logger.logdir + '/model.torch')
                 torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.logger.logdir + '/model.torch' )
+                session.checkpoint_experiment(loss=test_loss, accuracy=accuracy)
                 session.serve( model.deepcopy() )
 
             epoch += 1
