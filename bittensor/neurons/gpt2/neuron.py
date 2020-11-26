@@ -99,7 +99,6 @@ class Neuron (NeuronBase):
                 
                 # Compute full pass and get loss with a network query.
                 output = model(inputs.to(device), training = True, remote = True)
-                
 
                 output.loss.backward()
                 optimizer.step()
@@ -111,7 +110,7 @@ class Neuron (NeuronBase):
 
 
             # After each epoch, checkpoint the losses and re-serve the network.
-            if output.loss < best_loss:
+            if output.loss.item() < best_loss:
                 best_loss = output.loss
                 logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, self.config.neuron.datapath, self.config.neuron.neuron_name)
                 torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(self.config.neuron.datapath , self.config.neuron.neuron_name))
