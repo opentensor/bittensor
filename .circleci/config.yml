@@ -64,7 +64,10 @@ jobs:
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
-          command: pip3 install -e . && pip3 install termcolor
+          command: pip3 install -e .
+      - run:
+          name: extra
+          command: pip3 install termcolor
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
@@ -81,7 +84,10 @@ jobs:
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
-          command: pip3 install -e . && pip3 install termcolor
+          command: pip3 install -e .
+      - run:
+          name: extra
+          command: pip3 install termcolor
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
@@ -98,7 +104,10 @@ jobs:
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
-          command: pip3 install -e . && pip3 install termcolor
+          command: pip3 install -e .
+      - run:
+          name: extra
+          command: pip3 install termcolor
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
@@ -115,7 +124,10 @@ jobs:
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
-          command: pip3 install -e . && pip3 install termcolor
+          command: pip3 install -e .
+      - run:
+          name: extra
+          command: pip3 install termcolor
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
