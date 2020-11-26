@@ -12,6 +12,7 @@ numpy
 pickle-mixin
 pycryptodome
 pycrypto
+termcolor
 tensorboard
 torch
 torchvision

@@ -49,6 +49,9 @@ jobs:
           command: pip install -e .
           name: setup
       - run:
+          name: extra
+          command: pip3 install termcolor
+      - run:
           name: "Run Localized CPU Integration tests"
           command: pytest ./tests/integration_tests/cpu_tests -k 'not MnistNode'
       - run:
@@ -66,11 +69,14 @@ jobs:
           name: setup
           command: pip3 install -e .
       - run:
+          name: extra
+          command: pip3 install termcolor
+      - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
       - run:
           name: Run MNIST node
-          command: python3 -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py
+          command: python3 -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.1
 
   MNIST-2:
     executor: bittensor-executor
@@ -82,6 +88,9 @@ jobs:
       - run:
           name: setup
           command: pip3 install -e .
+      - run:
+          name: extra
+          command: pip3 install termcolor
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
@@ -100,6 +109,9 @@ jobs:
           name: setup
           command: pip3 install -e .
       - run:
+          name: extra
+          command: pip3 install termcolor
+      - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
       - run:
@@ -116,6 +128,9 @@ jobs:
       - run:
           name: setup
           command: pip3 install -e .
+      - run:
+          name: extra
+          command: pip3 install termcolor
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
