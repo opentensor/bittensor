@@ -29,8 +29,10 @@ class Neuron (NeuronBase):
                             help='Training initial learning rate.')
         parser.add_argument('--neuron.momentum', default=0.98, type=float, 
                             help='Training initial momentum for SGD.')
-        parser.add_argument('--neuron.batch_size', default=20, type=int, 
+        parser.add_argument('--neuron.batch_size_train', default=20, type=int, 
                             help='Training batch size.')
+        parser.add_argument('--neuron.batch_size_test', default=20, type=int, 
+                            help='Testing batch size.')
         parser.add_argument('--neuron.epoch_size', default=50, type=int, 
                             help='Testing batch size.')
         parser = BertMLMSynapse.add_args(parser)
@@ -39,7 +41,8 @@ class Neuron (NeuronBase):
     @staticmethod   
     def check_config(config: Munch) -> Munch:
         assert config.neuron.momentum > 0 and config.neuron.momentum < 1, "momentum must be a value between 0 and 1"
-        assert config.neuron.batch_size > 0, "batch_size must a positive value"
+        assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
+        assert config.neuron.batch_size_test > 0, "batch_size_test must a positive value"
         assert config.neuron.epoch_size > 0, "epoch_size must a positive value"
         assert config.neuron.learning_rate > 0, "learning_rate must be a positive value."
         Config.validate_path_create('neuron.datapath', config.neuron.datapath)
@@ -93,7 +96,7 @@ class Neuron (NeuronBase):
             step = 0
             while step < self.config.neuron.epoch_size:
                 # Next batch.
-                inputs, labels = mlm_batch(dataset['train'], self.config.neuron.batch_size, bittensor.__tokenizer__, data_collator)
+                inputs, labels = mlm_batch(dataset['train'], self.config.neuron.batch_size_train, bittensor.__tokenizer__, data_collator)
                 
                 # Compute full pass and get loss with a network query.
                 output = model( inputs.to(device), labels.to(device), remote = True)
