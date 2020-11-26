@@ -223,7 +223,6 @@ class GPT2LMSynapse(Synapse):
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         if remote:
-            # network = torch.Tensor(batch_size, bittensor.__network_dim__)
             neurons = self.session.metagraph.neurons()  # Returns a list of neurons on the network.
             requests, _ = self.router.route(neurons, pooled, inputs)  # routes inputs to network.
             responses = self.session.dendrite.forward_text(neurons, requests)  # Makes network calls.
