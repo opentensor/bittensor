@@ -123,6 +123,8 @@ class GPT2LMSynapse(Synapse):
                             help='Number of hidden layers in the Transformer encoder.')
         parser.add_argument('--synapse.n_head', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
+        parser.add_argument('--synapse.n_layer', default=12, type=int, 
+                            help='Number of hidden layers in the Transformer encoder.')
         parser.add_argument('--synapse.n_inner', default=None, type=int, 
                             help='The dimensionality of the inner feed-forward layers. :obj:`None` will set it to 4 times n_embd')
         parser.add_argument('--synapse.activation_function', default='gelu_new', type=str, 
