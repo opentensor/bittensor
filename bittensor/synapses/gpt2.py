@@ -114,7 +114,7 @@ class GPT2LMSynapse(Synapse):
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = torch.nn.CrossEntropyLoss()
-
+        self.to(self.device)
     @staticmethod
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
         r""" Add custom params to the parser.
