@@ -20,7 +20,7 @@ from bittensor.config import Config
 from bittensor.neuron import NeuronBase
 from bittensor.synapse import Synapse
 from bittensor.synapses.ffnn import FFNNSynapse
-
+import replicate
 class Neuron (NeuronBase):
     def __init__(self, config):
         self.config = config
@@ -59,8 +59,28 @@ class Neuron (NeuronBase):
         best_test_loss = math.inf
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
         # Build local synapse to serve on the network.
         model = FFNNSynapse(self.config, session)
+
+        try:
+            if self.config.session.checkout_experiment:
+                experiment = replicate.experiments.get(self.config.session.checkout_experiment)
+                # This point can be changed by user. 
+                # experiment.latest() returns the latest model checkpointed. 
+                # experiment.best() returns the best performing model checkpointed.
+                latest_experiment = experiment.latest()
+                logger.info("Checking out experiment {} to {}".format(
+                    self.config.session.checkout_experiment, 
+                    self.config.neuron.datapath + self.config.neuron.neuron_name))
+                
+                model_file = latest_experiment.open(self.config.neuron.datapath + self.config.neuron.neuron_name + "/model.torch")
+                checkpt = torch.load(model_file)
+                model.load_state_dict(checkpt['model'])
+        except Exception as e:
+            logger.warning("Something happened checking out the model. {}".format(e))
+            logger.info("Using new model")
+
         model.to( device ) # Set model to device.
         session.serve( model.deepcopy() )
 
@@ -164,7 +184,7 @@ class Neuron (NeuronBase):
                 
                 # Save and serve the new best local model.
                 logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, test_loss, self.config.neuron.datapath, self.config.neuron.neuron_name)
-                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss},"{}/{}/model.torch".format(self.config.neuron.datapath , self.config.neuron.neuron_name  ))
+                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss},"{}/{}/model.torch".format(self.config.neuron.datapath , self.config.neuron.neuron_name))
                 
                 # Save experiment metrics
                 session.checkpoint_experiment(epoch, loss=test_loss, accuracy=test_accuracy)

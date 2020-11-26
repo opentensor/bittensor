@@ -1,1 +1,1 @@
-repository: file://data/cifar/.replicate
+repository: file://data/mnist/.replicate
