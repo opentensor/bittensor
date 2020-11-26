@@ -58,6 +58,26 @@ jobs:
           name: "Code Coverage"
           command: codecov
   
+  MNIST-0:
+    executor: bittensor-executor
+    resource_class: xlarge
+    steps:
+      - checkout
+      - python/load-cache
+      - run: ./scripts/build_protos.sh
+      - run:
+          name: setup
+          command: pip3 install -e .
+      - run:
+          name: extra
+          command: pip3 install termcolor
+      - run:
+          name: Unset HTTP Proxy
+          command: unset https_proxy;unset http_proxy
+      - run:
+          name: Run MNIST node
+          command: python3 ./tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.1
+
   MNIST-1:
     executor: bittensor-executor
     resource_class: xlarge
@@ -137,6 +157,106 @@ jobs:
       - run:
           name: Run MNIST node
           command: python3 ./tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.1
+  
+  MNIST-5:
+    executor: bittensor-executor
+    resource_class: xlarge
+    steps:
+      - checkout
+      - python/load-cache
+      - run: ./scripts/build_protos.sh
+      - run:
+          name: setup
+          command: pip3 install -e .
+      - run:
+          name: extra
+          command: pip3 install termcolor
+      - run:
+          name: Unset HTTP Proxy
+          command: unset https_proxy;unset http_proxy
+      - run:
+          name: Run MNIST node
+          command: python3 ./tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.1
+
+  MNIST-6:
+    executor: bittensor-executor
+    resource_class: xlarge
+    steps:
+      - checkout
+      - python/load-cache
+      - run: ./scripts/build_protos.sh
+      - run:
+          name: setup
+          command: pip3 install -e .
+      - run:
+          name: extra
+          command: pip3 install termcolor
+      - run:
+          name: Unset HTTP Proxy
+          command: unset https_proxy;unset http_proxy
+      - run:
+          name: Run MNIST node
+          command: python3 ./tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.1
+
+  MNIST-7:
+    executor: bittensor-executor
+    resource_class: xlarge
+    steps:
+      - checkout
+      - python/load-cache
+      - run: ./scripts/build_protos.sh
+      - run:
+          name: setup
+          command: pip3 install -e .
+      - run:
+          name: extra
+          command: pip3 install termcolor
+      - run:
+          name: Unset HTTP Proxy
+          command: unset https_proxy;unset http_proxy
+      - run:
+          name: Run MNIST node
+          command: python3 ./tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.1
+
+  MNIST-8:
+    executor: bittensor-executor
+    resource_class: xlarge
+    steps:
+      - checkout
+      - python/load-cache
+      - run: ./scripts/build_protos.sh
+      - run:
+          name: setup
+          command: pip3 install -e .
+      - run:
+          name: extra
+          command: pip3 install termcolor
+      - run:
+          name: Unset HTTP Proxy
+          command: unset https_proxy;unset http_proxy
+      - run:
+          name: Run MNIST node
+          command: python3 ./tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.1
+
+  MNIST-9:
+    executor: bittensor-executor
+    resource_class: xlarge
+    steps:
+      - checkout
+      - python/load-cache
+      - run: ./scripts/build_protos.sh
+      - run:
+          name: setup
+          command: pip3 install -e .
+      - run:
+          name: extra
+          command: pip3 install termcolor
+      - run:
+          name: Unset HTTP Proxy
+          command: unset https_proxy;unset http_proxy
+      - run:
+          name: Run MNIST node
+          command: python3 ./tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.1
 
   "Push Production candidate to DockerHub":
     docker:
@@ -166,6 +286,9 @@ workflows:
       - "Run Integration Tests":
               requires:
                 - "Build Bittensor"
+      - MNIST-0:
+              requires:
+                - "Run Integration Tests"
       - MNIST-1:
               requires:
                 - "Run Integration Tests"
@@ -178,15 +301,35 @@ workflows:
       - MNIST-4:
               requires:
                 - "Run Integration Tests"
-
+      - MNIST-5:
+              requires:
+                - "Run Integration Tests"
+      - MNIST-6:
+              requires:
+                - "Run Integration Tests"
+      - MNIST-7:
+              requires:
+                - "Run Integration Tests"
+      - MNIST-8:
+              requires:
+                - "Run Integration Tests"
+      - MNIST-9:
+              requires:
+                - "Run Integration Tests"
       - "Push Production candidate to DockerHub":
               requires:
                 - "Build Bittensor"
                 - "Run Unit Tests"
+                - MNIST-0
                 - MNIST-1
                 - MNIST-2
                 - MNIST-3
                 - MNIST-4
+                - MNIST-5
+                - MNIST-6
+                - MNIST-7
+                - MNIST-8
+                - MNIST-9
               filters:
                 branches:
                   only:

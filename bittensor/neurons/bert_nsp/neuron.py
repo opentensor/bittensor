@@ -13,7 +13,7 @@ from bittensor.neuron import NeuronBase
 from bittensor.synapses.bert import BertNSPSynapse
 
 from loguru import logger
-import os
+import replicate
 import random
 import torch
 
@@ -86,6 +86,25 @@ class Neuron (NeuronBase):
 
         # Build Synapse
         model = BertNSPSynapse(self.config, session)
+
+        try:
+            if self.config.session.checkout_experiment:
+                experiment = replicate.experiments.get(self.config.session.checkout_experiment)
+                # This point can be changed by user. 
+                # experiment.latest() returns the latest model checkpointed. 
+                # experiment.best() returns the best performing model checkpointed.
+                latest_experiment = experiment.latest()
+                logger.info("Checking out experiment {} to {}".format(
+                    self.config.session.checkout_experiment, 
+                    self.config.neuron.datapath + self.config.neuron.neuron_name))
+                
+                model_file = latest_experiment.open(self.config.neuron.datapath + self.config.neuron.neuron_name + "/model.torch")
+                checkpt = torch.load(model_file)
+                model.load_state_dict(checkpt['model'])
+        except Exception as e:
+            logger.warning("Something happened checking out the model. {}".format(e))
+            logger.info("Using new model")
+
         model.to(device)
         session.serve( model )
 
