@@ -137,6 +137,8 @@ class GPT2LMSynapse(Synapse):
                             help='GPT attention dropout probability.')
         parser.add_argument('--synapse.layer_norm_epsilon', default=1e-05, type=float, 
                             help='GPT the epsilon to use in the layer normalization layers')
+        parser.add_argument('--synapse.summary_type', default='cls_index', type=str, 
+                            help='GPT the epsilon to use in the layer normalization layers')
         parser.add_argument('--synapse.initializer_range', default=0.02, type=float, 
                             help='The standard deviation of the truncated_normal_initializer for initializing all weight matrices.')
         return parser
