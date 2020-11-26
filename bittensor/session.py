@@ -43,7 +43,9 @@ class BTSession:
         )
 
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:        
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+        parser.add_argument('--session.checkout_experiment', type=str, 
+                            help='ID of replicate.ai experiment to check out.')
         return parser
 
     @staticmethod   
@@ -59,7 +61,7 @@ class BTSession:
 
             Args:
                 synapse (:obj:`bittensor.Synapse`, `required`): 
-                    synpase object to serve on the axon server.
+                    synapse object to serve on the axon server.
         """
         self.axon.serve(synapse)
 
