@@ -49,6 +49,9 @@ jobs:
           command: pip install -e .
           name: setup
       - run:
+          name: extra
+          command: pip3 install termcolor
+      - run:
           name: "Run Localized CPU Integration tests"
           command: pytest ./tests/integration_tests/cpu_tests -k 'not MnistNode'
       - run:
