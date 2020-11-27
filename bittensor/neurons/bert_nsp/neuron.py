@@ -133,7 +133,10 @@ class Neuron (NeuronBase):
                 inputs, targets = nsp_batch(dataset['train'], self.config.neuron.batch_size_train, bittensor.__tokenizer__)
                 
                 # Compute full pass and get loss with a network query.
-                output = model (inputs.to(device), targets.to(device), remote = True)
+                output = model (inputs = inputs['input_ids'], 
+                                attention_mask = inputs ['attention_mask'],
+                                targets = targets,
+                                remote = True )
                 
                 loss = output['loss']
                 loss.backward()
