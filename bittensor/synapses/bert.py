@@ -239,7 +239,6 @@ class BertNSPSynapse (BertSynapseBase):
 
     def forward(self,
                 inputs: torch.LongTensor,
-                attention_mask: torch.LongTensor = None,
                 targets: torch.Tensor = None,
                 remote: bool = False):
         r""" Forward pass inputs and labels through the NSP BERT module.
@@ -292,7 +291,6 @@ class BertNSPSynapse (BertSynapseBase):
                         Distillation loss between local_context and remote_context.
                 )
         """
-
         # Call forward method from bert base.
         output = BertSynapseBase.forward(self, inputs = inputs, remote = remote) 
 
@@ -305,7 +303,7 @@ class BertNSPSynapse (BertSynapseBase):
             
             # local_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
             # local_target_loss: [1]
-            local_target_loss = self.loss_fct(local_target.view(-1, 2), targets)
+            local_target_loss = self.loss_fct(local_target.view(targets.shape[0], -1), targets)
             output.local_target_loss = local_target_loss
             output.loss = output.loss + local_target_loss
 
@@ -319,7 +317,7 @@ class BertNSPSynapse (BertSynapseBase):
             
             # remote_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
             # remote_target_loss: [1]
-            remote_target_loss = self.loss_fct(remote_target.view(-1, 2), targets)
+            remote_target_loss = self.loss_fct(remote_target.view(targets.shape[0], -1), targets)
             output.remote_target_loss = remote_target_loss
             output.loss = output.loss + remote_target_loss
 
