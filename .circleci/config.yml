@@ -49,9 +49,6 @@ jobs:
           command: pip install -e .
           name: setup
       - run:
-          name: extra
-          command: pip3 install termcolor
-      - run:
           name: "Run Localized CPU Integration tests"
           command: pytest ./tests/integration_tests/cpu_tests -k 'not MnistNode'
       - run:
@@ -68,9 +65,6 @@ jobs:
       - run:
           name: setup
           command: pip3 install -e .
-      - run:
-          name: extra
-          command: pip3 install termcolor
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
@@ -89,9 +83,6 @@ jobs:
           name: setup
           command: pip3 install -e .
       - run:
-          name: extra
-          command: pip3 install termcolor
-      - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
       - run:
@@ -108,9 +99,6 @@ jobs:
       - run:
           name: setup
           command: pip3 install -e .
-      - run:
-          name: extra
-          command: pip3 install termcolor
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
@@ -129,9 +117,6 @@ jobs:
           name: setup
           command: pip3 install -e .
       - run:
-          name: extra
-          command: pip3 install termcolor
-      - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
       - run:
@@ -148,9 +133,6 @@ jobs:
       - run:
           name: setup
           command: pip3 install -e .
-      - run:
-          name: extra
-          command: pip3 install termcolor
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
@@ -169,9 +151,6 @@ jobs:
           name: setup
           command: pip3 install -e .
       - run:
-          name: extra
-          command: pip3 install termcolor
-      - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
       - run:
@@ -188,9 +167,6 @@ jobs:
       - run:
           name: setup
           command: pip3 install -e .
-      - run:
-          name: extra
-          command: pip3 install termcolor
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
@@ -209,9 +185,6 @@ jobs:
           name: setup
           command: pip3 install -e .
       - run:
-          name: extra
-          command: pip3 install termcolor
-      - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
       - run:
@@ -229,9 +202,6 @@ jobs:
           name: setup
           command: pip3 install -e .
       - run:
-          name: extra
-          command: pip3 install termcolor
-      - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
       - run:
@@ -248,9 +218,6 @@ jobs:
       - run:
           name: setup
           command: pip3 install -e .
-      - run:
-          name: extra
-          command: pip3 install termcolor
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
