@@ -316,7 +316,7 @@ class Metagraph():
 
         Returns:
             weights: (:obj:`torch.FloatTensor` of shape :obj:`(-1)`):
-                locally stored neuron weights, not nessecarily equivalent to those on chain.
+                local weights for not neurons ordered by index.
         """
         local_weights_numpy = numpy.zeros((self._n))
         for pubkey, val in list(zip(self._local_weight_pubkeys, self._local_weight_vals)):
@@ -325,41 +325,29 @@ class Metagraph():
         local_weights = torch.Tensor(local_weights_numpy)
         return local_weights.type(torch.FloatTensor)
 
-    def set_local_weights (self, uids: torch.Tensor, weights: torch.Tensor):
-        r"""Sets local neurons weights.
+    def set_local_weights(self, weights: torch.Tensor):
+        # TODO(const): seriously require a mutex.
 
-        Args:
-            uids: (:obj:`torch.LongTensor` of shape :obj:`(-1)`):
-                UIDs which identify neurons.
-
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(-1)`):
-                normalized weight values. l1 norm must be unity.
-        """
-        if len(uids.shape) != 1 and len(uids.shape) != 2:
-            raise ValueError ('uids must have rank 1 or 2, got {}'.format(len(uids.shape)))
-        if len(weights.shape) != 1 and len(weights.shape) != 2:
-            raise ValueError ('weights must have rank 1 or 2, got {}'.format(len(weights.shape)))
-        uids = torch.flatten(uids)
+        # Check shape.
         weights = torch.flatten(weights)
-        if torch.numel(uids) != torch.numel(weights):
-            raise ValueError ('uids and weights must have number of elements, got {} weights and {} uids'.format(torch.numel(weights), torch.numel(uids)))
+        if len(weights.tolist()) != self._n:
+            raise ValueError ('weights have the same length as active neurons, got len={} and n={}'.format(len(weights.tolist()), self._n))
 
-        # Check l1 norm.
-        l1_norm = torch.norm(weights, p='l1')
-        if l1_norm == 1:
-            raise ValueError ('Weight must sum to 1, got norm of {}'.format(l1_norm))
+        # Fix L1 norm.
+        l1_norm = torch.norm(weights)
+        weights = weights / l1_norm
 
         # Set weights.
-        for _, (uid, weight) in enumerate(list(zip(uids.tolist(), weights.tolist()))):
-            if uid not in self._index_for_uid[uid]:
-                raise ValueError('unique id not in uid set: {}', uid)
-            idx = self._index_for_uid[uid]
-            neuron = self._neurons[idx]
+        next_local_weight_pubkeys = []
+        next_local_weight_vals = []
+        for i, val in enumerate(weights.tolist()):
+            neuron = self._neurons[i]
             self._local_weight_pubkeys.append(neuron.public_key)
-            self._local_weight_vals.append(weight)
-
-        # Set weights have changed. Only emit when weights have changed.
+            self._local_weight_vals.append(val)
+        self._local_weight_pubkeys = next_local_weight_pubkeys
+        self._local_weight_vals = next_local_weight_vals
         self._weights_have_changed = True
+
 
     async def do_emit(self):
 

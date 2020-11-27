@@ -63,8 +63,13 @@ class Neuron(NeuronBase):
             loss.backward()
             optimizer.step()
 
-            # Set weights for keys.
-            session.metagraph.set_local_weights(output.keys, output.weights) 
+            # Scatter weights with keys
+            weights = torch.zeros(images.shape[0], session.metagraph.n())
+            weights.scatter_(1, output.keys, output.weights)
+            weight_avg = torch.mean(weights, axis=0)
+            local_weights = session.metagraph.local_weights()
+            next_weights = (1 - 0.05) * local_weights + 0.05 * weight_avg
+            session.metagraph.set_local_weights( next_weights ) 
 
             # Metrics.
             max_logit = output.remote_target.data.max(1, keepdim=True)[1]
@@ -83,8 +88,6 @@ class Neuron(NeuronBase):
                 n = len(train_data)
                 max_logit = output.remote_target.data.max(1, keepdim=True)[1]
                 correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
-
-                n = len(train_data)
                 n_str = colored('{}'.format(n), 'red')
 
                 loss_item = output.remote_target_loss.item()
@@ -99,10 +102,10 @@ class Neuron(NeuronBase):
                 accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
                 accuracy_str = colored('{:.3f}'.format(accuracy), 'green')
 
-                nN = len(session.metagraph.neurons())
+                nN = session.metagraph.n()
                 nN_str = colored('{}'.format(nN), 'red')
 
-                nA = len(output.keys.tolist()) if (output.keys != None) else 0
+                nA = len(torch.unique(output.keys)) 
                 nA_str = colored('{}'.format(nA), 'green')
 
                 logger.info('Epoch: {} [{}/{} ({})] | Loss: {} | Acc: {} | Act/Tot: {}/{}', 
@@ -110,10 +113,10 @@ class Neuron(NeuronBase):
 
                 if output.weights != None and output.keys != None:
                     np.set_printoptions(precision=2, suppress=True, linewidth=500)
-                    numpy_keys = np.array(output.keys.tolist())
+                    numpy_keys = np.array(session.metagraph.uids().tolist())
                     weights_mean = torch.mean(output.weights, axis=0) 
                     weights_norm = weights_mean/ torch.sum(weights_mean)
-                    numpy_weights = np.array(weights_norm.tolist())
+                    numpy_weights = np.array(session.metagraph.local_weights().tolist())
                     numpy_stack = np.stack((numpy_keys, numpy_weights), axis=0)
                     stack_str = colored(numpy_stack, 'green')
                     logger.info('Weights: \n {}', stack_str)
