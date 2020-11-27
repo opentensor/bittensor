@@ -7,10 +7,10 @@ from bittensor.session import BTSession
 import argparse
 import random
 import torch
-from torch import nn
 import torch.nn.functional as F
 import transformers
 from transformers import BertModel, BertConfig
+from munch import Munch
 
 def mlm_batch(data, batch_size, tokenizer, collator):
     """ Returns a random batch from text dataset with 50 percent NSP.
@@ -83,6 +83,8 @@ class BertSynapseBase (Synapse):
         # hidden_layer: transforms context and encoding to network_dim hidden units.
         # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
         self.hidden_layer = torch.nn.Linear(2 * bittensor.__network_dim__, bittensor.__network_dim__)
+
+        self.to(self.device)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
@@ -185,7 +187,7 @@ class BertNSPSynapse (BertSynapseBase):
         r""" Init a new bert nsp synapse module.
 
             Args:
-                config (:obj:`bittensor.bert.BertSynapseConfig`, `required`): 
+                config (:obj:`Munch`, `required`): 
                     BertNSP configuration class.
 
                 session (:obj:`bittensor.Session`, `required`): 
@@ -327,12 +329,12 @@ class BertNSPSynapse (BertSynapseBase):
 
 class BertMLMSynapse (BertSynapseBase):
     def __init__(   self,
-                    config: BertSynapseConfig,
+                    config: Munch,
                     session: BTSession):
         r""" Bert synapse for MLM training
 
             Args:
-                config (:obj:`bittensor.bert.BertSynapseConfig`, `required`): 
+                config (:obj:`Munch`, `required`): 
                     BertNSP configuration class.
 
                 session (:obj:`bittensor.Session`, `required`): 
