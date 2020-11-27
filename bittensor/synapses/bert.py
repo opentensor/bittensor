@@ -136,7 +136,7 @@ class BertSynapseBase (Synapse):
                         Distillation loss between local_context and remote_context.
                 )
         """
-
+        inputs = inputs.to(self.device)
         # Return vars to be filled.
         output = SynapseOutput(loss = torch.tensor(0.0))
    
@@ -149,7 +149,6 @@ class BertSynapseBase (Synapse):
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         if remote:
-            # network = torch.Tensor(batch_size, bittensor.__network_dim__)
             neurons = self.session.metagraph.neurons()  # Returns a list of synapses on the network.
             requests, _ = self.router.route(neurons, encoding_pooled, inputs)  # routes inputs to network.
             responses = self.session.dendrite.forward_text(neurons, requests)  # Makes network calls.
