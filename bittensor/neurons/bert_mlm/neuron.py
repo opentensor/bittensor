@@ -7,6 +7,7 @@ Example:
 
 """
 import bittensor
+import argparse
 from bittensor.config import Config
 from bittensor import BTSession
 from bittensor.neuron import NeuronBase
@@ -17,6 +18,9 @@ from loguru import logger
 import torch
 from transformers import DataCollatorForLanguageModeling
 import replicate
+from munch import Munch
+import math
+
 class Neuron (NeuronBase):
     def __init__(self, config):
         self.config = config
@@ -41,8 +45,8 @@ class Neuron (NeuronBase):
     @staticmethod   
     def check_config(config: Munch) -> Munch:
         assert config.neuron.momentum > 0 and config.neuron.momentum < 1, "momentum must be a value between 0 and 1"
-        assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
-        assert config.neuron.batch_size_test > 0, "batch_size_test must a positive value"
+        assert config.neuron.batch_size_train > 0, "batch_size must a positive value"
+        assert config.neuron.batch_size_test > 0, "batch_size must a positive value"
         assert config.neuron.epoch_size > 0, "epoch_size must a positive value"
         assert config.neuron.learning_rate > 0, "learning_rate must be a positive value."
         Config.validate_path_create('neuron.datapath', config.neuron.datapath)
@@ -94,6 +98,7 @@ class Neuron (NeuronBase):
             optimizer.zero_grad() # Zero out lingering gradients.
 
             step = 0
+            best_loss = -math.inf
             while step < self.config.neuron.epoch_size:
                 # Next batch.
                 inputs, labels = mlm_batch(dataset['train'], self.config.neuron.batch_size_train, bittensor.__tokenizer__, data_collator)
@@ -108,7 +113,17 @@ class Neuron (NeuronBase):
                 step += 1
                 logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
                     epoch, step, self.config.neuron.epoch_size, float(step * 100)/float(self.config.neuron.epoch_size), output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
-        
+            
+            # After each epoch, checkpoint the losses and re-serve the network.
+            if output.loss.item() < best_loss:
+                best_loss = output.loss
+                logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, self.config.neuron.datapath, self.config.neuron.neuron_name)
+                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(self.config.neuron.datapath , self.config.neuron.neuron_name))
+                
+                # Save experiment metrics
+                session.checkpoint_experiment(epoch, loss=best_loss, remote_target_loss=output.remote_target_loss.item(), distillation_loss=output.distillation_loss.item())
+                session.serve( model.deepcopy() )
+                
         epoch = 0
         while True:
             train(dataset, model, epoch)
