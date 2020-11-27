@@ -105,7 +105,6 @@ class TestRemoteModuleCall(unittest.TestCase):
                      ('grpc.max_receive_message_length', -1)])          
         self.stub = bittensor_grpc.BittensorStub(self.channel)
         # = RemoteSynapse(self.synapse, self._config)        
-        self.tblogger = bittensor.Metadata(self.config)
         self.dummy = torch.empty(0, requires_grad=True)
     
     def test_remote_module_forward(self):
@@ -129,7 +128,7 @@ class TestRemoteModuleCall(unittest.TestCase):
         # Now let's set up a modality that does exist
         modality = bittensor_pb2.Modality.TENSOR
         self.stub.Forward = MagicMock(return_value=fwd_return_value)
-        bittensor.tbwriter = MagicMock(return_value=self.tblogger)
+        bittensor.tbwriter = MagicMock(return_value=bittensor.session.tbwriter)
         output = _RemoteModuleCall.apply(self, self.dummy, x, modality)
         assert len(output) == x.size(0)
         assert torch.all(output == x)
