@@ -127,29 +127,27 @@ class Neuron (NeuronBase):
             optimizer.zero_grad() # Zero out lingering gradients.
 
             step = 0
-            best_loss = -math.inf
+            best_loss = math.inf
             while step < self.config.neuron.epoch_size:
                 # Next batch.
                 inputs, targets = nsp_batch(dataset['train'], self.config.neuron.batch_size_train, bittensor.__tokenizer__)
-                
                 # Compute full pass and get loss with a network query.
-                output = model (inputs = inputs['input_ids'], 
-                                attention_mask = inputs ['attention_mask'],
-                                targets = targets,
+                output = model (inputs = inputs['input_ids'].to(device), 
+                                targets = targets.to(device),
                                 remote = True )
                 
-                loss = output['loss']
+                loss = output.local_target_loss
                 loss.backward()
                 optimizer.step()
                 scheduler.step()
 
                 step += 1
                 logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
-                    epoch, step, self.config.neuron.epoch_size, float(step * 100)/float(self.config.neuron.epoch_size), output.network_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
+                    epoch, step, self.config.neuron.epoch_size, float(step * 100)/float(self.config.neuron.epoch_size), output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
 
             # After each epoch, checkpoint the losses and re-serve the network.
-            if loss < best_loss:
-                best_loss = loss
+            if output.local_target_loss.item() < best_loss:
+                best_loss = output.local_target_loss.item()
                 logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, self.config.neuron.datapath, self.config.neuron.neuron_name)
                 torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(self.config.neuron.datapath , self.config.neuron.neuron_name))
                 

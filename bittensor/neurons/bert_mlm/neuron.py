@@ -98,7 +98,7 @@ class Neuron (NeuronBase):
             optimizer.zero_grad() # Zero out lingering gradients.
 
             step = 0
-            best_loss = -math.inf
+            best_loss = math.inf
             while step < self.config.neuron.epoch_size:
                 # Next batch.
                 inputs, labels = mlm_batch(dataset['train'], self.config.neuron.batch_size_train, bittensor.__tokenizer__, data_collator)
@@ -113,10 +113,10 @@ class Neuron (NeuronBase):
                 step += 1
                 logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
                     epoch, step, self.config.neuron.epoch_size, float(step * 100)/float(self.config.neuron.epoch_size), output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
-            
+
             # After each epoch, checkpoint the losses and re-serve the network.
             if output.loss.item() < best_loss:
-                best_loss = output.loss
+                best_loss = output.loss.item()
                 logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, self.config.neuron.datapath, self.config.neuron.neuron_name)
                 torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(self.config.neuron.datapath , self.config.neuron.neuron_name))
                 
