@@ -7,15 +7,19 @@ Example:
 
 """
 import bittensor
+import argparse
 from bittensor.config import Config
 from bittensor import BTSession
 from bittensor.neuron import NeuronBase
 from bittensor.synapses.bert import BertNSPSynapse
 
 from loguru import logger
+from datasets import load_dataset
 import replicate
 import random
 import torch
+from munch import Munch
+import math
 
 def nsp_batch(data, batch_size, tokenizer):
     """ Returns a random batch from text dataset with 50 percent NSP.
@@ -123,6 +127,7 @@ class Neuron (NeuronBase):
             optimizer.zero_grad() # Zero out lingering gradients.
 
             step = 0
+            best_loss = -math.inf
             while step < self.config.neuron.epoch_size:
                 # Next batch.
                 inputs, targets = nsp_batch(dataset['train'], self.config.neuron.batch_size_train, bittensor.__tokenizer__)
@@ -141,7 +146,17 @@ class Neuron (NeuronBase):
                 step += 1
                 logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
                     epoch, step, self.config.neuron.epoch_size, float(step * 100)/float(self.config.neuron.epoch_size), output.network_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
-        
+
+            # After each epoch, checkpoint the losses and re-serve the network.
+            if loss < best_loss:
+                best_loss = loss
+                logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, self.config.neuron.datapath, self.config.neuron.neuron_name)
+                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(self.config.neuron.datapath , self.config.neuron.neuron_name))
+                
+                # Save experiment metrics
+                session.checkpoint_experiment(epoch, loss=best_loss, remote_target_loss=output.remote_target_loss.item(), distillation_loss=output.distillation_loss.item())
+                session.serve( model.deepcopy() )
+
         epoch = 0
         while True:
             train(dataset, model, epoch)
