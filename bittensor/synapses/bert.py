@@ -274,19 +274,19 @@ class BertNSPSynapse (BertSynapseBase):
                         Hidden layer encoding produced using local_context.
 
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
-                        BERT MLM Target predictions produced using local_context. 
+                        BERT NSP Target predictions produced using local_context. 
 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        BERT MLM loss using local_context.
+                        BERT NSP loss using local_context.
 
                     remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
 
                     remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
-                        BERT MLM Target predictions using the remote_context.
+                        BERT NSP Target predictions using the remote_context.
 
                     remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
-                        BERT MLM loss using the remote_context.
+                        BERT NSP loss using the remote_context.
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
