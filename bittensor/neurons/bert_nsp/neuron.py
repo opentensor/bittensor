@@ -7,15 +7,18 @@ Example:
 
 """
 import bittensor
+import argparse
 from bittensor.config import Config
 from bittensor import BTSession
 from bittensor.neuron import NeuronBase
 from bittensor.synapses.bert import BertNSPSynapse
 
 from loguru import logger
+from datasets import load_dataset
 import replicate
 import random
 import torch
+from munch import Munch
 
 def nsp_batch(data, batch_size, tokenizer):
     """ Returns a random batch from text dataset with 50 percent NSP.

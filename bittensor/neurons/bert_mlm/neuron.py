@@ -19,6 +19,7 @@ import torch
 from transformers import DataCollatorForLanguageModeling
 import replicate
 from munch import Munch
+
 class Neuron (NeuronBase):
     def __init__(self, config):
         self.config = config
@@ -43,8 +44,8 @@ class Neuron (NeuronBase):
     @staticmethod   
     def check_config(config: Munch) -> Munch:
         assert config.neuron.momentum > 0 and config.neuron.momentum < 1, "momentum must be a value between 0 and 1"
-        assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
-        assert config.neuron.batch_size_test > 0, "batch_size_test must a positive value"
+        assert config.neuron.batch_size_train > 0, "batch_size must a positive value"
+        assert config.neuron.batch_size_test > 0, "batch_size must a positive value"
         assert config.neuron.epoch_size > 0, "epoch_size must a positive value"
         assert config.neuron.learning_rate > 0, "learning_rate must be a positive value."
         Config.validate_path_create('neuron.datapath', config.neuron.datapath)
