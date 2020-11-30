@@ -35,11 +35,8 @@ class SynapseOutput(object):
         distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
             Distillation loss between local_context and remote_context.
 
-        weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, len(keys))`, `optional`): 
+        weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
             weights for each active key per example.
-
-        keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `optional`): 
-            Keys for queried neurons.
 
     """
     def __init__(   

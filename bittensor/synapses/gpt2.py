@@ -180,7 +180,7 @@ class GPT2LMSynapse(Synapse):
                 remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Joined context vector from remote peer neurons.
 
-                weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, n)`, `optional`): 
+                weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                     weights for each active neuron.
         """
 
@@ -264,6 +264,9 @@ class GPT2LMSynapse(Synapse):
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
+
+                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each active neuron.
                 )
         """
 
