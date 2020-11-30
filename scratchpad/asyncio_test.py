@@ -44,15 +44,11 @@ async def blocking_task(loop, delay, retval):
     return await loop.run_in_executor(None, blocking_sync_task, delay, retval)
 
 
-
 def blocking_sync_task(delay, retval=1):
     logger.info("Executing blocking sync task: {} {}", delay, retval)
     time.sleep(delay)
     return retval
-
-
-
-
+    
 async def task_1():
     logger.info("task_1")
 

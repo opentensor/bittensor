@@ -81,6 +81,10 @@ class Neuron (NeuronBase):
             for batch_idx, (images, targets) in enumerate(trainloader):
                 # Clear gradients.
                 optimizer.zero_grad()
+
+                # Pulls the latest chain state.
+                session.metagraph.update()
+                                
                 # Forward pass.
                 images = images.to(device)
                 targets = torch.LongTensor(targets).to(device)
@@ -91,7 +95,7 @@ class Neuron (NeuronBase):
                 loss.backward()
 
                 optimizer.step()
-                                
+
                 # Logs:
                 if (batch_idx + 1) % self.config.neuron.log_interval == 0: 
                     n = len(train_data)
