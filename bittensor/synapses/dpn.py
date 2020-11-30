@@ -209,29 +209,12 @@ class DPNSynapse(Synapse):
         transform = F.avg_pool2d(transform, 4)
         transform = torch.flatten(transform, start_dim=1)
 
-        # remote_context: responses from a bittensor remote network call.
-        # remote_context.shape = [batch_size, bittensor.__network_dim__]
-        if remote:
-            # If query == True make a remote call.
-            images = torch.unsqueeze(images, 1) # Add sequence dimension.
-            neurons = self.session.metagraph.neurons() # Returns a list of neurons on the network.
-            requests, _ = self.router.route( neurons, transform, images ) # routes inputs to network.
-            responses = self.session.dendrite.forward_image( neurons, requests ) # Makes network calls.
-            remote_context = self.router.join( responses ) # Joins responses based on scores..
-            remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2]) # Squeeze the sequence dimension.
-
         # local_context: distillation model for remote_context.
         # local_context.shape = [batch_size, bittensor.__network_dim__]
         local_context = self.context_layer1(transform.detach())
         local_context = self.context_layer2(local_context)
         local_context = self.context_layer3(local_context)
         
-        if remote:
-            # distillation_loss: distillation loss between local_context and remote_context
-            # distillation_loss.shape = [1]
-            distillation_loss = F.mse_loss(local_context, remote_context.detach())
-            output.distillation_loss = distillation_loss
-            output.loss = output.loss + distillation_loss
 
         # local_hidden: hidden layer encoding using local_context.
         # local_hidden.shape = [batch_size, bittensor.__network_dim__]
@@ -240,6 +223,7 @@ class DPNSynapse(Synapse):
         local_hidden = self.hidden_layer2(local_hidden)
         local_hidden = self.hidden_layer3(local_hidden)
         output.local_hidden = local_hidden
+        
         if targets is not None:
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, target_dim]
@@ -254,18 +238,39 @@ class DPNSynapse(Synapse):
             local_target_loss = F.nll_loss(local_target, targets)
             output.local_target_loss = local_target_loss
             output.loss = output.loss + local_target_loss
-
-        
-        # remote_hidden: hidden layer encoding using remote_context.
-        # remote_hidden.shape = [batch_size, bittensor.__network_dim__]
-        if remote:
-            remote_hidden = torch.cat([transform, remote_context], dim=1)
-            remote_hidden = self.hidden_layer1(remote_hidden)
-            remote_hidden = self.hidden_layer2(remote_hidden)
-            remote_hidden = self.hidden_layer3(remote_hidden)
-            output.remote_hidden = remote_hidden
         
         if remote and targets is not None:
+            output = self.forward_remote(local_context, output, images, transform, targets)
+
+        return output
+
+    def forward_remote(self, local_context, output, images, transform, targets):
+        # remote_context: responses from a bittensor remote network call.
+        # remote_context.shape = [batch_size, bittensor.__network_dim__]
+        
+        # make a remote call.
+        images = torch.unsqueeze(images, 1) # Add sequence dimension.
+        neurons = self.session.metagraph.neurons() # Returns a list of neurons on the network.
+        requests, _ = self.router.route( neurons, transform, images ) # routes inputs to network.
+        responses = self.session.dendrite.forward_image( neurons, requests ) # Makes network calls.
+        remote_context = self.router.join( responses ) # Joins responses based on scores..
+        remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2]) # Squeeze the sequence dimension.
+
+        # distillation_loss: distillation loss between local_context and remote_context
+        # distillation_loss.shape = [1]
+        distillation_loss = F.mse_loss(local_context, remote_context.detach())
+        output.distillation_loss = distillation_loss
+        output.loss = output.loss + distillation_loss
+
+        # remote_hidden: hidden layer encoding using remote_context.
+        # remote_hidden.shape = [batch_size, bittensor.__network_dim__]
+        remote_hidden = torch.cat([transform, remote_context], dim=1)
+        remote_hidden = self.hidden_layer1(remote_hidden)
+        remote_hidden = self.hidden_layer2(remote_hidden)
+        remote_hidden = self.hidden_layer3(remote_hidden)
+        output.remote_hidden = remote_hidden
+
+        if targets is not None:
             # remote_target: projection of remote_hidden onto target dimension.
             # remote_target.shape = [batch_size, config.target_size]
             remote_target = self.target_layer1(remote_hidden)
@@ -278,9 +283,6 @@ class DPNSynapse(Synapse):
             remote_target_loss = F.nll_loss(remote_target, targets)
             output.loss = output.loss + remote_target_loss
             output.remote_target_loss = remote_target_loss
-
-
-        return output
 
     def _make_layer(self, in_planes, out_planes, num_blocks, dense_depth, stride):
         strides = [stride] + [1]*(num_blocks-1)
