@@ -122,8 +122,8 @@ class FFNNSynapse(Synapse):
                 remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`): 
                     Joined context vector from remote peer neurons.
 
-                weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, n)`, `optional`): 
-                        weights for each active neuron.
+                weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                    weights for each active neuron.
         """
         # images: re-add sequence dimension to input images.
         # hidden.shape = [batch_size, sequence_dim, channels, rows, cols] 
@@ -212,7 +212,7 @@ class FFNNSynapse(Synapse):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, n)`, `optional`): 
+                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
                 )
         """
