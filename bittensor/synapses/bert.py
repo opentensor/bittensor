@@ -7,10 +7,10 @@ from bittensor.session import BTSession
 import argparse
 import random
 import torch
-from torch import nn
 import torch.nn.functional as F
 import transformers
 from transformers import BertModel, BertConfig
+from munch import Munch
 
 def mlm_batch(data, batch_size, tokenizer, collator):
     """ Returns a random batch from text dataset with 50 percent NSP.
@@ -84,6 +84,8 @@ class BertSynapseBase (Synapse):
         # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
         self.hidden_layer = torch.nn.Linear(2 * bittensor.__network_dim__, bittensor.__network_dim__)
 
+        self.to(self.device)
+
     @staticmethod
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
         r""" Add custom params to the parser.
@@ -134,7 +136,7 @@ class BertSynapseBase (Synapse):
                         Distillation loss between local_context and remote_context.
                 )
         """
-
+        inputs = inputs.to(self.device)
         # Return vars to be filled.
         output = SynapseOutput(loss = torch.tensor(0.0))
    
@@ -147,7 +149,6 @@ class BertSynapseBase (Synapse):
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         if remote:
-            # network = torch.Tensor(batch_size, bittensor.__network_dim__)
             neurons = self.session.metagraph.neurons()  # Returns a list of synapses on the network.
             requests, _ = self.router.route(neurons, encoding_pooled, inputs)  # routes inputs to network.
             responses = self.session.dendrite.forward_text(neurons, requests)  # Makes network calls.
@@ -185,7 +186,7 @@ class BertNSPSynapse (BertSynapseBase):
         r""" Init a new bert nsp synapse module.
 
             Args:
-                config (:obj:`bittensor.bert.BertSynapseConfig`, `required`): 
+                config (:obj:`Munch`, `required`): 
                     BertNSP configuration class.
 
                 session (:obj:`bittensor.Session`, `required`): 
@@ -238,7 +239,6 @@ class BertNSPSynapse (BertSynapseBase):
 
     def forward(self,
                 inputs: torch.LongTensor,
-                attention_mask: torch.LongTensor = None,
                 targets: torch.Tensor = None,
                 remote: bool = False):
         r""" Forward pass inputs and labels through the NSP BERT module.
@@ -273,25 +273,24 @@ class BertNSPSynapse (BertSynapseBase):
                         Hidden layer encoding produced using local_context.
 
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
-                        BERT MLM Target predictions produced using local_context. 
+                        BERT NSP Target predictions produced using local_context. 
 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        BERT MLM loss using local_context.
+                        BERT NSP loss using local_context.
 
                     remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
 
                     remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
-                        BERT MLM Target predictions using the remote_context.
+                        BERT NSP Target predictions using the remote_context.
 
                     remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
-                        BERT MLM loss using the remote_context.
+                        BERT NSP loss using the remote_context.
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
                 )
         """
-
         # Call forward method from bert base.
         output = BertSynapseBase.forward(self, inputs = inputs, remote = remote) 
 
@@ -304,7 +303,7 @@ class BertNSPSynapse (BertSynapseBase):
             
             # local_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
             # local_target_loss: [1]
-            local_target_loss = self.loss_fct(local_target.view(-1, 2), targets)
+            local_target_loss = self.loss_fct(local_target.view(targets.shape[0], -1), targets)
             output.local_target_loss = local_target_loss
             output.loss = output.loss + local_target_loss
 
@@ -318,7 +317,7 @@ class BertNSPSynapse (BertSynapseBase):
             
             # remote_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
             # remote_target_loss: [1]
-            remote_target_loss = self.loss_fct(remote_target.view(-1, 2), targets)
+            remote_target_loss = self.loss_fct(remote_target.view(targets.shape[0], -1), targets)
             output.remote_target_loss = remote_target_loss
             output.loss = output.loss + remote_target_loss
 
@@ -327,12 +326,12 @@ class BertNSPSynapse (BertSynapseBase):
 
 class BertMLMSynapse (BertSynapseBase):
     def __init__(   self,
-                    config: BertSynapseConfig,
+                    config: Munch,
                     session: BTSession):
         r""" Bert synapse for MLM training
 
             Args:
-                config (:obj:`bittensor.bert.BertSynapseConfig`, `required`): 
+                config (:obj:`Munch`, `required`): 
                     BertNSP configuration class.
 
                 session (:obj:`bittensor.Session`, `required`): 
