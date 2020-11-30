@@ -6,13 +6,11 @@ Example:
         $ python examples/cifar/main.py
 """
 
-import bittensor
 from bittensor import BTSession
 from bittensor.config import Config
 from bittensor.synapse import Synapse
-from bittensor.neuron import NeuronBase
 from bittensor.synapses.dpn import DPNSynapse
-from bittensor.utils.model_utils import ModelToolbox
+from bittensor.neuron import NeuronBase
 
 import argparse
 from loguru import logger
@@ -22,7 +20,7 @@ import torch
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-import traceback
+import replicate
 
 class Neuron (NeuronBase):
     def __init__(self, config):
@@ -61,6 +59,25 @@ class Neuron (NeuronBase):
         # Build local synapse to serve on the network.
         model = DPNSynapse( self.config, session )
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        try:
+            if self.config.session.checkout_experiment:
+                experiment = replicate.experiments.get(self.config.session.checkout_experiment)
+                # This point can be changed by user. 
+                # experiment.latest() returns the latest model checkpointed. 
+                # experiment.best() returns the best performing model checkpointed.
+                latest_experiment = experiment.latest()
+                logger.info("Checking out experiment {} to {}".format(
+                    self.config.session.checkout_experiment, 
+                    self.config.neuron.datapath + self.config.neuron.neuron_name))
+                
+                model_file = latest_experiment.open(self.config.neuron.datapath + self.config.neuron.neuron_name + "/model.torch")
+                checkpt = torch.load(model_file)
+                model.load_state_dict(checkpt['model'])
+        except Exception as e:
+            logger.warning("Something happened checking out the model. {}".format(e))
+            logger.info("Using new model")
+
         model.to( device ) # Set model to device.
         session.serve( model.deepcopy() )
 
@@ -142,7 +159,7 @@ class Neuron (NeuronBase):
             n = len(test_data)
             loss /= n
             accuracy = (100. * correct) / n
-            logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\tnP:{}'.format(loss, correct, n, accuracy, len(bittensor.metagraph.neurons())))        
+            logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\tnN:{}'.format(loss, correct, n, accuracy, len(session.metagraph.neurons())))        
             return loss, accuracy
         
         
@@ -154,7 +171,7 @@ class Neuron (NeuronBase):
             train( model, epoch, global_step )
             scheduler.step()
             # Test model.
-            test_loss, _ = test( model )
+            test_loss, accuracy = test( model )
         
             # Save best model. 
             if test_loss < best_test_loss:
@@ -164,6 +181,7 @@ class Neuron (NeuronBase):
                 # Save the best local model.
                 logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.logger.logdir + '/model.torch')
                 torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.logger.logdir + '/model.torch' )
+                session.checkpoint_experiment(loss=test_loss, accuracy=accuracy)
                 session.serve( model.deepcopy() )
 
             epoch += 1

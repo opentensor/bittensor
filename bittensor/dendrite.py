@@ -12,12 +12,10 @@ from munch import Munch
 
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
-from bittensor.tb_logger import TBLogger
 from bittensor.serializer import PyTorchSerializer
 from bittensor.exceptions.Exceptions import EmptyTensorException, ResponseShapeException, SerializationException
 import time
 import asyncio
-from bittensor.utils.asyncio import Asyncio
 
 # dummy tensor that triggers autograd in RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
@@ -289,9 +287,9 @@ class _RemoteModuleCall(torch.autograd.Function):
             response = ctx.caller.stub.Forward(request, timeout=caller.config.dendrite.timeout)
             # Time (in seconds) response took
             elapsed_time = time.time() - pre_response_time
-            bittensor.session.tbwriter.write_dendrite_network_data(
+            bittensor.session.tbwriter.save_dendrite_bandwidth_data(
                 'Remote Module Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
-            bittensor.session.tbwriter.write_dendrite_network_data(
+            bittensor.session.tbwriter.save_dendrite_bandwidth_data(
                 'Remote Module Forward Call Turnaround latency (seconds)', round(elapsed_time, 2))
 
             # Deserialize outputs and return.
