@@ -1,4 +1,5 @@
 import argparse
+from bittensor.utils.replicate_utils import ReplicateUtility
 from munch import Munch
 
 from bittensor.synapse import Synapse
@@ -10,7 +11,6 @@ from bittensor.subtensor import Keypair
 from bittensor.metadata import Metadata
 from loguru import logger
 import asyncio
-import replicate
 
 
 class FailedConnectToChain(Exception):
@@ -34,17 +34,8 @@ class BTSession:
         self.dendrite = Dendrite(self.config, self.__keypair)
         self.tbwriter = Metadata(self.config)
 
-        self.experiment = replicate.init(
-            path=self.config.neuron.datapath,
-            params={
-                **vars(self.config.neuron), 
-                **vars(self.config.synapse), 
-                **vars(self.config.axon), 
-                **vars(self.config.dendrite),
-                **vars(self.config.metagraph),
-                **vars(self.config.session)
-            }
-        )
+        # Start the replicate utility
+        self.replicate_util = ReplicateUtility(self.config)
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    

@@ -317,13 +317,13 @@ class FFNNSynapse(Synapse):
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
-        distillation_loss = F.mse_loss(local_context, remote_context.detach())
+        distillation_loss = F.mse_loss(local_context, remote_context.detach().to(self.device))
         output.distillation_loss = distillation_loss
         output.loss = output.loss + distillation_loss
 
         # remote_hidden: hidden layer encoding using remote_context.
         # remote_hidden.shape = [batch_size, bittensor.__network_dim__]
-        remote_hidden = torch.cat([transform, remote_context], dim=1)
+        remote_hidden = torch.cat([transform, remote_context.to(self.device)], dim=1)
         remote_hidden = self.hidden_layer1(remote_hidden)
         remote_hidden = self.hidden_layer2(remote_hidden)
         output.remote_hidden = remote_hidden
