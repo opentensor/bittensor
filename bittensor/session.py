@@ -44,8 +44,6 @@ class BTSession:
                     "dendrite.pass_gradients": self.config.dendrite.pass_gradients,
                     "dendrite.timeout": self.config.dendrite.timeout,
                     "metagraph.chain_endpoint": self.config.metagraph.chain_endpoint,
-                    "metagraph.polls_every_sec": self.config.metagraph.polls_every_sec,
-                    "metagraph.re_poll_neuron_every_blocks": self.config.metagraph.re_poll_neuron_every_blocks,
                     "metagraph.stale_emit_limit": self.config.metagraph.stale_emit_limit,
                     "meta_logger.log_dir": self.config.meta_logger.log_dir,
                     "session.checkout_experiment": self.config.session.checkout_experiment}
@@ -116,7 +114,7 @@ class BTSession:
         # Stop background grpc threads for serving synapse objects.
         logger.info('Unsubscribe from chain ...')
         try:
-            await self.metagraph.async_unsubscribe(10)
+            await self.metagraph.async_unsubscribe()
         except Exception as e:
             logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
 
