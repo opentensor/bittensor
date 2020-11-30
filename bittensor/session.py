@@ -36,10 +36,19 @@ class BTSession:
 
         self.experiment = replicate.init(
             path=self.config.neuron.datapath,
-            params={"learning_rate": self.config.neuron.learning_rate,
-                    "momentum": self.config.neuron.momentum,
-                    "batch_size_train": self.config.neuron.batch_size_train,
-                    "batch_size_test": self.config.neuron.batch_size_test}
+            params={"neuron.learning_rate": self.config.neuron.learning_rate,
+                    "neuron.momentum": self.config.neuron.momentum,
+                    "neuron.batch_size_train": self.config.neuron.batch_size_train,
+                    "neuron.batch_size_test": self.config.neuron.batch_size_test, 
+                    "neuron.datapath": self.config.neuron.datapath,
+                    "dendrite.pass_gradients": self.config.dendrite.pass_gradients,
+                    "dendrite.timeout": self.config.dendrite.timeout,
+                    "metagraph.chain_endpoint": self.config.metagraph.chain_endpoint,
+                    "metagraph.polls_every_sec": self.config.metagraph.polls_every_sec,
+                    "metagraph.re_poll_neuron_every_blocks": self.config.metagraph.re_poll_neuron_every_blocks,
+                    "metagraph.stale_emit_limit": self.config.metagraph.stale_emit_limit,
+                    "meta_logger.log_dir": self.config.meta_logger.log_dir,
+                    "session.checkout_experiment": self.config.session.checkout_experiment}
         )
 
     @staticmethod   

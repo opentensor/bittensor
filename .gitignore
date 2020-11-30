@@ -198,3 +198,4 @@ yarn-error.log*
 **/*.pstats
 **/*.png
 **/.replicate
+**/replicate.yaml
