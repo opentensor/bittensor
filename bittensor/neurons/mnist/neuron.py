@@ -20,7 +20,7 @@ from bittensor.config import Config
 from bittensor.neuron import NeuronBase
 from bittensor.synapse import Synapse
 from bittensor.synapses.ffnn import FFNNSynapse
-
+import replicate
 class Neuron (NeuronBase):
     def __init__(self, config):
         self.config = config
@@ -59,8 +59,28 @@ class Neuron (NeuronBase):
         best_test_loss = math.inf
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
         # Build local synapse to serve on the network.
         model = FFNNSynapse(self.config, session)
+
+        try:
+            if self.config.session.checkout_experiment:
+                experiment = replicate.experiments.get(self.config.session.checkout_experiment)
+                # This point can be changed by user. 
+                # experiment.latest() returns the latest model checkpointed. 
+                # experiment.best() returns the best performing model checkpointed.
+                latest_experiment = experiment.latest()
+                logger.info("Checking out experiment {} to {}".format(
+                    self.config.session.checkout_experiment, 
+                    self.config.neuron.datapath + self.config.neuron.neuron_name))
+                
+                model_file = latest_experiment.open(self.config.neuron.datapath + self.config.neuron.neuron_name + "/model.torch")
+                checkpt = torch.load(model_file)
+                model.load_state_dict(checkpt['model'])
+        except Exception as e:
+            logger.warning("Something happened checking out the model. {}".format(e))
+            logger.info("Using new model")
+
         model.to( device ) # Set model to device.
         session.serve( model.deepcopy() )
 
@@ -75,6 +95,7 @@ class Neuron (NeuronBase):
     
         # Train loop: Single threaded training of MNIST.
         def train(model, epoch):
+            
             # Turn on Dropoutlayers BatchNorm etc.
             model.train()
             last_log = time.time()
@@ -106,7 +127,7 @@ class Neuron (NeuronBase):
                     
                     progress = (100. * processed) / n
                     accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
-                    logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nS: {}', 
+                    logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\t nN: {}', 
                         epoch, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()))
                     session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())
                     session.tbwriter.write_loss('train local target loss', output.local_target_loss.item())
@@ -158,7 +179,7 @@ class Neuron (NeuronBase):
             scheduler.step()
 
             # Test model.
-            test_loss, _ = test( model )
+            test_loss, test_accuracy = test( model )
         
             # Save best model. 
             if test_loss < best_test_loss:
@@ -166,8 +187,11 @@ class Neuron (NeuronBase):
                 best_test_loss = test_loss
                 
                 # Save and serve the new best local model.
-                logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.logger.logdir + '/model.torch' )
-                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.logger.logdir + '/model.torch' )
+                logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, test_loss, self.config.neuron.datapath, self.config.neuron.neuron_name)
+                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss},"{}/{}/model.torch".format(self.config.neuron.datapath , self.config.neuron.neuron_name))
+                
+                # Save experiment metrics
+                session.checkpoint_experiment(epoch, loss=test_loss, accuracy=test_accuracy)
                 session.serve( model.deepcopy() )
 
             epoch += 1

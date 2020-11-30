@@ -7,16 +7,13 @@ import math
 import netaddr
 import numpy
 import time
-import threading
 import torch
 import traceback
-
-from threading import Thread, Lock
 
 from munch import Munch
 from loguru import logger
 from bittensor import bittensor_pb2
-from bittensor.subtensor import WSClient, Keypair
+from bittensor.subtensor import WSClient
 from typing import List
 
 def int_to_ip(int_val):
@@ -320,6 +317,9 @@ class Metagraph():
                 self._weight_vals.append(list(w_vals))
                 self._uids.append( uid )
                 self._index_for_uid[uid] = index
+
+            # Record number of peers on tblogger
+            bittensor.session.tbwriter.write_network_data("# Peers", len(self._neurons_list))
 
         except Exception as e:
             logger.error("Exception occurred: {}".format(e))
