@@ -50,7 +50,6 @@ class SynapseOutput(object):
                 remote_target_loss: torch.Tensor = None,
                 distillation_loss: torch.Tensor = None,
                 weights: torch.Tensor = None,
-                keys: torch.Tensor = None,
         ):
         self.loss = loss
         self.local_hidden = local_hidden
@@ -61,7 +60,6 @@ class SynapseOutput(object):
         self.remote_target_loss = remote_target_loss
         self.distillation_loss = distillation_loss
         self.weights = weights
-        self.keys = keys
 
 
 class Synapse(nn.Module):
