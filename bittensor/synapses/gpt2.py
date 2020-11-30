@@ -166,6 +166,65 @@ class GPT2LMSynapse(Synapse):
         hidden = self.forward(inputs=inputs.to(self.device), training = False, remote = False).local_hidden
         return hidden
 
+    def call_remote(self, inputs, context):
+        r""" Makes remote calls to neurons.
+
+            Args:
+                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                    Batch_size length list of text sentences.
+
+                context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, transform_dim)`, `required`): 
+                    Per example tensor used to select which neuron to send each example to.
+            
+            Returns:
+                remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Joined context vector from remote peer neurons.
+
+                weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, n)`, `optional`): 
+                    weights for each active neuron.
+        """
+
+        # uids: unique keys for peer neurons.
+        # uids.shape = [metagraph.n]
+        uids = self.session.metagraph.state.uids # Returns a list of neuron uids.
+       
+        # uids: uids with an emit call in the last 100 blocks.
+        # uids = [-1]
+        block = self.session.metagraph.state.block 
+        emit = self.session.metagraph.state.emit
+        staleness = (block - emit)
+        uids = uids[torch.where(staleness > self.config.synapse.n_block_filter)] 
+
+        # Return zeros if there are no remaining peer neurons.
+        if torch.numel(uids) == 0:
+            n = self.session.metagraph.state.n
+            remote_context = torch.zeros(size=(inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
+            weights = torch.zeros(size=(inputs.shape[0], n))
+            return remote_context, weights
+
+        # neurons: endpoint information for filtered keys.
+        # neurons.shape = [len(uids)]
+        neurons = self.session.metagraph.state.uids_to_neurons(uids)
+        
+        # request: inputs routeed to peers using context to filter topk.
+        # request.shape = neurons.size * [-1, sequence_dim, channels, rows, cols]
+        requests, weights = self.router.route( neurons, context, inputs ) 
+
+        # responses: responses from neurons.
+        # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
+        responses = self.session.dendrite.forward_text( neurons, requests )
+
+        # remote_context: Responses weighted and joined along the __network_dim__.
+        # remote_context.shape = [batch_size, bittensor.__network_dim__]
+        remote_context = self.router.join( responses )
+        remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2])
+
+        # scatter weights back onto shape (bs, n)
+        indices = self.session.metagraph.state.uids_to_indices(uids).repeat(inputs.shape[0], 1)
+        filled_weights = torch.zeros(inputs.shape[0], self.session.metagraph.state.n)
+        filled_weights.scatter_(1, indices, weights)
+        return remote_context, filled_weights 
+
     def forward(self, 
                 inputs: torch.LongTensor, 
                 training: bool = True, 
@@ -223,10 +282,8 @@ class GPT2LMSynapse(Synapse):
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         if remote:
-            neurons = self.session.metagraph.neurons()  # Returns a list of neurons on the network.
-            requests, _ = self.router.route(neurons, pooled, inputs)  # routes inputs to network.
-            responses = self.session.dendrite.forward_text(neurons, requests)  # Makes network calls.
-            remote_context = self.router.join(responses)  # Join responses with scores.
+            remote_context, weights = self.call_remote(pooled, inputs)
+            output.weights = weights
 
         # local_context: distilled version of remote_context.
         # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]

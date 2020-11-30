@@ -45,7 +45,7 @@ class Router(nn.Module):
         # when scores[i, j] == 0, the key j does not recieve input i
         requests = self.dispatcher.dispatch(raw_inputs, self.scores)  # List[(?, 784)]
 
-        return requests, self.scores, weights
+        return requests, weights
 
     def join(self, responses: List[torch.Tensor]) -> torch.Tensor:
         return self.dispatcher.combine(responses, self.scores)
