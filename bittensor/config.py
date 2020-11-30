@@ -92,10 +92,9 @@ class Config:
         parser = argparse.ArgumentParser()
         parser = Axon.add_args(parser)
         parser = Dendrite.add_args(parser)
-        parser = BTSession.add_args(parser)
         parser = Metagraph.add_args(parser)
         parser = Metadata.add_args(parser)
-
+        parser = BTSession.add_args(parser)
         # 2. Load args from neuron.
         neuron_module = SourceFileLoader("Neuron", os.getcwd() + '/' + neuron_path + '/neuron.py').load_module()
 
