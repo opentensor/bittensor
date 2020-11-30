@@ -153,7 +153,7 @@ class FFNNSynapse(Synapse):
         
         # request: image inputs routeed to peers using context to filter topk.
         # request.shape = neurons.size * [-1, sequence_dim, channels, rows, cols]
-        requests, scores, weights = self.router.route( neurons, context, images ) 
+        requests, _, weights = self.router.route( neurons, context, images ) 
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
