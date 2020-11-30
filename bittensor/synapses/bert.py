@@ -192,11 +192,6 @@ class BertSynapseBase (Synapse):
             remote_target = F.softmax(remote_target, dim=1)
             output.remote_target = remote_target
             
-            # remote_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
-            # remote_target_loss: [1]
-            remote_target_loss = self.loss_fct(remote_target.view(targets.shape[0], -1), targets)
-            output.remote_target_loss = remote_target_loss
-            output.loss = output.loss + remote_target_loss
         
         return output
 
@@ -332,7 +327,11 @@ class BertNSPSynapse (BertSynapseBase):
 
         if remote:
             output = self.remote_forward(output, targets)
-
+            # remote_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
+            # remote_target_loss: [1]
+            remote_target_loss = self.loss_fct(output.remote_target.view(targets.shape[0], -1), targets)
+            output.remote_target_loss = remote_target_loss
+            output.loss = output.loss + remote_target_loss
         return output
     
 
@@ -456,6 +455,11 @@ class BertMLMSynapse (BertSynapseBase):
             output.loss = output.loss + local_target_loss
 
         if remote:
-            output = self.remote_output(output, targets)
+            output = self.remote_forward(output, targets)
+            # remote_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
+            # remote_target_loss: [1]
+            remote_target_loss = self.loss_fct(output.remote_target.view(-1, bittensor.__vocab_size__), targets.view(-1))
+            output.remote_target_loss = remote_target_loss
+            output.loss = output.loss + remote_target_loss
 
         return output

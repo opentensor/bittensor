@@ -220,23 +220,9 @@ class GPT2LMSynapse(Synapse):
         # pooled.shape = [batch_size, bittensor.__network_dim__]
         pooled = self.pooler(encoding)
 
-        # remote_context: joined responses from a bittensor.forward_text call.
-        # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        if remote:
-            neurons = self.session.metagraph.neurons()  # Returns a list of neurons on the network.
-            requests, _ = self.router.route(neurons, pooled, inputs)  # routes inputs to network.
-            responses = self.session.dendrite.forward_text(neurons, requests)  # Makes network calls.
-            remote_context = self.router.join(responses)  # Join responses with scores.
-
         # local_context: distilled version of remote_context.
         # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         local_context = self.context_transformer(input_ids=inputs, return_dict=True).last_hidden_state
-        if remote:
-            # distillation_loss: distillation loss between local_context and remote_context
-            # distillation_loss.shape = [1]
-            distillation_loss = F.mse_loss(local_context, remote_context.detach())
-            output.distillation_loss = distillation_loss
-            output.loss = output.loss + distillation_loss
 
         # local_hidden: hidden layer encoding of sequence with local_context.
         # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
@@ -258,27 +244,47 @@ class GPT2LMSynapse(Synapse):
             output.local_target_loss = local_target_loss
             output.loss = output.loss + local_target_loss
 
-
         if remote:
-            # remote_hidden: hidden layer encoding using remote_context.
-            # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-            remote_hidden = torch.cat([encoding, remote_context], dim=2)
-            remote_hidden = self.hidden_layer(remote_hidden)
-            output.remote_hidden = remote_hidden
-
-            if training:
-                # remote_target: projection of remote_hidden onto target dimension.
-                # remote_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-                remote_target = self.target_layer(local_hidden)
-                output.remote_target = remote_target
-
-                # remote_target_loss: MLM loss between remote_target and passed targets.
-                # remote_target_loss.shape = [1]
-                shift_logits = remote_target[..., :-1, :].contiguous()
-                shift_labels = inputs[..., 1:].contiguous()
-                remote_target_loss = self.loss_fct(
-                    shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
-                output.loss = output.loss + remote_target_loss
-                output.remote_target_loss = remote_target_loss
+            output = self.forward_remote(local_context, local_hidden, inputs, pooled, encoding, training, output)
 
         return output
+
+    def forward_remote(self, local_context, local_hidden, inputs, pooled, encoding, training, output):
+        # remote_context: joined responses from a bittensor.forward_text call.
+        # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+
+        neurons = self.session.metagraph.neurons()  # Returns a list of neurons on the network.
+        requests, _ = self.router.route(neurons, pooled, inputs)  # routes inputs to network.
+        responses = self.session.dendrite.forward_text(neurons, requests)  # Makes network calls.
+        remote_context = self.router.join(responses)  # Join responses with scores.
+
+        # distillation_loss: distillation loss between local_context and remote_context
+        # distillation_loss.shape = [1]
+        distillation_loss = F.mse_loss(local_context, remote_context.detach())
+        output.distillation_loss = distillation_loss
+        output.loss = output.loss + distillation_loss
+
+        # remote_hidden: hidden layer encoding using remote_context.
+        # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        remote_hidden = torch.cat([encoding, remote_context], dim=2)
+        remote_hidden = self.hidden_layer(remote_hidden)
+        output.remote_hidden = remote_hidden
+
+        if training:
+            # remote_target: projection of remote_hidden onto target dimension.
+            # remote_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
+            remote_target = self.target_layer(local_hidden)
+            output.remote_target = remote_target
+
+            # remote_target_loss: MLM loss between remote_target and passed targets.
+            # remote_target_loss.shape = [1]
+            shift_logits = remote_target[..., :-1, :].contiguous()
+            shift_labels = inputs[..., 1:].contiguous()
+            remote_target_loss = self.loss_fct(
+                shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+            output.loss = output.loss + remote_target_loss
+            output.remote_target_loss = remote_target_loss
+        
+        return output
+
+
