@@ -39,13 +39,13 @@ class Router(nn.Module):
         # Learning a map from the gate_inputs to keys
         # scores[i, j] = score for the jth key for input i
         n_to_call = min(len(keys), self.topk)
-        self.scores, topk_indices = self.gate(gate_inputs, keys, topk=n_to_call)
+        self.scores, weights = self.gate(gate_inputs, keys, topk=n_to_call)
        
         # Dispatch data to inputs for each key.
         # when scores[i, j] == 0, the key j does not recieve input i
         requests = self.dispatcher.dispatch(raw_inputs, self.scores)  # List[(?, 784)]
 
-        return requests, self.scores, topk_indices.view(raw_inputs.shape[0], n_to_call)
+        return requests, self.scores, weights
 
     def join(self, responses: List[torch.Tensor]) -> torch.Tensor:
         return self.dispatcher.combine(responses, self.scores)

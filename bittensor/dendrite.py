@@ -189,9 +189,6 @@ class Dendrite(nn.Module):
         loop.stop()
         return results
 
-    def fill_zeros(self, inputs):
-        return torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__))
-
     async def gather(self, loop: asyncio.base_events.BaseEventLoop, inputs, neurons, mode):
             
         # Fill async calls.
@@ -204,7 +201,6 @@ class Dendrite(nn.Module):
             remote = self._remotes[neuron_i.public_key]
 
             # Append async call.
-            #calls.append( loop.run_in_executor(None, self.fill_zeros, inputs_i) )
             calls.append( loop.run_in_executor(None, remote.forward, inputs_i, mode) )
         
         # Gather results and return.

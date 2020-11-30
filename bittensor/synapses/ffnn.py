@@ -122,11 +122,8 @@ class FFNNSynapse(Synapse):
                 remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`): 
                     Joined context vector from remote peer neurons.
 
-                weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, len(keys))`, `optional`): 
-                    scores for each active key per example.
-
-                keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `optional`): 
-                    keys of neurons queried during this remote call.
+                weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, n)`, `optional`): 
+                        weights for each active neuron.
         """
         # images: re-add sequence dimension to input images.
         # hidden.shape = [batch_size, sequence_dim, channels, rows, cols] 
@@ -134,28 +131,29 @@ class FFNNSynapse(Synapse):
 
         # uids: unique keys for peer neurons.
         # uids.shape = [metagraph.n]
-        uids = self.session.metagraph.uids() # Returns a list of neuron uids.
+        uids = self.session.metagraph.state.uids # Returns a list of neuron uids.
        
         # uids: uids with an emit call in the last 100 blocks.
         # uids = [-1]
-        block = self.session.metagraph.block() 
-        emit = self.session.metagraph.emit()
+        block = self.session.metagraph.state.block 
+        emit = self.session.metagraph.state.emit
         staleness = (block - emit)
         uids = uids[torch.where(staleness > self.config.synapse.n_block_filter)] 
 
         # Return zeros if there are no remaining peer neurons.
         if torch.numel(uids) == 0:
-            return torch.zeros(size=(images.shape[0], bittensor.__network_dim__)), None, None
+            n = self.session.metagraph.state.n
+            remote_context = torch.zeros(size=(images.shape[0], bittensor.__network_dim__))
+            weights = torch.zeros(size=(images.shape[0], n))
+            return remote_context, weights
 
         # neurons: endpoint information for filtered keys.
-        # neurons.shape = [keys.size]
-        neurons = self.session.metagraph.neurons_for_uids(uids)
+        # neurons.shape = [len(uids)]
+        neurons = self.session.metagraph.state.uids_to_neurons(uids)
         
         # request: image inputs routeed to peers using context to filter topk.
         # request.shape = neurons.size * [-1, sequence_dim, channels, rows, cols]
-        requests, weights, indices = self.router.route( neurons, context, images ) 
-        uids = torch.tensor(uids).repeat(images.shape[0], 1)
-        uids = torch.gather(uids, 1, indices)
+        requests, scores, weights = self.router.route( neurons, context, images ) 
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
@@ -165,7 +163,12 @@ class FFNNSynapse(Synapse):
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         remote_context = self.router.join( responses )
         remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2])
-        return remote_context, weights, uids 
+
+        # scatter weights back onto shape (bs, n)
+        indices = self.session.metagraph.state.uids_to_indices(uids).repeat(images.shape[0], 1)
+        filled_weights = torch.zeros(images.shape[0], self.session.metagraph.state.n)
+        filled_weights.scatter_(1, indices, weights)
+        return remote_context, filled_weights 
 
     def forward(self,
                 images: torch.Tensor,
@@ -209,11 +212,8 @@ class FFNNSynapse(Synapse):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, len(keys))`, `optional`): 
-                        scores for each active key per example.
-
-                    keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `optional`): 
-                        Keys for queried neurons.
+                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, n)`, `optional`): 
+                        weights for each active neuron.
                 )
         """
 
@@ -230,9 +230,8 @@ class FFNNSynapse(Synapse):
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         if remote:
-            remote_context, weights, keys = self.call_remote(images, transform)
+            remote_context, weights = self.call_remote(images, transform)
             output.weights = weights
-            output.keys = keys
 
         # local_context: distillation model for remote_context.
         # local_context.shape = [batch_size, bittensor.__network_dim__]
