@@ -41,7 +41,8 @@ class BTSession:
                 **vars(self.config.synapse), 
                 **vars(self.config.axon), 
                 **vars(self.config.dendrite),
-                **vars(self.config.metagraph)
+                **vars(self.config.metagraph),
+                **vars(self.config.session)
             }
         )
 
