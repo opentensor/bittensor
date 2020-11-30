@@ -283,6 +283,8 @@ class DPNSynapse(Synapse):
             remote_target_loss = F.nll_loss(remote_target, targets)
             output.loss = output.loss + remote_target_loss
             output.remote_target_loss = remote_target_loss
+        
+        return output
 
     def _make_layer(self, in_planes, out_planes, num_blocks, dense_depth, stride):
         strides = [stride] + [1]*(num_blocks-1)

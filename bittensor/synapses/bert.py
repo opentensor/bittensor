@@ -146,23 +146,9 @@ class BertSynapseBase (Synapse):
         encoding_hidden = encoding.last_hidden_state
         encoding_pooled = encoding.pooler_output
 
-        # remote_context: joined responses from a bittensor.forward_text call.
-        # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        if remote:
-            neurons = self.session.metagraph.neurons()  # Returns a list of synapses on the network.
-            requests, _ = self.router.route(neurons, encoding_pooled, inputs)  # routes inputs to network.
-            responses = self.session.dendrite.forward_text(neurons, requests)  # Makes network calls.
-            remote_context = self.router.join(responses)  # Join responses with scores.
-
         # local_context: distilled version of remote_context.
         # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         local_context = self.context_transformer(input_ids=inputs, return_dict=True).last_hidden_state
-        if remote:
-            # distillation_loss: distillation loss between local_context and remote_context
-            # distillation_loss.shape = [1]
-            distillation_loss = F.mse_loss(local_context, remote_context.detach())
-            output.distillation_loss = distillation_loss
-            output.loss = output.loss + distillation_loss
 
         # local_hidden: hidden layer encoding of sequence with local_context.
         # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
@@ -171,13 +157,49 @@ class BertSynapseBase (Synapse):
         output.local_hidden = local_hidden
 
         if remote:
-            # remote_hidden: hidden layer encoding using remote_context.
-            # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-            remote_hidden = torch.cat([encoding_hidden, remote_context], dim=2)
-            remote_hidden = self.hidden_layer(remote_hidden)
-            output.remote_hidden = remote_hidden
+            output = self.base_remote_forward(local_context, inputs, encoding_pooled, encoding_hidden, output)
 
         return output
+
+    def base_remote_forward(self, local_context, inputs, encoding_pooled, encoding_hidden, output):
+        # remote_context: joined responses from a bittensor.forward_text call.
+        # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        neurons = self.session.metagraph.neurons()  # Returns a list of synapses on the network.
+        requests, _ = self.router.route(neurons, encoding_pooled, inputs)  # routes inputs to network.
+        responses = self.session.dendrite.forward_text(neurons, requests)  # Makes network calls.
+        remote_context = self.router.join(responses)  # Join responses with scores.
+
+        # distillation_loss: distillation loss between local_context and remote_context
+        # distillation_loss.shape = [1]
+        distillation_loss = F.mse_loss(local_context, remote_context.detach())
+        output.distillation_loss = distillation_loss
+        output.loss = output.loss + distillation_loss
+
+        # remote_hidden: hidden layer encoding using remote_context.
+        # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        remote_hidden = torch.cat([encoding_hidden, remote_context], dim=2)
+        remote_hidden = self.hidden_layer(remote_hidden)
+        output.remote_hidden = remote_hidden
+
+        return output
+    
+    def remote_forward(self, output, targets):
+
+        if targets is not None:
+            # remote_target: projection the local_hidden to target dimension.
+            # remote_target.shape = [batch_size, 2]
+            remote_target = self.target_layer(output.remote_hidden)
+            remote_target = F.softmax(remote_target, dim=1)
+            output.remote_target = remote_target
+            
+            # remote_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
+            # remote_target_loss: [1]
+            remote_target_loss = self.loss_fct(remote_target.view(targets.shape[0], -1), targets)
+            output.remote_target_loss = remote_target_loss
+            output.loss = output.loss + remote_target_loss
+        
+        return output
+
 
 class BertNSPSynapse (BertSynapseBase):
     def __init__(   self,
@@ -308,20 +330,11 @@ class BertNSPSynapse (BertSynapseBase):
             output.loss = output.loss + local_target_loss
 
 
-        if remote and targets is not None:
-            # remote_target: projection the local_hidden to target dimension.
-            # remote_target.shape = [batch_size, 2]
-            remote_target = self.target_layer(output.remote_hidden)
-            remote_target = F.softmax(remote_target, dim=1)
-            output.remote_target = remote_target
-            
-            # remote_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
-            # remote_target_loss: [1]
-            remote_target_loss = self.loss_fct(remote_target.view(targets.shape[0], -1), targets)
-            output.remote_target_loss = remote_target_loss
-            output.loss = output.loss + remote_target_loss
+        if remote:
+            output = self.remote_forward(output, targets)
 
         return output
+    
 
 
 class BertMLMSynapse (BertSynapseBase):
@@ -442,17 +455,7 @@ class BertMLMSynapse (BertSynapseBase):
             output.local_target_loss = local_target_loss
             output.loss = output.loss + local_target_loss
 
-        if remote and targets is not None:
-            # remote_target: projection the local_hidden to target dimension.
-            # remote_target.shape = [batch_size, bittensor.__vocab_size__]
-            remote_target = self.target_layer(output.remote_hidden)
-            remote_target = F.softmax(remote_target, dim=1)
-            output.remote_target = remote_target
-
-            # remote_target_loss: cross entropy between predicted token and realized.
-            # remote_target_loss: [1]
-            remote_target_loss = self.loss_fct(remote_target.view(-1, bittensor.__vocab_size__), targets.view(-1))
-            output.remote_target_loss = remote_target_loss
-            output.loss = output.loss + remote_target_loss
+        if remote:
+            output = self.remote_output(output, targets)
 
         return output
