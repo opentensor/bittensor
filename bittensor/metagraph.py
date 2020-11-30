@@ -138,7 +138,7 @@ class Metagraph():
         # Keeps track of the last block we preformed a sync
         self.last_sync = 0
 
-        # Local chain state buffer.
+        # Local state cache.
         self._n = 1
         self._next_uid = 1
         self._uids = [0]
@@ -154,42 +154,118 @@ class Metagraph():
 
         # Torch chain state.
         self.state = TorchChainState()
-        self._update_state()
+        self.sync()
 
     def sync(self):
         r""" Synchronizes the local self.state with the chain state, sinking the trained weights and pulling 
         info from other peers. Ensures the self.state is in accordance with the state on chain at this block.
         """
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self._do_sync())
+        loop.run_until_complete(self.async_sync())
 
-    def chain_block(self):
+    async def async_sync(self):
+        r""" Async: Synchronizes the local self.state with the chain state by polling the chain.
+        """
+        await self._sync_cache()
+        self.last_sync = await self.async_block()
+        self.state = self._cache_to_state()
+
+    def emit(self, weights: torch.FloatTensor):
+        r""" Emits the passed weights to the chain. Waits for inclusion.
+        """
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.async_emit())
+
+    async def async_emit(self, weights: torch.FloatTensor) -> bool: 
+        r""" Emits the passed weights to the chain. Waits for inclusion.
+        Return:
+            indlcuded: (bool) true is the weights were set on chain.
+        """
+        keys, vals = self._convert_weights(weights)
+        try:
+            await self.subtensor_client.set_weights(keys, vals, self.__keypair, wait_for_inclusion = False)
+        except Exception as e:
+            logger.info('Failed to emit weights with error {}', e)
+            return False
+        return await self._wait_for_weights_inclusion(keys, vals, timeout = 12)
+
+    def block(self):
         r""" Returns the current block on the chain.
         Returns:
             block: (int) block number on chain.
         """
         loop = asyncio.get_event_loop()
-        return loop.run_until_complete(self._chain_block())
+        return loop.run_until_complete(self.async_block())
 
-    async def _chain_block(self):
+    async def async_block(self) -> int:
         r""" Async returns the current block on the chain.
         Returns:
             block: (int) block number on chain.
         """
         return await self.subtensor_client.get_current_block()
 
-    async def _do_sync(self):
-        r""" Async: Synchronizes the local self.state with the chain state
+    def subscribe(self, timeout) -> bool:
+        r""" Syncronous: Makes a subscribe request to the chain. Waits for subscription inclusion or returns False
+        Returns:
+            subscribed: (bool): true if the subscription is a success.
         """
-        logger.info('do sync')
-        await self._emit_state()
-        await self._poll_state()
-        self.last_sync = await self._chain_block()
-        self._update_state()
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(self.async_subscribe(timeout))
 
-    def _update_state(self):
-        r""" Deep copies the local state cache i.e. self._stake into the state object.
+    async def async_subscribe (self, timeout) -> bool:
+        r""" Async: Makes a subscribe request to the chain. Waits for subscription inclusion or returns False
+        Returns:
+            subscribed: (bool): true if the subscription is a success.
         """
+        await self.subtensor_client.subscribe(self._config.axon.remote_ip, self._config.axon.port)
+        return await self._wait_for_subscription(timeout=12)
+
+    def unsubscribe(self, timeout) -> bool:
+        r""" Syncronous: Unsubscribes the local neuron from the chain.
+         """
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(self.async_unsubscribe(timeout))  
+
+    async def async_unsubscribe (self, timeout):
+        r""" Async: Unsubscribes the local neuron from the chain.
+        """
+        logger.info('Unsubscribe from chain endpoint')
+        await self.subtensor_client.unsubscribe(timeout)
+
+    def connect(self) -> bool:
+        r""" Synchronous: Connects to the chain.
+        Returns:
+            connected: (bool): true if the connection is a success.
+        """
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(self.async_connect())
+
+    async def async_connect(self) -> bool:
+        r""" Async: Makes and awaits for a connection to the chain.
+        Returns:
+            connected: (bool): true if the connection is a success.
+        """
+        self.subtensor_client.connect()
+        connected = await self.subtensor_client.is_connected()
+        return connected        
+
+    async def _sync_cache(self):
+        r""" Async: Makes calls to chain updating local chain cache with newest info.
+        """
+        # Make asyncronous calls to chain filling local state cache.
+        calls = []
+        current_block = await self.async_block()
+        emits = await self.subtensor_client.get_last_emit_data()
+        for (pubkey, last_emit) in emits:
+                # Filter based on stale emissions.
+                if (current_block - last_emit) < 100:
+                    calls.append(self._poll_pubkey(pubkey))
+        await asyncio.gather(*calls)
+
+    def _cache_to_state(self):
+        r""" Copies chain cache values into the local self.state.
+        """
+        # Deep copies chain state into metagraph state.
         state = TorchChainState()
         state.n = self._n
         state.block = self.last_sync
@@ -208,31 +284,23 @@ class Metagraph():
                     j = self._index_for_pubkey[k]
                     weights_numpy[i, j] = float(val) / float(val_sum)
         state.W = torch.tensor(weights_numpy, dtype=torch.float32)
-        self.state = state
+        return state
 
-    async def _emit_state(self):
-        r""" Emits the local self.state weights to the chain after normalization. Waits for the inclusion.
+    async def _wait_for_subscription(self, timeout=12) -> bool:
+        r""" Async: Waits for subscription info to appear on chain.
+        Returns:
+            subscribed: (bool): true if info is set on chain after timeout.
         """
-        # Convert floats to ints with precision.
-        u32_int_max = 4294967295 # max int value.
-        weight_pubkeys = []
-        weight_vals_as_ints = []
-        for i, val in enumerate(self.state.weights.tolist()):
-            if val > 0.0001:
-                weight_pubkeys.append( self._pubkey_for_index[i] )
-                int_val = int(float(val) * int(u32_int_max)) # convert to int representation.
-                weight_vals_as_ints.append(int_val) # int weights sum to u32_int_max.
+        start_time = time.time()
+        info = await self.subtensor_client.neurons(self.__keypair.pubkey)
+        while info == None:
+            asyncio.sleep(1)
+            info = await self.subtensor_client.neurons(self.__keypair.pubkey)
+            if time.time() - start_time > timeout:
+                return False
+        return True
 
-        # Try set weights.
-        logger.info('emit -> {}', list(zip(weight_pubkeys, weight_vals_as_ints)))
-        try:
-            await self.subtensor_client.set_weights(weight_pubkeys, weight_vals_as_ints, self.__keypair, wait_for_inclusion = False)
-            await self._wait_for_inclusion(weight_pubkeys, weight_vals_as_ints)
-        except Exception as e:
-            logger.info('Emission failed with exception: {}', e)
-        logger.info('Emission done.')
-        
-    async def _wait_for_inclusion(self, local_keys, local_vals):
+    async def _wait_for_weights_inclusion(self, local_keys, local_vals, timeout=12):
         r""" Waits until timeout for the local keys and vals to be set on chain.
         """
         def equal(chain_keys, chain_vals):
@@ -256,22 +324,22 @@ class Metagraph():
             chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
             chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
             are_equal = equal(chain_keys, chain_vals)
-            if (time.time() - start_time) > 12:
-                logger.info('Failed to sync weights on chain.')
+            if (time.time() - start_time) > timeout:
+                logger.info('Timeout while waiting for weights inclusion.')
         logger.info('Chain weights {}', list(zip(chain_keys,chain_vals)))
         return True
 
-    async def _poll_state(self):
-        r""" Polls neurons on chain for latest info, sinks results to local cache.
-        """
-        calls = []
-        current_block = await self._chain_block()
-        emits = await self.subtensor_client.get_last_emit_data()
-        for (pubkey, last_emit) in emits:
-                # Filter stale emission.
-                if (current_block - last_emit) < 100:
-                    calls.append(self._poll_pubkey(pubkey))
-        await asyncio.gather(*calls)
+    def _convert_weights(self, weights: torch.Tensor):
+        # Convert floats to ints with precision.
+        u32_int_max = 4294967295 # max int value.
+        weight_pubkeys = []
+        weight_vals_as_ints = []
+        for i, val in enumerate(weights.tolist()):
+            if val > 0.0001:
+                weight_pubkeys.append( self._pubkey_for_index[i] )
+                int_val = int(float(val) * int(u32_int_max)) # convert to int representation.
+                weight_vals_as_ints.append(int_val) # int weights sum to u32_int_max.
+        return weight_pubkeys, weight_vals_as_ints
 
     async def _poll_pubkey(self, pubkey):
         """ Polls info info for a specfic public key.
@@ -319,47 +387,11 @@ class Metagraph():
                 self._index_for_uid[uid] = index
 
             # Record number of peers on tblogger
-            bittensor.session.tbwriter.write_network_data("# Peers", len(self._neurons_list))
+            bittensor.session.tbwriter.write_network_data("# Peers", len(self._neurons))
 
         except Exception as e:
             logger.error("Exception occurred: {}".format(e))
             traceback.print_exc()
-
-
-    async def connect(self) -> bool:
-        r""" Async: Makes and awaits for a connection to the chain.
-        Returns:
-            connected: (bool): true if the connection is a success.
-        """
-        self.subtensor_client.connect()
-        connected = await self.subtensor_client.is_connected()
-        return connected
-
-    async def subscribe (self, timeout) -> bool:
-        r""" Async: Makes a subscribe request to the chain. Waits for subscription includion or returns False
-        Returns:
-            subscribed: (bool): true if the subscription is a success.
-        """
-        await self.subtensor_client.subscribe(self._config.axon.remote_ip, self._config.axon.port)
-        current_block = await self.subtensor_client.get_current_block()
-        self._block = current_block
-        self._last_emit = current_block
-
-        time_elapsed = 0
-        while time_elapsed < timeout:
-            time.sleep(1)
-            time_elapsed += 1
-            neurons = await self.subtensor_client.neurons()
-            for n in neurons:
-                if n[0] == self.__keypair.public_key:
-                    return True
-        return False
-            
-    async def unsubscribe (self, timeout):
-        r""" Async: Makes a unsubscribe request ot the chain waits for succes.
-        """
-        logger.info('Unsubscribe from chain endpoint')
-        await self.subtensor_client.unsubscribe()
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
