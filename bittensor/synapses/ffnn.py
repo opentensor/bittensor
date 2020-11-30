@@ -309,7 +309,6 @@ class FFNNSynapse(Synapse):
                 )
 
         """
-        logger.info("SHAPE: {}".format(local_context.shape))
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         remote_context, keys, scores = self.call_remote(images, transform)
