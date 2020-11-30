@@ -94,6 +94,7 @@ class BertSynapseBase (Synapse):
                             help='Number of hidden layers in the Transformer encoder.')
         parser.add_argument('--synapse.num_attention_heads', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
+        parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
         return parser
 
     def forward_text(self, inputs: torch.LongTensor):
@@ -152,16 +153,15 @@ class BertSynapseBase (Synapse):
         
         # request: inputs routeed to peers using context to filter topk.
         # request.shape = neurons.size * [-1, sequence_dim, channels, rows, cols]
-        requests, weights = self.router.route( neurons, context, inputs ) 
+        requests, weights = self.router.route( neurons, context, inputs) 
 
         # responses: responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
         responses = self.session.dendrite.forward_text( neurons, requests )
 
         # remote_context: Responses weighted and joined along the __network_dim__.
-        # remote_context.shape = [batch_size, bittensor.__network_dim__]
+        # remote_context.shape = [batch_size, sequence_dim, bittensor.__network_dim__]
         remote_context = self.router.join( responses )
-        remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2])
 
         # scatter weights back onto shape (bs, n)
         indices = self.session.metagraph.state.uids_to_indices(uids).repeat(inputs.shape[0], 1)
@@ -208,7 +208,7 @@ class BertSynapseBase (Synapse):
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         if remote:
-            remote_context, weights = self.call_remote(pooled, inputs)
+            remote_context, weights = self.call_remote(inputs, encoding_pooled)
             output.weights = weights
 
         # local_context: distilled version of remote_context.
@@ -422,6 +422,7 @@ class BertMLMSynapse (BertSynapseBase):
                             help='Number of hidden layers in the Transformer encoder.')
         parser.add_argument('--synapse.num_attention_heads', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
+        parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
         return parser
 
     def forward_text(self, inputs: torch.LongTensor):

@@ -108,7 +108,7 @@ class Neuron (NeuronBase):
                 optimizer.zero_grad()
 
                 # Emit and sync.
-                if (session.metagraph.block() - session.metagraph.state.block) > 5:
+                if (session.metagraph.block() - session.metagraph.state.block) > 15:
                     session.metagraph.emit()
                     session.metagraph.sync()
 
@@ -149,7 +149,7 @@ class Neuron (NeuronBase):
                     accuracy_str = colored('{:.3f}'.format(accuracy), 'green')
 
                     logger.info('Epoch: {} [{}/{} ({})] | Loss: {} | Acc: {} ', 
-                        1, processed_str, n_str, progress_str, loss_item_str, accuracy_str)
+                        epoch, processed_str, n_str, progress_str, loss_item_str, accuracy_str)
 
                     # Log weights.
                     np.set_printoptions(precision=2, suppress=True, linewidth=500, sign=' ')

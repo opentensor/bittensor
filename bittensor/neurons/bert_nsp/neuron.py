@@ -136,7 +136,7 @@ class Neuron (NeuronBase):
                 optimizer.zero_grad() # Zero out lingering gradients.
 
                 # Emit and sync.
-                if (session.metagraph.block() - session.metagraph.state.block) > 5:
+                if (session.metagraph.block() - session.metagraph.state.block) > 15:
                     session.metagraph.emit()
                     session.metagraph.sync()
 
