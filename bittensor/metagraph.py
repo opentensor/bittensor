@@ -14,7 +14,7 @@ from munch import Munch
 from loguru import logger
 from bittensor import bittensor_pb2
 from bittensor.subtensor import WSClient
-from typing import List
+from typing import List, Tuple, List
 
 def int_to_ip(int_val):
     return str(netaddr.IPAddress(int_val))
@@ -62,12 +62,16 @@ class TorchChainState():
 
     @property
     def weights(self):
-        r"""Return this neurons weights. W[0,:]
+        r"""Return this neuron's weights. W[0,:]
         Returns 
             weights: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
                 returned indices for passed uids.
         """
-        return self.W[0,:]
+        if self.n == 0:
+            return torch.Tensor([])
+        else:
+            w_0 = self.W[0,:]
+            return w_0
 
     def set_weights(self, weights):
         r"""Sets this neurons weights. W[0,:]
@@ -138,7 +142,7 @@ class Metagraph():
         # Keeps track of the last block we preformed a sync
         self.last_sync = 0
 
-        # Local state cache.
+        # Cached values.
         self._n = 1
         self._next_uid = 1
         self._uids = [0]
@@ -152,42 +156,8 @@ class Metagraph():
         self._index_for_pubkey = {self._neuron.public_key: 0}
         self._pubkey_for_index = {0: self._neuron.public_key}
 
-        # Torch chain state.
-        self.state = TorchChainState()
-        self.sync()
-
-    def sync(self):
-        r""" Synchronizes the local self.state with the chain state, sinking the trained weights and pulling 
-        info from other peers. Ensures the self.state is in accordance with the state on chain at this block.
-        """
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.async_sync())
-
-    async def async_sync(self):
-        r""" Async: Synchronizes the local self.state with the chain state by polling the chain.
-        """
-        await self._sync_cache()
-        self.last_sync = await self.async_block()
+        # Turn initial cache into TorchChainState.
         self.state = self._cache_to_state()
-
-    def emit(self, weights: torch.FloatTensor):
-        r""" Emits the passed weights to the chain. Waits for inclusion.
-        """
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.async_emit())
-
-    async def async_emit(self, weights: torch.FloatTensor) -> bool: 
-        r""" Emits the passed weights to the chain. Waits for inclusion.
-        Return:
-            indlcuded: (bool) true is the weights were set on chain.
-        """
-        keys, vals = self._convert_weights(weights)
-        try:
-            await self.subtensor_client.set_weights(keys, vals, self.__keypair, wait_for_inclusion = False)
-        except Exception as e:
-            logger.info('Failed to emit weights with error {}', e)
-            return False
-        return await self._wait_for_weights_inclusion(keys, vals, timeout = 12)
 
     def block(self):
         r""" Returns the current block on the chain.
@@ -220,17 +190,17 @@ class Metagraph():
         await self.subtensor_client.subscribe(self._config.axon.remote_ip, self._config.axon.port)
         return await self._wait_for_subscription(timeout=12)
 
-    def unsubscribe(self, timeout) -> bool:
+    def unsubscribe(self) -> bool:
         r""" Syncronous: Unsubscribes the local neuron from the chain.
          """
         loop = asyncio.get_event_loop()
-        return loop.run_until_complete(self.async_unsubscribe(timeout))  
+        return loop.run_until_complete(self.async_unsubscribe())  
 
-    async def async_unsubscribe (self, timeout):
+    async def async_unsubscribe (self):
         r""" Async: Unsubscribes the local neuron from the chain.
         """
         logger.info('Unsubscribe from chain endpoint')
-        await self.subtensor_client.unsubscribe(timeout)
+        await self.subtensor_client.unsubscribe()
 
     def connect(self) -> bool:
         r""" Synchronous: Connects to the chain.
@@ -249,6 +219,71 @@ class Metagraph():
         connected = await self.subtensor_client.is_connected()
         return connected        
 
+    def emit(self, weights: torch.FloatTensor = None):
+        r""" Emits the passed weights to the chain. Waits for inclusion.
+        Args:
+            weights: (torch.FloatTensor): 
+                weights to set on chain of length self.state.n
+        """
+        if weights == None:
+            weights = self.state.weights
+    
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.async_emit(weights))
+
+    async def async_emit(self, weights: torch.FloatTensor = None) -> bool: 
+        r""" Emits the passed weights to the chain. Waits for inclusion.
+        Args:
+            weights: (torch.FloatTensor): 
+                weights to set on chain. Defaults to those in self.state.weights().
+        Return:
+            indlcuded: (bool) true is the weights were set on chain.
+        """
+        # Set weights to those in self.state if not explicit.
+        if weights == None:
+            weights = self.state.weights
+
+        # Check that weights meet chain requirements.
+        if not self._check_weights(weights):
+            logger.error('Weight emit failed with weight check.')
+            return False
+
+        # Convert weights to integer represenation and get corresponding keys.
+        keys, vals = self._convert_weights(weights)
+
+        # Remove unchanged vals.
+        keys, vals = await self._remove_noop(keys, vals)
+        if len(keys) == 0:
+            logger.error('Weight emit is a no-op.')
+            return False
+
+        # Makes weight emission call.
+        try:
+            await self.subtensor_client.set_weights(keys, vals, self.__keypair, wait_for_inclusion = False)
+        except Exception as e:
+            logger.info('Failed to emit weights with error {}', e)
+            return False
+
+        # Checks that weight emission was included in a block after 12 seconds.
+        if not await self._wait_for_emit_inclusion(keys, vals, timeout = 12):
+            logger.error('Weight failed with non-inclusion after 12 seconds.')
+            return False
+        return True
+
+    def sync(self):
+        r""" Synchronizes the local self.state with the chain state, sinking the trained weights and pulling 
+        info from other peers. Ensures the self.state is in accordance with the state on chain at this block.
+        """
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.async_sync())
+
+    async def async_sync(self):
+        r""" Async: Synchronizes the local self.state with the chain state by polling the chain.
+        """
+        await self._sync_cache()
+        self.last_sync = await self.async_block()
+        self.state = self._cache_to_state()
+
     async def _sync_cache(self):
         r""" Async: Makes calls to chain updating local chain cache with newest info.
         """
@@ -258,7 +293,7 @@ class Metagraph():
         emits = await self.subtensor_client.get_last_emit_data()
         for (pubkey, last_emit) in emits:
                 # Filter based on stale emissions.
-                if (current_block - last_emit) < 100:
+                if (current_block - last_emit) < self._config.metagraph.stale_emit_limit:
                     calls.append(self._poll_pubkey(pubkey))
         await asyncio.gather(*calls)
 
@@ -292,57 +327,110 @@ class Metagraph():
             subscribed: (bool): true if info is set on chain after timeout.
         """
         start_time = time.time()
-        info = await self.subtensor_client.neurons(self.__keypair.pubkey)
+        info = await self.subtensor_client.neurons(self.__keypair.public_key)
         while info == None:
-            asyncio.sleep(1)
-            info = await self.subtensor_client.neurons(self.__keypair.pubkey)
+            await asyncio.sleep(1)
+            info = await self.subtensor_client.neurons(self.__keypair.public_key)
             if time.time() - start_time > timeout:
                 return False
         return True
 
-    async def _wait_for_weights_inclusion(self, local_keys, local_vals, timeout=12):
-        r""" Waits until timeout for the local keys and vals to be set on chain.
+    async def _are_set_on_chain(self, keys, vals) -> bool:
+        r""" Returns true if the passed key and vals are set on chain.
         """
-        def equal(chain_keys, chain_vals):
-            if len(local_keys) != len(chain_keys):
-                return False
-            lkey_map = {}
-            ckey_map = {}
-            for i in range(len(local_keys)):
-                lkey_map[local_keys[i]] = local_vals[i]
-                ckey_map[chain_keys[i]] = chain_vals[i]
-            for key in lkey_map.keys():
-                if lkey_map[key] != ckey_map[key]:
-                    return False
-            return True
-        start_time = time.time()
+        cmap = {}
         chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
         chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
-        are_equal = equal(chain_keys, chain_vals)
-        while not are_equal:
+        for key, val in list(zip(chain_keys, chain_vals)):
+            cmap[key] = val
+        for key, val in list(zip(keys, vals)):
+            if key not in cmap:
+                return False
+            if cmap[key] != val:
+                return False 
+        return True
+
+    async def _wait_for_emit_inclusion(self, weight_keys, weight_vals, timeout=12):
+        r""" Waits until timeout for the local keys and vals to be set on chain.
+        """
+        start_time = time.time()
+        while not await self._are_set_on_chain(weight_keys, weight_vals):
             await asyncio.sleep(3)
-            chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
-            chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
-            are_equal = equal(chain_keys, chain_vals)
             if (time.time() - start_time) > timeout:
-                logger.info('Timeout while waiting for weights inclusion.')
+                logger.info('Timeout while waiting for emit inclusion.')
+                return False
+        chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
+        chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
         logger.info('Chain weights {}', list(zip(chain_keys,chain_vals)))
         return True
 
-    def _convert_weights(self, weights: torch.Tensor):
+    async def _remove_noop(self, weight_keys, weight_vals):
+        r""" Removes weights and vals from the chain update which have not changed on chain.
+        Returns:
+            keys, vals:
+                keys, vals with removed noops.
+        """
+        cmap = {}
+        chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
+        chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
+        for key, val in list(zip(chain_keys, chain_vals)):
+            cmap[key] = val
+
+        ret_keys = []
+        ret_vals = []
+        for key, val in list(zip(weight_keys, weight_vals)):
+            if key in cmap:
+                if cmap[key] == val:
+                    continue 
+            ret_keys.append(key)
+            ret_vals.append(val)
+
+        return ret_keys, ret_vals          
+      
+    def _check_weights(self, weights: torch.Tensor):
+        r""" Checks that weights vector being set on chain meet requirements.
+        Returns:
+            valid: (bool)
+                True if the weight being set meet requirements to be set on chain.
+        """
+        as_list = weights.tolist()
+        if len(as_list) != self.state.n:
+            logger.info("Error trying to set weights on chain. Got length {}, but the length must match the number of neurons in self.state.n {}", len(as_lsit), self.state.n)
+            return False
+        sum_list = sum(as_list)
+        if sum_list != 1.0:
+            logger.info("Error trying to set weights on chain. Got {} but sum of weights must equal 1", sum_list)
+            return False
+        min_list = min(as_list)
+        if min_list < 0.0:
+            logger.info("Error trying to set weights on chain. Got min value {} but values must be in range [0,1]", min_list)
+            return False
+        max_list = max(as_list)
+        if max_list > 1.0:
+            logger.info("Error trying to set weights on chain. Got max value {} but values must be in range [0,1]", max_list)
+            return False
+        return True
+
+    def _convert_weights(self, weights: torch.FloatTensor) -> Tuple[List[str], List[int]]:
+        r""" Converts weights into integer u32 representation.
+        Returns:
+            keys: (List[str]):
+                List of pubkeys associated with each weight from vals.
+            vals: (List[int]):
+                List of u32 integer representations of floating point weights.
+        """
         # Convert floats to ints with precision.
-        u32_int_max = 4294967295 # max int value.
+        u32_int_max = 4294967295 # max u32 int value.
         weight_pubkeys = []
         weight_vals_as_ints = []
         for i, val in enumerate(weights.tolist()):
-            if val > 0.0001:
-                weight_pubkeys.append( self._pubkey_for_index[i] )
-                int_val = int(float(val) * int(u32_int_max)) # convert to int representation.
-                weight_vals_as_ints.append(int_val) # int weights sum to u32_int_max.
+            weight_pubkeys.append( self._pubkey_for_index[i] ) # Gets the pubkey at this index.
+            int_val = int(float(val) * int(u32_int_max)) # convert to int representation.
+            weight_vals_as_ints.append(int_val) # int weights sum to u32_int_max.
         return weight_pubkeys, weight_vals_as_ints
 
     async def _poll_pubkey(self, pubkey):
-        """ Polls info info for a specfic public key.
+        r""" Polls info info for a specfic public key.
         """
         logger.info('poll: {} ', pubkey)
         if pubkey in self._index_for_pubkey:
@@ -397,6 +485,8 @@ class Metagraph():
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         parser.add_argument('--metagraph.chain_endpoint', default='206.189.254.5:12345', type=str, 
                             help='chain endpoint.')
+        parser.add_argument('--metagraph.stale_emit_limit', default=100, type=int, 
+                            help='filter neurons with last emit beyond this many blocks.')
 
         return parser
 

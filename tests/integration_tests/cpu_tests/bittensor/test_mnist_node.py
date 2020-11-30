@@ -54,8 +54,9 @@ class Neuron(NeuronBase):
             # Clear gradients.
             optimizer.zero_grad()
 
-            # Syncs the metagraph state every 10 blocks.
-            if (session.metagraph.chain_block() - session.metagraph.state.block) > 5:
+            # Emit and sync.
+            if (session.metagraph.block() - session.metagraph.state.block) > 5:
+                session.metagraph.emit()
                 session.metagraph.sync()
 
             # Forward pass.
@@ -68,12 +69,12 @@ class Neuron(NeuronBase):
             loss.backward()
             optimizer.step()
 
-            # Update chain state weights.
-            if output.weights.shape[1] > 0:
-                state_weights = session.metagraph.state.weights
-                learned_weights = F.softmax(torch.mean(output.weights, axis=0))
-                state_weights = (1 - 0.05) * state_weights + 0.05 * learned_weights
-                session.metagraph.state.set_weights( state_weights )
+            # Update weights.
+            state_weights = session.metagraph.state.weights
+            learned_weights = F.softmax(torch.mean(output.weights, axis=0))
+            state_weights = (1 - 0.05) * state_weights + 0.05 * learned_weights
+            norm_state_weights = F.softmax(state_weights)
+            session.metagraph.state.set_weights( norm_state_weights )
 
             # Metrics.
             max_logit = output.remote_target.data.max(1, keepdim=True)[1]
@@ -81,7 +82,7 @@ class Neuron(NeuronBase):
             target_loss  = output.remote_target_loss.item()
             accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
 
-            # Update best vals.
+            # Update best vars.
             best_accuracy = accuracy if accuracy >= best_accuracy else best_accuracy
             if target_loss < best_loss:
                 best_loss = target_loss
@@ -122,10 +123,9 @@ class Neuron(NeuronBase):
                 stack_str = colored(numpy_stack, 'green')
                 logger.info('Weights: \n {}', stack_str)
 
-
+        # Test checks.
         time_elapsed = time.time() - start_time
         logger.info("Total time elapsed: {}".format(time_elapsed))
-
         assert best_loss <= 0.1
         assert best_accuracy > 0.80
         assert len(session.metagraph.state.neurons()) > 0
