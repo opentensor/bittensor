@@ -256,6 +256,60 @@ class FFNNSynapse(Synapse):
         return output
 
     def forward_remote(self, local_context, output, images, transform, targets):
+        """
+            Forward pass non-sequential image inputs and targets through the remote context of the synapse.
+            
+            Args:
+                local_context (:obj: `torch.FloatTensor` of shape :obj: `(batch_size, bittensor.__network_dim__)`, `required`)
+                    Distillation model for remote_context.
+
+                bittensor.SynapseOutput (:obj: `Bittensor.SynapseOutput`, `required`)
+                    The object containing the output thus far of the local context run
+
+                images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
+                    PIL.toTensor() encoded images.
+                
+                transform (:obj: `torch.FloatTensor` of shape :obj: `(batch_size, self.transform_dim)`, `required`):
+                    transform images to common shape.
+                
+                targets (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, target_dim)`, `optional`, defaults to None): 
+                    Image labels.
+            
+            Returns:
+                bittensor.SynapseOutput ( 
+                    loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
+                        Total loss acumulation to be used by loss.backward()
+
+                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
+                        Hidden layer encoding produced using local_context.
+
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
+                        FFNN Target predictions using student_context. 
+
+                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        FFNN Classification loss using student_context.
+
+                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
+                        Hidden layer encoding produced using the remote_context.
+
+                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
+                        FFNN Target predictions using the remote_context.
+
+                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+                        FFNN Classification loss using the remote_context.
+
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        Distillation loss between local_context and remote_context.
+
+                    keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `optional`): 
+                        Keys for queried neurons.
+
+                    scores (:obj:`torch.LongTensor` of shape :obj:`(batch_size, len(keys))`, `optional`): 
+                        scores for each active key per example.
+                )
+
+        """
+        logger.info("SHAPE: {}".format(local_context.shape))
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         remote_context, keys, scores = self.call_remote(images, transform)
@@ -290,12 +344,3 @@ class FFNNSynapse(Synapse):
             output.remote_target_loss = remote_target_loss
         
         return output
-
-
-
-
-
-
-
-
-
