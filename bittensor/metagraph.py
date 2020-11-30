@@ -159,29 +159,31 @@ class Metagraph():
         self.state = TorchChainState()
         self._update_state()
 
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        parser.add_argument('--metagraph.chain_endpoint', default='206.189.254.5:12345', type=str, 
-                            help='chain endpoint.')
-
-        return parser
-
-    @staticmethod   
-    def check_config(config: Munch) -> Munch:
-        return config
-
     def sync(self):
+        r""" Synchronizes the local self.state with the chain state, sinking the trained weights and pulling 
+        info from other peers. Ensures the self.state is in accordance with the state on chain at this block.
+        """
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._do_sync())
 
     def chain_block(self):
+        r""" Returns the current block on the chain.
+        Returns:
+            block: (int) block number on chain.
+        """
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(self._chain_block())
 
     async def _chain_block(self):
+        r""" Async returns the current block on the chain.
+        Returns:
+            block: (int) block number on chain.
+        """
         return await self.subtensor_client.get_current_block()
 
     async def _do_sync(self):
+        r""" Async: Synchronizes the local self.state with the chain state
+        """
         logger.info('do sync')
         await self._emit_state()
         await self._poll_state()
@@ -189,6 +191,8 @@ class Metagraph():
         self._update_state()
 
     def _update_state(self):
+        r""" Deep copies the local state cache i.e. self._stake into the state object.
+        """
         state = TorchChainState()
         state.n = self._n
         state.block = self.last_sync
@@ -210,8 +214,10 @@ class Metagraph():
         self.state = state
 
     async def _emit_state(self):
+        r""" Emits the local self.state weights to the chain after normalization. Waits for the inclusion.
+        """
         # Convert floats to ints with precision.
-        u32_int_max = 4294967295 # max int values
+        u32_int_max = 4294967295 # max int value.
         weight_pubkeys = []
         weight_vals_as_ints = []
         for i, val in enumerate(self.state.weights.tolist()):
@@ -226,11 +232,12 @@ class Metagraph():
             await self.subtensor_client.set_weights(weight_pubkeys, weight_vals_as_ints, self.__keypair, wait_for_inclusion = False)
             await self._wait_for_inclusion(weight_pubkeys, weight_vals_as_ints)
         except Exception as e:
-            logger.info('emission failed with exception {}', e)
+            logger.info('Emission failed with exception: {}', e)
         logger.info('Emission done.')
         
     async def _wait_for_inclusion(self, local_keys, local_vals):
-        logger.info('waiting for inclusion.')
+        r""" Waits until timeout for the local keys and vals to be set on chain.
+        """
         def equal(chain_keys, chain_vals):
             if len(local_keys) != len(chain_keys):
                 return False
@@ -258,6 +265,8 @@ class Metagraph():
         return True
 
     async def _poll_state(self):
+        r""" Polls neurons on chain for latest info, sinks results to local cache.
+        """
         calls = []
         current_block = await self._chain_block()
         emits = await self.subtensor_client.get_last_emit_data()
@@ -318,11 +327,19 @@ class Metagraph():
 
 
     async def connect(self) -> bool:
+        r""" Async: Makes and awaits for a connection to the chain.
+        Returns:
+            connected: (bool): true if the connection is a success.
+        """
         self.subtensor_client.connect()
         connected = await self.subtensor_client.is_connected()
         return connected
 
     async def subscribe (self, timeout) -> bool:
+        r""" Async: Makes a subscribe request to the chain. Waits for subscription includion or returns False
+        Returns:
+            subscribed: (bool): true if the subscription is a success.
+        """
         await self.subtensor_client.subscribe(self._config.axon.remote_ip, self._config.axon.port)
         current_block = await self.subtensor_client.get_current_block()
         self._block = current_block
@@ -339,6 +356,19 @@ class Metagraph():
         return False
             
     async def unsubscribe (self, timeout):
+        r""" Async: Makes a unsubscribe request ot the chain waits for succes.
+        """
         logger.info('Unsubscribe from chain endpoint')
         await self.subtensor_client.unsubscribe()
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        parser.add_argument('--metagraph.chain_endpoint', default='206.189.254.5:12345', type=str, 
+                            help='chain endpoint.')
+
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        return config
 
