@@ -13,6 +13,7 @@ from bittensor.synapses.dpn import DPNSynapse
 from bittensor.neuron import NeuronBase
 
 import argparse
+import time
 from loguru import logger
 import math
 from munch import Munch
@@ -100,6 +101,7 @@ class Neuron (NeuronBase):
         def train(model, epoch, global_step):
             # Turn on Dropoutlayers BatchNorm etc.
             model.train()
+            last_log = time.time()
             for batch_idx, (images, targets) in enumerate(trainloader):
                 # Clear gradients.
                 optimizer.zero_grad()
@@ -110,12 +112,14 @@ class Neuron (NeuronBase):
                 output = model(images, targets, remote = True)
 
                 # Backprop.
-                output.loss.backward()
+                loss = output.remote_target_loss + output.distillation_loss
+                loss.backward()
+                
                 optimizer.step()
                 global_step += 1
                                 
                 # Logs:
-                if batch_idx % self.config.neuron.log_interval == 0:            
+                if (batch_idx + 1) % self.config.neuron.log_interval == 0:            
                     n = len(train_data)
                     max_logit = output.remote_target.data.max(1, keepdim=True)[1]
                     correct = max_logit.eq(targets.data.view_as(max_logit) ).sum()
@@ -126,6 +130,13 @@ class Neuron (NeuronBase):
                     accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
                     logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\tnP:{}', 
                         epoch, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()))
+                    session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())
+                    session.tbwriter.write_loss('train local target loss', output.local_target_loss.item())
+                    session.tbwriter.write_loss('train distilation loss', output.distillation_loss.item())
+                    session.tbwriter.write_loss('train loss', output.loss.item())
+                    session.tbwriter.write_accuracy('train accuracy', accuracy)
+                    session.tbwriter.write_custom('global step/global step v.s. time', self.config.neuron.log_interval / (time.time() - last_log))
+                    last_log = time.time()
 
         # Test loop.
         # Evaluates the local model on the hold-out set.
