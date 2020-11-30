@@ -13,10 +13,13 @@ from bittensor.synapses.dpn import DPNSynapse
 from bittensor.neuron import NeuronBase
 
 import argparse
+import numpy as np
+from termcolor import colored
 from loguru import logger
 import math
 from munch import Munch
 import torch
+import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
@@ -104,6 +107,11 @@ class Neuron (NeuronBase):
                 # Clear gradients.
                 optimizer.zero_grad()
 
+                # Emit and sync.
+                if (session.metagraph.block() - session.metagraph.state.block) > 5:
+                    session.metagraph.emit()
+                    session.metagraph.sync()
+
                 # Forward pass.
                 images = images.to(device)
                 targets = torch.LongTensor(targets).to(device)
@@ -113,19 +121,51 @@ class Neuron (NeuronBase):
                 output.loss.backward()
                 optimizer.step()
                 global_step += 1
+
+                # Update weights.
+                state_weights = session.metagraph.state.weights
+                learned_weights = F.softmax(torch.mean(output.weights, axis=0))
+                state_weights = (1 - 0.05) * state_weights + 0.05 * learned_weights
+                norm_state_weights = F.softmax(state_weights)
+                session.metagraph.state.set_weights( norm_state_weights )
                                 
                 # Logs:
-                if batch_idx % self.config.neuron.log_interval == 0:            
+                if (batch_idx + 1) % self.config.neuron.log_interval == 0: 
                     n = len(train_data)
                     max_logit = output.remote_target.data.max(1, keepdim=True)[1]
-                    correct = max_logit.eq(targets.data.view_as(max_logit) ).sum()
-                    loss_item  = output.remote_target_loss.item()
+                    correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
+                    n_str = colored('{}'.format(n), 'red')
+
+                    loss_item = output.remote_target_loss.item()
+                    loss_item_str = colored('{:.3f}'.format(loss_item), 'green')
+
                     processed = ((batch_idx + 1) * self.config.neuron.batch_size_train)
-                    
+                    processed_str = colored('{}'.format(processed), 'green')
+
                     progress = (100. * processed) / n
+                    progress_str = colored('{:.2f}%'.format(progress), 'green')
+
                     accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
-                    logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLocal Loss: {:.6f}\t Accuracy: {:.6f}\tnP:{}', 
-                        epoch, processed, n, progress, loss_item, accuracy, len(session.metagraph.neurons()))
+                    accuracy_str = colored('{:.3f}'.format(accuracy), 'green')
+
+                    logger.info('Epoch: {} [{}/{} ({})] | Loss: {} | Acc: {} ', 
+                        1, processed_str, n_str, progress_str, loss_item_str, accuracy_str)
+
+                    # Log weights.
+                    np.set_printoptions(precision=2, suppress=True, linewidth=500, sign=' ')
+                    numpy_uids = np.array(session.metagraph.state.uids.tolist())
+                    numpy_weights = np.array(session.metagraph.state.weights.tolist())
+                    numpy_stack = np.stack((numpy_uids, numpy_weights), axis=0)
+                    stack_str = colored(numpy_stack, 'green')
+                    logger.info('Weights: \n {}', stack_str)
+                    
+                    session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())
+                    session.tbwriter.write_loss('train local target loss', output.local_target_loss.item())
+                    session.tbwriter.write_loss('train distilation loss', output.distillation_loss.item())
+                    session.tbwriter.write_loss('train loss', output.loss.item())
+                    session.tbwriter.write_accuracy('train accuracy', accuracy)
+                    session.tbwriter.write_custom('global step/global step v.s. time', self.config.neuron.log_interval / (time.time() - last_log))
+                    last_log = time.time()
 
         # Test loop.
         # Evaluates the local model on the hold-out set.

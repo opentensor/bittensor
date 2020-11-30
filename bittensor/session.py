@@ -74,13 +74,21 @@ class BTSession:
 
     def __enter__(self):
         logger.info('session enter')
+        def handle_async_exception(loop, ctx):
+            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
+        loop.set_exception_handler(handle_async_exception)
+        loop.set_debug(enabled=True)
         loop.run_until_complete(self.start())
         return self
 
     def __exit__(self, *args):
         logger.info('session exit')
+        def handle_async_exception(loop, ctx):
+            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
+        loop.set_exception_handler(handle_async_exception)
+        loop.set_debug(enabled=True)
         loop.run_until_complete(self.stop())
         return self
 

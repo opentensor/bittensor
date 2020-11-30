@@ -164,7 +164,11 @@ class Metagraph():
         Returns:
             block: (int) block number on chain.
         """
+        def handle_async_exception(loop, ctx):
+            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
+        loop.set_exception_handler(handle_async_exception)
+        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_block())
 
     async def async_block(self) -> int:
@@ -179,7 +183,11 @@ class Metagraph():
         Returns:
             subscribed: (bool): true if the subscription is a success.
         """
+        def handle_async_exception(loop, ctx):
+            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
+        loop.set_exception_handler(handle_async_exception)
+        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_subscribe(timeout))
 
     async def async_subscribe (self, timeout) -> bool:
@@ -193,7 +201,11 @@ class Metagraph():
     def unsubscribe(self) -> bool:
         r""" Syncronous: Unsubscribes the local neuron from the chain.
          """
+        def handle_async_exception(loop, ctx):
+            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
+        loop.set_exception_handler(handle_async_exception)
+        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_unsubscribe())  
 
     async def async_unsubscribe (self):
@@ -207,7 +219,11 @@ class Metagraph():
         Returns:
             connected: (bool): true if the connection is a success.
         """
+        def handle_async_exception(loop, ctx):
+            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
+        loop.set_exception_handler(handle_async_exception)
+        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_connect())
 
     async def async_connect(self) -> bool:
@@ -227,8 +243,12 @@ class Metagraph():
         """
         if weights == None:
             weights = self.state.weights
-    
+
+        def handle_async_exception(loop, ctx):
+            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
+        loop.set_exception_handler(handle_async_exception)
+        loop.set_debug(enabled=True)
         loop.run_until_complete(self.async_emit(weights))
 
     async def async_emit(self, weights: torch.FloatTensor = None) -> bool: 
@@ -274,7 +294,11 @@ class Metagraph():
         r""" Synchronizes the local self.state with the chain state, sinking the trained weights and pulling 
         info from other peers. Ensures the self.state is in accordance with the state on chain at this block.
         """
+        def handle_async_exception(loop, ctx):
+            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
+        loop.set_exception_handler(handle_async_exception)
+        loop.set_debug(enabled=True)
         loop.run_until_complete(self.async_sync())
 
     async def async_sync(self):
@@ -395,19 +419,20 @@ class Metagraph():
         """
         as_list = weights.tolist()
         if len(as_list) != self.state.n:
-            logger.info("Error trying to set weights on chain. Got length {}, but the length must match the number of neurons in self.state.n {}", len(as_lsit), self.state.n)
+            logger.error("Error trying to set weights on chain. Got length {}, but the length must match the number of neurons in self.state.n {}", len(as_lsit), self.state.n)
             return False
         sum_list = sum(as_list)
-        if sum_list != 1.0:
-            logger.info("Error trying to set weights on chain. Got {} but sum of weights must equal 1", sum_list)
+        epsilon = 0.001
+        if abs(1.0 - sum_list) > epsilon:
+            logger.error("Error trying to set weights on chain. Got {} but sum of weights must equal 1", sum_list)
             return False
         min_list = min(as_list)
         if min_list < 0.0:
-            logger.info("Error trying to set weights on chain. Got min value {} but values must be in range [0,1]", min_list)
+            logger.error("Error trying to set weights on chain. Got min value {} but values must be in range [0,1]", min_list)
             return False
         max_list = max(as_list)
         if max_list > 1.0:
-            logger.info("Error trying to set weights on chain. Got max value {} but values must be in range [0,1]", max_list)
+            logger.error("Error trying to set weights on chain. Got max value {} but values must be in range [0,1]", max_list)
             return False
         return True
 
