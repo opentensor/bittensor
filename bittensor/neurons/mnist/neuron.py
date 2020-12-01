@@ -17,13 +17,12 @@ import torchvision.transforms as transforms
 from munch import Munch
 from loguru import logger
 
-import bittensor
 from bittensor import BTSession
 from bittensor.config import Config
 from bittensor.neuron import NeuronBase
 from bittensor.synapse import Synapse
 from bittensor.synapses.ffnn import FFNNSynapse
-import replicate
+
 class Neuron (NeuronBase):
     def __init__(self, config):
         self.config = config
@@ -87,7 +86,6 @@ class Neuron (NeuronBase):
     
         # Train loop: Single threaded training of MNIST.
         def train(model, epoch):
-            
             # Turn on Dropoutlayers BatchNorm etc.
             model.train()
             last_log = time.time()
@@ -207,9 +205,8 @@ class Neuron (NeuronBase):
                 # Save and serve the new best local model.
                 logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, test_loss, self.config.neuron.datapath, self.config.neuron.neuron_name)
                 torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss},"{}/{}/model.torch".format(self.config.neuron.datapath , self.config.neuron.neuron_name))
-                
                 # Save experiment metrics
-                session.checkpoint_experiment(epoch, loss=test_loss, accuracy=test_accuracy)
+                session.replicate_util.checkpoint_experiment(epoch, loss=test_loss, accuracy=test_accuracy)
                 session.serve( model.deepcopy() )
 
             epoch += 1

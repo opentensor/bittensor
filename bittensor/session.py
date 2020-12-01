@@ -60,26 +60,6 @@ class BTSession:
         """
         self.axon.serve(synapse)
 
-    def __enter__(self):
-        logger.info('session enter')
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
-        loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
-        loop.set_debug(enabled=True)
-        loop.run_until_complete(self.start())
-        return self
-
-    def __exit__(self, *args):
-        logger.info('session exit')
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
-        loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
-        loop.set_debug(enabled=True)
-        loop.run_until_complete(self.stop())
-        return self
-
     async def start(self):
         # Stop background grpc threads for serving the synapse object.
         logger.info('Start axon server...')
@@ -122,8 +102,8 @@ class BTSession:
 
         # Stop replicate experiment if still running
         try:
-            if self.experiment:
-                self.experiment.stop()
+            if self.replicate_util.experiment:
+                self.replicate_util.experiment.stop()
         except Exception as e:
             logger.error('SESSION: Could not stop Replicate experiment: {}', e)
 

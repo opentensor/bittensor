@@ -208,12 +208,6 @@ class BertSynapseBase (Synapse):
         encoding_hidden = encoding.last_hidden_state
         encoding_pooled = encoding.pooler_output
 
-        # remote_context: joined responses from a bittensor.forward_text call.
-        # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        if remote:
-            remote_context, weights = self.call_remote(inputs, encoding_pooled)
-            output.weights = weights
-
         # local_context: distilled version of remote_context.
         # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         local_context = self.context_transformer(input_ids=inputs, return_dict=True).last_hidden_state
@@ -232,10 +226,9 @@ class BertSynapseBase (Synapse):
     def base_remote_forward(self, local_context, inputs, encoding_pooled, encoding_hidden, output):
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        neurons = self.session.metagraph.neurons()  # Returns a list of synapses on the network.
-        requests, _ = self.router.route(neurons, encoding_pooled, inputs)  # routes inputs to network.
-        responses = self.session.dendrite.forward_text(neurons, requests)  # Makes network calls.
-        remote_context = self.router.join(responses)  # Join responses with scores.
+        remote_context, weights = self.call_remote(inputs, encoding_pooled)
+        output.weights = weights
+        remote_context = remote_context.to(self.device)
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
@@ -260,7 +253,6 @@ class BertSynapseBase (Synapse):
             remote_target = F.softmax(remote_target, dim=1)
             output.remote_target = remote_target
             
-        
         return output
 
 

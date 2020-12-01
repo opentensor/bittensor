@@ -6,6 +6,7 @@ from importlib.machinery import SourceFileLoader
 
 from bittensor.subtensor import Keypair
 from bittensor.config import Config
+import asyncio
 
 def main():
 
@@ -45,8 +46,14 @@ def main():
 
     # 6. Start Neuron.
     logger.info('Start ... ')
-    with session:
-        neuron.start(session)
+
+    def handle_async_exception(loop, ctx):
+        logger.error("Exception in async task: {0}".format(ctx['exception']))
+    loop = asyncio.get_event_loop()
+    loop.set_exception_handler(handle_async_exception)
+    loop.set_debug(enabled=True)
+    loop.run_until_complete(session.start())
+    neuron.start(session)
 
 if __name__ == "__main__":
     main()
