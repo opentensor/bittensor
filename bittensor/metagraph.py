@@ -244,6 +244,7 @@ class Metagraph():
         if weights == None:
             weights = self.state.weights
 
+        # TODO(const): this repeat code can be abstracted.
         def handle_async_exception(loop, ctx):
             logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
@@ -264,6 +265,7 @@ class Metagraph():
             weights = self.state.weights
 
         # Check that weights meet chain requirements.
+        # #TODO(const) check with current weights.
         if not self._check_weights(weights):
             logger.error('Weight emit failed with weight check.')
             return False
@@ -278,6 +280,7 @@ class Metagraph():
             return False
 
         # Makes weight emission call.
+        # TODO(const): make wait for inclusion work.
         try:
             await self.subtensor_client.set_weights(keys, vals, self.__keypair, wait_for_inclusion = False)
         except Exception as e:
