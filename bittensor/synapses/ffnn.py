@@ -226,23 +226,11 @@ class FFNNSynapse(Synapse):
         transform = F.relu(F.max_pool2d(self.transform_conv1(transform), 2))
         transform = F.relu(F.max_pool2d(self.transform_drop(self.transform_conv2(transform)),2))
         transform = transform.view(-1, self.transform_dim)
-       
-        # remote_context: responses from a bittensor remote network call.
-        # remote_context.shape = [batch_size, bittensor.__network_dim__]
-        if remote:
-            remote_context, weights = self.call_remote(images, transform)
-            output.weights = weights
 
         # local_context: distillation model for remote_context.
         # local_context.shape = [batch_size, bittensor.__network_dim__]
         local_context = self.context_layer1(transform.detach())
         local_context = self.context_layer2(local_context)
-        if remote:
-            # distillation_loss: distillation loss between local_context and remote_context
-            # distillation_loss.shape = [1]
-            distillation_loss = F.mse_loss(local_context, remote_context.detach())
-            output.distillation_loss = distillation_loss
-            output.loss = output.loss + distillation_loss
 
         # local_hidden: hidden layer encoding using local_context.
         # local_hidden.shape = [batch_size, bittensor.__network_dim__]
@@ -250,6 +238,7 @@ class FFNNSynapse(Synapse):
         local_hidden = F.relu(self.hidden_layer1(local_hidden))
         local_hidden = F.relu(self.hidden_layer2(local_hidden))
         output.local_hidden = local_hidden
+
         if targets is not None:
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, target_dim]
@@ -265,15 +254,84 @@ class FFNNSynapse(Synapse):
             output.local_target_loss = local_target_loss
             output.loss = output.loss + local_target_loss
 
+        if remote:
+            output = self.forward_remote(local_context, output, images, transform, targets)
+
+        return output
+
+    def forward_remote(self, local_context, output, images, transform, targets):
+        """
+            Forward pass non-sequential image inputs and targets through the remote context of the synapse.
+            
+            Args:
+                local_context (:obj: `torch.FloatTensor` of shape :obj: `(batch_size, bittensor.__network_dim__)`, `required`)
+                    Distillation model for remote_context.
+
+                output (:obj: `Bittensor.SynapseOutput`, `required`)
+                    The object containing the output thus far of the local context run
+
+                images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
+                    PIL.toTensor() encoded images.
+                
+                transform (:obj: `torch.FloatTensor` of shape :obj: `(batch_size, self.transform_dim)`, `required`):
+                    transform images to common shape.
+                
+                targets (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, target_dim)`, `optional`, defaults to None): 
+                    Image labels.
+            
+            Returns:
+                bittensor.SynapseOutput ( 
+                    loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
+                        Total loss acumulation to be used by loss.backward()
+
+                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
+                        Hidden layer encoding produced using local_context.
+
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
+                        FFNN Target predictions using student_context. 
+
+                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        FFNN Classification loss using student_context.
+
+                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
+                        Hidden layer encoding produced using the remote_context.
+
+                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
+                        FFNN Target predictions using the remote_context.
+
+                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+                        FFNN Classification loss using the remote_context.
+
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        Distillation loss between local_context and remote_context.
+
+                    keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `optional`): 
+                        Keys for queried neurons.
+
+                    scores (:obj:`torch.LongTensor` of shape :obj:`(batch_size, len(keys))`, `optional`): 
+                        scores for each active key per example.
+                )
+
+        """
+        # remote_context: responses from a bittensor remote network call.
+        # remote_context.shape = [batch_size, bittensor.__network_dim__]
+        remote_context, weights= self.call_remote(images, transform)
+        output.weights = weights
+
+        # distillation_loss: distillation loss between local_context and remote_context
+        # distillation_loss.shape = [1]
+        distillation_loss = F.mse_loss(local_context, remote_context.detach().to(self.device))
+        output.distillation_loss = distillation_loss
+        output.loss = output.loss + distillation_loss
+
         # remote_hidden: hidden layer encoding using remote_context.
         # remote_hidden.shape = [batch_size, bittensor.__network_dim__]
-        if remote:
-            remote_hidden = torch.cat([transform, remote_context], dim=1)
-            remote_hidden = self.hidden_layer1(remote_hidden)
-            remote_hidden = self.hidden_layer2(remote_hidden)
-            output.remote_hidden = remote_hidden
-        
-        if remote and targets is not None:
+        remote_hidden = torch.cat([transform, remote_context.to(self.device)], dim=1)
+        remote_hidden = self.hidden_layer1(remote_hidden)
+        remote_hidden = self.hidden_layer2(remote_hidden)
+        output.remote_hidden = remote_hidden
+
+        if targets is not None:
             # remote_target: projection of remote_hidden onto target dimension.
             # remote_target.shape = [batch_size, target_dim]
             remote_target = self.target_layer1(remote_hidden)
@@ -286,5 +344,5 @@ class FFNNSynapse(Synapse):
             remote_target_loss = F.nll_loss(remote_target, targets)
             output.loss = output.loss + remote_target_loss
             output.remote_target_loss = remote_target_loss
-
+        
         return output

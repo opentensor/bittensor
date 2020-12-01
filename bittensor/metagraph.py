@@ -258,7 +258,7 @@ class Metagraph():
             weights: (torch.FloatTensor): 
                 weights to set on chain. Defaults to those in self.state.weights().
         Return:
-            indlcuded: (bool) true is the weights were set on chain.
+            included: (bool) true is the weights were set on chain.
         """
         # Set weights to those in self.state if not explicit.
         if weights == None:

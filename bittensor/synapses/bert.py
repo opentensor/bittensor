@@ -208,21 +208,9 @@ class BertSynapseBase (Synapse):
         encoding_hidden = encoding.last_hidden_state
         encoding_pooled = encoding.pooler_output
 
-        # remote_context: joined responses from a bittensor.forward_text call.
-        # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        if remote:
-            remote_context, weights = self.call_remote(inputs, encoding_pooled)
-            output.weights = weights
-
         # local_context: distilled version of remote_context.
         # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         local_context = self.context_transformer(input_ids=inputs, return_dict=True).last_hidden_state
-        if remote:
-            # distillation_loss: distillation loss between local_context and remote_context
-            # distillation_loss.shape = [1]
-            distillation_loss = F.mse_loss(local_context, remote_context.detach())
-            output.distillation_loss = distillation_loss
-            output.loss = output.loss + distillation_loss
 
         # local_hidden: hidden layer encoding of sequence with local_context.
         # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
@@ -231,13 +219,120 @@ class BertSynapseBase (Synapse):
         output.local_hidden = local_hidden
 
         if remote:
-            # remote_hidden: hidden layer encoding using remote_context.
-            # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-            remote_hidden = torch.cat([encoding_hidden, remote_context], dim=2)
-            remote_hidden = self.hidden_layer(remote_hidden)
-            output.remote_hidden = remote_hidden
+            output = self.base_remote_forward(local_context, inputs, encoding_pooled, encoding_hidden, output)
 
         return output
+
+    def base_remote_forward(self, local_context, inputs, encoding_pooled, encoding_hidden, output):
+        """Forward pass inputs and labels through the remote BERT networks.
+
+        Args:
+            local_context (:obj: `torch.FloatTensor` of shape :obj: `(batch_size, bittensor.__network_dim__)`, `required`)
+                    Distillation model for remote_context.
+            
+            inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                    Batch_size length list of text sentences.
+
+            encoding_outputs (:obj:`tuple(torch.FloatTensor)`, `optional`): 
+                    This tuple must consist of (last_hidden_state, optional: hidden_states, optional: attentions) 
+                    last_hidden_state (torch.FloatTensor of shape (batch_size, sequence_length, hidden_size)) 
+                    is a tensor of hidden-states at the output of the last layer of the encoder. Used in the cross-attention of the decoder.
+           
+            encoding_hidden (:obj:`torch.FloatTensor` of shape (batch_size, sequence_length, hidden_size), `optional`) :
+                    Sequence of hidden-states at the output of the last layer of the encoder of the model.
+
+            output (:obj: `Bittensor.SynapseOutput`, `required`)
+                    The object containing the output thus far of the local context run
+
+        Returns:
+            bittensor.SynapseOutput ( 
+                    loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
+                        Total loss acumulation used by loss.backward()
+
+                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Hidden layer encoding produced using local_context.
+
+                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
+                        Hidden layer encoding produced using the remote_context.
+
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        Distillation loss between local_context and remote_context.
+
+                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each active neuron.
+                )
+        """
+        # remote_context: joined responses from a bittensor.forward_text call.
+        # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        remote_context, weights = self.call_remote(inputs, encoding_pooled)
+        output.weights = weights
+        remote_context = remote_context.to(self.device)
+
+        # distillation_loss: distillation loss between local_context and remote_context
+        # distillation_loss.shape = [1]
+        distillation_loss = F.mse_loss(local_context, remote_context.detach())
+        output.distillation_loss = distillation_loss
+        output.loss = output.loss + distillation_loss
+
+        # remote_hidden: hidden layer encoding using remote_context.
+        # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        remote_hidden = torch.cat([encoding_hidden, remote_context], dim=2)
+        remote_hidden = self.hidden_layer(remote_hidden)
+        output.remote_hidden = remote_hidden
+
+        return output
+    
+    def remote_forward(self, output, targets):
+        """ 
+
+        Args:
+            output (bittensor.SynapseOutput): 
+                    The output object being populated by the local forward.
+            targets (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, target_dim)`, `optional`, defaults to None): 
+                    Image labels.
+
+        Returns:
+            output (bittensor.SynapseOutput ( 
+                    loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
+                        Total loss acumulation to be used by loss.backward()
+
+                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
+                        Hidden layer encoding produced using local_context.
+
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
+                        FFNN Target predictions using student_context. 
+
+                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        FFNN Classification loss using student_context.
+
+                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
+                        Hidden layer encoding produced using the remote_context.
+
+                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
+                        FFNN Target predictions using the remote_context.
+
+                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+                        FFNN Classification loss using the remote_context.
+
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        Distillation loss between local_context and remote_context.
+
+                    keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `optional`): 
+                        Keys for queried neurons.
+
+                    scores (:obj:`torch.LongTensor` of shape :obj:`(batch_size, len(keys))`, `optional`): 
+                        scores for each active key per example.
+                )
+        """
+        if targets is not None:
+            # remote_target: projection the local_hidden to target dimension.
+            # remote_target.shape = [batch_size, 2]
+            remote_target = self.target_layer(output.remote_hidden)
+            remote_target = F.softmax(remote_target, dim=1)
+            output.remote_target = remote_target
+            
+        return output
+
 
 class BertNSPSynapse (BertSynapseBase):
     def __init__(   self,
@@ -372,20 +467,15 @@ class BertNSPSynapse (BertSynapseBase):
             output.loss = output.loss + local_target_loss
 
 
-        if remote and targets is not None:
-            # remote_target: projection the local_hidden to target dimension.
-            # remote_target.shape = [batch_size, 2]
-            remote_target = self.target_layer(output.remote_hidden)
-            remote_target = F.softmax(remote_target, dim=1)
-            output.remote_target = remote_target
-            
+        if remote:
+            output = self.remote_forward(output, targets)
             # remote_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
             # remote_target_loss: [1]
-            remote_target_loss = self.loss_fct(remote_target.view(targets.shape[0], -1), targets)
+            remote_target_loss = self.loss_fct(output.remote_target.view(targets.shape[0], -1), targets)
             output.remote_target_loss = remote_target_loss
             output.loss = output.loss + remote_target_loss
-
         return output
+    
 
 
 class BertMLMSynapse (BertSynapseBase):
@@ -510,16 +600,11 @@ class BertMLMSynapse (BertSynapseBase):
             output.local_target_loss = local_target_loss
             output.loss = output.loss + local_target_loss
 
-        if remote and targets is not None:
-            # remote_target: projection the local_hidden to target dimension.
-            # remote_target.shape = [batch_size, bittensor.__vocab_size__]
-            remote_target = self.target_layer(output.remote_hidden)
-            remote_target = F.softmax(remote_target, dim=1)
-            output.remote_target = remote_target
-
-            # remote_target_loss: cross entropy between predicted token and realized.
+        if remote:
+            output = self.remote_forward(output, targets)
+            # remote_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
             # remote_target_loss: [1]
-            remote_target_loss = self.loss_fct(remote_target.view(-1, bittensor.__vocab_size__), targets.view(-1))
+            remote_target_loss = self.loss_fct(output.remote_target.view(-1, bittensor.__vocab_size__), targets.view(-1))
             output.remote_target_loss = remote_target_loss
             output.loss = output.loss + remote_target_loss
 

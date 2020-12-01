@@ -1,4 +1,7 @@
 import argparse
+from io import StringIO
+import traceback as tb
+from bittensor.utils.replicate_utils import ReplicateUtility
 from munch import Munch
 
 from bittensor.synapse import Synapse
@@ -10,7 +13,6 @@ from bittensor.subtensor import Keypair
 from bittensor.metadata import Metadata
 from loguru import logger
 import asyncio
-import replicate
 
 
 class FailedConnectToChain(Exception):
@@ -34,20 +36,8 @@ class BTSession:
         self.dendrite = Dendrite(self.config, self.__keypair)
         self.tbwriter = Metadata(self.config)
 
-        self.experiment = replicate.init(
-            path=self.config.neuron.datapath,
-            params={"neuron.learning_rate": self.config.neuron.learning_rate,
-                    "neuron.momentum": self.config.neuron.momentum,
-                    "neuron.batch_size_train": self.config.neuron.batch_size_train,
-                    "neuron.batch_size_test": self.config.neuron.batch_size_test, 
-                    "neuron.datapath": self.config.neuron.datapath,
-                    "dendrite.pass_gradients": self.config.dendrite.pass_gradients,
-                    "dendrite.timeout": self.config.dendrite.timeout,
-                    "metagraph.chain_endpoint": self.config.metagraph.chain_endpoint,
-                    "metagraph.stale_emit_limit": self.config.metagraph.stale_emit_limit,
-                    "meta_logger.log_dir": self.config.meta_logger.log_dir,
-                    "session.checkout_experiment": self.config.session.checkout_experiment}
-        )
+        # Start the replicate utility
+        self.replicate_util = ReplicateUtility(self.config)
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
@@ -74,20 +64,42 @@ class BTSession:
 
     def __enter__(self):
         logger.info('session enter')
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
         loop.set_debug(enabled=True)
         loop.run_until_complete(self.start())
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        """ Defines the exit protocol from asyncio task.
+
+        Args:
+            exc_type (Type): The type of the exception.
+            exc_value (RuntimeError): The value of the exception, typically RuntimeError. 
+            exc_traceback (traceback): The traceback that can be printed for this exception, detailing where error actually happend.
+
+        Returns:
+            Session: present instance of session.
+        """
+        if exc_value:
+
+            top_stack = StringIO()
+            tb.print_stack(file=top_stack)
+            top_lines = top_stack.getvalue().strip('\n').split('\n')[:-4]
+            top_stack.close()
+
+            full_stack = StringIO()
+            full_stack.write('Traceback (most recent call last):\n')
+            full_stack.write('\n'.join(top_lines))
+            full_stack.write('\n')
+            tb.print_tb(exc_traceback, file=full_stack)
+            full_stack.write('{}: {}'.format(exc_type.__name__, str(exc_value)))
+            sinfo = full_stack.getvalue()
+            full_stack.close()
+            # Log the combined stack
+            logger.error('Exception:{}'.format(sinfo))
+        
         logger.info('session exit')
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
         loop.set_debug(enabled=True)
         loop.run_until_complete(self.stop())
         return self
@@ -134,8 +146,8 @@ class BTSession:
 
         # Stop replicate experiment if still running
         try:
-            if self.experiment:
-                self.experiment.stop()
+            if self.replicate_util.experiment:
+                self.replicate_util.experiment.stop()
         except Exception as e:
             logger.error('SESSION: Could not stop Replicate experiment: {}', e)
 
@@ -145,14 +157,3 @@ class BTSession:
 
     def unsubscribe (self):
         self.metagraph.unsubscribe()
-    
-    def checkpoint_experiment(self, epoch, **experiment_metrics):
-        # Create a checkpoint within the experiment.
-        # This saves the metrics at that point, and makes a copy of the file
-        # or directory given, which could weights and any other artifacts.
-        self.experiment.checkpoint(
-            path=self.config.neuron.datapath + self.config.neuron.neuron_name + "/model.torch",
-            step=epoch,
-            metrics=experiment_metrics,
-            primary_metric=("loss", "minimize"),
-        )

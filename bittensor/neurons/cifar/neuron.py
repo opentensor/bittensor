@@ -15,6 +15,7 @@ from bittensor.neuron import NeuronBase
 import argparse
 import numpy as np
 from termcolor import colored
+import time
 from loguru import logger
 import math
 from munch import Munch
@@ -65,18 +66,7 @@ class Neuron (NeuronBase):
 
         try:
             if self.config.session.checkout_experiment:
-                experiment = replicate.experiments.get(self.config.session.checkout_experiment)
-                # This point can be changed by user. 
-                # experiment.latest() returns the latest model checkpointed. 
-                # experiment.best() returns the best performing model checkpointed.
-                latest_experiment = experiment.latest()
-                logger.info("Checking out experiment {} to {}".format(
-                    self.config.session.checkout_experiment, 
-                    self.config.neuron.datapath + self.config.neuron.neuron_name))
-                
-                model_file = latest_experiment.open(self.config.neuron.datapath + self.config.neuron.neuron_name + "/model.torch")
-                checkpt = torch.load(model_file)
-                model.load_state_dict(checkpt['model'])
+                model = self.config.session.replicate_util.checkout_experiment(model, best=False)
         except Exception as e:
             logger.warning("Something happened checking out the model. {}".format(e))
             logger.info("Using new model")
@@ -103,6 +93,7 @@ class Neuron (NeuronBase):
         def train(model, epoch, global_step):
             # Turn on Dropoutlayers BatchNorm etc.
             model.train()
+            last_log = time.time()
             for batch_idx, (images, targets) in enumerate(trainloader):
                 # Clear gradients.
                 optimizer.zero_grad()
@@ -118,7 +109,9 @@ class Neuron (NeuronBase):
                 output = model(images, targets, remote = True)
 
                 # Backprop.
-                output.loss.backward()
+                loss = output.remote_target_loss + output.distillation_loss
+                loss.backward()
+                
                 optimizer.step()
                 global_step += 1
 
@@ -221,7 +214,7 @@ class Neuron (NeuronBase):
                 # Save the best local model.
                 logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.logger.logdir + '/model.torch')
                 torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.logger.logdir + '/model.torch' )
-                session.checkpoint_experiment(loss=test_loss, accuracy=accuracy)
+                session.replicate_util.checkpoint_experiment(epoch, loss=test_loss, accuracy=accuracy)
                 session.serve( model.deepcopy() )
 
             epoch += 1

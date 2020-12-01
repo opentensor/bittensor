@@ -6,6 +6,7 @@ from importlib.machinery import SourceFileLoader
 
 from bittensor.subtensor import Keypair
 from bittensor.config import Config
+import asyncio
 
 def main():
 
@@ -45,6 +46,7 @@ def main():
 
     # 6. Start Neuron.
     logger.info('Start ... ')
+
     with session:
         neuron.start(session)
 
