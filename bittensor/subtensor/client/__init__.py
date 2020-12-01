@@ -114,9 +114,7 @@ class WSClient:
 
         return stake['result']
 
-
-
-    async def set_weights(self, destinations, values, keypair):
+    async def set_weights(self, destinations, values, keypair, wait_for_inclusion=False):
         call = await self.substrate.compose_call(
             call_module = 'SubtensorModule',
             call_function = 'set_weights',
@@ -124,7 +122,7 @@ class WSClient:
         )
 
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
-        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=wait_for_inclusion)
 
 
     async def weight_keys(self, pubkey):
@@ -152,7 +150,7 @@ class WSClient:
             call_module='SubtensorModule',
             call_function='emit'
         )
-        extrinsic = await self. substrate.create_signed_extrinsic(call=call, keypair=keypair)
+        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
 
@@ -163,14 +161,13 @@ class WSClient:
                 storage_function='Neurons',
                 params=[pubkey]
             )
-
             return result['result']
+
         else:
             neurons = await self.substrate.iterate_map(
                 module='SubtensorModule',
                 storage_function='Neurons'
             )
-
             return neurons
 
 

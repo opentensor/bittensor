@@ -1,12 +1,10 @@
 import argparse
 import bittensor
 import os
-from  bittensor.utils.asyncio import Asyncio
-
 from loguru import logger
 from importlib.machinery import SourceFileLoader
-from bittensor.subtensor import Keypair
 
+from bittensor.subtensor import Keypair
 from bittensor.config import Config
 
 def main():
@@ -48,16 +46,7 @@ def main():
     # 6. Start Neuron.
     logger.info('Start ... ')
     with session:
-        Asyncio.init()
-        Asyncio.start_in_thread(neuron.start, session)
-        Asyncio.run_forever()
-
-
-
-
-
-
-
+        neuron.start(session)
 
 if __name__ == "__main__":
     main()
