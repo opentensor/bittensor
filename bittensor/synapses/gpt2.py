@@ -311,6 +311,58 @@ class GPT2LMSynapse(Synapse):
         return output
 
     def forward_remote(self, local_context, local_hidden, inputs, pooled, encoding, training, output):
+        """ Forward pass inputs and labels through the GPT2 module.
+
+
+        Args:
+            local_context (:obj: `torch.FloatTensor` of shape :obj: `(batch_size, sequence_len, bittensor.__network_dim__)`, `required`)
+                    Distillation model for remote_context.
+            
+            local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Hidden layer encoding produced using local_context.
+
+            
+            inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                    Batch_size length list of tokenized sentences.
+            
+            encoding (:obj:`torch.LongTensor` of shape :obj:`` 
+                    Transformer encoded sentences
+            
+            training (:obj:`bool')`, `optional`, defaults to True):
+                    Switch to True if this forward pass computes an MLM loss.
+
+            output (SynapseOutput): Object being populated by local forward.
+
+        Returns:
+            bittensor.SynapseOutput ( 
+                    loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
+                        Total loss acumulation used by loss.backward()
+
+                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Hidden layer encoding produced using local_context.
+
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                        BERT NSP Target predictions produced using local_context. 
+
+                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        BERT NSP loss using local_context.
+
+                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
+                        Hidden layer encoding produced using the remote_context.
+
+                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
+                        BERT NSP Target predictions using the remote_context.
+
+                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+                        BERT NSP loss using the remote_context.
+
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        Distillation loss between local_context and remote_context.
+
+                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each active neuron.
+                )
+        """
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
 

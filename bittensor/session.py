@@ -1,4 +1,6 @@
 import argparse
+from io import StringIO
+import traceback as tb
 from bittensor.utils.replicate_utils import ReplicateUtility
 from munch import Munch
 
@@ -60,6 +62,48 @@ class BTSession:
         """
         self.axon.serve(synapse)
 
+    def __enter__(self):
+        logger.info('session enter')
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        loop.run_until_complete(self.start())
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        """ Defines the exit protocol from asyncio task.
+
+        Args:
+            exc_type (Type): The type of the exception.
+            exc_value (RuntimeError): The value of the exception, typically RuntimeError. 
+            exc_traceback (traceback): The traceback that can be printed for this exception, detailing where error actually happend.
+
+        Returns:
+            Session: present instance of session.
+        """
+        if exc_value:
+
+            top_stack = StringIO()
+            tb.print_stack(file=top_stack)
+            top_lines = top_stack.getvalue().strip('\n').split('\n')[:-4]
+            top_stack.close()
+
+            full_stack = StringIO()
+            full_stack.write('Traceback (most recent call last):\n')
+            full_stack.write('\n'.join(top_lines))
+            full_stack.write('\n')
+            tb.print_tb(exc_traceback, file=full_stack)
+            full_stack.write('{}: {}'.format(exc_type.__name__, str(exc_value)))
+            sinfo = full_stack.getvalue()
+            full_stack.close()
+            # Log the combined stack
+            logger.error('Exception:{}'.format(sinfo))
+        
+        logger.info('session exit')
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        loop.run_until_complete(self.stop())
+        return self
+
     async def start(self):
         # Stop background grpc threads for serving the synapse object.
         logger.info('Start axon server...')
@@ -113,14 +157,3 @@ class BTSession:
 
     def unsubscribe (self):
         self.metagraph.unsubscribe()
-    
-    def checkpoint_experiment(self, epoch, **experiment_metrics):
-        # Create a checkpoint within the experiment.
-        # This saves the metrics at that point, and makes a copy of the file
-        # or directory given, which could weights and any other artifacts.
-        self.experiment.checkpoint(
-            path=self.config.neuron.datapath + self.config.neuron.neuron_name + "/model.torch",
-            step=epoch,
-            metrics=experiment_metrics,
-            primary_metric=("loss", "minimize"),
-        )

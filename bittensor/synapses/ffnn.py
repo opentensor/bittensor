@@ -267,7 +267,7 @@ class FFNNSynapse(Synapse):
                 local_context (:obj: `torch.FloatTensor` of shape :obj: `(batch_size, bittensor.__network_dim__)`, `required`)
                     Distillation model for remote_context.
 
-                bittensor.SynapseOutput (:obj: `Bittensor.SynapseOutput`, `required`)
+                output (:obj: `Bittensor.SynapseOutput`, `required`)
                     The object containing the output thus far of the local context run
 
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 

@@ -47,13 +47,8 @@ def main():
     # 6. Start Neuron.
     logger.info('Start ... ')
 
-    def handle_async_exception(loop, ctx):
-        logger.error("Exception in async task: {0}".format(ctx['exception']))
-    loop = asyncio.get_event_loop()
-    loop.set_exception_handler(handle_async_exception)
-    loop.set_debug(enabled=True)
-    loop.run_until_complete(session.start())
-    neuron.start(session)
+    with session:
+        neuron.start(session)
 
 if __name__ == "__main__":
     main()
