@@ -57,6 +57,12 @@ class Neuron (NeuronBase):
         return config
 
     def start(self, session: BTSession): 
+        """ Starts up the neuron.
+
+        Args:
+            session (BTSession): Session object containing bittensor session configuration.
+
+        """
         epoch = 0
         best_test_loss = math.inf
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -86,6 +92,12 @@ class Neuron (NeuronBase):
     
         # Train loop: Single threaded training of MNIST.
         def train(model, epoch):
+            """ Training routine of the synapse model
+
+            Args:
+                model (torch.nn): Model to be trained.
+                epoch (int): Present training epoch
+            """
             # Turn on Dropoutlayers BatchNorm etc.
             model.train()
             last_log = time.time()
@@ -157,6 +169,15 @@ class Neuron (NeuronBase):
         # Evaluates the local model on the hold-out set.
         # Returns the test_accuracy and test_loss.
         def test( model: Synapse):
+            """ Tests given synapse model.
+
+            Args:
+                model (Synapse): Synapse model to be tested
+
+            Returns:
+                int: Loss
+                int: Accuracy
+            """
             
             # Turns off Dropoutlayers, BatchNorm etc.
             model.eval()
