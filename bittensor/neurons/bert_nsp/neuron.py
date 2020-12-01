@@ -13,11 +13,14 @@ from bittensor import BTSession
 from bittensor.neuron import NeuronBase
 from bittensor.synapses.bert import BertNSPSynapse
 
+import numpy as np
+from termcolor import colored
 from loguru import logger
 from datasets import load_dataset
 import replicate
 import random
 import torch
+import torch.nn.functional as F
 from munch import Munch
 import math
 
@@ -113,22 +116,39 @@ class Neuron (NeuronBase):
         
         def train(dataset, model, epoch):
             model.train()  # Turn on the train mode.
-            optimizer.zero_grad() # Zero out lingering gradients.
 
             step = 0
             best_loss = math.inf
             while step < self.config.neuron.epoch_size:
+
+                # Zero grads.
+                optimizer.zero_grad() # Zero out lingering gradients.
+
+                # Emit and sync.
+                if (session.metagraph.block() - session.metagraph.state.block) > 15:
+                    session.metagraph.emit()
+                    session.metagraph.sync()
+
                 # Next batch.
                 inputs, targets = nsp_batch(dataset['train'], self.config.neuron.batch_size_train, bittensor.__tokenizer__)
-                # Compute full pass and get loss with a network query.
+
+                # Forward pass.
                 output = model (inputs = inputs['input_ids'].to(device), 
                                 targets = targets.to(device),
                                 remote = True )
                 
+                # Backprop.
                 loss = output.local_target_loss
                 loss.backward()
                 optimizer.step()
                 scheduler.step()
+
+                # Update weights.
+                state_weights = session.metagraph.state.weights
+                learned_weights = F.softmax(torch.mean(output.weights, axis=0))
+                state_weights = (1 - 0.05) * state_weights + 0.05 * learned_weights
+                norm_state_weights = F.softmax(state_weights)
+                session.metagraph.state.set_weights( norm_state_weights )
 
                 step += 1
                 logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(

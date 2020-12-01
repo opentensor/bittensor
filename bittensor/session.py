@@ -62,15 +62,23 @@ class BTSession:
 
     def __enter__(self):
         logger.info('session enter')
+        def handle_async_exception(loop, ctx):
+            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
+        loop.set_exception_handler(handle_async_exception)
+        loop.set_debug(enabled=True)
         loop.run_until_complete(self.start())
         return self
 
     def __exit__(self, *args):
         logger.info('session exit')
+        def handle_async_exception(loop, ctx):
+            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
+        loop.set_exception_handler(handle_async_exception)
+        loop.set_debug(enabled=True)
         loop.run_until_complete(self.stop())
-
+        return self
 
     async def start(self):
         # Stop background grpc threads for serving the synapse object.
@@ -83,7 +91,7 @@ class BTSession:
 
         logger.info('Connect to chain ...')
         try:
-            connected = await self.metagraph.connect()
+            connected = await self.metagraph.async_connect()
             if not connected:
                 logger.error('SESSION: Timeout while subscribing to the chain endpoint')
                 raise FailedConnectToChain
@@ -93,20 +101,16 @@ class BTSession:
 
         logger.info('Subscribe to chain ...')
         try:
-            await self.metagraph.subscribe(10)
+            await self.metagraph.async_subscribe(10)
         except Exception as e:
             logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
             raise FailedToEnterSession
-
-        logger.info("Starting polling of chain for neurons")
-
-        Asyncio.add_task(self.metagraph.pollchain())
 
     async def stop(self):
         # Stop background grpc threads for serving synapse objects.
         logger.info('Unsubscribe from chain ...')
         try:
-            await self.metagraph.unsubscribe(10)
+            await self.metagraph.async_unsubscribe()
         except Exception as e:
             logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
 
@@ -116,14 +120,6 @@ class BTSession:
         except Exception as e:
             logger.error('SESSION: Error while stopping axon server: {} ', e)
 
-        # Stop background grpc threads for serving synapse objects.
-        logger.info('Unsubscribe from chain ...')
-        try:
-            if not self.metagraph.unsubscribe(10):
-                logger.error('SESSION: Timeout while unsubscribing to the chain endpoint')
-        except Exception as e:
-            logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
-        
         # Stop replicate experiment if still running
         try:
             if self.experiment:
@@ -131,8 +127,6 @@ class BTSession:
         except Exception as e:
             logger.error('SESSION: Could not stop Replicate experiment: {}', e)
 
-    def neurons (self):
-       return self.metagraph.neurons()
 
     def subscribe (self):
        self.metagraph.subscribe()
