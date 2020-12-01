@@ -260,7 +260,6 @@ class DPNSynapse(Synapse):
         """
         # Return vars to be filled.
         output = SynapseOutput (loss = torch.tensor(0.0))
-    
         r"""
             Transform the images into a common shape (32x32)
         """
@@ -275,12 +274,6 @@ class DPNSynapse(Synapse):
         transform = self.transform_layer4(transform)
         transform = F.avg_pool2d(transform, 4)
         transform = torch.flatten(transform, start_dim=1)
-
-        # remote_context: responses from a bittensor remote network call.
-        # remote_context.shape = [batch_size, bittensor.__network_dim__]
-        if remote:
-            remote_context, weights = self.call_remote(images, transform)
-            output.weights = weights
 
         # local_context: distillation model for remote_context.
         # local_context.shape = [batch_size, bittensor.__network_dim__]
@@ -312,7 +305,7 @@ class DPNSynapse(Synapse):
             output.local_target_loss = local_target_loss
             output.loss = output.loss + local_target_loss
         
-        if remote and targets is not None:
+        if remote:
             output = self.forward_remote(local_context, output, images, transform, targets)
 
         return output
@@ -320,14 +313,10 @@ class DPNSynapse(Synapse):
     def forward_remote(self, local_context, output, images, transform, targets):
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
-        
         # make a remote call.
-        images = torch.unsqueeze(images, 1) # Add sequence dimension.
-        neurons = self.session.metagraph.neurons() # Returns a list of neurons on the network.
-        requests, _ = self.router.route( neurons, transform, images ) # routes inputs to network.
-        responses = self.session.dendrite.forward_image( neurons, requests ) # Makes network calls.
-        remote_context = self.router.join( responses ) # Joins responses based on scores..
-        remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2]) # Squeeze the sequence dimension.
+        remote_context, weights = self.call_remote(images, transform)
+        output.weights = weights
+        remote_context = remote_context.to(self.device)
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]

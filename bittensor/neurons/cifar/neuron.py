@@ -214,7 +214,7 @@ class Neuron (NeuronBase):
                 # Save the best local model.
                 logger.info('Serving / Saving model: epoch: {}, loss: {}, path: {}', epoch, test_loss, self.config.logger.logdir + '/model.torch')
                 torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss}, self.config.logger.logdir + '/model.torch' )
-                session.checkpoint_experiment(loss=test_loss, accuracy=accuracy)
+                session.replicate_util.checkpoint_experiment(epoch, loss=test_loss, accuracy=accuracy)
                 session.serve( model.deepcopy() )
 
             epoch += 1

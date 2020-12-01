@@ -226,12 +226,6 @@ class FFNNSynapse(Synapse):
         transform = F.relu(F.max_pool2d(self.transform_conv1(transform), 2))
         transform = F.relu(F.max_pool2d(self.transform_drop(self.transform_conv2(transform)),2))
         transform = transform.view(-1, self.transform_dim)
-       
-        # remote_context: responses from a bittensor remote network call.
-        # remote_context.shape = [batch_size, bittensor.__network_dim__]
-        if remote:
-            remote_context, weights = self.call_remote(images, transform)
-            output.weights = weights
 
         # local_context: distillation model for remote_context.
         # local_context.shape = [batch_size, bittensor.__network_dim__]
@@ -321,9 +315,8 @@ class FFNNSynapse(Synapse):
         """
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
-        remote_context, keys, scores = self.call_remote(images, transform)
-        output.keys = keys
-        output.scores = scores
+        remote_context, weights= self.call_remote(images, transform)
+        output.weights = weights
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]

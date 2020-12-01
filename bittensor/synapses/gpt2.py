@@ -280,13 +280,7 @@ class GPT2LMSynapse(Synapse):
         # pooled: pooled encodings by taking the hidden units of the last token.
         # pooled.shape = [batch_size, bittensor.__network_dim__]
         pooled = self.pooler(encoding)
-
-        # remote_context: joined responses from a bittensor.forward_text call.
-        # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        if remote:
-            remote_context, weights = self.call_remote(inputs, pooled)
-            output.weights = weights
-
+        
         # local_context: distilled version of remote_context.
         # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         local_context = self.context_transformer(input_ids=inputs, return_dict=True).last_hidden_state
@@ -320,10 +314,9 @@ class GPT2LMSynapse(Synapse):
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
 
-        neurons = self.session.metagraph.neurons()  # Returns a list of neurons on the network.
-        requests, _ = self.router.route(neurons, pooled, inputs)  # routes inputs to network.
-        responses = self.session.dendrite.forward_text(neurons, requests)  # Makes network calls.
-        remote_context = self.router.join(responses)  # Join responses with scores.
+        remote_context, weights = self.call_remote(inputs, pooled)
+        output.weights = weights
+        remote_context = remote_context.to(self.device)
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
