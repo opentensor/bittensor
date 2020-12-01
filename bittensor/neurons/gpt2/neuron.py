@@ -13,10 +13,13 @@ from bittensor.neuron import NeuronBase
 from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
 
 import argparse
+import numpy as np
+from termcolor import colored
 from munch import Munch
 from datasets import load_dataset
 from loguru import logger
 import torch
+import torch.nn.functional as F
 import replicate
 import math
 
@@ -94,15 +97,31 @@ class Neuron (NeuronBase):
             step = 0
             best_loss = math.inf
             while step < self.config.neuron.epoch_size:
+                # Clear gradients.
+                optimizer.zero_grad()
+
+                # Emit and sync.
+                if (session.metagraph.block() - session.metagraph.state.block) > 15:
+                    session.metagraph.emit()
+                    session.metagraph.sync()
+
                 # Next batch.
                 inputs = nextbatch(dataset, self.config.neuron.batch_size_train, bittensor.__tokenizer__)
-                
-                # Compute full pass and get loss with a network query.
+ 
+                # Forward pass.
                 output = model(inputs.to(device), training = True, remote = True)
 
+                # Backprop.
                 output.loss.backward()
                 optimizer.step()
                 scheduler.step()
+
+                # Update weights.
+                state_weights = session.metagraph.state.weights
+                learned_weights = F.softmax(torch.mean(output.weights, axis=0))
+                state_weights = (1 - 0.05) * state_weights + 0.05 * learned_weights
+                norm_state_weights = F.softmax(state_weights)
+                session.metagraph.state.set_weights( norm_state_weights )
                 
                 step += 1
                 logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
