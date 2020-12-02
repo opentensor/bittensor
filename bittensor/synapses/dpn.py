@@ -17,7 +17,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class DPNSynapse(Synapse):
-    """ Bittensor endpoint trained on PIL images to detect objects using DPN.
+    """ Bittensor endpoint trained on PIL images to detect objects using an DPN.
     """
 
     def __init__(   self, 

@@ -17,7 +17,7 @@ from bittensor.exceptions.Exceptions import EmptyTensorException, ResponseShapeE
 import time
 import asyncio
 
-# dummy tensor that triggers autograd in RemoteExpert
+# dummy tensor that triggers autograd in a RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
 
 def nill_response_for(inputs):
@@ -25,7 +25,7 @@ def nill_response_for(inputs):
 
 class Dendrite(nn.Module):
     r"""
-    This is the bittensr object used to make calls to the network. It can be used like a normal torch nn.Module
+    Bittensor object used to make calls to the network. It can called like a normal torch nn.Module
     and is differentiable. Messages passed through this module will be sent to neuron objects, either remote
     or local, and return response torch tensors. Gradients passing through this module on a .backward() call will trigger
     the Backward rpc calls, passing gradients to the remote neuron instances called during the Forward operation.

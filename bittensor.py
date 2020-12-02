@@ -38,7 +38,6 @@ def main():
     logger.info('Load Neuron ... ')
     neuron_module = SourceFileLoader("Neuron", os.getcwd() + '/' + params.neuron_path + '/neuron.py').load_module()
     neuron = neuron_module.Neuron( config )
-    
 
     # 5. Load Session.
     logger.info('Build Session ... ')
