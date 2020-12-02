@@ -459,7 +459,6 @@ class BertMLMSynapse (BertSynapseBase):
                             help='Number of hidden layers in the Transformer encoder.')
         parser.add_argument('--synapse.num_attention_heads', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
-        parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
         return parser
 
     def forward_text(self, inputs: torch.LongTensor):

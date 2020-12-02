@@ -320,7 +320,7 @@ class Metagraph():
         emits = await self.subtensor_client.get_last_emit_data()
         for (pubkey, last_emit) in emits:
                 # Filter based on stale emissions.
-                if (current_block - last_emit) < self._config.metagraph.stale_emit_limit:
+                if (current_block - last_emit) < self._config.metagraph.stale_emit_filter:
                     calls.append(self._poll_pubkey(pubkey))
         await asyncio.gather(*calls)
 
@@ -513,7 +513,7 @@ class Metagraph():
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         parser.add_argument('--metagraph.chain_endpoint', default='206.189.254.5:12345', type=str, 
                             help='chain endpoint.')
-        parser.add_argument('--metagraph.stale_emit_limit', default=100, type=int, 
+        parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
                             help='filter neurons with last emit beyond this many blocks.')
 
         return parser
