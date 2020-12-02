@@ -108,7 +108,6 @@ class DPNSynapse(Synapse):
         parser.add_argument('--synapse.num_blocks', default='3, 6, 20, 3', action="append", type=to_list)
         parser.add_argument('--synapse.dense_depth', default='16, 32, 32, 128', action="append", type=to_list)
         parser.add_argument('--synapse.target_dim', default=10, type=int, help='Final logit layer dimension. i.e. 10 for CIFAR-10.')
-        parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
         return parser
     
     @staticmethod

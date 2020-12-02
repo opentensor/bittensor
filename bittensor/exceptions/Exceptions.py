@@ -8,6 +8,10 @@ class ResponseShapeException(Exception):
     pass
 
 
+class RPCError(Exception):
+    """ Raised when an rpc throws an error """
+    pass
+
 class RequestShapeException(Exception):
     """ Raised when a request message has an improper shape """
     pass

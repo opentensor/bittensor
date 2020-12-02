@@ -70,6 +70,7 @@ class Axon(bittensor_grpc.BittensorServicer):
 
     @staticmethod   
     def check_config(config: Munch) -> Munch:
+        logger.info('optaining remote ip ...')
         config = obtain_ip(config)
         assert config.axon.port > 1024 and config.axon.port < 65535, 'config.axon.port must be in range [1024, 65535]'
         return config

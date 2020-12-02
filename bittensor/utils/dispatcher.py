@@ -41,7 +41,7 @@ class Dispatcher(object):
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")
 
-    def dispatch(self, x: object, gates) -> List[object]:
+    def dispatch(self, x: torch.Tensor, gates) -> List[object]:
         # sort experts
         sorted_experts, index_sorted_experts = torch.nonzero(gates).sort(0)
 
@@ -54,17 +54,9 @@ class Dispatcher(object):
         # calculate num samples that each expert gets
         part_sizes = list((gates != 0.0).sum(0).cpu().numpy())
 
-        results = []
-        if isinstance(x, list):
-            batch_index = batch_index.view(-1, gates.shape[0])
-            for i, row in enumerate(batch_index):
-                results.append([])
-                for _, idx in enumerate(row):
-                    results[i].append(x[idx])
-        else:
-            # expand according to batch index so we can just split by _part_sizes
-            x_expanded = x[batch_index].to(self.device)
-            results = torch.split(x_expanded, part_sizes, dim=0)
+        # expand according to batch index so we can just split by _part_sizes
+        x_expanded = x[batch_index].to(self.device)
+        results = torch.split(x_expanded, part_sizes, dim=0)
 
         return results
 

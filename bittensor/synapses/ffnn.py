@@ -73,8 +73,6 @@ class FFNNSynapse(Synapse):
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
         parser.add_argument('--synapse.target_dim', default=10, type=int, 
                             help='Final logit layer dimension. i.e. 10 for MNIST.')
-        parser.add_argument('--synapse.n_block_filter', default=100, type=int, 
-                            help='Stale neurons are filtered after this many blocks.')
         parser = PKMDendrite.add_args(parser)
         return parser
 
@@ -153,6 +151,9 @@ class FFNNSynapse(Synapse):
 
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
                 )
         """
 
@@ -244,18 +245,21 @@ class FFNNSynapse(Synapse):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `optional`): 
-                        Keys for queried neurons.
+                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each active neuron.
 
-                    scores (:obj:`torch.LongTensor` of shape :obj:`(batch_size, len(keys))`, `optional`): 
-                        scores for each active key per example.
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
                 )
 
         """
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
-        remote_context, weights = self.dendrite.forward_image(images, transform)
+        images = torch.unsqueeze(images, 1)
+        remote_context, weights, retops = self.dendrite.forward_image(images, transform)
+        remote_context = torch.squeeze(remote_context, 1)
         output.weights = weights
+        output.retops = retops
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]

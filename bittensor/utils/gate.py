@@ -48,7 +48,4 @@ class Gate(nn.Module):
         gates = zeros.scatter(1, topk_indices.to(self.device),
                               topk_scores.to(self.device))
 
-        softmax = nn.Softmax(dim=1).to(self.device)
-        gates = softmax(gates)
-
         return gates, scores
