@@ -87,11 +87,11 @@ class Synapse(nn.Module):
         self.to(self.device)
 
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser: 
+    def add_args(self, parser: argparse.ArgumentParser) -> argparse.ArgumentParser: 
         return parser
 
     @staticmethod   
-    def check_config(config: Munch) -> Munch:
+    def check_config(self, config: Munch) -> Munch:
         return config
 
     def deepcopy(self):
@@ -106,7 +106,7 @@ class Synapse(nn.Module):
         synapse_copy.load_state_dict(self.state_dict())
         return synapse_copy
 
-    def forward_text(self, inputs: torch.Tensor):
+    def forward_text(self, inputs: torch.Tensor) -> SynapseOutput:
         """ Local forward inputs through the bittensor.Synapse. To be implemented by sub-classes.
 
             Args:
@@ -119,7 +119,7 @@ class Synapse(nn.Module):
         """
         raise NotImplementedError
 
-    def forward_image(self, inputs: torch.Tensor):
+    def forward_image(self, inputs: torch.Tensor) -> SynapseOutput:
         r""" Forward pass inputs through the bittensor.synapse. To be implemented by sub-classes.
 
             Args:
@@ -133,7 +133,7 @@ class Synapse(nn.Module):
         """
         raise NotImplementedError
 
-    def forward_tensor(self, inputs: torch.Tensor):
+    def forward_tensor(self, inputs: torch.Tensor) -> SynapseOutput:
         """ Forward tensor inputs through the bittensor.synapse. To be implemented by sub-classes.
 
             Args:

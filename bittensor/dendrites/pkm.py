@@ -1,8 +1,8 @@
+import argparse
 import torch
 
 import bittensor
 from bittensor import bittensor_pb2
-from bittensor.dendrite import Dendrite
 from bittensor.utils.router import Router
 
 class PKMDendrite():
@@ -10,7 +10,17 @@ class PKMDendrite():
         self.config = config
         self.session = session
         self.context_dim = context_dim
-        self.router = Router(x_dim = self.context_dim , key_dim = 100, topk = 10)
+        self.router = Router(x_dim = self.context_dim, key_dim = self.config.dendrite.key_dim, topk = self.config.dendrite.topk)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+        parser.add_argument('--dendrite.key_dim', default=100, type=int, help='Product keys dimension.')
+        parser.add_argument('--dendrite.topk', default=10, type=int, help='Number of keys to select for each example.')
+        return parser
+
+    @staticmethod
+    def check_config(config):   
+        return config
 
     def forward_image(self, images, context):
         r""" Forwards images to connected neurons using the passed context to learn connectivity.

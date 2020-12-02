@@ -75,11 +75,13 @@ class FFNNSynapse(Synapse):
                             help='Final logit layer dimension. i.e. 10 for MNIST.')
         parser.add_argument('--synapse.n_block_filter', default=100, type=int, 
                             help='Stale neurons are filtered after this many blocks.')
+        parser = PKMDendrite.add_args(parser)
         return parser
 
     @staticmethod   
     def check_config(config: Munch) -> Munch:
         assert config.synapse.target_dim > 0, "target dimension must be greater than 0."
+        config = PKMDendrite.check_config(config)
         return config
 
     def forward_image(self, images: torch.Tensor):

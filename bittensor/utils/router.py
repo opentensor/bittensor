@@ -9,6 +9,7 @@ from bittensor.utils.keys import Keys
 from bittensor.utils.gate import Gate
 from bittensor.utils.dispatcher import Dispatcher
 from bittensor import bittensor_pb2
+
 class Router(nn.Module):
 
     def __init__(self, x_dim, key_dim, topk):
