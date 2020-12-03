@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from loguru import logger
+from typing import List, Tuple
 
 import bittensor
 from bittensor import bittensor_pb2
@@ -51,7 +52,7 @@ class PKMDendrite():
         uids = uids[torch.where(staleness < self.config.dendrite.stale_emit_filter)] 
         return uids
 
-    def _route(self, inputs, query, modality: bittensor_pb2.Modality):
+    def _route(self, inputs, query, modality: bittensor_pb2.Modality) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.LongTensor]:
         r""" Routes inputs using context and metagraph state.
 
             Args:
@@ -216,70 +217,70 @@ class PKMDendrite():
     def check_config(config):   
         return config
 
-    def forward_image(self, images, context):
+    def forward_image(self, images: torch.FloatTensor, query: torch.FloatTensor) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.LongTensor]:
         r""" Forwards images to connected neurons using the passed context to learn connectivity.
 
             Args:
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
                     Image tensors to forward.
                 
-                context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, context_dim)`, `required`): 
-                    Context tensor used to select which neurons query for each example.
+                query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, context_dim)`, `required`): 
+                    query tensor used to select which neurons query for each example.
             
             Returns:
-                bittensor.DendriteOutput
-                { 
-                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
-                        Joined responses from each queried neuron.
-
-                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                        weights for each neuron per example.
-                }
-        """
-        return self._route(images, context, bittensor_pb2.Modality.IMAGE)
-
-    def forward_text(self, text, context):
-        r""" Forwards text to connected neurons using the passed context to learn connectivity.
-
-            Args:
-                text (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim)`, `required`): 
-                    tensor of tokenized sentences.
-                
-                context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, context_dim)`, `required`): 
-                    Context tensor used to select which neurons query for each example.
-            
-            Returns:
-                bittensor.DendriteOutput
-                { 
-                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
-                        Joined responses from each queried neuron.
-
-                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                        weights for each neuron per example.
-                }
-        """
-        return self._route(text, context, bittensor_pb2.Modality.TEXT)
-
-
-    def forward_tensor(self, tensors, context):
-        r""" Forwards tensors to connected neurons using the passed context to learn connectivity.
-
-            Args:
-                tensors (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
-                    tensors sent to connected neurons.
-                
-                context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, context_dim)`, `required`): 
-                    Context tensor used to select which neurons query for each example.
-            
-            Returns:
-            
                 responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
                     Joined responses from each queried neuron.
 
                 weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                     weights for each neuron per example.
 
-                 (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                    weights for each neuron per example.
+                retops (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                    return op from each call per example.
         """
-        return self._route(tensors, context, bittensor_pb2.Modality.IMAGE)
+        return self._route(images, query, bittensor_pb2.Modality.IMAGE)
+
+    def forward_text(self, text: torch.LongTensor, query: torch.FloatTensor) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.LongTensor]:
+        r""" Forwards text to connected neurons using the passed context to learn connectivity.
+
+            Args:
+                text (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_dim)`, `required`): 
+                    tensor of tokenized sentences.
+                
+                query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dim)`, `required`): 
+                    Context tensor used to select which neurons query for each example.
+            
+            Returns:
+                responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                    Joined responses from each queried neuron.
+
+                weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                    weights for each neuron per example.
+
+                retops (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                    return op from each call per example.
+                
+        """
+        return self._route(text, query, bittensor_pb2.Modality.TEXT)
+
+
+    def forward_tensor(self, tensors: torch.FloatTensor, query: torch.FloatTensor) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.LongTensor]:
+        r""" Forwards tensors to connected neurons using the passed context to learn connectivity.
+
+            Args:
+                tensors (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                    tensors sent to connected neurons.
+                
+                query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dim)`, `required`): 
+                    Query tensor used to select which neurons query for each example.
+            
+            Returns:
+                responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                    Joined responses from each queried neuron.
+
+                weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                    weights for each neuron per example.
+
+                retops (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                    return op from each call per example.
+        """
+        return self._route(tensors, query, bittensor_pb2.Modality.IMAGE)

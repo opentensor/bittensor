@@ -52,7 +52,7 @@ def log_training_output_history(session, epoch, batch_idx, batch_size, total_exa
     print('\n')
 
     # Log batch weights
-    print ('Weights: \n ')
+    print ('Batch Weights: \n ')
     batch_weights_list = []
     for output in history:
         batch_weights = torch.mean(output.weights, axis=0).tolist()
@@ -64,6 +64,7 @@ def log_training_output_history(session, epoch, batch_idx, batch_size, total_exa
     print('\n')
     
     # Log return ops.
+    # TODO (const): check existence.
     print('Requests: \n ')
     retops = []
     for output in history:
@@ -75,3 +76,12 @@ def log_training_output_history(session, epoch, batch_idx, batch_size, total_exa
     df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
     print (df)
     print('\n')
+
+    # TODO(const): Log to tensorboard.
+    # session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())
+    # session.tbwriter.write_loss('train local target loss', output.local_target_loss.item())
+    # session.tbwriter.write_loss('train distilation loss', output.distillation_loss.item())
+    # session.tbwriter.write_loss('train loss', output.loss.item())
+    # session.tbwriter.write_accuracy('train accuracy', accuracy)
+    # session.tbwriter.write_custom('global step/global step v.s. time', self.config.neuron.log_interval / (time.time() - last_log))
+    # last_log = time.time()

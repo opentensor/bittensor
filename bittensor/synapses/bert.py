@@ -1,6 +1,5 @@
 import bittensor
 from bittensor.dendrites.pkm import PKMDendrite
-from bittensor.utils.router import Router
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseOutput
 from bittensor.session import BTSession
@@ -67,7 +66,7 @@ class BertSynapseBase (Synapse):
 
         # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite(config, session, context_dim = self.transform_dim)
+        self.dendrite = PKMDendrite(config, session, query_dim = self.transform_dim)
 
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -92,6 +91,7 @@ class BertSynapseBase (Synapse):
         parser.add_argument('--synapse.num_attention_heads', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
         parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
+        parser = PKMDendrite.add_args(parser)
         return parser
 
     def forward_text(self, inputs: torch.LongTensor):
@@ -135,6 +135,12 @@ class BertSynapseBase (Synapse):
 
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+
+                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                        additional metadata output, specifically accuracy.
                 )
         """
         inputs = inputs.to(self.device)
@@ -199,13 +205,19 @@ class BertSynapseBase (Synapse):
 
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+
+                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                        additional metadata output, specifically accuracy.
                 )
         """
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        remote_context, weights = self.dendrite(inputs, encoding_pooled)
-
+        remote_context, weights, retops = self.dendrite.forward_text(inputs = inputs, query = encoding_pooled)
         output.weights = weights
+        output.retops = retops
         remote_context = remote_context.to(self.device)
 
         # distillation_loss: distillation loss between local_context and remote_context

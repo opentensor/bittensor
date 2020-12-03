@@ -10,11 +10,11 @@ import bittensor
 from bittensor.session import BTSession
 from bittensor.config import Config
 from bittensor.neuron import NeuronBase
+from bittensor.utils.logging import log_training_output_history
 from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
 
 import argparse
 import numpy as np
-from termcolor import colored
 from munch import Munch
 from datasets import load_dataset
 from loguru import logger
@@ -41,6 +41,8 @@ class Neuron (NeuronBase):
                             help='Testing batch size.')
         parser.add_argument('--neuron.epoch_size', default=50, type=int, 
                             help='Testing batch size.')
+        parser.add_argument('--neuron.log_interval', default=10, type=int, 
+                            help='Batches until neuron prints log statements.')
         parser = GPT2LMSynapse.add_args(parser)
         return parser
 
@@ -85,6 +87,7 @@ class Neuron (NeuronBase):
 
             step = 0
             best_loss = math.inf
+            history = []
             while step < self.config.neuron.epoch_size:
                 # Clear gradients.
                 optimizer.zero_grad()
@@ -98,6 +101,7 @@ class Neuron (NeuronBase):
  
                 # Forward pass.
                 output = model(inputs.to(device), training = True, remote = True)
+                history.append(output)
 
                 # Backprop.
                 output.loss.backward()
@@ -110,12 +114,19 @@ class Neuron (NeuronBase):
                 state_weights = (1 - 0.05) * state_weights + 0.05 * learned_weights
                 norm_state_weights = F.softmax(state_weights)
                 session.metagraph.state.set_weights( norm_state_weights )
-                
+
+                # Log history.
                 step += 1
-                logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
-                    epoch, step, self.config.neuron.epoch_size, float(step * 100)/float(self.config.neuron.epoch_size), output.loss.item(), output.remote_target_loss.item(), output.distillation_loss.item()))
-
-
+                if (step + 1) % self.config.neuron.log_interval == 0:
+                    log_training_output_history(
+                        session = session, 
+                        epoch = epoch, 
+                        batch_idx = step, 
+                        batch_size = self.config.neuron.batch_size_train, 
+                        total_examples = self.config.neuron.batch_size_train * self.config.neuron.epoch_size, 
+                        history = history)
+                    history = [] # Clear history.
+            
             # After each epoch, checkpoint the losses and re-serve the network.
             if output.loss.item() < best_loss:
                 best_loss = output.loss

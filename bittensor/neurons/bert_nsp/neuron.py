@@ -12,6 +12,7 @@ from bittensor.config import Config
 from bittensor import BTSession
 from bittensor.neuron import NeuronBase
 from bittensor.synapses.bert import BertNSPSynapse
+from bittensor.utils.logging import log_training_output_history
 
 import numpy as np
 from termcolor import colored
@@ -77,6 +78,8 @@ class Neuron (NeuronBase):
                             help='Testing batch size.')
         parser.add_argument('--neuron.epoch_size', default=50, type=int, 
                             help='Testing batch size.')
+        parser.add_argument('--neuron.log_interval', default=10, type=int, 
+                            help='Batches until neuron prints log statements.')
         parser = BertNSPSynapse.add_args(parser)
         return parser
 
@@ -119,6 +122,7 @@ class Neuron (NeuronBase):
 
             step = 0
             best_loss = math.inf
+            history = []
             while step < self.config.neuron.epoch_size:
 
                 # Zero grads.
@@ -136,6 +140,7 @@ class Neuron (NeuronBase):
                 output = model (inputs = inputs['input_ids'].to(device), 
                                 targets = targets.to(device),
                                 remote = True )
+                history.append(output)
                 
                 # Backprop.
                 loss = output.local_target_loss
@@ -150,10 +155,19 @@ class Neuron (NeuronBase):
                 norm_state_weights = F.softmax(state_weights)
                 session.metagraph.state.set_weights( norm_state_weights )
 
+                # Log history.
                 step += 1
-                logger.info('Train Step: {} [{}/{} ({:.1f}%)]\t Network Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
-                    epoch, step, self.config.neuron.epoch_size, float(step * 100)/float(self.config.neuron.epoch_size), output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
+                if (step + 1) % self.config.neuron.log_interval == 0:
+                    log_training_output_history(
+                        session = session, 
+                        epoch = epoch, 
+                        batch_idx = step, 
+                        batch_size = self.config.neuron.batch_size_train, 
+                        total_examples = self.config.neuron.batch_size_train * self.config.neuron.epoch_size, 
+                        history = history)
+                    history = [] # Clear history.
 
+        
             # After each epoch, checkpoint the losses and re-serve the network.
             if output.local_target_loss.item() < best_loss:
                 best_loss = output.local_target_loss.item()

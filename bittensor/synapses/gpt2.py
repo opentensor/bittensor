@@ -97,7 +97,7 @@ class GPT2LMSynapse(Synapse):
 
         # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, bittensor.__network_dim__] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite(config, session, context_dim = bittensor.__network_dim__)
+        self.dendrite = PKMDendrite(config, session, query_dim = bittensor.__network_dim__)
 
         # context_transformer: distills the remote_context from inputs
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -115,6 +115,7 @@ class GPT2LMSynapse(Synapse):
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = torch.nn.CrossEntropyLoss()
         self.to(self.device)
+    
     @staticmethod
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
         r""" Add custom params to the parser.
@@ -150,6 +151,7 @@ class GPT2LMSynapse(Synapse):
         parser.add_argument('--synapse.summary_first_dropout', default=0.1, type=float, 
                             help='The dropout ratio to be used after the projection and activation.')
         parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
+        parser = PKMDendrite.add_args(parser)
         return parser
 
     def forward_text(self, inputs: torch.LongTensor):
@@ -209,6 +211,12 @@ class GPT2LMSynapse(Synapse):
 
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+
+                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                        additional metadata output, specifically accuracy.
                 )
         """
 
@@ -303,13 +311,19 @@ class GPT2LMSynapse(Synapse):
 
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+
+                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                        additional metadata output, specifically accuracy.
                 )
         """
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-
-        remote_context, weights = self.dendrite.forward_text(inputs, pooled)
+        remote_context, weights, retops = self.dendrite.forward_text(inputs, pooled)
         output.weights = weights
+        output.retops = retops
         remote_context = remote_context.to(self.device)
 
         # distillation_loss: distillation loss between local_context and remote_context
