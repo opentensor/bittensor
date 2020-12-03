@@ -5,5 +5,7 @@ panic = 'unwind'
 members = [
     'node',
     'pallets/subtensor',
+    'pallets/neurons',
+    'pallets/stake',
     'runtime',
 ]
