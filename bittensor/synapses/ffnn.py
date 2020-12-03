@@ -50,7 +50,7 @@ class FFNNSynapse(Synapse):
 
         # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite(config, session, context_dim = self.transform_dim)
+        self.dendrite = PKMDendrite(config, session, query_dim = self.transform_dim)
 
         # context_layer: distills the remote_context from the transform layer.
         # [batch_size, transform_dim] -> [batch_size, bittensor.__network_dim__]
@@ -194,6 +194,12 @@ class FFNNSynapse(Synapse):
             output.local_target_loss = local_target_loss
             output.loss = output.loss + local_target_loss
 
+            # Record extra metadata accuracy.
+            max_logit = local_target.data.max(1, keepdim=True)[1]
+            correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
+            local_accuracy = (100.0 * correct) / targets.shape[0] 
+            output.metadata['local_accuracy'] = local_accuracy
+
         if remote:
             output = self.forward_remote(local_context, output, images, transform, targets)
 
@@ -250,6 +256,9 @@ class FFNNSynapse(Synapse):
 
                     retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+
+                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                        additional metadata output, specifically accuracy.
                 )
 
         """
@@ -287,5 +296,11 @@ class FFNNSynapse(Synapse):
             remote_target_loss = F.nll_loss(remote_target, targets)
             output.loss = output.loss + remote_target_loss
             output.remote_target_loss = remote_target_loss
+
+            # Record extra metadata accuracy.
+            max_logit = remote_target.data.max(1, keepdim=True)[1]
+            correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
+            remote_accuracy = (100.0 * correct) / targets.shape[0] 
+            output.metadata['remote_accuracy'] = remote_accuracy
         
         return output
