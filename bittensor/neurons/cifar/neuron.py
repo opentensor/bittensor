@@ -44,6 +44,8 @@ class Neuron (NeuronBase):
                             help='Testing batch size.')
         parser.add_argument('--neuron.log_interval', default=10, type=int, 
                             help='Batches until neuron prints log statements.')
+        parser.add_argument('--neuron.checkout_experiment', type=str, 
+                    help='ID of replicate.ai experiment to check out.')
         parser = DPNSynapse.add_args(parser)
         return parser
 
@@ -65,7 +67,7 @@ class Neuron (NeuronBase):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         try:
-            if self.config.session.checkout_experiment:
+            if self.config.neuron.checkout_experiment:
                 model = self.config.session.replicate_util.checkout_experiment(model, best=False)
         except Exception as e:
             logger.warning("Something happened checking out the model. {}".format(e))

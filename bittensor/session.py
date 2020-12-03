@@ -41,8 +41,6 @@ class BTSession:
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
-        parser.add_argument('--session.checkout_experiment', type=str, 
-                            help='ID of replicate.ai experiment to check out.')
         return parser
 
     @staticmethod   
