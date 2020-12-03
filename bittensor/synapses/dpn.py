@@ -62,7 +62,7 @@ class DPNSynapse(Synapse):
         
         # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite(config, session, context_dim = self.transform_dim)
+        self.dendrite = PKMDendrite(config, session, query_dim = self.transform_dim)
 
         # Context layers.
         """
@@ -108,6 +108,7 @@ class DPNSynapse(Synapse):
         parser.add_argument('--synapse.num_blocks', default='3, 6, 20, 3', action="append", type=to_list)
         parser.add_argument('--synapse.dense_depth', default='16, 32, 32, 128', action="append", type=to_list)
         parser.add_argument('--synapse.target_dim', default=10, type=int, help='Final logit layer dimension. i.e. 10 for CIFAR-10.')
+        parser = PKMDendrite.add_args(parser)
         return parser
     
     @staticmethod
@@ -192,6 +193,12 @@ class DPNSynapse(Synapse):
 
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+
+                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                        additional metadata output, specifically accuracy.
                 )
         """
         # Return vars to be filled.
@@ -291,18 +298,24 @@ class DPNSynapse(Synapse):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `optional`): 
-                        Keys for queried neurons.
+                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each active neuron.
 
-                    scores (:obj:`torch.LongTensor` of shape :obj:`(batch_size, len(keys))`, `optional`): 
-                        scores for each active key per example.
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+
+                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                        additional metadata output, specifically accuracy.
                 )
         """
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         # make a remote call.
-        remote_context, weights = self.dendrite.forward_image(images, transform)
+        images = torch.unsqueeze(images, 1)
+        remote_context, weights, retops = self.dendrite.forward_image(images, transform)
+        remote_context = torch.squeeze(remote_context, 1)
         output.weights = weights
+        output.retops = retops
         remote_context = remote_context.to(self.device)
 
         # distillation_loss: distillation loss between local_context and remote_context

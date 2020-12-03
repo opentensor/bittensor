@@ -91,11 +91,11 @@ class Synapse(nn.Module):
         self.to(self.device)
 
     @staticmethod
-    def add_args(self, parser: argparse.ArgumentParser) -> argparse.ArgumentParser: 
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser: 
         return parser
 
     @staticmethod   
-    def check_config(self, config: Munch) -> Munch:
+    def check_config(config: Munch) -> Munch:
         return config
 
     def deepcopy(self):

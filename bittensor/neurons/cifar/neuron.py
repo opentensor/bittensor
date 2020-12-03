@@ -10,6 +10,7 @@ from bittensor import BTSession
 from bittensor.config import Config
 from bittensor.synapse import Synapse
 from bittensor.synapses.dpn import DPNSynapse
+from bittensor.utils.logging import log_training_output_history
 from bittensor.neuron import NeuronBase
 
 import argparse
@@ -93,7 +94,7 @@ class Neuron (NeuronBase):
         def train(model, epoch, global_step):
             # Turn on Dropoutlayers BatchNorm etc.
             model.train()
-            last_log = time.time()
+            history = []
             for batch_idx, (images, targets) in enumerate(trainloader):
                 # Clear gradients.
                 optimizer.zero_grad()
@@ -107,11 +108,11 @@ class Neuron (NeuronBase):
                 images = images.to(device)
                 targets = torch.LongTensor(targets).to(device)
                 output = model(images, targets, remote = True)
+                history.append(output)
 
                 # Backprop.
                 loss = output.remote_target_loss + output.distillation_loss
                 loss.backward()
-                
                 optimizer.step()
                 global_step += 1
 
@@ -121,44 +122,18 @@ class Neuron (NeuronBase):
                 state_weights = (1 - 0.05) * state_weights + 0.05 * learned_weights
                 norm_state_weights = F.softmax(state_weights)
                 session.metagraph.state.set_weights( norm_state_weights )
-                                
-                # Logs:
-                if (batch_idx + 1) % self.config.neuron.log_interval == 0: 
-                    n = len(train_data)
-                    max_logit = output.remote_target.data.max(1, keepdim=True)[1]
-                    correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
-                    n_str = colored('{}'.format(n), 'red')
 
-                    loss_item = output.remote_target_loss.item()
-                    loss_item_str = colored('{:.3f}'.format(loss_item), 'green')
-
-                    processed = ((batch_idx + 1) * self.config.neuron.batch_size_train)
-                    processed_str = colored('{}'.format(processed), 'green')
-
-                    progress = (100. * processed) / n
-                    progress_str = colored('{:.2f}%'.format(progress), 'green')
-
-                    accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
-                    accuracy_str = colored('{:.3f}'.format(accuracy), 'green')
-
-                    logger.info('Epoch: {} [{}/{} ({})] | Loss: {} | Acc: {} ', 
-                        epoch, processed_str, n_str, progress_str, loss_item_str, accuracy_str)
-
-                    # Log weights.
-                    np.set_printoptions(precision=2, suppress=True, linewidth=500, sign=' ')
-                    numpy_uids = np.array(session.metagraph.state.uids.tolist())
-                    numpy_weights = np.array(session.metagraph.state.weights.tolist())
-                    numpy_stack = np.stack((numpy_uids, numpy_weights), axis=0)
-                    stack_str = colored(numpy_stack, 'green')
-                    logger.info('Weights: \n {}', stack_str)
-                    
-                    session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())
-                    session.tbwriter.write_loss('train local target loss', output.local_target_loss.item())
-                    session.tbwriter.write_loss('train distilation loss', output.distillation_loss.item())
-                    session.tbwriter.write_loss('train loss', output.loss.item())
-                    session.tbwriter.write_accuracy('train accuracy', accuracy)
-                    session.tbwriter.write_custom('global step/global step v.s. time', self.config.neuron.log_interval / (time.time() - last_log))
-                    last_log = time.time()
+                # Log history.
+                if (batch_idx + 1) % self.config.neuron.log_interval == 0:
+                    log_training_output_history(
+                        session = session, 
+                        epoch = epoch, 
+                        batch_idx = batch_idx, 
+                        batch_size = self.config.neuron.batch_size_train, 
+                        total_examples = len(train_data), 
+                        history = history)
+                    history = [] # Clear history.
+                                            
 
         # Test loop.
         # Evaluates the local model on the hold-out set.
