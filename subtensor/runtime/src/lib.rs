@@ -283,6 +283,7 @@ construct_runtime!(
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 		// Include the custom logic from the subtensor pallet in the runtime.
 		SubtensorModule: pallet_subtensor::{Module, Call, Storage, Event<T>},
+		TestPallet: test_pallet::{Module, Call, Storage, Event<T>},
 	}
 );
 

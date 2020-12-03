@@ -26,6 +26,8 @@ serde = { features = ['derive'], optional = true, version = '1.0.101' }
 
 # local dependencies
 pallet-subtensor = { path = '../pallets/subtensor', default-features = false, version = '2.0.0' }
+pallet-neurons = { path = '../pallets/neurons', default-features = false, version = '2.0.0' }
+pallet-stake = { path = '../pallets/stake', default-features = false, version = '2.0.0' }
 
 # Substrate dependencies
 frame-benchmarking = { default-features = false, optional = true, version = '2.0.0' }
