@@ -6,10 +6,8 @@ Example:
 import argparse
 import math
 import numpy as np
-import pandas as pd
 import time
 import torch
-from termcolor import colored
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
@@ -22,14 +20,8 @@ from bittensor import BTSession
 from bittensor.config import Config
 from bittensor.neuron import NeuronBase
 from bittensor.synapse import Synapse
+from bittensor.utils.logging import log_training_output_history
 from bittensor.synapses.ffnn import FFNNSynapse
-
-np.set_printoptions(precision=2, suppress=True, linewidth=500, sign=' ')
-pd.set_option('display.max_rows', 5000)
-pd.set_option('display.max_columns', 25)
-pd.set_option('display.width', 1000)
-pd.set_option('display.precision', 2)
-pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 class Neuron (NeuronBase):
     def __init__(self, config):
@@ -109,8 +101,7 @@ class Neuron (NeuronBase):
             # Turn on Dropoutlayers BatchNorm etc.
             model.train()
             last_log = time.time()
-            retops = []
-            batch_weights = []
+            history = []
             for batch_idx, (images, targets) in enumerate(trainloader):
                 # Clear gradients.
                 optimizer.zero_grad()
@@ -124,6 +115,7 @@ class Neuron (NeuronBase):
                 images = images.to(device)
                 targets = torch.LongTensor(targets).to(device)
                 output = model(images, targets, remote = True)
+                history.append(output)
                 
                 # Backprop.
                 loss = output.remote_target_loss + output.distillation_loss
@@ -137,76 +129,10 @@ class Neuron (NeuronBase):
                 norm_state_weights = F.softmax(state_weights, dim=-1)
                 session.metagraph.state.set_weights( norm_state_weights )
 
-                # Log retops
-                retops.append(output.retops.tolist())
-                batch_weights.append(torch.mean(output.weights, axis=0).tolist())
-                # retops = ""
-                # for op in output.retops.tolist():
-                #     if op == 1:
-                #         op_str = colored('.', 'green')
-                #     elif op == 0:
-                #         op_str = colored('.', 'white')
-                #     elif op == -1:
-                #         op_str = colored('.', 'red')
-                #     else:
-                #         raise NotImplementedError
-                #     retops = retops + ' ' + op_str
-                # print(retops)
-
-                # Logs:
-                if (batch_idx + 1) % self.config.neuron.log_interval == 0: 
-                    n = len(train_data)
-                    max_logit = output.remote_target.data.max(1, keepdim=True)[1]
-                    correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
-                    n_str = colored('{}'.format(n), 'red')
-
-                    loss_item = output.remote_target_loss.item()
-                    loss_item_str = colored('{:.3f}'.format(loss_item), 'green')
-
-                    processed = ((batch_idx + 1) * self.config.neuron.batch_size_train)
-                    processed_str = colored('{}'.format(processed), 'green')
-
-                    progress = (100. * processed) / n
-                    progress_str = colored('{:.2f}%'.format(progress), 'green')
-
-                    accuracy = (100.0 * correct) / self.config.neuron.batch_size_train
-                    accuracy_str = colored('{:.3f}'.format(accuracy), 'green')
-
-                    logger.info('Epoch: {} [{}/{} ({})] | Loss: {} | Acc: {} ', 
-                        epoch, processed_str, n_str, progress_str, loss_item_str, accuracy_str)
-
-                    # Log weights.
-                    uids = session.metagraph.state.uids.tolist()
-                    weights = session.metagraph.state.weights.tolist()
-                    weights, uids  = zip(*sorted(zip(weights, uids)))
-                    bw_sorted_list = []
-                    for bw in batch_weights:
-                        _, bw_sorted  = zip(*sorted(zip(weights, bw)))
-                        bw_sorted_list.append(bw_sorted)
-                    df = pd.DataFrame(bw_sorted_list, columns=uids)
-                    df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
-                    print (df)
-                    batch_weights = []
-
-                    # Log return ops.
-                    retops_sorted = []
-                    for retop in retops:
-                        _, ret_sorted  = zip(*sorted(zip(weights, retop)))
-                        ret_sorted = [ x if x == 1 else '' for x in ret_sorted ]
-                        retops_sorted.append(ret_sorted)
-                    pd.set_option('display.float_format', lambda x: '%.1f' % x)
-                    df = pd.DataFrame(retops_sorted, columns=uids)
-                    df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
-                    print (df)
-                    retops = []
-                    
-                    session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())
-                    session.tbwriter.write_loss('train local target loss', output.local_target_loss.item())
-                    session.tbwriter.write_loss('train distilation loss', output.distillation_loss.item())
-                    session.tbwriter.write_loss('train loss', output.loss.item())
-                    session.tbwriter.write_accuracy('train accuracy', accuracy)
-                    session.tbwriter.write_custom('global step/global step v.s. time', self.config.neuron.log_interval / (time.time() - last_log))
-                    last_log = time.time()
+                # Log history.
+                if (batch_idx + 1) % self.config.neuron.log_interval == 0:
+                    log_training_output_history(session, epoch, batch_idx, self.config.neuron.batch_size_train, len(train_data), history)
+                    history = [] # Clear history.
 
         # Test loop.
         # Evaluates the local model on the hold-out set.

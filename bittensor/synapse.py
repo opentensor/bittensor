@@ -50,6 +50,7 @@ class SynapseOutput(object):
                 remote_target_loss: torch.Tensor = None,
                 distillation_loss: torch.Tensor = None,
                 weights: torch.Tensor = None,
+                metadata: dict = None
         ):
         self.loss = loss
         self.local_hidden = local_hidden
@@ -60,7 +61,10 @@ class SynapseOutput(object):
         self.remote_target_loss = remote_target_loss
         self.distillation_loss = distillation_loss
         self.weights = weights
-
+        if metadata == None:
+            self.metadata = {}
+        else:
+            self.metadata = metadata
 
 class Synapse(nn.Module):
     """ Bittensor synapse class. 
