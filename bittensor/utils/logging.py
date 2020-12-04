@@ -117,8 +117,6 @@ def log_training_output_history(session, epoch, batch_idx, batch_size, total_exa
         df.loc['Max'] = max_col
         df.loc['Mean'] = mean_col
         df.loc['Total'] = total_col
-
-        df.style.apply(highlight_max)
         df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
         print (df)
     print('\n')
