@@ -301,6 +301,9 @@ class DPNSynapse(Synapse):
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
 
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
                     retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
 
@@ -312,9 +315,10 @@ class DPNSynapse(Synapse):
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         # make a remote call.
         images = torch.unsqueeze(images, 1)
-        remote_context, weights, retops = self.dendrite.forward_image(images, transform)
+        remote_context, weights, sizes, retops = self.dendrite.forward_image(images, transform)
         remote_context = torch.squeeze(remote_context, 1)
         output.weights = weights
+        output.request_sizes = sizes
         output.retops = retops
         remote_context = remote_context.to(self.device)
 

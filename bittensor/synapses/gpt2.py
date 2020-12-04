@@ -215,6 +215,9 @@ class GPT2LMSynapse(Synapse):
                     retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
 
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
                     metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
                         additional metadata output, specifically accuracy.
                 )
@@ -315,15 +318,19 @@ class GPT2LMSynapse(Synapse):
                     retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
 
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
                     metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
                         additional metadata output, specifically accuracy.
                 )
         """
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        remote_context, weights, retops = self.dendrite.forward_text(inputs, pooled)
+        remote_context, weights, sizes, retops = self.dendrite.forward_text(inputs, pooled)
         output.weights = weights
         output.retops = retops
+        output.request_sizes = sizes 
         remote_context = remote_context.to(self.device)
 
         # distillation_loss: distillation loss between local_context and remote_context
