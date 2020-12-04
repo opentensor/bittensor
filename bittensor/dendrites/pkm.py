@@ -43,14 +43,17 @@ class PKMDendrite():
         # Query -> Keys
         self.projection = nn.Linear(query_dim, self.config.dendrite.key_dim, bias=True)
 
-    def _filter_uids(self, uids: torch.Tensor) -> torch.Tensor:
-        # uids: filter uids based on emit time.
-        # uids = [-1]
-        block = self.session.metagraph.state.block 
-        emit = self.session.metagraph.state.emit
-        staleness = (block - emit)
-        uids = uids[torch.where(staleness < self.config.dendrite.stale_emit_filter)] 
-        return uids
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+        parser.add_argument('--dendrite.key_dim', default=100, type=int, help='Product keys dimension.')
+        parser.add_argument('--dendrite.topk', default=10, type=int, help='Number of keys to select for each example.')
+        parser.add_argument('--dendrite.stale_emit_filter', default=10000, type=int, help='Number of blocks before a neuron is filtered without a recent emit')
+        return parser
+
+    @staticmethod
+    def check_config(config):   
+        return config
 
     def _route(self, inputs, query, modality: bittensor_pb2.Modality) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.LongTensor]:
         r""" Routes inputs using context and metagraph state.
@@ -72,6 +75,9 @@ class PKMDendrite():
                 weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                     weights for each neuron per example.
 
+                requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                    number of requests sent to each uid in this batch.
+
                 retops (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                     return op from each call per example.
         """
@@ -84,7 +90,10 @@ class PKMDendrite():
 
         # filtered_uids: (torch.LongTensor): keys filtered by emit.
         # all_uids.shape = [metagraph.n]
-        filtered_uids = self._filter_uids(all_uids)
+        block = self.session.metagraph.state.block 
+        emit = self.session.metagraph.state.emit
+        staleness = (block - emit)
+        filtered_uids = all_uids[torch.where(staleness < self.config.dendrite.stale_emit_filter)] 
         n_uids = torch.numel(filtered_uids)
 
         # Return if there are no uids to query
@@ -136,13 +145,13 @@ class PKMDendrite():
         # inputs_expanded.shape = [topk * batch_size, -1]
         inputs_expanded = inputs[batch_index]
 
-        # part_sizes: List (int): split sizes into inputs expanded.
+        # request_sizes: List (int): number of examples per uid.
         # len(part_sizes) = [n_uids]
-        part_sizes = list((gates != 0.0).sum(0).cpu().numpy())
+        request_sizes = list((gates != 0.0).sum(0).cpu().numpy())
 
         # requests: List(torch.FloatTensor): examples for each uids
         # requests.shape = n_uids * [-1, inputs.shape[1:]]
-        requests = torch.split(inputs_expanded, part_sizes, dim=0)
+        requests = torch.split(inputs_expanded, request_sizes, dim=0)
         
         # neurons: List[bittensor_pb2.Neuron]: endpoint information for filtered keys.
         # neurons.shape = n_uids * [ bittensor_pb2.Neuron ]
@@ -203,19 +212,8 @@ class PKMDendrite():
         weights.scatter_(1, indices, scores)
 
         # Return.
-        return combined, weights, retops
+        return combined, weights, torch.tensor(request_sizes), retops
 
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
-        parser.add_argument('--dendrite.key_dim', default=100, type=int, help='Product keys dimension.')
-        parser.add_argument('--dendrite.topk', default=10, type=int, help='Number of keys to select for each example.')
-        parser.add_argument('--dendrite.stale_emit_filter', default=10000, type=int, help='Number of blocks before a neuron is filtered without a recent emit')
-        return parser
-
-    @staticmethod
-    def check_config(config):   
-        return config
 
     def forward_image(self, images: torch.FloatTensor, query: torch.FloatTensor) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.LongTensor]:
         r""" Forwards images to connected neurons using the passed context to learn connectivity.
@@ -233,6 +231,9 @@ class PKMDendrite():
 
                 weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                     weights for each neuron per example.
+
+                requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                    number of requests sent to each uid in this batch.
 
                 retops (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                     return op from each call per example.
@@ -255,6 +256,9 @@ class PKMDendrite():
 
                 weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                     weights for each neuron per example.
+
+                requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                    number of requests sent to each uid in this batch.
 
                 retops (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                     return op from each call per example.
@@ -279,6 +283,9 @@ class PKMDendrite():
 
                 weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                     weights for each neuron per example.
+
+                requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                    number of requests sent to each uid in this batch.
 
                 retops (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                     return op from each call per example.

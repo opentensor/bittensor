@@ -152,6 +152,9 @@ class FFNNSynapse(Synapse):
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
 
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
                     retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
                 )
@@ -254,6 +257,9 @@ class FFNNSynapse(Synapse):
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
 
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
                     retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
 
@@ -265,9 +271,10 @@ class FFNNSynapse(Synapse):
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         images = torch.unsqueeze(images, 1)
-        remote_context, weights, retops = self.dendrite.forward_image(images, transform)
+        remote_context, weights, sizes, retops = self.dendrite.forward_image(images, transform)
         remote_context = torch.squeeze(remote_context, 1)
         output.weights = weights
+        output.request_sizes = sizes
         output.retops = retops
 
         # distillation_loss: distillation loss between local_context and remote_context

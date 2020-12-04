@@ -66,7 +66,7 @@ class BertSynapseBase (Synapse):
 
         # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite(config, session, query_dim = self.transform_dim)
+        self.dendrite = PKMDendrite(config, session, query_dim = bittensor.__network_dim__)
 
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -136,6 +136,9 @@ class BertSynapseBase (Synapse):
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
 
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
                     retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
 
@@ -178,10 +181,8 @@ class BertSynapseBase (Synapse):
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
-            encoding_outputs (:obj:`tuple(torch.FloatTensor)`, `optional`): 
-                    This tuple must consist of (last_hidden_state, optional: hidden_states, optional: attentions) 
-                    last_hidden_state (torch.FloatTensor of shape (batch_size, sequence_length, hidden_size)) 
-                    is a tensor of hidden-states at the output of the last layer of the encoder. Used in the cross-attention of the decoder.
+            encoding_pooled (:obj:`torch.FloatTensor` of shape (batch_size, bittensor.__network_dim__), `required`): 
+                    pooled hidden-states at the output of the last layer of the encoder.
            
             encoding_hidden (:obj:`torch.FloatTensor` of shape (batch_size, sequence_length, hidden_size), `optional`) :
                     Sequence of hidden-states at the output of the last layer of the encoder of the model.
@@ -206,6 +207,9 @@ class BertSynapseBase (Synapse):
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
 
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
                     retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
 
@@ -215,8 +219,9 @@ class BertSynapseBase (Synapse):
         """
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        remote_context, weights, retops = self.dendrite.forward_text(inputs = inputs, query = encoding_pooled)
+        remote_context, weights, sizes, retops = self.dendrite.forward_text(text = inputs, query = encoding_pooled)
         output.weights = weights
+        output.request_sizes = sizes
         output.retops = retops
         remote_context = remote_context.to(self.device)
 
@@ -318,17 +323,6 @@ class BertNSPSynapse (BertSynapseBase):
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = torch.nn.CrossEntropyLoss()
-  
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
-        r""" Add custom params to the parser.
-        """
-        parser.add_argument('--synapse.num_hidden_layers', default=2, type=int, 
-                            help='Number of hidden layers in the Transformer encoder.')
-        parser.add_argument('--synapse.num_attention_heads', default=2, type=int, 
-                            help='Number of attention heads for each attention layer in the Transformer encoder.')
-        parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
-        return parser
     
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the BERT NSP Synapse.
@@ -462,16 +456,6 @@ class BertMLMSynapse (BertSynapseBase):
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = torch.nn.CrossEntropyLoss()
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
-        r""" Add custom params to the parser.
-        """
-        parser.add_argument('--synapse.num_hidden_layers', default=2, type=int, 
-                            help='Number of hidden layers in the Transformer encoder.')
-        parser.add_argument('--synapse.num_attention_heads', default=2, type=int, 
-                            help='Number of attention heads for each attention layer in the Transformer encoder.')
-        return parser
 
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the BERT NSP Synapse.
