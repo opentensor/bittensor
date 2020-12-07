@@ -97,5 +97,6 @@ if __name__ == "__main__":
 
         try:
             main()
-        except:
+        except Exception as e:
             rollbar.report_exc_info()
+            raise e
