@@ -86,15 +86,12 @@ def load_config(params):
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument("--rollbar-token", required=False, dest='rb_token', default=None)
-    parser.add_argument("--env", required=False, default='production')
-    args = parser.parse_args()
-
-    if not args.rb_token:
+    token = os.environ.get("ROLLBAR_TOKEN", None)
+    if not token:
         main()
     else:
-        rollbar.init(args.rb_token, args.env)
+        env = os.environ.get("BT_ENV", "production")
+        rollbar.init(token, env)
 
         try:
             main()
