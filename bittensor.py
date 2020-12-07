@@ -91,6 +91,8 @@ if __name__ == "__main__":
         main()
     else:
         env = os.environ.get("BT_ENV", "production")
+
+        logger.info("Error reporting enabled using {}:{}",token,env)
         rollbar.init(token, env)
 
         try:
