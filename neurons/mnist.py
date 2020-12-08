@@ -1,11 +1,8 @@
-"""Training a CIFAR Neuron.
-
-This file demonstrates a training pipeline for an CIFAR Neuron.
-
+"""Training a MNIST Neuron.
+This file demonstrates a training pipeline for an MNIST Neuron.
 Example:
-        $ python examples/cifar.py
+        $ python examples/mnis.py
 """
-
 import argparse
 import math
 import numpy as np
@@ -25,7 +22,7 @@ from bittensor import Session
 from bittensor.subtensor import Keypair
 from bittensor.config import Config
 from bittensor.synapse import Synapse
-from bittensor.synapses.dpn import DPNSynapse
+from bittensor.synapses.ffnn import FFNNSynapse
 
 def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
     parser.add_argument('--neuron.datapath', default='data/', type=str, 
@@ -34,15 +31,16 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
                         help='Training initial learning rate.')
     parser.add_argument('--neuron.momentum', default=0.9, type=float, 
                         help='Training initial momentum for SGD.')
-    parser.add_argument('--neuron.batch_size_train', default=32, type=int, 
+    parser.add_argument('--neuron.batch_size_train', default=64, type=int, 
                         help='Training batch size.')
-    parser.add_argument('--neuron.batch_size_test', default=16, type=int, 
+    parser.add_argument('--neuron.batch_size_test', default=64, type=int, 
                         help='Testing batch size.')
     parser.add_argument('--neuron.log_interval', default=10, type=int, 
                         help='Batches until neuron prints log statements.')
-    parser.add_argument('--neuron.neuron_name', default=10, type=int, 
-                        help='Saved models go here.')
-    parser = DPNSynapse.add_args(parser)
+    parser.add_argument('--neuron.name', default='mnist', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
+    parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
+       # Load args from FFNNSynapse.
+    parser = FFNNSynapse.add_args(parser)
     return parser
 
 def check_config(config: Munch) -> Munch:
@@ -51,7 +49,8 @@ def check_config(config: Munch) -> Munch:
     assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
     assert config.neuron.batch_size_test > 0, "batch_size_test must a positive value"
     assert config.neuron.learning_rate > 0, "learning rate must be a positive value."
-    config = DPNSynapse.check_config(config)
+    Config.validate_path_create('neuron.datapath', config.neuron.datapath)
+    config = FFNNSynapse.check_config(config)
     return config
 
 def train(
@@ -154,7 +153,7 @@ def test (
 def main(config: Munch, session: Session): 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Build local synapse to serve on the network.
-    model = DPNSynapse( config, session )
+    model = FFNNSynapse(config, session)
     model.to( device ) # Set model to device.
     session.serve( model.deepcopy() )
 
@@ -162,17 +161,11 @@ def main(config: Munch, session: Session):
     optimizer = optim.SGD(model.parameters(), lr=config.neuron.learning_rate, momentum=config.neuron.momentum)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10.0, gamma=0.1)
 
-    # Load (Train, Test) datasets into memory.
-    train_data = torchvision.datasets.CIFAR10(
-        root=config.neuron.datapath, train=True, download=True, transform=transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-    ]))
+    train_data = torchvision.datasets.MNIST(root = config.neuron.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
     trainloader = torch.utils.data.DataLoader(train_data, batch_size = config.neuron.batch_size_train, shuffle=True, num_workers=2)
-    test_data = torchvision.datasets.CIFAR10(root=config.neuron.datapath, train=False, download=True, transform=transforms.ToTensor())
+    test_data = torchvision.datasets.MNIST(root = config.neuron.datapath + "datasets/", train=False, download=True, transform=transforms.ToTensor())
     testloader = torch.utils.data.DataLoader(test_data, batch_size = config.neuron.batch_size_test, shuffle=False, num_workers=2)
-
+    
     epoch = 0
     best_test_loss = math.inf
     while True:
@@ -200,10 +193,9 @@ def main(config: Munch, session: Session):
         if test_loss < best_test_loss:
             best_test_loss = test_loss # Update best loss.
             # Save and serve the new best local model.
-            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, test_loss, config.neuron.datapath, config.neuron.neuron_name)
-            torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss},"{}/{}/model.torch".format(config.neuron.datapath , config.neuron.neuron_name))
+            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+            torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
             # Save experiment metrics
-            session.replicate_util.checkpoint_experiment(epoch, loss=test_loss, accuracy=test_accuracy)
             session.serve( model.deepcopy() )
 
         epoch += 1
@@ -226,5 +218,4 @@ if __name__ == "__main__":
     # 4. Start Neuron.
     with session:
         main(config, session)
-
 
