@@ -3,7 +3,7 @@
 This file demonstrates a training pipeline for an CIFAR Neuron.
 
 Example:
-        $ python neurons/cifar.py
+        $ python examples/cifar.py
 """
 
 import argparse
