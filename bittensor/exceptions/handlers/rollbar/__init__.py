@@ -22,7 +22,7 @@ def is_enabled():
 def run(func):
     try:
         func
-    except BaseException as e:
+    except:
         logger.debug("Sending exception to rollbar")
         rollbar.report_exc_info()
-        raise e
+        raise
