@@ -27,7 +27,7 @@ class FailedToEnterSession(Exception):
 class FailedToPollChain(Exception):
     pass
 
-class BTSession:
+class Session:
     def __init__(self, config, keypair: Keypair):
         self.config = config 
         self.__keypair = keypair
