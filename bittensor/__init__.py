@@ -39,7 +39,7 @@ def init(config: Config, keypair: Keypair):
 
 
 def run(function, config, sessions):
-    if not rollbar.is_enabled():
+    if rollbar.is_enabled():
         logger.info("Running BT with rollbar enabled")
         rollbar.run(function(config,session))
     else:
