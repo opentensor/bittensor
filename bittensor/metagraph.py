@@ -16,6 +16,8 @@ from bittensor import bittensor_pb2
 from bittensor.subtensor import WSClient
 from typing import List, Tuple, List
 
+from bittensor.exceptions.handlers import rollbar
+
 def int_to_ip(int_val):
     return str(netaddr.IPAddress(int_val))
  
@@ -164,10 +166,10 @@ class Metagraph():
         Returns:
             block: (int) block number on chain.
         """
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
+        # def handle_async_exception(loop, ctx):
+        #     logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
+        # loop.set_exception_handler(handle_async_exception)
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_block())
 
@@ -183,10 +185,10 @@ class Metagraph():
         Returns:
             subscribed: (bool): true if the subscription is a success.
         """
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
+        # def handle_async_exception(loop, ctx):
+        #     logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
+        # loop.set_exception_handler(handle_async_exception)
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_subscribe(timeout))
 
@@ -201,10 +203,10 @@ class Metagraph():
     def unsubscribe(self) -> bool:
         r""" Syncronous: Unsubscribes the local neuron from the chain.
          """
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
+        # def handle_async_exception(loop, ctx):
+        #     logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
+        # loop.set_exception_handler(handle_async_exception)
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_unsubscribe())  
 
@@ -219,10 +221,10 @@ class Metagraph():
         Returns:
             connected: (bool): true if the connection is a success.
         """
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
+        # def handle_async_exception(loop, ctx):
+        #     logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
+        # loop.set_exception_handler(handle_async_exception)
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_connect())
 
@@ -245,10 +247,10 @@ class Metagraph():
             weights = self.state.weights
 
         # TODO(const): this repeat code can be abstracted.
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
+        # def handle_async_exception(loop, ctx):
+        #     logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
+        # loop.set_exception_handler(handle_async_exception)
         loop.set_debug(enabled=True)
         loop.run_until_complete(self.async_emit(weights))
 
@@ -285,6 +287,8 @@ class Metagraph():
             await self.subtensor_client.set_weights(keys, vals, self.__keypair, wait_for_inclusion = False)
         except Exception as e:
             logger.info('Failed to emit weights with error {}, and weights {}', e, list(zip(keys, vals)))
+            rollbar.send_exception()
+
             return False
 
         # Checks that weight emission was included in a block after 12 seconds.
@@ -297,10 +301,10 @@ class Metagraph():
         r""" Synchronizes the local self.state with the chain state, sinking the trained weights and pulling 
         info from other peers. Ensures the self.state is in accordance with the state on chain at this block.
         """
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
+        # def handle_async_exception(loop, ctx):
+        #     logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
+        # loop.set_exception_handler(handle_async_exception)
         loop.set_debug(enabled=True)
         loop.run_until_complete(self.async_sync())
 
@@ -507,6 +511,7 @@ class Metagraph():
 
         except Exception as e:
             logger.error("Exception occurred: {}".format(e))
+            rollbar.send_exception()
             traceback.print_exc()
 
     @staticmethod   

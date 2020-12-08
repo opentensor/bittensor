@@ -16,6 +16,7 @@ from bittensor.serializer import PyTorchSerializer
 from bittensor.exceptions.Exceptions import EmptyTensorException, ResponseShapeException, SerializationException
 import time
 import asyncio
+from bittensor.exceptions.handlers import rollbar
 
 # dummy tensor that triggers autograd in RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
@@ -247,6 +248,8 @@ class RemoteNeuron(nn.Module):
             outputs = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
         except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
             logger.warning("Exception occured in Remoteneuron forward call: {}".format(e))
+            rollbar.send_exception()
+
             outputs = nill_response_for(inputs)
         return outputs
 
@@ -271,6 +274,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             try:
                 serialized_inputs = PyTorchSerializer.serialize(inputs, mode)
             except SerializationException:
+                rollbar.send_exception()
                 raise SerializationException
             ctx.serialized_inputs =  serialized_inputs
 
@@ -315,6 +319,7 @@ class _RemoteModuleCall(torch.autograd.Function):
         # Catch Errors and return zeros.
         except (grpc._channel._InactiveRpcError, EmptyTensorException,
                 SerializationException, ResponseShapeException) as e:
+            rollbar.send_exception()
             outputs = nill_response_for(inputs)
 
         return outputs
@@ -348,5 +353,6 @@ class _RemoteModuleCall(torch.autograd.Function):
                 ctx.caller.stub.Backward.future(request, timeout=ctx.caller.config.dendrite.timeout)
                 return (None, None, zeros, None)
             except:
+                rollbar.send_exception()
                 return (None, None, zeros, None)
 
