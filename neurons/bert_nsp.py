@@ -3,7 +3,7 @@
 This file demonstrates training the BERT neuron with next sentence prediction.
 
 Example:
-        $ python neurons/bert_nsp.py
+        $ python examples/bert_nsp.py
 
 """
 import bittensor
@@ -19,6 +19,7 @@ from loguru import logger
 from datasets import load_dataset
 import replicate
 import random
+import time
 import torch
 import torch.nn.functional as F
 from munch import Munch
@@ -69,6 +70,8 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
                         help='Training batch size.')
     parser.add_argument('--neuron.batch_size_test', default=20, type=int, 
                         help='Testing batch size.')
+    parser.add_argument('--neuron.name', default='bert_nsp', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
+    parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
     parser = BertNSPSynapse.add_args(parser)
     return parser
 
@@ -120,25 +123,15 @@ def train(model, config, session, optimizer, scheduler, dataset):
     # After each epoch, checkpoint the losses and re-serve the network.
     if output.loss.item() < best_loss:
         best_loss = output.loss
-        logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, config.neuron.datapath, config.neuron.neuron_name)
-        torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(config.neuron.datapath , config.neuron.neuron_name))
-        
+        logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+        torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
         # Save experiment metrics
-        session.replicate_util.checkpoint_experiment(epoch, loss=best_loss, remote_target_loss=output.remote_target_loss.item(), distillation_loss=output.distillation_loss.item())
         session.serve( model.deepcopy() )
 
 
 def main(config, session):
     # Build Synapse
     model = BertNSPSynapse(config, session)
-    if config.session.checkout_experiment:
-        try:            
-            model = session.replicate_util.checkout_experiment(model, best=False)
-        except Exception as e:
-            logger.warning("Something happened checking out the model. {}".format(e))
-            logger.info("Using new model")
-
-    # Set deivce and serve to the axon endpoint.
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     session.serve( model )
@@ -160,6 +153,7 @@ if __name__ == "__main__":
     parser = add_args(parser)
     config = Config.load(parser)
     config = check_config(config)
+    logger.info(Config.toString(config))
 
     # 2. Load Keypair.
     mnemonic = Keypair.generate_mnemonic()
