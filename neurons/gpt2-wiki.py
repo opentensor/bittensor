@@ -7,9 +7,9 @@ Example:
 
 """
 import bittensor
+from bittensor.subtensor import Keypair
 from bittensor.session import Session
 from bittensor.config import Config
-from bittensor.neuron import NeuronBase
 from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
 
 import argparse
@@ -63,7 +63,7 @@ def train(model, config, session, optimizer, scheduler, dataset):
         inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__)
 
         # Forward pass.
-        output = model(inputs.to(device), training = True, remote = True)
+        output = model(inputs.to(model.device), training = True, remote = True)
 
         # Backprop.
         output.loss.backward()
