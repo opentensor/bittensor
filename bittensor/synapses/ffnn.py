@@ -8,7 +8,7 @@ import bittensor
 from bittensor.utils.router import Router
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseOutput
-from bittensor.session import BTSession
+from bittensor.session import Session
 from bittensor.utils.batch_transforms import Normalize
 
 import argparse
@@ -25,7 +25,7 @@ class FFNNSynapse(Synapse):
 
     def __init__(self,
                  config: Munch,
-                 session: BTSession):
+                 session: Session):
         r""" Init a new ffnn synapse module.
 
             Args:

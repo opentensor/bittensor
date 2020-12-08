@@ -3,11 +3,12 @@ import os
 import sys
 from bittensor.subtensor import Keypair
 from transformers import GPT2Tokenizer
+import bittensor.exceptions.handlers.rollbar as rollbar
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from bittensor.config import Config
-from bittensor.session import BTSession
+from bittensor.session import Session
 
 __version__ = '0.0.0'
 __blocktime__ = 6 # seconds
@@ -32,6 +33,15 @@ logger.configure(**logger_config)
 session = None
 def init(config: Config, keypair: Keypair):
     global session
-    session = BTSession(config, keypair)
+    session = Session(config, keypair)
     return session
 
+
+
+def run(function, config, sessions):
+    if not rollbar.is_enabled():
+        logger.info("Running BT with rollbar enabled")
+        rollbar.run(function(config,session))
+    else:
+        logger.info("Running BT with rollbar disabled")
+        function(config,session)

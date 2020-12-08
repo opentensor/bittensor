@@ -9,7 +9,7 @@ import yaml
 from munch import Munch
 
 from bittensor.axon import Axon
-from bittensor.session import BTSession
+from bittensor.session import Session
 from bittensor.dendrite import Dendrite
 from bittensor.metagraph import Metagraph
 from bittensor.metadata import Metadata
@@ -36,22 +36,51 @@ class Config:
         data = yaml.safe_load(yaml_munch)
         return '\n' + yaml.dump(data)
 
-    @staticmethod
-    def load(neuron_path: str = '/bittensor/neurons/mnist'):
-        r""" Loads and validates cl params from bittensor backend services and neuron path.
+ 
+    @staticmethod   
+    def load(parser: argparse.ArgumentParser)  -> Munch:
+        r""" Loads and return the bittensor Munched config.
 
             Args:
-                neuron_path (str, `optional`, defaults to bittensor/neurons/mnist): 
-                    Path neuron directory.
+                parser (str, `required`): 
+                    argument parser.    
     
             Returns:
                 config  (:obj:`Munch` `required`):
-                    Python Munch object with values from config under path.
+                    Python Munch object with values from parsed string.
         """
-        config = Config.load_from_args(neuron_path)
-        config = Config.validate(config, neuron_path)
-        return config
+        # 1. Load args from bittensor backend components.
+        parser = Axon.add_args(parser)
+        parser = Dendrite.add_args(parser)
+        parser = Metagraph.add_args(parser)
+        parser = Metadata.add_args(parser)
+        parser = Session.add_args(parser)
+       
+        # 2. Parse.
+        params = parser.parse_known_args()[0]
 
+        # 3. Splits params on dot synatax i.e session.axon_port
+        config = Munch()
+        for arg_key, arg_val in params.__dict__.items():
+            split_keys = arg_key.split('.')
+            if len(split_keys) == 1:
+                config[arg_key] = arg_val
+            else:
+                head = config
+                for key in split_keys[:-1]:
+                    if key not in config:
+                        head[key] = Munch()
+                    head = head[key] 
+                head[split_keys[-1]] = arg_val
+
+        # 4. Run session checks.
+        config = Dendrite.check_config(config)
+        config = Session.check_config(config)
+        config = Metagraph.check_config(config)
+        config = Metadata.check_config(config)
+        config = Axon.check_config(config)
+        return config
+            
     @staticmethod
     def load_from_relative_path(path: str)  -> Munch:
         r""" Loads and returns a Munched config object from a relative path.
@@ -80,50 +109,7 @@ class Config:
                     raise InvalidConfigFile
         return path_items
 
-    @staticmethod   
-    def load_from_args(neuron_path: str)  -> Munch:
-        r""" Loads and returns a Munched config object from the passed arguments.
-
-            Returns:
-                config  (:obj:`Munch` `required`):
-                    Python Munch object with values from parsed string.
-        """
-        # 1. Load args from bittensor backend components.
-        parser = argparse.ArgumentParser()
-        parser = Axon.add_args(parser)
-        parser = Dendrite.add_args(parser)
-        parser = Metagraph.add_args(parser)
-        parser = Metadata.add_args(parser)
-        parser = BTSession.add_args(parser)
-        # 2. Load args from neuron.
-        neuron_module = SourceFileLoader("Neuron", os.getcwd() + '/' + neuron_path + '/neuron.py').load_module()
-
-        # Clip neuron name from the last directory of neuron path
-        neuron_name = neuron_path.rsplit("/",1)[1]
-
-        # Update replicate yaml file to this neuron name. 
-        Config.update_replicate_yaml(neuron_name)
-        
-        parser = neuron_module.Neuron.add_args( parser )
-
-        # 3. Parse.
-        params = parser.parse_known_args()[0]
-        # 4. Splits params on dot synatax i.e session.axon_port
-        # Fills a munch config with items.
-        config = Munch()
-        for arg_key, arg_val in params.__dict__.items():
-            split_keys = arg_key.split('.')
-            if len(split_keys) == 1:
-                config[arg_key] = arg_val
-            else:
-                head = config
-                for key in split_keys[:-1]:
-                    if key not in config:
-                        head[key] = Munch()
-                    head = head[key] 
-                head[split_keys[-1]] = arg_val
-        return config
-            
+    
     @staticmethod   
     def load_from_yaml_string(yaml_str: str)  -> Munch:
         r""" Loads and returns a Munched config object from a passed string
@@ -151,7 +137,7 @@ class Config:
     def validate(config, neuron_path) -> Munch:
         # 1. Run session checks.
         config = Dendrite.check_config(config)
-        config = BTSession.check_config(config)
+        config = Session.check_config(config)
         config = Metagraph.check_config(config)
         config = Axon.check_config(config)
 

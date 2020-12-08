@@ -11,9 +11,9 @@ from bittensor.metagraph import Metagraph
 from bittensor.utils.asyncio import Asyncio
 from bittensor.subtensor import Keypair
 from bittensor.metadata import Metadata
+from bittensor.exceptions.handlers import rollbar
 from loguru import logger
 import asyncio
-
 
 class FailedConnectToChain(Exception):
     pass
@@ -27,7 +27,7 @@ class FailedToEnterSession(Exception):
 class FailedToPollChain(Exception):
     pass
 
-class BTSession:
+class Session:
     def __init__(self, config, keypair: Keypair):
         self.config = config 
         self.__keypair = keypair
@@ -41,8 +41,6 @@ class BTSession:
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
-        parser.add_argument('--session.checkout_experiment', type=str, 
-                            help='ID of replicate.ai experiment to check out.')
         return parser
 
     @staticmethod   
@@ -63,6 +61,8 @@ class BTSession:
         self.axon.serve(synapse)
 
     def __enter__(self):
+        rollbar.init() # If a rollbar token is present, this will enable error reporting to rollbar
+
         logger.info('session enter')
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
