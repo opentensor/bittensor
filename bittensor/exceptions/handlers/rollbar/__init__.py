@@ -35,7 +35,7 @@ def asyncio_exception_handler(loop, context):
     exc_info = __get_exc_info(exception)
     extra_data = __get_extra_data(context)
 
-    send_rollbar_error(exc_info, extra_data)
+    send_exception(exc_info, extra_data)
     logger.error(context)
 
 def __get_exc_info(exception):
@@ -51,8 +51,10 @@ def __get_extra_data(context):
     extra_data = "\n".join(frames)
     return extra_data
 
-def send_rollbar_error(info = None, extra_data = None):
+def send_exception(info = None, extra_data = None):
     logger.info("Sending exception to rollbar")
     rollbar.report_exc_info(exc_info=info, extra_data=extra_data)
     set_runtime_status("ERR")
+
+
 
