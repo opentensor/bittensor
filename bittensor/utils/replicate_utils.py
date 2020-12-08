@@ -9,19 +9,43 @@ class ReplicateUtility():
         Args:
             config (Bittensor.Config (Munch)): Bittensor config object
         """
+        default_neuron_config = vars(config.neuron)
+        neuron_config = {}
+        for key in default_neuron_config.keys():
+            neuron_config["neuron.{}".format(key)] = default_neuron_config[key]
+
         self.config = config
         self.experiment = replicate.init(
             path=self.config.neuron.datapath,
             params={
-                **vars(config.neuron), 
-                **vars(config.synapse), 
-                **vars(config.axon), 
-                **vars(config.dendrite),
-                **vars(config.metagraph),
-                **vars(config.session)
+                **self.append_class_prefix(config.neuron, "neuron"),
+                **self.append_class_prefix(config.synapse, "synapse"), 
+                **self.append_class_prefix(config.axon, "axon"), 
+                **self.append_class_prefix(config.dendrite, "dendrite"),
+                **self.append_class_prefix(config.metagraph, "metagraph")
             }
         )
     
+    def append_class_prefix(self, config, prefix):
+        """Used primarily to set up parameters of replicate.ai experiments. Forces a dot notation 
+           of the params since replicate.ai ignores it. 
+           
+           For example, batch_size_train becomes neuron.batch_size_train since batch_size_train is a neuron config.
+
+        Args:
+            config (Bittensor.Config): Neuron, Synapse, Axon, Dendrite, etc. config objects.
+            prefix (str): word to prefix to the key.
+
+        Returns:
+            dict : same config, but with keys prefixed with dot notation.
+        """
+        default_config = vars(config)
+        prefixed_config = {}
+        for key in default_config.keys():
+            prefixed_config["{}.{}".format(prefix, key)] = default_config[key]
+        
+        return prefixed_config
+
     def checkout_experiment(self, model, best=True):
         """ Checks out best (or latest) experiment using Replicate API and returns it for training.
 
