@@ -1,7 +1,7 @@
 #!/bin/python3
 import argparse
 import bittensor
-import os
+import os, sys
 from loguru import logger
 from importlib.machinery import SourceFileLoader
 
@@ -9,8 +9,8 @@ from bittensor.subtensor import Keypair
 from bittensor.config import Config
 import asyncio
 import rollbar
-from argparse import ArgumentParser
-
+from bittensor.exceptions.Handlers import asyncio_exception_handler
+from bittensor.exceptions.Handlers import Rollbar
 
 def main():
     # 1. Load customr configuration arguments
@@ -33,6 +33,15 @@ def main():
 
     # 5. Load Session.
     session = load_session(config, keypair)
+
+
+    def exception_handler(loop, context):
+        logger.debug("--- DEBUG ---")
+
+
+
+
+
 
     # 6. Start Neuron.
     logger.info('Start ... ')
@@ -86,17 +95,9 @@ def load_config(params):
 
 
 if __name__ == "__main__":
-    token = os.environ.get("ROLLBAR_TOKEN", None)
-    if not token:
-        main()
+    rollbar = Rollbar()
+    if rollbar.is_enabled():
+        rollbar.run(main)
     else:
-        env = os.environ.get("BT_ENV", "production")
+        main()
 
-        logger.info("Error reporting enabled using {}:{}",token,env)
-        rollbar.init(token, env)
-
-        try:
-            main()
-        except Exception as e:
-            rollbar.report_exc_info()
-            raise e
