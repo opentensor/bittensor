@@ -18,7 +18,7 @@ from bittensor.serializer import PyTorchSerializer
 class TestDendrite(unittest.TestCase):
 
     def setUp(self):
-        self.config = Config.load(neuron_path='bittensor/neurons/mnist')
+        self.config = Config.load()
         mnemonic = Keypair.generate_mnemonic()
         self.keypair = Keypair.create_from_mnemonic(mnemonic)
         self.session = bittensor.init(self.config, self.keypair)
@@ -31,7 +31,7 @@ class TestDendrite(unittest.TestCase):
 
     def test_dendrite_forward_tensor(self):
         x = torch.rand(3, 3, 3)
-        output = self.session.dendrite.forward_tensor([self.neuron], [x])
+        output, _ = self.session.dendrite.forward_tensor([self.neuron], [x])
         assert len(output) == 1
         assert output[0].shape == torch.Size([3, 3, bittensor.__network_dim__])
 
@@ -42,8 +42,8 @@ class TestDendrite(unittest.TestCase):
 
     def test_dendrite_forward_image(self):
         # Let's grab some image data
-        data = torchvision.datasets.MNIST(root = self.config.neuron.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
-        trainloader = torch.utils.data.DataLoader(data, batch_size = self.config.neuron.batch_size_train, shuffle=True, num_workers=2)
+        data = torchvision.datasets.MNIST(root = "data/datasets/", train=True, download=True, transform=transforms.ToTensor())
+        trainloader = torch.utils.data.DataLoader(data, batch_size = 10, shuffle=True, num_workers=2)
         # Let's grab a random image, and give it a crazy type to break the system
 
         image = None
@@ -53,9 +53,9 @@ class TestDendrite(unittest.TestCase):
         
         # Add sequence dimension to the image.
         sequenced_image = image.unsqueeze(1)
-        output = self.session.dendrite.forward_image([self.neuron], [sequenced_image])
+        output, _ = self.session.dendrite.forward_image([self.neuron], [sequenced_image])
         assert len(output) == 1
-        assert output[0].shape == torch.Size([self.config.neuron.batch_size_train, 1, bittensor.__network_dim__])
+        assert output[0].shape == torch.Size([10, 1, bittensor.__network_dim__])
 
         # Let's try and break the forward_image call
         with pytest.raises(ValueError):
@@ -73,7 +73,7 @@ class TestDendrite(unittest.TestCase):
         for i, ts in enumerate(ts_list):
             word_tensor[i, 0:ts.size()[0]] = ts
 
-        output = self.session.dendrite.forward_text([self.neuron], [word_tensor])
+        output, _ = self.session.dendrite.forward_text([self.neuron], [word_tensor])
         assert len(output) == 1
         word_tensor_size = list(word_tensor.shape)
         assert output[0].shape == torch.Size([word_tensor_size[0], word_tensor_size[1], bittensor.__network_dim__])
@@ -86,7 +86,7 @@ class TestDendrite(unittest.TestCase):
 class TestRemoteModuleCall(unittest.TestCase):
 
     def setUp(self):
-        self.config = Config.load(neuron_path='bittensor/neurons/mnist')
+        self.config = Config.load()
         mnemonic = Keypair.generate_mnemonic()
         self.keypair = Keypair.create_from_mnemonic(mnemonic)
         self.session = bittensor.init(self.config, self.keypair)
@@ -120,10 +120,9 @@ class TestRemoteModuleCall(unittest.TestCase):
         # Some fake modality that doesn't exist
         modality = bittensor_pb2.DataType.UTF8
 
-        # Since modality is invalid, this should get caught in the inner exception
-        # of the remote module's fwd call and we will have outputs = torch.zeros
-        output = _RemoteModuleCall.apply(self, self.dummy, x, modality)
-        assert torch.all(output[0].data == torch.zeros((x.size(0), x.size(1), bittensor.__network_dim__)))
+        # Since modality is invalid, this should get caught and raise an exception.
+        with pytest.raises(bittensor.exceptions.Exceptions.SerializationException):
+            out = _RemoteModuleCall.apply(self, self.dummy, x, modality)
 
         # Now let's set up a modality that does exist
         modality = bittensor_pb2.Modality.TENSOR

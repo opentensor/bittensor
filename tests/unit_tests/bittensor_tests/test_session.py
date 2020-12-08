@@ -6,7 +6,7 @@ from bittensor.subtensor import Keypair
 
 def new_session():
     # 1. Init Config item.
-    config = Config.load(neuron_path='bittensor/neurons/mnist')
+    config = Config.load()
     logger.info(Config.toString(config))
     mnemonic = Keypair.generate_mnemonic()
     keypair = Keypair.create_from_mnemonic(mnemonic)

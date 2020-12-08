@@ -120,37 +120,3 @@ def log_training_output_history(session, epoch, batch_idx, batch_size, total_exa
         df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
         print (df)
     print('\n')
-
-    # print('Retops: \n ')
-    # if history[0].retops != None:
-    #     retops = []
-    #     for output in history:
-    #         rtops = output.retops.tolist()
-    #         _, rtops  = zip(*sorted(zip(weights, rtops), reverse=True))
-    #         retops.append(rtops)
-    #     pd.set_option('display.float_format', lambda x: '%.1f' % x)
-    #     df = pd.DataFrame(retops, columns=uids)
-    #     min_row = df.min(numeric_only=True, axis=1)
-    #     min_col = df.min(numeric_only=True, axis=0)
-    #     max_row = df.max(numeric_only=True, axis=1)
-    #     max_col = df.max(numeric_only=True, axis=0)
-    #     mean_row = df.mean(numeric_only=True, axis=1)
-    #     mean_col = df.mean(numeric_only=True, axis=1)
-    #     df.loc[:,'Min'] = min_row
-    #     df.loc[:,'Max'] = max_row
-    #     df.loc[:,'Mean'] = mean_row
-    #     df.loc['Min'] = min_col
-    #     df.loc['Max'] = max_col
-    #     df.loc['Mean'] = mean_col
-    #     df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
-    #     print (df)
-    # print('\n')
-
-    # TODO(const): Log to tensorboard.
-    # session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())
-    # session.tbwriter.write_loss('train local target loss', output.local_target_loss.item())
-    # session.tbwriter.write_loss('train distilation loss', output.distillation_loss.item())
-    # session.tbwriter.write_loss('train loss', output.loss.item())
-    # session.tbwriter.write_accuracy('train accuracy', accuracy)
-    # session.tbwriter.write_custom('global step/global step v.s. time', self.config.neuron.log_interval / (time.time() - last_log))
-    # last_log = time.time()

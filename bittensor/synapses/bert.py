@@ -2,7 +2,7 @@ import bittensor
 from bittensor.dendrites.pkm import PKMDendrite
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseOutput
-from bittensor.session import BTSession
+from bittensor.session import Session
 
 import argparse
 import random
@@ -12,43 +12,17 @@ import transformers
 from transformers import BertModel, BertConfig
 from munch import Munch
 
-def mlm_batch(data, batch_size, tokenizer, collator):
-    """ Returns a random batch from text dataset with 50 percent NSP.
-
-        Args:
-            data: (List[dict{'text': str}]): Dataset of text inputs.
-            batch_size: size of batch to create.
-        
-        Returns:
-            tensor_batch torch.Tensor (batch_size, sequence_length): List of tokenized sentences.
-            labels torch.Tensor (batch_size, sequence_length)
-    """
-    batch_text = []
-    for _ in range(batch_size):
-        batch_text.append(data[random.randint(0, len(data))]['text'])
-
-    # Tokenizer returns a dict { 'input_ids': list[], 'attention': list[] }
-    # but we need to convert to List [ dict ['input_ids': ..., 'attention': ... ]]
-    # annoying hack...
-    tokenized = tokenizer(batch_text)
-    tokenized = [dict(zip(tokenized,t)) for t in zip(*tokenized.values())]
-
-    # Produces the masked language model inputs aw dictionary dict {'inputs': tensor_batch, 'labels': tensor_batch}
-    # which can be used with the Bert Language model. 
-    collated_batch =  collator(tokenized)
-    return collated_batch['input_ids'], collated_batch['labels']
-
 class BertSynapseBase (Synapse):
     def __init__(   self,
                 config: Munch,
-                session: BTSession):
+                session: Session):
         r""" Init a new base-bert synapse.
 
             Args:
                 config (:obj:`munch.Munch`, `required`): 
                     BertNSP configuration class.
 
-                btsession (:obj:`bittensor.Session`, `optional`): 
+                Session (:obj:`bittensor.Session`, `optional`): 
                     bittensor training session.
 
         """
@@ -294,7 +268,7 @@ class BertSynapseBase (Synapse):
 class BertNSPSynapse (BertSynapseBase):
     def __init__(   self,
                     config: Munch,
-                    session: BTSession):
+                    session: Session):
         r""" Init a new bert nsp synapse module.
 
             Args:
@@ -427,7 +401,7 @@ class BertNSPSynapse (BertSynapseBase):
 class BertMLMSynapse (BertSynapseBase):
     def __init__(   self,
                     config: Munch,
-                    session: BTSession):
+                    session: Session):
         r""" Bert synapse for MLM training
 
             Args:

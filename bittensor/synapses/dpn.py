@@ -7,7 +7,7 @@ import bittensor
 from bittensor.dendrites.pkm import PKMDendrite
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseOutput
-from bittensor.session import BTSession
+from bittensor.session import Session
 from bittensor.utils.batch_transforms import Normalize
 
 import argparse
@@ -22,7 +22,7 @@ class DPNSynapse(Synapse):
 
     def __init__(   self, 
                     config: Munch,
-                    session: BTSession,
+                    session: Session,
                 ):
         r""" Init a new DPN synapse module.
 
