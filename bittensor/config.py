@@ -9,7 +9,7 @@ import yaml
 from munch import Munch
 
 from bittensor.axon import Axon
-from bittensor.session import BTSession
+from bittensor.session import Session
 from bittensor.dendrite import Dendrite
 from bittensor.metagraph import Metagraph
 from bittensor.metadata import Metadata
@@ -94,7 +94,7 @@ class Config:
         parser = Dendrite.add_args(parser)
         parser = Metagraph.add_args(parser)
         parser = Metadata.add_args(parser)
-        parser = BTSession.add_args(parser)
+        parser = Session.add_args(parser)
         # 2. Load args from neuron.
         neuron_module = SourceFileLoader("Neuron", os.getcwd() + '/' + neuron_path + '/neuron.py').load_module()
 
@@ -151,7 +151,7 @@ class Config:
     def validate(config, neuron_path) -> Munch:
         # 1. Run session checks.
         config = Dendrite.check_config(config)
-        config = BTSession.check_config(config)
+        config = Session.check_config(config)
         config = Metagraph.check_config(config)
         config = Axon.check_config(config)
 

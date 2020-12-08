@@ -17,7 +17,7 @@ import torchvision.transforms as transforms
 from munch import Munch
 from loguru import logger
 
-from bittensor import BTSession
+from bittensor import Session
 from bittensor.config import Config
 from bittensor.neuron import NeuronBase
 from bittensor.synapse import Synapse
@@ -56,11 +56,11 @@ class Neuron (NeuronBase):
         config = FFNNSynapse.check_config(config)
         return config
 
-    def start(self, session: BTSession): 
+    def start(self, session: Session): 
         """ Starts up the neuron.
 
         Args:
-            session (BTSession): Session object containing bittensor session configuration.
+            session (Session): Session object containing bittensor session configuration.
 
         """
         epoch = 0

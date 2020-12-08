@@ -6,7 +6,7 @@ Example:
         $ python examples/cifar/main.py
 """
 
-from bittensor import BTSession
+from bittensor import Session
 from bittensor.config import Config
 from bittensor.synapse import Synapse
 from bittensor.synapses.dpn import DPNSynapse
@@ -58,7 +58,7 @@ class Neuron (NeuronBase):
         config = DPNSynapse.check_config(config)
         return config
 
-    def start(self, session: BTSession): 
+    def start(self, session: Session): 
         
         # Build local synapse to serve on the network.
         model = DPNSynapse( self.config, session )

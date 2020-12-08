@@ -2,7 +2,7 @@ import bittensor
 from bittensor.utils.router import Router
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseOutput
-from bittensor.session import BTSession
+from bittensor.session import Session
 
 import argparse
 import random
@@ -41,14 +41,14 @@ def mlm_batch(data, batch_size, tokenizer, collator):
 class BertSynapseBase (Synapse):
     def __init__(   self,
                 config: Munch,
-                session: BTSession):
+                session: Session):
         r""" Init a new base-bert synapse.
 
             Args:
                 config (:obj:`munch.Munch`, `required`): 
                     BertNSP configuration class.
 
-                btsession (:obj:`bittensor.Session`, `optional`): 
+                Session (:obj:`bittensor.Session`, `optional`): 
                     bittensor training session.
 
         """
@@ -337,7 +337,7 @@ class BertSynapseBase (Synapse):
 class BertNSPSynapse (BertSynapseBase):
     def __init__(   self,
                     config: Munch,
-                    session: BTSession):
+                    session: Session):
         r""" Init a new bert nsp synapse module.
 
             Args:
@@ -481,7 +481,7 @@ class BertNSPSynapse (BertSynapseBase):
 class BertMLMSynapse (BertSynapseBase):
     def __init__(   self,
                     config: Munch,
-                    session: BTSession):
+                    session: Session):
         r""" Bert synapse for MLM training
 
             Args:

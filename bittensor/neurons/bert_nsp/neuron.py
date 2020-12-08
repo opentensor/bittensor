@@ -9,7 +9,7 @@ Example:
 import bittensor
 import argparse
 from bittensor.config import Config
-from bittensor import BTSession
+from bittensor import Session
 from bittensor.neuron import NeuronBase
 from bittensor.synapses.bert import BertNSPSynapse
 
@@ -91,7 +91,7 @@ class Neuron (NeuronBase):
         config = BertNSPSynapse.check_config(config)
         return config
 
-    def start(self, session: BTSession): 
+    def start(self, session: Session): 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Build Synapse
