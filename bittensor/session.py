@@ -27,7 +27,7 @@ class FailedToEnterSession(Exception):
 class FailedToPollChain(Exception):
     pass
 
-class BTSession:
+class Session:
     def __init__(self, config, keypair: Keypair):
         self.config = config 
         self.__keypair = keypair
@@ -36,13 +36,8 @@ class BTSession:
         self.dendrite = Dendrite(self.config, self.__keypair)
         self.tbwriter = Metadata(self.config)
 
-        # Start the replicate utility
-        self.replicate_util = ReplicateUtility(self.config)
-
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
-        parser.add_argument('--session.checkout_experiment', type=str, 
-                            help='ID of replicate.ai experiment to check out.')
         return parser
 
     @staticmethod   

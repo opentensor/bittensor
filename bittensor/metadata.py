@@ -1,6 +1,7 @@
 import argparse
 import time
 from munch import Munch
+import bittensor
 from torch.utils.tensorboard import SummaryWriter
 
 class Metadata():
@@ -23,7 +24,7 @@ class Metadata():
 
     @staticmethod   
     def check_config(config: Munch) -> Munch:
-        Config.validate_path_create('tb_logger.log_dir', config.meta_logger.log_dir)
+        bittensor.config.Config.validate_path_create('tb_logger.log_dir', config.meta_logger.log_dir)
         return config
 
     def write_loss(self, name, loss):

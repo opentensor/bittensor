@@ -80,7 +80,7 @@ class Synapse(nn.Module):
                 config (:obj:`SynapseConfig`, `required`): 
                     Base synapse config configuration class.
 
-                session (:obj:`bittensor.BTSession`, `optional`): 
+                session (:obj:`bittensor.Session`, `optional`): 
                     bittensor training session.
         """
         super().__init__()
