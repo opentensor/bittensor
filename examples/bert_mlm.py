@@ -165,5 +165,5 @@ if __name__ == "__main__":
 
     # 4. Start Neuron.
     with session:
-        bittensor.run(main, config, session)
+        main(config, session)
             

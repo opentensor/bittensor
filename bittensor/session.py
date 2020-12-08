@@ -81,7 +81,6 @@ class Session:
             Session: present instance of session.
         """
         if exc_value:
-
             top_stack = StringIO()
             tb.print_stack(file=top_stack)
             top_lines = top_stack.getvalue().strip('\n').split('\n')[:-4]
@@ -97,6 +96,13 @@ class Session:
             full_stack.close()
             # Log the combined stack
             logger.error('Exception:{}'.format(sinfo))
+
+            if rollbar.is_enabled():
+                rollbar.send_rollbar_error()
+
+
+
+
         
         logger.info('session exit')
         loop = asyncio.get_event_loop()

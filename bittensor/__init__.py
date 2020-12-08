@@ -35,13 +35,3 @@ def init(config: Config, keypair: Keypair):
     global session
     session = Session(config, keypair)
     return session
-
-
-
-def run(function, config, sessions):
-    if rollbar.is_enabled():
-        logger.info("Running BT with rollbar enabled")
-        rollbar.run(function(config,session))
-    else:
-        logger.info("Running BT with rollbar disabled")
-        function(config,session)
