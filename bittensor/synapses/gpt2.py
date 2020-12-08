@@ -2,7 +2,7 @@ import bittensor
 from bittensor.utils.router import Router
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseOutput
-from bittensor.session import BTSession
+from bittensor.session import Session
 
 import argparse
 from munch import Munch
@@ -50,14 +50,14 @@ class GPT2LMSynapse(Synapse):
 
     def __init__(self,
                  config: Munch,
-                 session: BTSession):
+                 session: Session):
         r""" Init a new ffnn synapse module.
 
             Args:
                 config (:obj:`munch.Munch`, `required`): 
                     munched config class.
 
-                session (:obj:`bittensor.BTSession`, `required`): 
+                session (:obj:`bittensor.Session`, `required`): 
                     bittensor session object. 
                     Defaults to bittensor.session global if exists.
         """

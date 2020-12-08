@@ -1,7 +1,7 @@
 import argparse
 from munch import Munch
 import bittensor
-from bittensor.session import BTSession
+from bittensor.session import Session
 
 class NeuronBase(object):
     """ 
@@ -20,7 +20,7 @@ class NeuronBase(object):
     def check_config(config: Munch) -> Munch:
         return config
 
-    def start(self, session: BTSession):
+    def start(self, session: Session):
         raise NotImplementedError
     
     def stop(self):
