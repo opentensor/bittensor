@@ -1,7 +1,7 @@
 """Training a MNIST Neuron.
 This file demonstrates a training pipeline for an MNIST Neuron.
 Example:
-        $ python neurons/mnis.py
+        $ python examples/mnis.py
 """
 import argparse
 import math
