@@ -41,6 +41,8 @@ class Neuron (NeuronBase):
                             help='Testing batch size.')
         parser.add_argument('--neuron.log_interval', default=10, type=int, 
                             help='Batches until neuron prints log statements.')
+        parser.add_argument('--neuron.checkout_experiment', type=str, 
+                    help='ID of replicate.ai experiment to check out.')
         # Load args from FFNNSynapse.
         parser = FFNNSynapse.add_args(parser)
         return parser
@@ -72,7 +74,7 @@ class Neuron (NeuronBase):
         model = FFNNSynapse(self.config, session)
 
         try:
-            if self.config.session.checkout_experiment:
+            if self.config.neuron.checkout_experiment:
                 model = session.replicate_util.checkout_experiment(model, best=False)
         except Exception as e:
             logger.warning("Something happened checking out the model. {}".format(e))
