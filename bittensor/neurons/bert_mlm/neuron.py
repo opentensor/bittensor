@@ -13,14 +13,11 @@ from bittensor import Session
 from bittensor.neuron import NeuronBase
 from bittensor.synapses.bert import BertMLMSynapse, mlm_batch
 
-import numpy as np
-from termcolor import colored
 from datasets import load_dataset
 from loguru import logger
 import torch
 import torch.nn.functional as F
 from transformers import DataCollatorForLanguageModeling
-import replicate
 from munch import Munch
 import math
 
@@ -42,6 +39,8 @@ class Neuron (NeuronBase):
                             help='Testing batch size.')
         parser.add_argument('--neuron.epoch_size', default=50, type=int, 
                             help='Testing batch size.')
+        parser.add_argument('--neuron.checkout_experiment', type=str, 
+                    help='ID of replicate.ai experiment to check out.')
         parser = BertMLMSynapse.add_args(parser)
         return parser
 
@@ -64,7 +63,7 @@ class Neuron (NeuronBase):
         model = BertMLMSynapse(self.config, session)
 
         try:
-            if self.config.session.checkout_experiment:
+            if self.config.neuron.checkout_experiment:
                 model = session.replicate_util.checkout_experiment(model, best=False)
         except Exception as e:
             logger.warning("Something happened checking out the model. {}".format(e))

@@ -13,11 +13,8 @@ from bittensor import Session
 from bittensor.neuron import NeuronBase
 from bittensor.synapses.bert import BertNSPSynapse
 
-import numpy as np
-from termcolor import colored
 from loguru import logger
 from datasets import load_dataset
-import replicate
 import random
 import torch
 import torch.nn.functional as F
@@ -77,6 +74,8 @@ class Neuron (NeuronBase):
                             help='Testing batch size.')
         parser.add_argument('--neuron.epoch_size', default=50, type=int, 
                             help='Testing batch size.')
+        parser.add_argument('--neuron.checkout_experiment', type=str, 
+                    help='ID of replicate.ai experiment to check out.')
         parser = BertNSPSynapse.add_args(parser)
         return parser
 
@@ -98,7 +97,7 @@ class Neuron (NeuronBase):
         model = BertNSPSynapse(self.config, session)
 
         try:
-            if self.config.session.checkout_experiment:
+            if self.config.neuron.checkout_experiment:
                 model = session.replicate_util.checkout_experiment(model, best=False)
         except Exception as e:
             logger.warning("Something happened checking out the model. {}".format(e))
