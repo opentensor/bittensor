@@ -37,6 +37,8 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
                         help='Testing batch size.')
     parser.add_argument('--neuron.log_interval', default=10, type=int, 
                         help='Batches until neuron prints log statements.')
+    parser.add_argument('--neuron.neuron_name', default=10, type=int, 
+                        help='Saved models go here.')
     # Load args from FFNNSynapse.
     parser = FFNNSynapse.add_args(parser)
     return parser
@@ -212,6 +214,7 @@ if __name__ == "__main__":
     parser = add_args(parser)
     config = Config.load(parser)
     config = check_config(config)
+    logger.info(Config.toString(config))
 
     # 2. Load Keypair.
     mnemonic = Keypair.generate_mnemonic()

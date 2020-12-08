@@ -36,9 +36,6 @@ class Session:
         self.dendrite = Dendrite(self.config, self.__keypair)
         self.tbwriter = Metadata(self.config)
 
-        # Start the replicate utility
-        self.replicate_util = ReplicateUtility(self.config)
-
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
         return parser

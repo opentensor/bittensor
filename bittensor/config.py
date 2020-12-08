@@ -38,7 +38,7 @@ class Config:
 
  
     @staticmethod   
-    def load(parser: argparse.ArgumentParser)  -> Munch:
+    def load(parser: argparse.ArgumentParser = None)  -> Munch:
         r""" Loads and return the bittensor Munched config.
 
             Args:
@@ -49,6 +49,9 @@ class Config:
                 config  (:obj:`Munch` `required`):
                     Python Munch object with values from parsed string.
         """
+        if parser == None:
+            parser = argparse.ArgumentParser()
+            
         # 1. Load args from bittensor backend components.
         parser = Axon.add_args(parser)
         parser = Dendrite.add_args(parser)

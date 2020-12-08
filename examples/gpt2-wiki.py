@@ -95,14 +95,6 @@ def train(model, config, session, optimizer, scheduler, dataset):
 def main(config, session):
     # Build Synapse
     model = GPT2LMSynapse(config, session)
-    if config.session.checkout_experiment:
-        try:            
-            model = session.replicate_util.checkout_experiment(model, best=False)
-        except Exception as e:
-            logger.warning("Something happened checking out the model. {}".format(e))
-            logger.info("Using new model")
-
-    # Set deivce and serve to the axon endpoint.
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     session.serve( model )
@@ -124,6 +116,7 @@ if __name__ == "__main__":
     parser = add_args(parser)
     config = Config.load(parser)
     config = check_config(config)
+    logger.info(Config.toString(config))
 
     # 2. Load Keypair.
     mnemonic = Keypair.generate_mnemonic()
