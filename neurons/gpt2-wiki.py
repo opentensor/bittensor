@@ -18,6 +18,7 @@ from termcolor import colored
 from munch import Munch
 from datasets import load_dataset
 from loguru import logger
+import time
 import torch
 import torch.nn.functional as F
 import replicate
@@ -35,6 +36,8 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
                         help='Training batch size.')
     parser.add_argument('--neuron.batch_size_test', default=20, type=int, 
                         help='Testing batch size.')
+    parser.add_argument('--neuron.name', default='mnist', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
+    parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
     parser = GPT2LMSynapse.add_args(parser)
     return parser
 
@@ -84,11 +87,10 @@ def train(model, config, session, optimizer, scheduler, dataset):
     # After each epoch, checkpoint the losses and re-serve the network.
     if output.loss.item() < best_loss:
         best_loss = output.loss
-        logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, config.neuron.datapath, config.neuron.neuron_name)
-        torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(config.neuron.datapath , config.neuron.neuron_name))
+        logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+        torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
         
         # Save experiment metrics
-        session.replicate_util.checkpoint_experiment(epoch, loss=best_loss, remote_target_loss=output.remote_target_loss.item(), distillation_loss=output.distillation_loss.item())
         session.serve( model.deepcopy() )
 
 
