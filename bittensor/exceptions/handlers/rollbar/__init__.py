@@ -4,8 +4,6 @@ import asyncio
 from bittensor.exceptions.handlers import asyncio_exception_handler
 import rollbar
 
-token = None
-
 def init():
     token = os.environ.get("ROLLBAR_TOKEN", False)
     if not token:
@@ -19,11 +17,12 @@ def init():
 
 
 def is_enabled():
-    return True if token else False
+    return os.environ.get("ROLLBAR_TOKEN", False)
 
 def run(func):
     try:
         func
     except Exception as e:
+        logger.debug("Sending exception to rollbar")
         rollbar.report_exc_info()
         raise e
