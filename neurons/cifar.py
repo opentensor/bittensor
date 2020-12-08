@@ -40,6 +40,8 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
                         help='Testing batch size.')
     parser.add_argument('--neuron.log_interval', default=10, type=int, 
                         help='Batches until neuron prints log statements.')
+    parser.add_argument('--neuron.name', default='cifar', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
+    parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
     parser = DPNSynapse.add_args(parser)
     return parser
 
@@ -49,6 +51,8 @@ def check_config(config: Munch) -> Munch:
     assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
     assert config.neuron.batch_size_test > 0, "batch_size_test must a positive value"
     assert config.neuron.learning_rate > 0, "learning rate must be a positive value."
+    if config.neuron.name == None:
+        config.neuron.name = str(time.time())
     config = DPNSynapse.check_config(config)
     return config
 
@@ -153,13 +157,6 @@ def main(config: Munch, session: Session):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Build local synapse to serve on the network.
     model = DPNSynapse( config, session )
-    try:
-        if config.session.checkout_experiment:
-            model = session.replicate_util.checkout_experiment(model, best=False)
-    except Exception as e:
-        logger.warning("Something happened checking out the model. {}".format(e))
-        logger.info("Using new model")
-
     model.to( device ) # Set model to device.
     session.serve( model.deepcopy() )
 
@@ -205,10 +202,9 @@ def main(config: Munch, session: Session):
         if test_loss < best_test_loss:
             best_test_loss = test_loss # Update best loss.
             # Save and serve the new best local model.
-            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, test_loss, config.neuron.datapath, config.neuron.neuron_name)
-            torch.save( {'epoch': epoch, 'model': model.state_dict(), 'test_loss': test_loss},"{}/{}/model.torch".format(config.neuron.datapath , config.neuron.neuron_name))
+            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+            torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
             # Save experiment metrics
-            session.replicate_util.checkpoint_experiment(epoch, loss=test_loss, accuracy=test_accuracy)
             session.serve( model.deepcopy() )
 
         epoch += 1
@@ -219,6 +215,7 @@ if __name__ == "__main__":
     parser = add_args(parser)
     config = Config.load(parser)
     config = check_config(config)
+    logger.info(Config.toString(config))
 
     # 2. Load Keypair.
     mnemonic = Keypair.generate_mnemonic()
