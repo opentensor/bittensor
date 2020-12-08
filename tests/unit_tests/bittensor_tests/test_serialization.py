@@ -20,7 +20,7 @@ class TestSerialization(unittest.TestCase):
     config = None
 
     def setUp(self):
-        self.config = Config.load(neuron_path='bittensor/neurons/mnist')
+        self.config = Config.load()
         mnemonic = Keypair.generate_mnemonic()
         self.keypair = Keypair.create_from_mnemonic(mnemonic)
 
@@ -33,7 +33,7 @@ class TestSerialization(unittest.TestCase):
             
     def test_serialize_modality(self):
         # Let's grab some image data
-        data = torchvision.datasets.MNIST(root = self.config.neuron.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
+        data = torchvision.datasets.MNIST(root = 'data/datasets/', train=True, download=True, transform=transforms.ToTensor())
         
         # Let's grab a random image, and try and de-serialize it incorrectly.
         image = data[randrange(len(data))][0]
@@ -43,7 +43,7 @@ class TestSerialization(unittest.TestCase):
     
     def test_serialize_deserialize_image(self):
         # Let's grab some image data
-        data = torchvision.datasets.MNIST(root = self.config.neuron.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
+        data = torchvision.datasets.MNIST(root = 'data/datasets/', train=True, download=True, transform=transforms.ToTensor())
         
         # Let's grab a random image, and give it a crazy type to break the system
         image = data[randrange(len(data))][0]
