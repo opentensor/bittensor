@@ -1,6 +1,6 @@
 from loguru import logger
 import rollbar
-from pathlib import Path
+from bittensor.exceptions.handlers.rollbar import set_runtime_status
 
 def asyncio_exception_handler(loop, context):
     logger.debug("asyncio exception has occured")
@@ -14,9 +14,7 @@ def asyncio_exception_handler(loop, context):
     rollbar.report_exc_info(exc_info=exc_info, extra_data=extra_data)
     logger.error(context)
 
-    file = Path('/tmp/bt_runstate')
-    with file.open("w") as file:
-        file.write("ERR\n")
+    set_runtime_status("ERR")
 
 def __get_exc_info(exception):
     _type = type(exception)
