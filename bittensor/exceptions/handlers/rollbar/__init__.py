@@ -24,7 +24,7 @@ def run(func):
         set_runtime_status("OK")
         func
     except:
-        logger.debug("Sending exception to rollbar")
+        logger.info("Sending exception to rollbar")
         rollbar.report_exc_info()
 
         set_runtime_status("ERR")
