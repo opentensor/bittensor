@@ -3,6 +3,29 @@ from loguru import logger
 import asyncio
 import rollbar
 from pathlib import Path
+from loguru._handler import Message
+
+
+class RollbarHandler():
+    def __init__(self):
+        self.token = os.environ.get("ROLLBAR_TOKEN", False)
+
+    def write(self, message):
+        if not self.token:
+            return
+
+        record = message.record
+        level = record['level'].name
+
+        if level == "WARNING":
+            rollbar.report_message(message, 'warning')
+        elif level == "ERROR":
+            rollbar.report_message(message, 'error')
+        else:
+            pass
+
+
+
 
 def init():
     token = os.environ.get("ROLLBAR_TOKEN", False)
@@ -16,6 +39,8 @@ def init():
 
     loop = asyncio.get_event_loop()
     loop.set_exception_handler(asyncio_exception_handler)
+
+    logger.add(sink=RollbarHandler(), level='WARNING')
 
 
 def is_enabled():
@@ -55,10 +80,8 @@ def __get_extra_data(context):
 def send_exception(info = None, extra_data = None):
     if not is_enabled():
         return
-    
+
     logger.info("Sending exception to rollbar")
     rollbar.report_exc_info(exc_info=info, extra_data=extra_data)
     set_runtime_status("ERR")
-
-
 

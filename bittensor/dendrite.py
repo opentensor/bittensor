@@ -258,14 +258,12 @@ class RemoteNeuron(nn.Module):
             outputs = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
             return outputs, 1
         except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
-            rollbar.send_exception()
-            logger.trace("Exception occured in Remoteneuron forward call: {}".format(e))
+            logger.warning("Exception occured in Remoteneuron forward call: {}".format(e))
             outputs = nill_response_for(inputs)
             return outputs, -1
 
         except Exception as e:
-            rollbar.send_exception()
-            logger.trace('Uncaught error in forward call. {}', e)
+            logger.warning('Uncaught error in forward call. {}', e)
             outputs = nill_response_for(inputs)
             return outputs, -1
 
@@ -302,7 +300,9 @@ class _RemoteModuleCall(torch.autograd.Function):
         try:
             response = ctx.caller.stub.Forward(request, timeout=caller.config.dendrite.timeout)
         except grpc.RpcError as e:
-            raise RPCError('failed rpc with error {}'.format(e.code()))
+            msg = 'failed rpc with error {}'.format(e.code())
+            logger.warning(msg)
+            raise RPCError(msg)
         elapsed_time = time.time() - pre_response_time
 
         # Logs.
@@ -319,7 +319,9 @@ class _RemoteModuleCall(torch.autograd.Function):
         try:
             outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
         except:
-            raise SerializationException('Failed to serialize responses from forward call with response {}'.format(response.tensors[0]))
+            msg = 'Failed to serialize responses from forward call with response {}'.format(response.tensors[0])
+            logger.warning(msg)
+            raise SerializationException(msg)
 
         # Check shape
         if  outputs.size(0) != inputs.size(0) \
