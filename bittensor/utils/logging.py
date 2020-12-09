@@ -1,8 +1,10 @@
+import bittensor
 import torch
 import numpy as np
 import pandas as pd
 from loguru import logger
 from termcolor import colored
+from typing import List
 
 np.set_printoptions(precision=2, suppress=True, linewidth=500, sign=' ')
 pd.set_option('display.max_rows', 5000)
@@ -10,6 +12,54 @@ pd.set_option('display.max_columns', 25)
 pd.set_option('display.width', 1000)
 pd.set_option('display.precision', 2)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
+
+
+def log_outputs(history: List[bittensor.synapse.SynapseOutput]):
+    cols = ['Batch Size', 'Total Loss', 'Local Loss', 'Remote Loss', 'Distillation Loss'] + list(history[0].metadata.keys())
+    rows = []
+    for output in history:
+        row = []
+
+        if output.local_hidden != None:
+            row.append(output.local_hidden.shape[0])
+        else:
+            row.append('')
+
+        if output.loss != None:
+            row.append(output.loss.item())
+        else:
+            row.append('')
+
+        if output.local_target_loss != None:
+            row.append(output.local_target_loss.item())
+        else:
+            row.append('')
+
+        if output.remote_target_loss != None:
+            row.append(output.remote_target_loss.item())
+        else:
+            row.append('')
+
+        if output.distillation_loss != None:
+            row.append(output.distillation_loss.item())
+        else:
+            row.append('')
+
+        for key in output.metadata.keys():
+            row.append(output.metadata[key].item())
+        
+        rows.append(row)
+    
+    pd.set_option('display.float_format', lambda x: '%.3f' % x)
+    df = pd.DataFrame(rows, columns=cols)
+    min_val = df.min(numeric_only=True, axis=0)
+    max_val = df.max(numeric_only=True, axis=0)
+    mean_val = df.mean(numeric_only=True, axis=0)
+    df.loc['Min'] = min_val
+    df.loc['Max'] = max_val
+    df.loc['Mean'] = mean_val
+    print (df)
+
 
 def log_training_output_history(session, epoch, batch_idx, batch_size, total_examples, history):
    
