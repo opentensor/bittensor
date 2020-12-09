@@ -157,22 +157,14 @@ class Synapse(nn.Module):
         """
         # TODO(const): check schema (inputs, input_schema)
         with torch.no_grad():
-            try:
-                if modality == bittensor_pb2.Modality.TEXT:
-                    outputs = self.forward_text(inputs)
-                elif modality == bittensor_pb2.Modality.IMAGE:
-                    outputs = self.forward_image(inputs)
-                elif modality == bittensor_pb2.Modality.TENSOR:
-                    outputs = self.forward_tensor(inputs)
-                else:
-                    raise NotImplementedError
-            except NotImplementedError:
-                # Input modality not implemented.
-                # Returns None.
-                return None
-            except Exception as e:
-                logger.error(e)
-                return None
+            if modality == bittensor_pb2.Modality.TEXT:
+                outputs = self.forward_text(inputs)
+            elif modality == bittensor_pb2.Modality.IMAGE:
+                outputs = self.forward_image(inputs)
+            elif modality == bittensor_pb2.Modality.TENSOR:
+                outputs = self.forward_tensor(inputs)
+            else:
+                raise NotImplementedError
         return outputs
 
     def call_backward(self, inputs: object,

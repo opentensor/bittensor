@@ -79,10 +79,36 @@ message TensorMessage {
 	// >>> assert (nounce >= last_nounce) and neuron_key.verify(signature, digest) # to verify.
 	bytes signature = 4;
 
+	// Return codes from Backward and Forward call.
+	ReturnCode return_code = 5; 
+
+	// Message associated with return code.
+	string message = 6; 
+
 	// Tensors: [REQUIRED] 1 or more tensors passed on the wire.
 	// SIZE: variable.
 	// NOTE: During backward calls the tensors should be ordered [input_1, input_2, ... grad_1, grad_2, ...] 
-	repeated Tensor tensors = 5;
+	repeated Tensor tensors = 7;
+}
+
+// Return codes from Backward and Forward call.
+enum ReturnCode {
+	Success = 0; // Succesfull query.
+	Timeout = 1; // Request timeout.
+	Backoff = 2;
+	Unavailable = 3;
+	NotImplemented = 4;
+	EmptyRequest = 5; // Request is empty.
+	EmptyResponse = 6; // Response is empty.
+	InvalidResponse = 7; // Request is invalid.
+	InvalidRequest = 8; // Response is invalid.
+	RequestShapeException = 9; // Request has invalid shape.
+	ResponseShapeException = 10; // Response has invalid shape.
+	RequestSerializationException = 11; // Request failed to serialize.
+	ResponseSerializationException = 12; // Response failed to serialize.
+	RequestDeserializationException = 13; // Request failed to deserialize.
+	ResponseDeserializationException = 14; // Response failed to deserialize.
+	UnknownException = 15; // Unknown exception.
 }
 
 // A serialized tensor object created using the serializer class.
@@ -122,6 +148,7 @@ message Tensor {
 	// 1 bit.
 	bool requires_grad = 6;
 }
+
 
 // Dtype: [REQUIRED] The tensor datatype.
 // Used for serialization deserialization.

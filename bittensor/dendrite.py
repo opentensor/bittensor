@@ -13,7 +13,6 @@ from munch import Munch
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
 from bittensor.serializer import PyTorchSerializer
-from bittensor.exceptions.Exceptions import RPCError, EmptyTensorException, ResponseShapeException, SerializationException
 import time
 import asyncio
 
@@ -65,6 +64,8 @@ class Dendrite(nn.Module):
                             help='Switch to true is the neuron passes gradients to downstream peers.')
         parser.add_argument('--dendrite.timeout', default=0.5, type=float, 
                             help='Per request RPC timeout.')
+        parser.add_argument('--dendrite.max_backoff', default=100, type=int, 
+                            help='Backoff saturates at this value.')
         return parser
 
     @staticmethod   
@@ -87,6 +88,9 @@ class Dendrite(nn.Module):
             Returns:
                 forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`):
                     Output encodings of inputs produced by remote neurons. Non-responses are zeroes of common shape.
+
+                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                    dendrite call return ops.
         """
         if len(x[0].shape) != 2:
             error_msg = 'Text inputs should rank 2 with semantic shape: [batch_size, sequence_len]'
@@ -114,6 +118,9 @@ class Dendrite(nn.Module):
             Returns:
                 forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`):
                     Output encodings of images produced by remote neurons. Non-responses are zeroes of common shape.
+
+                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                    dendrite call return ops.
         """
         # TODO(const): Checks across all tensors and other shape checks.
         if len(x[0].shape) != 5:
@@ -142,6 +149,9 @@ class Dendrite(nn.Module):
             Returns:
                 forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
                     Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
+
+                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                    dendrite call return ops.
         """
         if len(x[0].shape) != 3:
             error_msg = 'Tensor inputs should be rank 3 with semantic shape: [batch_size, sequence_len, feature_len]'
@@ -174,8 +184,8 @@ class Dendrite(nn.Module):
                 forward_outputs (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
                     Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
 
-                call_results (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
-                    dendrite call results
+                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                    dendrite call return ops.
         """
         if len(x) != len(neurons):
             error_msg = 'List of inputs x should have the same length as passed destination neurons, got {} and {}'.format(len(x), len(neurons))
@@ -190,8 +200,8 @@ class Dendrite(nn.Module):
         loop.stop()
 
         tensor_results = [res[0] for res in results]
-        call_results = torch.tensor([res[1] for res in results])
-        return tensor_results, call_results
+        return_codes = torch.tensor([res[1] for res in results])
+        return tensor_results, return_codes
 
     async def gather(self, loop: asyncio.base_events.BaseEventLoop, inputs, neurons, mode):
             
@@ -211,10 +221,6 @@ class Dendrite(nn.Module):
         results = await asyncio.gather(*calls)
         return results
 
-# NOTE: (const) This code has been ported from hivemind thanks to Yozh and Max.
-# Credit to them for designing this structure and api around torch. Here being ported to
-# bittensor, and eventually should interact seemlessly with hivemind nodes as well.
-# TODO (const): needs to check shapes/ input types/ other.
 class RemoteNeuron(nn.Module):
     """ Class which bundles a grpc connection to a remote host as a standard auto-grad torch.nn.Module.
     """
@@ -232,8 +238,6 @@ class RemoteNeuron(nn.Module):
             self.endpoint = ip + str(neuron.port)
         else:
             self.endpoint = neuron.address + ':' + str(neuron.port)
-        # TODO(const): should accept defaults. config = bittensor.config_or_defaults(config)
-
         self.channel = grpc.insecure_channel(
             self.endpoint,
             options=[('grpc.max_send_message_length', -1),
@@ -243,29 +247,32 @@ class RemoteNeuron(nn.Module):
         self.signature = None
         self.nounce = None
 
+        # Current backoff counter.
+        self.backoff = 0
+        # Next backoff, which doubles until dendrite.max_backoff
+        self.next_backoff = 1
+
     def __del__(self):
         if self.channel is not None:
             self.channel.close()
 
-    def forward(self, inputs: torch.Tensor, mode: bittensor_pb2.Modality) -> Tuple[torch.Tensor, bool]:
+    def _backoff(self):
+        self.backoff = self.next_backoff
+        self.next_backoff = min(self.config.dendrite.max_backoff, self.next_backoff * 2)
 
-        # Empty calls get nill responses.
-        if torch.numel(inputs) == 0:
-            return torch.tensor([]), 0
+    def forward(self, inputs: torch.Tensor, mode: bittensor_pb2.Modality) -> Tuple[torch.Tensor, bool, float]:
 
-        try:
-            outputs = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
-            return outputs, 1
+        #try:
+        outputs, code = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
+        if code.item() == bittensor_pb2.ReturnCode.Unavailable:
+            self._backoff ()
+        if code.item() == bittensor_pb2.ReturnCode.Timeout:
+            self._backoff ()
+        return outputs, code
 
-        except (SerializationException, EmptyTensorException, ResponseShapeException, RPCError) as e:
-            logger.trace("Exception occured in Remoteneuron forward call: {}".format(e))
-            outputs = nill_response_for(inputs)
-            return outputs, -1
-
-        except Exception as e:
-            logger.trace('Uncaught error in forward call. {}', e)
-            outputs = nill_response_for(inputs)
-            return outputs, -1
+        # except Exception as e:
+        #     logger.error('Uncaught error in forward call with error {}', e)
+        #     return nill_response_for(inputs), bittensor_pb2.ReturnCode.UnknownException
 
 class _RemoteModuleCall(torch.autograd.Function):
     """ Internal autograd-friendly call of a remote module over grpc"""
@@ -273,66 +280,106 @@ class _RemoteModuleCall(torch.autograd.Function):
     @staticmethod
     def forward(ctx, caller: RemoteNeuron, dummy: torch.Tensor,
                 inputs: torch.Tensor,
-                mode: bittensor_pb2.Modality) -> torch.Tensor:
+                mode: bittensor_pb2.Modality) -> Tuple[torch.Tensor, int]:
         # Save for backward call.
         ctx.caller = caller
         ctx.mode = mode
         ctx.inputs = inputs
 
-        # Serialize inputs.
+        zeros = nill_response_for(inputs)
+
         try:
-            serialized_inputs = PyTorchSerializer.serialize(inputs, mode)
-        except SerializationException:
-            raise SerializationException('Failed to serialize inputs for forward call')
-        ctx.serialized_inputs =  serialized_inputs
 
-        # Build request.
-        request = bittensor_pb2.TensorMessage(
-            version=bittensor.__version__,
-            public_key=ctx.caller.keypair.public_key,
-            nounce=ctx.caller.nounce,
-            signature=ctx.caller.signature,
-            tensors=[serialized_inputs])
+            # Are we backing off.
+            if caller.backoff > 1:
+                caller.backoff -= 1
+                logger.error('Still backing off from endpoint {}', caller.endpoint)
+                return zeros, torch.tensor(bittensor_pb2.ReturnCode.Backoff)
 
-        # Make call.
-        pre_response_time = time.time() # in seconds
-        try:
-            response = ctx.caller.stub.Forward(request, timeout=caller.config.dendrite.timeout)
-        except grpc.RpcError as e:
-            raise RPCError('failed rpc with error {}'.format(e.code()))
-        elapsed_time = time.time() - pre_response_time
+            # If this is an empty call get nill response.
+            if torch.numel(inputs) == 0:
+                return zeros, torch.tensor(bittensor_pb2.ReturnCode.EmptyRequest)
 
-        # Logs.
-        bittensor.session.tbwriter.save_dendrite_bandwidth_data(
-            'Remote Module Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
-        bittensor.session.tbwriter.save_dendrite_bandwidth_data(
-            'Remote Module Forward Call Turnaround latency (seconds)', round(elapsed_time, 2))
+            # Serialize inputs.
+            try:
+                serialized_inputs = PyTorchSerializer.serialize(inputs, mode)
+            except:
+                logger.error('Serialization error with inputs {}', inputs)
+                return zeros, torch.tensor(bittensor_pb2.ReturnCode.RequestSerializationException)
+            ctx.serialized_inputs =  serialized_inputs
 
-        # Check tensor response.
-        if len(response.tensors) == 0:
-            raise EmptyTensorException('Forward request returned no tensors.')
+            # Build request.
+            request = bittensor_pb2.TensorMessage(
+                version=bittensor.__version__,
+                public_key=ctx.caller.keypair.public_key,
+                nounce=ctx.caller.nounce,
+                signature=ctx.caller.signature,
+                tensors=[serialized_inputs])
+        
+            try:
+                response = ctx.caller.stub.Forward(request, timeout=caller.config.dendrite.timeout)
 
-        # Deserialize.
-        try:
-            outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
-        except:
-            raise SerializationException('Failed to serialize responses from forward call with response {}'.format(response.tensors[0]))
-    
-        # Check shape
-        if  outputs.size(0) != inputs.size(0) \
-            or outputs.size(1) != inputs.size(1) \
-            or outputs.size(2) != bittensor.__network_dim__:
-                raise ResponseShapeException( 'Forward request returned tensor with incorrect shape {}'. format(list(outputs.shape)))
+                bittensor_code = response.return_code
+                if bittensor_code == bittensor_pb2.ReturnCode.UnknownException:
+                    logger.error('Unknown exception returned from remote host with message {}', response.message)
+                    return zeros, torch.tensor(bittensor_code)
 
-        # Safe catch NaNs and replace with 0.0.
-        outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
+                elif bittensor_code != bittensor_pb2.ReturnCode.Success:
+                    return zeros, torch.tensor(bittensor_code)
+
+            # Catch GRPC Errors
+            except grpc.RpcError as rpc_error_call:
+                grpc_code = rpc_error_call.code()
+
+                if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
+                    logger.error('Deadline exceeds on endpoint {}', caller.endpoint)
+                    return zeros, torch.tensor(bittensor_pb2.ReturnCode.Timeout)
+
+                elif grpc_code == grpc.StatusCode.UNAVAILABLE:
+                    logger.error('Endpoint unavailable {}', caller.endpoint)
+                    return zeros, torch.tensor(bittensor_pb2.ReturnCode.Unavailable)
+
+                else:
+                    logger.error('Uncaught GPRC error exception with code {} from endpoint {}', e.code(), caller.endpoint)
+                    return zeros, torch.tensor(bittensor_pb2.ReturnCode.Unknown)
+
+            # Catch Unknown
+            except Exception as e:
+                logger.error('Uncaught error in forward call with error {} and endpoint', e, caller.endpoint)
+                return zeros, torch.tensor(bittensor_pb2.ReturnCode.Unknown)
+
+            # Check tensor response.
+            if len(response.tensors) == 0:
+                logger.error('Empty response from endpoint {}', caller.endpoint)
+                return zeros, torch.tensor(bittensor_pb2.ReturnCode.EmptyResponse)
+
+            # Deserialize.
+            try:
+                outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
+            except:
+                logger.error('Failed to serialize responses from forward call with response {}', response.tensors[0])
+                return zeros, torch.tensor(bittensor_pb2.ReturnCode.ResponseDeserializationException)
+        
+            # Check shape
+            if  outputs.size(0) != inputs.size(0) \
+                or outputs.size(1) != inputs.size(1) \
+                or outputs.size(2) != bittensor.__network_dim__:
+                    logger.error('Forward request returned tensor with incorrect shape {}', list(outputs.shape))
+                    return zeros, torch.tensor(bittensor_pb2.ReturnCode.ResponseShapeException)
+
+            # Safe catch NaNs and replace with 0.0.
+            outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
+        
+        except Exception as e:
+            logger.error('Forward request returned unknown error {}', e)
+            return zeros, torch.tensor(bittensor_pb2.ReturnCode.UnknownException)
 
         # Return.
-        return outputs
+        return outputs, torch.tensor(response.return_code)
 
     @staticmethod
     @once_differentiable
-    def backward(ctx, grads: torch.Tensor) -> Optional[torch.Tensor]:
+    def backward(ctx, grads: torch.Tensor, code: torch.Tensor) -> Optional[torch.Tensor]:
 
         # Fill zeros response. Gradient do not pass through peers.
         zeros = nill_response_for(ctx.inputs)

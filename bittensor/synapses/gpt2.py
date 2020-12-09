@@ -212,11 +212,11 @@ class GPT2LMSynapse(Synapse):
                     weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
 
-                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
-
                     requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         number of requests sent to each uid in this batch.
+
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[metagraph.state.n]`, `required`):
+                        dendrite call return codes. 0 for success.
 
                     metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
                         additional metadata output, specifically accuracy.
@@ -318,8 +318,8 @@ class GPT2LMSynapse(Synapse):
                     requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         number of requests sent to each uid in this batch.
 
-                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                        dendrite call return codes. 0 for success.
 
                     metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
                         additional metadata output, specifically accuracy.
@@ -327,9 +327,9 @@ class GPT2LMSynapse(Synapse):
         """
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        remote_context, weights, sizes, retops = self.dendrite.forward_text(inputs, pooled)
+        remote_context, weights, sizes, return_codes = self.dendrite.forward_text(inputs, pooled)
         output.weights = weights
-        output.retops = retops
+        output.return_codes = return_codes
         output.request_sizes = sizes 
         remote_context = remote_context.to(self.device)
 
