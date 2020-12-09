@@ -102,14 +102,6 @@ class Session:
             if rollbar.is_enabled():
                 rollbar.send_exception()
 
-
-
-
-
-        logger.info('session exit')
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        loop.run_until_complete(self.stop())
         return self
 
     async def start(self):
