@@ -37,6 +37,8 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
                         help='Testing batch size.')
     parser.add_argument('--neuron.log_interval', default=10, type=int, 
                         help='Batches until neuron prints log statements.')
+    parser.add_argument('--neuron.sync_interval', default=100, type=int, 
+                        help='Batches before we we sync with chain and emit new weights.')
     parser.add_argument('--neuron.name', default='mnist', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
     parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
        # Load args from FFNNSynapse.
@@ -62,13 +64,13 @@ def train(
     trainloader: torch.utils.data.DataLoader):
 
     model.train() # Turn on Dropoutlayers BatchNorm etc.
+    weights = None
     for batch_idx, (images, targets) in enumerate(trainloader):
         optimizer.zero_grad() # Clear gradients.
 
-        # Emit and sync.
-        if (session.metagraph.block() - session.metagraph.state.block) > 15:
-            session.metagraph.emit()
-            session.metagraph.sync()
+        # Syncs chain state and emits learned weights to the chain.
+        if batch_idx % config.neuron.sync_interval == 0:
+            weights = session.metagraph.sync(weights)
                         
         # Forward pass.
         output = model(images.to(model.device), torch.LongTensor(targets).to(model.device), remote = True)
@@ -79,11 +81,9 @@ def train(
         optimizer.step()
 
         # Update weights.
-        state_weights = session.metagraph.state.weights
-        learned_weights = F.softmax(torch.mean(output.weights, axis=0))
-        state_weights = (1 - 0.05) * state_weights + 0.05 * learned_weights
-        norm_state_weights = F.softmax(state_weights)
-        session.metagraph.state.set_weights( norm_state_weights )
+        batch_weights = F.softmax(torch.mean(output.weights, axis=0))
+        weights = (1 - 0.05) * weights + 0.05 * batch_weights
+        weights = weights / torch.sum(weights)
 
         # Logs:
         if (batch_idx + 1) % config.neuron.log_interval == 0: 
@@ -109,8 +109,8 @@ def train(
 
             # Log weights.
             np.set_printoptions(precision=2, suppress=True, linewidth=500, sign=' ')
-            numpy_uids = np.array(session.metagraph.state.uids.tolist())
-            numpy_weights = np.array(session.metagraph.state.weights.tolist())
+            numpy_uids = np.array(session.metagraph.uids.tolist())
+            numpy_weights = np.array(session.metagraph.weights.tolist())
             numpy_stack = np.stack((numpy_uids, numpy_weights), axis=0)
             stack_str = colored(numpy_stack, 'green')
             logger.info('Weights: \n {}', stack_str)
@@ -186,7 +186,7 @@ def main(config: Munch, session: Session):
             model = model,
             session = session,
             config = config,
-            trainloader = testloader
+            testloader = testloader
         )
 
         # Save best model. 

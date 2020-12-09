@@ -86,20 +86,20 @@ class PKMDendrite():
 
         # all_uids: (torch.LongTensor): unique keys for each peer neuron.
         # all_uids.shape = [metagraph.n]
-        all_uids = self.session.metagraph.state.uids # Returns a list of neuron uids.
+        all_uids = self.session.metagraph.uids # Returns a list of neuron uids.
 
         # filtered_uids: (torch.LongTensor): keys filtered by emit.
         # all_uids.shape = [metagraph.n]
-        block = self.session.metagraph.state.block 
-        emit = self.session.metagraph.state.emit
-        staleness = (block - emit)
+        current_block = self.session.metagraph.block()
+        lastemit = self.session.metagraph.lastemit
+        staleness = (current_block - lastemit)
         filtered_uids = all_uids[torch.where(staleness < self.config.dendrite.stale_emit_filter)] 
         n_uids = torch.numel(filtered_uids)
 
         # Return if there are no uids to query
         if n_uids == 0:
             # Return nill responses.
-            n = self.session.metagraph.state.n
+            n = self.session.metagraph.n
             return torch.zeros(size=(inputs.shape[0], bittensor.__network_dim__)), torch.zeros(size=(inputs.shape[0], n)), torch.zeros(n)
 
         # keys: (torch.FloatTensor): unique trainable torch keys for each uid
@@ -155,7 +155,7 @@ class PKMDendrite():
         
         # neurons: List[bittensor_pb2.Neuron]: endpoint information for filtered keys.
         # neurons.shape = n_uids * [ bittensor_pb2.Neuron ]
-        neurons = self.session.metagraph.state.uids_to_neurons(filtered_uids)
+        neurons = self.session.metagraph.uids_to_neurons(filtered_uids)
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
@@ -204,11 +204,11 @@ class PKMDendrite():
 
         # indices: (torch.LongTensor): indices of uids repeated by batch size
         # indices = [batch_size, metagraph.state.n]
-        indices = self.session.metagraph.state.uids_to_indices(all_uids).repeat(batch_size, 1)
+        indices = self.session.metagraph.uids_to_indices(all_uids).repeat(batch_size, 1)
 
         # weights: (torch.LongTensor): weights scattered onto uids per example.
         # weights.shape = [batch_size, metagraph.state.n]
-        weights = torch.zeros(inputs.shape[0], self.session.metagraph.state.n)
+        weights = torch.zeros(inputs.shape[0], self.session.metagraph.n)
         weights.scatter_(1, indices, scores)
 
         # Return.
