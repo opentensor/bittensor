@@ -107,7 +107,7 @@ class BertSynapseBase (Synapse):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
 
                     requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
@@ -178,7 +178,7 @@ class BertSynapseBase (Synapse):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
 
                     requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
@@ -248,11 +248,14 @@ class BertSynapseBase (Synapse):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `optional`): 
-                        Keys for queried neurons.
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each active neuron.
 
-                    scores (:obj:`torch.LongTensor` of shape :obj:`(batch_size, len(keys))`, `optional`): 
-                        scores for each active key per example.
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
                 )
         """
         if targets is not None:
@@ -366,8 +369,14 @@ class BertNSPSynapse (BertSynapseBase):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
+
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
                 )
         """
         # Call forward method from bert base.
@@ -489,8 +498,14 @@ class BertMLMSynapse (BertSynapseBase):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
+
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
                 )
         """
         # Call forward method from bert base.
