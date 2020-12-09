@@ -204,7 +204,7 @@ class PKMDendrite():
 
         # indices: (torch.LongTensor): indices of uids repeated by batch size
         # indices = [batch_size, metagraph.state.n]
-        indices = self.session.metagraph.uids_to_indices(all_uids).repeat(batch_size, 1)
+        indices = self.session.metagraph.uids_to_indices(filtered_uids).repeat(batch_size, 1)
 
         # weights: (torch.LongTensor): weights scattered onto uids per example.
         # weights.shape = [batch_size, metagraph.state.n]
