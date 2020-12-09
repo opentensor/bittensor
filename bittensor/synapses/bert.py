@@ -1,5 +1,5 @@
 import bittensor
-from bittensor.utils.router import Router
+from bittensor.dendrites.pkm import PKMDendrite
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseOutput
 from bittensor.session import Session
@@ -38,9 +38,9 @@ class BertSynapseBase (Synapse):
                                             intermediate_size=bittensor.__network_dim__, 
                                             is_decoder=False)
 
-        # router: (PKM layer) queries network using pooled embeddings as context.
-        # [batch_size, bittensor.__network_dim__] -> topk * [batch_size, bittensor.__network_dim__]
-        self.router = Router(x_dim=bittensor.__network_dim__, key_dim=100, topk=10)
+        # dendrite: (PKM layer) queries network using pooled embeddings as context.
+        # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
+        self.dendrite = PKMDendrite(config, session, query_dim = bittensor.__network_dim__)
 
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -49,10 +49,6 @@ class BertSynapseBase (Synapse):
         # context_transformer: distills the remote_context from inputs
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
         self.context_transformer = BertModel(huggingface_config, add_pooling_layer=False)
-
-        # router: (PKM layer) queries network using pooled embeddings as context.
-        # [batch_size, bittensor.__network_dim__] -> topk * [batch_size, bittensor.__network_dim__]
-        self.router = Router(x_dim=bittensor.__network_dim__, key_dim=100, topk=10)
 
         # hidden_layer: transforms context and encoding to network_dim hidden units.
         # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -69,6 +65,7 @@ class BertSynapseBase (Synapse):
         parser.add_argument('--synapse.num_attention_heads', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
         parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
+        parser = PKMDendrite.add_args(parser)
         return parser
 
     def forward_text(self, inputs: torch.LongTensor):
@@ -84,64 +81,6 @@ class BertSynapseBase (Synapse):
         """
         hidden = self.forward(inputs=inputs, remote = False).local_hidden
         return hidden
-
-    def call_remote(self, inputs, context):
-        r""" Makes remote calls to neurons.
-
-            Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
-                    Batch_size length list of text sentences.
-
-                context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, transform_dim)`, `required`): 
-                    Per example tensor used to select which neuron to send each example to.
-            
-            Returns:
-                remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
-                    Joined context vector from remote peer neurons.
-
-                weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                    weights for each active neuron.
-        """
-
-        # uids: unique keys for peer neurons.
-        # uids.shape = [metagraph.n]
-        uids = self.session.metagraph.state.uids # Returns a list of neuron uids.
-       
-        # uids: uids with an emit call in the last 100 blocks.
-        # uids = [-1]
-        block = self.session.metagraph.state.block 
-        emit = self.session.metagraph.state.emit
-        staleness = (block - emit)
-        uids = uids[torch.where(staleness > self.config.synapse.n_block_filter)] 
-
-        # Return zeros if there are no remaining peer neurons.
-        if torch.numel(uids) == 0:
-            n = self.session.metagraph.state.n
-            remote_context = torch.zeros(size=(inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
-            weights = torch.zeros(size=(inputs.shape[0], n))
-            return remote_context, weights
-
-        # neurons: endpoint information for filtered keys.
-        # neurons.shape = [len(uids)]
-        neurons = self.session.metagraph.state.uids_to_neurons(uids)
-        
-        # request: inputs routeed to peers using context to filter topk.
-        # request.shape = neurons.size * [-1, sequence_dim, channels, rows, cols]
-        requests, weights = self.router.route( neurons, context, inputs) 
-
-        # responses: responses from neurons.
-        # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
-        responses = self.session.dendrite.forward_text( neurons, requests )
-
-        # remote_context: Responses weighted and joined along the __network_dim__.
-        # remote_context.shape = [batch_size, sequence_dim, bittensor.__network_dim__]
-        remote_context = self.router.join( responses )
-
-        # scatter weights back onto shape (bs, n)
-        indices = self.session.metagraph.state.uids_to_indices(uids).repeat(inputs.shape[0], 1)
-        filled_weights = torch.zeros(inputs.shape[0], self.session.metagraph.state.n)
-        filled_weights.scatter_(1, indices, weights)
-        return remote_context, filled_weights 
 
     def forward(self,
                 inputs: torch.LongTensor,
@@ -170,6 +109,15 @@ class BertSynapseBase (Synapse):
 
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
+
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+
+                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                        additional metadata output, specifically accuracy.
                 )
         """
         inputs = inputs.to(self.device)
@@ -207,10 +155,8 @@ class BertSynapseBase (Synapse):
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
-            encoding_outputs (:obj:`tuple(torch.FloatTensor)`, `optional`): 
-                    This tuple must consist of (last_hidden_state, optional: hidden_states, optional: attentions) 
-                    last_hidden_state (torch.FloatTensor of shape (batch_size, sequence_length, hidden_size)) 
-                    is a tensor of hidden-states at the output of the last layer of the encoder. Used in the cross-attention of the decoder.
+            encoding_pooled (:obj:`torch.FloatTensor` of shape (batch_size, bittensor.__network_dim__), `required`): 
+                    pooled hidden-states at the output of the last layer of the encoder.
            
             encoding_hidden (:obj:`torch.FloatTensor` of shape (batch_size, sequence_length, hidden_size), `optional`) :
                     Sequence of hidden-states at the output of the last layer of the encoder of the model.
@@ -234,12 +180,23 @@ class BertSynapseBase (Synapse):
 
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
+
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+
+                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                        additional metadata output, specifically accuracy.
                 )
         """
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        remote_context, weights = self.call_remote(inputs, encoding_pooled)
+        remote_context, weights, sizes, retops = self.dendrite.forward_text(text = inputs, query = encoding_pooled)
         output.weights = weights
+        output.request_sizes = sizes
+        output.retops = retops
         remote_context = remote_context.to(self.device)
 
         # distillation_loss: distillation loss between local_context and remote_context
@@ -340,17 +297,6 @@ class BertNSPSynapse (BertSynapseBase):
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = torch.nn.CrossEntropyLoss()
-  
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
-        r""" Add custom params to the parser.
-        """
-        parser.add_argument('--synapse.num_hidden_layers', default=2, type=int, 
-                            help='Number of hidden layers in the Transformer encoder.')
-        parser.add_argument('--synapse.num_attention_heads', default=2, type=int, 
-                            help='Number of attention heads for each attention layer in the Transformer encoder.')
-        parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
-        return parser
     
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the BERT NSP Synapse.
@@ -484,17 +430,6 @@ class BertMLMSynapse (BertSynapseBase):
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = torch.nn.CrossEntropyLoss()
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
-        r""" Add custom params to the parser.
-        """
-        parser.add_argument('--synapse.num_hidden_layers', default=2, type=int, 
-                            help='Number of hidden layers in the Transformer encoder.')
-        parser.add_argument('--synapse.num_attention_heads', default=2, type=int, 
-                            help='Number of attention heads for each attention layer in the Transformer encoder.')
-        parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
-        return parser
 
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the BERT NSP Synapse.

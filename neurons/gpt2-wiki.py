@@ -36,6 +36,8 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
                         help='Training batch size.')
     parser.add_argument('--neuron.batch_size_test', default=20, type=int, 
                         help='Testing batch size.')
+    parser.add_argument('--neuron.sync_interval', default=100, type=int, 
+                        help='Batches before we we sync with chain and emit new weights.')
     parser.add_argument('--neuron.name', default='mnist', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
     parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
     parser = GPT2LMSynapse.add_args(parser)
@@ -54,13 +56,13 @@ def train(model, config, session, optimizer, scheduler, dataset):
     step = 0
     best_loss = math.inf
     model.train()  # Turn on the train mode.
+    weights = None
     while True:
         optimizer.zero_grad() # Clear gradients.
 
-        # Emit and sync.
-        if (session.metagraph.block() - session.metagraph.state.block) > 15:
-            session.metagraph.emit()
-            session.metagraph.sync()
+        # Sync with chain.
+        if batch_idx % config.neuron.sync_interval == 0:
+            weights = session.metagraph.sync(weights)
 
         # Next batch.
         inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__)
@@ -74,12 +76,11 @@ def train(model, config, session, optimizer, scheduler, dataset):
         scheduler.step()
 
         # Update weights.
-        state_weights = session.metagraph.state.weights
-        learned_weights = F.softmax(torch.mean(output.weights, axis=0))
-        state_weights = (1 - 0.05) * state_weights + 0.05 * learned_weights
-        norm_state_weights = F.softmax(state_weights)
-        session.metagraph.state.set_weights( norm_state_weights )
+        batch_weights = F.softmax(torch.mean(output.weights, axis=0)) # Softmax weights.
+        weights = (1 - 0.05) * weights + 0.05 * batch_weights # Moving Avg
+        weights = weights / torch.sum(weights) # Normalize.
         
+        # Log.
         step += 1
         logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
             step, output.loss.item(), output.remote_target_loss.item(), output.distillation_loss.item()))
