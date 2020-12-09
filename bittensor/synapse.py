@@ -8,6 +8,7 @@ from typing import List, Tuple, Dict, Optional, TYPE_CHECKING
 
 import bittensor
 from bittensor import bittensor_pb2
+from bittensor.exceptions.handlers import rollbar
 
 class SynapseOutput(object):
     """ Synapse output container.
@@ -169,6 +170,7 @@ class Synapse(nn.Module):
             except NotImplementedError:
                 # Input modality not implemented.
                 # Returns None.
+                rollbar.send_exception()
                 return None
             except Exception as e:
                 logger.error(e)

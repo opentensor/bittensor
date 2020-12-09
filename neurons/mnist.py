@@ -150,7 +150,7 @@ def test (
     session.tbwriter.write_accuracy('test accuracy', accuracy)
     return loss, accuracy
 
-def main(config: Munch, session: Session): 
+def main(config: Munch, session: Session):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Build local synapse to serve on the network.
     model = FFNNSynapse(config, session)

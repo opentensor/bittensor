@@ -11,9 +11,9 @@ from bittensor.metagraph import Metagraph
 from bittensor.utils.asyncio import Asyncio
 from bittensor.subtensor import Keypair
 from bittensor.metadata import Metadata
+from bittensor.exceptions.handlers import rollbar
 from loguru import logger
 import asyncio
-
 
 class FailedConnectToChain(Exception):
     pass
@@ -58,6 +58,8 @@ class Session:
         self.axon.serve(synapse)
 
     def __enter__(self):
+        rollbar.init() # If a rollbar token is present, this will enable error reporting to rollbar
+
         logger.info('session enter')
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
@@ -74,12 +76,13 @@ class Session:
 
         Returns:
             Session: present instance of session.
-        """        
+        """
         logger.info('session exit')
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         loop.run_until_complete(self.stop())
         if exc_value:
+
             top_stack = StringIO()
             tb.print_stack(file=top_stack)
             top_lines = top_stack.getvalue().strip('\n').split('\n')[:-4]
@@ -95,6 +98,10 @@ class Session:
             full_stack.close()
             # Log the combined stack
             logger.error('Exception:{}'.format(sinfo))
+
+            if rollbar.is_enabled():
+                rollbar.send_exception()
+
         return self
 
     async def start(self):

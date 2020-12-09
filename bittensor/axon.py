@@ -16,6 +16,7 @@ from bittensor import bittensor_pb2
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor.serializer import PyTorchSerializer
 from bittensor.exceptions.Exceptions import DeserializationException, InvalidRequestException, RequestShapeException, SerializationException, NonExistentSynapseException
+from bittensor.exceptions.handlers import rollbar
 
 def obtain_ip(config: Munch) -> Munch:
     if config.axon.remote_ip != None:
@@ -93,6 +94,7 @@ class Axon(bittensor_grpc.BittensorServicer):
             self.stop()
         except Exception as e:
             logger.error(e)
+
 
     def stop(self):
         r""" Stop the axon grpc server.
@@ -196,7 +198,8 @@ class Axon(bittensor_grpc.BittensorServicer):
                 try:
                     x = PyTorchSerializer.deserialize(request.tensors[0])
                     dy = PyTorchSerializer.deserialize(request.tensors[1])
-                except DeserializationException as _: 
+                except DeserializationException as _:
+                    rollbar.send_exception()
                     raise DeserializationException("Failed to deserialize {} and {}".format(request.tensors[0], request.tensors[1]))
                 
                 try:
@@ -208,8 +211,10 @@ class Axon(bittensor_grpc.BittensorServicer):
                         tensors=[dx_serialized])
 
                 except SerializationException as _:
+                    rollbar.send_exception()
                     raise SerializationException("Failed to serialize.")
                 except NotImplementedError as _:
+                    rollbar.send_exception()
                     raise NotImplementedError("call_backward is not implemented for this synapse")
 
 

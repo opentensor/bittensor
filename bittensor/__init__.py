@@ -3,6 +3,7 @@ import os
 import sys
 from bittensor.subtensor import Keypair
 from transformers import GPT2Tokenizer
+import bittensor.exceptions.handlers.rollbar as rollbar
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -34,4 +35,3 @@ def init(config: Config, keypair: Keypair):
     global session
     session = Session(config, keypair)
     return session
-
