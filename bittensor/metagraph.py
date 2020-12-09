@@ -16,6 +16,8 @@ from bittensor import bittensor_pb2
 from bittensor.subtensor import WSClient
 from typing import List, Tuple, List
 
+from bittensor.exceptions.handlers import rollbar
+
 def int_to_ip(int_val):
     return str(netaddr.IPAddress(int_val))
  
@@ -37,7 +39,7 @@ class ChainState():
         self.index_for_uid = {}
         self.index_for_pubkey = {}
         self.pubkey_for_index = {}
-    
+
     def add_or_update(self, pubkey:str, ip: int, port: int, lastemit: int, stake: int, w_keys: List[str], w_vals: List[int]):
         neuron = bittensor_pb2.Neuron(
             version=bittensor.__version__,
@@ -130,7 +132,7 @@ class TorchChainState():
         return state
 
 class Metagraph():
- 
+
     def __init__(self, config, keypair):
         r"""Initializes a new Metagraph subtensor interface.
         Args:
@@ -139,7 +141,7 @@ class Metagraph():
             keypair (substrateinterface.Keypair):
                 An bittensor keys object.
         """
-        # Protected vars 
+        # Protected vars
         self._config = config
         self.__keypair = keypair
 
@@ -169,7 +171,7 @@ class Metagraph():
     @property
     def n(self) -> int:
         r""" Return the number of known neurons on chain.
-        Returns 
+        Returns
             n: (int):
                 number of known neurons.
         """
@@ -178,7 +180,7 @@ class Metagraph():
     @property
     def block(self) -> int:
         r""" Return the block number when the chain state was updated.
-        Returns 
+        Returns
             block: (int):
                 local chain state block number.
         """
@@ -187,7 +189,7 @@ class Metagraph():
     @property
     def lastemit(self) -> torch.LongTensor:
         r""" Returns the last emit time for each known neuron.
-        Returns 
+        Returns
             lastemit: (int):
                 last emit time.
         """
@@ -196,7 +198,7 @@ class Metagraph():
     @property
     def indices(self) -> torch.LongTensor:
         r""" Return the indices of each neuron in the chain state range(n).
-        Returns 
+        Returns
             indices: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
                 returned indices for each neuron.
         """
@@ -205,7 +207,7 @@ class Metagraph():
     @property
     def uids(self) -> torch.LongTensor:
         r""" Returns unique ids for each neuron in the chain state.
-        Returns 
+        Returns
             uids: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
                 unique id for each neuron.
         """
@@ -214,7 +216,7 @@ class Metagraph():
     @property
     def stake(self) -> torch.LongTensor:
         r""" Returns the stake held by each known neuron.
-        Returns 
+        Returns
             stake: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
                 stake of each known neuron.
         """
@@ -223,7 +225,7 @@ class Metagraph():
     @property
     def W(self) -> torch.FloatTensor:
         r""" Full chain weight matrix for each neuron.
-        Returns 
+        Returns
             W: (:obj:`torch.LongFloat` of shape :obj:`(n, n)`):
                 w_ij of each neuron.
         """
@@ -232,7 +234,7 @@ class Metagraph():
     @property
     def neurons(self) -> List[bittensor_pb2.Neuron]:
         r""" Return neuron endpoint information for each neuron.
-        Returns 
+        Returns
             neurons: (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(n, n)`):
                 endpoint information for each neuron.
         """
@@ -311,6 +313,7 @@ class Metagraph():
             block: (int) block number on chain.
         """
         loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_block())
 
     async def async_block(self) -> int:
@@ -326,6 +329,7 @@ class Metagraph():
             subscribed: (bool): true if the subscription is a success.
         """
         loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_subscribe(timeout))
 
     async def async_subscribe (self, timeout) -> bool:
@@ -340,6 +344,7 @@ class Metagraph():
         r""" Syncronous: Unsubscribes the local neuron from the chain.
          """
         loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_unsubscribe())  
 
     async def async_unsubscribe (self):
@@ -354,6 +359,7 @@ class Metagraph():
             connected: (bool): true if the connection is a success.
         """
         loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_connect())
 
     async def async_connect(self) -> bool:
@@ -372,9 +378,10 @@ class Metagraph():
                 weights to set on chain of length self.state.n
         """
         loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
         loop.run_until_complete(self.async_emit(weights))
 
-    async def async_emit(self, weights: torch.FloatTensor) -> bool: 
+    async def async_emit(self, weights: torch.FloatTensor) -> bool:
         r""" Emits the passed weights to the chain. Waits for inclusion.
         Args:
             weights: (torch.FloatTensor): 
@@ -403,7 +410,7 @@ class Metagraph():
         try:
             await self.subtensor_client.set_weights(keys, vals, self.__keypair, wait_for_inclusion = False)
         except Exception as e:
-            logger.info('Failed to emit weights with error {}, and weights {}', e, list(zip(keys, vals)))
+            logger.warning('Failed to emit weights with error {}, and weights {}', e, list(zip(keys, vals)))
             return False
 
         # Checks that weight emission was included in a block after 12 seconds.
@@ -416,22 +423,23 @@ class Metagraph():
         r""" Synchronizes the local self.state with the chain state, sinking the trained weights and pulling 
         info from other peers. Ensures the self.state is in accordance with the state on chain at this block.
             Args:
-                weights: (torch.FloatTensor): 
+                weights: (torch.FloatTensor):
                     weights to set on chain.
             Returns:
-                weights: (torch.FloatTensor): 
+                weights: (torch.FloatTensor):
                     weights on chain.
         """
         loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_sync(weights))
 
     async def async_sync(self, weights: torch.FloatTensor) -> torch.FloatTensor:
         r""" Async: Synchronizes the local self.state with the chain state by polling the chain.
             Args:
-                weights: (torch.FloatTensor): 
+                weights: (torch.FloatTensor):
                     weights to set on chain.
             Returns:
-                weights: (torch.FloatTensor): 
+                weights: (torch.FloatTensor):
                     weights on chain.
         """
         if weights != None:
