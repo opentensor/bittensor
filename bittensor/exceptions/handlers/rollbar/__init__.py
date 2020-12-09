@@ -53,6 +53,9 @@ def __get_extra_data(context):
     return extra_data
 
 def send_exception(info = None, extra_data = None):
+    if not is_enabled():
+        return
+    
     logger.info("Sending exception to rollbar")
     rollbar.report_exc_info(exc_info=info, extra_data=extra_data)
     set_runtime_status("ERR")
