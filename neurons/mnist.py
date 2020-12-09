@@ -19,7 +19,7 @@ from loguru import logger
 
 import bittensor
 from bittensor import Session
-from bittensor.utils.logging import log_outputs, log_batch_weights
+from bittensor.utils.logging import log_outputs, log_batch_weights, log_chain_weights
 from bittensor.subtensor import Keypair
 from bittensor.config import Config
 from bittensor.synapse import Synapse
@@ -100,6 +100,7 @@ def train(
                         colored('{:.2f}%'.format(progress), 'green'))
             log_outputs(history)
             log_batch_weights(session, history)
+            log_chain_weights(session)
             history = []
 
 def test ( 

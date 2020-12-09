@@ -14,6 +14,22 @@ pd.set_option('display.width', 1000)
 pd.set_option('display.precision', 2)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
+def log_chain_weights(session: Session):
+    print ('Weights: \n ')
+    if session.metagraph.uids != None and session.metagraph.weights != None:
+        uids = session.metagraph.uids.tolist()
+        weights = session.metagraph.weights.tolist()
+        weights, uids  = zip(*sorted(zip(weights, uids), reverse=True))
+        df = pd.DataFrame([weights], columns=uids)
+        df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
+        max_val = df.max(numeric_only=True, axis=1)
+        min_val = df.min(numeric_only=True, axis=1)
+        total = df.sum(numeric_only=True, axis=1)
+        df.loc[:,'Min'] = min_val
+        df.loc[:,'Max'] = max_val
+        df.loc[:,'Total'] = total
+        print (df)
+    print('\n')
 
 def log_batch_weights(session: Session, history: List[bittensor.synapse.SynapseOutput]):
     print ('Batch Weights: \n ')
