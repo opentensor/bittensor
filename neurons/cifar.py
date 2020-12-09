@@ -22,6 +22,7 @@ from loguru import logger
 
 import bittensor
 from bittensor import Session
+from bittensor.utils.logging import log_outputs
 from bittensor.subtensor import Keypair
 from bittensor.config import Config
 from bittensor.synapse import Synapse
@@ -68,6 +69,7 @@ def train(
 
     model.train() # Turn on Dropoutlayers BatchNorm etc.
     weights = None
+    history = []
     for batch_idx, (images, targets) in enumerate(trainloader):
         optimizer.zero_grad() # Clear gradients.
 
@@ -77,14 +79,15 @@ def train(
                         
         # Forward pass.
         output = model(images.to(model.device), torch.LongTensor(targets).to(model.device), remote = True)
-        
+        history.append(output)
+
         # Backprop.
         loss = output.remote_target_loss + output.distillation_loss
         loss.backward()
         optimizer.step()
 
         # Update weights.
-        batch_weights = F.softmax(torch.mean(output.weights, axis=0)) # Softmax weights.
+        batch_weights = F.softmax(torch.mean(output.weights, axis=0), dim=0) # Softmax weights.
         weights = (1 - 0.05) * weights + 0.05 * batch_weights # Moving Avg
         weights = weights / torch.sum(weights) # Normalize.
 
@@ -98,6 +101,8 @@ def train(
                         colored('{}'.format(processed), 'green'), 
                         colored('{}'.format(total_examples), 'red'),
                         colored('{:.2f}%'.format(progress), 'green'))
+            log_outputs(history)
+            history = []
 
 def test ( 
     epoch: int,
