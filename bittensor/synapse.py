@@ -50,6 +50,7 @@ class SynapseOutput(object):
                 remote_target_loss: torch.Tensor = None,
                 distillation_loss: torch.Tensor = None,
                 weights: torch.Tensor = None,
+                metadata: dict = None
         ):
         self.loss = loss
         self.local_hidden = local_hidden
@@ -60,7 +61,10 @@ class SynapseOutput(object):
         self.remote_target_loss = remote_target_loss
         self.distillation_loss = distillation_loss
         self.weights = weights
-
+        if metadata == None:
+            self.metadata = {}
+        else:
+            self.metadata = metadata
 
 class Synapse(nn.Module):
     """ Bittensor synapse class. 
@@ -106,7 +110,7 @@ class Synapse(nn.Module):
         synapse_copy.load_state_dict(self.state_dict())
         return synapse_copy
 
-    def forward_text(self, inputs: torch.Tensor):
+    def forward_text(self, inputs: torch.Tensor) -> SynapseOutput:
         """ Local forward inputs through the bittensor.Synapse. To be implemented by sub-classes.
 
             Args:
@@ -119,7 +123,7 @@ class Synapse(nn.Module):
         """
         raise NotImplementedError
 
-    def forward_image(self, inputs: torch.Tensor):
+    def forward_image(self, inputs: torch.Tensor) -> SynapseOutput:
         r""" Forward pass inputs through the bittensor.synapse. To be implemented by sub-classes.
 
             Args:
@@ -133,7 +137,7 @@ class Synapse(nn.Module):
         """
         raise NotImplementedError
 
-    def forward_tensor(self, inputs: torch.Tensor):
+    def forward_tensor(self, inputs: torch.Tensor) -> SynapseOutput:
         """ Forward tensor inputs through the bittensor.synapse. To be implemented by sub-classes.
 
             Args:

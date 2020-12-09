@@ -1,5 +1,5 @@
 import bittensor
-from bittensor.utils.router import Router
+from bittensor.dendrites.pkm import PKMDendrite
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseOutput
 from bittensor.session import Session
@@ -95,9 +95,9 @@ class GPT2LMSynapse(Synapse):
         # [batch_size, bittensor.__network_dim__, sequence_len] -> [batch_size, bittensor.__network_dim__]
         self.pooler = GPT2Pooler(huggingface_config)
 
-        # router: (PKM layer) queries network using pooled embeddings as context.
+        # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, bittensor.__network_dim__] -> topk * [batch_size, bittensor.__network_dim__]
-        self.router = Router(x_dim=bittensor.__network_dim__, key_dim=100, topk=10)
+        self.dendrite = PKMDendrite(config, session, query_dim = bittensor.__network_dim__)
 
         # context_transformer: distills the remote_context from inputs
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -115,6 +115,7 @@ class GPT2LMSynapse(Synapse):
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = torch.nn.CrossEntropyLoss()
         self.to(self.device)
+    
     @staticmethod
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
         r""" Add custom params to the parser.
@@ -150,6 +151,7 @@ class GPT2LMSynapse(Synapse):
         parser.add_argument('--synapse.summary_first_dropout', default=0.1, type=float, 
                             help='The dropout ratio to be used after the projection and activation.')
         parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
+        parser = PKMDendrite.add_args(parser)
         return parser
 
     def forward_text(self, inputs: torch.LongTensor):
@@ -165,64 +167,6 @@ class GPT2LMSynapse(Synapse):
         """
         hidden = self.forward(inputs=inputs.to(self.device), training = False, remote = False).local_hidden
         return hidden
-
-    def call_remote(self, inputs, context):
-        r""" Makes remote calls to neurons.
-
-            Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
-                    Batch_size length list of text sentences.
-
-                context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, transform_dim)`, `required`): 
-                    Per example tensor used to select which neuron to send each example to.
-            
-            Returns:
-                remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
-                    Joined context vector from remote peer neurons.
-
-                weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                    weights for each active neuron.
-        """
-
-        # uids: unique keys for peer neurons.
-        # uids.shape = [metagraph.n]
-        uids = self.session.metagraph.state.uids # Returns a list of neuron uids.
-       
-        # uids: uids with an emit call in the last 100 blocks.
-        # uids = [-1]
-        block = self.session.metagraph.state.block 
-        emit = self.session.metagraph.state.emit
-        staleness = (block - emit)
-        uids = uids[torch.where(staleness > self.config.synapse.n_block_filter)] 
-
-        # Return zeros if there are no remaining peer neurons.
-        if torch.numel(uids) == 0:
-            n = self.session.metagraph.state.n
-            remote_context = torch.zeros(size=(inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
-            weights = torch.zeros(size=(inputs.shape[0], n))
-            return remote_context, weights
-
-        # neurons: endpoint information for filtered keys.
-        # neurons.shape = [len(uids)]
-        neurons = self.session.metagraph.state.uids_to_neurons(uids)
-        
-        # request: inputs routeed to peers using context to filter topk.
-        # request.shape = neurons.size * [-1, sequence_dim, channels, rows, cols]
-        requests, weights = self.router.route( neurons, context, inputs ) 
-
-        # responses: responses from neurons.
-        # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
-        responses = self.session.dendrite.forward_text( neurons, requests )
-
-        # remote_context: Responses weighted and joined along the __network_dim__.
-        # remote_context.shape = [batch_size, sequence_dim, bittensor.__network_dim__]
-        remote_context = self.router.join( responses )
-
-        # scatter weights back onto shape (bs, n)
-        indices = self.session.metagraph.state.uids_to_indices(uids).repeat(inputs.shape[0], 1)
-        filled_weights = torch.zeros(inputs.shape[0], self.session.metagraph.state.n)
-        filled_weights.scatter_(1, indices, weights)
-        return remote_context, filled_weights 
 
     def forward(self, 
                 inputs: torch.LongTensor, 
@@ -267,6 +211,15 @@ class GPT2LMSynapse(Synapse):
 
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
+                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                        additional metadata output, specifically accuracy.
                 )
         """
 
@@ -361,13 +314,23 @@ class GPT2LMSynapse(Synapse):
 
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
+                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                        additional metadata output, specifically accuracy.
                 )
         """
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-
-        remote_context, weights = self.call_remote(inputs, pooled)
+        remote_context, weights, sizes, retops = self.dendrite.forward_text(inputs, pooled)
         output.weights = weights
+        output.retops = retops
+        output.request_sizes = sizes 
         remote_context = remote_context.to(self.device)
 
         # distillation_loss: distillation loss between local_context and remote_context
