@@ -9,7 +9,7 @@ Example:
 import bittensor
 from bittensor.subtensor import Keypair
 from bittensor.session import Session
-from bittensor.utils.logging import log_outputs
+from bittensor.utils.logging import log_outputs, log_batch_weights
 from bittensor.config import Config
 from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
 
@@ -88,6 +88,7 @@ def train(model, config, session, optimizer, scheduler, dataset):
         logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
             step, output.loss.item(), output.remote_target_loss.item(), output.distillation_loss.item()))
         log_outputs(history)
+        log_batch_weights(session, history)
         history = []
 
     # After each epoch, checkpoint the losses and re-serve the network.
