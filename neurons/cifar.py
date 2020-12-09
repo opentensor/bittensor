@@ -40,6 +40,8 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
                         help='Testing batch size.')
     parser.add_argument('--neuron.log_interval', default=10, type=int, 
                         help='Batches until neuron prints log statements.')
+    parser.add_argument('--neuron.sync_interval', default=100, type=int, 
+                        help='Batches before we we sync with chain and emit new weights.')
     parser.add_argument('--neuron.name', default='cifar', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
     parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
     parser = DPNSynapse.add_args(parser)
@@ -65,13 +67,13 @@ def train(
     trainloader: torch.utils.data.DataLoader):
 
     model.train() # Turn on Dropoutlayers BatchNorm etc.
+    weights = None
     for batch_idx, (images, targets) in enumerate(trainloader):
         optimizer.zero_grad() # Clear gradients.
 
-        # Emit and sync.
-        if (session.metagraph.block() - session.metagraph.state.block) > 15:
-            session.metagraph.emit()
-            session.metagraph.sync()
+        # Sync with chain.
+        if batch_idx % config.neuron.sync_interval == 0:
+            weights = session.metagraph.sync(weights)
                         
         # Forward pass.
         output = model(images.to(model.device), torch.LongTensor(targets).to(model.device), remote = True)
@@ -82,11 +84,9 @@ def train(
         optimizer.step()
 
         # Update weights.
-        state_weights = session.metagraph.state.weights
-        learned_weights = F.softmax(torch.mean(output.weights, axis=0))
-        state_weights = (1 - 0.05) * state_weights + 0.05 * learned_weights
-        norm_state_weights = F.softmax(state_weights)
-        session.metagraph.state.set_weights( norm_state_weights )
+        batch_weights = F.softmax(torch.mean(output.weights, axis=0)) # Softmax weights.
+        weights = (1 - 0.05) * weights + 0.05 * batch_weights # Moving Avg
+        weights = weights / torch.sum(weights) # Normalize.
 
         # Logs:
         if (batch_idx + 1) % config.neuron.log_interval == 0: 
