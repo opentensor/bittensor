@@ -24,6 +24,51 @@ def int_to_ip(int_val):
 def ip_to_int(str_val):
     return int(netaddr.IPAddress(str_val))
 
+class ChainState():
+    def __init__(self):
+        # Cached values.
+        self.n = 0
+        self.next_uid = 0
+        self.uids = []
+        self.stake = []
+        self.lastemit = []
+        self.neuron_weights = []
+        self.weight_pubkeys = []
+        self.weight_vals = []
+        self.neurons = []
+        self.index_for_uid = {}
+        self.index_for_pubkey = {}
+        self.pubkey_for_index = {}
+
+    def add_or_update(self, pubkey:str, ip: int, port: int, lastemit: int, stake: int, w_keys: List[str], w_vals: List[int]):
+        neuron = bittensor_pb2.Neuron(
+            version=bittensor.__version__,
+            public_key=pubkey,
+            address=int_to_ip(ip),
+            port=int(port)
+        )
+        if pubkey in self.index_for_pubkey:
+            index = self.index_for_pubkey[pubkey]
+            self.neurons[index] = neuron
+            self.stake[index] = int(stake)
+            self.lastemit[index] = int(lastemit)
+            self.weight_pubkeys[index] = list(w_keys)
+            self.weight_vals[index] = list(w_vals)
+        else:
+            index = self.n
+            uid = self.next_uid
+            self.n += 1
+            self.next_uid += 1
+            self.index_for_pubkey[pubkey] = index
+            self.pubkey_for_index[index] = pubkey
+            self.neurons.append(neuron)
+            self.stake.append(int(stake))
+            self.lastemit.append(int(lastemit))
+            self.weight_pubkeys.append(list(w_keys))
+            self.weight_vals.append(list(w_vals))
+            self.uids.append( uid )
+            self.index_for_uid[uid] = index
+
 # Static network state object.
 class TorchChainState():
     r""" Maintains the chain state as a torch object.
@@ -39,7 +84,7 @@ class TorchChainState():
             stake: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
                 Stake balance for each neuron ordered by index.
                 
-            emit: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+            lastemit: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
                 Last emission call for each neuron ordered by index.
 
             weights: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
@@ -58,9 +103,129 @@ class TorchChainState():
         self.uids = torch.tensor([])
         self.indices = torch.tensor([])
         self.stake = torch.tensor([])
-        self.emit = torch.tensor([])
+        self.lastemit = torch.tensor([])
         self.W = torch.tensor([[]])
         self.neurons = []
+
+    @staticmethod
+    def from_cache(cache: ChainState):
+        r""" Deep copies from the chain state.
+        """
+        # Deep copies chain state into metagraph state.
+        state = TorchChainState()
+        state.n = cache.n
+        state.neurons = copy.deepcopy(cache.neurons)
+        state.indices = torch.tensor(range(state.n), dtype=torch.int64)
+        state.uids = torch.tensor(copy.deepcopy(cache.uids), dtype=torch.int64)
+        state.lastemit = torch.tensor(copy.deepcopy(cache.lastemit), dtype=torch.int64)
+        state.state = torch.tensor(copy.deepcopy(cache.stake), dtype=torch.int64)
+        weights_numpy = numpy.zeros( (state.n, state.n) )
+        for i in range(state.n):
+            keys = cache.weight_pubkeys[i]
+            vals = cache.weight_vals[i]
+            val_sum = sum(vals)
+            for k, val in list(zip(keys, vals)):
+                if k in cache.index_for_pubkey:
+                    j = cache.index_for_pubkey[k]
+                    weights_numpy[i, j] = float(val) / float(val_sum)
+        state.W = torch.tensor(weights_numpy, dtype=torch.float32)
+        return state
+
+class Metagraph():
+
+    def __init__(self, config, keypair):
+        r"""Initializes a new Metagraph subtensor interface.
+        Args:
+            config (bittensor.Config):
+                An bittensor config object.
+            keypair (substrateinterface.Keypair):
+                An bittensor keys object.
+        """
+        # Protected vars
+        self._config = config
+        self.__keypair = keypair
+
+        # Client for talking to chain.
+        self.subtensor_client = WSClient(self._config.metagraph.chain_endpoint, self.__keypair)
+
+        # Chain state cached before converted into the torch state.
+        self.cache = ChainState()
+
+        # Chain state as torch values.
+        self.state = TorchChainState.from_cache(self.cache)
+
+
+    @property
+    def n(self) -> int:
+        r""" Return the number of known neurons on chain.
+        Returns
+            n: (int):
+                number of known neurons.
+        """
+        return self.state.n
+
+    @property
+    def block(self) -> int:
+        r""" Return the block number when the chain state was updated.
+        Returns
+            block: (int):
+                local chain state block number.
+        """
+        return self.state.block
+
+    @property
+    def lastemit(self) -> torch.LongTensor:
+        r""" Returns the last emit time for each known neuron.
+        Returns
+            lastemit: (int):
+                last emit time.
+        """
+        return self.state.lastemit
+
+    @property
+    def indices(self) -> torch.LongTensor:
+        r""" Return the indices of each neuron in the chain state range(n).
+        Returns
+            indices: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+                returned indices for each neuron.
+        """
+        return self.state.indices
+
+    @property
+    def uids(self) -> torch.LongTensor:
+        r""" Returns unique ids for each neuron in the chain state.
+        Returns
+            uids: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+                unique id for each neuron.
+        """
+        return self.state.uids
+
+    @property
+    def stake(self) -> torch.LongTensor:
+        r""" Returns the stake held by each known neuron.
+        Returns
+            stake: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+                stake of each known neuron.
+        """
+        return self.state.stake
+
+    @property
+    def W(self) -> torch.FloatTensor:
+        r""" Full chain weight matrix for each neuron.
+        Returns
+            W: (:obj:`torch.LongFloat` of shape :obj:`(n, n)`):
+                w_ij of each neuron.
+        """
+        return self.state.W
+
+    @property
+    def neurons(self) -> List[bittensor_pb2.Neuron]:
+        r""" Return neuron endpoint information for each neuron.
+        Returns
+            neurons: (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(n, n)`):
+                endpoint information for each neuron.
+        """
+        return self.state.neurons
 
     @property
     def weights(self):
@@ -69,21 +234,11 @@ class TorchChainState():
             weights: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
                 returned indices for passed uids.
         """
-        if self.n == 0:
+        if self.state.n == 0:
             return torch.Tensor([])
         else:
-            w_0 = self.W[0,:]
+            w_0 = self.state.W[0,:]
             return w_0
-
-    def set_weights(self, weights):
-        r"""Sets this neurons weights. W[0,:]
-        Args: 
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
-                weights to set in positions W[0,:]
-        """
-        if len(weights.tolist()) != self.n:
-            raise ValueError('Trying to set weights with vector of incorrect length, got {}, require {}'.format(len(weights.tolist()),self.n))
-        self.W[0,:] = weights
 
     def uids_to_indices(self, uids: torch.Tensor):
         r"""Return the indices of passed uids
@@ -94,9 +249,9 @@ class TorchChainState():
             indices: (:obj:`torch.LongTensor` of shape :obj:`(-1)`):
                 returned indices for passed uids.
         """
-        indices = torch.nonzero(uids[..., None] == self.uids)[:,1]
+        indices = torch.nonzero(uids[..., None] == self.state.uids)[:,1]
         if torch.numel(uids) != torch.numel(indices):
-            raise ValueError('Passed uids are not a subset of class.uids, with passed: {} and class.uids: {}'.format(uids, self.uids))
+            raise ValueError('Passed uids are not a subset of class.uids, with passed: {} and class.uids: {}'.format(uids, self.state.uids))
         return indices
 
     def uids_to_neurons(self, uids: torch.Tensor) -> List[bittensor_pb2.Neuron]:
@@ -111,55 +266,37 @@ class TorchChainState():
         response = []
         indices = self.uids_to_indices(uids)
         for idx in indices.tolist():
-            response.append(self.neurons[idx])
+            response.append(self.state.neurons[idx])
         return response
 
-class Metagraph():
- 
-    def __init__(self, config, keypair):
-        r"""Initializes a new Metagraph subtensor interface.
-        Args:
-            config (bittensor.Config):
-                An bittensor config object.
-            keypair (substrateinterface.Keypair):
-                An bittensor keys object.
+    def chain_weights(self) -> torch.FloatTensor:
+        r""" Returns your current weights from the chain.
+        Returns:
+            weights: (torch.Tensor) weights on chain as torch tensor.
         """
-        # Protected vars 
-        self._config = config
-        self.__keypair = keypair
+        def handle_async_exception(loop, ctx):
+            logger.error("Exception in async task: {0}".format(ctx['exception']))
+        loop = asyncio.get_event_loop()
+        loop.set_exception_handler(handle_async_exception)
+        loop.set_debug(enabled=True)
+        return loop.run_until_complete(self.async_chain_weights())
 
-        # Client for talking to chain.
-        self.subtensor_client = WSClient(self._config.metagraph.chain_endpoint, self.__keypair)
-
-        # Self neuron.
-        ipstr = int_to_ip(self._config.axon.remote_ip)
-        port = int(self._config.axon.port)
-        self._neuron = bittensor_pb2.Neuron(
-                version=bittensor.__version__,
-                public_key=self.__keypair.public_key,
-                address=ipstr,
-                port=port
-        )
-
-        # Keeps track of the last block we preformed a sync
-        self.last_sync = 0
-
-        # Cached values.
-        self._n = 1
-        self._next_uid = 1
-        self._uids = [0]
-        self._stake = [0]
-        self._emit = [0]
-        self._neuron_weights = [1]
-        self._weight_pubkeys = [[self._neuron.public_key]]
-        self._weight_vals = [[1]]
-        self._neurons = [self._neuron]
-        self._index_for_uid = {0: 0}
-        self._index_for_pubkey = {self._neuron.public_key: 0}
-        self._pubkey_for_index = {0: self._neuron.public_key}
-
-        # Turn initial cache into TorchChainState.
-        self.state = self._cache_to_state()
+    async def async_chain_weights(self) -> torch.FloatTensor:
+        r""" Async: returns your current weights from the chain.
+        Returns:
+            weights: (torch.FloatTensor) weights on chain for each neuron.
+        """
+        chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
+        chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
+        val_sum = sum(chain_vals)
+        retval = torch.zeros(self._n)
+        for key, val in list(zip(chain_keys, chain_vals)):
+            idx = self._index_for_pubkey[key]
+            if idx >= self._n:
+                continue
+            else:
+                retval[idx] = float(val) / float(val_sum)
+        return retval
 
     def block(self):
         r""" Returns the current block on the chain.
@@ -237,15 +374,12 @@ class Metagraph():
         connected = await self.subtensor_client.is_connected()
         return connected        
 
-    def emit(self, weights: torch.FloatTensor = None):
+    def emit(self, weights: torch.FloatTensor):
         r""" Emits the passed weights to the chain. Waits for inclusion.
         Args:
             weights: (torch.FloatTensor): 
                 weights to set on chain of length self.state.n
         """
-        if weights == None:
-            weights = self.state.weights
-
         # TODO(const): this repeat code can be abstracted.
         # def handle_async_exception(loop, ctx):
         #     logger.error("Exception in async task: {0}".format(ctx['exception']))
@@ -254,18 +388,15 @@ class Metagraph():
         loop.set_debug(enabled=True)
         loop.run_until_complete(self.async_emit(weights))
 
-    async def async_emit(self, weights: torch.FloatTensor = None) -> bool: 
+    async def async_emit(self, weights: torch.FloatTensor) -> bool:
         r""" Emits the passed weights to the chain. Waits for inclusion.
         Args:
             weights: (torch.FloatTensor): 
-                weights to set on chain. Defaults to those in self.state.weights().
+                weights to set on chain.
         Return:
             included: (bool) true is the weights were set on chain.
         """
-        # Set weights to those in self.state if not explicit.
-        if weights == None:
-            weights = self.state.weights
-
+        logger.info('Emit -> {}', weights)
         # Check that weights meet chain requirements.
         # #TODO(const) check with current weights.
         if not self._check_weights(weights):
@@ -297,23 +428,39 @@ class Metagraph():
             return False
         return True
 
-    def sync(self):
+    def sync(self, weights: torch.FloatTensor) -> torch.FloatTensor:
         r""" Synchronizes the local self.state with the chain state, sinking the trained weights and pulling 
         info from other peers. Ensures the self.state is in accordance with the state on chain at this block.
+            Args:
+                weights: (torch.FloatTensor):
+                    weights to set on chain.
+            Returns:
+                weights: (torch.FloatTensor):
+                    weights on chain.
         """
         # def handle_async_exception(loop, ctx):
         #     logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
         # loop.set_exception_handler(handle_async_exception)
         loop.set_debug(enabled=True)
-        loop.run_until_complete(self.async_sync())
+        return loop.run_until_complete(self.async_sync(weights))
 
-    async def async_sync(self):
+    async def async_sync(self, weights: torch.FloatTensor) -> torch.FloatTensor:
         r""" Async: Synchronizes the local self.state with the chain state by polling the chain.
+            Args:
+                weights: (torch.FloatTensor):
+                    weights to set on chain.
+            Returns:
+                weights: (torch.FloatTensor):
+                    weights on chain.
         """
+        if weights != None:
+            await self.async_emit(weights)
         await self._sync_cache()
-        self.last_sync = await self.async_block()
-        self.state = self._cache_to_state()
+        last_sync = await self.async_block()
+        self.state = TorchChainState.from_cache(self.cache)
+        self.state.block = last_sync
+        return self.weights
 
     async def _sync_cache(self):
         r""" Async: Makes calls to chain updating local chain cache with newest info.
@@ -324,33 +471,25 @@ class Metagraph():
         emits = await self.subtensor_client.get_last_emit_data()
         for (pubkey, last_emit) in emits:
                 # Filter based on stale emissions.
-                if (current_block - last_emit) < self._config.metagraph.stale_emit_limit:
+                if (current_block - last_emit) < self._config.metagraph.stale_emit_filter:
                     calls.append(self._poll_pubkey(pubkey))
         await asyncio.gather(*calls)
 
-    def _cache_to_state(self):
-        r""" Copies chain cache values into the local self.state.
+    async def _poll_pubkey(self, pubkey):
+        r""" Polls info info for a specfic public key.
         """
-        # Deep copies chain state into metagraph state.
-        state = TorchChainState()
-        state.n = self._n
-        state.block = self.last_sync
-        state.neurons = copy.deepcopy(self._neurons)
-        state.indices = torch.tensor(range(state.n), dtype=torch.int64)
-        state.uids = torch.tensor(copy.deepcopy(self._uids), dtype=torch.int64)
-        state.emit = torch.tensor(copy.deepcopy(self._emit), dtype=torch.int64)
-        state.state = torch.tensor(copy.deepcopy(self._stake), dtype=torch.int64)
-        weights_numpy = numpy.zeros( (state.n, state.n) )
-        for i in range(state.n):
-            keys = self._weight_pubkeys[i]
-            vals = self._weight_vals[i]
-            val_sum = sum(vals)
-            for k, val in list(zip(keys, vals)):
-                if k in self._index_for_pubkey:
-                    j = self._index_for_pubkey[k]
-                    weights_numpy[i, j] = float(val) / float(val_sum)
-        state.W = torch.tensor(weights_numpy, dtype=torch.float32)
-        return state
+        logger.info('poll: {} ', pubkey)
+        try:
+            stake = await self.subtensor_client.get_stake(pubkey)
+            lastemit = await self.subtensor_client.get_last_emit_data(pubkey)
+            info = await self.subtensor_client.neurons(pubkey)
+            w_keys = await self.subtensor_client.weight_keys(pubkey)
+            w_vals = await self.subtensor_client.weight_vals(pubkey)
+            self.cache.add_or_update(pubkey = pubkey, ip = info['ip'], port = info['port'], lastemit = lastemit, stake = stake, w_keys = w_keys, w_vals = w_vals)
+        except Exception as e:
+            logger.error("Exception occurred: {}".format(e))
+            traceback.print_exc()
+
 
     async def _wait_for_subscription(self, timeout=12) -> bool:
         r""" Async: Waits for subscription info to appear on chain.
@@ -456,69 +595,17 @@ class Metagraph():
         weight_pubkeys = []
         weight_vals_as_ints = []
         for i, val in enumerate(weights.tolist()):
-            weight_pubkeys.append( self._pubkey_for_index[i] ) # Gets the pubkey at this index.
+            weight_pubkeys.append( self.cache.pubkey_for_index[i] ) # Gets the pubkey at this index.
             int_val = int(float(val) * int(u32_int_max)) # convert to int representation.
             weight_vals_as_ints.append(int_val) # int weights sum to u32_int_max.
         return weight_pubkeys, weight_vals_as_ints
 
-    async def _poll_pubkey(self, pubkey):
-        r""" Polls info info for a specfic public key.
-        """
-        logger.info('poll: {} ', pubkey)
-        if pubkey in self._index_for_pubkey:
-            index = self._index_for_pubkey[pubkey]
-            append = False
-        else:
-            index = self._n
-            uid = self._next_uid
-            append = True
-            self._n += 1
-            self._next_uid += 1
-            self._index_for_pubkey[pubkey] = index
-            self._pubkey_for_index[index] = pubkey
-        try:
-            stake = await self.subtensor_client.get_stake(pubkey)
-            emit = await self.subtensor_client.get_last_emit_data(pubkey)
-            info = await self.subtensor_client.neurons(pubkey)
-            w_keys = await self.subtensor_client.weight_keys(pubkey)
-            w_vals = await self.subtensor_client.weight_vals(pubkey)
-
-            ipstr = int_to_ip(info['ip'])
-            port = int(info['port'])
-            neuron = bittensor_pb2.Neuron(
-                version=bittensor.__version__,
-                public_key=pubkey,
-                address=ipstr,
-                port=port
-            )
-            if not append:
-                self._neurons[index] = neuron
-                self._stake[index] = int(stake)
-                self._emit[index] = int(emit)
-                self._weight_pubkeys[index] = list(w_keys)
-                self._weight_vals[index] = list(w_vals)
-            else:
-                self._neurons.append(neuron)
-                self._stake.append(int(stake))
-                self._emit.append(int(emit))
-                self._weight_pubkeys.append(list(w_keys))
-                self._weight_vals.append(list(w_vals))
-                self._uids.append( uid )
-                self._index_for_uid[uid] = index
-
-            # Record number of peers on tblogger
-            bittensor.session.tbwriter.write_network_data("# Peers", len(self._neurons))
-
-        except Exception as e:
-            logger.error("Exception occurred: {}".format(e))
-            rollbar.send_exception()
-            traceback.print_exc()
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         parser.add_argument('--metagraph.chain_endpoint', default='206.189.254.5:12345', type=str, 
                             help='chain endpoint.')
-        parser.add_argument('--metagraph.stale_emit_limit', default=100, type=int, 
+        parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int,
                             help='filter neurons with last emit beyond this many blocks.')
 
         return parser

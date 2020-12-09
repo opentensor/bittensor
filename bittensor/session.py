@@ -77,7 +77,12 @@ class Session:
         Returns:
             Session: present instance of session.
         """
+        logger.info('session exit')
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        loop.run_until_complete(self.stop())
         if exc_value:
+
             top_stack = StringIO()
             tb.print_stack(file=top_stack)
             top_lines = top_stack.getvalue().strip('\n').split('\n')[:-4]
@@ -100,7 +105,7 @@ class Session:
 
 
 
-        
+
         logger.info('session exit')
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)

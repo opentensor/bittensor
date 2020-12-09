@@ -5,7 +5,7 @@ Simple feed forward NN for images.
 """
 
 import bittensor
-from bittensor.utils.router import Router
+from bittensor.dendrites.pkm import PKMDendrite
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseOutput
 from bittensor.session import Session
@@ -41,7 +41,6 @@ class FFNNSynapse(Synapse):
             
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
-
         self.transform = Normalize((0.1307,), (0.3081,),  device=self.device)
         self.transform_pool = nn.AdaptiveAvgPool2d((28, 28))
         self.transform_conv1 = nn.Conv2d(1, 10, kernel_size=5)
@@ -49,9 +48,9 @@ class FFNNSynapse(Synapse):
         self.transform_drop = nn.Dropout2d()
         self.transform_dim = 320
 
-        # router: (PKM layer) queries network using transform as context.
-        # [batch_size, transform_dim] -> topk * [batch_size, bittensor.__network_dim__]
-        self.router = Router(x_dim = self.transform_dim, key_dim=100, topk=10)
+        # dendrite: (PKM layer) queries network using pooled embeddings as context.
+        # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
+        self.dendrite = PKMDendrite(config, session, query_dim = self.transform_dim)
 
         # context_layer: distills the remote_context from the transform layer.
         # [batch_size, transform_dim] -> [batch_size, bittensor.__network_dim__]
@@ -74,13 +73,13 @@ class FFNNSynapse(Synapse):
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
         parser.add_argument('--synapse.target_dim', default=10, type=int, 
                             help='Final logit layer dimension. i.e. 10 for MNIST.')
-        parser.add_argument('--synapse.n_block_filter', default=100, type=int, 
-                            help='Stale neurons are filtered after this many blocks.')
+        parser = PKMDendrite.add_args(parser)
         return parser
 
     @staticmethod   
     def check_config(config: Munch) -> Munch:
         assert config.synapse.target_dim > 0, "target dimension must be greater than 0."
+        config = PKMDendrite.check_config(config)
         return config
 
     def forward_image(self, images: torch.Tensor):
@@ -107,68 +106,6 @@ class FFNNSynapse(Synapse):
         hidden = torch.unsqueeze(hidden, 1)
 
         return hidden
-
-    def call_remote(self, images, context):
-        r""" Makes remote calls to neurons.
-
-            Args:
-                images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
-                    Image tensors to send.
-                
-                context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, transform_dim)`, `required`): 
-                    Per example tensor used to select which neuron to send each example to.
-            
-            Returns:
-                remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`): 
-                    Joined context vector from remote peer neurons.
-
-                weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                    weights for each active neuron.
-        """
-        # images: re-add sequence dimension to input images.
-        # hidden.shape = [batch_size, sequence_dim, channels, rows, cols] 
-        images = torch.unsqueeze(images, 1) 
-
-        # uids: unique keys for peer neurons.
-        # uids.shape = [metagraph.n]
-        uids = self.session.metagraph.state.uids # Returns a list of neuron uids.
-       
-        # uids: uids with an emit call in the last 100 blocks.
-        # uids = [-1]
-        block = self.session.metagraph.state.block 
-        emit = self.session.metagraph.state.emit
-        staleness = (block - emit)
-        uids = uids[torch.where(staleness > self.config.synapse.n_block_filter)] 
-
-        # Return zeros if there are no remaining peer neurons.
-        if torch.numel(uids) == 0:
-            n = self.session.metagraph.state.n
-            remote_context = torch.zeros(size=(images.shape[0], bittensor.__network_dim__))
-            weights = torch.zeros(size=(images.shape[0], n))
-            return remote_context, weights
-
-        # neurons: endpoint information for filtered keys.
-        # neurons.shape = [len(uids)]
-        neurons = self.session.metagraph.state.uids_to_neurons(uids)
-        
-        # request: image inputs routeed to peers using context to filter topk.
-        # request.shape = neurons.size * [-1, sequence_dim, channels, rows, cols]
-        requests, weights = self.router.route( neurons, context, images ) 
-
-        # responses: image responses from neurons.
-        # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
-        responses = self.session.dendrite.forward_image( neurons, requests )
-
-        # remote_context: Responses weighted and joined along the __network_dim__.
-        # remote_context.shape = [batch_size, bittensor.__network_dim__]
-        remote_context = self.router.join( responses )
-        remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2])
-
-        # scatter weights back onto shape (bs, n)
-        indices = self.session.metagraph.state.uids_to_indices(uids).repeat(images.shape[0], 1)
-        filled_weights = torch.zeros(images.shape[0], self.session.metagraph.state.n)
-        filled_weights.scatter_(1, indices, weights)
-        return remote_context, filled_weights 
 
     def forward(self,
                 images: torch.Tensor,
@@ -214,6 +151,12 @@ class FFNNSynapse(Synapse):
 
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
+
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
                 )
         """
 
@@ -253,6 +196,12 @@ class FFNNSynapse(Synapse):
             local_target_loss = F.nll_loss(local_target, targets)
             output.local_target_loss = local_target_loss
             output.loss = output.loss + local_target_loss
+
+            # Record extra metadata accuracy.
+            max_logit = local_target.data.max(1, keepdim=True)[1]
+            correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
+            local_accuracy = (100.0 * correct) / targets.shape[0] 
+            output.metadata['local_accuracy'] = local_accuracy
 
         if remote:
             output = self.forward_remote(local_context, output, images, transform, targets)
@@ -305,18 +254,28 @@ class FFNNSynapse(Synapse):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `optional`): 
-                        Keys for queried neurons.
+                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each active neuron.
 
-                    scores (:obj:`torch.LongTensor` of shape :obj:`(batch_size, len(keys))`, `optional`): 
-                        scores for each active key per example.
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+
+                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                        additional metadata output, specifically accuracy.
                 )
 
         """
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
-        remote_context, weights= self.call_remote(images, transform)
+        images = torch.unsqueeze(images, 1)
+        remote_context, weights, sizes, retops = self.dendrite.forward_image(images, transform)
+        remote_context = torch.squeeze(remote_context, 1)
         output.weights = weights
+        output.request_sizes = sizes
+        output.retops = retops
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
@@ -344,5 +303,11 @@ class FFNNSynapse(Synapse):
             remote_target_loss = F.nll_loss(remote_target, targets)
             output.loss = output.loss + remote_target_loss
             output.remote_target_loss = remote_target_loss
+
+            # Record extra metadata accuracy.
+            max_logit = remote_target.data.max(1, keepdim=True)[1]
+            correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
+            remote_accuracy = (100.0 * correct) / targets.shape[0] 
+            output.metadata['remote_accuracy'] = remote_accuracy
         
         return output
