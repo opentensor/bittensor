@@ -104,6 +104,7 @@ def train(
             log_outputs(history)
             log_batch_weights(session, history)
             log_chain_weights(session)
+            log_request_sizes(session, history)
             history = []
 
 def test ( 
