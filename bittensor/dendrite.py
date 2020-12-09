@@ -256,6 +256,7 @@ class RemoteNeuron(nn.Module):
 
         try:
             outputs = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
+            return outputs, 1
         except (SerializationException, EmptyTensorException, ResponseShapeException) as e:
             rollbar.send_exception()
             logger.trace("Exception occured in Remoteneuron forward call: {}".format(e))
