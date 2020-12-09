@@ -25,7 +25,6 @@ def obtain_ip(config: Munch) -> Munch:
         value = requests.get('https://api.ipify.org').text
     except:
         logger.error("CONIG: Could not retrieve public facing IP from IP API.")
-        rollbar.send_exception()
         raise SystemError('CONFIG: Could not retrieve public facing IP from IP API.')
     if not validators.ipv4(value):
         logger.error("CONFIG: Response from IP API is not a valid IP with ip {}", value)
@@ -95,7 +94,6 @@ class Axon(bittensor_grpc.BittensorServicer):
             self.stop()
         except Exception as e:
             logger.error(e)
-            rollbar.send_exception()
 
 
     def stop(self):
@@ -136,7 +134,6 @@ class Axon(bittensor_grpc.BittensorServicer):
                 x = PyTorchSerializer.deserialize(inputs)
             except SerializationException as e:
                 logger.warning("Exception occured: {}".format(e))
-                rollbar.send_exception()
                 raise SerializationException("Deserialization of inputs failed. Inputs: {}".format(inputs))
 
             if x.shape[0] < 1:
@@ -184,7 +181,6 @@ class Axon(bittensor_grpc.BittensorServicer):
             response = bittensor_pb2.TensorMessage(
                 version=bittensor.__version__,
                 public_key=self.__keypair.public_key)
-            rollbar.send_exception()
 
         bittensor.session.tbwriter.write_axon_network_data('Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
         return response
@@ -224,7 +220,6 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         except (InvalidRequestException, NonExistentSynapseException, SerializationException, DeserializationException) as e:
                 logger.warning("Exception occured: {}. Sending null response back.".format(e))
-                rollbar.send_exception()
                 # Build null response.
                 response = bittensor_pb2.TensorMessage(
                     version=bittensor.__version__,

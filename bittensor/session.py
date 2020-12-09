@@ -111,7 +111,6 @@ class Session:
             self.axon.start()
         except Exception as e:
             logger.error('SESSION: Failed to start axon server with error: {}', e)
-            rollbar.send_exception()
             raise FailedToEnterSession
 
         logger.info('Connect to chain ...')
@@ -122,7 +121,6 @@ class Session:
                 raise FailedConnectToChain
         except Exception as e:
             logger.error('SESSION: Error while connecting to the chain endpoint: {}', e)
-            rollbar.send_exception()
             raise FailedToEnterSession
 
         logger.info('Subscribe to chain ...')
@@ -130,7 +128,6 @@ class Session:
             await self.metagraph.async_subscribe(10)
         except Exception as e:
             logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
-            rollbar.send_exception()
             raise FailedToEnterSession
 
     async def stop(self):
@@ -140,14 +137,12 @@ class Session:
             await self.metagraph.async_unsubscribe()
         except Exception as e:
             logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
-            rollbar.send_exception()
 
         logger.info('Stopping axon server..')
         try:
             self.axon.stop()
         except Exception as e:
             logger.error('SESSION: Error while stopping axon server: {} ', e)
-            rollbar.send_exception()
 
         # Stop replicate experiment if still running
         try:
@@ -155,7 +150,6 @@ class Session:
                 self.replicate_util.experiment.stop()
         except Exception as e:
             logger.error('SESSION: Could not stop Replicate experiment: {}', e)
-            rollbar.send_exception()
 
 
     def subscribe (self):

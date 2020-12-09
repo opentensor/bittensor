@@ -174,7 +174,6 @@ class Synapse(nn.Module):
                 return None
             except Exception as e:
                 logger.error(e)
-                rollbar.send_exception()
                 return None
         return outputs
 

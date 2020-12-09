@@ -417,9 +417,7 @@ class Metagraph():
         try:
             await self.subtensor_client.set_weights(keys, vals, self.__keypair, wait_for_inclusion = False)
         except Exception as e:
-            logger.info('Failed to emit weights with error {}, and weights {}', e, list(zip(keys, vals)))
-            rollbar.send_exception()
-
+            logger.warning('Failed to emit weights with error {}, and weights {}', e, list(zip(keys, vals)))
             return False
 
         # Checks that weight emission was included in a block after 12 seconds.
