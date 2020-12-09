@@ -15,6 +15,7 @@ from bittensor import bittensor_pb2
 from bittensor.serializer import PyTorchSerializer
 import time
 import asyncio
+from bittensor.exceptions.handlers import rollbar
 
 # dummy tensor that triggers autograd in a RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
@@ -261,18 +262,18 @@ class RemoteNeuron(nn.Module):
         self.next_backoff = min(self.config.dendrite.max_backoff, self.next_backoff * 2)
 
     def forward(self, inputs: torch.Tensor, mode: bittensor_pb2.Modality) -> Tuple[torch.Tensor, bool, float]:
+        try:
+            outputs, code = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
+            if code.item() == bittensor_pb2.ReturnCode.Unavailable:
+                self._backoff ()
+            if code.item() == bittensor_pb2.ReturnCode.Timeout:
+                self._backoff ()
+            return outputs, code
 
-        #try:
-        outputs, code = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
-        if code.item() == bittensor_pb2.ReturnCode.Unavailable:
-            self._backoff ()
-        if code.item() == bittensor_pb2.ReturnCode.Timeout:
-            self._backoff ()
-        return outputs, code
-
-        # except Exception as e:
-        #     logger.error('Uncaught error in forward call with error {}', e)
-        #     return nill_response_for(inputs), bittensor_pb2.ReturnCode.UnknownException
+        except Exception as e:
+            error_msg = 'Uncaught error in forward call with error {}'.format( e )
+            logger.error(error_msg)
+            return nill_response_for(inputs), bittensor_pb2.ReturnCode.UnknownException
 
 class _RemoteModuleCall(torch.autograd.Function):
     """ Internal autograd-friendly call of a remote module over grpc"""
@@ -287,13 +288,12 @@ class _RemoteModuleCall(torch.autograd.Function):
         ctx.inputs = inputs
 
         zeros = nill_response_for(inputs)
-
         try:
 
             # Are we backing off.
             if caller.backoff > 1:
                 caller.backoff -= 1
-                logger.error('Still backing off from endpoint {}', caller.endpoint)
+                logger.warning('Still backing off from endpoint {}', caller.endpoint)
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.Backoff)
 
             # If this is an empty call get nill response.
@@ -304,7 +304,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             try:
                 serialized_inputs = PyTorchSerializer.serialize(inputs, mode)
             except:
-                logger.error('Serialization error with inputs {}', inputs)
+                logger.warning('Serialization error with inputs {}', inputs)
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.RequestSerializationException)
             ctx.serialized_inputs =  serialized_inputs
 
@@ -332,11 +332,11 @@ class _RemoteModuleCall(torch.autograd.Function):
                 grpc_code = rpc_error_call.code()
 
                 if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
-                    logger.error('Deadline exceeds on endpoint {}', caller.endpoint)
+                    logger.warning('Deadline exceeds on endpoint {}', caller.endpoint)
                     return zeros, torch.tensor(bittensor_pb2.ReturnCode.Timeout)
 
                 elif grpc_code == grpc.StatusCode.UNAVAILABLE:
-                    logger.error('Endpoint unavailable {}', caller.endpoint)
+                    logger.warning('Endpoint unavailable {}', caller.endpoint)
                     return zeros, torch.tensor(bittensor_pb2.ReturnCode.Unavailable)
 
                 else:
@@ -356,8 +356,8 @@ class _RemoteModuleCall(torch.autograd.Function):
             # Deserialize.
             try:
                 outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
-            except:
-                logger.error('Failed to serialize responses from forward call with response {}', response.tensors[0])
+            except Exception as e:
+                logger.error('Failed to serialize responses from forward call with response {} and error {}', response.tensors[0], e)
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.ResponseDeserializationException)
         
             # Check shape
@@ -407,5 +407,6 @@ class _RemoteModuleCall(torch.autograd.Function):
                 return (None, None, zeros, None)
 
             except:
+                rollbar.send_exception()
                 return (None, None, zeros, None)
 

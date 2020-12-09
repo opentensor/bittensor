@@ -35,3 +35,4 @@ py-bip39-bindings>=0.1.6
 pytest-asyncio
 replicate
 codecov
+rollbar
