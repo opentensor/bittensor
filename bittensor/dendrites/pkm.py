@@ -55,7 +55,7 @@ class PKMDendrite():
     def check_config(config):   
         return config
 
-    def _route(self, inputs, query, modality: bittensor_pb2.Modality) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.LongTensor]:
+    def _route(self, inputs, query, modality: bittensor_pb2.Modality) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.LongTensor, torch.LongTensor]:
         r""" Routes inputs using context and metagraph state.
 
             Args:
@@ -72,13 +72,13 @@ class PKMDendrite():
                 responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
                     Joined responses from each queried neuron.
 
-                weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `required`): 
                     weights for each neuron per example.
 
-                requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `required`): 
                     number of requests sent to each uid in this batch.
 
-                retops (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                retops (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `required`): 
                     return op from each call per example.
         """
         # For ease of use.
@@ -100,7 +100,11 @@ class PKMDendrite():
         if n_uids == 0:
             # Return nill responses.
             n = self.session.metagraph.n
-            return torch.zeros(size=(inputs.shape[0], bittensor.__network_dim__)), torch.zeros(size=(inputs.shape[0], n)), torch.zeros(n)
+            null_response = torch.zeros(size=(inputs.shape[0], bittensor.__network_dim__))
+            null_weights = torch.zeros(size=(inputs.shape[0], n))
+            null_sizes = torch.zeros(n)
+            null_retops = torch.zeros(n)
+            return null_response, null_weights, null_sizes, null_retops
 
         # keys: (torch.FloatTensor): unique trainable torch keys for each uid
         # keys.shape = [n_uids, config.dendrite.key_dim]
@@ -202,17 +206,22 @@ class PKMDendrite():
         # combined = [batch_size, sequence_dim, bittensor.__network_dim__]
         combined = combined.view(batch_size, inputs.shape[1], bittensor.__network_dim__)
 
-        # indices: (torch.LongTensor): indices of uids repeated by batch size
-        # indices = [batch_size, metagraph.state.n]
-        indices = self.session.metagraph.uids_to_indices(filtered_uids).repeat(batch_size, 1)
+        # indices: (torch.LongTensor): indices of uids queried during this forward call.
+        # indices = [batch_size, metagraph.n]
+        indices = self.session.metagraph.uids_to_indices(filtered_uids)
 
         # weights: (torch.LongTensor): weights scattered onto uids per example.
-        # weights.shape = [batch_size, metagraph.state.n]
+        # weights.shape = [batch_size, metagraph.n]
         weights = torch.zeros(inputs.shape[0], self.session.metagraph.n)
-        weights.scatter_(1, indices, scores)
+        weights.scatter_(1, indices.repeat(batch_size, 1), scores)
+
+        # filled_sizes: (torch.LongTensor): number of examples queried to each uid.
+        # filled_sizes.shape = [metagraph.n]
+        filled_request_sizes = torch.zeros(self.session.metagraph.n, dtype=torch.long)
+        filled_request_sizes.scatter_(0, indices, torch.tensor(request_sizes))
 
         # Return.
-        return combined, weights, torch.tensor(request_sizes), retops
+        return combined, weights, filled_request_sizes, retops
 
 
     def forward_image(self, images: torch.FloatTensor, query: torch.FloatTensor) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.LongTensor]:
