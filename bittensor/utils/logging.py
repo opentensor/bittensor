@@ -14,7 +14,40 @@ pd.set_option('display.precision', 2)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 
+def log_batch_weights(history: List[bittensor.synapse.SynapseOutput]):
+    print ('Batch Weights: \n ')
+    weights_sum = history[0].batch_weights
+    for output in history[1:]:
+        weights_sum += torch.mean(output.weights, axis=0)
+    weights_sum = weights_sum.tolist()
+
+    uids = session.metagraph.uids.tolist()
+    _, sorted_uids  = zip(*sorted(zip(weights_sum, uids), reverse=True))
+
+    rows = []
+    for output in history:
+        batch_weights = torch.mean(output.weights, axis=0).tolist()
+        _, sorted_batch_weights  = zip(*sorted( zip(weights_sum, batch_weights), reverse=True))
+        rows.append(sorted_batch_weights)
+    df = pd.DataFrame(rows, columns = sorted_uids)
+    min_row = df.min(numeric_only=True, axis=1)
+    min_col = df.min(numeric_only=True, axis=0)
+    max_row = df.max(numeric_only=True, axis=1)
+    max_col = df.max(numeric_only=True, axis=0)
+    mean_row = df.mean(numeric_only=True, axis=1)
+    mean_col = df.mean(numeric_only=True, axis=0)
+    df.loc[:,'Min'] = min_row
+    df.loc[:,'Max'] = max_row
+    df.loc[:,'Mean'] = mean_row
+    df.loc['Min'] = min_col
+    df.loc['Max'] = max_col
+    df.loc['Mean'] = mean_col
+    df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
+    print (df)
+    print('\n')
+        
 def log_outputs(history: List[bittensor.synapse.SynapseOutput]):
+    print ('Training Outputs: \n ')
     cols = ['Batch Size', 'Total Loss', 'Local Loss', 'Remote Loss', 'Distillation Loss'] + list(history[0].metadata.keys())
     rows = []
     for output in history:
@@ -59,6 +92,7 @@ def log_outputs(history: List[bittensor.synapse.SynapseOutput]):
     df.loc['Max'] = max_val
     df.loc['Mean'] = mean_val
     print (df)
+    print('\n')
 
 
 def log_training_output_history(session, epoch, batch_idx, batch_size, total_examples, history):
