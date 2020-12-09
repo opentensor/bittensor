@@ -19,7 +19,7 @@ from loguru import logger
 
 import bittensor
 from bittensor import Session
-from bittensor.utils.logging import log_outputs, log_batch_weights, log_chain_weights, log_request_sizes
+from bittensor.utils.logging import log_outputs, log_batch_weights, log_chain_weights, log_request_sizes, log_return_codes
 from bittensor.subtensor import Keypair
 from bittensor.config import Config
 from bittensor.synapse import Synapse
@@ -102,6 +102,7 @@ def train(
             log_batch_weights(session, history)
             log_chain_weights(session)
             log_request_sizes(session, history)
+            log_return_codes(session, history)
             history = []
 
 def test ( 

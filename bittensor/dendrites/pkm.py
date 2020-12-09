@@ -78,8 +78,8 @@ class PKMDendrite():
                 requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `required`): 
                     number of requests sent to each uid in this batch.
 
-                retops (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `required`): 
-                    return op from each call per example.
+                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                    dendrite call return codes.
         """
         # For ease of use.
         batch_size = inputs.shape[0]
@@ -244,8 +244,8 @@ class PKMDendrite():
                 requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                     number of requests sent to each uid in this batch.
 
-                retops (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                    return op from each call per example.
+                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                    dendrite call return codes.
         """
         return self._route(images, query, bittensor_pb2.Modality.IMAGE)
 
@@ -269,8 +269,8 @@ class PKMDendrite():
                 requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                     number of requests sent to each uid in this batch.
 
-                retops (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                    return op from each call per example.
+                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                    dendrite call return codes.
                 
         """
         return self._route(text, query, bittensor_pb2.Modality.TEXT)
@@ -296,7 +296,7 @@ class PKMDendrite():
                 requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                     number of requests sent to each uid in this batch.
 
-                retops (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                    return op from each call per example.
+                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                    dendrite call return codes.
         """
         return self._route(tensors, query, bittensor_pb2.Modality.IMAGE)

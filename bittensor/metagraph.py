@@ -152,6 +152,19 @@ class Metagraph():
         # Chain state as torch values.
         self.state = TorchChainState.from_cache(self.cache)
 
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        # TODO(const): check this endpoint in check_config.
+        parser.add_argument('--metagraph.chain_endpoint', default='206.189.254.5:12345', type=str, 
+                            help='chain endpoint.')
+        parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
+                            help='filter neurons with last emit beyond this many blocks.')
+
+        return parser
+
+    @staticmethod   
+    def check_config(config: Munch) -> Munch:
+        return config
 
     @property
     def n(self) -> int:
@@ -272,11 +285,7 @@ class Metagraph():
         Returns:
             weights: (torch.Tensor) weights on chain as torch tensor.
         """
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
-        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_chain_weights())
 
     async def async_chain_weights(self) -> torch.FloatTensor:
@@ -301,11 +310,7 @@ class Metagraph():
         Returns:
             block: (int) block number on chain.
         """
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
-        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_block())
 
     async def async_block(self) -> int:
@@ -320,11 +325,7 @@ class Metagraph():
         Returns:
             subscribed: (bool): true if the subscription is a success.
         """
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
-        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_subscribe(timeout))
 
     async def async_subscribe (self, timeout) -> bool:
@@ -338,11 +339,7 @@ class Metagraph():
     def unsubscribe(self) -> bool:
         r""" Syncronous: Unsubscribes the local neuron from the chain.
          """
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
-        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_unsubscribe())  
 
     async def async_unsubscribe (self):
@@ -356,11 +353,7 @@ class Metagraph():
         Returns:
             connected: (bool): true if the connection is a success.
         """
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
-        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_connect())
 
     async def async_connect(self) -> bool:
@@ -378,12 +371,7 @@ class Metagraph():
             weights: (torch.FloatTensor): 
                 weights to set on chain of length self.state.n
         """
-        # TODO(const): this repeat code can be abstracted.
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
-        loop.set_debug(enabled=True)
         loop.run_until_complete(self.async_emit(weights))
 
     async def async_emit(self, weights: torch.FloatTensor) -> bool: 
@@ -434,11 +422,7 @@ class Metagraph():
                 weights: (torch.FloatTensor): 
                     weights on chain.
         """
-        def handle_async_exception(loop, ctx):
-            logger.error("Exception in async task: {0}".format(ctx['exception']))
         loop = asyncio.get_event_loop()
-        loop.set_exception_handler(handle_async_exception)
-        loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_sync(weights))
 
     async def async_sync(self, weights: torch.FloatTensor) -> torch.FloatTensor:
@@ -595,18 +579,4 @@ class Metagraph():
             int_val = int(float(val) * int(u32_int_max)) # convert to int representation.
             weight_vals_as_ints.append(int_val) # int weights sum to u32_int_max.
         return weight_pubkeys, weight_vals_as_ints
-
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        parser.add_argument('--metagraph.chain_endpoint', default='206.189.254.5:12345', type=str, 
-                            help='chain endpoint.')
-        parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
-                            help='filter neurons with last emit beyond this many blocks.')
-
-        return parser
-
-    @staticmethod   
-    def check_config(config: Munch) -> Munch:
-        return config
 
