@@ -5,6 +5,7 @@ import pandas as pd
 from loguru import logger
 from termcolor import colored
 from typing import List
+from bittensor import Session
 
 np.set_printoptions(precision=2, suppress=True, linewidth=500, sign=' ')
 pd.set_option('display.max_rows', 5000)
@@ -14,9 +15,9 @@ pd.set_option('display.precision', 2)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 
-def log_batch_weights(history: List[bittensor.synapse.SynapseOutput]):
+def log_batch_weights(session: Session, history: List[bittensor.synapse.SynapseOutput]):
     print ('Batch Weights: \n ')
-    weights_sum = history[0].batch_weights
+    weights_sum = history[0].weights
     for output in history[1:]:
         weights_sum += torch.mean(output.weights, axis=0)
     weights_sum = weights_sum.tolist()

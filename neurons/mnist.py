@@ -99,7 +99,7 @@ def train(
                         colored('{}'.format(total_examples), 'red'),
                         colored('{:.2f}%'.format(progress), 'green'))
             log_outputs(history)
-            log_batch_weights(history)
+            log_batch_weights(session, history)
             history = []
 
 def test ( 
