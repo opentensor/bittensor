@@ -159,6 +159,35 @@ class Metagraph():
         # Turn initial cache into TorchChainState.
         self.state = self._cache_to_state()
 
+    def chain_weights(self) -> torch.FloatTensor:
+        r""" Returns your current weights from the chain.
+        Returns:
+            weights: (torch.Tensor) weights on chain as torch tensor.
+        """
+        def handle_async_exception(loop, ctx):
+            logger.error("Exception in async task: {0}".format(ctx['exception']))
+        loop = asyncio.get_event_loop()
+        loop.set_exception_handler(handle_async_exception)
+        loop.set_debug(enabled=True)
+        return loop.run_until_complete(self.async_chain_weights())
+
+    async def async_chain_weights(self) -> torch.FloatTensor:
+        r""" Async: returns your current weights from the chain.
+        Returns:
+            weights: (torch.FloatTensor) weights on chain for each neuron.
+        """
+        chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
+        chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
+        val_sum = sum(chain_vals)
+        retval = torch.zeros(self._n)
+        for key, val in list(zip(chain_keys, chain_vals)):
+            idx = self._index_for_pubkey[key]
+            if idx >= self._n:
+                continue
+            else:
+                retval[idx] = float(val) / float(val_sum)
+        return retval
+
     def block(self):
         r""" Returns the current block on the chain.
         Returns:
@@ -320,7 +349,7 @@ class Metagraph():
         emits = await self.subtensor_client.get_last_emit_data()
         for (pubkey, last_emit) in emits:
                 # Filter based on stale emissions.
-                if (current_block - last_emit) < self._config.metagraph.stale_emit_limit:
+                if (current_block - last_emit) < self._config.metagraph.stale_emit_filter:
                     calls.append(self._poll_pubkey(pubkey))
         await asyncio.gather(*calls)
 
@@ -513,7 +542,7 @@ class Metagraph():
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         parser.add_argument('--metagraph.chain_endpoint', default='206.189.254.5:12345', type=str, 
                             help='chain endpoint.')
-        parser.add_argument('--metagraph.stale_emit_limit', default=100, type=int, 
+        parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
                             help='filter neurons with last emit beyond this many blocks.')
 
         return parser

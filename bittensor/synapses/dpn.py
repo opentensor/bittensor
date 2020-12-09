@@ -4,7 +4,7 @@
     Bittensor endpoint trained on PIL images to detect objects using DPN.
 """
 import bittensor
-from bittensor.utils.router import Router
+from bittensor.dendrites.pkm import PKMDendrite
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseOutput
 from bittensor.session import Session
@@ -17,7 +17,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class DPNSynapse(Synapse):
-    """ Bittensor endpoint trained on PIL images to detect objects using DPN.
+    """ Bittensor endpoint trained on PIL images to detect objects using an DPN.
     """
 
     def __init__(   self, 
@@ -60,9 +60,9 @@ class DPNSynapse(Synapse):
         self.transform_layer4 = self._make_layer(in_planes[3], out_planes[3], num_blocks[3], dense_depth[3], stride=2)
         self.transform_dim = (out_planes[3] * 4)+(((num_blocks[3]+1) * 4)*dense_depth[3])
         
-        # Router object for training network connectivity.
-        # [Transform] -> [ROUTER] -> [Neurons] -> [ROUTER]
-        self.router = Router(x_dim = self.transform_dim , key_dim = 100, topk = 10)
+        # dendrite: (PKM layer) queries network using pooled embeddings as context.
+        # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
+        self.dendrite = PKMDendrite(config, session, query_dim = self.transform_dim)
 
         # Context layers.
         """
@@ -108,7 +108,7 @@ class DPNSynapse(Synapse):
         parser.add_argument('--synapse.num_blocks', default='3, 6, 20, 3', action="append", type=to_list)
         parser.add_argument('--synapse.dense_depth', default='16, 32, 32, 128', action="append", type=to_list)
         parser.add_argument('--synapse.target_dim', default=10, type=int, help='Final logit layer dimension. i.e. 10 for CIFAR-10.')
-        parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
+        parser = PKMDendrite.add_args(parser)
         return parser
     
     @staticmethod
@@ -149,69 +149,6 @@ class DPNSynapse(Synapse):
 
         return hidden
 
-    def call_remote(self, images, context):
-        r""" Makes remote calls to neurons.
-
-            Args:
-                images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
-                    Image tensors to send.
-                
-                context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, transform_dim)`, `required`): 
-                    Per example tensor used to select which neuron to send each example to.
-            
-            Returns:
-                remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`): 
-                    Joined context vector from remote peer neurons.
-
-                weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                    weights for each active neuron.
-        """
-        # images: re-add sequence dimension to input images.
-        # hidden.shape = [batch_size, sequence_dim, channels, rows, cols] 
-        images = torch.unsqueeze(images, 1) 
-
-        # uids: unique keys for peer neurons.
-        # uids.shape = [metagraph.n]
-        uids = self.session.metagraph.state.uids # Returns a list of neuron uids.
-       
-        # uids: uids with an emit call in the last 100 blocks.
-        # uids = [-1]
-        block = self.session.metagraph.state.block 
-        emit = self.session.metagraph.state.emit
-        staleness = (block - emit)
-        uids = uids[torch.where(staleness > self.config.synapse.n_block_filter)] 
-
-        # Return zeros if there are no remaining peer neurons.
-        if torch.numel(uids) == 0:
-            n = self.session.metagraph.state.n
-            remote_context = torch.zeros(size=(images.shape[0], bittensor.__network_dim__))
-            weights = torch.zeros(size=(images.shape[0], n))
-            return remote_context, weights
-
-        # neurons: endpoint information for filtered keys.
-        # neurons.shape = [len(uids)]
-        neurons = self.session.metagraph.state.uids_to_neurons(uids)
-        
-        # request: image inputs routeed to peers using context to filter topk.
-        # request.shape = neurons.size * [-1, sequence_dim, channels, rows, cols]
-        requests, weights = self.router.route( neurons, context, images ) 
-
-        # responses: image responses from neurons.
-        # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
-        responses = self.session.dendrite.forward_image( neurons, requests )
-
-        # remote_context: Responses weighted and joined along the __network_dim__.
-        # remote_context.shape = [batch_size, bittensor.__network_dim__]
-        remote_context = self.router.join( responses )
-        remote_context = remote_context.view(remote_context.shape[0] * remote_context.shape[1], remote_context.shape[2])
-
-        # scatter weights back onto shape (bs, n)
-        indices = self.session.metagraph.state.uids_to_indices(uids).repeat(images.shape[0], 1)
-        filled_weights = torch.zeros(images.shape[0], self.session.metagraph.state.n)
-        filled_weights.scatter_(1, indices, weights)
-        return remote_context, filled_weights 
-
-    
     def forward (   self,
                     images: torch.Tensor,
                     targets: torch.Tensor = None,
@@ -256,6 +193,12 @@ class DPNSynapse(Synapse):
 
                     weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+
+                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                        additional metadata output, specifically accuracy.
                 )
         """
         # Return vars to be filled.
@@ -355,18 +298,28 @@ class DPNSynapse(Synapse):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    keys (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `optional`): 
-                        Keys for queried neurons.
+                    weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each active neuron.
 
-                    scores (:obj:`torch.LongTensor` of shape :obj:`(batch_size, len(keys))`, `optional`): 
-                        scores for each active key per example.
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
+                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+
+                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                        additional metadata output, specifically accuracy.
                 )
         """
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         # make a remote call.
-        remote_context, weights = self.call_remote(images, transform)
+        images = torch.unsqueeze(images, 1)
+        remote_context, weights, sizes, retops = self.dendrite.forward_image(images, transform)
+        remote_context = torch.squeeze(remote_context, 1)
         output.weights = weights
+        output.request_sizes = sizes
+        output.retops = retops
         remote_context = remote_context.to(self.device)
 
         # distillation_loss: distillation loss between local_context and remote_context
