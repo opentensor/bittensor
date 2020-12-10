@@ -9,6 +9,7 @@ loguru
 munch
 netaddr
 numpy
+pandas
 pickle-mixin
 pycryptodome
 pycrypto
