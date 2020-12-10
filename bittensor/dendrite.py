@@ -253,6 +253,7 @@ class RemoteNeuron(nn.Module):
         # Next backoff, which doubles until dendrite.max_backoff
         self.next_backoff = 1
 
+
     def __del__(self):
         if self.channel is not None:
             self.channel.close()
@@ -264,10 +265,13 @@ class RemoteNeuron(nn.Module):
     def forward(self, inputs: torch.Tensor, mode: bittensor_pb2.Modality) -> Tuple[torch.Tensor, bool, float]:
         try:
             outputs, code = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
+
             if code.item() == bittensor_pb2.ReturnCode.Unavailable:
                 self._backoff ()
+
             if code.item() == bittensor_pb2.ReturnCode.Timeout:
                 self._backoff ()
+
             return outputs, code
 
         except Exception as e:
