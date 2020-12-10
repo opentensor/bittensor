@@ -293,7 +293,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             # Are we backing off.
             if caller.backoff > 1:
                 caller.backoff -= 1
-                logger.warning('Still backing off from endpoint {}', caller.endpoint)
+                logger.trace('Still backing off from endpoint {}', caller.endpoint)
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.Backoff)
 
             # If this is an empty call get nill response.
