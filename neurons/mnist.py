@@ -58,7 +58,7 @@ def check_config(config: Munch) -> Munch:
 
 def train(
     epoch: int,
-    model: Synapse,
+    model: Synapse
     session: Session,
     config: Munch,
     optimizer: optim.Optimizer,
