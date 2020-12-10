@@ -121,7 +121,7 @@ class TestRemoteModuleCall(unittest.TestCase):
         modality = bittensor_pb2.DataType.UTF8
 
         # Since modality is invalid, this should get caught and raise an exception.
-        with pytest.raises(bittensor.exceptions.Exceptions.SerializationException):
+        with pytest.raises(bittensor.serializer.SerializationException):
             out = _RemoteModuleCall.apply(self, self.dummy, x, modality)
 
         # Now let's set up a modality that does exist

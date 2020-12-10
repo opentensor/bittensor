@@ -54,7 +54,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         self._server.add_insecure_port('[::]:' + str(self._config.axon.port))
 
         # Local synapse.
-        self._synapse = None
+        self.synapse = None
 
         # Serving thread.
         self._thread = None
@@ -109,7 +109,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 synapse (:obj:`bittensor.Synapse`, `required`): 
                     synpase object to serve on the axon server.
         """
-        self._synapse = synapse
+        self.synapse = synapse
 
     def Forward(self, request: bittensor_pb2.TensorMessage,
                 context: grpc.ServicerContext):
@@ -124,6 +124,16 @@ class Axon(bittensor_grpc.BittensorServicer):
         """
     
         try:
+            # Check axon is serving synapse.
+            if self.synapse == None:
+                error_msg = "Remote axon not serving a synapse"
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage(
+                    version = bittensor.__version__, 
+                    public_key = self.__keypair.public_key, 
+                    return_code =  bittensor_pb2.ReturnCode.NotServingSynapse,
+                    message = error_msg)
+                return response
 
             # Check tensor size.
             if len(request.tensors) > 0:
@@ -134,31 +144,20 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response = bittensor_pb2.TensorMessage(
                     version = bittensor.__version__, 
                     public_key = self.__keypair.public_key, 
-                    return_code = bittensor_pb2.ReturnCode.EmptyRequest,
+                    return_code =  bittensor_pb2.ReturnCode.EmptyRequest,
                     message = error_msg)
                 return response
 
             # Deserialize request.
             try:
                 x = PyTorchSerializer.deserialize(inputs)
-
-            except bittensor.exceptions.DeserializationException as e:
-                error_msg = "Forward deserialization of inputs failed with error {} and inputs: {}".format(e, inputs)
-                logger.warning(error_msg)
-                response = bittensor_pb2.TensorMessage(
-                    version = bittensor.__version__, 
-                    public_key = self.__keypair.public_key,
-                    return_code = bittensor_pb2.ReturnCode.RequestDeserializationException,
-                    message = error_msg)
-                return response
-
             except Exception as e:
                 error_msg  = "Forward request deserialization failed with unknown error {}".format(e)
                 logger.warning(error_msg)
                 response = bittensor_pb2.TensorMessage(
                                 version = bittensor.__version__, 
                                 public_key = self.__keypair.public_key, 
-                                return_code = bittensor_pb2.ReturnCode.RequestDeserializationException,
+                                return_code =  bittensor_pb2.ReturnCode.RequestDeserializationException,
                                 message = error_msg)
                 return response
 
@@ -168,7 +167,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 logger.warning(error_msg)
                 response = bittensor_pb2.TensorMessage( version = bittensor.__version__, 
                                                         public_key = self.__keypair.public_key, 
-                                                        return_code = bittensor_pb2.ReturnCode.RequestShapeException,
+                                                        return_code =  bittensor_pb2.ReturnCode.RequestShapeException,
                                                         message = error_msg)
                 return response
 
@@ -178,7 +177,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 logger.warning(error_msg)
                 response = bittensor_pb2.TensorMessage( version = bittensor.__version__, 
                                                         public_key = self.__keypair.public_key, 
-                                                        return_code = bittensor_pb2.ReturnCode.RequestShapeException,
+                                                        return_code =  bittensor_pb2.ReturnCode.RequestShapeException,
                                                         message = error_msg)
                 return response
 
@@ -189,7 +188,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                     response = bittensor_pb2.TensorMessage( 
                         version = bittensor.__version__, 
                         public_key = self.__keypair.public_key, 
-                        return_code = bittensor_pb2.ReturnCode.RequestShapeException,
+                        return_code =  bittensor_pb2.ReturnCode.RequestShapeException,
                         message = error_msg)
                     return response
             
@@ -201,7 +200,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                     response = bittensor_pb2.TensorMessage( 
                         version = bittensor.__version__, 
                         public_key = self.__keypair.public_key, 
-                        return_code = bittensor_pb2.ReturnCode.RequestShapeException,
+                        return_code =  bittensor_pb2.ReturnCode.RequestShapeException,
                         message = error_msg)
                     return response
 
@@ -213,13 +212,13 @@ class Axon(bittensor_grpc.BittensorServicer):
                     response = bittensor_pb2.TensorMessage( 
                         version = bittensor.__version__, 
                         public_key = self.__keypair.public_key, 
-                        return_code = bittensor_pb2.ReturnCode.RequestShapeException,
+                        return_code =  bittensor_pb2.ReturnCode.RequestShapeException,
                         message = error_msg)
                     return response
 
             # Call forward network. May call NotImplementedError:
             try:
-                y = self._synapse.call_forward(x, inputs.modality)
+                y = self.synapse.call_forward(x, inputs.modality)
             
             # Catch not implemented.
             except NotImplementedError:
@@ -228,7 +227,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response = bittensor_pb2.TensorMessage( 
                         version = bittensor.__version__, 
                         public_key = self.__keypair.public_key, 
-                        return_code = bittensor_pb2.ReturnCode.NotImplemented,
+                        return_code =  bittensor_pb2.ReturnCode.NotImplemented,
                         message = error_msg)
                 return response
             
@@ -239,13 +238,13 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response = bittensor_pb2.TensorMessage( 
                         version = bittensor.__version__, 
                         public_key = self.__keypair.public_key, 
-                        return_code = bittensor_pb2.ReturnCode.UnknownException,
+                        return_code =  bittensor_pb2.ReturnCode.UnknownException,
                         message = error_msg)
                 return response
 
             # Serialize responses.
             try:
-                y_serialized = [PyTorchSerializer.serialize_tensor(y)]
+                y_serialized = PyTorchSerializer.serialize_tensor(y)
             
             except bittensor.exceptions.SerializationException as e:
                 error_msg = "Serializtion of forward response failed with error {} and inputs: {}".format(e, inputs)
@@ -253,7 +252,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response = bittensor_pb2.TensorMessage(
                     version = bittensor.__version__, 
                     public_key = self.__keypair.public_key,
-                    return_code = bittensor_pb2.ReturnCode.ResponseDeserializationException,
+                    return_code =  bittensor_pb2.ReturnCode.ResponseDeserializationException,
                     message = error_msg)
                 return response
 
@@ -263,9 +262,17 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response = bittensor_pb2.TensorMessage(
                                 version = bittensor.__version__, 
                                 public_key = self.__keypair.public_key, 
-                                return_code = bittensor_pb2.ReturnCode.ResponseDeserializationException,
+                                return_code =  bittensor_pb2.ReturnCode.ResponseDeserializationException,
                                 message = error_msg)
                 return response
+
+            # No excpetion.
+            response = bittensor_pb2.TensorMessage(
+                version = bittensor.__version__,
+                public_key = self.__keypair.public_key,
+                return_code =  bittensor_pb2.ReturnCode.Success,
+                message = "success",
+                tensors = [y_serialized])
 
         # Final catch of unknown exceptions.
         except Exception as e:
@@ -274,25 +281,26 @@ class Axon(bittensor_grpc.BittensorServicer):
             response = bittensor_pb2.TensorMessage(
                 version = bittensor.__version__, 
                 public_key = self.__keypair.public_key, 
-                return_code = bittensor_pb2.ReturnCode.UnknownException,
+                return_code =  bittensor_pb2.ReturnCode.UnknownException,
                 message = error_msg)
-
-        # Finally build response with serialized outputs.
-        finally:
-            response = bittensor_pb2.TensorMessage(
-                version = bittensor.__version__,
-                public_key = self.__keypair.public_key,
-                return_code = bittensor_pb2.ReturnCode.Success,
-                message = "success",
-                tensors = y_serialized)
         
         return response
-
 
 
     def Backward(self, request: bittensor_pb2.TensorMessage,
                  context: grpc.ServicerContext):
         try:
+
+            # Check axon is serving synapse.
+            if self.synapse == None:
+                error_msg = "Remote axon not serving a synapse"
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage(
+                    version = bittensor.__version__, 
+                    public_key = self.__keypair.public_key, 
+                    return_code =  bittensor_pb2.ReturnCode.NotServingSynapse,
+                    message = error_msg)
+                return response
 
             # Check request inputs.
             if len(request.tensors) == 2:
@@ -304,7 +312,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response = bittensor_pb2.TensorMessage(
                     version = bittensor.__version__, 
                     public_key = self.__keypair.public_key, 
-                    code = bittensor.exceptions.InvalidRequestExceptionCode,
+                    return_code =  bittensor_pb2.ReturnCode.InvalidRequest,
                     message = error_msg)
                 return response
 
@@ -313,31 +321,20 @@ class Axon(bittensor_grpc.BittensorServicer):
             try:
                 inputs_x = PyTorchSerializer.deserialize(inputs_x)
                 grads_dy = PyTorchSerializer.deserialize(grads_dy)
-
-            except bittensor.exceptions.DeserializationException as e:
-                error_msg  = "Backward request deserialization failed with error {} and inputs {} and grads {}".format(e, inputs_x, grads_dy)
-                logger.warning(error_msg)
-                response = bittensor_pb2.TensorMessage(
-                    version = bittensor.__version__, 
-                    public_key = self.__keypair.public_key, 
-                    code = bittensor.exceptions.RequestDeserializationExceptionCode,
-                    message = error_msg)
-                return response
-
+                
             except Exception as e:
                 error_msg  = "Backward request deserialization failed with unknown error {}".format(e)
                 logger.warning(error_msg)
                 response = bittensor_pb2.TensorMessage(
                     version = bittensor.__version__, 
                     public_key = self.__keypair.public_key, 
-                    code = bittensor.exceptions.RequestDeserializationExceptionCode,
+                    return_code =  bittensor_pb2.ReturnCode.RequestDeserializationException,
                     message = error_msg)
                 return response
 
-
             # Get grads by calling backward.
             try:
-                inputs_dx = self._synapse.call_backward(inputs_x, grads_dy)
+                inputs_dx = self.synapse.call_backward(inputs_x, grads_dy)
 
             except Exception as e:
                 error_msg  = "Unkown exception when calling backward with error {}".format(e)
@@ -345,7 +342,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response = bittensor_pb2.TensorMessage(
                     version = bittensor.__version__, 
                     public_key = self.__keypair.public_key, 
-                    code = bittensor.exceptions.UnknownExceptionCode,
+                    return_code =  bittensor_pb2.ReturnCode.UnknownException,
                     message = error_msg)
                 return response
 
@@ -359,7 +356,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response = bittensor_pb2.TensorMessage(
                     version = bittensor.__version__, 
                     public_key = self.__keypair.public_key, 
-                    code = bittensor.exceptions.RequestSerializationExceptionCode,
+                    return_code =  bittensor_pb2.ReturnCode.ResponseSerializationException,
                     message = error_msg)
                 return response
 
@@ -369,9 +366,19 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response = bittensor_pb2.TensorMessage(
                     version = bittensor.__version__, 
                     public_key = self.__keypair.public_key, 
-                    code = bittensor.exceptions.RequestDeserializationExceptionCode,
+                    return_code =  bittensor_pb2.ReturnCode.ResponseSerializationException,
                     message = error_msg)
                 return response
+
+            # Final response.
+            response = bittensor_pb2.TensorMessage(
+                version = bittensor.__version__,
+                public_key = self.__keypair.public_key,
+                return_code =  bittensor_pb2.ReturnCode.Success,
+                message = "success",
+                tensors = [inputs_dx_serialized])
+
+            return response
 
         # Final catch of unknown exceptions.
         except Exception as e:
@@ -380,17 +387,7 @@ class Axon(bittensor_grpc.BittensorServicer):
             response = bittensor_pb2.TensorMessage(
                 version = bittensor.__version__, 
                 public_key = self.__keypair.public_key, 
-                code = bittensor.exceptions.UnknownExceptionCode,
+                return_code =  bittensor_pb2.ReturnCode.UnknownException,
                 message = error_msg)
             return response
 
-        # Finally build response with serialized outputs.
-        finally:
-            response = bittensor_pb2.TensorMessage(
-                version = bittensor.__version__,
-                public_key = self.__keypair.public_key,
-                code = bittensor.exceptions.SuccessCode,
-                message = "success",
-                tensors = inputs_dx_serialized)
-        
-        return response
