@@ -273,6 +273,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 return_code =  bittensor_pb2.ReturnCode.Success,
                 message = "success",
                 tensors = [y_serialized])
+            return response
 
         # Final catch of unknown exceptions.
         except Exception as e:
@@ -283,8 +284,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 public_key = self.__keypair.public_key, 
                 return_code =  bittensor_pb2.ReturnCode.UnknownException,
                 message = error_msg)
-        
-        return response
+            return response
 
 
     def Backward(self, request: bittensor_pb2.TensorMessage,

@@ -21,7 +21,9 @@ from bittensor.exceptions.handlers import rollbar
 DUMMY = torch.empty(0, requires_grad=True)
 
 def nill_response_for(inputs):
-    return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__) )
+    if torch.numel(inputs) == 0:
+        return torch.zeros([], dtype = torch.float32)
+    return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype = torch.float32)
 
 class Dendrite(nn.Module):
     r"""
@@ -65,6 +67,8 @@ class Dendrite(nn.Module):
                             help='Switch to true is the neuron passes gradients to downstream peers.')
         parser.add_argument('--dendrite.timeout', default=0.5, type=float, 
                             help='Per request RPC timeout.')
+        parser.add_argument('--dendrite.do_backoff', default=True, type=bool, 
+                            help='Neurons who return non successful return codes are periodically not called with a multiplicative backoff.')
         parser.add_argument('--dendrite.max_backoff', default=100, type=int, 
                             help='Backoff saturates at this value.')
         return parser
@@ -87,7 +91,7 @@ class Dendrite(nn.Module):
                     bittensor tokenizer of shape [batch_size, sequence_len].
 
             Returns:
-                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`):
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                     Output encodings of inputs produced by remote neurons. Non-responses are zeroes of common shape.
 
                 return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
@@ -143,12 +147,12 @@ class Dendrite(nn.Module):
                 neurons (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`):
                     List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
 
-                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, feature_len])`, `required`):
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, bittensor.__network_dim__])`, `required`):
                     List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and
-                    with shape [batch_size, sequence_len, feature_len].
+                    with shape [batch_size, sequence_len, bittensor.__network_dim__].
 
             Returns:
-                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.__network_dim__)]`, `required`):
                     Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
 
                 return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
@@ -160,7 +164,10 @@ class Dendrite(nn.Module):
         if len(x) != len(neurons):
             error_msg = 'List of tensor inputs x should have the same length as passed destination neurons, got {} and {}'.format(len(x), len(neurons))
             raise ValueError(error_msg)
-        if len(x) < 1:
+        if x[0].shape[2] != bittensor.__network_dim__:
+            error_msg = 'Passed tensor must have last dimension {} got {}'.format(bittensor.__network_dim__, x[0].shape[2])
+            raise ValueError(error_msg)
+        if len(x) == 0:
             error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
             raise ValueError(error_msg)
         return self.forward(neurons, x, bittensor_pb2.Modality.TENSOR)
@@ -253,26 +260,33 @@ class RemoteNeuron(nn.Module):
         # Next backoff, which doubles until dendrite.max_backoff
         self.next_backoff = 1
 
-
     def __del__(self):
         if self.channel is not None:
             self.channel.close()
 
-    def _backoff(self):
-        self.backoff = self.next_backoff
-        self.next_backoff = min(self.config.dendrite.max_backoff, self.next_backoff * 2)
 
     def forward(self, inputs: torch.Tensor, mode: bittensor_pb2.Modality) -> Tuple[torch.Tensor, bool, float]:
+        
+        # Dont make call if we are backing off.
+        if self.config.dendrite.do_backoff and self.backoff >= 1:
+            self.backoff -= 1
+            logger.trace('Still backing off from endpoint {}', self.endpoint)
+            return nill_response_for(inputs), torch.tensor(bittensor_pb2.ReturnCode.Backoff)
+    
         try:
             outputs, code = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
-            if code.item() != bittensor_pb2.ReturnCode.Sucess:
-                self._backoff ()
+
+            # Update backoff on non-success.
+            if code.item() != bittensor_pb2.ReturnCode.Success and self.config.dendrite.do_backoff:
+                self.backoff = self.next_backoff
+                self.next_backoff = min(self.config.dendrite.max_backoff, self.next_backoff * 2)
+
             return outputs, code
 
         except Exception as e:
             error_msg = 'Uncaught error in forward call with error {}'.format( e )
             logger.error(error_msg)
-            return nill_response_for(inputs), bittensor_pb2.ReturnCode.UnknownException
+            return nill_response_for(inputs), torch.tensor(bittensor_pb2.ReturnCode.UnknownException)
 
 class _RemoteModuleCall(torch.autograd.Function):
     """ Internal autograd-friendly call of a remote module over grpc"""
@@ -288,13 +302,6 @@ class _RemoteModuleCall(torch.autograd.Function):
 
         zeros = nill_response_for(inputs)
         try:
-
-            # Are we backing off.
-            if caller.backoff > 1:
-                caller.backoff -= 1
-                logger.trace('Still backing off from endpoint {}', caller.endpoint)
-                return zeros, torch.tensor(bittensor_pb2.ReturnCode.Backoff)
-
             # If this is an empty call get nill response.
             if torch.numel(inputs) == 0:
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.EmptyRequest)
