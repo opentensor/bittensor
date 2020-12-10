@@ -10,13 +10,14 @@ import bittensor
 import argparse
 from bittensor.config import Config
 from bittensor import Session
+from bittensor.utils.logging import log_outputs
 from bittensor.subtensor import Keypair
 from bittensor.synapses.bert import BertMLMSynapse
 
 import numpy as np
 from termcolor import colored
 from loguru import logger
-from datasets import load_dataset
+from datasets import load_dataset, log_batch_weights, log_chain_weights
 import replicate
 import random
 import time
@@ -83,6 +84,7 @@ def train(model, config, session, optimizer, scheduler, dataset, collator):
     best_loss = math.inf
     model.train()  # Turn on the train mode.
     weights = None
+    history = []
     while True:
         optimizer.zero_grad() # Clear gradients.
 
@@ -95,6 +97,7 @@ def train(model, config, session, optimizer, scheduler, dataset, collator):
                 
         # Forward pass.
         output = model( inputs.to(model.device), labels.to(model.device), remote = True)
+        history.append(output)
 
         # Backprop.
         output.loss.backward()
@@ -102,7 +105,7 @@ def train(model, config, session, optimizer, scheduler, dataset, collator):
         scheduler.step()
 
         # Update weights.
-        batch_weights = F.softmax(torch.mean(output.weights, axis=0)) # Softmax weights.
+        batch_weights = F.softmax(torch.mean(output.weights, axis=0), dim=0) # Softmax weights.
         weights = (1 - 0.05) * weights + 0.05 * batch_weights # Moving Avg
         weights = weights / torch.sum(weights) # Normalize.
         
@@ -110,6 +113,11 @@ def train(model, config, session, optimizer, scheduler, dataset, collator):
         step += 1
         logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
             step, output.loss.item(), output.remote_target_loss.item(), output.distillation_loss.item()))
+        log_outputs(history)
+        log_batch_weights(session, history)
+        log_chain_weights(session)
+        log_request_sizes(session, history)
+        history = []
 
     # After each epoch, checkpoint the losses and re-serve the network.
     if output.loss.item() < best_loss:

@@ -22,6 +22,7 @@ from loguru import logger
 
 import bittensor
 from bittensor import Session
+from bittensor.utils.logging import log_outputs, log_batch_weights, log_chain_weights
 from bittensor.subtensor import Keypair
 from bittensor.config import Config
 from bittensor.synapse import Synapse
@@ -68,6 +69,7 @@ def train(
 
     model.train() # Turn on Dropoutlayers BatchNorm etc.
     weights = None
+    history = []
     for batch_idx, (images, targets) in enumerate(trainloader):
         optimizer.zero_grad() # Clear gradients.
 
@@ -77,52 +79,33 @@ def train(
                         
         # Forward pass.
         output = model(images.to(model.device), torch.LongTensor(targets).to(model.device), remote = True)
-        
+        history.append(output)
+
         # Backprop.
         loss = output.remote_target_loss + output.distillation_loss
         loss.backward()
         optimizer.step()
 
         # Update weights.
-        batch_weights = F.softmax(torch.mean(output.weights, axis=0)) # Softmax weights.
+        batch_weights = F.softmax(torch.mean(output.weights, axis=0), dim=0) # Softmax weights.
         weights = (1 - 0.05) * weights + 0.05 * batch_weights # Moving Avg
         weights = weights / torch.sum(weights) # Normalize.
 
         # Logs:
         if (batch_idx + 1) % config.neuron.log_interval == 0: 
-            n = len(trainloader) * config.neuron.batch_size_train
-            max_logit = output.remote_target.data.max(1, keepdim=True)[1]
-            correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
-            n_str = colored('{}'.format(n), 'red')
-
-            loss_item = output.remote_target_loss.item()
-            loss_item_str = colored('{:.3f}'.format(loss_item), 'green')
-
+            total_examples = len(trainloader) * config.neuron.batch_size_train
             processed = ((batch_idx + 1) * config.neuron.batch_size_train)
-            processed_str = colored('{}'.format(processed), 'green')
-
-            progress = (100. * processed) / n
-            progress_str = colored('{:.2f}%'.format(progress), 'green')
-
-            accuracy = (100.0 * correct) / config.neuron.batch_size_train
-            accuracy_str = colored('{:.3f}'.format(accuracy), 'green')
-
-            logger.info('Epoch: {} [{}/{} ({})] | Loss: {} | Acc: {} ', 
-                epoch, processed_str, n_str, progress_str, loss_item_str, accuracy_str)
-
-            # Log weights.
-            np.set_printoptions(precision=2, suppress=True, linewidth=500, sign=' ')
-            numpy_uids = np.array(session.metagraph.state.uids.tolist())
-            numpy_weights = np.array(session.metagraph.state.weights.tolist())
-            numpy_stack = np.stack((numpy_uids, numpy_weights), axis=0)
-            stack_str = colored(numpy_stack, 'green')
-            logger.info('Weights: \n {}', stack_str)
-            
-            session.tbwriter.write_loss('train remote target loss', output.remote_target_loss.item())
-            session.tbwriter.write_loss('train local target loss', output.local_target_loss.item())
-            session.tbwriter.write_loss('train distilation loss', output.distillation_loss.item())
-            session.tbwriter.write_loss('train loss', output.loss.item())
-            session.tbwriter.write_accuracy('train accuracy', accuracy)
+            progress = (100. * processed) / total_examples
+            logger.info('Epoch: {} [{}/{} ({})]', 
+                        colored('{}'.format(epoch), 'blue'), 
+                        colored('{}'.format(processed), 'green'), 
+                        colored('{}'.format(total_examples), 'red'),
+                        colored('{:.2f}%'.format(progress), 'green'))
+            log_outputs(history)
+            log_batch_weights(session, history)
+            log_chain_weights(session)
+            log_request_sizes(session, history)
+            history = []
 
 def test ( 
     epoch: int,
