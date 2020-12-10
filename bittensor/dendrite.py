@@ -265,13 +265,8 @@ class RemoteNeuron(nn.Module):
     def forward(self, inputs: torch.Tensor, mode: bittensor_pb2.Modality) -> Tuple[torch.Tensor, bool, float]:
         try:
             outputs, code = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
-
-            if code.item() == bittensor_pb2.ReturnCode.Unavailable:
+            if code.item() != bittensor_pb2.ReturnCode.Sucess:
                 self._backoff ()
-
-            if code.item() == bittensor_pb2.ReturnCode.Timeout:
-                self._backoff ()
-
             return outputs, code
 
         except Exception as e:
