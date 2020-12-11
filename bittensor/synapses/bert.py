@@ -193,10 +193,10 @@ class BertSynapseBase (Synapse):
         """
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        remote_context, weights, sizes, retops = self.dendrite.forward_text(text = inputs, query = encoding_pooled)
+        remote_context, weights, sizes, return_codes = self.dendrite.forward_text(text = inputs, query = encoding_pooled)
         output.weights = weights
         output.request_sizes = sizes
-        output.retops = retops
+        output.return_codes = return_codes
         remote_context = remote_context.to(self.device)
 
         # distillation_loss: distillation loss between local_context and remote_context
@@ -248,14 +248,14 @@ class BertSynapseBase (Synapse):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `required`): 
                         weights for each active neuron.
 
-                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `required`): 
                         number of requests sent to each uid in this batch.
 
-                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[metagraph.state.n]`, `required`):
+                        dendrite call return codes. 0 for success.
                 )
         """
         if targets is not None:
@@ -375,8 +375,8 @@ class BertNSPSynapse (BertSynapseBase):
                     requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         number of requests sent to each uid in this batch.
 
-                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[metagraph.state.n]`, `required`):
+                        dendrite call return codes. 0 for success.
                 )
         """
         # Call forward method from bert base.
@@ -504,8 +504,8 @@ class BertMLMSynapse (BertSynapseBase):
                     requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         number of requests sent to each uid in this batch.
 
-                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[metagraph.state.n]`, `required`):
+                        dendrite call return codes. 0 for success.
                 )
         """
         # Call forward method from bert base.

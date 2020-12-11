@@ -10,76 +10,130 @@ import unittest
 import random
 import torch
 
-class TestAxon(unittest.TestCase):
-    def setUp(self):
-        self.config = Config.load()
-        mnemonic = Keypair.generate_mnemonic()
-        self.keypair = Keypair.create_from_mnemonic(mnemonic)
-        self.session = bittensor.init(self.config, self.keypair)
-        self.neuron = bittensor_pb2.Neuron(
-            version = bittensor.__version__,
-            public_key = self.keypair.public_key,
-            address = '0.0.0.0',
-            port = 12345,
-        )
-        self.synapse = Synapse(self.config, self.session)
-    
-    def test_serve(self):
-        assert self.session.axon._synapse == None
-        for _ in range(0, 10):
-            self.session.axon.serve(self.synapse)
-        assert self.session.axon._synapse != None
+config = Config.load()
+mnemonic = Keypair.generate_mnemonic()
+keypair = Keypair.create_from_mnemonic(mnemonic)
+axon = bittensor.axon.Axon( config, keypair)
+synapse = Synapse( config, None )
 
-    def test_forward(self):
-        request = bittensor_pb2.TensorMessage()
+def test_serve():
+    assert axon.synapse == None
+    for _ in range(0, 10):
+        axon.serve(synapse)
+    assert axon.synapse != None
 
-        # Check for null response by sending a request with no tensors in it
-        response = self.session.axon.Forward(request, None)
-        assert response == bittensor_pb2.TensorMessage(
-                                version=bittensor.__version__,
-                                public_key=self.keypair.public_key)
+def test_forward_not_implemented():
+    axon.serve(synapse)
+    x = torch.rand(3, 3, bittensor.__network_dim__)
+    request = bittensor_pb2.TensorMessage(
+        version=bittensor.__version__,
+        public_key=keypair.public_key,
+        tensors=[PyTorchSerializer.serialize_tensor(x)]
+    )
+    response = axon.Forward(request, None)
+    assert response.return_code == bittensor_pb2.ReturnCode.NotImplemented
 
-        # Let's add a synapse and call forward on the axon
-        self.session.axon.serve(self.synapse)
-        x = torch.rand(3, 3, bittensor.__network_dim__)
-        request = bittensor_pb2.TensorMessage(
-            version=bittensor.__version__,
-            public_key=self.keypair.public_key,
-            tensors=[PyTorchSerializer.serialize_tensor(x)]
-        )
+def test_forward_not_serving():
+    axon.synapse = None
+    request = bittensor_pb2.TensorMessage(
+        version=bittensor.__version__,
+        public_key=keypair.public_key,
+    )
+    response = axon.Forward(request, None)
+    assert response.return_code == bittensor_pb2.ReturnCode.NotServingSynapse
 
-        self.session.axon._synapse.call_forward = MagicMock(return_value=x)
-        response = self.session.axon.Forward(request, None)
-        assert response.tensors[0].shape == [3, 3, bittensor.__network_dim__]
-        assert bittensor_dtype_to_torch_dtype(response.tensors[0].dtype) == torch.float32
-    
-    def test_backward(self):
-        # Let's add a synapse and call backward on the axon
-        self.session.axon.serve(self.synapse)
-        x = torch.rand(3, 3, bittensor.__network_dim__)
-        request = bittensor_pb2.TensorMessage(
-            version=bittensor.__version__,
-            public_key=self.keypair.public_key,
-            tensors=[PyTorchSerializer.serialize_tensor(x)]
-        )
+def test_empty_forward_request():
+    axon.serve(synapse)
+    request = bittensor_pb2.TensorMessage(
+        version=bittensor.__version__,
+        public_key=keypair.public_key,
+    )
+    response = axon.Forward(request, None)
+    assert response.return_code == bittensor_pb2.ReturnCode.EmptyRequest
 
-        self.session.axon._synapse.call_forward = MagicMock(return_value=x)
-        response = self.session.axon.Backward(request, None)
+def test_forward_deserialization_error():
+    axon.serve(synapse)
+    x = dict()
+    y = dict() # Not tensors that can be deserialized.
+    request = bittensor_pb2.TensorMessage(
+        version=bittensor.__version__,
+        public_key=keypair.public_key,
+        tensors=[x, y]
+    )
+    response = axon.Forward(request, None)
+    assert response.return_code == bittensor_pb2.ReturnCode.RequestDeserializationException
 
-        # We should get back a null response since the number of tensors does not match.
-        assert response ==  bittensor_pb2.TensorMessage(
-                version=bittensor.__version__,
-                public_key=self.keypair.public_key)
+def test_forward_success():
+    axon.synapse = synapse
+    x = torch.rand(3, 3, bittensor.__network_dim__)
+    request = bittensor_pb2.TensorMessage(
+        version=bittensor.__version__,
+        public_key=keypair.public_key,
+        tensors=[PyTorchSerializer.serialize_tensor(x)]
+    )
+    axon.synapse.call_forward = MagicMock(return_value=x)
 
-        x2 = torch.rand(3, 3, bittensor.__network_dim__)
-        
-        request = bittensor_pb2.TensorMessage(
-            version=bittensor.__version__,
-            public_key=self.keypair.public_key,
-            tensors=[PyTorchSerializer.serialize_tensor(x), PyTorchSerializer.serialize_tensor(x2)]
-        )
-        response = self.session.axon.Backward(request, None)
-        assert len(response.tensors) == 1
-        assert response.tensors[0].shape == [1,1]
-        assert bittensor_dtype_to_torch_dtype(response.tensors[0].dtype) == torch.float32
-  
+    response = axon.Forward(request, None)
+    assert response.return_code == bittensor_pb2.ReturnCode.Success
+    assert len(response.tensors) == 1
+    assert response.tensors[0].shape == [3, 3, bittensor.__network_dim__]
+    assert bittensor_dtype_to_torch_dtype(response.tensors[0].dtype) == torch.float32
+
+def test_backward_not_serving():
+    axon.synapse = None
+    request = bittensor_pb2.TensorMessage(
+        version=bittensor.__version__,
+        public_key=keypair.public_key,
+    )
+    response = axon.Backward(request, None)
+    assert response.return_code == bittensor_pb2.ReturnCode.NotServingSynapse
+
+def test_empty_backward_request():
+    axon.serve(synapse)
+    request = bittensor_pb2.TensorMessage(
+        version=bittensor.__version__,
+        public_key=keypair.public_key,
+    )
+    response = axon.Backward(request, None)
+    assert response.return_code == bittensor_pb2.ReturnCode.InvalidRequest
+
+
+def test_single_item_backward_request():
+    axon.serve(synapse)
+    x = torch.rand(3, 3, bittensor.__network_dim__)
+    request = bittensor_pb2.TensorMessage(
+        version=bittensor.__version__,
+        public_key=keypair.public_key,
+        tensors=[PyTorchSerializer.serialize_tensor(x)]
+    )
+    response = axon.Backward(request, None)
+    assert response.return_code == bittensor_pb2.ReturnCode.InvalidRequest
+
+
+def test_backward_deserialization_error():
+    axon.serve(synapse)
+    x = dict()
+    y = dict() # Not tensors that can be deserialized.
+    request = bittensor_pb2.TensorMessage(
+        version=bittensor.__version__,
+        public_key=keypair.public_key,
+        tensors=[x, y]
+    )
+    response = axon.Backward(request, None)
+    assert response.return_code == bittensor_pb2.ReturnCode.RequestDeserializationException
+
+def test_backward_success():
+    axon.serve(synapse)
+    x = torch.rand(3, 3, bittensor.__network_dim__)
+    request = bittensor_pb2.TensorMessage(
+        version=bittensor.__version__,
+        public_key=keypair.public_key,
+        tensors=[PyTorchSerializer.serialize_tensor(x), PyTorchSerializer.serialize_tensor(x)]
+    )
+    axon.synapse.call_backward = MagicMock(return_value=x)
+    response = axon.Backward(request, None)
+
+    assert response.return_code == bittensor_pb2.ReturnCode.Success
+    assert len(response.tensors) == 1
+    assert response.tensors[0].shape == [3, 3, bittensor.__network_dim__]
+    assert bittensor_dtype_to_torch_dtype(response.tensors[0].dtype) == torch.float32
