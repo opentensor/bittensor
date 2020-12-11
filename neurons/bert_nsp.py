@@ -125,6 +125,7 @@ def train(model, config, session, optimizer, scheduler, dataset):
         log_outputs(history)
         log_batch_weights(session, history)
         log_chain_weights(session)
+        log_request_sizes(session, history)
         history = []
 
         # After each epoch, checkpoint the losses and re-serve the network.

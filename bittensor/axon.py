@@ -15,8 +15,6 @@ from bittensor.synapse import Synapse
 from bittensor import bittensor_pb2
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor.serializer import PyTorchSerializer
-from bittensor.exceptions.Exceptions import DeserializationException, InvalidRequestException, RequestShapeException, SerializationException, NonExistentSynapseException
-from bittensor.exceptions.handlers import rollbar
 
 def obtain_ip(config: Munch) -> Munch:
     if config.axon.remote_ip != None:
@@ -30,6 +28,7 @@ def obtain_ip(config: Munch) -> Munch:
         logger.error("CONFIG: Response from IP API is not a valid IP with ip {}", value)
         raise SystemError('CONFIG: Response from IP API is not a valid IP with ip {}'.format(value))
     config.axon.remote_ip = value
+    logger.info('remote ip: {}', value)
     return config
 
 class Axon(bittensor_grpc.BittensorServicer):
@@ -55,7 +54,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         self._server.add_insecure_port('[::]:' + str(self._config.axon.port))
 
         # Local synapse.
-        self._synapse = None
+        self.synapse = None
 
         # Serving thread.
         self._thread = None
@@ -73,6 +72,7 @@ class Axon(bittensor_grpc.BittensorServicer):
     def check_config(config: Munch) -> Munch:
         logger.info('obtaining remote ip ...')
         config = obtain_ip(config)
+
         assert config.axon.port > 1024 and config.axon.port < 65535, 'config.axon.port must be in range [1024, 65535]'
         return config
 
@@ -109,7 +109,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 synapse (:obj:`bittensor.Synapse`, `required`): 
                     synpase object to serve on the axon server.
         """
-        self._synapse = synapse
+        self.synapse = synapse
 
     def Forward(self, request: bittensor_pb2.TensorMessage,
                 context: grpc.ServicerContext):
@@ -122,108 +122,272 @@ class Axon(bittensor_grpc.BittensorServicer):
                 context (:obj:`grpc.ServicerContext`, `required`): 
                     grpc server context.
         """
+    
         try:
-            # Single tensor requests only.
+            # Check axon is serving synapse.
+            if self.synapse == None:
+                error_msg = "Remote axon not serving a synapse"
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage(
+                    version = bittensor.__version__, 
+                    public_key = self.__keypair.public_key, 
+                    return_code =  bittensor_pb2.ReturnCode.NotServingSynapse,
+                    message = error_msg)
+                return response
+
+            # Check tensor size.
             if len(request.tensors) > 0:
                 inputs = request.tensors[0]
             else:
-                raise InvalidRequestException("Forward: This request contains {} tensors, expected 1 tensor in the forward call".format(len(request.tensors)))
+                error_msg = "Forward request contains {} tensors, expected 1 tensor in the forward call".format(len(request.tensors))
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage(
+                    version = bittensor.__version__, 
+                    public_key = self.__keypair.public_key, 
+                    return_code =  bittensor_pb2.ReturnCode.EmptyRequest,
+                    message = error_msg)
+                return response
 
-            # Deserialize the modality inputs to tensor.
+            # Deserialize request.
             try:
                 x = PyTorchSerializer.deserialize(inputs)
-            except SerializationException as e:
-                logger.warning("Exception occured: {}".format(e))
-                raise SerializationException("Deserialization of inputs failed. Inputs: {}".format(inputs))
+            except Exception as e:
+                error_msg  = "Forward request deserialization failed with unknown error {}".format(e)
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage(
+                                version = bittensor.__version__, 
+                                public_key = self.__keypair.public_key, 
+                                return_code =  bittensor_pb2.ReturnCode.RequestDeserializationException,
+                                message = error_msg)
+                return response
 
+            # Check batch size.
             if x.shape[0] < 1:
-                raise RequestShapeException(
-                    "request batch dim exception with batch_size = {} ".format(
-                        x.shape[0]))
+                error_msg = "Froward request batch dim exception with batch_size = {} ".format(x.shape[0])
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage( version = bittensor.__version__, 
+                                                        public_key = self.__keypair.public_key, 
+                                                        return_code =  bittensor_pb2.ReturnCode.RequestShapeException,
+                                                        message = error_msg)
+                return response
 
+            # Check sequence dimension.
             if x.shape[1] < 1:
-                raise RequestShapeException(
-                    "request sequence dim exception with sequence_dim = {} ".
-                    format(x.shape[1]))
+                error_msg = "Forward request sequence dim exception with sequence_dim = {} ".format(x.shape[1])
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage( version = bittensor.__version__, 
+                                                        public_key = self.__keypair.public_key, 
+                                                        return_code =  bittensor_pb2.ReturnCode.RequestShapeException,
+                                                        message = error_msg)
+                return response
 
             if inputs.modality == bittensor_pb2.Modality.TEXT:
                 if len(x.shape) != 2:
-                    raise RequestShapeException(
-                        "text input shape exception with len(request.shape) = {} "
-                        .format(len(x.shape)))
+                    error_msg = "Forward text input shape exception with len(request.shape) = {} must have rank 2.".format(len(x.shape))
+                    logger.warning(error_msg)
+                    response = bittensor_pb2.TensorMessage( 
+                        version = bittensor.__version__, 
+                        public_key = self.__keypair.public_key, 
+                        return_code =  bittensor_pb2.ReturnCode.RequestShapeException,
+                        message = error_msg)
+                    return response
+            
 
             elif inputs.modality == bittensor_pb2.Modality.IMAGE:
                 if len(x.shape) != 5:
-                    raise RequestShapeException(
-                        "image input shape exception for len(shape) = {} ".
-                        format(len(x.shape)))
+                    error_msg =  "Forward image input shape exception for len(shape) = {}  must have rank 5".format(len(x.shape))
+                    logger.warning(error_msg)
+                    response = bittensor_pb2.TensorMessage( 
+                        version = bittensor.__version__, 
+                        public_key = self.__keypair.public_key, 
+                        return_code =  bittensor_pb2.ReturnCode.RequestShapeException,
+                        message = error_msg)
+                    return response
+
 
             elif inputs.modality == bittensor_pb2.Modality.TENSOR:
                 if len(x.shape) != 3:
-                    raise RequestShapeException(
-                        "tensor input shape exception len(shape) = {} ".format(
-                            len(x.shape)))
+                    error_msg = "Forward message tensor input shape exception len(shape) = {} must have rank 3".format(len(x.shape))
+                    logger.warning(error_msg)
+                    response = bittensor_pb2.TensorMessage( 
+                        version = bittensor.__version__, 
+                        public_key = self.__keypair.public_key, 
+                        return_code =  bittensor_pb2.ReturnCode.RequestShapeException,
+                        message = error_msg)
+                    return response
+
             # Call forward network. May call NotImplementedError:
-            y = self._synapse.call_forward(x, inputs.modality)
+            try:
+                y = self.synapse.call_forward(x, inputs.modality)
+            
+            # Catch not implemented.
+            except NotImplementedError:
+                error_msg = "Forward synapse has not implemented the modality {}".format(inputs.modality)
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage( 
+                        version = bittensor.__version__, 
+                        public_key = self.__keypair.public_key, 
+                        return_code =  bittensor_pb2.ReturnCode.NotImplemented,
+                        message = error_msg)
+                return response
+            
+            # Catch unknown exceptions.
+            except Exception as e:
+                error_msg = "Unknown exception when calling forward on synapse with error {}".format(e)
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage( 
+                        version = bittensor.__version__, 
+                        public_key = self.__keypair.public_key, 
+                        return_code =  bittensor_pb2.ReturnCode.UnknownException,
+                        message = error_msg)
+                return response
 
-            # Serialize.
-            y_serialized = [PyTorchSerializer.serialize_tensor(y)]
+            # Serialize responses.
+            try:
+                y_serialized = PyTorchSerializer.serialize_tensor(y)
+            
+            except bittensor.exceptions.SerializationException as e:
+                error_msg = "Serializtion of forward response failed with error {} and inputs: {}".format(e, inputs)
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage(
+                    version = bittensor.__version__, 
+                    public_key = self.__keypair.public_key,
+                    return_code =  bittensor_pb2.ReturnCode.ResponseDeserializationException,
+                    message = error_msg)
+                return response
 
-            # Build response.
+            except Exception as e:
+                error_msg  = "Forward response serialization failed with unknown error {}".format(e)
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage(
+                                version = bittensor.__version__, 
+                                public_key = self.__keypair.public_key, 
+                                return_code =  bittensor_pb2.ReturnCode.ResponseDeserializationException,
+                                message = error_msg)
+                return response
+
+            # No excpetion.
             response = bittensor_pb2.TensorMessage(
-                version=bittensor.__version__,
-                public_key=self.__keypair.public_key,
-                tensors=y_serialized)
+                version = bittensor.__version__,
+                public_key = self.__keypair.public_key,
+                return_code =  bittensor_pb2.ReturnCode.Success,
+                message = "success",
+                tensors = [y_serialized])
+            return response
 
-        except (RequestShapeException, NonExistentSynapseException,
-                SerializationException, NotImplementedError, InvalidRequestException) as _:
-            # Build null response.
+        # Final catch of unknown exceptions.
+        except Exception as e:
+            error_msg  = "Calling forward request failed with unknown error {}".format(e)
+            logger.warning(error_msg)
             response = bittensor_pb2.TensorMessage(
-                version=bittensor.__version__,
-                public_key=self.__keypair.public_key)
+                version = bittensor.__version__, 
+                public_key = self.__keypair.public_key, 
+                return_code =  bittensor_pb2.ReturnCode.UnknownException,
+                message = error_msg)
+            return response
 
-        bittensor.session.tbwriter.write_axon_network_data('Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
-        return response
 
     def Backward(self, request: bittensor_pb2.TensorMessage,
                  context: grpc.ServicerContext):
-        # TODO (const): optionally check signature.
-        # TODO (const): Exceptions.
-        # Return null response if the target does not exist.
         try:
-            # Make local call.
-            if len(request.tensors) != 2:
-                raise InvalidRequestException("Backward: There are {} tensors in the request, expected 2.".format(len(request.tensors)))
-            else:
-                try:
-                    x = PyTorchSerializer.deserialize(request.tensors[0])
-                    dy = PyTorchSerializer.deserialize(request.tensors[1])
-                except DeserializationException as _:
-                    rollbar.send_exception()
-                    raise DeserializationException("Failed to deserialize {} and {}".format(request.tensors[0], request.tensors[1]))
-                
-                try:
-                    dx = self._synapse.call_backward(x, dy)
-                    dx_serialized = PyTorchSerializer.serialize_tensor(dx)
-                    response = bittensor_pb2.TensorMessage(
-                        version=bittensor.__version__,
-                        public_key=self.__keypair.public_key,
-                        tensors=[dx_serialized])
 
-                except SerializationException as _:
-                    rollbar.send_exception()
-                    raise SerializationException("Failed to serialize.")
-                except NotImplementedError as _:
-                    rollbar.send_exception()
-                    raise NotImplementedError("call_backward is not implemented for this synapse")
-
-
-        except (InvalidRequestException, NonExistentSynapseException, SerializationException, DeserializationException) as e:
-                logger.warning("Exception occured: {}. Sending null response back.".format(e))
-                # Build null response.
+            # Check axon is serving synapse.
+            if self.synapse == None:
+                error_msg = "Remote axon not serving a synapse"
+                logger.warning(error_msg)
                 response = bittensor_pb2.TensorMessage(
-                    version=bittensor.__version__,
-                    public_key=self.__keypair.public_key)
-        
-        bittensor.session.tbwriter.write_axon_network_data('Backward Call Response Message Size (MB)', response.ByteSize() / 1024)
-        return response
+                    version = bittensor.__version__, 
+                    public_key = self.__keypair.public_key, 
+                    return_code =  bittensor_pb2.ReturnCode.NotServingSynapse,
+                    message = error_msg)
+                return response
+
+            # Check request inputs.
+            if len(request.tensors) == 2:
+                inputs_x = request.tensors[0]
+                grads_dy = request.tensors[1]
+            else:
+                error_msg = "During backward: There are {} tensors in the request, expected 2.".format(len(request.tensors))
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage(
+                    version = bittensor.__version__, 
+                    public_key = self.__keypair.public_key, 
+                    return_code =  bittensor_pb2.ReturnCode.InvalidRequest,
+                    message = error_msg)
+                return response
+
+            
+            # Deserialize request.
+            try:
+                inputs_x = PyTorchSerializer.deserialize(inputs_x)
+                grads_dy = PyTorchSerializer.deserialize(grads_dy)
+                
+            except Exception as e:
+                error_msg  = "Backward request deserialization failed with unknown error {}".format(e)
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage(
+                    version = bittensor.__version__, 
+                    public_key = self.__keypair.public_key, 
+                    return_code =  bittensor_pb2.ReturnCode.RequestDeserializationException,
+                    message = error_msg)
+                return response
+
+            # Get grads by calling backward.
+            try:
+                inputs_dx = self.synapse.call_backward(inputs_x, grads_dy)
+
+            except Exception as e:
+                error_msg  = "Unkown exception when calling backward with error {}".format(e)
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage(
+                    version = bittensor.__version__, 
+                    public_key = self.__keypair.public_key, 
+                    return_code =  bittensor_pb2.ReturnCode.UnknownException,
+                    message = error_msg)
+                return response
+
+            # Deserialize response.
+            try:
+                inputs_dx_serialized = PyTorchSerializer.serialize_tensor(inputs_dx)
+
+            except bittensor.exceptions.SerializationException as e:
+                error_msg  = "Backward request serialization failed with error {} and inputs {}".format(e, inputs_dx)
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage(
+                    version = bittensor.__version__, 
+                    public_key = self.__keypair.public_key, 
+                    return_code =  bittensor_pb2.ReturnCode.ResponseSerializationException,
+                    message = error_msg)
+                return response
+
+            except Exception as e:
+                error_msg  = "Backward request deserialization failed with unknown error {}".format(e)
+                logger.warning(error_msg)
+                response = bittensor_pb2.TensorMessage(
+                    version = bittensor.__version__, 
+                    public_key = self.__keypair.public_key, 
+                    return_code =  bittensor_pb2.ReturnCode.ResponseSerializationException,
+                    message = error_msg)
+                return response
+
+            # Final response.
+            response = bittensor_pb2.TensorMessage(
+                version = bittensor.__version__,
+                public_key = self.__keypair.public_key,
+                return_code =  bittensor_pb2.ReturnCode.Success,
+                message = "success",
+                tensors = [inputs_dx_serialized])
+
+            return response
+
+        # Final catch of unknown exceptions.
+        except Exception as e:
+            error_msg  = "Calling backward request failed with unknown error {}".format(e)
+            logger.warning(error_msg)
+            response = bittensor_pb2.TensorMessage(
+                version = bittensor.__version__, 
+                public_key = self.__keypair.public_key, 
+                return_code =  bittensor_pb2.ReturnCode.UnknownException,
+                message = error_msg)
+            return response
+

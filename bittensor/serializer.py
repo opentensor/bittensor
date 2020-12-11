@@ -4,8 +4,14 @@ import torch
 
 import bittensor
 from bittensor import bittensor_pb2
-from bittensor.exceptions.Exceptions import SerializationException, DeserializationException
 
+class SerializationException (Exception):
+    """ Raised during serialization """
+    pass
+
+class DeserializationException (Exception):
+    """ Raised during deserialization """
+    pass
 
 def torch_dtype_to_bittensor_dtype(tdtype):
     """ Translates between torch.dtypes and bittensor.dtypes.
