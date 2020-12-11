@@ -144,13 +144,6 @@ class Session:
         except Exception as e:
             logger.error('SESSION: Error while stopping axon server: {} ', e)
 
-        # Stop replicate experiment if still running
-        try:
-            if self.replicate_util.experiment:
-                self.replicate_util.experiment.stop()
-        except Exception as e:
-            logger.error('SESSION: Could not stop Replicate experiment: {}', e)
-
 
     def subscribe (self):
        self.metagraph.subscribe()

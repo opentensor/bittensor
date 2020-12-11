@@ -9,22 +9,20 @@ Example:
 import bittensor
 import argparse
 from bittensor.config import Config
-from bittensor import Session
 from bittensor.utils.logging import log_outputs
 from bittensor.subtensor import Keypair
 from bittensor.synapses.bert import BertNSPSynapse
 
-import numpy as np
-from termcolor import colored
+
 from loguru import logger
 from datasets import load_dataset, log_batch_weights, log_chain_weights
-import replicate
 import random
 import time
 import torch
 import torch.nn.functional as F
 from munch import Munch
 import math
+import os
 
 def nsp_batch(data, batch_size, tokenizer):
     """ Returns a random batch from text dataset with 50 percent NSP.
@@ -93,6 +91,7 @@ def train(model, config, session, optimizer, scheduler, dataset):
     model.train()  # Turn on the train mode.
     weights = None
     history = []
+    batch_idx = 0
     while True:
         optimizer.zero_grad() # Clear gradients.
 
@@ -118,7 +117,7 @@ def train(model, config, session, optimizer, scheduler, dataset):
         batch_weights = F.softmax(torch.mean(output.weights, axis=0), dim=0) # Softmax weights.
         weights = (1 - 0.05) * weights + 0.05 * batch_weights # Moving Avg
         weights = weights / torch.sum(weights) # Normalize.
-        
+        batch_idx += 1
         # Log.
         step += 1
         logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
@@ -128,13 +127,13 @@ def train(model, config, session, optimizer, scheduler, dataset):
         log_chain_weights(session)
         history = []
 
-    # After each epoch, checkpoint the losses and re-serve the network.
-    if output.loss.item() < best_loss:
-        best_loss = output.loss
-        logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
-        torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
-        # Save experiment metrics
-        session.serve( model.deepcopy() )
+        # After each epoch, checkpoint the losses and re-serve the network.
+        if output.loss.item() < best_loss:
+            best_loss = output.loss
+            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/{}/model.torch', step, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+            torch.save( {'epoch': step, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
+            # Save experiment metrics
+            session.serve( model.deepcopy() )
 
 
 def main(config, session):
@@ -150,6 +149,11 @@ def main(config, session):
     # Optimizer.
     optimizer = torch.optim.SGD(model.parameters(), lr = config.neuron.learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
+
+    # Create directory if it does not exist.
+    data_directory = '{}/{}/{}'.format(config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+    if not os.path.exists(data_directory):
+        os.makedirs(data_directory)
 
     # train forever.
     train(model, config, session, optimizer, scheduler, dataset)

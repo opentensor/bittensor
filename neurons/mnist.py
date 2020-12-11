@@ -5,7 +5,6 @@ Example:
 """
 import argparse
 import math
-import numpy as np
 import time
 import torch
 from termcolor import colored
@@ -13,13 +12,14 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
+import os
 
 from munch import Munch
 from loguru import logger
 
 import bittensor
 from bittensor import Session
-from bittensor.utils.logging import log_outputs, log_batch_weights, log_chain_weights, log_request_sizes
+from bittensor.utils.logging import (log_outputs, log_batch_weights, log_chain_weights, log_request_sizes)
 from bittensor.subtensor import Keypair
 from bittensor.config import Config
 from bittensor.synapse import Synapse
@@ -105,11 +105,10 @@ def train(
             history = []
 
 def test ( 
-    epoch: int,
     model: Synapse,
     session: Session,
-    config: Munch,
-    testloader: torch.utils.data.DataLoader):
+    testloader: torch.utils.data.DataLoader,
+    num_tests: int):
 
     model.eval() # Turns off Dropoutlayers, BatchNorm etc.
     with torch.no_grad(): # Turns off gradient computation for inference speed up.
@@ -125,10 +124,10 @@ def test (
             correct = correct + max_logit.eq( labels.data.view_as(max_logit) ).sum()
     
     # Log results.
-    n = len(testdata) * config.neuron.batch_size_test
+    n = num_tests * config.neuron.batch_size_test
     loss /= n
     accuracy = (100. * correct) / n
-    logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, n, accuracy))  
+    logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, num_tests, accuracy))  
     session.tbwriter.write_loss('test loss', loss)
     session.tbwriter.write_accuracy('test accuracy', accuracy)
     return loss, accuracy
@@ -149,6 +148,11 @@ def main(config: Munch, session: Session):
     test_data = torchvision.datasets.MNIST(root = config.neuron.datapath + "datasets/", train=False, download=True, transform=transforms.ToTensor())
     testloader = torch.utils.data.DataLoader(test_data, batch_size = config.neuron.batch_size_test, shuffle=False, num_workers=2)
     
+    # Create directory if it does not exist.
+    data_directory = '{}/{}/{}'.format(config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+    if not os.path.exists(data_directory):
+        os.makedirs(data_directory)
+
     epoch = 0
     best_test_loss = math.inf
     while True:
@@ -165,19 +169,19 @@ def main(config: Munch, session: Session):
 
         # Test model.
         test_loss, test_accuracy = test( 
-            epoch = epoch,
             model = model,
             session = session,
-            config = config,
-            testloader = testloader
+            testloader = testloader,
+            num_tests = len(test_data),
         )
 
         # Save best model. 
         if test_loss < best_test_loss:
             best_test_loss = test_loss # Update best loss.
             # Save and serve the new best local model.
-            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
-            torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
+
+            logger.info( 'Saving/Serving model: epoch: {}, accuracy: {}, loss: {}, path: {}/{}/{}/model.torch'.format(epoch, test_accuracy, best_test_loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id))
+            torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': best_test_loss},"{}/{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
             # Save experiment metrics
             session.serve( model.deepcopy() )
 
