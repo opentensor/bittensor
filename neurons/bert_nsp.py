@@ -96,7 +96,7 @@ def train(model, config, session, optimizer, scheduler, dataset):
         optimizer.zero_grad() # Clear gradients.
 
          # Sync with chain.
-        if batch_idx % config.neuron.sync_interval == 0:
+        if step % config.neuron.sync_interval == 0:
             weights = session.metagraph.sync(weights)
 
          # Next batch.
@@ -117,7 +117,7 @@ def train(model, config, session, optimizer, scheduler, dataset):
         batch_weights = F.softmax(torch.mean(output.weights, axis=0), dim=0) # Softmax weights.
         weights = (1 - 0.05) * weights + 0.05 * batch_weights # Moving Avg
         weights = weights / torch.sum(weights) # Normalize.
-        batch_idx += 1
+        
         # Log.
         step += 1
         logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
