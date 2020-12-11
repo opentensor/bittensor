@@ -346,8 +346,8 @@ class _RemoteModuleCall(torch.autograd.Function):
                     return zeros, torch.tensor(bittensor_pb2.ReturnCode.Unavailable)
 
                 else:
-                    logger.error('Uncaught GPRC error exception with code {} from endpoint {}', e.code(), caller.endpoint)
-                    return zeros, torch.tensor(bittensor_pb2.ReturnCode.Unknown)
+                    logger.error('Uncaught GPRC error exception with code {} from endpoint {}', grpc_code.code(), caller.endpoint)
+                    return zeros, torch.tensor(bittensor_pb2.ReturnCode.UnknownException)
 
             # Catch Unknown
             except Exception as e:
