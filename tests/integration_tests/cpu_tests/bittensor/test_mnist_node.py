@@ -145,6 +145,7 @@ def main():
     parser = add_args(parser)
     config = Config.load(parser)
     config = check_config(config)    
+
     logger.info(Config.toString(config))
 
     # 2. Load Keypair.

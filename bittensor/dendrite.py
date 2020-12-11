@@ -3,7 +3,6 @@ import grpc
 import torch
 import torch.nn as nn
 import bittensor
-import time
 
 from torch.autograd.function import once_differentiable
 from typing import Tuple, List, Optional
@@ -302,47 +301,44 @@ class _RemoteModuleCall(torch.autograd.Function):
 
         zeros = nill_response_for(inputs)
         try:
-            serialized_inputs = PyTorchSerializer.serialize(inputs, mode)
-        except SerializationException:
-            rollbar.send_exception()
-            raise SerializationException('Failed to serialize inputs for forward call')
-        ctx.serialized_inputs =  serialized_inputs
+            # If this is an empty call get nill response.
+            if torch.numel(inputs) == 0:
+                return zeros, torch.tensor(bittensor_pb2.ReturnCode.EmptyRequest)
 
-        # Build request.
-        request = bittensor_pb2.TensorMessage(
-            version=bittensor.__version__,
-            public_key=ctx.caller.keypair.public_key,
-            nounce=ctx.caller.nounce,
-            signature=ctx.caller.signature,
-            tensors=[serialized_inputs])
+            # Serialize inputs.
+            try:
+                serialized_inputs = PyTorchSerializer.serialize(inputs, mode)
+            except:
+                logger.warning('Serialization error with inputs {}', inputs)
+                return zeros, torch.tensor(bittensor_pb2.ReturnCode.RequestSerializationException)
+            ctx.serialized_inputs =  serialized_inputs
 
-        # Make call.
-        pre_response_time = time.time() # in seconds
-        try:
-            response = ctx.caller.stub.Forward(request, timeout=caller.config.dendrite.timeout)
-        except grpc.RpcError as e:
-            msg = 'failed rpc with error {}'.format(e.code())
-            logger.warning(msg)
-            raise RPCError(msg)
-        elapsed_time = time.time() - pre_response_time
+            # Build request.
+            request = bittensor_pb2.TensorMessage(
+                version=bittensor.__version__,
+                public_key=ctx.caller.keypair.public_key,
+                nounce=ctx.caller.nounce,
+                signature=ctx.caller.signature,
+                tensors=[serialized_inputs])
+        
+            try:
+                response = ctx.caller.stub.Forward(request, timeout=caller.config.dendrite.timeout)
 
-        # Logs.
-        bittensor.session.tbwriter.save_dendrite_bandwidth_data(
-            'Remote Module Forward Call Response Message Size (MB)', response.ByteSize() / 1024)
-        bittensor.session.tbwriter.save_dendrite_bandwidth_data(
-            'Remote Module Forward Call Turnaround latency (seconds)', round(elapsed_time, 2))
+                bittensor_code = response.return_code
+                if bittensor_code == bittensor_pb2.ReturnCode.UnknownException:
+                    logger.error('Unknown exception returned from remote host with message {}', response.message)
+                    return zeros, torch.tensor(bittensor_code)
 
-        # Check tensor response.
-        if len(response.tensors) == 0:
-            raise EmptyTensorException('Forward request returned no tensors.')
+                elif bittensor_code != bittensor_pb2.ReturnCode.Success:
+                    return zeros, torch.tensor(bittensor_code)
 
-        # Deserialize.
-        try:
-            outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
-        except Exception as e:
-            msg = 'Failed to serialize responses from forward call with response {}, exception: {}'.format(response.tensors[0], e)
-            logger.warning(msg)
-            raise SerializationException(msg)
+            # Catch GRPC Errors
+            except grpc.RpcError as rpc_error_call:
+                grpc_code = rpc_error_call.code()
+
+                if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
+                    logger.warning('Deadline exceeds on endpoint {}', caller.endpoint)
+                    return zeros, torch.tensor(bittensor_pb2.ReturnCode.Timeout)
 
                 elif grpc_code == grpc.StatusCode.UNAVAILABLE:
                     logger.warning('Endpoint unavailable {}', caller.endpoint)
@@ -415,8 +411,7 @@ class _RemoteModuleCall(torch.autograd.Function):
                 ctx.caller.stub.Backward.future(request, timeout=ctx.caller.config.dendrite.timeout)
                 return (None, None, zeros, None)
 
-            except Exception as e:
-                logger.warning("Some exception as occured: {}".format(e))
+            except:
                 rollbar.send_exception()
                 return (None, None, zeros, None)
 
