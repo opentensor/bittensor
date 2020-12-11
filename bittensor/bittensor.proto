@@ -109,7 +109,8 @@ enum ReturnCode {
 	RequestDeserializationException = 13; // Request failed to deserialize.
 	ResponseDeserializationException = 14; // Response failed to deserialize.
 	NotServingSynapse = 15; // Axon is not serving a synapse to query.
-	UnknownException = 16; // Unknown exception.
+	NucleusTimeout = 16;
+	UnknownException = 17; // Unknown exception.
 }
 
 // A serialized tensor object created using the serializer class.
