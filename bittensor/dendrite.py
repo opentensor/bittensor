@@ -318,8 +318,8 @@ class _RemoteModuleCall(torch.autograd.Function):
         # Deserialize.
         try:
             outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
-        except:
-            msg = 'Failed to serialize responses from forward call with response {}'.format(response.tensors[0])
+        except Exception as e:
+            msg = 'Failed to serialize responses from forward call with response {}, exception: {}'.format(response.tensors[0], e)
             logger.warning(msg)
             raise SerializationException(msg)
 
@@ -364,7 +364,8 @@ class _RemoteModuleCall(torch.autograd.Function):
                 ctx.caller.stub.Backward.future(request, timeout=ctx.caller.config.dendrite.timeout)
                 return (None, None, zeros, None)
 
-            except:
+            except Exception as e:
+                logger.warning("Some exception as occured: {}".format(e))
                 rollbar.send_exception()
                 return (None, None, zeros, None)
 
