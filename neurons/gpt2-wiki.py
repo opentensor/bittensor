@@ -58,12 +58,11 @@ def train(model, config, session, optimizer, scheduler, dataset):
     model.train()  # Turn on the train mode.
     weights = None
     history = []
-    batch_idx = 0
     while True:
         optimizer.zero_grad() # Clear gradients.
 
         # Sync with chain.
-        if batch_idx % config.neuron.sync_interval == 0:
+        if step % config.neuron.sync_interval == 0:
             weights = session.metagraph.sync(weights)
 
         # Next batch.
@@ -92,9 +91,6 @@ def train(model, config, session, optimizer, scheduler, dataset):
         log_chain_weights(session)
         log_request_sizes(session, history)
         history = []
-
-        batch_idx += 1
-
         
         # After each epoch, checkpoint the losses and re-serve the network.
         if output.loss.item() < best_loss:
