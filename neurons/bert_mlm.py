@@ -124,6 +124,8 @@ def train(model, config, session, optimizer, scheduler, dataset, collator):
             torch.save( {'epoch': step, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
             # Save experiment metrics
             session.serve( model.deepcopy() )
+        
+        batch_idx += 1
 
 
 def main(config, session):

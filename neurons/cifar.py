@@ -107,6 +107,8 @@ def train(
             log_request_sizes(session, history)
             history = []
 
+        batch_idx += 1
+
 def test ( 
     model: Synapse,
     session: Session,
