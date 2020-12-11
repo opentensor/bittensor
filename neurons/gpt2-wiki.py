@@ -8,8 +8,7 @@ Example:
 """
 import bittensor
 from bittensor.subtensor import Keypair
-from bittensor.session import Session
-from bittensor.utils.logging import log_outputs, log_batch_weights, log_chain_weights
+from bittensor.utils.logging import (log_outputs, log_batch_weights, log_chain_weights, log_request_sizes)
 from bittensor.config import Config
 from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
 
@@ -59,6 +58,7 @@ def train(model, config, session, optimizer, scheduler, dataset):
     model.train()  # Turn on the train mode.
     weights = None
     history = []
+    batch_idx = 0
     while True:
         optimizer.zero_grad() # Clear gradients.
 
@@ -93,14 +93,17 @@ def train(model, config, session, optimizer, scheduler, dataset):
         log_request_sizes(session, history)
         history = []
 
-    # After each epoch, checkpoint the losses and re-serve the network.
-    if output.loss.item() < best_loss:
-        best_loss = output.loss
-        logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
-        torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
+        batch_idx += 1
+
         
-        # Save experiment metrics
-        session.serve( model.deepcopy() )
+        # After each epoch, checkpoint the losses and re-serve the network.
+        if output.loss.item() < best_loss:
+            best_loss = output.loss
+            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/{}/model.torch', step, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+            torch.save( {'epoch': step, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
+            
+            # Save experiment metrics
+            session.serve( model.deepcopy() )
 
 
 def main(config, session):

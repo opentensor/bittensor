@@ -145,7 +145,6 @@ def main():
     parser = add_args(parser)
     config = Config.load(parser)
     config = check_config(config)    
-    config.metagraph.chain_endpoint = "feynman.kusanagi.bittensor.com:9944"
     logger.info(Config.toString(config))
 
     # 2. Load Keypair.
