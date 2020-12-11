@@ -45,8 +45,7 @@ class Session:
         return config
 
     def __del__(self):
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.stop())
+        self.stop()
 
     def serve(self, synapse: Synapse):
         r""" Serves a Synapse to the axon server replacing the previous Synapse if exists.
@@ -61,9 +60,7 @@ class Session:
         rollbar.init() # If a rollbar token is present, this will enable error reporting to rollbar
 
         logger.info('session enter')
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        loop.run_until_complete(self.start())
+        self.start()
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
@@ -76,11 +73,8 @@ class Session:
 
         Returns:
             Session: present instance of session.
-        """
-        logger.info('session exit')
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        loop.run_until_complete(self.stop())
+        """        
+        self.stop()
         if exc_value:
 
             top_stack = StringIO()
@@ -104,7 +98,7 @@ class Session:
 
         return self
 
-    async def start(self):
+    def start(self):
         # Stop background grpc threads for serving the synapse object.
         logger.info('Start axon server...')
         try:
@@ -115,7 +109,7 @@ class Session:
 
         logger.info('Connect to chain ...')
         try:
-            connected = await self.metagraph.async_connect()
+            connected = self.metagraph.connect()
             if not connected:
                 logger.error('SESSION: Timeout while subscribing to the chain endpoint')
                 raise FailedConnectToChain
@@ -125,16 +119,16 @@ class Session:
 
         logger.info('Subscribe to chain ...')
         try:
-            await self.metagraph.async_subscribe(10)
+            self.metagraph.subscribe(10)
         except Exception as e:
             logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
             raise FailedToEnterSession
 
-    async def stop(self):
+    def stop(self):
         # Stop background grpc threads for serving synapse objects.
         logger.info('Unsubscribe from chain ...')
         try:
-            await self.metagraph.async_unsubscribe()
+            self.metagraph.unsubscribe()
         except Exception as e:
             logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
 
@@ -143,14 +137,6 @@ class Session:
             self.axon.stop()
         except Exception as e:
             logger.error('SESSION: Error while stopping axon server: {} ', e)
-
-        # Stop replicate experiment if still running
-        try:
-            if self.replicate_util.experiment:
-                self.replicate_util.experiment.stop()
-        except Exception as e:
-            logger.error('SESSION: Could not stop Replicate experiment: {}', e)
-
 
     def subscribe (self):
        self.metagraph.subscribe()
