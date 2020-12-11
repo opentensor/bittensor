@@ -54,7 +54,7 @@ jobs:
           command: unset https_proxy;unset http_proxy
       - run:
           name: Run MNIST node
-          command: pytest -s tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.5 --metagraph.chain_endpoint feynman.kusanagi.bittensor.com:9944
+          command: python3 tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.5 --metagraph.chain_endpoint feynman.kusanagi.bittensor.com:9944
 
   "Run Integration Tests":
     executor: bittensor-executor
