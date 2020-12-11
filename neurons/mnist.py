@@ -58,7 +58,7 @@ def check_config(config: Munch) -> Munch:
 
 def train(
     epoch: int,
-    model: Synapse,
+    model: Synapse
     session: Session,
     config: Munch,
     optimizer: optim.Optimizer,
@@ -102,6 +102,7 @@ def train(
             log_batch_weights(session, history)
             log_chain_weights(session)
             log_request_sizes(session, history)
+            log_return_codes(session, history)
             history = []
 
 def test ( 

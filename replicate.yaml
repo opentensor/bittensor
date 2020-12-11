@@ -1,5 +1,1 @@
-<<<<<<< HEAD
-repository: file://data//.replicate
-=======
 repository: file://data/mnist/.replicate
->>>>>>> 4fc40e2f32c9e2ebfbf6d1cd23e96f3cd13ff892

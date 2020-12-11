@@ -194,8 +194,8 @@ class DPNSynapse(Synapse):
                     weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each active neuron.
 
-                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[metagraph.state.n]`, `required`):
+                        dendrite call return codes. 0 for success.
 
                     metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
                         additional metadata output, specifically accuracy.
@@ -304,8 +304,8 @@ class DPNSynapse(Synapse):
                     requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         number of requests sent to each uid in this batch.
 
-                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[metagraph.state.n]`, `required`):
+                        dendrite call return codes. 0 for success.
 
                     metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
                         additional metadata output, specifically accuracy.
@@ -315,11 +315,11 @@ class DPNSynapse(Synapse):
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         # make a remote call.
         images = torch.unsqueeze(images, 1)
-        remote_context, weights, sizes, retops = self.dendrite.forward_image(images, transform)
+        remote_context, weights, sizes, return_codes = self.dendrite.forward_image(images, transform)
         remote_context = torch.squeeze(remote_context, 1)
         output.weights = weights
         output.request_sizes = sizes
-        output.retops = retops
+        output.retops = return_codes
         remote_context = remote_context.to(self.device)
 
         # distillation_loss: distillation loss between local_context and remote_context
