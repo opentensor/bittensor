@@ -11,6 +11,7 @@ from munch import Munch
 from loguru import logger
 
 import bittensor
+from bittensor.nucleus import Nucleus
 from bittensor.synapse import Synapse
 from bittensor import bittensor_pb2
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
@@ -59,6 +60,8 @@ class Axon(bittensor_grpc.BittensorServicer):
         # Serving thread.
         self._thread = None
 
+        self._nucleus = Nucleus(config)
+
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         parser.add_argument('--axon.port', default=8091, type=int, 
@@ -66,10 +69,12 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         parser.add_argument('--axon.remote_ip', default=None, type=str, 
                             help='Remote IP to serve to chain.')
+        parser = Nucleus.add_args(parser)
         return parser
 
     @staticmethod   
     def check_config(config: Munch) -> Munch:
+        config = Nucleus.check_config(config)
         logger.info('optaining remote ip ...')
         config = obtain_ip(config)
 
@@ -218,7 +223,7 @@ class Axon(bittensor_grpc.BittensorServicer):
 
             # Call forward network. May call NotImplementedError:
             try:
-                y = self.synapse.call_forward(x, inputs.modality)
+                y, message, code = self._nucleus.forward(synapse = self.synapse, inputs = x, mode = inputs.modality, priority = random.random())
             
             # Catch not implemented.
             except NotImplementedError:
@@ -246,8 +251,8 @@ class Axon(bittensor_grpc.BittensorServicer):
             try:
                 y_serialized = PyTorchSerializer.serialize_tensor(y)
             
-            except bittensor.exceptions.SerializationException as e:
-                error_msg = "Serializtion of forward response failed with error {} and inputs: {}".format(e, inputs)
+            except Exception as e:
+                error_msg = "Serializtion of forward response failed with error {} and inputs: {}".format(e)
                 logger.warning(error_msg)
                 response = bittensor_pb2.TensorMessage(
                     version = bittensor.__version__, 
@@ -256,22 +261,12 @@ class Axon(bittensor_grpc.BittensorServicer):
                     message = error_msg)
                 return response
 
-            except Exception as e:
-                error_msg  = "Forward response serialization failed with unknown error {}".format(e)
-                logger.warning(error_msg)
-                response = bittensor_pb2.TensorMessage(
-                                version = bittensor.__version__, 
-                                public_key = self.__keypair.public_key, 
-                                return_code =  bittensor_pb2.ReturnCode.ResponseDeserializationException,
-                                message = error_msg)
-                return response
-
             # No excpetion.
             response = bittensor_pb2.TensorMessage(
                 version = bittensor.__version__,
                 public_key = self.__keypair.public_key,
-                return_code =  bittensor_pb2.ReturnCode.Success,
-                message = "success",
+                return_code = code,
+                message = message,
                 tensors = [y_serialized])
             return response
 
@@ -350,7 +345,7 @@ class Axon(bittensor_grpc.BittensorServicer):
             try:
                 inputs_dx_serialized = PyTorchSerializer.serialize_tensor(inputs_dx)
 
-            except bittensor.exceptions.SerializationException as e:
+            except Exception as e:
                 error_msg  = "Backward request serialization failed with error {} and inputs {}".format(e, inputs_dx)
                 logger.warning(error_msg)
                 response = bittensor_pb2.TensorMessage(
@@ -360,15 +355,6 @@ class Axon(bittensor_grpc.BittensorServicer):
                     message = error_msg)
                 return response
 
-            except Exception as e:
-                error_msg  = "Backward request deserialization failed with unknown error {}".format(e)
-                logger.warning(error_msg)
-                response = bittensor_pb2.TensorMessage(
-                    version = bittensor.__version__, 
-                    public_key = self.__keypair.public_key, 
-                    return_code =  bittensor_pb2.ReturnCode.ResponseSerializationException,
-                    message = error_msg)
-                return response
 
             # Final response.
             response = bittensor_pb2.TensorMessage(

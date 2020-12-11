@@ -22,7 +22,7 @@ DUMMY = torch.empty(0, requires_grad=True)
 
 def nill_response_for(inputs):
     if torch.numel(inputs) == 0:
-        return torch.zeros([], dtype = torch.float32)
+        return torch.tensor([])
     return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype = torch.float32)
 
 class Dendrite(nn.Module):
@@ -309,8 +309,8 @@ class _RemoteModuleCall(torch.autograd.Function):
             # Serialize inputs.
             try:
                 serialized_inputs = PyTorchSerializer.serialize(inputs, mode)
-            except:
-                logger.warning('Serialization error with inputs {}', inputs)
+            except Exception as e:
+                logger.warning('Serialization error with error {}', e)
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.RequestSerializationException)
             ctx.serialized_inputs =  serialized_inputs
 
@@ -363,7 +363,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             try:
                 outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
             except Exception as e:
-                logger.error('Failed to serialize responses from forward call with response {} and error {}', response.tensors[0], e)
+                logger.error('Failed to serialize responses from forward call with error {}', e)
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.ResponseDeserializationException)
         
             # Check shape
