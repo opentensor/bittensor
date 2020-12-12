@@ -2,6 +2,7 @@ import argparse
 import sys
 import torch
 import traceback
+import queue
 
 from loguru import logger
 from munch import Munch
@@ -20,8 +21,9 @@ class Nucleus ():
     def __init__(self, config):
         r""" Initializes a nucleus backward and forward threading pools.
         """
-        self._forward_pool = ThreadPoolExecutor(max_workers=config.nucleus.max_workers)
-        self._backward_pool = ThreadPoolExecutor(max_workers=config.nucleus.max_workers)
+        self._config = config
+        self._forward_pool = ThreadPoolExecutor(maxsize = self._config.nucleus.queue_maxsize, max_workers=self._config.nucleus.max_workers)
+        self._backward_pool = ThreadPoolExecutor(maxsize = self._config.nucleus.queue_maxsize, max_workers=self._config.nucleus.max_workers)
 
     def forward(self, synapse: Synapse, inputs: torch.Tensor, mode: bittensor_pb2.Modality, priority: float) -> Tuple[torch.FloatTensor, str, int]:
         r""" Accepts a synapse object with inputs and priority, submits them to the forward work pool
@@ -49,10 +51,21 @@ class Nucleus ():
         """
         # Build future request.
         call_params = [synapse, inputs, mode]
-        future = self._forward_pool.submit( fn = self._forward, call_params = call_params, priority = priority)
+        try:
+            future = self._forward_pool.submit( fn = self._forward, call_params = call_params, priority = priority)
+        except queue.Full:
+            code = bittensor_pb2.ReturnCode.NucleusFull
+            message = 'processing queue is full. try Backoff.'
+            return None, message, code
+        except Exception as e:
+            message = 'Unknown error on nucleus submit with error {}'.format(e)
+            logger.error(message)
+            code = bittensor_pb2.ReturnCode.UnknownException
+            return None, message, code
+
         # Try to get response or error on timeout.
         try:
-            outputs = future.result (timeout = 1)
+            outputs = future.result (timeout = self._config.nucleus.queue_timeout)
             tensor = outputs[0]
             message = outputs[1]
             code = outputs[2]
@@ -93,7 +106,7 @@ class Nucleus ():
         future = self._backward_pool.submit( fn =  self._backward, call_params = call_params, priority = priority )
         # Recieve respoonse from the future or fail.
         try:
-            outputs = future.result (timeout = 1)
+            outputs = future.result (timeout = self._config.nucleus.queue_timeout)
             tensor = outputs[0]
             message = outputs[1]
             code = outputs[2]
@@ -130,7 +143,7 @@ class Nucleus ():
         except NotImplementedError:
             tensor = None
             message = 'modality not implemented'
-            code = bittensor_pb2.ReturnCode.NotImplementedError
+            code = bittensor_pb2.ReturnCode.NotImplemented
 
         except Exception as e:
             tensor = None
@@ -175,7 +188,11 @@ class Nucleus ():
                     parser argument to append args to.
         """
         parser.add_argument('--nucleus.max_workers', default=5, type=int, 
-                            help='Nuclesu priority queue workers.')
+                            help='Nucleus priority queue workers.')
+        parser.add_argument('--nucleus.queue_timeout', default=5, type=int, 
+                            help='Nucleus future timeout.')
+        parser.add_argument('--nucleus.queue_maxsize', default=1000, type=int, 
+                            help='Maximum number of pending tasks allowed in the threading priority queue.')
         return parser
 
     @staticmethod   

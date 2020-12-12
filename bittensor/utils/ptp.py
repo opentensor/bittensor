@@ -41,6 +41,8 @@ def _python_exit():
         q.put(NULL_ENTRY)
     for t, q in items:
         t.join()
+        if t.is_alive():
+            logger.error('thread was not joined {}', t)
 
 atexit.register(_python_exit)
 
@@ -66,7 +68,7 @@ class _WorkItem(object):
             self.future.set_result(result)
 
 
-NULL_ENTRY = (sys.maxsize, _WorkItem(None, None, (), {}))
+NULL_ENTRY = (-sys.maxsize, _WorkItem(None, None, (), {}))
 
 def _worker(executor_reference, work_queue, initializer, initargs):
     if initializer is not None:
@@ -83,7 +85,9 @@ def _worker(executor_reference, work_queue, initializer, initargs):
             work_item = work_queue.get(block=True)
             priority = work_item[0]
             item = work_item[1]
-            if item is not None and priority != sys.maxsize:
+            if priority == -sys.maxsize:
+                del item
+            elif item is not None:
                 item.run()
                 # Delete references to object. See issue16284
                 del item
@@ -119,7 +123,7 @@ class ThreadPoolExecutor(_base.Executor):
     # Used to assign unique thread names when thread_name_prefix is not supplied.
     _counter = itertools.count().__next__
 
-    def __init__(self, max_workers=None, thread_name_prefix='',
+    def __init__(self, maxsize = -1, max_workers=None, thread_name_prefix='',
                  initializer=None, initargs=()):
         """Initializes a new ThreadPoolExecutor instance.
 
@@ -141,7 +145,7 @@ class ThreadPoolExecutor(_base.Executor):
             raise TypeError("initializer must be a callable")
 
         self._max_workers = max_workers
-        self._work_queue = queue.PriorityQueue()
+        self._work_queue = queue.PriorityQueue(maxsize = maxsize)
         self._threads = set()
         self._broken = False
         self._shutdown = False
@@ -169,7 +173,7 @@ class ThreadPoolExecutor(_base.Executor):
             f = _base.Future()
             w = _WorkItem(f, fn, args, kwargs)
 
-            self._work_queue.put((priority, w))
+            self._work_queue.put((priority, w), block=False)
             self._adjust_thread_count()
             return f
     submit.__doc__ = _base.Executor.submit.__doc__
@@ -210,10 +214,14 @@ class ThreadPoolExecutor(_base.Executor):
                     work_item.future.set_exception(BrokenThreadPool(self._broken))
 
     def shutdown(self, wait=True):
-        with self._shutdown_lock:
-            self._shutdown = True
-            self._work_queue.put(NULL_ENTRY)
-        if wait:
-            for t in self._threads:
-                t.join()
+        pass
+
+        # with self._shutdown_lock:
+        #     self._shutdown = True
+        #     self._work_queue.put(NULL_ENTRY)
+        
+        # logger.info('wait')
+        # if wait:
+        #     for t in self._threads:
+        #         t.join(timeout=1)
     shutdown.__doc__ = _base.Executor.shutdown.__doc__
