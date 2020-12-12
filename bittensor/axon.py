@@ -2,6 +2,7 @@ import argparse
 import grpc
 import random
 import requests
+import sys
 import threading
 import torch
 import validators
@@ -59,6 +60,7 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # Local synapse to serve.
         self.synapse = None
+        self.priority = {}
 
         # Serving thread.
         self._thread = None
@@ -101,6 +103,28 @@ class Axon(bittensor_grpc.BittensorServicer):
                     synpase object to serve.
         """
         self.synapse = synapse
+
+    def set_priority(self, priority_map: dict):
+        r""" Set the serving priority for requests on the server synapse. 
+            float values must be unique.
+            
+            Args:
+                priority_map (:obj:`Dict`, `required`): 
+                    map from public key to priority. str -> float
+        """
+        # check uniqueness.
+        val_set = set()
+        checked_priority = {}
+        for key, val in priority_map.items():
+            if val in val_set:
+                val = val * (1 + random.random() * 0.000001) # random small pertubation.
+            if val == sys.maxsize:
+                logger.error('cannot set priority to {}, setting to {} instead.', sys.maxsize, sys.maxsize - 1)
+                val = sys.maxsize - 1
+            val_set.add(val)
+            checked_priority[key] = -val # Invert priorities highest values will be processed first.
+        self.priority = priority_map
+        logger.info('Setting query priority: {}', self.priority)
 
     def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext) -> bittensor_pb2.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
@@ -215,13 +239,20 @@ class Axon(bittensor_grpc.BittensorServicer):
                 code = bittensor_pb2.ReturnCode.RequestShapeException
                 return None, message, code
 
+        # --- Get call priority ----
+        try:
+            call_priority = self.priority[request.public_key]
+        except:
+            # no priority for this public key, setting to max value. (i.e. slowest.)
+            call_priority = sys.maxsize - 1
+
         # ---- Make Nucleus forward call. ----
         try:
             outputs, message, code = self._nucleus.forward(
                 synapse = self.synapse, 
                 inputs = x, 
                 mode = inputs.modality, 
-                priority = random.random()
+                priority = call_priority
             )
 
             # ---- Catch Nucleus errors ----
@@ -286,13 +317,20 @@ class Axon(bittensor_grpc.BittensorServicer):
             code =  bittensor_pb2.ReturnCode.RequestDeserializationException
             return None, message, code
 
+        # --- Get call priority ----
+        try:
+            call_priority = self.priority[request.public_key]
+        except:
+            # no priority for public key set to max value.
+            call_priority = sys.maxsize - 1
+
         # ---- Nucleus backward call ----
         try:
             outputs, message, code = self._nucleus.backward(
                     synapse = self.synapse, 
                     inputs_x = inputs_x, 
                     grads_dy = grads_dy, 
-                    priority = random.random()
+                    priority = call_priority
             )
         except Exception as e:
             message  = "Unkown exception when calling backward with error {}".format(e)

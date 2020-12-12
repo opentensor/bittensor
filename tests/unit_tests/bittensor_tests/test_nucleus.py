@@ -97,7 +97,9 @@ def test_queue_full():
     assert False
 
 def test_stress_test():
+    n_to_call = 100
     config.nucleus.queue_maxsize = 10000
+    config.nucleus.queue_timeout = n_to_call
     nucleus = Nucleus(config)
     synapse = SlowSynapse(None, None)
     x = torch.rand(3, 3, bittensor.__network_dim__)
@@ -110,14 +112,16 @@ def test_stress_test():
     # Create many futures.
     futures = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        for _ in range(1000):
+        for _ in range(n_to_call):
             futures.append(executor.submit(_call_nucleus_forward))
 
     # All should return success fully.
     for f in futures:
         code = f.result()
+        print (code)
         if code != bittensor_pb2.ReturnCode.Success:
             assert False
+
     assert True
 
 def test_backward_success():
@@ -129,13 +133,3 @@ def test_backward_success():
     outputs, _, code = nucleus.backward(synapse = synapse, inputs_x = x, grads_dy = x, priority = 1)
     assert list(outputs.shape) == [3, 3]
     assert code == bittensor_pb2.ReturnCode.Success
-
-if __name__ == "__main__":
-    test_init()
-    test_stop()
-    test_not_implemented()
-    test_forward_success()
-    test_multiple_forward_success()
-    test_queue_full()
-    test_stress_test()
-    test_backward_success()

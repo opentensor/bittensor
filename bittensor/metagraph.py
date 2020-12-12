@@ -241,6 +241,15 @@ class Metagraph():
         return self.state.neurons
 
     @property
+    def public_keys(self) -> List[str]:
+        r""" Return the ordered public keys for state neurons.
+        Returns
+            public_keys: (:obj:`List[str]` of shape :obj:`(n)`):
+                public keys of all graph neurons.
+        """
+        return [n.public_key for n in self.state.neurons]
+
+    @property
     def weights(self):
         r"""Return this neuron's weights. W[0,:]
         Returns 
