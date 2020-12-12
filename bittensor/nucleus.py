@@ -2,17 +2,21 @@ import argparse
 import torch
 from munch import Munch
 import sys, traceback
+from loguru import logger
 from bittensor.synapse import Synapse
-from bittensor.utils.priority_thread_pool import PriorityThreadPoolExecutor
+from bittensor.utils.ptp import ThreadPoolExecutor
 from bittensor import bittensor_pb2
 from typing import List, Tuple
 
 class Nucleus ():
     def __init__(self, config):
-        self._forward_pool = PriorityThreadPoolExecutor(max_workers=config.nucleus.max_workers)
-        self._backward_pool = PriorityThreadPoolExecutor(max_workers=config.nucleus.max_workers)
+        self._forward_pool = ThreadPoolExecutor(max_workers=config.nucleus.max_workers)
+        self._backward_pool = ThreadPoolExecutor(max_workers=config.nucleus.max_workers)
 
     def __del__(self):
+        self.stop()
+
+    def stop(self):
         self._forward_pool.shutdown()
         self._backward_pool.shutdown()
 
@@ -31,6 +35,7 @@ class Nucleus ():
         call_params = [synapse, inputs, mode]
         future = self._forward_pool.submit( fn = self._forward, call_params = call_params, priority = priority)
         try:
+
             outputs = future.result (timeout = 1)
             tensor = outputs[0]
             message = outputs[1]
@@ -39,7 +44,7 @@ class Nucleus ():
         except Exception as e:
             tensor = None
             message = 'timeout with error {}'.format(e)
-            traceback.print_exc(file=sys.stdout)
+            # traceback.print_exc(file=sys.stdout)
             code = bittensor_pb2.ReturnCode.NucleusTimeout
 
         return tensor, message, code
@@ -58,11 +63,11 @@ class Nucleus ():
         except Exception as e:
             tensor = None
             message = 'timeout with error {}'.format(e)
-            traceback.print_exc(file=sys.stdout)
             code = bittensor_pb2.ReturnCode.NucleusTimeout
         return tensor, message, code
 
     def _forward(self, call_params: List):
+
         synapse = call_params[0]
         inputs = call_params[1]
         mode = call_params[2]
@@ -79,7 +84,6 @@ class Nucleus ():
         except Exception as e:
             tensor = None
             message = 'Unknown error when calling Synapse forward with errr {}'.format(e)
-            #traceback.print_exc(file=sys.stdout)
             code = bittensor_pb2.ReturnCode.UnknownException
 
         return [tensor, message, code]
