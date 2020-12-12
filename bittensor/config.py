@@ -1,3 +1,4 @@
+import requests
 from loguru import logger
 import argparse
 from importlib.machinery import SourceFileLoader
@@ -131,8 +132,8 @@ class Config:
             try:
                 yaml_items = yaml.safe_load(yaml_str)
                 yaml_items = munch.munchify(yaml_items)
-            except:
-                logger.error('CONFIG: failed parsing passed yaml with input {}', yaml_str)
+            except Exception as e:
+                logger.error('CONFIG: failed parsing passed yaml with input {}. Exception: {}'.format(yaml_str, e))
                 raise InvalidConfigFile
         return yaml_items
 
@@ -207,21 +208,19 @@ class Config:
         except PermissionError:
             logger.error("CONFIG: Validation error: no permission to create path {} for option {}", value, key)
             raise ValidationError
-        except:
-            logger.error("CONFIG: Validation error: An undefined error occured while trying to create path {} for option {}", value, key)
+        except Exception as e:
+            logger.error("CONFIG: Validation error: An undefined error occured while trying to create path {} for option {}. Exception: {}", value, key, e)
             raise ValidationError
 
     @staticmethod
     def obtain_ip_address(items):
-        try:
-            items.axon.remote_ip
+        if items.axon.remote_ip:
             return
-        except:
-            pass
+            
         try:
             value = requests.get('https://api.ipify.org').text
-        except:
-            logger.error("CONFIG: Could not retrieve public facing IP from IP API.")
+        except Exception as e:
+            logger.error("CONFIG: Could not retrieve public facing IP from IP API. Exception: {}", e)
             raise PostProcessingError
 
         if not validators.ipv4(value):
