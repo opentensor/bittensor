@@ -138,6 +138,7 @@ class Session:
         except Exception as e:
             logger.error('SESSION: Error while stopping axon server: {} ', e)
 
+
     def subscribe (self):
        self.metagraph.subscribe()
 
