@@ -338,7 +338,7 @@ class _RemoteModuleCall(torch.autograd.Function):
                 grpc_code = rpc_error_call.code()
 
                 if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
-                    logger.warning('Deadline exceeds on endpoint {}', caller.endpoint)
+                    #logger.warning('Deadline exceeds on endpoint {}', caller.endpoint)
                     return zeros, torch.tensor(bittensor_pb2.ReturnCode.Timeout)
 
                 elif grpc_code == grpc.StatusCode.UNAVAILABLE:
@@ -346,7 +346,7 @@ class _RemoteModuleCall(torch.autograd.Function):
                     return zeros, torch.tensor(bittensor_pb2.ReturnCode.Unavailable)
 
                 else:
-                    logger.error('Uncaught GPRC error exception with code {} from endpoint {}', grpc_code.code(), caller.endpoint)
+                    logger.error('Uncaught GPRC error exception with code {} from endpoint {}', grpc_code, caller.endpoint)
                     return zeros, torch.tensor(bittensor_pb2.ReturnCode.UnknownException)
 
             # Catch Unknown

@@ -125,18 +125,19 @@ class Session:
             raise FailedToEnterSession
 
     def stop(self):
+
+        logger.info('Shutting down the Axon server ...')
+        try:
+            self.axon.stop()
+        except Exception as e:
+            logger.error('SESSION: Error while stopping axon server: {} ', e)
+
         # Stop background grpc threads for serving synapse objects.
         logger.info('Unsubscribe from chain ...')
         try:
             self.metagraph.unsubscribe()
         except Exception as e:
             logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
-
-        logger.info('Stopping axon server..')
-        try:
-            self.axon.stop()
-        except Exception as e:
-            logger.error('SESSION: Error while stopping axon server: {} ', e)
 
     def subscribe (self):
        self.metagraph.subscribe()
