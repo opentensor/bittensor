@@ -53,8 +53,7 @@ def test_remote_neuron_request_empty():
     x = torch.tensor([])
     out, ops = remote.forward( x, bittensor_pb2.Modality.TEXT)
     assert ops.item() == bittensor_pb2.ReturnCode.EmptyRequest
-    assert list(out.shape) == []
-
+    assert list(out.shape) == [0]
 
 def test_remote_neuron_serialization():
     x = torch.rand(3, 3, bittensor.__network_dim__)

@@ -122,7 +122,7 @@ class Axon(bittensor_grpc.BittensorServicer):
             public_key = self.__keypair.public_key, 
             return_code = code,
             message = message,
-            tensors = [tensor]
+            tensors = [tensor] if tensor is not None else [],
         )
         return response
 
@@ -146,7 +146,7 @@ class Axon(bittensor_grpc.BittensorServicer):
             public_key = self.__keypair.public_key, 
             return_code = code,
             message = message,
-            tensors = [tensor]
+            tensors = [tensor] if tensor is not None else [],
         )
         return response
 
@@ -167,7 +167,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         # ---- Check synapse exists ----
         if self.synapse == None:
             message = "Remote axon not serving a synapse"
-            code = bittensor_pb2.ReturnCode.NotServingSynapse,
+            code = bittensor_pb2.ReturnCode.NotServingSynapse
             return None, message, code
 
         # C---- heck Empty request ----
@@ -189,30 +189,30 @@ class Axon(bittensor_grpc.BittensorServicer):
         # ---- Check shape and modality ----
         if x.shape[0] < 1:
             message = "Froward request batch dim exception with batch_size = {} ".format(x.shape[0])
-            code = bittensor_pb2.ReturnCode.RequestShapeException,
+            code = bittensor_pb2.ReturnCode.RequestShapeException
             return None, message, code
 
         if x.shape[1] < 1:
             message = "Forward request sequence dim exception with sequence_dim = {} ".format(x.shape[1])
-            code =  bittensor_pb2.ReturnCode.RequestShapeException,
+            code =  bittensor_pb2.ReturnCode.RequestShapeException
             return None, message, code
 
         if inputs.modality == bittensor_pb2.Modality.TEXT:
             if len(x.shape) != 2:
                 message = "Forward text input shape exception with len(request.shape) = {} must have rank 2.".format(len(x.shape))
-                code =  bittensor_pb2.ReturnCode.RequestShapeException,
+                code =  bittensor_pb2.ReturnCode.RequestShapeException
                 return None, message, code
             
         if inputs.modality == bittensor_pb2.Modality.IMAGE:
             if len(x.shape) != 5:
                 message =  "Forward image input shape exception for len(shape) = {}  must have rank 5".format(len(x.shape))
-                code =  bittensor_pb2.ReturnCode.RequestShapeException,
+                code =  bittensor_pb2.ReturnCode.RequestShapeException
                 return None, message, code
 
         if inputs.modality == bittensor_pb2.Modality.TENSOR:
             if len(x.shape) != 3:
                 message = "Forward message tensor input shape exception len(shape) = {} must have rank 3".format(len(x.shape))
-                code = bittensor_pb2.ReturnCode.RequestShapeException,
+                code = bittensor_pb2.ReturnCode.RequestShapeException
                 return None, message, code
 
         # ---- Make Nucleus forward call. ----
@@ -223,9 +223,14 @@ class Axon(bittensor_grpc.BittensorServicer):
                 mode = inputs.modality, 
                 priority = random.random()
             )
+
+            # ---- Catch Nucleus errors ----
+            if code != bittensor_pb2.ReturnCode.Success:
+                return None, message, code
+
         except Exception as e:
             message = "Unknown exception when calling nucleus forward {}".format(e)
-            code =  bittensor_pb2.ReturnCode.UnknownException,
+            code = bittensor_pb2.ReturnCode.UnknownException
             return None, message, code
 
         # ---- Serialize response ----
@@ -234,7 +239,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         
         except Exception as e:
             message = "Serializtion of forward response failed with error {} and inputs: {}".format(e, outputs)
-            code = bittensor_pb2.ReturnCode.ResponseDeserializationException,
+            code = bittensor_pb2.ReturnCode.ResponseDeserializationException
             return None, message, code
 
         # ---- Return successful response ----
