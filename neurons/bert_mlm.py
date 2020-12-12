@@ -9,16 +9,12 @@ Example:
 import bittensor
 import argparse
 from bittensor.config import Config
-from bittensor import Session
 from bittensor.utils.logging import log_outputs
 from bittensor.subtensor import Keypair
 from bittensor.synapses.bert import BertMLMSynapse
 
-import numpy as np
-from termcolor import colored
 from loguru import logger
-from datasets import load_dataset, log_batch_weights, log_chain_weights
-import replicate
+from datasets import (load_dataset, log_batch_weights, log_chain_weights, log_request_sizes)
 import random
 import time
 import torch
@@ -26,6 +22,7 @@ import torch.nn.functional as F
 from transformers import DataCollatorForLanguageModeling
 from munch import Munch
 import math
+import os
 
 def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
     parser.add_argument('--neuron.datapath', default='data/', type=str, 
@@ -85,6 +82,7 @@ def train(model, config, session, optimizer, scheduler, dataset, collator):
     model.train()  # Turn on the train mode.
     weights = None
     history = []
+    batch_idx = 0
     while True:
         optimizer.zero_grad() # Clear gradients.
 
@@ -119,13 +117,15 @@ def train(model, config, session, optimizer, scheduler, dataset, collator):
         log_request_sizes(session, history)
         history = []
 
-    # After each epoch, checkpoint the losses and re-serve the network.
-    if output.loss.item() < best_loss:
-        best_loss = output.loss
-        logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/model.torch', epoch, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
-        torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
-        # Save experiment metrics
-        session.serve( model.deepcopy() )
+        # After each epoch, checkpoint the losses and re-serve the network.
+        if output.loss.item() < best_loss:
+            best_loss = output.loss
+            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/{}/model.torch', step, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+            torch.save( {'epoch': step, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
+            # Save experiment metrics
+            session.serve( model.deepcopy() )
+        
+        batch_idx += 1
 
 
 def main(config, session):
@@ -146,6 +146,11 @@ def main(config, session):
     # Optimizer.
     optimizer = torch.optim.SGD(model.parameters(), lr = config.neuron.learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
+    
+    # Create directory if it does not exist.
+    data_directory = '{}/{}/{}'.format(config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+    if not os.path.exists(data_directory):
+        os.makedirs(data_directory)
 
     # train forever.
     train(model, config, session, optimizer, scheduler, dataset, data_collator)
