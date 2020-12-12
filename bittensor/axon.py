@@ -23,8 +23,8 @@ def obtain_ip(config: Munch) -> Munch:
         return config
     try:
         value = requests.get('https://api.ipify.org').text
-    except:
-        logger.error("CONIG: Could not retrieve public facing IP from IP API.")
+    except Exception as e:
+        logger.error("CONFIG: Could not retrieve public facing IP from IP API. Exception: ".format(e))
         raise SystemError('CONFIG: Could not retrieve public facing IP from IP API.')
     if not validators.ipv4(value):
         logger.error("CONFIG: Response from IP API is not a valid IP with ip {}", value)
