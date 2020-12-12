@@ -34,12 +34,12 @@ def obtain_ip(config: Munch) -> Munch:
 
 class Axon(bittensor_grpc.BittensorServicer):
     r"""
-    The Axon serves a bittensor.synapse.Synapse to recieve remote Forward & Backward calls on the network.
+    A bittensor Axon serves a grpc endpoint which provides access to a single bittensor.synapse.Synapse 
+    It recieves Forward and Backward requests and process the corresponding Synapse.call_forward and Synapse.call_backward.
     
     """
     def __init__(self, config, keypair):
-        r""" Serves a Synapse to the axon server replacing the previous Synapse if exists.
-
+        r""" Initializes a new Axon endpoint with passed config and keypair.
             Args:
                 config (:obj:`Munch`, `required`): 
                     bittensor Munch config.
@@ -49,21 +49,27 @@ class Axon(bittensor_grpc.BittensorServicer):
         self._config = config
         self.__keypair = keypair
 
+        # Background threaded processing object.
+        self._nucleus = Nucleus(config)
+
         # Init server objects.
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
         bittensor_grpc.add_BittensorServicer_to_server(self, self._server)
         self._server.add_insecure_port('[::]:' + str(self._config.axon.port))
 
-        # Local synapse.
+        # Local synapse to serve.
         self.synapse = None
 
         # Serving thread.
         self._thread = None
 
-        self._nucleus = Nucleus(config)
-
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        r""" Adds this axon's command line arguments to the passed parser.
+            Args:
+                parser (:obj:`argparse.ArgumentParser`, `required`): 
+                    parser argument to append args to.
+        """
         parser.add_argument('--axon.port', default=8091, type=int, 
                             help='Port to serve axon')
 
@@ -74,65 +80,103 @@ class Axon(bittensor_grpc.BittensorServicer):
 
     @staticmethod   
     def check_config(config: Munch) -> Munch:
+        r""" Checks the passed config items for validity and obtains the remote ip.
+            Args:
+                config (:obj:`munch.Munch, `required`): 
+                    config to check.
+        """
         config = Nucleus.check_config(config)
         logger.info('optaining remote ip ...')
         config = obtain_ip(config)
-
         assert config.axon.port > 1024 and config.axon.port < 65535, 'config.axon.port must be in range [1024, 65535]'
         return config
 
-    def __del__(self):
-        r""" Called when this axon is deleted, ensures background threads shut down properly.
-        """
-        self.stop()
-
-    def start(self):
-        r""" Starts the standalone axon GRPC server thread.
-        """
-        self._thread = threading.Thread(target=self._serve, daemon=False)
-        self._thread.start()
-
-    def _serve(self):
-        try:
-            self._server.start()
-        except (KeyboardInterrupt, SystemExit):
-            self.stop()
-        except Exception as e:
-            logger.error(e)
-
-
-    def stop(self):
-        r""" Stop the axon grpc server.
-        """
-        logger.info('Shutting down the Nucleus...')
-        self._nucleus.stop()
-        if self._server != None:
-            self._server.stop(0)
-
     def serve(self, synapse: Synapse):
-        r""" Serves a Synapse to the axon server replacing the previous Synapse if exists.
+        r""" Set the synapse being served on this axon endpoint. 
+            This object's call_forward and call_backward will be 
+            called on incoming Forward and Backward requests respectively.
 
             Args:
-                synapse (:obj:`bittensor.Synapse`, `required`): 
-                    synpase object to serve on the axon server.
+                synapse (:obj:`bittensor.synapse.Synapse`, `required`): 
+                    synpase object to serve.
         """
         self.synapse = synapse
 
+    def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext) -> bittensor_pb2.TensorMessage:
+        r""" The function called by remote GRPC Forward requests from other neurons.
+            Forward is equivalent to a 'forward' pass through a neural network.
+            After checking request validity, passes the request to the nucleus for processing.
+            See bittensor_pb2.ReturnCode for all possible return codes.
+            Args:
+                request (:obj:`bittensor_pb2`, `required`): 
+                    Tensor request proto.
+                context (:obj:`grpc.ServicerContext`, `required`): 
+                    grpc server context.
+            Returns:
+                response: (bittensor_pb2.TensorMessage): 
+                    proto response carring the synapse forward output or None under failure.
+        """
+        tensor, message, code = self._forward(request)
+        response = bittensor_pb2.TensorMessage(
+            version = bittensor.__version__, 
+            public_key = self.__keypair.public_key, 
+            return_code = code,
+            message = message,
+            tensors = [tensor]
+        )
+        return response
+
+    def Backward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext) -> bittensor_pb2.TensorMessage:
+        r""" The function called by remote GRPC Backward requests from other neurons.
+            Backward is equivalent to a 'backward' gradient descent pass through a neural network.
+            After checking request validity, passes the request to the nucleus for processing.
+            See bittensor_pb2.ReturnCode for all possible return codes.
+            Args:
+                request (:obj:`bittensor_pb2`, `required`): 
+                    Tensor request proto.
+                context (:obj:`grpc.ServicerContext`, `required`): 
+                    grpc server context.
+            Returns:
+                response: (bittensor_pb2.TensorMessage): 
+                    proto response carring the synapse backward output or None under failure.
+        """
+        tensor, message, code = self._backward(request)
+        response = bittensor_pb2.TensorMessage(
+            version = bittensor.__version__, 
+            public_key = self.__keypair.public_key, 
+            return_code = code,
+            message = message,
+            tensors = [tensor]
+        )
+        return response
 
     def _forward(self, request):
-        # Check synapse exists.
+        r""" Performs validity checks on the grpc request before calling nucleus forward.
+            Returns a the output, message and code from the backend forward call.
+            Args:
+                request (:obj:`bittensor_pb2`, `required`): 
+                    Tensor request proto.
+            Returns:
+                response: (:obj:`bittensor_pb2.Tensor, `required`): 
+                    serialized tensor response from the nucleus call or None.
+                message: (str, `required`): 
+                    message associated with forward call, potentially error, or 'success'.
+                code: (:obj:`bittensor_pb2.ReturnCode, `required`)
+                    return code associated with forward call i.e. Success of Timeout.
+        """
+        # ---- Check synapse exists ----
         if self.synapse == None:
             message = "Remote axon not serving a synapse"
             code = bittensor_pb2.ReturnCode.NotServingSynapse,
             return None, message, code
 
-        # Check Empty request.
+        # C---- heck Empty request ----
         if len(request.tensors) == 0:
             message = "Forward request contains {} tensors, expected 1 tensor in the forward call".format(len(request.tensors))
             code = bittensor_pb2.ReturnCode.EmptyRequest
             return None, message, code
 
-        # Check deserialization.
+        # ---- Check deserialization ----
         inputs = request.tensors[0]
         try:
             x = PyTorchSerializer.deserialize(inputs)
@@ -142,7 +186,7 @@ class Axon(bittensor_grpc.BittensorServicer):
             return None, message, code
 
 
-        # Check shape and modality.
+        # ---- Check shape and modality ----
         if x.shape[0] < 1:
             message = "Froward request batch dim exception with batch_size = {} ".format(x.shape[0])
             code = bittensor_pb2.ReturnCode.RequestShapeException,
@@ -171,16 +215,20 @@ class Axon(bittensor_grpc.BittensorServicer):
                 code = bittensor_pb2.ReturnCode.RequestShapeException,
                 return None, message, code
 
+        # ---- Make Nucleus forward call. ----
         try:
-            outputs, message, code = self._nucleus.forward(synapse = self.synapse, inputs = x, mode = inputs.modality, priority = random.random())
-
+            outputs, message, code = self._nucleus.forward(
+                synapse = self.synapse, 
+                inputs = x, 
+                mode = inputs.modality, 
+                priority = random.random()
+            )
         except Exception as e:
-            logger.error(e)
             message = "Unknown exception when calling nucleus forward {}".format(e)
             code =  bittensor_pb2.ReturnCode.UnknownException,
             return None, message, code
 
-        # Serialize response.
+        # ---- Serialize response ----
         try:
             outputs_serialized = PyTorchSerializer.serialize_tensor(outputs)
         
@@ -189,124 +237,101 @@ class Axon(bittensor_grpc.BittensorServicer):
             code = bittensor_pb2.ReturnCode.ResponseDeserializationException,
             return None, message, code
 
-        # Return successful response
+        # ---- Return successful response ----
         return outputs_serialized, message, code
-            
 
-    def Forward(self, request: bittensor_pb2.TensorMessage,
-                context: grpc.ServicerContext):
 
-        r""" Function called by remote GRPC Forward requests by other neurons.
-
+    def _backward(self, request):
+        r""" Performs validity checks on the grpc request before calling nucleus backward.
+            Returns a the output, message and code from the backend backward call.
             Args:
                 request (:obj:`bittensor_pb2`, `required`): 
-                    Tensor request Proto.
-                context (:obj:`grpc.ServicerContext`, `required`): 
-                    grpc server context.
+                    Tensor request proto.
+            Returns:
+                response: (:obj:`bittensor_pb2.Tensor, `required`): 
+                    serialized tensor response from the nucleus call or None.
+                message: (str, `required`): 
+                    message associated with forward call, potentially error, or 'success'.
+                code: (:obj:`bittensor_pb2.ReturnCode, `required`)
+                    return code associated with forward call i.e. Success of Timeout.
         """
-        tensor, message, code = self._forward(request)
-        response = bittensor_pb2.TensorMessage(
-            version = bittensor.__version__, 
-            public_key = self.__keypair.public_key, 
-            return_code = code,
-            message = message,
-            tensors = [tensor]
-        )
-        return response
 
+        # ---- Check that we have a synapse ----.
+        if self.synapse == None:
+            message = "Remote axon not serving a synapse"
+            code = bittensor_pb2.ReturnCode.NotServingSynapse
+            return None, message, code
 
-    def Backward(self, request: bittensor_pb2.TensorMessage,
-                 context: grpc.ServicerContext):
+        # ---- Check request inputs ----.
+        if len(request.tensors) == 2:
+            inputs_x = request.tensors[0]
+            grads_dy = request.tensors[1]
+        else:
+            message = "During backward: There are {} tensors in the request, expected 2.".format(len(request.tensors))
+            code =  bittensor_pb2.ReturnCode.InvalidRequest
+            return None, message, code
+
+        # ---- Deserialize request ---
         try:
-
-            # Check axon is serving synapse.
-            if self.synapse == None:
-                error_msg = "Remote axon not serving a synapse"
-                logger.warning(error_msg)
-                response = bittensor_pb2.TensorMessage(
-                    version = bittensor.__version__, 
-                    public_key = self.__keypair.public_key, 
-                    return_code =  bittensor_pb2.ReturnCode.NotServingSynapse,
-                    message = error_msg)
-                return response
-
-            # Check request inputs.
-            if len(request.tensors) == 2:
-                inputs_x = request.tensors[0]
-                grads_dy = request.tensors[1]
-            else:
-                error_msg = "During backward: There are {} tensors in the request, expected 2.".format(len(request.tensors))
-                logger.warning(error_msg)
-                response = bittensor_pb2.TensorMessage(
-                    version = bittensor.__version__, 
-                    public_key = self.__keypair.public_key, 
-                    return_code =  bittensor_pb2.ReturnCode.InvalidRequest,
-                    message = error_msg)
-                return response
-
-            
-            # Deserialize request.
-            try:
-                inputs_x = PyTorchSerializer.deserialize(inputs_x)
-                grads_dy = PyTorchSerializer.deserialize(grads_dy)
+            inputs_x = PyTorchSerializer.deserialize(inputs_x)
+            grads_dy = PyTorchSerializer.deserialize(grads_dy)
                 
-            except Exception as e:
-                error_msg  = "Backward request deserialization failed with unknown error {}".format(e)
-                logger.warning(error_msg)
-                response = bittensor_pb2.TensorMessage(
-                    version = bittensor.__version__, 
-                    public_key = self.__keypair.public_key, 
-                    return_code =  bittensor_pb2.ReturnCode.RequestDeserializationException,
-                    message = error_msg)
-                return response
-
-            # Get grads by calling backward.
-            try:
-                inputs_dx = self.synapse.call_backward(inputs_x, grads_dy)
-
-            except Exception as e:
-                error_msg  = "Unkown exception when calling backward with error {}".format(e)
-                logger.warning(error_msg)
-                response = bittensor_pb2.TensorMessage(
-                    version = bittensor.__version__, 
-                    public_key = self.__keypair.public_key, 
-                    return_code =  bittensor_pb2.ReturnCode.UnknownException,
-                    message = error_msg)
-                return response
-
-            # Deserialize response.
-            try:
-                inputs_dx_serialized = PyTorchSerializer.serialize_tensor(inputs_dx)
-
-            except Exception as e:
-                error_msg  = "Backward request serialization failed with error {} and inputs {}".format(e, inputs_dx)
-                logger.warning(error_msg)
-                response = bittensor_pb2.TensorMessage(
-                    version = bittensor.__version__, 
-                    public_key = self.__keypair.public_key, 
-                    return_code =  bittensor_pb2.ReturnCode.ResponseSerializationException,
-                    message = error_msg)
-                return response
-
-
-            # Final response.
-            response = bittensor_pb2.TensorMessage(
-                version = bittensor.__version__,
-                public_key = self.__keypair.public_key,
-                return_code =  bittensor_pb2.ReturnCode.Success,
-                message = "success",
-                tensors = [inputs_dx_serialized])
-
-            return response
-
-        # Final catch of unknown exceptions.
         except Exception as e:
-            error_msg  = "Calling backward request failed with unknown error {}".format(e)
-            logger.warning(error_msg)
-            response = bittensor_pb2.TensorMessage(
-                version = bittensor.__version__, 
-                public_key = self.__keypair.public_key, 
-                return_code =  bittensor_pb2.ReturnCode.UnknownException,
-                message = error_msg)
-            return response
+            message = "Backward request deserialization failed with unknown error {}".format(e)
+            code =  bittensor_pb2.ReturnCode.RequestDeserializationException
+            return None, message, code
+
+        # ---- Nucleus backward call ----
+        try:
+            outputs, message, code = self._nucleus.backward(
+                    synapse = self.synapse, 
+                    inputs_x = inputs_x, 
+                    grads_dy = grads_dy, 
+                    priority = random.random()
+            )
+        except Exception as e:
+            message  = "Unkown exception when calling backward with error {}".format(e)
+            code =  bittensor_pb2.ReturnCode.UnknownException
+            return None, message, code
+
+        # ---- Deserialize response ----
+        try:
+            outputs_serialized = PyTorchSerializer.serialize_tensor(outputs)
+        except Exception as e:
+            messave = "Backward request serialization failed with error {} and inputs {}".format(e, outputs_serialized)
+            code =  bittensor_pb2.ReturnCode.ResponseSerializationException
+            return None, message, code
+
+        # ---- Finaly return ----
+        return outputs_serialized, message, code
+
+
+    def __del__(self):
+        r""" Called when this axon is deleted, ensures background threads shut down properly.
+        """
+        self.stop()
+
+    def start(self):
+        r""" Starts the standalone axon GRPC server thread.
+        """
+        self._thread = threading.Thread(target=self._serve, daemon=False)
+        self._thread.start()
+
+    def _serve(self):
+        try:
+            self._server.start()
+        except (KeyboardInterrupt, SystemExit):
+            self.stop()
+        except Exception as e:
+            logger.error(e)
+
+    def stop(self):
+        r""" Stop the axon grpc server.
+        """
+        logger.info('Shutting down the Nucleus...')
+        self._nucleus.stop()
+        if self._server != None:
+            self._server.stop(0)
+
+
 
