@@ -40,6 +40,8 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
                         help='Batches until neuron prints log statements.')
     parser.add_argument('--neuron.sync_interval', default=100, type=int, 
                         help='Batches before we we sync with chain and emit new weights.')
+    parser.add_argument('--neuron.priority_interval', default=100, type=int, 
+                        help='Batches until the neuron updates its axon call priority')
     parser.add_argument('--neuron.name', default='mnist', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
     parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
        # Load args from FFNNSynapse.
@@ -73,7 +75,14 @@ def train(
         # Syncs chain state and emits learned weights to the chain.
         if batch_idx % config.neuron.sync_interval == 0:
             weights = session.metagraph.sync(weights)
-                        
+
+        # Sets the axon server priority.
+        # Queries on this axon endpoint are processed from highest to lowest priority.
+        if batch_idx % config.neuron.priority_interval == 0:
+            weights_to_me = session.metagraph.W[:, 0]
+            priority = dict(zip(session.metagraph.public_keys, weights_to_me.tolist()))
+            session.axon.set_priority( priority )
+     
         # Forward pass.
         output = model(images.to(model.device), torch.LongTensor(targets).to(model.device), remote = True)
         history.append(output)
@@ -165,7 +174,7 @@ def main(config: Munch, session: Session):
         scheduler.step()
 
         # Test model.
-        test_loss, test_accuracy = test( 
+        test_loss, _ = test( 
             epoch = epoch,
             model = model,
             session = session,
