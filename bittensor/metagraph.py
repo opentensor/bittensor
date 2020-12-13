@@ -112,6 +112,7 @@ class TorchChainState():
         self.lastemit = torch.tensor([])
         self.W = torch.tensor([[]])
         self.neurons = []
+        self.uid_for_pubkey = {}
 
     @staticmethod
     def from_cache(cache: ChainState):
@@ -126,6 +127,8 @@ class TorchChainState():
         state.uids = torch.tensor(copy.deepcopy(cache.uids), dtype=torch.int64)
         state.lastemit = torch.tensor(copy.deepcopy(cache.lastemit), dtype=torch.int64)
         state.stake = torch.tensor(copy.deepcopy(cache.stake), dtype=torch.float32)
+        for uid, n in list(zip(cache.uids, cache.neurons)):
+            state.uid_for_pubkey[n.public_key] = uid
         weights_numpy = numpy.zeros( (state.n, state.n) )
         for i in range(state.n):
             keys = cache.weight_pubkeys[i]
@@ -352,7 +355,7 @@ class Metagraph():
         r""" Returns a list with neurons for each uid.
         Args:
             uids: (torch.LongTensor)
-                uids into neurons protos
+                uids into neuron protos
         Returns:
             neurons: (List[bittensor_pb2.Neuron]): 
                 neuron info ordered by passed uids.
@@ -362,6 +365,20 @@ class Metagraph():
         for idx in indices.tolist():
             response.append(self.state.neurons[idx])
         return response
+
+    def neurons_to_uids(self, neurons: List[bittensor_pb2.Neuron]) -> torch.LongTensor:
+        r""" Returns uids associated with the passed neurons.
+        Args:
+            neurons: (List[bittensor_pb2.Neuron]): 
+                neuron info ordered by passed uids.
+        Returns:
+            uids: (torch.LongTensor)
+                uids associated with neurons.
+        """
+        uids = []
+        for n in neurons:
+            uids.append(self.state.uid_for_pubkey[n.public_key])
+        return torch.tensor(uids)
 
     def chain_weights(self) -> torch.FloatTensor:
         r""" Returns your current weights from the chain.
