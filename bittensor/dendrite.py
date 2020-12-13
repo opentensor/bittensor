@@ -51,7 +51,7 @@ class Dendrite(nn.Module):
         super().__init__()
         self._config = config
         self.__keypair = keypair
-        self.remotes = {}
+        self._remotes = {}
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -69,6 +69,10 @@ class Dendrite(nn.Module):
     def check_config(config: Munch) -> Munch:
         assert config.dendrite.timeout >= 0, 'timeout must be positive value, got {}'.format(config.dendrite.timeout)
         return config
+
+    @property
+    def remotes(self):
+        return self._remotes.values()
 
     def forward_text(self, neurons: List[bittensor_pb2.Neuron],
                      x: List[torch.Tensor]) -> Tuple[List[torch.Tensor], torch.Tensor]:
@@ -204,8 +208,8 @@ class Dendrite(nn.Module):
         return_codes = torch.tensor([res[1] for res in results])
         return tensor_results, return_codes
 
-    async def _gather(self, loop: asyncio.base_events.BaseEventLoop, inputs, neurons, mode) -> List[ Tuple[torch.FloatTensor, torch.LongTensor] ]:
-         r""" Creates and returns the results from len(neurons) torch forward requests to remote neurons using asyncio for concurrency.
+    async def _gather(self, loop: asyncio.base_events.BaseEventLoop, inputs, neurons, mode) -> List[Tuple[torch.FloatTensor, torch.LongTensor]]:
+        r""" Creates and returns the results from len(neurons) torch forward requests to remote neurons using asyncio for concurrency.
 
             Args:
                 loop (:obj:`asyncio.base_events.BaseEventLoop`, `required`):
@@ -228,16 +232,16 @@ class Dendrite(nn.Module):
             
         # ---- Calls to fill ---- 
         calls = []
-        for i, (inputs_i, neuron_i) in enumerate(list(zip(inputs, neurons))):
+        for (inputs_i, neuron_i) in list(zip(inputs, neurons)):
 
             # ---- Find remote or create one ---- 
-            if neuron_i.public_key not in self.remotes:
-                self.remotes[neuron_i.public_key] = RemoteNeuron(neuron_i, self._config, self.__keypair)
-            remote = self.remotes[neuron_i.public_key]
+            if neuron_i.public_key not in self._remotes:
+                self._remotes[neuron_i.public_key] = RemoteNeuron(neuron_i, self._config, self.__keypair)
+            remote = self._remotes[neuron_i.public_key]
 
             # ---- Append async calls ---- 
             calls.append( loop.run_in_executor(None, remote.forward, inputs_i, mode) )
-        
+
         # ---- Gather results and return ---- 
         results = await asyncio.gather(*calls)
         return results
@@ -248,36 +252,40 @@ class RemoteNeuron(nn.Module):
 
     def __init__(self, neuron: bittensor_pb2.Neuron, config, keypair):
         super().__init__()
-        self.neuron = neuron
-        self.config = config
-        self.keypair = keypair
+        self.neuron = neuron # Endpoint information.
+        self.config = config # Configuration i.e. rpc timeout.
+        self.keypair = keypair # Cryptographic keypair.
+        self.signature = None # Call signature.
+        self.nounce = None # Call nounce.
+        self.backoff = 0 # Number o queries to backoff.
+        self.next_backoff = 1 # Next backoff level.
         self.stats = SimpleNamespace(
             total_success_time = 0.0,
             avg_success_time = 0.0,
             success_bytes_out = 0.0,
             success_bytes_in = 0.0,
             codes = {
-                bittenosr_pb2.ReturnCode.Success: 0,
-                bittenosr_pb2.ReturnCode.Timeout: 0,
-                bittenosr_pb2.ReturnCode.Backoff: 0,
-                bittenosr_pb2.ReturnCode.Unavailable: 0,
-                bittenosr_pb2.ReturnCode.NotImplemented: 0,
-                bittenosr_pb2.ReturnCode.EmptyRequest: 0,
-                bittenosr_pb2.ReturnCode.EmptyResponse: 0,
-                bittenosr_pb2.ReturnCode.InvalidResponse: 0,
-                bittenosr_pb2.ReturnCode.InvalidRequest: 0,
-                bittenosr_pb2.ReturnCode.RequestShapeException: 0,
-                bittenosr_pb2.ReturnCode.ResponseShapeException: 0,
-                bittenosr_pb2.ReturnCode.RequestSerializationException: 0,
-                bittenosr_pb2.ReturnCode.ResponseSerializationException: 0,
-                bittenosr_pb2.ReturnCode.RequestDeserializationException: 0,
-                bittenosr_pb2.ReturnCode.ResponseDeserializationException: 0,
-                bittenosr_pb2.ReturnCode.NotServingSynapse: 0,
-                bittenosr_pb2.ReturnCode.NucleusTimeout: 0,
-                bittenosr_pb2.ReturnCode.NucleusFull: 0,
-                bittenosr_pb2.ReturnCode.UnknownException: 0,
+                bittensor_pb2.ReturnCode.Success: 0,
+                bittensor_pb2.ReturnCode.Timeout: 0,
+                bittensor_pb2.ReturnCode.Backoff: 0,
+                bittensor_pb2.ReturnCode.Unavailable: 0,
+                bittensor_pb2.ReturnCode.NotImplemented: 0,
+                bittensor_pb2.ReturnCode.EmptyRequest: 0,
+                bittensor_pb2.ReturnCode.EmptyResponse: 0,
+                bittensor_pb2.ReturnCode.InvalidResponse: 0,
+                bittensor_pb2.ReturnCode.InvalidRequest: 0,
+                bittensor_pb2.ReturnCode.RequestShapeException: 0,
+                bittensor_pb2.ReturnCode.ResponseShapeException: 0,
+                bittensor_pb2.ReturnCode.RequestSerializationException: 0,
+                bittensor_pb2.ReturnCode.ResponseSerializationException: 0,
+                bittensor_pb2.ReturnCode.RequestDeserializationException: 0,
+                bittensor_pb2.ReturnCode.ResponseDeserializationException: 0,
+                bittensor_pb2.ReturnCode.NotServingSynapse: 0,
+                bittensor_pb2.ReturnCode.NucleusTimeout: 0,
+                bittensor_pb2.ReturnCode.NucleusFull: 0,
+                bittensor_pb2.ReturnCode.UnknownException: 0,
             }
-        )
+        ) 
         # Loop back if the neuron is local.
         if neuron.address == config.axon.remote_ip:
             ip = "localhost:"
@@ -291,14 +299,7 @@ class RemoteNeuron(nn.Module):
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])
         self.stub = bittensor_grpc.BittensorStub(self.channel)
-        # TODO(const): setter and getters for signature and nounce.
-        self.signature = None
-        self.nounce = None
-
-        # Current backoff counter.
-        self.backoff = 0
-        # Next backoff, which doubles until dendrite.max_backoff
-        self.next_backoff = 1
+        
 
     def __del__(self):
         if self.channel is not None:

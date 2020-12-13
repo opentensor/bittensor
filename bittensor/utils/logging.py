@@ -15,6 +15,17 @@ pd.set_option('display.precision', 2)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 
+def log_dendrite_success_times(session: Session):
+    print ('Success time: \n ')
+    remotes = session.dendrite.remotes
+    neurons = [remote.neuron for remote in remotes]
+    uids = session.metagraph.neurons_to_uids(neurons)
+    succees_time = [remote.stats.avg_success_time for remote in remotes]
+    df = pd.DataFrame([succees_time], columns=uids.tolist())
+    df.rename_axis("[uid]", axis=1)
+    print (df)
+    print('\n')
+
 def log_ranks(session: Session):
     print ('Ranks: \n ')
     if session.metagraph.uids != None and session.metagraph.weights != None:
