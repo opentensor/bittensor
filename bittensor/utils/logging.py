@@ -14,6 +14,42 @@ pd.set_option('display.width', 1000)
 pd.set_option('display.precision', 2)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
+
+def log_ranks(session: Session):
+    print ('Ranks: \n ')
+    if session.metagraph.uids != None and session.metagraph.weights != None:
+        uids = session.metagraph.uids.tolist()
+        ranks = session.metagraph.ranks.tolist()
+        ranks, uids  = zip(*sorted(zip(ranks, uids), reverse=True))
+        df = pd.DataFrame([ranks], columns=uids)
+        df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
+        max_val = df.max(numeric_only=True, axis=1)
+        min_val = df.min(numeric_only=True, axis=1)
+        total = df.sum(numeric_only=True, axis=1)
+        df.loc[:,'Min'] = min_val
+        df.loc[:,'Max'] = max_val
+        df.loc[:,'Total'] = total
+        print (df)
+    print('\n')
+
+
+def log_incentive(session: Session):
+    print ('Incentive: \n ')
+    if session.metagraph.uids != None and session.metagraph.weights != None:
+        uids = session.metagraph.uids.tolist()
+        incentive = session.metagraph.incentive.tolist()
+        incentive, uids  = zip(*sorted(zip(incentive, uids), reverse=True))
+        df = pd.DataFrame([incentive], columns=uids)
+        df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
+        max_val = df.max(numeric_only=True, axis=1)
+        min_val = df.min(numeric_only=True, axis=1)
+        total = df.sum(numeric_only=True, axis=1)
+        df.loc[:,'Min'] = min_val
+        df.loc[:,'Max'] = max_val
+        df.loc[:,'Total'] = total
+        print (df)
+    print('\n')
+
 def log_return_codes(session: Session, history: List[bittensor.synapse.SynapseOutput]):
     print('Return Codes: \n ')
     request_size_list = []

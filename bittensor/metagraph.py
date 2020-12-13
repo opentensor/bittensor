@@ -24,6 +24,7 @@ def int_to_ip(int_val):
 def ip_to_int(str_val):
     return int(netaddr.IPAddress(str_val))
 
+
 class ChainState():
     def __init__(self):
         # Cached values.
@@ -50,7 +51,7 @@ class ChainState():
         if pubkey in self.index_for_pubkey:
             index = self.index_for_pubkey[pubkey]
             self.neurons[index] = neuron
-            self.stake[index] = int(stake)
+            self.stake[index] = float(stake)
             self.lastemit[index] = int(lastemit)
             self.weight_pubkeys[index] = list(w_keys)
             self.weight_vals[index] = list(w_vals)
@@ -62,7 +63,7 @@ class ChainState():
             self.index_for_pubkey[pubkey] = index
             self.pubkey_for_index[index] = pubkey
             self.neurons.append(neuron)
-            self.stake.append(int(stake))
+            self.stake.append(float(stake))
             self.lastemit.append(int(lastemit))
             self.weight_pubkeys.append(list(w_keys))
             self.weight_vals.append(list(w_vals))
@@ -73,7 +74,11 @@ class ChainState():
 class TorchChainState():
     r""" Maintains the chain state as a torch object.
         Params:
-            block: (int) state block number.
+            tau: (int): 
+                current, per block, token inflation rate.
+
+            block: (int):
+                state block number.
 
             uids: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
                 UIDs for each neuron ordered by index.
@@ -98,6 +103,7 @@ class TorchChainState():
 
     """
     def __init__(self):
+        self.tau = torch.tensor([50.0], dtype = torch.float32)
         self.block = 0
         self.n = 0
         self.uids = torch.tensor([])
@@ -114,11 +120,12 @@ class TorchChainState():
         # Deep copies chain state into metagraph state.
         state = TorchChainState()
         state.n = cache.n
+        state.tau = torch.tensor([50.0], dtype = torch.float32)
         state.neurons = copy.deepcopy(cache.neurons)
         state.indices = torch.tensor(range(state.n), dtype=torch.int64)
         state.uids = torch.tensor(copy.deepcopy(cache.uids), dtype=torch.int64)
         state.lastemit = torch.tensor(copy.deepcopy(cache.lastemit), dtype=torch.int64)
-        state.state = torch.tensor(copy.deepcopy(cache.stake), dtype=torch.int64)
+        state.stake = torch.tensor(copy.deepcopy(cache.stake), dtype=torch.float32)
         weights_numpy = numpy.zeros( (state.n, state.n) )
         for i in range(state.n):
             keys = cache.weight_pubkeys[i]
@@ -214,13 +221,78 @@ class Metagraph():
         return self.state.uids
 
     @property
-    def stake(self) -> torch.LongTensor:
+    def stake(self) -> torch.FloatTensor:
         r""" Returns the stake held by each known neuron.
         Returns
-            stake: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+            stake: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
                 stake of each known neuron.
         """
         return self.state.stake
+
+    @property
+    def S(self) -> torch.FloatTensor:
+        r""" Returns the stake held by each known neuron.
+        Returns
+            S: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
+                stake of each known neuron.
+        """
+        return self.state.stake
+
+    @property
+    def tau(self) -> torch.FloatTensor:
+        r""" tau: the chain per block inflation rate. i.e. 50
+        Returns
+            tau: (:obj:`torchFloatTensor` of shape :obj:`(1)`):
+                current chain inflation rate.
+        """
+        return self.state.tau
+
+    @property
+    def incentive(self) -> torch.FloatTensor:
+        r""" Returns the ranks 
+        Returns
+            incentive: (:obj:`torch.FLoatTensor` of shape :obj:`(n)`):
+                inflation incentive of each each known neuron.
+        """
+        I =  (self.tau * self.ranks) / torch.sum(self.ranks)
+        I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
+        return I
+
+    @property
+    def I(self) -> torch.FloatTensor:
+        r""" Returns the inflation incentive for each peer per block.
+        Returns
+            I: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
+                stake of each known neuron.
+        """
+        return self.incentive
+
+    @property
+    def ranks(self) -> torch.FloatTensor:
+        r""" Returns the ranks W^t * S
+        Returns
+            ranks: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
+                rank of each known neuron.
+        """
+        if self.W.shape[0] == 0:
+            return torch.tensor([])
+        else:
+            # S.shape = [self.state.n]
+            # W.shape = [self.state.n, self.state.n]
+            # R.shape = [self.state.n]
+            S = self.S.view(self.state.n, 1)
+            W = torch.transpose(self.W.view(self.state.n, self.state.n), 0, 1)
+            R = torch.matmul(W, S).view(self.state.n)
+        return R
+
+    @property
+    def R(self) -> torch.FloatTensor:
+        r""" Returns ranks for each known neuron in the graph.
+        Returns
+            rank: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
+                rank of each known neuron.
+        """
+        return self.ranks()
 
     @property
     def W(self) -> torch.FloatTensor:
@@ -250,7 +322,7 @@ class Metagraph():
         return [n.public_key for n in self.state.neurons]
 
     @property
-    def weights(self):
+    def weights(self) -> torch.FloatTensor:
         r"""Return this neuron's weights. W[0,:]
         Returns 
             weights: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
