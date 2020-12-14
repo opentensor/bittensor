@@ -6,11 +6,10 @@ Example:
         $ python examples/mnist/main.py
 """
 import bittensor
-from bittensor.synapse import Synapse
 from bittensor.config import Config
 from bittensor.synapses.ffnn import FFNNSynapse
 from bittensor.subtensor import Keypair
-from bittensor.utils.asyncio import Asyncio
+from bittensor.utils.logging import (log_outputs, log_batch_weights, log_chain_weights, log_request_sizes)
 
 import argparse
 import numpy as np
@@ -24,6 +23,7 @@ import torchvision
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 import time
+import sys
 
 def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
     parser.add_argument('--neuron.datapath', default='data/', type=str, 
@@ -38,6 +38,8 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
                         help='Testing batch size.')
     parser.add_argument('--neuron.log_interval', default=10, type=int, 
                         help='Batches until neuron prints log statements.')
+    parser.add_argument('--neuron.sync_interval', default=100, type=int,
+                        help='How often to sync with chain')
     # Load args from FFNNSynapse.
     parser = FFNNSynapse.add_args(parser)
     return parser
@@ -71,31 +73,32 @@ def start(config, session):
     best_loss = math.inf
     best_accuracy = 0
     start_time = time.time()
+    weights = None
+    epoch = 0
+    history = []
     for batch_idx, (images, targets) in enumerate(trainloader):
         # Clear gradients.
         optimizer.zero_grad()
 
-        # Emit and sync.
-        if (session.metagraph.block() - session.metagraph.state.block) > 5:
-            session.metagraph.emit()
-            session.metagraph.sync()
-
+        # Syncs chain state and emits learned weights to the chain.
+        if batch_idx % config.neuron.sync_interval == 0:
+            weights = session.metagraph.sync(weights)
+        
         # Forward pass.
         images = images.to(device)
         targets = torch.LongTensor(targets).to(device)
         output = model(images, targets, remote = True)
-
+        history.append(output)
+        
         # Backprop.
         loss = output.remote_target_loss + output.distillation_loss
         loss.backward()
         optimizer.step()
 
         # Update weights.
-        state_weights = session.metagraph.state.weights
-        learned_weights = F.softmax(torch.mean(output.weights, axis=0))
-        state_weights = (1 - 0.05) * state_weights + 0.05 * learned_weights
-        norm_state_weights = F.softmax(state_weights)
-        session.metagraph.state.set_weights( norm_state_weights )
+        batch_weights = F.softmax(torch.mean(output.weights, axis=0), dim=0)
+        weights = (1 - 0.05) * weights + 0.05 * batch_weights
+        weights = weights / torch.sum(weights)
 
         # Metrics.
         max_logit = output.remote_target.data.max(1, keepdim=True)[1]
@@ -109,37 +112,23 @@ def start(config, session):
             best_loss = target_loss
             session.serve( model.deepcopy() )
 
-        # Logs:
-        if (batch_idx + 1) % config.neuron.log_interval == 0:
-            n = len(train_data)
-            max_logit = output.remote_target.data.max(1, keepdim=True)[1]
-            correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
-            n_str = colored('{}'.format(n), 'red')
-
-            loss_item = output.remote_target_loss.item()
-            loss_item_str = colored('{:.3f}'.format(loss_item), 'green')
-
+        # Logs: 
+        if (batch_idx + 1) % config.neuron.log_interval == 0: 
+            total_examples = len(trainloader) * config.neuron.batch_size_train
             processed = ((batch_idx + 1) * config.neuron.batch_size_train)
-            processed_str = colored('{}'.format(processed), 'green')
-
-            progress = (100. * processed) / n
-            progress_str = colored('{:.2f}%'.format(progress), 'green')
-
-            accuracy = (100.0 * correct) / config.neuron.batch_size_train
-            accuracy_str = colored('{:.3f}'.format(accuracy), 'green')
-
-            nN = session.metagraph.state.n
-            nN_str = colored('{}'.format(nN), 'red')
-
-            logger.info('Epoch: {} [{}/{} ({})] | Loss: {} | Acc: {} | Act/Tot: {}/{}', 
-                1, processed_str, n_str, progress_str, loss_item_str, accuracy_str, 1, nN_str)
-
-            np.set_printoptions(precision=2, suppress=True, linewidth=500, sign=' ')
-            numpy_uids = np.array(session.metagraph.state.uids.tolist())
-            numpy_weights = np.array(session.metagraph.state.weights.tolist())
-            numpy_stack = np.stack((numpy_uids, numpy_weights), axis=0)
-            stack_str = colored(numpy_stack, 'green')
-            logger.info('Weights: \n {}', stack_str)
+            progress = (100. * processed) / total_examples
+            logger.info('Epoch: {} [{}/{} ({})]', 
+                        colored('{}'.format(epoch), 'blue'), 
+                        colored('{}'.format(processed), 'green'), 
+                        colored('{}'.format(total_examples), 'red'),
+                        colored('{:.2f}%'.format(progress), 'green'))
+            log_outputs(history)
+            log_batch_weights(session, history)
+            log_chain_weights(session)
+            log_request_sizes(session, history)
+            history = []
+        
+        epoch += 1
 
     # Test checks.
     time_elapsed = time.time() - start_time
@@ -150,28 +139,25 @@ def start(config, session):
     assert time_elapsed < 300 # 1 epoch of MNIST should take less than 5 mins.
         
 def main():
-    # 1. Load Config.
-    logger.info('Load Config ...')
+
+    # 1. Load bittensor config.
     parser = argparse.ArgumentParser()
     parser = add_args(parser)
     config = Config.load(parser)
-    config = check_config(config)
+    config = check_config(config)    
+
     logger.info(Config.toString(config))
 
     # 2. Load Keypair.
-    logger.info('Load Keyfile ...')
     mnemonic = Keypair.generate_mnemonic()
     keypair = Keypair.create_from_mnemonic(mnemonic)
-
+   
     # 3. Load Session.
-    logger.info('Build Session ... ')
     session = bittensor.init(config, keypair)
 
-    # 5. Start Neuron.
-    logger.info('Start ... ')
+    # 4. Start Neuron.
     with session:
         start(config, session)
-
     
 if __name__ == "__main__":
     main()
