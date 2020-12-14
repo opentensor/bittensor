@@ -453,7 +453,7 @@ class _RemoteModuleCall(torch.autograd.Function):
                     return zeros, torch.tensor(bittensor_pb2.ReturnCode.Timeout)
 
                 elif grpc_code == grpc.StatusCode.UNAVAILABLE:
-                    logger.warning('Endpoint unavailable {}', caller.endpoint)
+                    #logger.warning('Endpoint unavailable {}', caller.endpoint)
                     return zeros, torch.tensor(bittensor_pb2.ReturnCode.Unavailable)
 
                 else:
@@ -467,7 +467,7 @@ class _RemoteModuleCall(torch.autograd.Function):
 
             # ---- Check tensor response length ----
             if len(response.tensors) == 0:
-                logger.error('Empty response from endpoint {}', caller.endpoint)
+                # logger.error('Empty response from endpoint {}', caller.endpoint)
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.EmptyResponse)
 
             # ---- Deserialize response ----
