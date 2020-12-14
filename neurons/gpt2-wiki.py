@@ -58,12 +58,14 @@ def train(model, config, session, optimizer, scheduler, dataset):
     model.train()  # Turn on the train mode.
     weights = None
     history = []
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     while True:
         optimizer.zero_grad() # Clear gradients.
 
         # Sync with chain.
         if step % config.neuron.sync_interval == 0:
             weights = session.metagraph.sync(weights)
+            weights = weights.to(device)
 
         # Next batch.
         inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__)
