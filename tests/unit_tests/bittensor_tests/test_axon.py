@@ -24,6 +24,7 @@ def test_serve():
 
 def test_forward_not_implemented():
     axon.serve(synapse)
+    axon._nucleus.forward = MagicMock(return_value = [None, 'not implemented', bittensor_pb2.ReturnCode.NotImplemented])
     x = torch.rand(3, 3, bittensor.__network_dim__)
     request = bittensor_pb2.TensorMessage(
         version=bittensor.__version__,
@@ -71,7 +72,7 @@ def test_forward_success():
         public_key=keypair.public_key,
         tensors=[PyTorchSerializer.serialize_tensor(x)]
     )
-    axon.synapse.call_forward = MagicMock(return_value=x)
+    axon._nucleus.forward = MagicMock(return_value = [x, 'success', bittensor_pb2.ReturnCode.Success])
 
     response = axon.Forward(request, None)
     assert response.return_code == bittensor_pb2.ReturnCode.Success
@@ -130,7 +131,7 @@ def test_backward_success():
         public_key=keypair.public_key,
         tensors=[PyTorchSerializer.serialize_tensor(x), PyTorchSerializer.serialize_tensor(x)]
     )
-    axon.synapse.call_backward = MagicMock(return_value=x)
+    axon._nucleus.backward = MagicMock(return_value = [x, 'success', bittensor_pb2.ReturnCode.Success])
     response = axon.Backward(request, None)
 
     assert response.return_code == bittensor_pb2.ReturnCode.Success

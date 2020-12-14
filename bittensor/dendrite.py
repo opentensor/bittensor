@@ -21,7 +21,7 @@ DUMMY = torch.empty(0, requires_grad=True)
 
 def nill_response_for(inputs):
     if torch.numel(inputs) == 0:
-        return torch.zeros([], dtype = torch.float32)
+        return torch.tensor([])
     return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype = torch.float32)
 
 class Dendrite(nn.Module):
@@ -294,26 +294,26 @@ class _RemoteModuleCall(torch.autograd.Function):
     def forward(ctx, caller: RemoteNeuron, dummy: torch.Tensor,
                 inputs: torch.Tensor,
                 mode: bittensor_pb2.Modality) -> Tuple[torch.Tensor, int]:
-        # Save for backward call.
+        # ---- Save for backward call ----
         ctx.caller = caller
         ctx.mode = mode
         ctx.inputs = inputs
 
         zeros = nill_response_for(inputs)
         try:
-            # If this is an empty call get nill response.
+            # ---- Check inputs size ----
             if torch.numel(inputs) == 0:
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.EmptyRequest)
 
-            # Serialize inputs.
+            # ---- Inputs Serialization ----
             try:
                 serialized_inputs = PyTorchSerializer.serialize(inputs, mode)
-            except:
-                logger.warning('Serialization error with inputs {}', inputs)
+            except Exception as e:
+                logger.warning('Serialization error with error {}', e)
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.RequestSerializationException)
             ctx.serialized_inputs =  serialized_inputs
 
-            # Build request.
+            # ---- Build request ----
             request = bittensor_pb2.TensorMessage(
                 version=bittensor.__version__,
                 public_key=ctx.caller.keypair.public_key,
@@ -321,9 +321,11 @@ class _RemoteModuleCall(torch.autograd.Function):
                 signature=ctx.caller.signature,
                 tensors=[serialized_inputs])
         
+            # ---- Make RPC call ----
             try:
                 response = ctx.caller.stub.Forward(request, timeout=caller.config.dendrite.timeout)
 
+                # ---- Catch bittensor errors ----
                 bittensor_code = response.return_code
                 if bittensor_code == bittensor_pb2.ReturnCode.UnknownException:
                     logger.error('Unknown exception returned from remote host with message {}', response.message)
@@ -332,12 +334,12 @@ class _RemoteModuleCall(torch.autograd.Function):
                 elif bittensor_code != bittensor_pb2.ReturnCode.Success:
                     return zeros, torch.tensor(bittensor_code)
 
-            # Catch GRPC Errors
+            # ---- Catch GRPC Errors ----
             except grpc.RpcError as rpc_error_call:
                 grpc_code = rpc_error_call.code()
 
                 if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
-                    logger.warning('Deadline exceeds on endpoint {}', caller.endpoint)
+                    #logger.warning('Deadline exceeds on endpoint {}', caller.endpoint)
                     return zeros, torch.tensor(bittensor_pb2.ReturnCode.Timeout)
 
                 elif grpc_code == grpc.StatusCode.UNAVAILABLE:
@@ -345,41 +347,42 @@ class _RemoteModuleCall(torch.autograd.Function):
                     return zeros, torch.tensor(bittensor_pb2.ReturnCode.Unavailable)
 
                 else:
-                    logger.error('Uncaught GPRC error exception with code {} from endpoint {}', e.code(), caller.endpoint)
-                    return zeros, torch.tensor(bittensor_pb2.ReturnCode.Unknown)
+                    logger.error('Uncaught GPRC error exception with code {} from endpoint {}', grpc_code, caller.endpoint)
+                    return zeros, torch.tensor(bittensor_pb2.ReturnCode.UnknownException)
 
-            # Catch Unknown
+            # ---- Catch Unknown Errors ----
             except Exception as e:
                 logger.error('Uncaught error in forward call with error {} and endpoint', e, caller.endpoint)
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.Unknown)
 
-            # Check tensor response.
+            # ---- Check tensor response length ----
             if len(response.tensors) == 0:
                 logger.error('Empty response from endpoint {}', caller.endpoint)
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.EmptyResponse)
 
-            # Deserialize.
+            # ---- Deserialize response ----
             try:
                 outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
             except Exception as e:
-                logger.error('Failed to serialize responses from forward call with response {} and error {}', response.tensors[0], e)
+                logger.error('Failed to serialize responses from forward call with error {}', e)
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.ResponseDeserializationException)
         
-            # Check shape
+            # ---- Check response shape ----
             if  outputs.size(0) != inputs.size(0) \
                 or outputs.size(1) != inputs.size(1) \
                 or outputs.size(2) != bittensor.__network_dim__:
                     logger.error('Forward request returned tensor with incorrect shape {}', list(outputs.shape))
                     return zeros, torch.tensor(bittensor_pb2.ReturnCode.ResponseShapeException)
 
-            # Safe catch NaNs and replace with 0.0.
+            # ---- Safe catch NaNs and replace with 0.0 ----
             outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
         
+        # ---- Catch all ----
         except Exception as e:
             logger.error('Forward request returned unknown error {}', e)
             return zeros, torch.tensor(bittensor_pb2.ReturnCode.UnknownException)
 
-        # Return.
+        # ---- Return ----
         return outputs, torch.tensor(response.return_code)
 
     @staticmethod
