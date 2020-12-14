@@ -69,12 +69,14 @@ def train(
     model.train() # Turn on Dropoutlayers BatchNorm etc.
     weights = None
     history = []
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     for batch_idx, (images, targets) in enumerate(trainloader):
         optimizer.zero_grad() # Clear gradients.
 
         # Syncs chain state and emits learned weights to the chain.
         if batch_idx % config.neuron.sync_interval == 0:
             weights = session.metagraph.sync(weights)
+            weights = weights.to(device)
 
         # Sets the axon server priority.
         # Queries on this axon endpoint are processed from highest to lowest priority.
@@ -93,7 +95,7 @@ def train(
         optimizer.step()
 
         # Update weights.
-        batch_weights = F.softmax(torch.mean(output.weights, axis=0), dim=0)
+        batch_weights = F.softmax(torch.mean(output.weights, axis=0), dim=0).to(device)
         weights = (1 - 0.05) * weights + 0.05 * batch_weights
         weights = weights / torch.sum(weights)
 
