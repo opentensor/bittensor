@@ -13,7 +13,7 @@ import traceback
 from munch import Munch
 from loguru import logger
 from bittensor import bittensor_pb2
-from bittensor.subtensor import WSClient
+from bittensor.subtensor.client import WSClient
 from typing import List, Tuple, List
 
 from bittensor.exceptions.handlers import rollbar
