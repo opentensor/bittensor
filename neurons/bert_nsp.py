@@ -3,7 +3,7 @@
 This file demonstrates training the BERT neuron with next sentence prediction.
 
 Example:
-        $ python examples/bert_nsp.py
+        $ python neurons/bert_nsp.py
 
 """
 import bittensor

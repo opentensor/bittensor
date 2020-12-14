@@ -3,7 +3,7 @@
 This file demonstrates training the BERT neuron with masked language modelling.
 
 Example:
-        $ python examples/bert_mlm.py
+        $ python neurons/bert_mlm.py
 
 """
 import bittensor

@@ -77,7 +77,7 @@ class Nucleus ():
             code = bittensor_pb2.ReturnCode.NucleusTimeout
         return tensor, message, code
 
-    def backward(self, synapse: Synapse, inputs_x: torch.Tensor, grads_dy: torch.FloatTensor, priority: float) -> Tuple[torch.FloatTensor, str, int]:
+    def backward(self, synapse: Synapse, inputs_x: torch.Tensor, grads_dy: torch.FloatTensor, mode: bittensor_pb2.Modality, priority: float) -> Tuple[torch.FloatTensor, str, int]:
         r""" Accepts a synapse object with tensor inputs, grad inputs, and priority. 
             Submits inputs to the backward work pool for processing and waits waits for a response.
             Processing errors or timeouts result in error codes which propagate back to the calling Axon.
@@ -89,6 +89,8 @@ class Nucleus ():
                     tensor inputs from a previous call to be passed to synapse.call_backward
                 grads_dy (:obj:`torch.Tensor`, `required`): 
                     gradients associated wiht inputs for backward call.
+                mode (:enum:`bittensor_pb2.Modality`, `required`):
+                    input modality enum signaling between IMAGE, TEXT or TENSOR inputs.
                 priority (`float`, `required`):
                     processing priority, a unique number from amongst current calls and less than sys.maxsize.
                     calls are processed in this order.
@@ -102,7 +104,7 @@ class Nucleus ():
                     return code associated with forward call i.e. Success of Timeout.
         """
         # Build call params and submit the task to the pool.
-        call_params = [synapse, inputs_x, grads_dy]
+        call_params = [synapse, inputs_x, grads_dy, mode]
         future = self._backward_pool.submit( fn =  self._backward, call_params = call_params, priority = priority )
         # Recieve respoonse from the future or fail.
         try:
@@ -170,8 +172,9 @@ class Nucleus ():
         synapse = call_params[0]
         inputs_x = call_params[1]
         grads_dy = call_params[2]
+        mode = call_params[3]
         try:
-            tensor = synapse.call_backward(inputs_x, grads_dy)
+            tensor = synapse.backward(inputs_x, grads_dy, modality = mode)
             message = 'success'
             code = bittensor_pb2.ReturnCode.Success
         except Exception as e:
