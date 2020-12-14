@@ -5,6 +5,7 @@ import requests
 import sys
 import threading
 import torch
+import queue
 import validators
 
 from concurrent import futures
@@ -62,6 +63,9 @@ class Axon(bittensor_grpc.BittensorServicer):
         self.synapse = None
         self.priority = {}
 
+        # Gradient queue
+        self.gradients = queue.PriorityQueue(maxsize = self._config.axon.max_gradients)
+
         # Serving thread.
         self._thread = None
 
@@ -77,6 +81,10 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         parser.add_argument('--axon.remote_ip', default=None, type=str, 
                             help='Remote IP to serve to chain.')
+
+        parser.add_argument('--axon.max_gradients', default=100, type=int, 
+                            help='Max number of lingering gradient stored in the gradient queue')
+                            
         parser = Nucleus.add_args(parser)
         return parser
 
@@ -105,8 +113,9 @@ class Axon(bittensor_grpc.BittensorServicer):
         self.synapse = synapse
 
     def set_priority(self, priority_map: dict):
-        r""" Set the serving priority for requests on the server synapse. 
-            float values must be unique.
+        r""" Set the serving priority for requests on the served synapse. 
+            Float values must be unique, are perturbed by epsilon 0.000001
+            in the event of overlap.
             
             Args:
                 priority_map (:obj:`Dict`, `required`): 
@@ -302,6 +311,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         if len(request.tensors) == 2:
             inputs_x = request.tensors[0]
             grads_dy = request.tensors[1]
+            modality_x = inputs_x.modality
         else:
             message = "During backward: There are {} tensors in the request, expected 2.".format(len(request.tensors))
             code =  bittensor_pb2.ReturnCode.InvalidRequest
@@ -324,12 +334,19 @@ class Axon(bittensor_grpc.BittensorServicer):
             # no priority for public key set to max value.
             call_priority = sys.maxsize - 1
 
+        # ---- Save gradients to buffer for later use. ---
+        try:
+            self.gradients.put( (call_priority, (inputs_x, grads_dy, modality_x)) , block=False)
+        except queue.Full:
+            logger.trace('gradient queue is full at size: {}', self.gradient_queue.qsize())
+
         # ---- Nucleus backward call ----
         try:
             outputs, message, code = self._nucleus.backward(
                     synapse = self.synapse, 
                     inputs_x = inputs_x, 
                     grads_dy = grads_dy, 
+                    modality = modality_x,
                     priority = call_priority
             )
         except Exception as e:
@@ -341,7 +358,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         try:
             outputs_serialized = PyTorchSerializer.serialize_tensor(outputs)
         except Exception as e:
-            messave = "Backward request serialization failed with error {} and inputs {}".format(e, outputs_serialized)
+            message = "Backward request serialization failed with error {} and inputs {}".format(e, outputs_serialized)
             code =  bittensor_pb2.ReturnCode.ResponseSerializationException
             return None, message, code
 

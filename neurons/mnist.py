@@ -1,7 +1,7 @@
 """Training a MNIST Neuron.
 This file demonstrates a training pipeline for an MNIST Neuron.
 Example:
-        $ python examples/mnis.py
+        $ python neurons/mnist.py
 """
 import argparse
 import math
@@ -87,10 +87,22 @@ def train(
         output = model(images.to(model.device), torch.LongTensor(targets).to(model.device), remote = True)
         history.append(output)
 
-        # Backprop.
+        # Compute local grads.
         loss = output.remote_target_loss + output.distillation_loss
         loss.backward()
+
+        # Compute remote grads.
+        try:
+            input_x, grads_dy, modality = session.axon.gradients.get(block=False)
+            model.backward(input_x, grads_dy, modality)
+        except:
+            pass
+
+        # Apply both remote and local grads.
         optimizer.step()
+
+        # Serve the new model to the axon endpoint.
+        session.axon.serve( model )
 
         # Update weights.
         batch_weights = F.softmax(torch.mean(output.weights, axis=0), dim=0)
@@ -196,9 +208,7 @@ def main(config: Munch, session: Session):
 
             logger.info( 'Saving/Serving model: epoch: {}, accuracy: {}, loss: {}, path: {}/{}/{}/model.torch'.format(epoch, test_accuracy, best_test_loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id))
             torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': best_test_loss},"{}/{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
-            # Save experiment metrics
-            session.serve( model.deepcopy() )
-
+           
         epoch += 1
 
 if __name__ == "__main__":

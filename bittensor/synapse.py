@@ -13,32 +13,41 @@ from bittensor.exceptions.handlers import rollbar
 
 class SynapseOutput(object):
     """ Synapse output container.
-        loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
-            Total loss acumulation used by loss.backward()
+            loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
+                Total loss acumulation to be used by loss.backward()
 
-        local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-            Hidden layer encoding produced using local_context.
+            local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
+                Hidden layer encoding produced using the local_context.
 
-        local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
-            Target predictions produced using local_context. 
+            local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
+                Target predictions using local_context. 
 
-        local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-            Target loss using local_context.
+            local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                Target loss using the local_context.
 
-        remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
-            Hidden layer encoding produced using the remote_context.
+            remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
+                Hidden layer encoding produced using the remote_context.
 
-        remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
-            Target predictions using the remote_context.
+            remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
+                FFNN Target predictions using the remote_context.
 
-        remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
-            Target oss using the remote_context.
+            remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+                FFNN Classification loss using the remote_context.
 
-        distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-            Distillation loss between local_context and remote_context.
+            distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                Distillation loss between local_context and remote_context.
 
-        weights (:obj:`torch.LongTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-            weights for each active key per example.
+            weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                weights for each active neuron.
+
+            requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                number of requests sent to each uid in this batch.
+
+            return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                dendrite return codes. 0 for success.
+
+            metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                additional metadata output, specifically accuracy.
 
     """
     def __init__(   
@@ -112,6 +121,51 @@ class Synapse(nn.Module):
         synapse_copy.load_state_dict(self.state_dict())
         return synapse_copy
 
+    def call_forward(self, inputs: torch.Tensor, modality: bittensor_pb2.Modality) -> torch.Tensor:
+        """
+        Apply forward pass to the bittensor.synapse given inputs and modality.
+        """
+        with torch.no_grad():
+            if modality == bittensor_pb2.Modality.TEXT:
+                outputs = self.forward_text(inputs)
+            elif modality == bittensor_pb2.Modality.IMAGE:
+                outputs = self.forward_image(inputs)
+            elif modality == bittensor_pb2.Modality.TENSOR:
+                outputs = self.forward_tensor(inputs)
+            else:
+                raise NotImplementedError
+        return outputs
+
+    def input_grads(self, inputs_x: torch.Tensor, grads_dy: torch.Tensor, modality: bittensor_pb2.Modality) -> torch.Tensor:
+        """
+            Returns gradients for the inputs given inputs and output grads.
+        """
+        with torch.enable_grad():
+            outputs_y = self.call_forward(inputs = inputs_x.to(self.device), modality = modality)
+            grads_dx = torch.autograd.grad(
+                outputs = outputs_y.to(self.device), 
+                inputs = inputs_x.to(self.device), 
+                grad_tensors = grads_dy.to(self.device), 
+                only_inputs = True,
+                create_graph = False, 
+                retain_graph=False
+            )
+        return grads_dx
+
+    def backward(self, inputs_x: torch.Tensor, grads_dy: torch.Tensor, modality: bittensor_pb2.Modality) -> torch.Tensor:
+        """
+        Apply a backward pass to the nn.module given grads and inputs.
+        """
+        with torch.enable_grad():
+            outputs_y = self.call_forward(inputs = inputs_x.to(self.device), modality = modality)
+            torch.autograd.backward(
+                outputs = outputs_y.to(self.device), 
+                grad_tensors = grads_dy.to(self.device), 
+                only_inputs = True,
+                create_graph = False, 
+                retain_graph=False
+            )
+        
     def forward_text(self, inputs: torch.Tensor) -> SynapseOutput:
         """ Local forward inputs through the bittensor.Synapse. To be implemented by sub-classes.
 
@@ -152,40 +206,3 @@ class Synapse(nn.Module):
         """
         raise NotImplementedError
 
-    def call_forward(self, inputs: torch.Tensor,
-                     modality: bittensor_pb2.Modality) -> torch.Tensor:
-        """
-        Apply forward pass to the bittensor.synapse given inputs and modality.
-        """
-        # TODO(const): check schema (inputs, input_schema)
-        with torch.no_grad():
-            if modality == bittensor_pb2.Modality.TEXT:
-                outputs = self.forward_text(inputs)
-            elif modality == bittensor_pb2.Modality.IMAGE:
-                outputs = self.forward_image(inputs)
-            elif modality == bittensor_pb2.Modality.TENSOR:
-                outputs = self.forward_tensor(inputs)
-            else:
-                raise NotImplementedError
-        return outputs
-
-    def call_backward(self, inputs: object,
-                      grads: torch.Tensor) -> torch.Tensor:
-        """
-        Apply a backward pass to the nn.module given grads and inputs.
-        """
-        # NOTE(const): removing gradient application here, needs to be replaced with gradient queueing.
-        # with torch.enable_grad():
-        #    outputs = self.forward(inputs)
-        #    torch.autograd.backward(outputs, grad_tensors=grads.to(self.device), create_graph=False, retain_graph=False)
-        #    self.apply_gradients()
-        # TODO(const): check instance type.
-        return torch.zeros((1, 1))
-
-    def apply_gradients(self) -> None:
-        """
-        Train the expert for one step.
-        """
-        pass
-        #self.optimizer.step()
-        #self.optimizer.zero_grad()

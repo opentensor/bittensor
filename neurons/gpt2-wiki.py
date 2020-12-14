@@ -3,7 +3,7 @@
 This file demonstrates training the GPT2 neuron with language modelling.
 
 Example:
-        $ python examples/gpt2-wiki.py
+        $ python neurons/gpt2-wiki.py
 
 """
 import bittensor
