@@ -9,7 +9,7 @@ from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
 from bittensor.utils.asyncio import Asyncio
-from bittensor.subtensor import Keypair
+from bittensor.subtensor.interface import Keypair
 from bittensor.metadata import Metadata
 from bittensor.exceptions.handlers import rollbar
 from loguru import logger

@@ -252,6 +252,17 @@ class Keypair:
     def __repr__(self):
         return '<Keypair (ss58_address={})>'.format(self.ss58_address)
 
+    def toDict(self):
+        return {
+            'accountId': self.public_key,
+            'publicKey': self.public_key,
+            'secretPhrase': self.mnemonic,
+            'secretSeed': "0x" + self.seed_hex,
+            'ss58Address': self.ss58_address
+        }
+
+
+
 
 
 
