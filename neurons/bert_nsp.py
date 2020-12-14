@@ -15,7 +15,8 @@ from bittensor.synapses.bert import BertNSPSynapse
 
 
 from loguru import logger
-from datasets import load_dataset, log_batch_weights, log_chain_weights
+from datasets import load_dataset
+from bittensor.utils.logging import log_batch_weights, log_chain_weights, log_request_sizes
 import random
 import time
 import torch
@@ -92,12 +93,15 @@ def train(model, config, session, optimizer, scheduler, dataset):
     weights = None
     history = []
     batch_idx = 0
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     while True:
         optimizer.zero_grad() # Clear gradients.
 
          # Sync with chain.
         if step % config.neuron.sync_interval == 0:
             weights = session.metagraph.sync(weights)
+            weights = weights.to(device)
+
 
          # Next batch.
         inputs, targets = nsp_batch(dataset['train'], config.neuron.batch_size_train, bittensor.__tokenizer__)

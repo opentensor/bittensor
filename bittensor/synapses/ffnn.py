@@ -204,6 +204,7 @@ class FFNNSynapse(Synapse):
             output.metadata['local_accuracy'] = local_accuracy
 
         if remote:
+            transform = transform.to(self.device)
             output = self.forward_remote(local_context, output, images, transform, targets)
 
         return output
