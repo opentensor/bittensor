@@ -1,19 +1,13 @@
 
-import grpc
-import torchvision.transforms as transforms
+
 import torch
-import unittest
 import bittensor
 import pytest
-import torchvision
 
 from bittensor.config import Config
 from bittensor.subtensor import Keypair
-from bittensor.dendrite import RemoteNeuron, _RemoteModuleCall
-from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
-from unittest.mock import MagicMock
-from bittensor.serializer import PyTorchSerializer
+import time
 
 
 config = Config.load()
@@ -76,28 +70,33 @@ def test_dendrite_backoff():
         address = '0.0.0.0',
         port = 12345,
     )
+    
+    # Add a quick sleep here, it appears that this test is intermittent, likely based on the asyncio operations of past tests.
+    # This forces the test to sleep a little while until the dust settles. 
+    # Bandaid patch, TODO(unconst): fix this.
 
+    time.sleep(5)
     # Normal call.
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = _dendrite.forward_tensor( [neuron], [x])
+    out, ops = _dendrite.forward_tensor( [_neuron], [x])
     assert ops[0].item() == bittensor_pb2.ReturnCode.Unavailable
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
 
     # Backoff call.
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = _dendrite.forward_tensor( [neuron], [x])
+    out, ops = _dendrite.forward_tensor( [_neuron], [x])
     assert ops[0].item() == bittensor_pb2.ReturnCode.Backoff
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
 
     # Normal call.
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = _dendrite.forward_tensor( [neuron], [x])
+    out, ops = _dendrite.forward_tensor( [_neuron], [x])
     assert ops[0].item() == bittensor_pb2.ReturnCode.Unavailable
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
 
     # Backoff call.
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = _dendrite.forward_tensor( [neuron], [x])
+    out, ops = _dendrite.forward_tensor( [_neuron], [x])
     assert ops[0].item() == bittensor_pb2.ReturnCode.Backoff
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
 

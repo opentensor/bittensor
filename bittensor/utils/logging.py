@@ -250,8 +250,8 @@ def log_training_output_history(session, epoch, batch_idx, batch_size, total_exa
         df.loc['Max'] = max_val
         df.loc['Mean'] = mean_val
         print (df)
-    except:
-        print ('Not set.')
+    except Exception as e:
+        print ('Not set. Exception occured: {}'.format(e))
     print('\n')
 
     # Log chain weights

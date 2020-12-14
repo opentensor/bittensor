@@ -23,8 +23,8 @@ def obtain_ip(config: Munch) -> Munch:
         return config
     try:
         value = requests.get('https://api.ipify.org').text
-    except:
-        logger.error("CONIG: Could not retrieve public facing IP from IP API.")
+    except Exception as e:
+        logger.error("CONFIG: Could not retrieve public facing IP from IP API. Exception: ".format(e))
         raise SystemError('CONFIG: Could not retrieve public facing IP from IP API.')
     if not validators.ipv4(value):
         logger.error("CONFIG: Response from IP API is not a valid IP with ip {}", value)
@@ -82,6 +82,7 @@ class Axon(bittensor_grpc.BittensorServicer):
 
     @staticmethod   
     def check_config(config: Munch) -> Munch:
+<<<<<<< HEAD
         r""" Checks the passed config items for validity and obtains the remote ip.
             Args:
                 config (:obj:`munch.Munch, `required`): 
@@ -89,6 +90,9 @@ class Axon(bittensor_grpc.BittensorServicer):
         """
         config = Nucleus.check_config(config)
         logger.info('optaining remote ip ...')
+=======
+        logger.info('obtaining remote ip ...')
+>>>>>>> 25e9601080a9dfa59720772f7457a828e74e0ebc
         config = obtain_ip(config)
         assert config.axon.port > 1024 and config.axon.port < 65535, 'config.axon.port must be in range [1024, 65535]'
         return config
