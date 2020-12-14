@@ -22,6 +22,7 @@ def log_dendrite_success_times(session: Session):
     uids = session.metagraph.neurons_to_uids(neurons)
     succees_time = [remote.stats.avg_success_time for remote in remotes]
     df = pd.DataFrame([succees_time], columns=uids.tolist())
+    pd.set_option('display.float_format', lambda x: '%.4f' % x)
     df.rename_axis("[uid]", axis=1)
     print (df)
     print('\n')
