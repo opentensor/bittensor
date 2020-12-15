@@ -8,6 +8,7 @@ from argparse import ArgumentParser
 import json
 import os
 import stat
+import re
 
 def create_config_dir_if_not_exists():
     config_dir = "~/.bittensor"
@@ -60,11 +61,18 @@ def validate_password(password):
         print("Passwords do not match")
         quit()
 
-def validate_mnemonic(mnemonic):
-    pass
+def validate_generate_mnemonic(mnemonic):
+    if len(mnemonic) not in [12,15,18,21,24]:
+        print(colored("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words", 'red'))
+        quit()
 
-def regen_old_key(mnemonic):
-    pass
+    try:
+        keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
+        return keypair
+    except ValueError as e:
+        print(colored(str(e), "red"))
+        quit()
+
 
 
 def gen_new_key(words):
@@ -87,6 +95,7 @@ def display_mnemonic_msg(kepair : Keypair):
 
 
 def save_keys(path, data):
+    print("Writing key to %s" % path)
     with open(path, "wb") as keyfile:
         keyfile.write(data)
 
@@ -126,7 +135,7 @@ def main():
                         default='~/.bittensor/key')
 
     regen_key_parser = cmd_parsers.add_parser('regen')
-    regen_key_parser.add_argument("--mnemonic", required=True)
+    regen_key_parser.add_argument("--mnemonic", required=True, nargs="+")
     regen_key_parser.add_argument('--password', action='store_true', help='Protect the generated bittensor key with a password')
     regen_key_parser.add_argument('--file', help='The destination path of the keyfile (default: ~/.bittensor/keys)',
                         default='~/.bittensor/key')
@@ -144,8 +153,7 @@ def main():
         keypair = gen_new_key(args.words)
         display_mnemonic_msg(keypair)
     else: # Implies regen
-        validate_mnemonic(args.mnemonic)
-        keypair = regen_old_key(args.mnemonic)
+        keypair = validate_generate_mnemonic(args.mnemonic)
 
     data = json.dumps(keypair.toDict()).encode()
 
