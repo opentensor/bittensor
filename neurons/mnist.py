@@ -120,18 +120,20 @@ def test (
     session: Session,
     testloader: torch.utils.data.DataLoader,
     num_tests: int):
-
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.eval() # Turns off Dropoutlayers, BatchNorm etc.
     with torch.no_grad(): # Turns off gradient computation for inference speed up.
         loss = 0.0
         correct = 0.0
         for _, (images, labels) in enumerate(testloader):                
             # Compute full pass and get loss.
-            outputs = model.forward(images.to(model.device), torch.LongTensor(labels).to(model.device), remote = False)
+            images = images.to(model.device)
+            labels =  torch.LongTensor(labels).to(model.device)
+            outputs = model.forward(images, labels, remote = False)
             loss = loss + outputs.loss
             
             # Count accurate predictions.
-            max_logit = outputs.local_target.data.max(1, keepdim=True)[1]
+            max_logit = outputs.local_target.data.max(1, keepdim=True)[1].to(model.device)
             correct = correct + max_logit.eq( labels.data.view_as(max_logit) ).sum()
     
     # Log results.
