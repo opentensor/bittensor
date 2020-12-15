@@ -115,6 +115,7 @@ def main(config, session):
         # ---- Sync State ----
         if (step+1) % config.neuron.sync_interval == 0:
             # ---- Emit weights and sync from chain ----
+            logger.info('Emitting with weights {}', row_weights.tolist())
             session.metagraph.emit( row_weights ) # Set weights on chain.
             session.metagraph.sync() # Sync with the chain.
             

@@ -56,13 +56,14 @@ class Axon(bittensor_grpc.BittensorServicer):
         self._nucleus = Nucleus(config)
 
         # Init server objects.
-        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
+        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=self._config.axon.max_workers))
         bittensor_grpc.add_BittensorServicer_to_server(self, self._server)
         self._server.add_insecure_port('[::]:' + str(self._config.axon.port))
 
         # Local synapse to serve.
         self.synapse = None
         self.priority = {}
+        self._next_unknown_priority_increment = 0 
 
         # Gradient queue
         self.gradients = queue.PriorityQueue(maxsize = self._config.axon.max_gradients)
@@ -91,6 +92,9 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         parser.add_argument('--axon.remote_ip', default=None, type=str, 
                             help='Remote IP to serve to chain.')
+
+        parser.add_argument('--axon.max_workers', default=10, type=int, 
+                            help='Max number connection handler threads working simultaneously.')
 
         parser.add_argument('--axon.max_gradients', default=100, type=int, 
                             help='Max number of lingering gradient stored in the gradient queue')
@@ -131,18 +135,10 @@ class Axon(bittensor_grpc.BittensorServicer):
                 priority_map (:obj:`Dict`, `required`): 
                     map from public key to priority. str -> float
         """
-        # check uniqueness.
-        val_set = set()
         checked_priority = {}
         for key, val in priority_map.items():
-            if val in val_set:
-                val = val * (1 + random.random() * 0.000001) # random small pertubation.
-            if val == sys.maxsize:
-                logger.error('cannot set priority to {}, setting to {} instead.', sys.maxsize, sys.maxsize - 1)
-                val = sys.maxsize - 1
-            val_set.add(val)
-            checked_priority[key] = -val # Invert priorities highest values will be processed first.
-        self.priority = priority_map
+            checked_priority[key] = -val + (random.random() * 0.00001)
+        self.priority = checked_priority
 
     def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext) -> bittensor_pb2.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
@@ -259,10 +255,9 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # --- Get call priority ----
         try:
-            call_priority = self.priority[request.public_key]
+            call_priority = self.priority[request.public_key] + (random.random() * 0.00001)
         except:
-            # no priority for this public key, setting to max value. (i.e. slowest.)
-            call_priority = sys.maxsize - 1
+            call_priority = (sys.maxsize - 1) + (random.random() * 0.00001)
 
         # ---- Make Nucleus forward call. ----
         try:
@@ -337,10 +332,9 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # --- Get call priority ----
         try:
-            call_priority = self.priority[request.public_key]
+            call_priority = self.priority[request.public_key] + (random.random() * 0.00001)
         except:
-            # no priority for public key set to max value.
-            call_priority = sys.maxsize - 1
+            call_priority = (sys.maxsize - 1) + (random.random() * 0.00001)
 
         # ---- Save gradients to buffer for later use. ---
         try:
