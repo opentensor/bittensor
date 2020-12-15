@@ -11,6 +11,7 @@ import validators
 from concurrent import futures
 from munch import Munch
 from loguru import logger
+from types import SimpleNamespace
 
 import bittensor
 from bittensor.nucleus import Nucleus
@@ -68,6 +69,15 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # Serving thread.
         self._thread = None
+
+        # Stats.
+        #TODO(\u290B,\u290A)
+        self.stats = SimpleNamespace(
+            forward_in_bytes_per_second = 0.0,
+            backward_in_bytes_per_second = 0.0,
+            forward_out_bytes_per_second = 0.0,
+            backward_out_bytes_per_second = 0.0,
+        )
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
