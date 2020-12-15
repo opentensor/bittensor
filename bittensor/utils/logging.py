@@ -61,14 +61,19 @@ def log_incentive(session: Session):
         print (df)
     print('\n')
 
-def log_return_codes(session: Session, history: List[bittensor.synapse.SynapseOutput]):
-    print('Return Codes: \n ')
+def calculate_request_sizes_sum(session: Session, history: List[bittensor.synapse.SynapseOutput]):
     request_size_list = []
-    request_sizes_sum = torch.zeros(session.metagraph.n)
+    request_sizes_sum = torch.zeros(session.metagraph.n).to(device)
     for output in history:
         request_sizes_sum += output.request_sizes
         request_size_list.append(output.request_sizes)
     request_sizes_sum = request_sizes_sum.tolist()
+
+    return request_sizes_sum, request_size_list
+
+def log_return_codes(session: Session, history: List[bittensor.synapse.SynapseOutput]):
+    print('Return Codes: \n ')
+    request_sizes_sum, _ = calculate_request_sizes_sum(session, history)
 
     rows = []
     for output in history:
@@ -81,15 +86,9 @@ def log_return_codes(session: Session, history: List[bittensor.synapse.SynapseOu
     print (df)
     print('\n')
 
-
 def log_request_sizes(session: Session, history: List[bittensor.synapse.SynapseOutput]):
     print('Request Sizes: \n ')
-    request_size_list = []
-    request_sizes_sum = torch.zeros(session.metagraph.n)
-    for output in history:
-        request_sizes_sum += output.request_sizes
-        request_size_list.append(output.request_sizes)
-    request_sizes_sum = request_sizes_sum.tolist()
+    request_sizes_sum, request_size_list = calculate_request_sizes_sum(session, history)
 
     rows = []
     for rs in request_size_list:
@@ -250,8 +249,8 @@ def log_training_output_history(session, epoch, batch_idx, batch_size, total_exa
         df.loc['Max'] = max_val
         df.loc['Mean'] = mean_val
         print (df)
-    except:
-        print ('Not set.')
+    except Exception as e:
+        print ('Not set. Exception occured: {}'.format(e))
     print('\n')
 
     # Log chain weights

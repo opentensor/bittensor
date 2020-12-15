@@ -2,8 +2,7 @@ import argparse
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from loguru import logger
-from typing import List, Tuple
+from typing import Tuple
 
 import bittensor
 from bittensor import bittensor_pb2
@@ -38,10 +37,11 @@ class PKMDendrite():
     def __init__(self, config, session, query_dim):
         self.config = config
         self.session = session
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # UIDs -> Keys.
         self.keys = PKMKeys(self.config.dendrite.key_dim)
         # Query -> Keys
-        self.projection = nn.Linear(query_dim, self.config.dendrite.key_dim, bias=True)
+        self.projection = nn.Linear(query_dim, self.config.dendrite.key_dim, bias=True).to(self.device)
 
 
     @staticmethod
@@ -82,6 +82,7 @@ class PKMDendrite():
                     dendrite call return codes.
         """
         # For ease of use.
+        inputs = inputs.to(self.device)
         batch_size = inputs.shape[0]
 
         # all_uids: (torch.LongTensor): unique keys for each peer neuron.
@@ -108,15 +109,15 @@ class PKMDendrite():
 
         # keys: (torch.FloatTensor): unique trainable torch keys for each uid
         # keys.shape = [n_uids, config.dendrite.key_dim]
-        keys = self.keys( filtered_uids )
+        keys = self.keys( filtered_uids ).to(self.device)
 
         # query: (torch.FloatTensor): projection of the query on to the key dimension.
         # query.shape = [batch_size, config.dendrite.key_dim]
-        query = self.projection( query )
+        query = self.projection( query ).to(self.device)
 
         # scores: (torch.FloatTensor): cartesian product between keys and projection.
         # scores.shape = [batch_size, n_uids]
-        scores = F.linear(query, keys, bias=None)
+        scores = F.linear(query, keys, bias=None).to(self.device)
 
         # topk_scores: (torch.FloatTensor): topk scores per example
         # topk_indices: (torch.LongTensor): topk indices per example
@@ -127,7 +128,7 @@ class PKMDendrite():
 
         # gates: (torch.FloatTensor): gated scores for uid per example. Zeros for non queried uids.
         # gates.shape = [batch_size, n_uids]
-        zeros = torch.zeros(batch_size, n_uids)
+        zeros = torch.zeros(batch_size, n_uids).to(self.device)
         gates = zeros.scatter(1, topk_indices, topk_scores)
 
         # non_zero_gates: (torch.FloatTensor): indices of non-zero gate values.
@@ -180,7 +181,7 @@ class PKMDendrite():
         # flat_stitched: (torch.FloatTensor): responses joined and flattened along the last dimension.
         # flat_stitched.shape = [real_topk * batch_size, *inputs.shape[1:]] 
         stitched = torch.cat(responses, 0)
-        flat_stitched = torch.flatten(stitched, start_dim = 1)
+        flat_stitched = torch.flatten(stitched, start_dim = 1).to(self.device)
 
         # gates_expanded: (torch.FloatTensor): gate values for each queried uid per example.
         # gates_expanded.shape = [real_topk * batch_size, n_uids]
@@ -188,7 +189,7 @@ class PKMDendrite():
 
         # nonzero_gates: (torch.FloatTensor): non-zero gating values for each example for each uid.
         # nonzero_gates.shape = [real_topk * batch_size, 1]
-        nonzero_gates = torch.gather(gates_expanded, 1, uids_index)
+        nonzero_gates = torch.gather(gates_expanded, 1, uids_index).to(self.device)
 
         # flat_stitched: (torch.FloatTensor): responses multiplied by gate values.
         # flat_stitched.shape = [real_topk * batch_size, *inputs.shape[1:]] 
@@ -196,7 +197,7 @@ class PKMDendrite():
 
         # zeros: (torch.FloatTensor): zero for combined responses. 
         # zeros.shape = [batch_size, *inputs.shape[1:]] 
-        zeros = torch.zeros(batch_size, flat_stitched.shape[1], requires_grad=True)
+        zeros = torch.zeros(batch_size, flat_stitched.shape[1], requires_grad=True).to(self.device)
 
         # combined: (torch.FloatTensor): combine responses by adding them to the corresponsing batch index.
         # combined = [batch_size, *inputs.shape[1:]] 
@@ -208,17 +209,17 @@ class PKMDendrite():
 
         # indices: (torch.LongTensor): indices of uids queried during this forward call.
         # indices = [batch_size, metagraph.n]
-        indices = self.session.metagraph.uids_to_indices(filtered_uids)
+        indices = self.session.metagraph.uids_to_indices(filtered_uids).to(self.device)
 
         # weights: (torch.LongTensor): weights scattered onto uids per example.
         # weights.shape = [batch_size, metagraph.n]
-        weights = torch.zeros(inputs.shape[0], self.session.metagraph.n)
+        weights = torch.zeros(inputs.shape[0], self.session.metagraph.n).to(self.device)
         weights.scatter_(1, indices.repeat(batch_size, 1), scores)
 
         # filled_sizes: (torch.LongTensor): number of examples queried to each uid.
         # filled_sizes.shape = [metagraph.n]
-        filled_request_sizes = torch.zeros(self.session.metagraph.n, dtype=torch.long)
-        filled_request_sizes.scatter_(0, indices, torch.tensor(request_sizes))
+        filled_request_sizes = torch.zeros(self.session.metagraph.n, dtype=torch.long).to(self.device)
+        filled_request_sizes.scatter_(0, indices, torch.tensor(request_sizes).to(self.device))
 
         # Return.
         return combined, weights, filled_request_sizes, retops

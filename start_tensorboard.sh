@@ -45,12 +45,6 @@ function main() {
     trap teardown INT SIGHUP SIGINT SIGTERM ERR EXIT
 
     start_tensorboard
-
-    while true; do
-        update_machine_logs 
-        sleep 5
-    done &
-
 }
 
 main
