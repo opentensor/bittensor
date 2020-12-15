@@ -24,3 +24,8 @@ def __generate_key(password):
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), salt=__SALT, length=32, iterations=10000000, backend=default_backend())
     key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
     return key
+
+
+
+def is_encrypted(data):
+    return data[:6] == b"gAAAAA"

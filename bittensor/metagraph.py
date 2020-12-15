@@ -133,7 +133,7 @@ class TorchChainState():
 
 class Metagraph():
 
-    def __init__(self, config, keypair):
+    def __init__(self, config):
         r"""Initializes a new Metagraph subtensor interface.
         Args:
             config (bittensor.Config):
@@ -143,7 +143,7 @@ class Metagraph():
         """
         # Protected vars
         self._config = config
-        self.__keypair = keypair
+        self.__keypair = config.session.keypair
 
         # Client for talking to chain.
         self.subtensor_client = WSClient(self._config.metagraph.chain_endpoint, self.__keypair)

@@ -30,7 +30,10 @@ logger.configure(**logger_config)
 
 # Initialize the global bittensor session object.
 session = None
-def init(config: Config, keypair: Keypair):
+def init(config: Config):
     global session
-    session = Session(config, keypair)
+
+    session = Session(config)
     return session
+
+

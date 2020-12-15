@@ -62,8 +62,12 @@ def input_password():
 def validate_password(password):
     policy = PasswordPolicy.from_names(
         strength=0.66,
-        entropybits=30
+        entropybits=30,
+        length=8,
     )
+
+    if not password:
+        return False
 
     tested_pass = policy.password(password)
     result = tested_pass.test()
@@ -76,6 +80,8 @@ def validate_password(password):
     if password != password_verification:
         print("Passwords do not match")
         return False
+
+    return True
 
 def validate_generate_mnemonic(mnemonic):
     if len(mnemonic) not in [12,15,18,21,24]:
@@ -147,7 +153,7 @@ def main():
                                 default=12,
                                 help="The amount of words the mnemonic representing the key will contain")
     new_key_parser.add_argument('--password', action='store_true', help='Protect the generated bittensor key with a password')
-    new_key_parser.add_argument('--file', help='The destination path of the keyfile (default: ~/.bittensor/keys)',
+    new_key_parser.add_argument('--keyfile', help='The destination path of the keyfile (default: ~/.bittensor/keys)',
                         default='~/.bittensor/key')
 
     regen_key_parser = cmd_parsers.add_parser('regen')
@@ -160,7 +166,7 @@ def main():
 
 
     args = parser.parse_args()
-    keyfile = validate_path(args.file)
+    keyfile = validate_path(args.keyfile)
 
     if not args.password and not confirm_no_password():
         quit()
