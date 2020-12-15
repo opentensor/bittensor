@@ -1,4 +1,5 @@
-"""GPT2 Language Modelling 
+#!/bin/python3
+"""GPT2 Language Modelling
 
 This file demonstrates training the GPT2 neuron with language modelling.
 
@@ -7,7 +8,7 @@ Example:
 
 """
 import bittensor
-from bittensor.subtensor import Keypair
+from bittensor.subtensor.interface import Keypair
 from bittensor.utils.logging import (log_outputs, log_batch_weights, log_chain_weights, log_request_sizes)
 from bittensor.config import Config
 from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
@@ -123,21 +124,17 @@ def main(config, session):
     
 
 if __name__ == "__main__":
-    # 1. Load bittensor config.
+    # Load bittensor config.
     parser = argparse.ArgumentParser()
     parser = add_args(parser)
     config = Config.load(parser)
     config = check_config(config)
     logger.info(Config.toString(config))
 
-    # 2. Load Keypair.
-    mnemonic = Keypair.generate_mnemonic()
-    keypair = Keypair.create_from_mnemonic(mnemonic)
-   
-    # 3. Load Session.
-    session = bittensor.init(config, keypair)
+    # Load Session.
+    session = bittensor.init(config)
 
-    # 4. Start Neuron.
+    # Start Neuron.
     with session:
         main(config, session)
 
