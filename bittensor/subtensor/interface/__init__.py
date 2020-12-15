@@ -280,14 +280,14 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
         return self.futures[id]
 
     def onConnecting(self, transport_details):
-        logger.debug("Connecting to websocket server {}", transport_details)
+        logger.trace("Connecting to websocket server {}", transport_details)
         self.factory.connection = self
 
     def onConnect(self, response):
-        logger.debug("Connected. {}", response)
+        logger.trace("Connected. {}", response)
 
     def onOpen(self):
-        logger.debug("Connection open to websocket established")
+        logger.trace("Connection open to websocket established")
         self.factory.connected.set_result(True)
 
     def onMessage(self, payload, isBinary):

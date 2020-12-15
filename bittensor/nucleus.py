@@ -174,7 +174,7 @@ class Nucleus ():
         grads_dy = call_params[2]
         mode = call_params[3]
         try:
-            tensor = synapse.backward(inputs_x, grads_dy, modality = mode)
+            tensor = synapse.grad(inputs_x, grads_dy, modality = mode)
             message = 'success'
             code = bittensor_pb2.ReturnCode.Success
         except Exception as e:

@@ -15,8 +15,19 @@ pd.set_option('display.precision', 2)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 
+def log_all( session: Session, history: List[bittensor.synapse.SynapseOutput] ):
+    log_outputs(history)
+    log_batch_weights(session, history)
+    log_row_weights(session)
+    log_col_weights
+    log_incentive(session)
+    log_ranks(session)
+    log_request_sizes(session, history)
+    log_return_codes(session, history)
+    log_dendrite_success_times( session )
+
 def log_dendrite_success_times(session: Session):
-    print ('Success time: \n ')
+    print ('Avg Success time: \n ')
     remotes = session.dendrite.remotes
     neurons = [remote.neuron for remote in remotes]
     uids = session.metagraph.neurons_to_uids(neurons)
@@ -119,14 +130,31 @@ def log_request_sizes(session: Session, history: List[bittensor.synapse.SynapseO
     print (df)
     print('\n')
 
-def log_chain_weights(session: Session):
-    print ('Weights: \n ')
+def log_row_weights(session: Session):
+    print ('Row Weights: \n ')
     if session.metagraph.uids != None and session.metagraph.weights != None:
         uids = session.metagraph.uids.tolist()
-        weights = session.metagraph.weights.tolist()
+        weights = session.metagraph.W[0,:].tolist()
         weights, uids  = zip(*sorted(zip(weights, uids), reverse=True))
         df = pd.DataFrame([weights], columns=uids)
-        df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
+        df.rename_axis("[uid]", axis=1)
+        max_val = df.max(numeric_only=True, axis=1)
+        min_val = df.min(numeric_only=True, axis=1)
+        total = df.sum(numeric_only=True, axis=1)
+        df.loc[:,'Min'] = min_val
+        df.loc[:,'Max'] = max_val
+        df.loc[:,'Total'] = total
+        print (df)
+    print('\n')
+
+def log_col_weights(session: Session):
+    print ('Col Weights: \n ')
+    if session.metagraph.uids != None and session.metagraph.weights != None:
+        uids = session.metagraph.uids.tolist()
+        weights = session.metagraph.W[:,0].tolist()
+        weights, uids  = zip(*sorted(zip(weights, uids), reverse=True))
+        df = pd.DataFrame([weights], columns=uids)
+        df.rename_axis("[uid]", axis=1)
         max_val = df.max(numeric_only=True, axis=1)
         min_val = df.min(numeric_only=True, axis=1)
         total = df.sum(numeric_only=True, axis=1)

@@ -90,7 +90,7 @@ class PKMDendrite():
 
         # filtered_uids: (torch.LongTensor): keys filtered by emit.
         # all_uids.shape = [metagraph.n]
-        current_block = self.session.metagraph.block()
+        current_block = self.session.metagraph.block
         lastemit = self.session.metagraph.lastemit
         staleness = (current_block - lastemit)
         filtered_uids = all_uids[torch.where(staleness < self.config.dendrite.stale_emit_filter)] 
@@ -100,7 +100,7 @@ class PKMDendrite():
         if n_uids == 0:
             # Return nill responses.
             n = self.session.metagraph.n
-            null_response = torch.zeros(size=(inputs.shape[0], bittensor.__network_dim__))
+            null_response = torch.zeros(size=(inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
             null_weights = torch.zeros(size=(inputs.shape[0], n))
             null_sizes = torch.zeros(n)
             null_retops = torch.zeros(n)
@@ -117,6 +117,7 @@ class PKMDendrite():
         # scores: (torch.FloatTensor): cartesian product between keys and projection.
         # scores.shape = [batch_size, n_uids]
         scores = F.linear(query, keys, bias=None)
+        scores = F.softmax(scores, dim = 1) # Softmax scores
 
         # topk_scores: (torch.FloatTensor): topk scores per example
         # topk_indices: (torch.LongTensor): topk indices per example
@@ -129,6 +130,7 @@ class PKMDendrite():
         # gates.shape = [batch_size, n_uids]
         zeros = torch.zeros(batch_size, n_uids)
         gates = zeros.scatter(1, topk_indices, topk_scores)
+        gates = F.normalize(gates, p=1, dim=1)
 
         # non_zero_gates: (torch.FloatTensor): indices of non-zero gate values.
         # non_zero_gates.shape = [numel(gates), 2]
@@ -213,7 +215,7 @@ class PKMDendrite():
         # weights: (torch.LongTensor): weights scattered onto uids per example.
         # weights.shape = [batch_size, metagraph.n]
         weights = torch.zeros(inputs.shape[0], self.session.metagraph.n)
-        weights.scatter_(1, indices.repeat(batch_size, 1), scores)
+        weights.scatter_(1, indices.repeat(batch_size, 1), gates)
 
         # filled_sizes: (torch.LongTensor): number of examples queried to each uid.
         # filled_sizes.shape = [metagraph.n]

@@ -209,7 +209,7 @@ class Dendrite(nn.Module):
         return tensor_results, return_codes
 
     async def _gather(self, loop: asyncio.base_events.BaseEventLoop, inputs, neurons, mode) -> List[Tuple[torch.FloatTensor, torch.LongTensor]]:
-        r""" Creates and returns the results from len(neurons) torch forward requests to remote neurons using asyncio for concurrency.
+        r""" Creates and returns the results from len(neurons) torch forward requests. Uses asyncio for concurrency.
 
             Args:
                 loop (:obj:`asyncio.base_events.BaseEventLoop`, `required`):
@@ -321,7 +321,6 @@ class RemoteNeuron(nn.Module):
                     Result tuple from the forward call.
 
         """
-
         # ---- On Backoff: We dont make an RPC and return zeros instead ----  
         if self.config.dendrite.do_backoff and self.backoff >= 1:
             outputs = nill_response_for(inputs)
@@ -351,7 +350,7 @@ class RemoteNeuron(nn.Module):
             self.stats.success_bytes_out += sys.getsizeof(inputs)
             self.stats.success_bytes_in += sys.getsizeof(outputs)
 
-        # ---- On Success: set zero backoffand halve next_backoff ---- 
+        # ---- On Success: set zero backoff and halve the next backoff ---- 
         if code.item() == bittensor_pb2.ReturnCode.Success:
             self.backoff = 0
             self.next_backoff = max(1, self.next_backoff / 2)
@@ -514,7 +513,6 @@ class _RemoteModuleCall(torch.autograd.Function):
                 output (:obj:`Tuple[torch.FloatTensor`, torch.LongTensor]`, `optional`):
                     Gradients of the inputs with respect to the inputs and grads of the outputs.
         """
-
         # ---- Zeros response in the case of failure ----
         zeros = nill_response_for(ctx.inputs)
 
