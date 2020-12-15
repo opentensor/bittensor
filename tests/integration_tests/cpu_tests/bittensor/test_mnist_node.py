@@ -6,6 +6,7 @@ Example:
         $ python examples/mnist/main.py
 """
 import bittensor
+from bittensor.utils.logging import log_all
 from bittensor.config import Config
 from bittensor.synapses.ffnn import FFNNSynapse
 from bittensor.subtensor import Keypair
@@ -122,10 +123,7 @@ def start(config, session):
                         colored('{}'.format(processed), 'green'), 
                         colored('{}'.format(total_examples), 'red'),
                         colored('{:.2f}%'.format(progress), 'green'))
-            log_outputs(history)
-            log_batch_weights(session, history)
-            log_chain_weights(session)
-            log_request_sizes(session, history)
+            log_all(session, history)
             history = []
         
         epoch += 1
