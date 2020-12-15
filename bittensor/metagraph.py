@@ -80,22 +80,22 @@ class TorchChainState():
             block: (int):
                 state block number.
 
-            uids: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+            uids: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 UIDs for each neuron ordered by index.
             
-            indices: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
-                Index of neurons, range(n)
+            indices: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+                Index of neurons, range(metagraph.n)
 
-            stake: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+            stake: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 Stake balance for each neuron ordered by index.
                 
-            lastemit: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+            lastemit: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 Last emission call for each neuron ordered by index.
 
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 This neuron's weights W[,:]
 
-            W: (:obj:`torch.FloatTensor` of shape :obj:`(n, n)`):
+            W: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n, metagraph.n)`):
                 Full weight matrix on chain.
 
             neurons: (List[bittensor_pb2.Neuron]) 
@@ -175,7 +175,7 @@ class Metagraph():
     @staticmethod   
     def check_config(config: Munch):
         pass
-    
+
     @property
     def n(self) -> int:
         r""" Return the number of known neurons on chain.
@@ -205,9 +205,9 @@ class Metagraph():
 
     @property
     def indices(self) -> torch.LongTensor:
-        r""" Return the indices of each neuron in the chain state range(n).
+        r""" Return the indices of each neuron in the chain state range(metagraph.n).
         Returns
-            indices: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+            indices: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 returned indices for each neuron.
         """
         return self.state.indices
@@ -216,7 +216,7 @@ class Metagraph():
     def uids(self) -> torch.LongTensor:
         r""" Returns unique ids for each neuron in the chain state.
         Returns
-            uids: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+            uids: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 unique id for each neuron.
         """
         return self.state.uids
@@ -225,7 +225,7 @@ class Metagraph():
     def stake(self) -> torch.FloatTensor:
         r""" Returns the stake held by each known neuron.
         Returns
-            stake: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
+            stake: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 stake of each known neuron.
         """
         return self.state.stake
@@ -234,7 +234,7 @@ class Metagraph():
     def S(self) -> torch.FloatTensor:
         r""" Returns the stake held by each known neuron.
         Returns
-            S: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
+            S: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 stake of each known neuron.
         """
         return self.state.stake
@@ -252,7 +252,7 @@ class Metagraph():
     def incentive(self) -> torch.FloatTensor:
         r""" Returns the ranks 
         Returns
-            incentive: (:obj:`torch.FLoatTensor` of shape :obj:`(n)`):
+            incentive: (:obj:`torch.FLoatTensor` of shape :obj:`(metagraph.n)`):
                 inflation incentive of each each known neuron.
         """
         I =  (self.tau * self.ranks) / torch.sum(self.ranks)
@@ -263,7 +263,7 @@ class Metagraph():
     def I(self) -> torch.FloatTensor:
         r""" Returns the inflation incentive for each peer per block.
         Returns
-            I: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
+            I: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 stake of each known neuron.
         """
         return self.incentive
@@ -272,7 +272,7 @@ class Metagraph():
     def ranks(self) -> torch.FloatTensor:
         r""" Returns the ranks W^t * S
         Returns
-            ranks: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
+            ranks: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 rank of each known neuron.
         """
         if self.W.shape[0] == 0:
@@ -290,7 +290,7 @@ class Metagraph():
     def R(self) -> torch.FloatTensor:
         r""" Returns ranks for each known neuron in the graph.
         Returns
-            rank: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
+            rank: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 rank of each known neuron.
         """
         return self.ranks()
@@ -317,7 +317,7 @@ class Metagraph():
     def public_keys(self) -> List[str]:
         r""" Return the ordered public keys for state neurons.
         Returns
-            public_keys: (:obj:`List[str]` of shape :obj:`(n)`):
+            public_keys: (:obj:`List[str]` of shape :obj:`(metagraph.n)`):
                 public keys of all graph neurons.
         """
         return [n.public_key for n in self.state.neurons]
@@ -326,7 +326,7 @@ class Metagraph():
     def weights(self) -> torch.FloatTensor:
         r"""Return this neuron's weights. W[0,:]
         Returns 
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 returned indices for passed uids.
         """
         if self.state.n == 0:
@@ -467,21 +467,25 @@ class Metagraph():
         connected = await self.subtensor_client.is_connected()
         return connected        
 
-    def emit(self, weights: torch.FloatTensor):
+    def emit(self, weights: torch.FloatTensor, wait_for_inclusion = False):
         r""" Emits the passed weights to the chain. Waits for inclusion.
         Args:
-            weights: (torch.FloatTensor): 
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 weights to set on chain of length self.state.n
+            wait_for_inclusion: (bool, default: False):
+                if true, the call waits for inclusion in the block before continuing.
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        loop.run_until_complete(self.async_emit(weights))
+        loop.run_until_complete(self.async_emit(weights, wait_for_inclusion))
 
-    async def async_emit(self, weights: torch.FloatTensor) -> bool:
+    async def async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False) -> bool:
         r""" Emits the passed weights to the chain. Waits for inclusion.
         Args:
-            weights: (torch.FloatTensor): 
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 weights to set on chain.
+            wait_for_inclusion: (bool):
+                if true, the call waits for inclusion in the block before continuing.
         Return:
             included: (bool) true is the weights were set on chain.
         """
@@ -509,9 +513,10 @@ class Metagraph():
             return False
 
         # Checks that weight emission was included in a block after 12 seconds.
-        if not await self._wait_for_emit_inclusion(keys, vals, timeout = 12):
-            logger.error('Weight failed with non-inclusion after 12 seconds.')
-            return False
+        if wait_for_inclusion:
+            if not await self._wait_for_emit_inclusion(keys, vals, timeout = 12):
+                logger.error('Weight failed with non-inclusion after 12 seconds.')
+                return False
         return True
 
     def sync(self) -> torch.FloatTensor:
