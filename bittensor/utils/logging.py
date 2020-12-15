@@ -14,6 +14,7 @@ pd.set_option('display.width', 1000)
 pd.set_option('display.precision', 2)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
+<<<<<<< HEAD
 
 def log_all( session: Session, history: List[bittensor.synapse.SynapseOutput] ):
     log_outputs(history)
@@ -75,12 +76,23 @@ def log_incentive(session: Session):
 
 def log_return_codes(session: Session, history: List[bittensor.synapse.SynapseOutput]):
     print('Return Codes: \n ')
+=======
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def calculate_request_sizes_sum(session: Session, history: List[bittensor.synapse.SynapseOutput]):
+>>>>>>> 45917c8b0acefd267a0615bda35b81b5871f7961
     request_size_list = []
-    request_sizes_sum = torch.zeros(session.metagraph.n)
+    request_sizes_sum = torch.zeros(session.metagraph.n).to(device)
     for output in history:
         request_sizes_sum += output.request_sizes
         request_size_list.append(output.request_sizes)
     request_sizes_sum = request_sizes_sum.tolist()
+
+    return request_sizes_sum, request_size_list
+
+def log_return_codes(session: Session, history: List[bittensor.synapse.SynapseOutput]):
+    print('Return Codes: \n ')
+    request_sizes_sum, _ = calculate_request_sizes_sum(session, history)
 
     rows = []
     for output in history:
@@ -93,15 +105,9 @@ def log_return_codes(session: Session, history: List[bittensor.synapse.SynapseOu
     print (df)
     print('\n')
 
-
 def log_request_sizes(session: Session, history: List[bittensor.synapse.SynapseOutput]):
     print('Request Sizes: \n ')
-    request_size_list = []
-    request_sizes_sum = torch.zeros(session.metagraph.n)
-    for output in history:
-        request_sizes_sum += output.request_sizes
-        request_size_list.append(output.request_sizes)
-    request_sizes_sum = request_sizes_sum.tolist()
+    request_sizes_sum, request_size_list = calculate_request_sizes_sum(session, history)
 
     rows = []
     for rs in request_size_list:

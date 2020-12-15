@@ -72,6 +72,7 @@ def train(
     # ---- Do epoch ----
     model.train()
     history = []
+<<<<<<< HEAD
     for batch_idx, (images, targets) in enumerate(trainloader):     
         # ---- Forward pass ----
         output = model(images.to(model.device), torch.LongTensor(targets).to(model.device), remote = True)
@@ -100,6 +101,40 @@ def train(
             session.serve( model ) # Serve the newest model.
 
             # ---- Logs for gradient batch ----
+=======
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    for batch_idx, (images, targets) in enumerate(trainloader):
+        optimizer.zero_grad() # Clear gradients.
+
+        # Syncs chain state and emits learned weights to the chain.
+        if batch_idx % config.neuron.sync_interval == 0:
+            weights = session.metagraph.sync(weights)
+            weights = weights.to(device)
+
+        # Sets the axon server priority.
+        # Queries on this axon endpoint are processed from highest to lowest priority.
+        if batch_idx % config.neuron.priority_interval == 0:
+            weights_to_me = session.metagraph.W[:, 0]
+            priority = dict(zip(session.metagraph.public_keys, weights_to_me.tolist()))
+            session.axon.set_priority( priority )
+     
+        # Forward pass.
+        output = model(images.to(model.device), torch.LongTensor(targets).to(model.device), remote = True)
+        history.append(output)
+
+        # Backprop.
+        loss = output.remote_target_loss + output.distillation_loss
+        loss.backward()
+        optimizer.step()
+
+        # Update weights.
+        batch_weights = F.softmax(torch.mean(output.weights, axis=0), dim=0).to(device)
+        weights = (1 - 0.05) * weights + 0.05 * batch_weights
+        weights = weights / torch.sum(weights)
+
+        # Logs:
+        if (batch_idx + 1) % config.neuron.log_interval == 0: 
+>>>>>>> 45917c8b0acefd267a0615bda35b81b5871f7961
             total_examples = len(trainloader) * config.neuron.batch_size_train
             processed = ((batch_idx + 1) * config.neuron.batch_size_train)
             progress = (100. * processed) / total_examples
@@ -194,9 +229,16 @@ def main(config: Munch, session: Session):
         )
         scheduler.step()
 
+<<<<<<< HEAD
         # ---- Test model ----
         test_loss, _ = test( 
             epoch = epoch,
+=======
+        # Test model.
+        test_loss, _ = test( 
+            epoch = epoch,
+
+>>>>>>> 45917c8b0acefd267a0615bda35b81b5871f7961
             model = model,
             session = session,
             testloader = testloader,
