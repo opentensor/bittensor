@@ -96,8 +96,8 @@ def main(config, session):
             col_weights = session.metagraph.W[:, 0] # Other to me.
 
             # ---- Update Axon Priority ----
-            priority_map = dict(zip(session.metagraph.public_keys, col_weights.tolist()))
-            session.axon.set_priority( priority_map )
+            col_weights = session.metagraph.W[:,0] # weights to me.
+            session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
 
             # --- Save Model ----
             logger.info( 'Saving model: epoch: {}, sum(W[:,0]): {}, path: {}/{}/{}/model.torch', step, torch.sum(col_weights).item(), config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
