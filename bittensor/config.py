@@ -10,10 +10,14 @@ import yaml
 from munch import Munch
 
 from bittensor.axon import Axon
-from bittensor.session import Session
+from bittensor.session import Session, KeyError
 from bittensor.dendrite import Dendrite
 from bittensor.metagraph import Metagraph
 from bittensor.metadata import Metadata
+from bittensor.subtensor.interface import Keypair, KeypairRepresenter
+
+
+
 from bittensor.session import KeyFileError
 
 class InvalidConfigFile(Exception):
@@ -34,11 +38,8 @@ class MustPassNeuronPath(Exception):
 class Config:
     @staticmethod
     def toString(items) -> str:
-        yaml_munch = items.toYAML()
-        data = yaml.safe_load(yaml_munch)
-        return '\n' + yaml.dump(data)
+        return "\n" + yaml.dump(items.toDict())
 
- 
     @staticmethod   
     def load(parser: argparse.ArgumentParser = None)  -> Munch:
         r""" Loads and return the bittensor Munched config.
@@ -55,11 +56,11 @@ class Config:
             parser = argparse.ArgumentParser()
             
         # 1. Load args from bittensor backend components.
-        parser = Axon.add_args(parser)
-        parser = Dendrite.add_args(parser)
-        parser = Metagraph.add_args(parser)
-        parser = Metadata.add_args(parser)
-        parser = Session.add_args(parser)
+        Axon.add_args(parser)
+        Dendrite.add_args(parser)
+        Metagraph.add_args(parser)
+        Metadata.add_args(parser)
+        Session.add_args(parser)
        
         # 2. Parse.
         params = parser.parse_known_args()[0]
@@ -80,15 +81,22 @@ class Config:
 
         # 4. Run session checks.
         try:
-            config = Dendrite.check_config(config)
-            config = Session.check_config(config)
-            config = Metagraph.check_config(config)
-            config = Metadata.check_config(config)
-            config = Axon.check_config(config)
-            return config
+            Dendrite.check_config(config)
+            Session.check_config(config)
+            Metagraph.check_config(config)
+            Metadata.check_config(config)
+            Axon.check_config(config)
         except KeyFileError:
             quit()
 
+
+        #5. Load key
+        try:
+            Session.load_keypair(config)
+        except KeyError:
+            quit()
+
+        return config
 
             
     @staticmethod

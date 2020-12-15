@@ -209,11 +209,11 @@ if __name__ == "__main__":
     logger.info(Config.toString(config))
 
     # 2. Load Keypair.
-    mnemonic = Keypair.generate_mnemonic()
-    keypair = Keypair.create_from_mnemonic(mnemonic)
+    # mnemonic = Keypair.generate_mnemonic()
+    # keypair = Keypair.create_from_mnemonic(mnemonic)
    
     # 3. Load Session.
-    session = bittensor.init(config, keypair)
+    session = bittensor.init(config)
 
     # 4. Start Neuron.
     with session:

@@ -18,7 +18,7 @@
 import asyncio
 from hashlib import blake2b
 import binascii
-import json
+import json, yaml
 from loguru import logger
 import re
 
@@ -250,7 +250,7 @@ class Keypair:
             raise ConfigurationError("Crypto type not supported")
 
     def __repr__(self):
-        return '<Keypair (ss58_address={})>'.format(self.ss58_address)
+        return '(ss58_address={})'.format(self.ss58_address)
 
     def toDict(self):
         return {
@@ -261,8 +261,14 @@ class Keypair:
             'ss58Address': self.ss58_address
         }
 
+def KeypairRepresenter(dumper, data):
+    serializedData = data.__repr__()
+
+    logger.debug(serializedData)
+    return dumper.represent_scalar('Keypair', serializedData)
 
 
+yaml.add_representer(Keypair, KeypairRepresenter)
 
 
 
