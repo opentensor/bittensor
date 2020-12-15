@@ -14,6 +14,7 @@ from bittensor.metadata import Metadata
 from bittensor.exceptions.handlers import rollbar
 from loguru import logger
 import asyncio
+import os
 
 class FailedConnectToChain(Exception):
     pass
@@ -27,6 +28,9 @@ class FailedToEnterSession(Exception):
 class FailedToPollChain(Exception):
     pass
 
+class KeyFileError(Exception):
+    pass
+
 class Session:
     def __init__(self, config, keypair: Keypair):
         self.config = config 
@@ -37,12 +41,29 @@ class Session:
         self.tbwriter = Metadata(self.config)
 
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        parser.add_argument('--session.key', required=False, default='~/.bittensor/key', help="Path to the bittensor key file")
         return parser
 
     @staticmethod   
     def check_config(config: Munch) -> Munch:
-        return config
+        Session.__check_key_path(config.session.key)
+
+    @staticmethod
+    def __check_key_path(path):
+        path = os.path.expanduser(path)
+        if not os.path.exists(path):
+            logger.error("--session.key {} does not exist", path)
+            raise KeyFileError
+
+        if not os.path.isfile(path):
+            logger.error("--session.key {} is not a file", path)
+            raise KeyFileError
+
+        if not os.access(path, os.R_OK):
+            logger.error("--session.key {} is not readable", path)
+            raise KeyFileError
+
 
     def __del__(self):
         self.stop()
