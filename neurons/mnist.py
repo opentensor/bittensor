@@ -116,6 +116,7 @@ def train(
         if (batch_idx+1) % config.neuron.sync_interval == 0:
             pass
             # ---- Emit weights and sync from chain ----
+            logger.info('Emitting with weights {}', row_weights.tolist())
             session.metagraph.emit( row_weights ) # Set weights on chain.
             session.metagraph.sync() # Sync with the chain.
             
