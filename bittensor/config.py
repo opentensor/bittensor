@@ -10,10 +10,15 @@ import yaml
 from munch import Munch
 
 from bittensor.axon import Axon
-from bittensor.session import Session
+from bittensor.session import Session, KeyError
 from bittensor.dendrite import Dendrite
 from bittensor.metagraph import Metagraph
 from bittensor.metadata import Metadata
+from bittensor.subtensor.interface import Keypair, KeypairRepresenter
+
+
+
+from bittensor.session import KeyFileError
 
 class InvalidConfigFile(Exception):
     pass
@@ -33,11 +38,10 @@ class MustPassNeuronPath(Exception):
 class Config:
     @staticmethod
     def toString(items) -> str:
-        yaml_munch = items.toYAML()
-        data = yaml.safe_load(yaml_munch)
-        return '\n' + yaml.dump(data)
 
- 
+        print(items.toDict())
+        return "\n" + yaml.dump(items.toDict())
+
     @staticmethod   
     def load(parser: argparse.ArgumentParser = None)  -> Munch:
         r""" Loads and return the bittensor Munched config.
@@ -77,11 +81,23 @@ class Config:
                 head[split_keys[-1]] = arg_val
 
         # 4. Run session checks.
-        Dendrite.check_config(config)
-        Session.check_config(config)
-        Metagraph.check_config(config)
-        Axon.check_config(config)
+        try:
+            Dendrite.check_config(config)
+            Session.check_config(config)
+            Metagraph.check_config(config)
+            Axon.check_config(config)
+        except KeyFileError:
+            quit()
+
+
+        #5. Load key
+        try:
+            Session.load_keypair(config)
+        except KeyError:
+            quit()
+
         return config
+
             
     @staticmethod
     def load_from_relative_path(path: str)  -> Munch:

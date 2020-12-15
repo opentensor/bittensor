@@ -1,4 +1,5 @@
-"""GPT2 Language Modelling 
+#!/bin/python3
+"""GPT2 Language Modelling
 
 This file demonstrates training the GPT2 neuron with language modelling.
 
@@ -21,7 +22,7 @@ from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
 
 import bittensor
-from bittensor.subtensor import Keypair
+from bittensor.subtensor.interface import Keypair
 from bittensor.utils.logging import log_all
 from bittensor.config import Config
 from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
@@ -148,13 +149,9 @@ if __name__ == "__main__":
     config = Config.load(parser)
     check_config(config)
     logger.info(Config.toString(config))
-
-    # ---- Load Keypair ----
-    mnemonic = Keypair.generate_mnemonic()
-    keypair = Keypair.create_from_mnemonic(mnemonic)
-   
+    
     # ---- Build Session ----
-    session = bittensor.init(config, keypair)
+    session = bittensor.init(config)
 
     # ---- Start Neuron ----
     with session:
