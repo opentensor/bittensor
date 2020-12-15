@@ -1,3 +1,4 @@
+#!/bin/python3
 """BERT Next Sentence Prediction Neuron.
 
 This file demonstrates training the BERT neuron with next sentence prediction.
@@ -165,21 +166,17 @@ def main(config, session):
     
 
 if __name__ == "__main__":
-    # 1. Load bittensor config.
+    # Load bittensor config.
     parser = argparse.ArgumentParser()
     parser = add_args(parser)
     config = Config.load(parser)
     config = check_config(config)
     logger.info(Config.toString(config))
 
-    # 2. Load Keypair.
-    mnemonic = Keypair.generate_mnemonic()
-    keypair = Keypair.create_from_mnemonic(mnemonic)
-   
-    # 3. Load Session.
-    session = bittensor.init(config, keypair)
+    # Load Session.
+    session = bittensor.init(config)
 
-    # 4. Start Neuron.
+    # Start Neuron.
     with session:
         main(config, session)
             
