@@ -340,19 +340,17 @@ class RemoteNeuron(nn.Module):
                 outputs = nill_response_for(inputs)
                 code = torch.tensor(bittensor_pb2.ReturnCode.UnknownException)
 
-        # ---- Update stats ---- 
+        # ---- On Success: set zero backoff and halve the next backoff ---- 
         self.stats.codes[code.item()] += 1
         if code.item() == bittensor_pb2.ReturnCode.Success:
+            self.backoff = 0
+            self.next_backoff = max(1, self.next_backoff / 2)
+            
             # We only need to record elapsed times / bytes on success.
             self.stats.total_success_time += elapsed_time
             self.stats.avg_success_time = self.stats.total_success_time / self.stats.codes[bittensor_pb2.ReturnCode.Success]
             self.stats.success_bytes_out += sys.getsizeof(inputs)
             self.stats.success_bytes_in += sys.getsizeof(outputs)
-
-        # ---- On Success: set zero backoff and halve the next backoff ---- 
-        if code.item() == bittensor_pb2.ReturnCode.Success:
-            self.backoff = 0
-            self.next_backoff = max(1, self.next_backoff / 2)
 
         # ---- On Backoff: Lower backoff value by 1 ---- 
         elif code.item() == bittensor_pb2.ReturnCode.Backoff:
