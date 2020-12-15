@@ -36,3 +36,4 @@ pytest-asyncio
 replicate
 codecov
 rollbar
+password_strength

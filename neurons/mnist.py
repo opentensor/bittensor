@@ -1,3 +1,4 @@
+#!/bin/python3
 """Training a MNIST Neuron.
 This file demonstrates a training pipeline for an MNIST Neuron.
 Example:
@@ -21,7 +22,7 @@ from loguru import logger
 import bittensor
 from bittensor import Session
 from bittensor.utils.logging import log_all
-from bittensor.subtensor import Keypair
+from bittensor.subtensor.interface import Keypair
 from bittensor.config import Config
 from bittensor.synapse import Synapse
 from bittensor.synapses.ffnn import FFNNSynapse
@@ -177,13 +178,9 @@ if __name__ == "__main__":
     config = Config.load(parser)
     check_config(config)
     logger.info(Config.toString(config))
-
-    # ---- Load Keypair ----
-    mnemonic = Keypair.generate_mnemonic()
-    keypair = Keypair.create_from_mnemonic(mnemonic)
    
     # ---- Build Session ----
-    session = bittensor.init(config, keypair)
+    session = bittensor.init(config)
 
     # ---- Start Neuron ----
     with session:

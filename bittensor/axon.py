@@ -42,7 +42,7 @@ class Axon(bittensor_grpc.BittensorServicer):
     It recieves Forward and Backward requests and process the corresponding Synapse.call_forward and Synapse.call_backward.
     
     """
-    def __init__(self, config, keypair):
+    def __init__(self, config):
         r""" Initializes a new Axon endpoint with passed config and keypair.
             Args:
                 config (:obj:`Munch`, `required`): 
@@ -51,7 +51,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                     bittensor keypair.
         """
         self._config = config
-        self.__keypair = keypair
+        self.__keypair = config.session.keypair
 
         # Background threaded processing object.
         self._nucleus = Nucleus(config)

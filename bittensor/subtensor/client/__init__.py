@@ -1,4 +1,4 @@
-from bittensor.subtensor import SubstrateWSInterface, Keypair
+from bittensor.subtensor.interface import SubstrateWSInterface, Keypair
 import netaddr
 from loguru import logger
 

@@ -9,7 +9,7 @@ import bittensor
 from bittensor.utils.logging import log_all
 from bittensor.config import Config
 from bittensor.synapses.ffnn import FFNNSynapse
-from bittensor.subtensor import Keypair
+from bittensor.subtensor.interface import Keypair
 from bittensor.utils.logging import (log_outputs, log_batch_weights, log_chain_weights, log_request_sizes)
 
 import argparse
@@ -138,22 +138,17 @@ def start(config, session):
         
 def main():
 
-    # 1. Load bittensor config.
+    # ---- Load bittensor config ----
     parser = argparse.ArgumentParser()
     parser = add_args(parser)
     config = Config.load(parser)
     config = check_config(config)    
-
     logger.info(Config.toString(config))
-
-    # 2. Load Keypair.
-    mnemonic = Keypair.generate_mnemonic()
-    keypair = Keypair.create_from_mnemonic(mnemonic)
    
-    # 3. Load Session.
-    session = bittensor.init(config, keypair)
+    # ---- Load Session ----
+    session = bittensor.init(config)
 
-    # 4. Start Neuron.
+    # ---- Start Neuron ----
     with session:
         start(config, session)
     
