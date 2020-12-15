@@ -360,11 +360,7 @@ class Metagraph():
             neurons: (List[bittensor_pb2.Neuron]): 
                 neuron info ordered by passed uids.
         """
-        response = []
-        indices = self.uids_to_indices(uids)
-        for idx in indices.tolist():
-            response.append(self.state.neurons[idx])
-        return response
+        return [self.state.neurons[idx] for idx in self.uids_to_indices(uids).tolist()]:
 
     def neurons_to_uids(self, neurons: List[bittensor_pb2.Neuron]) -> torch.LongTensor:
         r""" Returns uids associated with the passed neurons.
@@ -375,10 +371,7 @@ class Metagraph():
             uids: (torch.LongTensor)
                 uids associated with neurons.
         """
-        uids = []
-        for n in neurons:
-            uids.append(self.state.uid_for_pubkey[n.public_key])
-        return torch.tensor(uids)
+        return torch.tensor([self.state.uid_for_pubkey[n.public_key] for n in neurons])   
 
     def chain_weights(self) -> torch.FloatTensor:
         r""" Returns your current weights from the chain.
