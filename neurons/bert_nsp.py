@@ -10,7 +10,7 @@ import bittensor
 import argparse
 from bittensor.config import Config
 from bittensor.utils.logging import log_outputs
-from bittensor.subtensor import Keypair
+from bittensor.subtensor.interface import Keypair
 from bittensor.synapses.bert import BertNSPSynapse
 
 
