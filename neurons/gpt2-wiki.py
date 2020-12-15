@@ -123,8 +123,8 @@ def main(config, session):
             col_weights = session.metagraph.W[:, 0] # Other to me.
 
             # ---- Update Axon Priority ----
-            priority_map = dict(zip(session.metagraph.public_keys, col_weights.tolist()))
-            session.axon.set_priority( priority_map )
+            session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
+
 
         # ---- Step Logs + Tensorboard ----
         logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(step, output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
