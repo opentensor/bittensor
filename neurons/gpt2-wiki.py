@@ -98,6 +98,7 @@ def main(config, session):
 
         # ---- Accumulate Remote Gradients  ----
         if config.neuron.apply_remote_gradients:
+            # TODO (const): batch normalization over the gradients for consistency.
             n_grads = session.axon.gradients.qsize
             for _, (_, input_x, grads_dy, modality) in list(session.axon.gradients.queue):
                 grads_dy = grads_dy / (config.neuron.accumulation_interval * n_grads)
