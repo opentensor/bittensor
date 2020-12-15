@@ -503,7 +503,7 @@ class Metagraph():
 
         # Makes weight emission call.
         try:
-            await self.subtensor_client.set_weights(keys, vals, self.__keypair, wait_for_inclusion = False)
+            await self.subtensor_client.emit(keys, vals, self.__keypair, wait_for_inclusion = False)
         except Exception as e:
             logger.warning('Failed to emit weights with error {}, and weights {}', e, list(zip(keys, vals)))
             return False
