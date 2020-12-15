@@ -108,7 +108,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 config (:obj:`munch.Munch, `required`): 
                     config to check.
         """
-        logger.info('optaining remote ip ...')
+        logger.info('obtaining remote ip ...')
         config = obtain_ip(config)
         assert config.axon.port > 1024 and config.axon.port < 65535, 'config.axon.port must be in range [1024, 65535]'
         Nucleus.check_config(config)

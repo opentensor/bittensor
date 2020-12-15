@@ -325,7 +325,6 @@ class RemoteNeuron(nn.Module):
             outputs = nill_response_for(inputs)
             code = torch.tensor(bittensor_pb2.ReturnCode.Backoff)
 
-
         # ---- On Not-backoff: We make the Forward RPC ---- 
         else:
             try:
@@ -445,11 +444,9 @@ class _RemoteModuleCall(torch.autograd.Function):
                 grpc_code = rpc_error_call.code()
 
                 if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
-                    #logger.warning('Deadline exceeds on endpoint {}', caller.endpoint)
                     return zeros, torch.tensor(bittensor_pb2.ReturnCode.Timeout)
 
                 elif grpc_code == grpc.StatusCode.UNAVAILABLE:
-                    #logger.warning('Endpoint unavailable {}', caller.endpoint)
                     return zeros, torch.tensor(bittensor_pb2.ReturnCode.Unavailable)
 
                 else:
@@ -463,7 +460,6 @@ class _RemoteModuleCall(torch.autograd.Function):
 
             # ---- Check tensor response length ----
             if len(response.tensors) == 0:
-                # logger.error('Empty response from endpoint {}', caller.endpoint)
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.EmptyResponse)
 
             # ---- Deserialize response ----
