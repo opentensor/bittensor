@@ -14,6 +14,7 @@ from bittensor.session import Session
 from bittensor.dendrite import Dendrite
 from bittensor.metagraph import Metagraph
 from bittensor.metadata import Metadata
+from bittensor.session import KeyFileError
 
 class InvalidConfigFile(Exception):
     pass
@@ -78,12 +79,17 @@ class Config:
                 head[split_keys[-1]] = arg_val
 
         # 4. Run session checks.
-        config = Dendrite.check_config(config)
-        config = Session.check_config(config)
-        config = Metagraph.check_config(config)
-        config = Metadata.check_config(config)
-        config = Axon.check_config(config)
-        return config
+        try:
+            config = Dendrite.check_config(config)
+            config = Session.check_config(config)
+            config = Metagraph.check_config(config)
+            config = Metadata.check_config(config)
+            config = Axon.check_config(config)
+            return config
+        except KeyFileError:
+            quit()
+
+
             
     @staticmethod
     def load_from_relative_path(path: str)  -> Munch:

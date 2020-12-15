@@ -20,7 +20,7 @@ from loguru import logger
 import bittensor
 from bittensor import Session
 from bittensor.utils.logging import (log_outputs, log_batch_weights, log_chain_weights, log_request_sizes)
-from bittensor.subtensor import Keypair
+from bittensor.subtensor.interface import Keypair
 from bittensor.config import Config
 from bittensor.synapse import Synapse
 from bittensor.synapses.ffnn import FFNNSynapse
