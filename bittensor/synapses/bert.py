@@ -57,7 +57,7 @@ class BertSynapseBase (Synapse):
         self.to(self.device)
 
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+    def add_args(parser: argparse.ArgumentParser):    
         r""" Add custom params to the parser.
         """
         parser.add_argument('--synapse.num_hidden_layers', default=2, type=int, 
@@ -65,8 +65,7 @@ class BertSynapseBase (Synapse):
         parser.add_argument('--synapse.num_attention_heads', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
         parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
-        parser = PKMDendrite.add_args(parser)
-        return parser
+        PKMDendrite.add_args(parser)
 
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the BERT NSP Synapse.

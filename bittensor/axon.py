@@ -81,7 +81,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         )
 
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    def add_args(parser: argparse.ArgumentParser):
         r""" Adds this axon's command line arguments to the passed parser.
             Args:
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
@@ -98,22 +98,19 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         parser.add_argument('--axon.max_gradients', default=100, type=int, 
                             help='Max number of lingering gradient stored in the gradient queue')
-                            
-        parser = Nucleus.add_args(parser)
-        return parser
+        Nucleus.add_args(parser)
 
     @staticmethod   
-    def check_config(config: Munch) -> Munch:
+    def check_config(config: Munch):
         r""" Checks the passed config items for validity and obtains the remote ip.
             Args:
                 config (:obj:`munch.Munch, `required`): 
                     config to check.
         """
-        config = Nucleus.check_config(config)
         logger.info('optaining remote ip ...')
         config = obtain_ip(config)
         assert config.axon.port > 1024 and config.axon.port < 65535, 'config.axon.port must be in range [1024, 65535]'
-        return config
+        Nucleus.check_config(config)
 
     def serve(self, synapse: Synapse):
         r""" Set the synapse being served on this axon endpoint. 

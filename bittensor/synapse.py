@@ -102,12 +102,12 @@ class Synapse(nn.Module):
         self.to(self.device)
 
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser: 
-        return parser
+    def add_args(parser: argparse.ArgumentParser): 
+        pass
 
     @staticmethod   
-    def check_config(config: Munch) -> Munch:
-        return config
+    def check_config(config: Munch):
+        pass
 
     def deepcopy(self):
         """ Returns a copy of this synapse by passing the model params to load_state_dict.

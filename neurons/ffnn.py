@@ -27,7 +27,7 @@ from bittensor.utils.logging import log_all
 from bittensor.config import Config
 from bittensor.synapses.ffnn import FFNNSynapse
 
-def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+def add_args(parser: argparse.ArgumentParser):    
     parser.add_argument('--neuron.datapath', default='data', type=str,help='Path to load and save data.')
     parser.add_argument('--neuron.learning_rate', default=0.005, type=float, help='Training initial learning rate.')
     parser.add_argument('--neuron.momentum', default=0.99, type=float, help='Training initial learning rate.')
@@ -37,20 +37,16 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument('--neuron.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
     parser.add_argument('--neuron.name', default='gpt-wiki', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
     parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
-    parser = FFNNSynapse.add_args(parser)
-    return parser
+    FFNNSynapse.add_args(parser)
 
-def check_config(config: Munch) -> Munch:
+def check_config(config: Munch):
     assert config.neuron.momentum > 0 and config.neuron.momentum < 1, "momentum must be a value between 0 and 1"
     assert config.neuron.learning_rate > 0, "learning_rate must be a positive value."
-    try:
-        trial_path = str(config.neuron.datapath + '/' + config.neuron.name + '/' + config.neuron.trial_id)
-        pathlib.Path(trial_path).mkdir(parents=True, exist_ok=True)
-    except Exception as _:
-        logger.error("No permission to trial path: {}", trial_path)
-        raise ValueError
-    config = FFNNSynapse.check_config(config)
-    return config
+    trial_path = '{}/{}/{}'.format(config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+    config.neuron.trial_path = trial_path
+    if not os.path.exists(config.neuron.trial_path):
+        os.makedirs(config.neuron.trial_path)
+    FFNNSynapse.check_config(config)
     
 # Neuron main.
 def main(config, session):
@@ -81,7 +77,6 @@ def main(config, session):
         # ---- Backward Gradients ----
         # TODO (const): batch normalization over the gradients for consistency.
         grads_dy = torch.where(torch.isnan(grads_dy), torch.zeros_like(grads_dy), grads_dy)
-        gradstorch.nn.BatchNorm1d(num_features, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
         model.backward(inputs_x, grads_dy, modality_x)
 
         # ---- Apply Gradients ----
@@ -118,9 +113,9 @@ def main(config, session):
 if __name__ == "__main__":
     # ---- Load Bittensor config ----
     parser = argparse.ArgumentParser()
-    parser = add_args(parser)
+    add_args(parser)
     config = Config.load(parser)
-    config = check_config(config)
+    check_config(config)
     logger.info(Config.toString(config))
 
     # ---- Load Keypair ----

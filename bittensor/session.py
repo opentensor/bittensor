@@ -31,16 +31,15 @@ class Session:
         self.metagraph = Metagraph(self.config, self.__keypair)
         self.axon = Axon(self.config, self.__keypair)
         self.dendrite = Dendrite(self.config, self.__keypair)
-        self.tbwriter = Metadata(self.config)
 
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
-        return parser
+    def add_args(parser: argparse.ArgumentParser):
+        pass  
 
     @staticmethod   
-    def check_config(config: Munch) -> Munch:
-        return config
-
+    def check_config(config: Munch):
+        pass
+    
     def __del__(self):
         self.stop()
 
