@@ -12,7 +12,7 @@ from bittensor.session import Session
 __version__ = '0.0.0'
 __blocktime__ = 6 # seconds
 __network_dim__ = 512
-__tokenizer__ = GPT2Tokenizer.from_pretrained("gpt2", local_files_only=True)
+__tokenizer__ = GPT2Tokenizer.from_pretrained("gpt2", local_files_only=False)
 __tokenizer__.pad_token = '[PAD]'
 __tokenizer__.mask_token = -100
 __vocab_size__ = 204483
