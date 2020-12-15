@@ -12,6 +12,7 @@ from concurrent import futures
 from munch import Munch
 from loguru import logger
 from types import SimpleNamespace
+from typing import List
 
 import bittensor
 from bittensor.nucleus import Nucleus
@@ -123,19 +124,24 @@ class Axon(bittensor_grpc.BittensorServicer):
         """
         self.synapse = synapse
 
-    def set_priority(self, priority_map: dict):
+    def set_priority(self, neurons: List[bittensor_pb2.Neuron], priority: torch.FloatTensor):
         r""" Set the serving priority for requests on the served synapse. 
-            Float values must be unique, are perturbed by epsilon 0.000001
-            in the event of overlap.
+            Float values must are normalized to 1.
             
             Args:
-                priority_map (:obj:`Dict`, `required`): 
-                    map from public key to priority. str -> float
+                neurons (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
+
+                priority (:obj:`torch.FloatTnsor` of shape :obj:`(num_neurons)`, `required`): 
+                    call priority for neurons on endpoint.
         """
-        checked_priority = {}
-        for key, val in priority_map.items():
-            checked_priority[key] = -val + (random.random() * 0.00001)
-        self.priority = checked_priority
+        assert priority.shape[0] == len(neurons), 'priority for neurons must of the same length'
+        if torch.sum(priority) != 0 and torch.sum(priority) != 0:
+            priority = priority / torch.sum(priority)
+        priority_map = {}
+        for neuron, priority in list(zip(neurons, priority.tolist())):
+            priority_map[neuron.public_key] = priority
+        self.priority = priority_map
 
     def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext) -> bittensor_pb2.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
@@ -252,9 +258,9 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # --- Get call priority ----
         try:
-            call_priority = self.priority[request.public_key] + (random.random() * 0.00001)
+            call_priority = self.priority[request.public_key] + random.random()
         except:
-            call_priority = (sys.maxsize - 1) + (random.random() * 0.00001)
+            call_priority = 1 + random.random()
 
         # ---- Make Nucleus forward call. ----
         try:
@@ -329,9 +335,9 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # --- Get call priority ----
         try:
-            call_priority = self.priority[request.public_key] + (random.random() * 0.00001)
+            call_priority = self.priority[request.public_key] + random.random()
         except:
-            call_priority = (sys.maxsize - 1) + (random.random() * 0.00001)
+            call_priority = 1 + random.random()
 
         # ---- Save gradients to buffer for later use. ---
         try:

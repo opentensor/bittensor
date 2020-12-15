@@ -81,11 +81,10 @@ def main(config: Munch, session: Session):
             loss = 0.0; accuracy = 0.0
             for _, (images, labels) in enumerate(testloader):                
                 # ---- Forward pass ----
-                # Forward pass *without* network queries being made.
                 outputs = model.forward(
                     images = images.to(model.device), 
                     targets = torch.LongTensor(labels).to(model.device), 
-                    remote = False
+                    remote = False # *without* rpc-queries being made.
                 )
                 loss = loss + outputs.loss / len(test_data)
                 accuracy = outputs['local_accuracy'] / len(test_data)
@@ -103,27 +102,37 @@ def main(config: Munch, session: Session):
         for batch_idx, (images, targets) in enumerate(trainloader):     
 
             # ---- Forward pass ----
-            # Forward pass *with* network queries being made.
-            output = model( 
+            output = model(  
                 images = images.to(model.device), 
                 targets = torch.LongTensor(targets).to(model.device), 
-                remote = True
-            )
+                remote = True # *with* rpc-queries made to the network.
+            ) 
+            
+            # ---- Backward pass ----
+            output.loss.backward() # Accumulates gradients on the model.
+            optimizer.step() # Applies accumulated gradients.
+            optimizer.zero_grad() # Zeros out gradients for next accummulation 
 
-            # ---- Update Row-Weights ----
+            # ---- Serve Model ----
+            session.serve( model ) # Serve the newest model.
+
+            # ---- Update State ----
             batch_weights = torch.mean(output.weights, axis = 0) # Average over batch.
             row_weights = (1 - 0.03) * row_weights + 0.03 * batch_weights # Moving avg update.
             row_weights = F.normalize(row_weights, p = 1, dim = 0) # Ensure normalization.
 
-            # ---- Accumulate Gradients  ----
-            output.loss.backward() # Accumulates gradients on the model.
+            if (batch_idx+1) % config.neuron.sync_interval == 0:
+                # ---- Sync Metagraph State ----
+                logger.info('Emitting with weights {}', row_weights.tolist())
+                session.metagraph.emit( row_weights ) # Sets my row-weights on the chain.
+                session.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                row_weights = session.metagraph.W[ 0, :] 
+                
+                # ---- Update Axon Priority ----
+                col_weights = session.metagraph.W[:,0] # weights to me.
+                session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
 
-            # ---- Apply Gradiens ----
-            optimizer.step() # Applies accumulated gradients.
-            optimizer.zero_grad() # Zeros out gradients for next accummulation 
-            session.serve( model ) # Serve the newest model.
-
-            # ---- Batch Logs. ----
+            # ---- Step Logs + Tensorboard ----
             history.append(output) # Save for later analysis/logs.
             processed = ((batch_idx + 1) * config.neuron.batch_size_train)
             progress = (100. * processed) / len(train_data)
@@ -135,20 +144,6 @@ def main(config: Munch, session: Session):
                     colored('{:.2f}%'.format(progress), 'green'),
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
                     colored('{:.4f}'.format(output.metadata['local_accuracy'].item()), 'green'))
-
-            # ---- Sync Metagraoh State ----
-            if (batch_idx+1) % config.neuron.sync_interval == 0:
-                # ---- Emit weights and sync from chain ----
-                logger.info('Emitting with weights {}', row_weights.tolist())
-                session.metagraph.emit( row_weights ) # Sets my row-weights on the chain.
-                session.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                row_weights = session.metagraph.W[ 0, :] 
-                
-                # ---- Update Axon Priority ----
-                priority_map = dict(zip(session.metagraph.public_keys, session.metagraph.W[ :, 0 ].tolist()))
-                session.axon.set_priority( priority_map ) # Sets the nucleus-backend request priority.
-
-            # ---- Step Logs + Tensorboard ----
             tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), global_step)
             tensorboard.add_scalar('Lloss', output.local_target_loss.item(), global_step)
             tensorboard.add_scalar('Dloss', output.distillation_loss.item(), global_step)
