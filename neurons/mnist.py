@@ -44,11 +44,104 @@ def check_config(config: Munch):
     assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
     assert config.neuron.batch_size_test > 0, "batch_size_test must a positive value"
     assert config.neuron.learning_rate > 0, "learning rate must be a positive value."
+<<<<<<< HEAD
     trial_path = '{}/{}/{}'.format(config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
     config.neuron.trial_path = trial_path
     if not os.path.exists(config.neuron.trial_path):
         os.makedirs(config.neuron.trial_path)
     FFNNSynapse.check_config(config)
+=======
+    Config.validate_path_create('neuron.datapath', config.neuron.datapath)
+    config = FFNNSynapse.check_config(config)
+    return config
+
+def train(
+    epoch: int,
+    model: Synapse,
+    session: Session,
+    config: Munch,
+    optimizer: optim.Optimizer,
+    trainloader: torch.utils.data.DataLoader):
+
+    model.train() # Turn on Dropoutlayers BatchNorm etc.
+    weights = None
+    history = []
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    for batch_idx, (images, targets) in enumerate(trainloader):
+        optimizer.zero_grad() # Clear gradients.
+
+        # Syncs chain state and emits learned weights to the chain.
+        if batch_idx % config.neuron.sync_interval == 0:
+            weights = session.metagraph.sync(weights)
+            weights = weights.to(device)
+
+        # Sets the axon server priority.
+        # Queries on this axon endpoint are processed from highest to lowest priority.
+        if batch_idx % config.neuron.priority_interval == 0:
+            weights_to_me = session.metagraph.W[:, 0]
+            priority = dict(zip(session.metagraph.public_keys, weights_to_me.tolist()))
+            session.axon.set_priority( priority )
+     
+        # Forward pass.
+        output = model(images.to(model.device), torch.LongTensor(targets).to(model.device), remote = True)
+        history.append(output)
+
+        # Backprop.
+        loss = output.remote_target_loss + output.distillation_loss
+        loss.backward()
+        optimizer.step()
+
+        # Update weights.
+        batch_weights = F.softmax(torch.mean(output.weights, axis=0), dim=0).to(device)
+        weights = (1 - 0.05) * weights + 0.05 * batch_weights
+        weights = weights / torch.sum(weights)
+
+        # Logs:
+        if (batch_idx + 1) % config.neuron.log_interval == 0: 
+            total_examples = len(trainloader) * config.neuron.batch_size_train
+            processed = ((batch_idx + 1) * config.neuron.batch_size_train)
+            progress = (100. * processed) / total_examples
+            logger.info('Epoch: {} [{}/{} ({})]', 
+                        colored('{}'.format(epoch), 'blue'), 
+                        colored('{}'.format(processed), 'green'), 
+                        colored('{}'.format(total_examples), 'red'),
+                        colored('{:.2f}%'.format(progress), 'green'))
+            log_outputs(history)
+            log_batch_weights(session, history)
+            log_chain_weights(session)
+            log_request_sizes(session, history)
+            history = []
+
+def test ( 
+    model: Synapse,
+    session: Session,
+    testloader: torch.utils.data.DataLoader,
+    num_tests: int):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.eval() # Turns off Dropoutlayers, BatchNorm etc.
+    with torch.no_grad(): # Turns off gradient computation for inference speed up.
+        loss = 0.0
+        correct = 0.0
+        for _, (images, labels) in enumerate(testloader):                
+            # Compute full pass and get loss.
+            images = images.to(model.device)
+            labels =  torch.LongTensor(labels).to(model.device)
+            outputs = model.forward(images, labels, remote = False)
+            loss = loss + outputs.loss
+            
+            # Count accurate predictions.
+            max_logit = outputs.local_target.data.max(1, keepdim=True)[1].to(model.device)
+            correct = correct + max_logit.eq( labels.data.view_as(max_logit) ).sum()
+    
+    # Log results.
+    n = num_tests * config.neuron.batch_size_test
+    loss /= n
+    accuracy = (100. * correct) / n
+    logger.info('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(loss, correct, num_tests, accuracy))  
+    session.tbwriter.write_loss('test loss', loss)
+    session.tbwriter.write_accuracy('test accuracy', accuracy)
+    return loss, accuracy
+>>>>>>> a3299a9fd9cc98447887cc7d3c198d69b93cbd5c
 
 # --- Train epoch ----
 def main(config: Munch, session: Session):
@@ -153,6 +246,7 @@ def main(config: Munch, session: Session):
     # ---- Loop forever ----
     epoch = -1; best_test_loss = math.inf
     while True:
+<<<<<<< HEAD
         epoch += 1
 
         # ---- Train model ----
@@ -161,6 +255,26 @@ def main(config: Munch, session: Session):
         
         # ---- Test model ----
         test_loss, test_accuracy = test()
+=======
+        # Train model
+        train( 
+            epoch = epoch,
+            model = model,
+            session = session,
+            config = config,
+            optimizer = optimizer,
+            trainloader = trainloader
+        )
+        scheduler.step()
+
+        # Test model.
+        test_loss, test_accuracy = test( 
+            model = model,
+            session = session,
+            testloader = testloader,
+            num_tests = len(test_data),
+        )
+>>>>>>> a3299a9fd9cc98447887cc7d3c198d69b93cbd5c
 
          # ---- Save Best ----
         if test_loss < best_test_loss:
