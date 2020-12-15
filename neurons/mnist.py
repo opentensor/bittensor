@@ -179,9 +179,7 @@ def main(config: Munch, session: Session):
         scheduler.step()
 
         # Test model.
-        test_loss, _ = test( 
-            epoch = epoch,
-
+        test_loss, test_accuracy = test( 
             model = model,
             session = session,
             testloader = testloader,
