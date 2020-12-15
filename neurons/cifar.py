@@ -70,12 +70,14 @@ def train(
     model.train() # Turn on Dropoutlayers BatchNorm etc.
     weights = None
     history = []
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     for batch_idx, (images, targets) in enumerate(trainloader):
         optimizer.zero_grad() # Clear gradients.
 
         # Sync with chain.
         if batch_idx % config.neuron.sync_interval == 0:
             weights = session.metagraph.sync(weights)
+            weights = weights.to(device)
                         
         # Forward pass.
         output = model(images.to(model.device), torch.LongTensor(targets).to(model.device), remote = True)

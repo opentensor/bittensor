@@ -14,8 +14,7 @@ from bittensor.utils.ptp import ThreadPoolExecutor
 
 class Nucleus ():
     r""" Processing core of a bittensor Neuron. Runs behind an Axon endpoint to process requests on the served synapse.
-        The nucleus uses a prioritized thread pool to process requests according in weighted order based on the scores 
-        from the passed synapse object.
+        The nucleus uses a prioritized thread pool to process requests according in priority. Priority is set by the Axon.
     """
 
     def __init__(self, config):
