@@ -1,4 +1,5 @@
-from bittensor.subtensor import WSClient, Keypair
+from bittensor.subtensor.client import WSClient
+from bittensor.subtensor.interface import Keypair
 from loguru import logger
 import pytest
 

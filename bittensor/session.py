@@ -9,11 +9,19 @@ from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
 from bittensor.utils.asyncio import Asyncio
-from bittensor.subtensor import Keypair
+from bittensor.subtensor.interface import Keypair
 from bittensor.metadata import Metadata
 from bittensor.exceptions.handlers import rollbar
 from loguru import logger
-import asyncio
+from bittensor.crypto import is_encrypted
+from bittensor.utils import Cli
+from bittensor.crypto import decrypt_keypair
+from cryptography.exceptions import InvalidSignature, InvalidKey
+from cryptography.fernet import InvalidToken
+import json
+
+
+import os
 
 class FailedConnectToChain(Exception):
     pass
@@ -27,22 +35,80 @@ class FailedToEnterSession(Exception):
 class FailedToPollChain(Exception):
     pass
 
+class KeyFileError(Exception):
+    pass
+
+class KeyError(Exception):
+    pass
+
+
+
 class Session:
-    def __init__(self, config, keypair: Keypair):
-        self.config = config 
-        self.__keypair = keypair
-        self.metagraph = Metagraph(self.config, self.__keypair)
-        self.axon = Axon(self.config, self.__keypair)
-        self.dendrite = Dendrite(self.config, self.__keypair)
+    def __init__(self, config):
+        self.config = config
+        self.metagraph = Metagraph(self.config)
+        self.axon = Axon(self.config)
+        self.dendrite = Dendrite(self.config)
         self.tbwriter = Metadata(self.config)
 
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        parser.add_argument('--session.keyfile', required=False, default='~/.bittensor/key', help="Path to the bittensor key file")
         return parser
 
     @staticmethod   
     def check_config(config: Munch) -> Munch:
-        return config
+        Session.__check_key_path(config.session.keyfile)
+
+    @staticmethod
+    def __check_key_path(path):
+        path = os.path.expanduser(path)
+        if not os.path.exists(path):
+            logger.error("--session.keyfile {} does not exist", path)
+            raise KeyFileError
+
+        if not os.path.isfile(path):
+            logger.error("--session.keyfile {} is not a file", path)
+            raise KeyFileError
+
+        if not os.access(path, os.R_OK):
+            logger.error("--session.keyfile {} is not readable", path)
+            raise KeyFileError
+
+    @staticmethod
+    def load_keypair(config):
+        logger.info("Loading keypair")
+        keyfile = os.path.expanduser(config.session.keyfile)
+        with open(keyfile, 'rb') as file:
+            data = file.read()
+
+            if is_encrypted(data):
+                data = Session.decrypt_data(data)
+
+            keypair = Session.load_keypair_from_data(data)
+            config.session.keypair = keypair
+
+    @staticmethod
+    def load_keypair_from_data(data) -> Keypair:
+        try:
+            data = json.loads(data)
+            if "secretSeed" not in data:
+                raise KeyFileError("Keyfile corrupt")
+
+            return Keypair.create_from_seed(data['secretSeed'])
+        except BaseException as e:
+            logger.debug(e)
+            logger.error("Invalid keypair")
+            raise KeyError
+
+    @staticmethod
+    def decrypt_data(data):
+        try:
+            password = Cli.ask_password()
+            return decrypt_keypair(data, password)
+        except (InvalidSignature, InvalidKey, InvalidToken):
+            logger.error("Invalid password")
+            raise KeyError
 
     def __del__(self):
         self.stop()
