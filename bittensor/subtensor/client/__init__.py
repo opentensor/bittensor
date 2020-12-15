@@ -145,13 +145,14 @@ class WSClient:
 
         return result['result']
 
-    async def emit(self, keypair):
+    async def emit(self, destinations, values, keypair, wait_for_inclusion=False):
         call = await self.substrate.compose_call(
             call_module='SubtensorModule',
-            call_function='emit'
+            call_function='emit',
+            call_params = {'dests': destinations, 'values': values}
         )
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
-        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=wait_for_inclusion)
 
 
     async def neurons(self, pubkey=None):
