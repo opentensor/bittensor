@@ -165,19 +165,17 @@ class Metagraph():
         self.state = TorchChainState.from_cache(self.cache)
 
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    def add_args(parser: argparse.ArgumentParser):
         # TODO(const): check this endpoint in check_config.
         parser.add_argument('--metagraph.chain_endpoint', default='206.189.254.5:12345', type=str, 
                             help='chain endpoint.')
         parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
                             help='filter neurons with last emit beyond this many blocks.')
 
-        return parser
-
     @staticmethod   
-    def check_config(config: Munch) -> Munch:
-        return config
-
+    def check_config(config: Munch):
+        pass
+    
     @property
     def n(self) -> int:
         r""" Return the number of known neurons on chain.

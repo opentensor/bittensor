@@ -54,7 +54,7 @@ class Dendrite(nn.Module):
         self._remotes = {}
 
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    def add_args(parser: argparse.ArgumentParser):
         parser.add_argument('--dendrite.pass_gradients', default=True, type=bool, 
                             help='Switch to true is the neuron passes gradients to downstream peers.')
         parser.add_argument('--dendrite.timeout', default=0.5, type=float, 
@@ -66,9 +66,8 @@ class Dendrite(nn.Module):
         return parser
 
     @staticmethod   
-    def check_config(config: Munch) -> Munch:
+    def check_config(config: Munch):
         assert config.dendrite.timeout >= 0, 'timeout must be positive value, got {}'.format(config.dendrite.timeout)
-        return config
 
     @property
     def remotes(self):

@@ -54,11 +54,10 @@ class Config:
             parser = argparse.ArgumentParser()
             
         # 1. Load args from bittensor backend components.
-        parser = Axon.add_args(parser)
-        parser = Dendrite.add_args(parser)
-        parser = Metagraph.add_args(parser)
-        parser = Metadata.add_args(parser)
-        parser = Session.add_args(parser)
+        Axon.add_args(parser)
+        Dendrite.add_args(parser)
+        Metagraph.add_args(parser)
+        Session.add_args(parser)
        
         # 2. Parse.
         params = parser.parse_known_args()[0]
@@ -78,11 +77,10 @@ class Config:
                 head[split_keys[-1]] = arg_val
 
         # 4. Run session checks.
-        config = Dendrite.check_config(config)
-        config = Session.check_config(config)
-        config = Metagraph.check_config(config)
-        config = Metadata.check_config(config)
-        config = Axon.check_config(config)
+        Dendrite.check_config(config)
+        Session.check_config(config)
+        Metagraph.check_config(config)
+        Axon.check_config(config)
         return config
             
     @staticmethod

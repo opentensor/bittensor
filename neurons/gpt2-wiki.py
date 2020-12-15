@@ -18,6 +18,7 @@ from termcolor import colored
 from munch import Munch
 from datasets import load_dataset
 from loguru import logger
+from torch.utils.tensorboard import SummaryWriter
 
 import bittensor
 from bittensor.subtensor import Keypair
@@ -25,7 +26,7 @@ from bittensor.utils.logging import log_all
 from bittensor.config import Config
 from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
 
-def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+def add_args(parser: argparse.ArgumentParser):    
     parser.add_argument('--neuron.datapath', default='data', type=str,help='Path to load and save data.')
     parser.add_argument('--neuron.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
     parser.add_argument('--neuron.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
@@ -36,21 +37,17 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument('--neuron.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
     parser.add_argument('--neuron.name', default='gpt-wiki', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
     parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
-    parser = GPT2LMSynapse.add_args(parser)
-    return parser
+    GPT2LMSynapse.add_args(parser)
 
-def check_config(config: Munch) -> Munch:
+def check_config(config: Munch):
     assert config.neuron.momentum > 0 and config.neuron.momentum < 1, "momentum must be a value between 0 and 1"
     assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
     assert config.neuron.learning_rate > 0, "learning_rate must be a positive value."
-    try:
-        trial_path = str(config.neuron.datapath + '/' + config.neuron.name + '/' + config.neuron.trial_id)
-        pathlib.Path(trial_path).mkdir(parents=True, exist_ok=True)
-    except Exception as _:
-        logger.error("No permission to trial path: {}", trial_path)
-        raise ValueError
-    config = GPT2LMSynapse.check_config(config)
-    return config
+    trial_path = '{}/{}/{}'.format(config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+    config.neuron.trial_path = trial_path
+    if not os.path.exists(config.neuron.trial_path):
+        os.makedirs(config.neuron.trial_path)
+    GPT2LMSynapse.check_config(config)
     
 # Neuron main.
 def main(config, session):
@@ -67,6 +64,9 @@ def main(config, session):
     # ---- Optimizer ----
     optimizer = torch.optim.SGD(model.parameters(), lr = config.neuron.learning_rate, momentum=config.neuron.momentum)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
+
+    # ---- Tensorboard ----
+    tensorboard = SummaryWriter(log_dir = config.neuron.trial_path)
         
     # ---- Init training state ----
     session.metagraph.sync() # Sync with the chain.
@@ -105,7 +105,6 @@ def main(config, session):
                 model.backward(input_x, grads_dy, modality)
 
         # ---- Apply Gradients ----
-        logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(step, output.loss.item(), output.remote_target_loss.item(), output.distillation_loss.item()))
         if (step+1) % config.neuron.accumulation_interval == 0:
             optimizer.step() # Apply accumulated gradients.
             optimizer.zero_grad() # Zero grads for next accummulation 
@@ -127,23 +126,27 @@ def main(config, session):
             priority_map = dict(zip(session.metagraph.public_keys, col_weights.tolist()))
             session.axon.set_priority( priority_map )
 
-        # ---- Session Logs ----
+        # ---- Step Logs + Tensorboard ----
+        logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(step, output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
+        tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), step)
+        tensorboard.add_scalar('Lloss', output.local_target_loss.item(), step)
+        tensorboard.add_scalar('Dloss', output.distillation_loss.item(), step)
         if (step+1) % config.neuron.log_interval == 0:
             log_all(session, history); history = [] # Log batch history.
         
         # --- Save Model ----
         if output.loss.item() < best_loss:
             best_loss = output.loss
-            logger.info( 'Saving model: epoch: {}, loss: {}, path: {}/{}/{}/model.torch', step, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
-            torch.save( {'epoch': step, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
+            logger.info( 'Saving model: epoch: {}, loss: {}, path: {}/model.torch', step, output.loss, config.neuron.trial_path)
+            torch.save( {'epoch': step, 'model': model.state_dict(), 'loss': output.loss},"{}/model.torch".format(config.neuron.trial_path))
             
     
 if __name__ == "__main__":
     # ---- Load Bittensor config ----
     parser = argparse.ArgumentParser()
-    parser = add_args(parser)
+    add_args(parser)
     config = Config.load(parser)
-    config = check_config(config)
+    check_config(config)
     logger.info(Config.toString(config))
 
     # ---- Load Keypair ----

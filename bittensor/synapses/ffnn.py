@@ -70,17 +70,15 @@ class FFNNSynapse(Synapse):
         self.to(self.device)
 
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+    def add_args(parser: argparse.ArgumentParser):    
         parser.add_argument('--synapse.target_dim', default=10, type=int, 
                             help='Final logit layer dimension. i.e. 10 for MNIST.')
         parser = PKMDendrite.add_args(parser)
-        return parser
 
     @staticmethod   
-    def check_config(config: Munch) -> Munch:
+    def check_config(config: Munch):
         assert config.synapse.target_dim > 0, "target dimension must be greater than 0."
         config = PKMDendrite.check_config(config)
-        return config
 
     def forward_image(self, images: torch.Tensor):
         r""" Forward image inputs through the FFNN synapse .

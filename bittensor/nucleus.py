@@ -183,7 +183,7 @@ class Nucleus ():
         return [tensor, message, code]
 
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    def add_args(parser: argparse.ArgumentParser):
         r""" Adds this nucleus's command line arguments to the passed parser.
             Args:
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
@@ -195,16 +195,15 @@ class Nucleus ():
                             help='Nucleus future timeout.')
         parser.add_argument('--nucleus.queue_maxsize', default=1000, type=int, 
                             help='Maximum number of pending tasks allowed in the threading priority queue.')
-        return parser
 
     @staticmethod   
-    def check_config(config: Munch) -> Munch:
+    def check_config(config: Munch):
         r""" Checks the passed config items for validity.
             Args:
                 config (:obj:`munch.Munch, `required`): 
                     config to check.
         """
-        return config
+        pass
 
     def __del__(self):
         """ Calls nucleus stop for clean threadpool closure """
