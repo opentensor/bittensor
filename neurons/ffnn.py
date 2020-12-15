@@ -81,6 +81,7 @@ def main(config, session):
         # ---- Backward Gradients ----
         # TODO (const): batch normalization over the gradients for consistency.
         grads_dy = torch.where(torch.isnan(grads_dy), torch.zeros_like(grads_dy), grads_dy)
+        gradstorch.nn.BatchNorm1d(num_features, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
         model.backward(inputs_x, grads_dy, modality_x)
 
         # ---- Apply Gradients ----

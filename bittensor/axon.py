@@ -106,11 +106,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                     config to check.
         """
         config = Nucleus.check_config(config)
-<<<<<<< HEAD
         logger.info('optaining remote ip ...')
-=======
-        logger.info('obtaining remote ip ...')
->>>>>>> 45917c8b0acefd267a0615bda35b81b5871f7961
         config = obtain_ip(config)
         assert config.axon.port > 1024 and config.axon.port < 65535, 'config.axon.port must be in range [1024, 65535]'
         return config
