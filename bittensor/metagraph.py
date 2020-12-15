@@ -299,7 +299,7 @@ class Metagraph():
     def W(self) -> torch.FloatTensor:
         r""" Full chain weight matrix for each neuron.
         Returns
-            W: (:obj:`torch.LongFloat` of shape :obj:`(n, n)`):
+            W: (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
                 w_ij of each neuron.
         """
         return self.state.W
@@ -308,7 +308,7 @@ class Metagraph():
     def neurons(self) -> List[bittensor_pb2.Neuron]:
         r""" Return neuron endpoint information for each neuron.
         Returns
-            neurons: (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(n, n)`):
+            neurons: (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(metagraph.n, metagraph.n)`):
                 endpoint information for each neuron.
         """
         return self.state.neurons
@@ -381,7 +381,8 @@ class Metagraph():
     def chain_weights(self) -> torch.FloatTensor:
         r""" Returns your current weights from the chain.
         Returns:
-            weights: (torch.Tensor) weights on chain as torch tensor.
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(-1)`):
+                weights on chain as torch tensor.
         """
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(self.async_chain_weights())
@@ -389,7 +390,8 @@ class Metagraph():
     async def async_chain_weights(self) -> torch.FloatTensor:
         r""" Async: returns your current weights from the chain.
         Returns:
-            weights: (torch.FloatTensor) weights on chain for each neuron.
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(-1)`):
+                weights on chain as torch tensor.
         """
         chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
         chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
