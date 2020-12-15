@@ -8,7 +8,7 @@ Example:
 import bittensor
 from bittensor.config import Config
 from bittensor.synapses.ffnn import FFNNSynapse
-from bittensor.subtensor import Keypair
+from bittensor.subtensor.interface import Keypair
 from bittensor.utils.logging import (log_outputs, log_batch_weights, log_chain_weights, log_request_sizes)
 
 import argparse

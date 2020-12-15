@@ -38,6 +38,8 @@ class MustPassNeuronPath(Exception):
 class Config:
     @staticmethod
     def toString(items) -> str:
+
+        print(items.toDict())
         return "\n" + yaml.dump(items.toDict())
 
     @staticmethod   
