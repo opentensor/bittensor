@@ -133,7 +133,6 @@ class Axon(bittensor_grpc.BittensorServicer):
             val_set.add(val)
             checked_priority[key] = -val # Invert priorities highest values will be processed first.
         self.priority = priority_map
-        logger.info('Setting query priority: {}', self.priority)
 
     def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext) -> bittensor_pb2.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
@@ -300,7 +299,6 @@ class Axon(bittensor_grpc.BittensorServicer):
                 code: (:obj:`bittensor_pb2.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.
         """
-
         # ---- Check that we have a synapse ----.
         if self.synapse == None:
             message = "Remote axon not serving a synapse"
@@ -336,7 +334,7 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # ---- Save gradients to buffer for later use. ---
         try:
-            self.gradients.put( (call_priority, (inputs_x, grads_dy, modality_x)) , block=False)
+            self.gradients.put( (call_priority, (request.public_key, inputs_x, grads_dy, modality_x)) , block=False)
         except queue.Full:
             logger.trace('gradient queue is full at size: {}', self.gradient_queue.qsize())
 

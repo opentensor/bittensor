@@ -405,16 +405,16 @@ class Metagraph():
                 retval[idx] = float(val) / float(val_sum)
         return retval
 
-    def block(self):
+    def chain_block(self):
         r""" Returns the current block on the chain.
         Returns:
             block: (int) block number on chain.
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_block())
+        return loop.run_until_complete(self.async_chain_block())
 
-    async def async_block(self) -> int:
+    async def async_chain_block(self) -> int:
         r""" Async returns the current block on the chain.
         Returns:
             block: (int) block number on chain.
@@ -487,7 +487,7 @@ class Metagraph():
         Return:
             included: (bool) true is the weights were set on chain.
         """
-        logger.info('Emit -> {}', weights)
+        #logger.info('Emit -> {}', weights)
         # Check that weights meet chain requirements.
         # #TODO(const) check with current weights.
         if not self._check_weights(weights):
@@ -504,7 +504,6 @@ class Metagraph():
             return False
 
         # Makes weight emission call.
-        # TODO(const): make wait for inclusion work.
         try:
             await self.subtensor_client.set_weights(keys, vals, self.__keypair, wait_for_inclusion = False)
         except Exception as e:
@@ -517,43 +516,30 @@ class Metagraph():
             return False
         return True
 
-    def sync(self, weights: torch.FloatTensor) -> torch.FloatTensor:
-        r""" Synchronizes the local self.state with the chain state, sinking the trained weights and pulling 
-        info from other peers. Ensures the self.state is in accordance with the state on chain at this block.
-            Args:
-                weights: (torch.FloatTensor):
-                    weights to set on chain.
+    def sync(self) -> torch.FloatTensor:
+        r""" Synchronizes the local self.state with the chain state.
             Returns:
                 weights: (torch.FloatTensor):
                     weights on chain.
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_sync(weights))
+        return loop.run_until_complete(self.async_sync())
 
-    async def async_sync(self, weights: torch.FloatTensor) -> torch.FloatTensor:
+    async def async_sync(self) -> torch.FloatTensor:
         r""" Async: Synchronizes the local self.state with the chain state by polling the chain.
-            Args:
-                weights: (torch.FloatTensor):
-                    weights to set on chain.
-            Returns:
-                weights: (torch.FloatTensor):
-                    weights on chain.
         """
-        if weights != None:
-            await self.async_emit(weights)
         await self._sync_cache()
-        last_sync = await self.async_block()
+        last_sync = await self.async_chain_block()
         self.state = TorchChainState.from_cache(self.cache)
         self.state.block = last_sync
-        return self.weights
 
     async def _sync_cache(self):
         r""" Async: Makes calls to chain updating local chain cache with newest info.
         """
         # Make asyncronous calls to chain filling local state cache.
         calls = []
-        current_block = await self.async_block()
+        current_block = await self.async_chain_block()
         emits = await self.subtensor_client.get_last_emit_data()
         for (pubkey, last_emit) in emits:
                 # Filter based on stale emissions.
@@ -564,7 +550,6 @@ class Metagraph():
     async def _poll_pubkey(self, pubkey):
         r""" Polls info info for a specfic public key.
         """
-        logger.info('poll: {} ', pubkey)
         try:
             stake = await self.subtensor_client.get_stake(pubkey)
             lastemit = await self.subtensor_client.get_last_emit_data(pubkey)
@@ -617,7 +602,7 @@ class Metagraph():
                 return False
         chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
         chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
-        logger.info('Chain weights {}', list(zip(chain_keys,chain_vals)))
+        #logger.info('Chain weights {}', list(zip(chain_keys,chain_vals)))
         return True
 
     async def _remove_noop(self, weight_keys, weight_vals):

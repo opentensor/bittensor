@@ -24,9 +24,6 @@ class FailedSubscribeToChain(Exception):
 class FailedToEnterSession(Exception):
     pass
 
-class FailedToPollChain(Exception):
-    pass
-
 class Session:
     def __init__(self, config, keypair: Keypair):
         self.config = config 
@@ -59,7 +56,7 @@ class Session:
     def __enter__(self):
         rollbar.init() # If a rollbar token is present, this will enable error reporting to rollbar
 
-        logger.info('session enter')
+        logger.trace('session enter')
         self.start()
         return self
 
@@ -107,7 +104,7 @@ class Session:
             logger.error('SESSION: Failed to start axon server with error: {}', e)
             raise FailedToEnterSession
 
-        logger.info('Connect to chain ...')
+        logger.trace('Connect to chain ...')
         try:
             connected = self.metagraph.connect()
             if not connected:
