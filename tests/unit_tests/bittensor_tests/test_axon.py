@@ -11,10 +11,6 @@ import random
 import torch
 from munch import Munch
 
-config = Config.load()
-mnemonic = Keypair.generate_mnemonic()
-keypair = Keypair.create_from_mnemonic(mnemonic)
-
 config = {'neuron':
               {'datapath': 'data/', 'learning_rate': 0.01, 'momentum': 0.9, 'batch_size_train': 64,
                'batch_size_test': 64, 'log_interval': 10, 'sync_interval': 100, 'priority_interval': 100,
@@ -29,6 +25,8 @@ config = {'neuron':
           }
 
 config = Munch.fromDict(config)
+mnemonic = Keypair.generate_mnemonic()
+keypair = Keypair.create_from_mnemonic(mnemonic)
 config.session.keypair = keypair
 
 axon = bittensor.axon.Axon(config)
