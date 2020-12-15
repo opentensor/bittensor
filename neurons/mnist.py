@@ -1,3 +1,4 @@
+#!/bin/python3
 """Training a MNIST Neuron.
 This file demonstrates a training pipeline for an MNIST Neuron.
 Example:
@@ -201,21 +202,17 @@ def main(config: Munch, session: Session):
         epoch += 1
 
 if __name__ == "__main__":
-    # 1. Load bittensor config.
+    # Load bittensor config.
     parser = argparse.ArgumentParser()
     parser = add_args(parser)
     config = Config.load(parser)
     config = check_config(config)
     logger.info(Config.toString(config))
 
-    # 2. Load Keypair.
-    # mnemonic = Keypair.generate_mnemonic()
-    # keypair = Keypair.create_from_mnemonic(mnemonic)
-   
-    # 3. Load Session.
+    # Load Session.
     session = bittensor.init(config)
 
-    # 4. Start Neuron.
+    # Start Neuron.
     with session:
         main(config, session)
 
