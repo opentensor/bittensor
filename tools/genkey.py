@@ -8,7 +8,9 @@ from argparse import ArgumentParser
 import json
 import os
 import stat
-import re
+from password_strength import PasswordPolicy
+import getpass
+
 
 def create_config_dir_if_not_exists():
     config_dir = "~/.bittensor"
@@ -49,17 +51,31 @@ def validate_path(keyfile):
             print(colored("No write access for  %s" % keyfile, 'red'))
             quit()
 
-def input_password() -> str:
-    return input("Specify password for key encryption: ")
+def input_password():
+    valid = False
+    while not valid:
+        password = getpass.getpass("Specify password for key encryption: ")
+        valid = validate_password(password)
+
+    return password
 
 def validate_password(password):
+    policy = PasswordPolicy.from_names(
+        strength=0.66,
+        entropybits=30
+    )
+
+    tested_pass = policy.password(password)
+    result = tested_pass.test()
+    if len(result) > 0:
+        print(colored('Password not strong enough. Try increasing the length of the password or the password comlexity'))
+        return False
 
 
-
-    password_verification = input("Retype your password: ")
+    password_verification = getpass.getpass("Retype your password: ")
     if password != password_verification:
         print("Passwords do not match")
-        quit()
+        return False
 
 def validate_generate_mnemonic(mnemonic):
     if len(mnemonic) not in [12,15,18,21,24]:
@@ -156,21 +172,15 @@ def main():
         keypair = validate_generate_mnemonic(args.mnemonic)
 
     data = json.dumps(keypair.toDict()).encode()
-
+                                                            
     if args.password:
         password = input_password()
-        validate_password(password)
         print("Encrypting key, this might take a while")
-        data = encrypt(data, password)
-
-
-    save_keys(keyfile, data)
+        data = encrypt(data, password)                      
+                                                            
+                                                            
+    save_keys(keyfile, data)                                
     set_file_permissions(keyfile)
-
-
-
-
-
 
 if __name__ == '__main__':
     main()
