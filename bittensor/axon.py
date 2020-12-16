@@ -89,7 +89,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                     parser argument to append args to.
         """
         parser.add_argument('--axon.port', default=8091, type=int, help='Port to serve axon')
-        parser.add_argument('--axon.remote_ip', default=None, type=str, elp='Remote IP to serve to chain.')
+        parser.add_argument('--axon.remote_ip', default=None, type=str, help='Remote IP to serve to chain.')
         parser.add_argument('--axon.max_workers', default=10, type=int, help='Max number connection handler threads working simultaneously.')
         parser.add_argument('--axon.max_gradients', default=100, type=int, help='Max number of lingering gradient stored in the gradient queue')
         Nucleus.add_args(parser)
