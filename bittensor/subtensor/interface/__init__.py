@@ -423,6 +423,9 @@ class SubstrateWSInterface:
 
         self.debug = False
 
+        # Map from pubkey to nonce
+        self.nonce = {}
+
     def connect(self):
         self.factory = SubTensorWebSocketClientFactory("ws://%s:%i" % (self.host, self.port))
 
@@ -1070,9 +1073,15 @@ class SubstrateWSInterface:
         return call
 
     async def get_account_nonce(self, account_address):
-        response = await self.get_runtime_state('System', 'Account', [account_address])
-        if response.get('result'):
-            return response['result'].get('nonce', 0)
+        if account_address in self.nonce:
+            self.nonce[account_address] = self.nonce[account_address] + 1
+            return self.nonce[account_address]
+        else:
+            response = await self.get_runtime_state('System', 'Account', [account_address])
+            if response.get('result'):
+                self.nonce[account_address] = response['result'].get('nonce', 0)
+                return self.nonce[account_address]
+        return None
 
     async def generate_signature_payload(self, call, era=None, nonce=0, tip=0, include_call_length=False):
 
