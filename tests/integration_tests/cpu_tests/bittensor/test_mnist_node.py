@@ -1,148 +1,191 @@
+#!/bin/python3
 """Training a MNIST Neuron.
-
 This file demonstrates a training pipeline for an MNIST Neuron.
-
 Example:
-        $ python examples/mnist/main.py
+        $ python neurons/mnist.py
 """
-import bittensor
-from bittensor.utils.logging import log_all
-from bittensor.config import Config
-from bittensor.synapses.ffnn import FFNNSynapse
-from bittensor.subtensor.interface import Keypair
-from bittensor.utils.logging import (log_outputs, log_batch_weights, log_chain_weights, log_request_sizes)
-
 import argparse
-import numpy as np
-from loguru import logger
-from munch import Munch
 import math
-from termcolor import colored
+import os
+import time
 import torch
+from termcolor import colored
+import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
-import torch.nn.functional as F
 import torchvision.transforms as transforms
-import time
-import sys
+from torch.utils.tensorboard import SummaryWriter
 
-def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
-    parser.add_argument('--neuron.datapath', default='data/', type=str, 
-                        help='Path to load and save data.')
-    parser.add_argument('--neuron.learning_rate', default=0.01, type=float, 
-                        help='Training initial learning rate.')
-    parser.add_argument('--neuron.momentum', default=0.9, type=float, 
-                        help='Training initial momentum for SGD.')
-    parser.add_argument('--neuron.batch_size_train', default=64, type=int, 
-                        help='Training batch size.')
-    parser.add_argument('--neuron.batch_size_test', default=64, type=int, 
-                        help='Testing batch size.')
-    parser.add_argument('--neuron.log_interval', default=10, type=int, 
-                        help='Batches until neuron prints log statements.')
-    parser.add_argument('--neuron.sync_interval', default=100, type=int,
-                        help='How often to sync with chain')
-    # Load args from FFNNSynapse.
-    parser = FFNNSynapse.add_args(parser)
-    return parser
+from munch import Munch
+from loguru import logger
 
-def check_config(config: Munch) -> Munch:
+import bittensor
+from bittensor import Session
+from bittensor.utils.logging import log_all
+from bittensor.subtensor.interface import Keypair
+from bittensor.config import Config
+from bittensor.synapse import Synapse
+from bittensor.synapses.ffnn import FFNNSynapse
+
+def add_args(parser: argparse.ArgumentParser):    
+    parser.add_argument('--neuron.datapath', default='data/', type=str,  help='Path to load and save data.')
+    parser.add_argument('--neuron.n_epochs', default=1, type=int, help='Number of training epochs.')
+    parser.add_argument('--neuron.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
+    parser.add_argument('--neuron.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
+    parser.add_argument('--neuron.batch_size_train', default=64, type=int, help='Training batch size.')
+    parser.add_argument('--neuron.batch_size_test', default=64, type=int, help='Testing batch size.')
+    parser.add_argument('--neuron.log_interval', default=150, type=int, help='Batches until neuron prints log statements.')
+    parser.add_argument('--neuron.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
+    parser.add_argument('--neuron.name', default='mnist', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
+    parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
+    FFNNSynapse.add_args(parser)
+
+def check_config(config: Munch):
     assert config.neuron.log_interval > 0, "log_interval dimension must positive"
     assert config.neuron.momentum > 0 and config.neuron.momentum < 1, "momentum must be a value between 0 and 1"
     assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
     assert config.neuron.batch_size_test > 0, "batch_size_test must a positive value"
     assert config.neuron.learning_rate > 0, "learning rate must be a positive value."
-    Config.validate_path_create('neuron.datapath', config.neuron.datapath)
-    config = FFNNSynapse.check_config(config)
-    return config
+    trial_path = '{}/{}/{}'.format(config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+    config.neuron.trial_path = trial_path
+    if not os.path.exists(config.neuron.trial_path):
+        os.makedirs(config.neuron.trial_path)
+    FFNNSynapse.check_config(config)
 
 def start(config, session):
-    # Build and server the synapse.
+    # ---- Model ----
+    model = FFNNSynapse(config, session) # Feedforward neural network with PKMDendrite.
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = FFNNSynapse(config, session)
-    model.to( device ) # Set model to device.
-    session.serve( model.deepcopy() )
-
-    # Build the optimizer.
+    model.to( device ) # Set model to device
+    
+    # ---- Optimizer ---- 
     optimizer = optim.SGD(model.parameters(), lr=config.neuron.learning_rate, momentum=config.neuron.momentum)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10.0, gamma=0.1)
 
-    # Load (Train, Test) datasets into memory.
+    # ---- Dataset ----
     train_data = torchvision.datasets.MNIST(root = config.neuron.datapath + "datasets/", train=True, download=True, transform=transforms.ToTensor())
     trainloader = torch.utils.data.DataLoader(train_data, batch_size = config.neuron.batch_size_train, shuffle=True, num_workers=2)
-    
-    # Train 1 epoch.
-    model.train()
-    best_loss = math.inf
-    best_accuracy = 0
-    start_time = time.time()
-    weights = None
-    epoch = 0
-    history = []
-    for batch_idx, (images, targets) in enumerate(trainloader):
-        # Clear gradients.
-        optimizer.zero_grad()
+    test_data = torchvision.datasets.MNIST(root = config.neuron.datapath + "datasets/", train=False, download=True, transform=transforms.ToTensor())
+    testloader = torch.utils.data.DataLoader(test_data, batch_size = config.neuron.batch_size_test, shuffle=False, num_workers=2)
 
-        # Syncs chain state and emits learned weights to the chain.
-        if batch_idx % config.neuron.sync_interval == 0:
-            weights = session.metagraph.sync(weights)
-        
-        # Forward pass.
-        images = images.to(device)
-        targets = torch.LongTensor(targets).to(device)
-        output = model(images, targets, remote = True)
-        history.append(output)
-        
-        # Backprop.
-        loss = output.remote_target_loss + output.distillation_loss
-        loss.backward()
-        optimizer.step()
+    # ---- Tensorboard ----
+    global_step = 0
+    tensorboard = SummaryWriter(log_dir = config.neuron.trial_path)
 
-        # Update weights.
-        batch_weights = F.softmax(torch.mean(output.weights, axis=0), dim=0)
-        weights = (1 - 0.05) * weights + 0.05 * batch_weights
-        weights = weights / torch.sum(weights)
+    # --- Test epoch ----
+    def test ():
+        model.eval() # Turns off Dropoutlayers, BatchNorm etc.
+        with torch.no_grad(): # Turns off gradient computation for inference speed up.
+            loss = 0.0; accuracy = 0.0
+            for _, (images, labels) in enumerate(testloader):                
+                # ---- Forward pass ----
+                outputs = model.forward(
+                    images = images.to(model.device), 
+                    targets = torch.LongTensor(labels).to(model.device), 
+                    remote = False # *without* rpc-queries being made.
+                )
+                loss = loss + outputs.loss / len(testloader)
+                accuracy = outputs.metadata['local_accuracy'] / len(testloader)
+        return loss, accuracy
 
-        # Metrics.
-        max_logit = output.remote_target.data.max(1, keepdim=True)[1]
-        correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
-        target_loss  = output.remote_target_loss.item()
-        accuracy = (100.0 * correct) / config.neuron.batch_size_train
+    # ---- Train epoch ----
+    def train(epoch: int, global_step: int):
 
-        # Update best vars.
-        best_accuracy = accuracy if accuracy >= best_accuracy else best_accuracy
-        if target_loss < best_loss:
-            best_loss = target_loss
-            session.serve( model.deepcopy() )
+        # ---- Init training state ----
+        model.train() # Turn on dropout etc.
+        session.metagraph.sync() # Sync with the chain.
+        row_weights = session.metagraph.W[ 0, :] # My weights on the chain-state (zeros initially).
 
-        # Logs: 
-        if (batch_idx + 1) % config.neuron.log_interval == 0: 
-            total_examples = len(trainloader) * config.neuron.batch_size_train
+        history = []
+        for batch_idx, (images, targets) in enumerate(trainloader):    
+            global_step += 1 
+
+            # ---- Forward pass ----
+            output = model(  
+                images = images.to(model.device), 
+                targets = torch.LongTensor(targets).to(model.device), 
+                remote = True # *with* rpc-queries made to the network.
+            ) 
+            
+            # ---- Backward pass ----
+            output.loss.backward() # Accumulates gradients on the model.
+            optimizer.step() # Applies accumulated gradients.
+            optimizer.zero_grad() # Zeros out gradients for next accummulation 
+
+            # ---- Serve Model ----
+            session.serve( model.deepcopy() ) # Serve the newest model.
+
+            # ---- Step Logs + Tensorboard ----
+            history.append(output) # Save for later analysis/logs.
             processed = ((batch_idx + 1) * config.neuron.batch_size_train)
-            progress = (100. * processed) / total_examples
-            logger.info('Epoch: {} [{}/{} ({})]', 
-                        colored('{}'.format(epoch), 'blue'), 
-                        colored('{}'.format(processed), 'green'), 
-                        colored('{}'.format(total_examples), 'red'),
-                        colored('{:.2f}%'.format(progress), 'green'))
-            log_all(session, history)
-            history = []
+            progress = (100. * processed) / len(train_data)
+            logger.info('GS: {} Epoch: {} [{}/{} ({})]\t Loss: {}\t Acc: {}', 
+                    colored('{}'.format(global_step), 'blue'), 
+                    colored('{}'.format(epoch), 'blue'), 
+                    colored('{}'.format(processed), 'green'), 
+                    colored('{}'.format(len(train_data)), 'red'),
+                    colored('{:.2f}%'.format(progress), 'green'),
+                    colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
+                    colored('{:.4f}'.format(output.metadata['local_accuracy'].item()), 'green'))
+            tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), global_step)
+            tensorboard.add_scalar('Lloss', output.local_target_loss.item(), global_step)
+            tensorboard.add_scalar('Dloss', output.distillation_loss.item(), global_step)
+            if (batch_idx+1) % config.neuron.log_interval == 0:
+                log_all(session, history); history = [] # Log batch history.
+
+            # ---- Update State ----
+            batch_weights = torch.mean(output.weights, axis = 0) # Average over batch.
+            row_weights = (1 - 0.03) * row_weights + 0.03 * batch_weights # Moving avg update.
+            row_weights = F.normalize(row_weights, p = 1, dim = 0) # Ensure normalization.
+
+            if (batch_idx+1) % config.neuron.sync_interval == 0:
+                # ---- Sync Metagraph State ----
+                logger.info('Emitting with weights {}', row_weights.tolist())
+                session.metagraph.emit( row_weights, wait_for_inclusion = False) # Sets my row-weights on the chain.
+                session.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                row_weights = session.metagraph.W[ 0, :] 
+                
+                # ---- Update Axon Priority ----
+                col_weights = session.metagraph.W[:,0] # weights to me.
+                session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
+
+            break
+
+    # ---- Loop epochs ----
+    best_test_loss = math.inf; 
+    best_test_accuracy = -math.inf
+    start_time = time.time()
+    for epoch in range(config.neuron.n_epochs):
+
+        # ---- Train model ----
+        train(epoch, global_step)
+        scheduler.step()
         
-        epoch += 1
+        # ---- Test model ----
+        test_loss, test_accuracy = test()
+        best_test_loss = min(test_loss, best_test_loss)
+        best_test_accuracy = max(test_accuracy, best_test_accuracy)
+
+         # ---- Save Best ----
+        if test_loss < best_test_loss:
+            best_test_loss = test_loss # Update best loss.
+            logger.info( 'Saving/Serving model: epoch: {}, accuracy: {}, loss: {}, path: {}/model.torch'.format(epoch, test_accuracy, best_test_loss, config.neuron.trial_path))
+            torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': best_test_loss},"{}/model.torch".format(config.neuron.trial_path))
+            tensorboard.add_scalar('Test loss', test_loss, global_step)
 
     # Test checks.
     time_elapsed = time.time() - start_time
     logger.info("Total time elapsed: {}".format(time_elapsed))
-    assert best_loss <= 0.1
-    assert best_accuracy > 0.80
-    assert len(session.metagraph.state.neurons()) > 0
-    assert time_elapsed < 300 # 1 epoch of MNIST should take less than 5 mins.
+    assert best_test_loss <= 0.1
+    assert best_test_accuracy > 0.80
+    assert len(session.metagraph.state.neurons.tolist()) > 0
+    assert time_elapsed < (300 * config.neuron.n_epochs) # 1 epoch of MNIST should take less than 5 mins.
         
 def main():
 
     # ---- Load bittensor config ----
-    parser = argparse.ArgumentParser()
-    parser = add_args(parser)
-    config = Config.load(parser)
-    config = check_config(config)    
+    parser = argparse.ArgumentParser(); add_args(parser)
+    config = Config.load(parser); check_config(config)   
     logger.info(Config.toString(config))
    
     # ---- Load Session ----
