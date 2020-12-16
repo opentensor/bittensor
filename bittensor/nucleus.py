@@ -189,12 +189,9 @@ class Nucleus ():
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
                     parser argument to append args to.
         """
-        parser.add_argument('--nucleus.max_workers', default=5, type=int, 
-                            help='Nucleus priority queue workers.')
-        parser.add_argument('--nucleus.queue_timeout', default=5, type=int, 
-                            help='Nucleus future timeout.')
-        parser.add_argument('--nucleus.queue_maxsize', default=1000, type=int, 
-                            help='Maximum number of pending tasks allowed in the threading priority queue.')
+        parser.add_argument('--nucleus.max_workers', default=5, type=int, help='Nucleus priority queue workers.')
+        parser.add_argument('--nucleus.queue_timeout', default=5, type=int, help='Nucleus future timeout.')
+        parser.add_argument('--nucleus.queue_maxsize', default=1000, type=int, help='Maximum number of pending tasks allowed in the threading priority queue.')
 
     @staticmethod   
     def check_config(config: Munch):
