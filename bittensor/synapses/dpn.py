@@ -245,6 +245,12 @@ class DPNSynapse(Synapse):
             local_target_loss = F.nll_loss(local_target, targets)
             output.local_target_loss = local_target_loss
             output.loss = output.loss + local_target_loss
+
+            # Record extra metadata accuracy.
+            max_logit = local_target.data.max(1, keepdim=True)[1]
+            correct = max_logit.eq( targets.data.view_as(max_logit) ).sum()
+            local_accuracy = (100.0 * correct) / targets.shape[0] 
+            output.metadata['local_accuracy'] = local_accuracy
         
         if remote:
             output = self.forward_remote(local_context, output, images, transform, targets)
@@ -317,7 +323,7 @@ class DPNSynapse(Synapse):
         remote_context = torch.squeeze(remote_context, 1)
         output.weights = weights
         output.request_sizes = sizes
-        output.retops = return_codes
+        output.return_codes = return_codes
         remote_context = remote_context.to(self.device)
 
         # distillation_loss: distillation loss between local_context and remote_context
