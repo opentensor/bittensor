@@ -100,7 +100,8 @@ def main(config: Munch, session: Session):
         row_weights = session.metagraph.W[ 0, :] # My weights on the chain-state (zeros initially).
 
         history = []
-        for batch_idx, (images, targets) in enumerate(trainloader):     
+        for batch_idx, (images, targets) in enumerate(trainloader):    
+            global_step += 1 
 
             # ---- Forward pass ----
             output = model(  
@@ -115,23 +116,7 @@ def main(config: Munch, session: Session):
             optimizer.zero_grad() # Zeros out gradients for next accummulation 
 
             # ---- Serve Model ----
-            session.serve( model ) # Serve the newest model.
-
-            # ---- Update State ----
-            batch_weights = torch.mean(output.weights, axis = 0) # Average over batch.
-            row_weights = (1 - 0.03) * row_weights + 0.03 * batch_weights # Moving avg update.
-            row_weights = F.normalize(row_weights, p = 1, dim = 0) # Ensure normalization.
-
-            if (batch_idx+1) % config.neuron.sync_interval == 0:
-                # ---- Sync Metagraph State ----
-                logger.info('Emitting with weights {}', row_weights.tolist())
-                session.metagraph.emit( row_weights ) # Sets my row-weights on the chain.
-                session.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                row_weights = session.metagraph.W[ 0, :] 
-                
-                # ---- Update Axon Priority ----
-                col_weights = session.metagraph.W[:,0] # weights to me.
-                session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
+            session.serve( model.deepcopy() ) # Serve the newest model.
 
             # ---- Step Logs + Tensorboard ----
             history.append(output) # Save for later analysis/logs.
@@ -150,6 +135,23 @@ def main(config: Munch, session: Session):
             tensorboard.add_scalar('Dloss', output.distillation_loss.item(), global_step)
             if (batch_idx+1) % config.neuron.log_interval == 0:
                 log_all(session, history); history = [] # Log batch history.
+
+            # ---- Update State ----
+            batch_weights = torch.mean(output.weights, axis = 0) # Average over batch.
+            row_weights = (1 - 0.03) * row_weights + 0.03 * batch_weights # Moving avg update.
+            row_weights = F.normalize(row_weights, p = 1, dim = 0) # Ensure normalization.
+
+            if (batch_idx+1) % config.neuron.sync_interval == 0:
+                # ---- Sync Metagraph State ----
+                logger.info('Emitting with weights {}', row_weights.tolist())
+                session.metagraph.emit( row_weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+                session.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                row_weights = session.metagraph.W[ 0, :] 
+                
+                # ---- Update Axon Priority ----
+                col_weights = session.metagraph.W[:,0] # weights to me.
+                session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
+
 
     # ---- Loop forever ----
     epoch = -1; best_test_loss = math.inf

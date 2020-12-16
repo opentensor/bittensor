@@ -88,11 +88,6 @@ def main(config, session):
         output = model(inputs.to(model.device), training = True, remote = True)
         history.append(output)
 
-        # ---- Update Weights ----
-        batch_weights = torch.mean(output.weights, axis = 0)
-        row_weights = (1 - 0.05) * row_weights + 0.05 * batch_weights # Moving Avg weights.
-        row_weights = F.normalize(row_weights, p = 1, dim = 0)
-
         # ---- Accumulate Local Gradients ----
         loss = output.loss / config.neuron.accumulation_interval # Need to average accross accumulation steps.
         loss.backward() # Accumulates gradients on model via sum.
@@ -112,11 +107,25 @@ def main(config, session):
             scheduler.step() # Update learning rate etc.
             session.serve( model ) # Serve the newest model.
 
+        # ---- Step Logs + Tensorboard ----
+        logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(step, output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
+        tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), step)
+        tensorboard.add_scalar('Lloss', output.local_target_loss.item(), step)
+        tensorboard.add_scalar('Dloss', output.distillation_loss.item(), step)
+        if (step+1) % config.neuron.log_interval == 0:
+            log_all(session, history); history = [] # Log batch history.
+
+
+        # ---- Update Weights ----
+        batch_weights = torch.mean(output.weights, axis = 0)
+        row_weights = (1 - 0.05) * row_weights + 0.05 * batch_weights # Moving Avg weights.
+        row_weights = F.normalize(row_weights, p = 1, dim = 0)  
+
         # ---- Sync State ----
         if (step+1) % config.neuron.sync_interval == 0:
             # ---- Emit weights and sync from chain ----
             logger.info('Emitting with weights {}', row_weights.tolist())
-            session.metagraph.emit( row_weights ) # Set weights on chain.
+            session.metagraph.emit( row_weights, wait_for_inclusion = True ) # Set weights on chain.
             session.metagraph.sync() # Sync with the chain.
             
             # ---- Get row and col Weights.
@@ -126,15 +135,6 @@ def main(config, session):
             # ---- Update Axon Priority ----
             session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
 
-
-        # ---- Step Logs + Tensorboard ----
-        logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(step, output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
-        tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), step)
-        tensorboard.add_scalar('Lloss', output.local_target_loss.item(), step)
-        tensorboard.add_scalar('Dloss', output.distillation_loss.item(), step)
-        if (step+1) % config.neuron.log_interval == 0:
-            log_all(session, history); history = [] # Log batch history.
-        
         # --- Save Model ----
         if output.loss.item() < best_loss:
             best_loss = output.loss
