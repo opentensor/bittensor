@@ -80,67 +80,72 @@ def main(config, session):
     model.train()
     step = -1; history = []; best_loss = math.inf; 
     while True:
-        step += 1
-        # ---- Next Batch ----
-        inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__)
+        try:
+            step += 1
+            # ---- Next Batch ----
+            inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__)
 
-        # ---- Forward Pass ----
-        output = model(inputs.to(model.device), training = True, remote = True)
-        history.append(output)
+            # ---- Forward Pass ----
+            output = model(inputs.to(model.device), training = True, remote = True)
+            history.append(output)
 
-        # ---- Accumulate Local Gradients ----
-        loss = output.loss / config.neuron.accumulation_interval # Need to average accross accumulation steps.
-        loss.backward() # Accumulates gradients on model via sum.
+            # ---- Accumulate Local Gradients ----
+            loss = output.loss / config.neuron.accumulation_interval # Need to average accross accumulation steps.
+            loss.backward() # Accumulates gradients on model via sum.
 
-        # ---- Accumulate Remote Gradients  ----
-        if config.neuron.apply_remote_gradients:
-            # TODO (const): batch normalization over the gradients for consistency.
-            n_grads = session.axon.gradients.qsize
-            for _, (_, input_x, grads_dy, modality) in list(session.axon.gradients.queue):
-                grads_dy = grads_dy / (config.neuron.accumulation_interval * n_grads)
-                model.backward(input_x, grads_dy, modality)
+            # ---- Accumulate Remote Gradients  ----
+            if config.neuron.apply_remote_gradients:
+                # TODO (const): batch normalization over the gradients for consistency.
+                n_grads = session.axon.gradients.qsize
+                for _, (_, input_x, grads_dy, modality) in list(session.axon.gradients.queue):
+                    grads_dy = grads_dy / (config.neuron.accumulation_interval * n_grads)
+                    model.backward(input_x, grads_dy, modality)
 
-        # ---- Apply Gradients ----
-        if (step+1) % config.neuron.accumulation_interval == 0:
-            optimizer.step() # Apply accumulated gradients.
-            optimizer.zero_grad() # Zero grads for next accummulation 
-            scheduler.step() # Update learning rate etc.
-            session.serve( model ) # Serve the newest model.
+            # ---- Apply Gradients ----
+            if (step+1) % config.neuron.accumulation_interval == 0:
+                optimizer.step() # Apply accumulated gradients.
+                optimizer.zero_grad() # Zero grads for next accummulation 
+                scheduler.step() # Update learning rate etc.
+                session.serve( model ) # Serve the newest model.
 
-        # ---- Step Logs + Tensorboard ----
-        logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(step, output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
-        tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), step)
-        tensorboard.add_scalar('Lloss', output.local_target_loss.item(), step)
-        tensorboard.add_scalar('Dloss', output.distillation_loss.item(), step)
-        if (step+1) % config.neuron.log_interval == 0:
-            log_all(session, history); history = [] # Log batch history.
+            # ---- Step Logs + Tensorboard ----
+            logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(step, output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
+            tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), step)
+            tensorboard.add_scalar('Lloss', output.local_target_loss.item(), step)
+            tensorboard.add_scalar('Dloss', output.distillation_loss.item(), step)
+            if (step+1) % config.neuron.log_interval == 0:
+                log_all(session, history); history = [] # Log batch history.
 
 
-        # ---- Update Weights ----
-        batch_weights = torch.mean(output.weights, axis = 0)
-        row_weights = (1 - 0.05) * row_weights + 0.05 * batch_weights # Moving Avg weights.
-        row_weights = F.normalize(row_weights, p = 1, dim = 0)  
+            # ---- Update Weights ----
+            batch_weights = torch.mean(output.weights, axis = 0)
+            row_weights = (1 - 0.05) * row_weights + 0.05 * batch_weights # Moving Avg weights.
+            row_weights = F.normalize(row_weights, p = 1, dim = 0)  
 
-        # ---- Sync State ----
-        if (step+1) % config.neuron.sync_interval == 0:
-            # ---- Emit weights and sync from chain ----
-            logger.info('Emitting with weights {}', row_weights.tolist())
-            session.metagraph.emit( row_weights, wait_for_inclusion = True ) # Set weights on chain.
-            session.metagraph.sync() # Sync with the chain.
-            
-            # ---- Get row and col Weights.
-            row_weights = session.metagraph.W[0, :] # Weight to others.
-            col_weights = session.metagraph.W[:, 0] # Other to me.
+            # ---- Sync State ----
+            if (step+1) % config.neuron.sync_interval == 0:
+                # ---- Emit weights and sync from chain ----
+                logger.info('Emitting with weights {}', row_weights.tolist())
+                session.metagraph.emit( row_weights, wait_for_inclusion = True ) # Set weights on chain.
+                session.metagraph.sync() # Sync with the chain.
+                
+                # ---- Get row and col Weights.
+                row_weights = session.metagraph.W[0, :] # Weight to others.
+                col_weights = session.metagraph.W[:, 0] # Other to me.
 
-            # ---- Update Axon Priority ----
-            session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
+                # ---- Update Axon Priority ----
+                session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
 
-        # --- Save Model ----
-        if output.loss.item() < best_loss:
-            best_loss = output.loss
-            logger.info( 'Saving model: epoch: {}, loss: {}, path: {}/model.torch', step, output.loss, config.neuron.trial_path)
-            torch.save( {'epoch': step, 'model': model.state_dict(), 'loss': output.loss},"{}/model.torch".format(config.neuron.trial_path))
-            
+            # --- Save Model ----
+            if output.loss.item() < best_loss:
+                best_loss = output.loss
+                logger.info( 'Saving model: epoch: {}, loss: {}, path: {}/model.torch', step, output.loss, config.neuron.trial_path)
+                torch.save( {'epoch': step, 'model': model.state_dict(), 'loss': output.loss},"{}/model.torch".format(config.neuron.trial_path))
+
+        # --- Catch Errors during training ----
+        except Exception as e:
+            logger.error('Exection in training script with error: {}', e)
+            logger.info('Continuing to train.')
     
 if __name__ == "__main__":
     # ---- Load config ----
