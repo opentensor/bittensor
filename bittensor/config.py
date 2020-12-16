@@ -61,7 +61,6 @@ class Config:
         Axon.add_args(parser)
         Dendrite.add_args(parser)
         Metagraph.add_args(parser)
-        Metadata.add_args(parser)
         Session.add_args(parser)
        
         # 2. Parse.
@@ -86,7 +85,6 @@ class Config:
             Dendrite.check_config(config)
             Session.check_config(config)
             Metagraph.check_config(config)
-            Metadata.check_config(config)
             Axon.check_config(config)
         except KeyFileError:
             quit()

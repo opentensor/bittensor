@@ -87,7 +87,7 @@ class DPNSynapse(Synapse):
         self.to(self.device)
 
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    def add_args(parser: argparse.ArgumentParser):
         r""" This function adds the configuration items for the DPN synapse.
         These args are use to instantiate a Dual Path model. 
         Instantiating a configuration with the defaults will yield a "shallow" DPN-26 configuration. 
@@ -109,10 +109,9 @@ class DPNSynapse(Synapse):
         parser.add_argument('--synapse.dense_depth', default='16, 32, 32, 128', action="append", type=to_list)
         parser.add_argument('--synapse.target_dim', default=10, type=int, help='Final logit layer dimension. i.e. 10 for CIFAR-10.')
         parser = PKMDendrite.add_args(parser)
-        return parser
     
     @staticmethod
-    def check_config(config: Munch) -> Munch:
+    def check_config(config: Munch):
         assert isinstance(config.synapse.in_planes, list), 'synapse.in_planes must be a tuple, got {}'.format(config.synapse.in_planes)
         assert isinstance(config.synapse.out_planes, list), 'synapse.out_planes must be a tuple, got {}'.format(config.synapse.out_planes)
         assert isinstance(config.synapse.num_blocks, list), 'synapse.num_blocks must be a tuple, got {}'.format(config.synapse.num_blocks)
@@ -121,7 +120,6 @@ class DPNSynapse(Synapse):
         assert all(isinstance(el, int) for el in config.synapse.out_planes), 'synapse.out_planes must be a tuple of ints, got {}'.format(config.synapse.out_planes)
         assert all(isinstance(el, int) for el in config.synapse.num_blocks), 'synapse.num_blocks must be a tuple of ints, got {}'.format(config.synapse.num_blocks)
         assert all(isinstance(el, int) for el in config.synapse.dense_depth), 'synapse.dense_depth must be a tuple of ints, got {}'.format(config.synapse.dense_depth)
-        return config
     
     def forward_image (     self,  
                             images: torch.Tensor):
@@ -281,10 +279,10 @@ class DPNSynapse(Synapse):
                         Hidden layer encoding produced using local_context.
 
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
-                        FFNN Target predictions using student_context. 
+                        FFNN Target predictions using local_context. 
 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        FFNN Classification loss using student_context.
+                        FFNN Classification loss using local_context.
 
                     remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.

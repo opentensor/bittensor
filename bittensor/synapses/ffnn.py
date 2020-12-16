@@ -70,17 +70,15 @@ class FFNNSynapse(Synapse):
         self.to(self.device)
 
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+    def add_args(parser: argparse.ArgumentParser):    
         parser.add_argument('--synapse.target_dim', default=10, type=int, 
                             help='Final logit layer dimension. i.e. 10 for MNIST.')
         parser = PKMDendrite.add_args(parser)
-        return parser
 
     @staticmethod   
-    def check_config(config: Munch) -> Munch:
+    def check_config(config: Munch):
         assert config.synapse.target_dim > 0, "target dimension must be greater than 0."
         config = PKMDendrite.check_config(config)
-        return config
 
     def forward_image(self, images: torch.Tensor):
         r""" Forward image inputs through the FFNN synapse .
@@ -132,10 +130,10 @@ class FFNNSynapse(Synapse):
                         Hidden layer encoding produced using local_context.
 
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
-                        FFNN Target predictions using student_context. 
+                        FFNN Target predictions using local_context. 
 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        FFNN Classification loss using student_context.
+                        FFNN Classification loss using local_context.
 
                     remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
@@ -238,10 +236,10 @@ class FFNNSynapse(Synapse):
                         Hidden layer encoding produced using local_context.
 
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
-                        FFNN Target predictions using student_context. 
+                        FFNN Target predictions using local_context. 
 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        FFNN Classification loss using student_context.
+                        FFNN Classification loss using local_context.
 
                     remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
