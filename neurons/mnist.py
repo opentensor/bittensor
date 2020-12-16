@@ -175,10 +175,8 @@ def main(config: Munch, session: Session):
         
 if __name__ == "__main__":
     # ---- Load config ----
-    parser = argparse.ArgumentParser()
-    add_args(parser)
-    config = Config.load(parser)
-    check_config(config)
+    parser = argparse.ArgumentParser(); add_args(parser)
+    config = Config.load(parser); check_config(config)
     logger.info(Config.toString(config))
    
     # ---- Build Session ----
