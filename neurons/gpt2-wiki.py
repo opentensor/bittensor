@@ -143,11 +143,9 @@ def main(config, session):
             
     
 if __name__ == "__main__":
-    # ---- Load Bittensor config ----
-    parser = argparse.ArgumentParser()
-    add_args(parser)
-    config = Config.load(parser)
-    check_config(config)
+    # ---- Load config ----
+    parser = argparse.ArgumentParser(); add_args(parser) # Load local args.
+    config = Config.load(parser); check_config(config) # Load bittensor args and check.
     logger.info(Config.toString(config))
     
     # ---- Build Session ----
