@@ -4,137 +4,159 @@
 This file demonstrates training the GPT2 neuron with language modelling.
 
 Example:
-        $ python examples/gpt2-wiki.py
+        $ python neurons/gpt2-wiki.py
 
 """
-import bittensor
-from bittensor.subtensor.interface import Keypair
-from bittensor.utils.logging import (log_outputs, log_batch_weights, log_chain_weights, log_request_sizes)
-from bittensor.config import Config
-from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
-
 import argparse
-import numpy as np
+import math
+import os
+import pathlib
+import time
+import torch
+import torch.nn.functional as F
+
 from termcolor import colored
 from munch import Munch
 from datasets import load_dataset
 from loguru import logger
-import time
-import torch
-import torch.nn.functional as F
-import replicate
-import math
+from torch.utils.tensorboard import SummaryWriter
 
+import bittensor
+from bittensor.subtensor.interface import Keypair
+from bittensor.utils.logging import log_all
+from bittensor.config import Config
+from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
 
-def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
-    parser.add_argument('--neuron.datapath', default='data/', type=str, 
-                        help='Path to load and save data.')
-    parser.add_argument('--neuron.learning_rate', default=0.01, type=float, 
-                        help='Training initial learning rate.')
-    parser.add_argument('--neuron.momentum', default=0.98, type=float, 
-                        help='Training initial momentum for SGD.')
-    parser.add_argument('--neuron.batch_size_train', default=20, type=int, 
-                        help='Training batch size.')
-    parser.add_argument('--neuron.batch_size_test', default=20, type=int, 
-                        help='Testing batch size.')
-    parser.add_argument('--neuron.sync_interval', default=100, type=int, 
-                        help='Batches before we we sync with chain and emit new weights.')
-    parser.add_argument('--neuron.name', default='mnist', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
+def add_args(parser: argparse.ArgumentParser):    
+    parser.add_argument('--neuron.datapath', default='data', type=str,help='Path to load and save data.')
+    parser.add_argument('--neuron.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
+    parser.add_argument('--neuron.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
+    parser.add_argument('--neuron.batch_size_train', default=20, type=int, help='Training batch size.')
+    parser.add_argument('--neuron.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
+    parser.add_argument('--neuron.log_interval', default=10, type=int, help='Batches before we log session info.')
+    parser.add_argument('--neuron.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
+    parser.add_argument('--neuron.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
+    parser.add_argument('--neuron.name', default='gpt-wiki', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
     parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
-    parser = GPT2LMSynapse.add_args(parser)
-    return parser
+    GPT2LMSynapse.add_args(parser)
 
-def check_config(config: Munch) -> Munch:
+def check_config(config: Munch):
     assert config.neuron.momentum > 0 and config.neuron.momentum < 1, "momentum must be a value between 0 and 1"
     assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
-    assert config.neuron.batch_size_test > 0, "batch_size_test must a positive value"
     assert config.neuron.learning_rate > 0, "learning_rate must be a positive value."
-    Config.validate_path_create('neuron.datapath', config.neuron.datapath)
-    config = GPT2LMSynapse.check_config(config)
-    return config
-
-def train(model, config, session, optimizer, scheduler, dataset):
-    step = 0
-    best_loss = math.inf
-    model.train()  # Turn on the train mode.
-    weights = None
-    history = []
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    while True:
-        optimizer.zero_grad() # Clear gradients.
-
-        # Sync with chain.
-        if step % config.neuron.sync_interval == 0:
-            weights = session.metagraph.sync(weights)
-            weights = weights.to(device)
-
-        # Next batch.
-        inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__)
-
-        # Forward pass.
-        output = model(inputs.to(model.device), training = True, remote = True)
-        history.append(output)
-
-        # Backprop.
-        output.loss.backward()
-        optimizer.step()
-        scheduler.step()
-
-        # Update weights.
-        batch_weights = F.softmax(torch.mean(output.weights, axis=0), dim=0) # Softmax weights.
-        weights = (1 - 0.05) * weights + 0.05 * batch_weights # Moving Avg
-        weights = weights / torch.sum(weights) # Normalize.
-        
-        # Log.
-        step += 1
-        logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
-            step, output.loss.item(), output.remote_target_loss.item(), output.distillation_loss.item()))
-        log_outputs(history)
-        log_batch_weights(session, history)
-        log_chain_weights(session)
-        log_request_sizes(session, history)
-        history = []
-        
-        # After each epoch, checkpoint the losses and re-serve the network.
-        if output.loss.item() < best_loss:
-            best_loss = output.loss
-            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/{}/model.torch', step, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
-            torch.save( {'epoch': step, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
-            
-            # Save experiment metrics
-            session.serve( model.deepcopy() )
-
-
+    trial_path = '{}/{}/{}'.format(config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+    config.neuron.trial_path = trial_path
+    if not os.path.exists(config.neuron.trial_path):
+        os.makedirs(config.neuron.trial_path)
+    GPT2LMSynapse.check_config(config)
+    
+# Neuron main.
 def main(config, session):
-    # Build Synapse
+
+    # ---- Build Model ----
     model = GPT2LMSynapse(config, session)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
+    model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     session.serve( model )
 
-    # Dataset: 74 million sentences pulled from books.
+    # ---- Dataset ----
+    # 74 million sentences pulled from books.
     dataset = load_dataset('bookcorpus')['train']
 
-    # Optimizer.
-    optimizer = torch.optim.SGD(model.parameters(), lr = config.neuron.learning_rate)
+    # ---- Optimizer ----
+    optimizer = torch.optim.SGD(model.parameters(), lr = config.neuron.learning_rate, momentum=config.neuron.momentum)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
 
-    # train forever.
-    train(model, config, session, optimizer, scheduler, dataset)
+    # ---- Tensorboard ----
+    tensorboard = SummaryWriter(log_dir = config.neuron.trial_path)
+        
+    # ---- Init training state ----
+    session.metagraph.sync() # Sync with the chain.
+    row_weights = session.metagraph.W[0, :] # Weight to others (zeros initially)
+    col_weights = session.metagraph.W[:, 0] # Other to me.
+    priority_map = dict(zip(session.metagraph.public_keys, col_weights.tolist()))
+    session.axon.set_priority( priority_map )
+
+    # ---- Train forever ----
+    model.train()
+    step = -1; history = []; best_loss = math.inf; 
+    while True:
+        try:
+            step += 1
+            # ---- Next Batch ----
+            inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__)
+
+            # ---- Forward Pass ----
+            output = model(inputs.to(model.device), training = True, remote = True)
+            history.append(output)
+
+            # ---- Accumulate Local Gradients ----
+            loss = output.loss / config.neuron.accumulation_interval # Need to average accross accumulation steps.
+            loss.backward() # Accumulates gradients on model via sum.
+
+            # ---- Accumulate Remote Gradients  ----
+            if config.neuron.apply_remote_gradients:
+                # TODO (const): batch normalization over the gradients for consistency.
+                n_grads = session.axon.gradients.qsize
+                for _, (_, input_x, grads_dy, modality) in list(session.axon.gradients.queue):
+                    grads_dy = grads_dy / (config.neuron.accumulation_interval * n_grads)
+                    model.backward(input_x, grads_dy, modality)
+
+            # ---- Apply Gradients ----
+            if (step+1) % config.neuron.accumulation_interval == 0:
+                optimizer.step() # Apply accumulated gradients.
+                optimizer.zero_grad() # Zero grads for next accummulation 
+                scheduler.step() # Update learning rate etc.
+                session.serve( model ) # Serve the newest model.
+
+            # ---- Step Logs + Tensorboard ----
+            logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(step, output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
+            tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), step)
+            tensorboard.add_scalar('Lloss', output.local_target_loss.item(), step)
+            tensorboard.add_scalar('Dloss', output.distillation_loss.item(), step)
+            if (step+1) % config.neuron.log_interval == 0:
+                log_all(session, history); history = [] # Log batch history.
+
+
+            # ---- Update Weights ----
+            batch_weights = torch.mean(output.weights, axis = 0)
+            row_weights = (1 - 0.05) * row_weights + 0.05 * batch_weights # Moving Avg weights.
+            row_weights = F.normalize(row_weights, p = 1, dim = 0)  
+
+            # ---- Sync State ----
+            if (step+1) % config.neuron.sync_interval == 0:
+                # ---- Emit weights and sync from chain ----
+                logger.info('Emitting with weights {}', row_weights.tolist())
+                session.metagraph.emit( row_weights, wait_for_inclusion = True ) # Set weights on chain.
+                session.metagraph.sync() # Sync with the chain.
+                
+                # ---- Get row and col Weights.
+                row_weights = session.metagraph.W[0, :] # Weight to others.
+                col_weights = session.metagraph.W[:, 0] # Other to me.
+
+                # ---- Update Axon Priority ----
+                session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
+
+            # --- Save Model ----
+            if output.loss.item() < best_loss:
+                best_loss = output.loss
+                logger.info( 'Saving model: epoch: {}, loss: {}, path: {}/model.torch', step, output.loss, config.neuron.trial_path)
+                torch.save( {'epoch': step, 'model': model.state_dict(), 'loss': output.loss},"{}/model.torch".format(config.neuron.trial_path))
+
+        # --- Catch Errors during training ----
+        except Exception as e:
+            logger.error('Exection in training script with error: {}', e)
+            logger.info('Continuing to train.')
     
-
 if __name__ == "__main__":
-    # Load bittensor config.
-    parser = argparse.ArgumentParser()
-    parser = add_args(parser)
-    config = Config.load(parser)
-    config = check_config(config)
+    # ---- Load config ----
+    parser = argparse.ArgumentParser(); add_args(parser) # Load local args.
+    config = Config.load(parser); check_config(config) # Load bittensor args and check.
     logger.info(Config.toString(config))
-
-    # Load Session.
+    
+    # ---- Build Session ----
     session = bittensor.init(config)
 
-    # Start Neuron.
+    # ---- Start Neuron ----
     with session:
         main(config, session)
 

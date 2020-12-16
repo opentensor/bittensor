@@ -1,6 +1,6 @@
 #!/bin/python3
 
-from subtensor.interface import Keypair
+from bittensor.subtensor.interface import Keypair
 from termcolor import colored
 from bittensor.crypto import encrypt
 

@@ -144,6 +144,5 @@ def test_backward_success():
     x = torch.rand(3, 3)
     synapse.call_backward = MagicMock(return_value = x)
     mode = bittensor_pb2.Modality.TEXT
-    outputs, _, code = nucleus.backward(synapse = synapse, inputs_x = x, grads_dy = x, priority = 1)
-    assert list(outputs.shape) == [3, 3]
-    assert code == bittensor_pb2.ReturnCode.Success
+    nucleus.backward(synapse = synapse, inputs_x = x, grads_dy = x, mode = mode, priority = 1)
+   

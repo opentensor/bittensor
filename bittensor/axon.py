@@ -5,11 +5,14 @@ import requests
 import sys
 import threading
 import torch
+import queue
 import validators
 
 from concurrent import futures
 from munch import Munch
 from loguru import logger
+from types import SimpleNamespace
+from typing import List
 
 import bittensor
 from bittensor.nucleus import Nucleus
@@ -54,44 +57,54 @@ class Axon(bittensor_grpc.BittensorServicer):
         self._nucleus = Nucleus(config)
 
         # Init server objects.
-        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
+        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=self._config.axon.max_workers))
         bittensor_grpc.add_BittensorServicer_to_server(self, self._server)
         self._server.add_insecure_port('[::]:' + str(self._config.axon.port))
 
         # Local synapse to serve.
         self.synapse = None
         self.priority = {}
+        self._next_unknown_priority_increment = 0 
+
+        # Gradient queue
+        self.gradients = queue.PriorityQueue(maxsize = self._config.axon.max_gradients)
 
         # Serving thread.
         self._thread = None
 
+        # Stats.
+        #TODO(\u290B,\u290A)
+        self.stats = SimpleNamespace(
+            forward_in_bytes_per_second = 0.0,
+            backward_in_bytes_per_second = 0.0,
+            forward_out_bytes_per_second = 0.0,
+            backward_out_bytes_per_second = 0.0,
+        )
+
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    def add_args(parser: argparse.ArgumentParser):
         r""" Adds this axon's command line arguments to the passed parser.
             Args:
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
                     parser argument to append args to.
         """
-        parser.add_argument('--axon.port', default=8091, type=int, 
-                            help='Port to serve axon')
-
-        parser.add_argument('--axon.remote_ip', default=None, type=str, 
-                            help='Remote IP to serve to chain.')
-        parser = Nucleus.add_args(parser)
-        return parser
+        parser.add_argument('--axon.port', default=8091, type=int, help='Port to serve axon')
+        parser.add_argument('--axon.remote_ip', default=None, type=str, help='Remote IP to serve to chain.')
+        parser.add_argument('--axon.max_workers', default=10, type=int, help='Max number connection handler threads working simultaneously.')
+        parser.add_argument('--axon.max_gradients', default=100, type=int, help='Max number of lingering gradient stored in the gradient queue')
+        Nucleus.add_args(parser)
 
     @staticmethod   
-    def check_config(config: Munch) -> Munch:
+    def check_config(config: Munch):
         r""" Checks the passed config items for validity and obtains the remote ip.
             Args:
                 config (:obj:`munch.Munch, `required`): 
                     config to check.
         """
-        config = Nucleus.check_config(config)
         logger.info('obtaining remote ip ...')
         config = obtain_ip(config)
         assert config.axon.port > 1024 and config.axon.port < 65535, 'config.axon.port must be in range [1024, 65535]'
-        return config
+        Nucleus.check_config(config)
 
     def serve(self, synapse: Synapse):
         r""" Set the synapse being served on this axon endpoint. 
@@ -104,27 +117,24 @@ class Axon(bittensor_grpc.BittensorServicer):
         """
         self.synapse = synapse
 
-    def set_priority(self, priority_map: dict):
-        r""" Set the serving priority for requests on the server synapse. 
-            float values must be unique.
+    def set_priority(self, neurons: List[bittensor_pb2.Neuron], priority: torch.FloatTensor):
+        r""" Set the serving priority for requests on the served synapse. 
+            Float values must are normalized to 1.
             
             Args:
-                priority_map (:obj:`Dict`, `required`): 
-                    map from public key to priority. str -> float
+                neurons (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
+
+                priority (:obj:`torch.FloatTnsor` of shape :obj:`(num_neurons)`, `required`): 
+                    call priority for neurons on endpoint.
         """
-        # check uniqueness.
-        val_set = set()
-        checked_priority = {}
-        for key, val in priority_map.items():
-            if val in val_set:
-                val = val * (1 + random.random() * 0.000001) # random small pertubation.
-            if val == sys.maxsize:
-                logger.error('cannot set priority to {}, setting to {} instead.', sys.maxsize, sys.maxsize - 1)
-                val = sys.maxsize - 1
-            val_set.add(val)
-            checked_priority[key] = -val # Invert priorities highest values will be processed first.
+        assert priority.shape[0] == len(neurons), 'priority for neurons must of the same length'
+        if torch.sum(priority) != 0 and torch.sum(priority) != 0:
+            priority = priority / torch.sum(priority)
+        priority_map = {}
+        for neuron, priority in list(zip(neurons, priority.tolist())):
+            priority_map[neuron.public_key] = priority
         self.priority = priority_map
-        logger.info('Setting query priority: {}', self.priority)
 
     def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext) -> bittensor_pb2.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
@@ -241,10 +251,9 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # --- Get call priority ----
         try:
-            call_priority = self.priority[request.public_key]
+            call_priority = self.priority[request.public_key] + random.random()
         except:
-            # no priority for this public key, setting to max value. (i.e. slowest.)
-            call_priority = sys.maxsize - 1
+            call_priority = 1 + random.random()
 
         # ---- Make Nucleus forward call. ----
         try:
@@ -291,7 +300,6 @@ class Axon(bittensor_grpc.BittensorServicer):
                 code: (:obj:`bittensor_pb2.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.
         """
-
         # ---- Check that we have a synapse ----.
         if self.synapse == None:
             message = "Remote axon not serving a synapse"
@@ -302,6 +310,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         if len(request.tensors) == 2:
             inputs_x = request.tensors[0]
             grads_dy = request.tensors[1]
+            modality_x = inputs_x.modality
         else:
             message = "During backward: There are {} tensors in the request, expected 2.".format(len(request.tensors))
             code =  bittensor_pb2.ReturnCode.InvalidRequest
@@ -319,10 +328,15 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # --- Get call priority ----
         try:
-            call_priority = self.priority[request.public_key]
+            call_priority = self.priority[request.public_key] + random.random()
         except:
-            # no priority for public key set to max value.
-            call_priority = sys.maxsize - 1
+            call_priority = 1 + random.random()
+
+        # ---- Save gradients to buffer for later use. ---
+        try:
+            self.gradients.put( (call_priority, (request.public_key, inputs_x, grads_dy, modality_x)) , block=False)
+        except queue.Full:
+            logger.trace('gradient queue is full at size: {}', self.gradient_queue.qsize())
 
         # ---- Nucleus backward call ----
         try:
@@ -330,6 +344,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                     synapse = self.synapse, 
                     inputs_x = inputs_x, 
                     grads_dy = grads_dy, 
+                    modality = modality_x,
                     priority = call_priority
             )
         except Exception as e:
@@ -341,7 +356,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         try:
             outputs_serialized = PyTorchSerializer.serialize_tensor(outputs)
         except Exception as e:
-            messave = "Backward request serialization failed with error {} and inputs {}".format(e, outputs_serialized)
+            message = "Backward request serialization failed with error {} and inputs {}".format(e, outputs_serialized)
             code =  bittensor_pb2.ReturnCode.ResponseSerializationException
             return None, message, code
 

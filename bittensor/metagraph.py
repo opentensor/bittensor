@@ -24,6 +24,7 @@ def int_to_ip(int_val):
 def ip_to_int(str_val):
     return int(netaddr.IPAddress(str_val))
 
+
 class ChainState():
     def __init__(self):
         # Cached values.
@@ -50,7 +51,7 @@ class ChainState():
         if pubkey in self.index_for_pubkey:
             index = self.index_for_pubkey[pubkey]
             self.neurons[index] = neuron
-            self.stake[index] = int(stake)
+            self.stake[index] = float(stake)
             self.lastemit[index] = int(lastemit)
             self.weight_pubkeys[index] = list(w_keys)
             self.weight_vals[index] = list(w_vals)
@@ -62,7 +63,7 @@ class ChainState():
             self.index_for_pubkey[pubkey] = index
             self.pubkey_for_index[index] = pubkey
             self.neurons.append(neuron)
-            self.stake.append(int(stake))
+            self.stake.append(float(stake))
             self.lastemit.append(int(lastemit))
             self.weight_pubkeys.append(list(w_keys))
             self.weight_vals.append(list(w_vals))
@@ -73,24 +74,28 @@ class ChainState():
 class TorchChainState():
     r""" Maintains the chain state as a torch object.
         Params:
-            block: (int) state block number.
+            tau: (int): 
+                current, per block, token inflation rate.
 
-            uids: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+            block: (int):
+                state block number.
+
+            uids: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 UIDs for each neuron ordered by index.
             
-            indices: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
-                Index of neurons, range(n)
+            indices: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+                Index of neurons, range(metagraph.n)
 
-            stake: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+            stake: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 Stake balance for each neuron ordered by index.
                 
-            lastemit: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+            lastemit: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 Last emission call for each neuron ordered by index.
 
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 This neuron's weights W[,:]
 
-            W: (:obj:`torch.FloatTensor` of shape :obj:`(n, n)`):
+            W: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n, metagraph.n)`):
                 Full weight matrix on chain.
 
             neurons: (List[bittensor_pb2.Neuron]) 
@@ -98,6 +103,7 @@ class TorchChainState():
 
     """
     def __init__(self):
+        self.tau = torch.tensor([50.0], dtype = torch.float32)
         self.block = 0
         self.n = 0
         self.uids = torch.tensor([])
@@ -106,6 +112,7 @@ class TorchChainState():
         self.lastemit = torch.tensor([])
         self.W = torch.tensor([[]])
         self.neurons = []
+        self.uid_for_pubkey = {}
 
     @staticmethod
     def from_cache(cache: ChainState):
@@ -114,11 +121,14 @@ class TorchChainState():
         # Deep copies chain state into metagraph state.
         state = TorchChainState()
         state.n = cache.n
+        state.tau = torch.tensor([50.0], dtype = torch.float32)
         state.neurons = copy.deepcopy(cache.neurons)
         state.indices = torch.tensor(range(state.n), dtype=torch.int64)
         state.uids = torch.tensor(copy.deepcopy(cache.uids), dtype=torch.int64)
         state.lastemit = torch.tensor(copy.deepcopy(cache.lastemit), dtype=torch.int64)
-        state.state = torch.tensor(copy.deepcopy(cache.stake), dtype=torch.int64)
+        state.stake = torch.tensor(copy.deepcopy(cache.stake), dtype=torch.float32)
+        for uid, n in list(zip(cache.uids, cache.neurons)):
+            state.uid_for_pubkey[n.public_key] = uid
         weights_numpy = numpy.zeros( (state.n, state.n) )
         for i in range(state.n):
             keys = cache.weight_pubkeys[i]
@@ -155,18 +165,16 @@ class Metagraph():
         self.state = TorchChainState.from_cache(self.cache)
 
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    def add_args(parser: argparse.ArgumentParser):
         # TODO(const): check this endpoint in check_config.
         parser.add_argument('--metagraph.chain_endpoint', default='206.189.254.5:12345', type=str, 
                             help='chain endpoint.')
         parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
                             help='filter neurons with last emit beyond this many blocks.')
 
-        return parser
-
     @staticmethod   
-    def check_config(config: Munch) -> Munch:
-        return config
+    def check_config(config: Munch):
+        pass
 
     @property
     def n(self) -> int:
@@ -197,9 +205,9 @@ class Metagraph():
 
     @property
     def indices(self) -> torch.LongTensor:
-        r""" Return the indices of each neuron in the chain state range(n).
+        r""" Return the indices of each neuron in the chain state range(metagraph.n).
         Returns
-            indices: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+            indices: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 returned indices for each neuron.
         """
         return self.state.indices
@@ -208,25 +216,90 @@ class Metagraph():
     def uids(self) -> torch.LongTensor:
         r""" Returns unique ids for each neuron in the chain state.
         Returns
-            uids: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+            uids: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 unique id for each neuron.
         """
         return self.state.uids
 
     @property
-    def stake(self) -> torch.LongTensor:
+    def stake(self) -> torch.FloatTensor:
         r""" Returns the stake held by each known neuron.
         Returns
-            stake: (:obj:`torch.LongTensor` of shape :obj:`(n)`):
+            stake: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 stake of each known neuron.
         """
         return self.state.stake
 
     @property
+    def S(self) -> torch.FloatTensor:
+        r""" Returns the stake held by each known neuron.
+        Returns
+            S: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                stake of each known neuron.
+        """
+        return self.state.stake
+
+    @property
+    def tau(self) -> torch.FloatTensor:
+        r""" tau: the chain per block inflation rate. i.e. 50
+        Returns
+            tau: (:obj:`torchFloatTensor` of shape :obj:`(1)`):
+                current chain inflation rate.
+        """
+        return self.state.tau
+
+    @property
+    def incentive(self) -> torch.FloatTensor:
+        r""" Returns the ranks 
+        Returns
+            incentive: (:obj:`torch.FLoatTensor` of shape :obj:`(metagraph.n)`):
+                inflation incentive of each each known neuron.
+        """
+        I =  (self.tau * self.ranks) / torch.sum(self.ranks)
+        I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
+        return I
+
+    @property
+    def I(self) -> torch.FloatTensor:
+        r""" Returns the inflation incentive for each peer per block.
+        Returns
+            I: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                stake of each known neuron.
+        """
+        return self.incentive
+
+    @property
+    def ranks(self) -> torch.FloatTensor:
+        r""" Returns the ranks W^t * S
+        Returns
+            ranks: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                rank of each known neuron.
+        """
+        if self.W.shape[0] == 0:
+            return torch.tensor([])
+        else:
+            # S.shape = [self.state.n]
+            # W.shape = [self.state.n, self.state.n]
+            # R.shape = [self.state.n]
+            S = self.S.view(self.state.n, 1)
+            W = torch.transpose(self.W.view(self.state.n, self.state.n), 0, 1)
+            R = torch.matmul(W, S).view(self.state.n)
+        return R
+
+    @property
+    def R(self) -> torch.FloatTensor:
+        r""" Returns ranks for each known neuron in the graph.
+        Returns
+            rank: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                rank of each known neuron.
+        """
+        return self.ranks()
+
+    @property
     def W(self) -> torch.FloatTensor:
         r""" Full chain weight matrix for each neuron.
         Returns
-            W: (:obj:`torch.LongFloat` of shape :obj:`(n, n)`):
+            W: (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
                 w_ij of each neuron.
         """
         return self.state.W
@@ -235,7 +308,7 @@ class Metagraph():
     def neurons(self) -> List[bittensor_pb2.Neuron]:
         r""" Return neuron endpoint information for each neuron.
         Returns
-            neurons: (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(n, n)`):
+            neurons: (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(metagraph.n, metagraph.n)`):
                 endpoint information for each neuron.
         """
         return self.state.neurons
@@ -244,16 +317,16 @@ class Metagraph():
     def public_keys(self) -> List[str]:
         r""" Return the ordered public keys for state neurons.
         Returns
-            public_keys: (:obj:`List[str]` of shape :obj:`(n)`):
+            public_keys: (:obj:`List[str]` of shape :obj:`(metagraph.n)`):
                 public keys of all graph neurons.
         """
         return [n.public_key for n in self.state.neurons]
 
     @property
-    def weights(self):
+    def weights(self) -> torch.FloatTensor:
         r"""Return this neuron's weights. W[0,:]
         Returns 
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(n)`):
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 returned indices for passed uids.
         """
         if self.state.n == 0:
@@ -280,7 +353,7 @@ class Metagraph():
         r""" Returns a list with neurons for each uid.
         Args:
             uids: (torch.LongTensor)
-                uids into neurons protos
+                uids into neuron protos
         Returns:
             neurons: (List[bittensor_pb2.Neuron]): 
                 neuron info ordered by passed uids.
@@ -291,10 +364,25 @@ class Metagraph():
             response.append(self.state.neurons[idx])
         return response
 
+    def neurons_to_uids(self, neurons: List[bittensor_pb2.Neuron]) -> torch.LongTensor:
+        r""" Returns uids associated with the passed neurons.
+        Args:
+            neurons: (List[bittensor_pb2.Neuron]): 
+                neuron info ordered by passed uids.
+        Returns:
+            uids: (torch.LongTensor)
+                uids associated with neurons.
+        """
+        uids = []
+        for n in neurons:
+            uids.append(self.state.uid_for_pubkey[n.public_key])
+        return torch.tensor(uids)
+
     def chain_weights(self) -> torch.FloatTensor:
         r""" Returns your current weights from the chain.
         Returns:
-            weights: (torch.Tensor) weights on chain as torch tensor.
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(-1)`):
+                weights on chain as torch tensor.
         """
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(self.async_chain_weights())
@@ -302,7 +390,8 @@ class Metagraph():
     async def async_chain_weights(self) -> torch.FloatTensor:
         r""" Async: returns your current weights from the chain.
         Returns:
-            weights: (torch.FloatTensor) weights on chain for each neuron.
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(-1)`):
+                weights on chain as torch tensor.
         """
         chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
         chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
@@ -316,16 +405,16 @@ class Metagraph():
                 retval[idx] = float(val) / float(val_sum)
         return retval
 
-    def block(self):
+    def chain_block(self):
         r""" Returns the current block on the chain.
         Returns:
             block: (int) block number on chain.
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_block())
+        return loop.run_until_complete(self.async_chain_block())
 
-    async def async_block(self) -> int:
+    async def async_chain_block(self) -> int:
         r""" Async returns the current block on the chain.
         Returns:
             block: (int) block number on chain.
@@ -380,25 +469,29 @@ class Metagraph():
         connected = await self.subtensor_client.is_connected()
         return connected        
 
-    def emit(self, weights: torch.FloatTensor):
+    def emit(self, weights: torch.FloatTensor, wait_for_inclusion = False):
         r""" Emits the passed weights to the chain. Waits for inclusion.
         Args:
-            weights: (torch.FloatTensor): 
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 weights to set on chain of length self.state.n
+            wait_for_inclusion: (bool, default: False):
+                if true, the call waits for inclusion in the block before continuing.
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        loop.run_until_complete(self.async_emit(weights))
+        loop.run_until_complete(self.async_emit(weights, wait_for_inclusion))
 
-    async def async_emit(self, weights: torch.FloatTensor) -> bool:
+    async def async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False) -> bool:
         r""" Emits the passed weights to the chain. Waits for inclusion.
         Args:
-            weights: (torch.FloatTensor): 
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 weights to set on chain.
+            wait_for_inclusion: (bool):
+                if true, the call waits for inclusion in the block before continuing.
         Return:
             included: (bool) true is the weights were set on chain.
         """
-        logger.info('Emit -> {}', weights)
+        #logger.info('Emit -> {}', weights)
         # Check that weights meet chain requirements.
         # #TODO(const) check with current weights.
         if not self._check_weights(weights):
@@ -415,7 +508,6 @@ class Metagraph():
             return False
 
         # Makes weight emission call.
-        # TODO(const): make wait for inclusion work.
         try:
             await self.subtensor_client.emit(keys, vals, self.__keypair, wait_for_inclusion = False)
         except Exception as e:
@@ -423,48 +515,36 @@ class Metagraph():
             return False
 
         # Checks that weight emission was included in a block after 12 seconds.
-        if not await self._wait_for_emit_inclusion(keys, vals, timeout = 12):
-            logger.error('Weight failed with non-inclusion after 12 seconds.')
-            return False
+        if wait_for_inclusion:
+            if not await self._wait_for_emit_inclusion(keys, vals, timeout = 12):
+                logger.error('Weight failed with non-inclusion after 12 seconds.')
+                return False
         return True
 
-    def sync(self, weights: torch.FloatTensor) -> torch.FloatTensor:
-        r""" Synchronizes the local self.state with the chain state, sinking the trained weights and pulling 
-        info from other peers. Ensures the self.state is in accordance with the state on chain at this block.
-            Args:
-                weights: (torch.FloatTensor):
-                    weights to set on chain.
+    def sync(self) -> torch.FloatTensor:
+        r""" Synchronizes the local self.state with the chain state.
             Returns:
                 weights: (torch.FloatTensor):
                     weights on chain.
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_sync(weights))
+        return loop.run_until_complete(self.async_sync())
 
-    async def async_sync(self, weights: torch.FloatTensor) -> torch.FloatTensor:
+    async def async_sync(self) -> torch.FloatTensor:
         r""" Async: Synchronizes the local self.state with the chain state by polling the chain.
-            Args:
-                weights: (torch.FloatTensor):
-                    weights to set on chain.
-            Returns:
-                weights: (torch.FloatTensor):
-                    weights on chain.
         """
-        if weights != None:
-            await self.async_emit(weights)
         await self._sync_cache()
-        last_sync = await self.async_block()
+        last_sync = await self.async_chain_block()
         self.state = TorchChainState.from_cache(self.cache)
         self.state.block = last_sync
-        return self.weights
 
     async def _sync_cache(self):
         r""" Async: Makes calls to chain updating local chain cache with newest info.
         """
         # Make asyncronous calls to chain filling local state cache.
         calls = []
-        current_block = await self.async_block()
+        current_block = await self.async_chain_block()
         emits = await self.subtensor_client.get_last_emit_data()
         for (pubkey, last_emit) in emits:
                 # Filter based on stale emissions.
@@ -475,7 +555,6 @@ class Metagraph():
     async def _poll_pubkey(self, pubkey):
         r""" Polls info info for a specfic public key.
         """
-        logger.info('poll: {} ', pubkey)
         try:
             stake = await self.subtensor_client.get_stake(pubkey)
             lastemit = await self.subtensor_client.get_last_emit_data(pubkey)
@@ -528,7 +607,7 @@ class Metagraph():
                 return False
         chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
         chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
-        logger.info('Chain weights {}', list(zip(chain_keys,chain_vals)))
+        #logger.info('Chain weights {}', list(zip(chain_keys,chain_vals)))
         return True
 
     async def _remove_noop(self, weight_keys, weight_vals):

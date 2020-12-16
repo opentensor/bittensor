@@ -45,7 +45,7 @@ class WSClient:
 
 
     def connect(self):
-        logger.debug("connect() C")
+        logger.trace("connect() C")
         self.substrate.connect()
 
     def is_connected(self):

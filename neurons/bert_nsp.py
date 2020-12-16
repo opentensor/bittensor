@@ -4,7 +4,7 @@
 This file demonstrates training the BERT neuron with next sentence prediction.
 
 Example:
-        $ python examples/bert_nsp.py
+        $ python neurons/bert_nsp.py
 
 """
 import bittensor
@@ -60,7 +60,7 @@ def nsp_batch(data, batch_size, tokenizer):
     tokenized = tokenizer(batch_inputs, text_pair = batch_next, return_tensors='pt', padding=True)
     return tokenized, torch.tensor(batch_labels, dtype=torch.long)
 
-def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+def add_args(parser: argparse.ArgumentParser):    
     parser.add_argument('--neuron.datapath', default='data/', type=str, 
                         help='Path to load and save data.')
     parser.add_argument('--neuron.learning_rate', default=0.01, type=float, 
@@ -75,17 +75,18 @@ def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
                         help='Batches before we we sync with chain and emit new weights.')
     parser.add_argument('--neuron.name', default='bert_nsp', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
     parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
-    parser = BertNSPSynapse.add_args(parser)
-    return parser
+    BertNSPSynapse.add_args(parser)
 
 def check_config(config: Munch) -> Munch:
     assert config.neuron.momentum > 0 and config.neuron.momentum < 1, "momentum must be a value between 0 and 1"
     assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
     assert config.neuron.batch_size_test > 0, "batch_size_test must a positive value"
     assert config.neuron.learning_rate > 0, "learning_rate must be a positive value."
-    Config.validate_path_create('neuron.datapath', config.neuron.datapath)
-    config = BertNSPSynapse.check_config(config)
-    return config
+    trial_path = '{}/{}/{}'.format(config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
+    config.neuron.trial_path = trial_path
+    if not os.path.exists(config.neuron.trial_path):
+        os.makedirs(config.neuron.trial_path)
+    BertNSPSynapse.check_config(config)
 
 def train(model, config, session, optimizer, scheduler, dataset):
     step = 0
@@ -168,9 +169,9 @@ def main(config, session):
 if __name__ == "__main__":
     # Load bittensor config.
     parser = argparse.ArgumentParser()
-    parser = add_args(parser)
+    add_args(parser)
     config = Config.load(parser)
-    config = check_config(config)
+    check_config(config)
     logger.info(Config.toString(config))
 
     # Load Session.

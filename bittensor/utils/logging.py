@@ -14,11 +14,79 @@ pd.set_option('display.width', 1000)
 pd.set_option('display.precision', 2)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def log_all( session: Session, history: List[bittensor.synapse.SynapseOutput] ):
+    log_outputs(history)
+    log_batch_weights(session, history)
+    log_row_weights(session)
+    log_col_weights
+    log_incentive(session)
+    log_ranks(session)
+    log_request_sizes(session, history)
+    log_return_codes(session, history)
+    log_dendrite_success_times( session )
 
-def calculate_request_sizes_sum(session: Session, history: List[bittensor.synapse.SynapseOutput]):
+
+def _calculate_request_sizes_sum(session: Session, history: List[bittensor.synapse.SynapseOutput]):
     request_size_list = []
-    request_sizes_sum = torch.zeros(session.metagraph.n).to(device)
+    request_sizes_sum = torch.zeros(session.metagraph.n)
+    for output in history:
+        request_sizes_sum += output.request_sizes
+        request_size_list.append(output.request_sizes)
+    request_sizes_sum = request_sizes_sum.tolist()
+
+    return request_sizes_sum, request_size_list
+
+def log_dendrite_success_times(session: Session):
+    print ('Avg Success time: \n ')
+    remotes = session.dendrite.remotes
+    neurons = [remote.neuron for remote in remotes]
+    uids = session.metagraph.neurons_to_uids(neurons)
+    succees_time = [remote.stats.avg_success_time for remote in remotes]
+    df = pd.DataFrame([succees_time], columns=uids.tolist())
+    pd.set_option('display.float_format', lambda x: '%.4f' % x)
+    df.rename_axis("[uid]", axis=1)
+    print (df)
+    print('\n')
+
+def log_ranks(session: Session):
+    print ('Ranks: \n ')
+    if session.metagraph.uids != None and session.metagraph.weights != None:
+        uids = session.metagraph.uids.tolist()
+        ranks = session.metagraph.ranks.tolist()
+        ranks, uids  = zip(*sorted(zip(ranks, uids), reverse=True))
+        df = pd.DataFrame([ranks], columns=uids)
+        df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
+        max_val = df.max(numeric_only=True, axis=1)
+        min_val = df.min(numeric_only=True, axis=1)
+        total = df.sum(numeric_only=True, axis=1)
+        df.loc[:,'Min'] = min_val
+        df.loc[:,'Max'] = max_val
+        df.loc[:,'Total'] = total
+        print (df)
+    print('\n')
+
+
+def log_incentive(session: Session):
+    print ('Incentive: \n ')
+    if session.metagraph.uids != None and session.metagraph.weights != None:
+        uids = session.metagraph.uids.tolist()
+        incentive = session.metagraph.incentive.tolist()
+        incentive, uids  = zip(*sorted(zip(incentive, uids), reverse=True))
+        df = pd.DataFrame([incentive], columns=uids)
+        df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
+        max_val = df.max(numeric_only=True, axis=1)
+        min_val = df.min(numeric_only=True, axis=1)
+        total = df.sum(numeric_only=True, axis=1)
+        df.loc[:,'Min'] = min_val
+        df.loc[:,'Max'] = max_val
+        df.loc[:,'Total'] = total
+        print (df)
+    print('\n')
+
+def log_return_codes(session: Session, history: List[bittensor.synapse.SynapseOutput]):
+    print('Return Codes: \n ')
+    request_size_list = []
+    request_sizes_sum = torch.zeros(session.metagraph.n)
     for output in history:
         request_sizes_sum += output.request_sizes
         request_size_list.append(output.request_sizes)
@@ -28,7 +96,7 @@ def calculate_request_sizes_sum(session: Session, history: List[bittensor.synaps
 
 def log_return_codes(session: Session, history: List[bittensor.synapse.SynapseOutput]):
     print('Return Codes: \n ')
-    request_sizes_sum, _ = calculate_request_sizes_sum(session, history)
+    request_sizes_sum, _ = _calculate_request_sizes_sum(session, history)
 
     rows = []
     for output in history:
@@ -43,7 +111,7 @@ def log_return_codes(session: Session, history: List[bittensor.synapse.SynapseOu
 
 def log_request_sizes(session: Session, history: List[bittensor.synapse.SynapseOutput]):
     print('Request Sizes: \n ')
-    request_sizes_sum, request_size_list = calculate_request_sizes_sum(session, history)
+    request_sizes_sum, request_size_list = _calculate_request_sizes_sum(session, history)
 
     rows = []
     for rs in request_size_list:
@@ -72,14 +140,31 @@ def log_request_sizes(session: Session, history: List[bittensor.synapse.SynapseO
     print (df)
     print('\n')
 
-def log_chain_weights(session: Session):
-    print ('Weights: \n ')
+def log_row_weights(session: Session):
+    print ('Row Weights: \n ')
     if session.metagraph.uids != None and session.metagraph.weights != None:
         uids = session.metagraph.uids.tolist()
-        weights = session.metagraph.weights.tolist()
+        weights = session.metagraph.W[0,:].tolist()
         weights, uids  = zip(*sorted(zip(weights, uids), reverse=True))
         df = pd.DataFrame([weights], columns=uids)
-        df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
+        df.rename_axis("[uid]", axis=1)
+        max_val = df.max(numeric_only=True, axis=1)
+        min_val = df.min(numeric_only=True, axis=1)
+        total = df.sum(numeric_only=True, axis=1)
+        df.loc[:,'Min'] = min_val
+        df.loc[:,'Max'] = max_val
+        df.loc[:,'Total'] = total
+        print (df)
+    print('\n')
+
+def log_col_weights(session: Session):
+    print ('Col Weights: \n ')
+    if session.metagraph.uids != None and session.metagraph.weights != None:
+        uids = session.metagraph.uids.tolist()
+        weights = session.metagraph.W[:,0].tolist()
+        weights, uids  = zip(*sorted(zip(weights, uids), reverse=True))
+        df = pd.DataFrame([weights], columns=uids)
+        df.rename_axis("[uid]", axis=1)
         max_val = df.max(numeric_only=True, axis=1)
         min_val = df.min(numeric_only=True, axis=1)
         total = df.sum(numeric_only=True, axis=1)

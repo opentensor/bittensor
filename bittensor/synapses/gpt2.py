@@ -117,7 +117,7 @@ class GPT2LMSynapse(Synapse):
         self.to(self.device)
     
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
+    def add_args(parser: argparse.ArgumentParser):    
         r""" Add custom params to the parser.
         """
         parser.add_argument('--synapse.n_hidden', default=3, type=int, 
@@ -151,8 +151,7 @@ class GPT2LMSynapse(Synapse):
         parser.add_argument('--synapse.summary_first_dropout', default=0.1, type=float, 
                             help='The dropout ratio to be used after the projection and activation.')
         parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
-        parser = PKMDendrite.add_args(parser)
-        return parser
+        PKMDendrite.add_args(parser)
 
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the MLM GPT Synapse.
