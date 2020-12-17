@@ -18,12 +18,38 @@ from typing import List, Tuple, List
 
 from bittensor.exceptions.handlers import rollbar
 
+MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
+
 def int_to_ip(int_val):
     return str(netaddr.IPAddress(int_val))
  
 def ip_to_int(str_val):
     return int(netaddr.IPAddress(str_val))
 
+
+class EmitSuccess (Exception):
+    """ Raised when try_async_emit emits weights successfully with known result """
+    pass
+
+class EmitNoOp(Exception):
+    """ Raised when calling emit does not change weights on chain. """
+    pass
+
+class EmitUnknownError (Exception):
+    """ UnknownError during emit. """
+    pass
+
+class EmitValueError (Exception):
+    """ Raised during emission when passed weights are not properly set."""
+    pass
+
+class EmitTimeoutError (Exception):
+    """ Raised during emission during a timeout """
+    pass
+
+class EmitResultUnknown(Exception):
+    """ Called when an emit step end without a known result, for instance, if the user has wait_for_inclusion = False """
+    pass
 
 class ChainState():
     def __init__(self):
@@ -469,58 +495,6 @@ class Metagraph():
         connected = await self.subtensor_client.is_connected()
         return connected        
 
-    def emit(self, weights: torch.FloatTensor, wait_for_inclusion = False):
-        r""" Emits the passed weights to the chain. Waits for inclusion.
-        Args:
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                weights to set on chain of length self.state.n
-            wait_for_inclusion: (bool, default: False):
-                if true, the call waits for inclusion in the block before continuing.
-        """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        loop.run_until_complete(self.async_emit(weights, wait_for_inclusion))
-
-    async def async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False) -> bool:
-        r""" Emits the passed weights to the chain. Waits for inclusion.
-        Args:
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                weights to set on chain.
-            wait_for_inclusion: (bool):
-                if true, the call waits for inclusion in the block before continuing.
-        Return:
-            included: (bool) true is the weights were set on chain.
-        """
-        #logger.info('Emit -> {}', weights)
-        # Check that weights meet chain requirements.
-        # #TODO(const) check with current weights.
-        if not self._check_weights(weights):
-            logger.error('Weight emit failed with weight check.')
-            return False
-
-        # Convert weights to integer represenation and get corresponding keys.
-        keys, vals = self._convert_weights(weights)
-
-        # Remove unchanged vals.
-        keys, vals = await self._remove_noop(keys, vals)
-        if len(keys) == 0:
-            logger.error('Weight emit is a no-op.')
-            return False
-
-        # Makes weight emission call.
-        try:
-            await self.subtensor_client.emit(keys, vals, self.__keypair, wait_for_inclusion = False)
-        except Exception as e:
-            logger.warning('Failed to emit weights with error {}, and weights {}', e, list(zip(keys, vals)))
-            return False
-
-        # Checks that weight emission was included in a block after 12 seconds.
-        if wait_for_inclusion:
-            if not await self._wait_for_emit_inclusion(keys, vals, timeout = 12):
-                logger.error('Weight failed with non-inclusion after 12 seconds.')
-                return False
-        return True
-
     def sync(self) -> torch.FloatTensor:
         r""" Synchronizes the local self.state with the chain state.
             Returns:
@@ -579,100 +553,267 @@ class Metagraph():
             info = await self.subtensor_client.neurons(self.__keypair.public_key)
             if time.time() - start_time > timeout:
                 return False
-        return True
+        return True   
+      
+    def emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12):
+        r""" Emits the passed weights to the chain. Optionally Waits for inclusion. 
+        Failures are logged but do not break the process. 
 
-    async def _are_set_on_chain(self, keys, vals) -> bool:
+        Args:
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                weights to set on chain of length self.state.n
+
+            wait_for_inclusion: (bool, default: False):
+                if true, the call waits for inclusion in the block before continuing.
+
+            timeout: (int, default = 12 sec):
+                time to wait for inclusion before raising a caught error.
+        """
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        loop.run_until_complete(self.async_emit(weights, wait_for_inclusion, timeout))
+
+    async def async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> bool:
+        r""" Checks before emitting the passed weights to the chain. Optionally waits for inclusion.
+        Args:
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                weights to set on chain.
+            wait_for_inclusion: (bool):
+                if true, the call waits for block-inclusion before continuing or throws error after timeout.
+            timeout: (int, default = 12 sec):
+                time to wait for inclusion before raising a caught error.
+        Raises:
+            EmitError:
+                Error raised if the emission process produces an error or a timeout
+        """
+        try:
+            # --- Try emit, optionally wait ----
+            await self._try_async_emit(weights, wait_for_inclusion, timeout)
+
+        except EmitSuccess as e:
+            # ---- Success ----
+            chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
+            chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
+            logger.info("Successful emission with new weights {} and keys {}", chain_vals, chain_keys)
+
+        except EmitValueError as e:
+            # ---- Passed weights were incorrect ----
+            logger.warning("Value error during emission: {}", e)
+
+        except EmitUnknownError as e:
+            # ---- Unknown error ----
+            logger.error("Unknown error during emission: {}", EmitValueError)
+
+        except EmitTimeoutError as e:
+            # ---- Timeout while waiting for inclusion ----
+            logger.warning("Emission timeout: {}", e)
+
+        except EmitResultUnknown as e:
+            # ---- Did not wait, result unknown ----
+            logger.trace("Emit results unknown.")
+
+        except EmitNoOp as e:
+            # ---- Emit is a NoOp ----
+            logger.info("When trying to set weights on chain. Weights are unchanged, nothing to emit.")
+
+        except Exception as e:
+            # ---- Unknown error, raises error again. Should never get here ----
+            logger.error("Unknown Error during emission {}", e)
+            raise e
+
+
+    async def _try_async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> bool:
+        r""" Makes emit checks, emits to chain, and raises one of the following errors.
+        Args:
+            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                weights to set on chain.
+
+            wait_for_inclusion: (bool):
+                if true, the call waits for block-inclusion before continuing or throws error after timeout.
+
+            timeout: (int, default = 12 sec):
+                time to wait for inclusion before raising a caught error.
+
+        Raises:
+            EmitSuccess (Exception):
+                Raised when try_async_emit emits weights successfully with known result.
+
+            EmitNoOp(Exception):
+                Raised when calling emit does not change weights on chain.
+
+            EmitUnknownError (Exception):
+                UnknownError during emit.
+
+            EmitValueError (Exception):
+                Raised during emission when passed weights are not properly set.
+
+            EmitTimeoutError (Exception):
+                Raised during emission during a timeout.
+
+            EmitResultUnknown(Exception):
+                Called when an emit step end without a known result, for instance, 
+                if the user has wait_for_inclusion = False.
+        """
+        # --- Check type ----
+        if not isinstance(weights, torch.Tensor):
+            message = "Error trying to set weights on chain. Got weights type {}, but weights must be of type {}".format(type(weights), torch.Tensor)
+            raise EmitValueError(message)
+
+        # ---- Convert weights to list ----
+        weights = [float(w) for w in weights.tolist()]
+
+        # ---- Check length > 0 ----
+        if len(weights) == 0:
+            message = "Error tyring to set weight on china. Got a length 0 set of values, must be at least length 1."
+            raise EmitValueError(message)
+
+        # ---- Check length ----
+        if len(weights) != self.state.n:
+            message = "Error trying to set weights on chain. Got length {}, but the length must match the number of neurons in metagraph.neurons {}".format(len(weights), self.state.n)
+            raise EmitValueError(message)
+
+        # ---- Check approximate sum ----
+        sum_weights = sum(weights)
+        epsilon = 0.001
+        if abs(1.0 - sum_weights) > epsilon:
+            message = "Error trying to set weights on chain. Got {} for sum, but passed weights must sum to 1 ".format(len(sum_weights), self.state.n)
+            raise EmitValueError(message)
+
+        # ---- Check min ----
+        min_weights = min(weights)
+        if min_weights < 0.0:
+            message = "Error trying to set weights on chain. Got min value {} but values must be in range [0,1]".format(min_weights)
+            raise EmitValueError(message)
+
+        # ---- Check max ----
+        max_weights = max(weights)
+        if max_weights > 1.0:
+            message = "Error trying to set weights on chain. Got max value {} but values must be in range [0,1]".format(max_weights)
+            raise EmitValueError(message)
+
+        # ---- Convert Weights to int-vals and pubkeys ----
+        try:
+            weight_keys, weight_vals = self._convert_weights_to_ints(weights)
+        except Exception as e:
+            message = "Unknown error when converting weights to ints with weights {} and error {}".format(weight_vals, e)
+            raise EmitUnknownError(message)
+
+        # ---- Check sum ----
+        weight_sum = sum(weight_vals)
+        if weight_sum != MAX_INT_WEIGHT:
+            message = "Error trying to set weights on chain. Converted weights do not sum to {} with weights_vals {}".format(MAX_INT_WEIGHT, weight_vals)
+            raise EmitValueError(message)
+
+        # ---- Check NO-OP ----
+        if await self._are_set_on_chain(weight_vals, weight_keys):
+            message = "When trying to set weights on chain. Weights are unchanged, nothing to emit."
+            raise EmitNoOp(message)
+
+        # ---- Emit ----
+        start_time = time.time()
+        while True:
+            try:
+                # --- Make emission call ----
+                await self.subtensor_client.emit(weight_keys, weight_vals, self.__keypair, wait_for_inclusion = False)
+                break
+
+            except Exception as e:
+
+                if not wait_for_inclusion:
+                    # --- No wait, and error during emit call ----
+                    message = "Error raised during call to emit {}".format( e )
+                    raise EmitUnknownError(message)
+                
+                elif (time.time() - start_time) > timeout:
+                    # --- Timeout during emit call ----
+                    message = "Timed-out with unknown Error while trying to make the emit call. With last exception {}".format(e)
+                    raise EmitUnknownError(message)
+
+                else:
+                    # --- Wait for inclusion, no error.
+                    continue
+
+        # --- Wait for inclusion ----
+        if not wait_for_inclusion:
+            message = "Emit ended but we don't know if weights were set on chain"
+            raise EmitResultUnknown(message)
+
+        else:
+            while True:
+                did_emit = await self._are_set_on_chain(weight_keys, weight_vals)
+
+                if not did_emit and (time.time() - start_time) > timeout:
+                    # ---- Emit caused timeout  -----
+                    message = "Timed-out while waiting for inclusion."
+                    raise EmitTimeoutError (message)
+
+                elif not did_emit:
+                    # ---- Did not emit, but waiting for inclusion -----
+                    await asyncio.sleep(3)
+                    continue
+
+                else:
+                    # --- Did emit, return latest chain weights ----
+                    messages = "Successful emission"
+                    raise EmitSuccess(messages)
+
+        message = 'Should never get here'
+        logger.critical(message)
+        raise EmitUnknownError(message)
+
+    async def _are_set_on_chain(self, weight_keys, weight_vals) -> bool:
         r""" Returns true if the passed key and vals are set on chain.
         """
         cmap = {}
         chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
         chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
-        for key, val in list(zip(chain_keys, chain_vals)):
-            cmap[key] = val
-        for key, val in list(zip(keys, vals)):
-            if key not in cmap:
+        if chain_keys != None and chain_vals != None:
+            n_same = 0
+            for key, val in list(zip(chain_keys, chain_vals)):
+                cmap[key] = val
+            for key, val in list(zip(weight_keys, weight_vals)):
+                if key in cmap:
+                    if cmap[key] == val:
+                        n_same += 1
+            if n_same == len(weight_vals):
+                return True
+            else:
                 return False
-            if cmap[key] != val:
-                return False 
-        return True
+        else:
+            return False 
 
-    async def _wait_for_emit_inclusion(self, weight_keys, weight_vals, timeout=12):
-        r""" Waits until timeout for the local keys and vals to be set on chain.
-        """
-        start_time = time.time()
-        while not await self._are_set_on_chain(weight_keys, weight_vals):
-            await asyncio.sleep(3)
-            if (time.time() - start_time) > timeout:
-                logger.info('Timeout while waiting for emit inclusion.')
-                return False
-        chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
-        chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
-        #logger.info('Chain weights {}', list(zip(chain_keys,chain_vals)))
-        return True
 
-    async def _remove_noop(self, weight_keys, weight_vals):
-        r""" Removes weights and vals from the chain update which have not changed on chain.
-        Returns:
-            keys, vals:
-                keys, vals with removed noops.
-        """
-        cmap = {}
-        chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
-        chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
-        for key, val in list(zip(chain_keys, chain_vals)):
-            cmap[key] = val
-
-        ret_keys = []
-        ret_vals = []
-        for key, val in list(zip(weight_keys, weight_vals)):
-            if key in cmap:
-                if cmap[key] == val:
-                    continue 
-            ret_keys.append(key)
-            ret_vals.append(val)
-
-        return ret_keys, ret_vals          
-      
-    def _check_weights(self, weights: torch.Tensor):
-        r""" Checks that weights vector being set on chain meet requirements.
-        Returns:
-            valid: (bool)
-                True if the weight being set meet requirements to be set on chain.
-        """
-        as_list = weights.tolist()
-        if len(as_list) != self.state.n:
-            logger.error("Error trying to set weights on chain. Got length {}, but the length must match the number of neurons in self.state.n {}", len(as_lsit), self.state.n)
-            return False
-        sum_list = sum(as_list)
-        epsilon = 0.001
-        if abs(1.0 - sum_list) > epsilon:
-            logger.error("Error trying to set weights on chain. Got {} but sum of weights must equal 1", sum_list)
-            return False
-        min_list = min(as_list)
-        if min_list < 0.0:
-            logger.error("Error trying to set weights on chain. Got min value {} but values must be in range [0,1]", min_list)
-            return False
-        max_list = max(as_list)
-        if max_list > 1.0:
-            logger.error("Error trying to set weights on chain. Got max value {} but values must be in range [0,1]", max_list)
-            return False
-        return True
-
-    def _convert_weights(self, weights: torch.FloatTensor) -> Tuple[List[str], List[int]]:
-        r""" Converts weights into integer u32 representation.
+    def _convert_weights_to_ints(self, weights: List[float]) -> Tuple[List[str], List[int]]:
+        r""" Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
         Returns:
             keys: (List[str]):
                 List of pubkeys associated with each weight from vals.
             vals: (List[int]):
                 List of u32 integer representations of floating point weights.
         """
-        # Convert floats to ints with precision.
-        u32_int_max = 4294967295 # max u32 int value.
-        weight_pubkeys = []
-        weight_vals_as_ints = []
-        for i, val in enumerate(weights.tolist()):
-            weight_pubkeys.append( self.cache.pubkey_for_index[i] ) # Gets the pubkey at this index.
-            int_val = int(float(val) * int(u32_int_max)) # convert to int representation.
-            weight_vals_as_ints.append(int_val) # int weights sum to u32_int_max.
-        return weight_pubkeys, weight_vals_as_ints
+        remainder = MAX_INT_WEIGHT
+        weight_vals = []
+        for i, val in enumerate(weights):
+            int_val = int(float(val) * int(MAX_INT_WEIGHT)) # convert to int representation.
+            remainder -= int_val
+
+            # ---- Fix remainders and overflows ----
+            if remainder < 0:
+                int_val = int_val + remainder
+                remainder = 0
+
+            if i == (len(weights) -1) and remainder > 0: # last item.
+                int_val += remainder
+                remainder = 0
+                
+            weight_vals.append(int_val) # int weights sum to MAX_INT_WEIGHT.
+
+        # ---- Get Pub keys ----
+        weight_keys = []
+        for index in range(self.state.n):
+            neuron = self.state.neurons[index]
+            weight_keys.append( neuron.public_key ) # Gets the pubkey at this index.
+
+        return weight_keys, weight_vals
+
 

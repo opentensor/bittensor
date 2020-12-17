@@ -77,18 +77,20 @@ def main(config: Munch, session: Session):
 
     # --- Test epoch ----
     def test ():
+
         model.eval() # Turns off Dropoutlayers, BatchNorm etc.
-        with torch.no_grad(): # Turns off gradient computation for inference speed up.
-            loss = 0.0; accuracy = 0.0
-            for _, (images, labels) in enumerate(testloader):                
-                # ---- Forward pass ----
-                outputs = model.forward(
-                    images = images.to(model.device), 
-                    targets = torch.LongTensor(labels).to(model.device), 
-                    remote = False # *without* rpc-queries being made.
-                )
-                loss = loss + outputs.loss / len(test_data)
-                accuracy = outputs.metadata['local_accuracy'] / len(test_data)
+        loss = 0.0; accuracy = 0.0
+        for _, (images, labels) in enumerate(testloader):
+
+            # ---- Forward pass ----
+            outputs = model.forward(
+                images = images.to(model.device), 
+                targets = torch.LongTensor(labels).to(model.device), 
+                remote = False # *without* rpc-queries being made.
+            )
+            loss = loss + outputs.loss / len(test_data)
+            accuracy = outputs.metadata['local_accuracy'] / len(test_data)
+            
         return loss, accuracy
 
     # ---- Train epoch ----
@@ -122,7 +124,7 @@ def main(config: Munch, session: Session):
             history.append(output) # Save for later analysis/logs.
             processed = ((batch_idx + 1) * config.neuron.batch_size_train)
             progress = (100. * processed) / len(train_data)
-            logger.info('GS: {} Epoch: {} [{}/{} ({})]\t Loss: {}\t Acc: {}', 
+            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\t Loss: {}\t Acc: {}', 
                     colored('{}'.format(global_step), 'blue'), 
                     colored('{}'.format(epoch), 'blue'), 
                     colored('{}'.format(processed), 'green'), 
@@ -163,7 +165,8 @@ def main(config: Munch, session: Session):
         scheduler.step()
         
         # ---- Test model ----
-        test_loss, test_accuracy = test()
+        with torch.no_grad(): # Turns off gradient computation for inference speed up.
+            test_loss, test_accuracy = test()
 
          # ---- Save Best ----
         if test_loss < best_test_loss:
