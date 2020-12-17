@@ -560,13 +560,13 @@ class Metagraph():
         Failures are logged but do not break the process. 
 
         Args:
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+            Weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 weights to set on chain of length self.state.n
 
-            wait_for_inclusion: (bool, default: False):
+            Wait_for_inclusion: (bool, default: False):
                 if true, the call waits for inclusion in the block before continuing.
 
-            timeout: (int, default = 12 sec):
+            Timeout: (int, default = 12 sec):
                 time to wait for inclusion before raising a caught error.
         """
         loop = asyncio.get_event_loop()
@@ -574,17 +574,16 @@ class Metagraph():
         loop.run_until_complete(self.async_emit(weights, wait_for_inclusion, timeout))
 
     async def async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> bool:
-        r""" Checks before emitting the passed weights to the chain. Optionally waits for inclusion.
+        r""" Calls _try_async_emit, logs results based on raised exception. Only fails on an uncaught Exception.
+        
         Args:
             weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                weights to set on chain.
+                Weights to set on chain.
             wait_for_inclusion: (bool):
-                if true, the call waits for block-inclusion before continuing or throws error after timeout.
+                If true, the call waits for block-inclusion before continuing or throws error after timeout.
             timeout: (int, default = 12 sec):
-                time to wait for inclusion before raising a caught error.
-        Raises:
-            EmitError:
-                Error raised if the emission process produces an error or a timeout
+                Time to wait for inclusion before raising a caught error.
+ 
         """
         try:
             # --- Try emit, optionally wait ----
@@ -602,7 +601,7 @@ class Metagraph():
 
         except EmitUnknownError as e:
             # ---- Unknown error ----
-            logger.error("Unknown error during emission: {}", EmitValueError)
+            logger.error("Unknown error during emission: {}", e)
 
         except EmitTimeoutError as e:
             # ---- Timeout while waiting for inclusion ----
@@ -626,13 +625,13 @@ class Metagraph():
         r""" Makes emit checks, emits to chain, and raises one of the following errors.
         Args:
             weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                weights to set on chain.
+                Weights to set on chain.
 
             wait_for_inclusion: (bool):
-                if true, the call waits for block-inclusion before continuing or throws error after timeout.
+                If true, the call waits for block-inclusion before continuing or throws error after timeout.
 
             timeout: (int, default = 12 sec):
-                time to wait for inclusion before raising a caught error.
+                Time to wait for inclusion before raising a caught error.
 
         Raises:
             EmitSuccess (Exception):
