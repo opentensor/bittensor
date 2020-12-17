@@ -23,7 +23,6 @@ from loguru import logger
 import bittensor
 from bittensor.utils.logging import log_col_weights, log_incentive, log_ranks
 from bittensor.subtensor import Keypair
-from bittensor.utils.logging import log_all
 from bittensor.config import Config
 from bittensor.synapses.ffnn import FFNNSynapse
 

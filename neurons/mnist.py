@@ -97,7 +97,7 @@ def main(config: Munch, session: Session):
         # ---- Init training state ----
         model.train() # Turn on dropout etc.
         session.metagraph.sync() # Sync with the chain.
-        row_weights = session.metagraph.W[ 0, :] # My weights on the chain-state (zeros initially).
+        row_weights = session.metagraph.W[ 0, :].to(device) # My weights on the chain-state (zeros initially).
 
         history = []
         for batch_idx, (images, targets) in enumerate(trainloader):    
@@ -138,7 +138,7 @@ def main(config: Munch, session: Session):
 
             # ---- Update State ----
             batch_weights = torch.mean(output.weights, axis = 0) # Average over batch.
-            row_weights = (1 - 0.03) * row_weights + 0.03 * batch_weights # Moving avg update.
+            row_weights = (1 - 0.03) * row_weights.to(device) + 0.03 * batch_weights # Moving avg update.
             row_weights = F.normalize(row_weights, p = 1, dim = 0) # Ensure normalization.
 
             if (batch_idx+1) % config.neuron.sync_interval == 0:
