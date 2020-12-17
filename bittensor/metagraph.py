@@ -28,27 +28,27 @@ def ip_to_int(str_val):
 
 
 class EmitSuccess (Exception):
-    """ Raised when try_async_emit emits weights successfully with known result """
+    """ Raised when try_async_emit emits successfully with known result. """
     pass
 
 class EmitNoOp(Exception):
-    """ Raised when calling emit does not change weights on chain. """
+    """ Raised when try_async_emit has no weights to change on chain. """
     pass
 
 class EmitUnknownError (Exception):
-    """ UnknownError during emit. """
+    """ UnknownError error thrown during try_async_emit. """
     pass
 
 class EmitValueError (Exception):
-    """ Raised during emission when passed weights are not properly set."""
+    """ Raised during try_async_emit when passed weights are not properly set."""
     pass
 
 class EmitTimeoutError (Exception):
-    """ Raised during emission during a timeout """
+    """ Raised during try_async_emit after a wait_for_inclusion timeout. """
     pass
 
 class EmitResultUnknown(Exception):
-    """ Called when an emit step end without a known result, for instance, if the user has wait_for_inclusion = False """
+    """ Raised when try_async_emit returns without known result, notably when the call has wait_for_inclusion = False """
     pass
 
 class ChainState():
