@@ -27,8 +27,9 @@ def log_all( session: Session, history: List[bittensor.synapse.SynapseOutput] ):
 
 
 def _calculate_request_sizes_sum(session: Session, history: List[bittensor.synapse.SynapseOutput]):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     request_size_list = []
-    request_sizes_sum = torch.zeros(session.metagraph.n)
+    request_sizes_sum = torch.zeros(session.metagraph.n).to(device)
     for output in history:
         request_sizes_sum += output.request_sizes
         request_size_list.append(output.request_sizes)
