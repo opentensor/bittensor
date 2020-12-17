@@ -26,6 +26,17 @@ def int_to_ip(int_val):
 def ip_to_int(str_val):
     return int(netaddr.IPAddress(str_val))
 
+class SubscribeSuccess (Exception):
+    """ Raised when try_async_subscribe successfully subscribes to the chain. """
+    pass
+
+class SubscribeUnknownError(Exception):
+    """ Raised when try_async_subscribe throws an unknown error. """
+    pass
+
+class SubscribeTimeout (Exception):
+    """ Raised when try_async_subscribe times out trying to subscribe to chain. """
+    pass
 
 class EmitSuccess (Exception):
     """ Raised when try_async_emit emits successfully with known result. """
@@ -139,6 +150,7 @@ class TorchChainState():
         self.W = torch.tensor([[]])
         self.neurons = []
         self.uid_for_pubkey = {}
+        self.index_for_pubkey = {}
 
     @staticmethod
     def from_cache(cache: ChainState):
@@ -153,8 +165,9 @@ class TorchChainState():
         state.uids = torch.tensor(copy.deepcopy(cache.uids), dtype=torch.int64)
         state.lastemit = torch.tensor(copy.deepcopy(cache.lastemit), dtype=torch.int64)
         state.stake = torch.tensor(copy.deepcopy(cache.stake), dtype=torch.float32)
-        for uid, n in list(zip(cache.uids, cache.neurons)):
+        for idx, (uid, n) in enumerate(list(zip(cache.uids, cache.neurons))):
             state.uid_for_pubkey[n.public_key] = uid
+            state.index_for_pubkey[n.public_key] = idx
         weights_numpy = numpy.zeros( (state.n, state.n) )
         for i in range(state.n):
             keys = cache.weight_pubkeys[i]
@@ -419,17 +432,33 @@ class Metagraph():
             weights: (:obj:`torch.FloatTensor` of shape :obj:`(-1)`):
                 weights on chain as torch tensor.
         """
+        # --- Get chain weights ----
         chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
-        chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
-        val_sum = sum(chain_vals)
-        retval = torch.zeros(self._n)
-        for key, val in list(zip(chain_keys, chain_vals)):
-            idx = self._index_for_pubkey[key]
-            if idx >= self._n:
-                continue
-            else:
-                retval[idx] = float(val) / float(val_sum)
-        return retval
+        chain_weights = await self.subtensor_client.weight_vals(self.__keypair.public_key)
+        if chain_weights == None or len(chain_weights) == 0:
+            return torch.tensor([])
+
+        else:
+            # ---- To be filled ----
+            return_val = torch.zeros(self.state.n)
+
+            weight_sum = sum(chain_weights)
+            if weight_sum != MAX_INT_WEIGHT:
+                logger.error('Chain weights do not sum to {} with vals {}', MAX_INT_WEIGHT, chain_weights)
+
+            # ---- Fill torch tensor ----
+            for key, weight in list(zip(chain_keys, chain_weights)):
+                if key not in self.state.index_for_pubkey:
+                    logger.critical('key {} on chain not in state.index', key)
+                    continue
+                else:
+                    idx = self.state.index_for_pubkey[key]
+                    if idx >= self.state.n:
+                        logger.critical('idx {} in state.index > state.n', idx)
+                        continue
+                    else:
+                        return_val[idx] = float(weight) / float(weight_sum)
+            return return_val
 
     def chain_block(self):
         r""" Returns the current block on the chain.
@@ -446,23 +475,6 @@ class Metagraph():
             block: (int) block number on chain.
         """
         return await self.subtensor_client.get_current_block()
-
-    def subscribe(self, timeout) -> bool:
-        r""" Syncronous: Makes a subscribe request to the chain. Waits for subscription inclusion or returns False
-        Returns:
-            subscribed: (bool): true if the subscription is a success.
-        """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_subscribe(timeout))
-
-    async def async_subscribe (self, timeout) -> bool:
-        r""" Async: Makes a subscribe request to the chain. Waits for subscription inclusion or returns False
-        Returns:
-            subscribed: (bool): true if the subscription is a success.
-        """
-        await self.subtensor_client.subscribe(self._config.axon.remote_ip, self._config.axon.port)
-        return await self._wait_for_subscription(timeout=12)
 
     def unsubscribe(self) -> bool:
         r""" Syncronous: Unsubscribes the local neuron from the chain.
@@ -541,19 +553,103 @@ class Metagraph():
             traceback.print_exc()
 
 
-    async def _wait_for_subscription(self, timeout=12) -> bool:
-        r""" Async: Waits for subscription info to appear on chain.
+    def subscribe(self, timeout) -> bool:
+        r""" Syncronous: Makes a subscribe request to the chain. Waits for subscription inclusion or returns False
         Returns:
-            subscribed: (bool): true if info is set on chain after timeout.
+            subscribed: (bool): true if the subscription is a success.
+        """
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        return loop.run_until_complete(self.async_subscribe(timeout))
+
+    async def async_subscribe (self, timeout) -> bool:
+        r""" Async: Makes a subscribe request to the chain. Waits for subscription inclusion or returns False
+        Returns:
+            subscribed: (bool): true if the subscription is a success.
+        """
+
+        # ---- Try Subscription ----
+        try:
+            await self._try_async_subscribe(timeout)
+
+        except SubscribeSuccess:
+            info = await self.subtensor_client.neurons(self.__keypair.public_key)
+            logger.info('Successfully wubcribed with: {}', info)
+            return True
+
+        except SubscribeUnknownError as e:
+            logger.error('Subscription through an unknown error: {}', e)
+            return False
+        
+        except SubscribeTimeout as e:
+            logger.error('Subscription timeout {}', e)
+            return False
+
+        except Exception as e:
+            logger.error('Subscription threw uncaught error {}', e)
+            return False
+        
+    async def _try_async_subscribe(self, timeout: int):
+        r""" Makes subscription attempts to the chain, continuing to attempt until timeout and finally waiting for inclusion.
+
+        Args:
+            timeout (int):
+                Time to wait before subscription times out.
+
+        Raises:
+            SubscribeSuccess (Exception):
+                Raised when the subscription is a success before the timeout
+
+            SubscribeUnknownError (Exception):
+                UnknownError during subscription.
+
+            SubscribeTimeout (Exception):
+                Raised when the attempted subscription fails after timeout.
         """
         start_time = time.time()
-        info = await self.subtensor_client.neurons(self.__keypair.public_key)
-        while info == None:
-            await asyncio.sleep(1)
-            info = await self.subtensor_client.neurons(self.__keypair.public_key)
-            if time.time() - start_time > timeout:
-                return False
-        return True   
+        # ---- Make Subscription transaction ----
+        while True:
+            try:
+                await self.subtensor_client.subscribe(self._config.axon.remote_ip, self._config.axon.port)
+                break
+
+            except Exception as e:
+                if (time.time() - start_time) > timeout:
+                    # --- Timeout during emit call ----
+                    message = "Timed-out with Unknown Error while trying to make the subscription call. With last exception {}".format(e)
+                    raise SubscribeUnknownError(message)
+
+                else:
+                    # --- Wait for inclusion, no error.
+                    logger.trace('Error while attempting subscription {}', e)
+                    continue
+
+        # ---- Wait for inclusion ----
+        while True:
+            try:
+                # ---- Request info from chain ----
+                info = await self.subtensor_client.neurons(self.__keypair.public_key)
+
+            except Exception as e:
+                # ---- Catch errors in request ----
+                raise SubscribeUnknownError("Subscription threw unknown exception {}".format(e))
+
+            if info != None:
+                # ---- Subscription was a success ----
+                raise SubscribeSuccess("Subscription success")
+
+            elif time.time() - start_time > timeout:
+                # ---- wait -----
+                return SubscribeTimeout("Subscription timeout")
+
+            else:
+                # ---- wait -----
+                await asyncio.sleep(1)
+
+        # ---- ?! WaT ?! ----
+        logger.critical('Should not get here')
+        raise SubscribeUnknownError('Should not get here')
+
       
     def emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12):
         r""" Emits the passed weights to the chain. Optionally Waits for inclusion. 
@@ -591,9 +687,7 @@ class Metagraph():
 
         except EmitSuccess as e:
             # ---- Success ----
-            chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
-            chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
-            logger.info("Successful emission with new weights {} and keys {}", chain_vals, chain_keys)
+            logger.info("Successful emission.")
 
         except EmitValueError as e:
             # ---- Passed weights were incorrect ----
@@ -605,8 +699,8 @@ class Metagraph():
 
         except EmitTimeoutError as e:
             # ---- Timeout while waiting for inclusion ----
-            logger.warning("Emission timeout: {}", e)
-
+            logger.warning("Emission timeout after {} seconds with error {}", timeout, e)
+        
         except EmitResultUnknown as e:
             # ---- Did not wait, result unknown ----
             logger.trace("Emit results unknown.")
@@ -620,6 +714,8 @@ class Metagraph():
             logger.error("Unknown Error during emission {}", e)
             raise e
 
+        chain_weights = await self.async_chain_weights()
+        logger.info('After emit, weights on chain: {}', chain_weights)
 
     async def _try_async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> bool:
         r""" Makes emit checks, emits to chain, and raises one of the following errors.
@@ -713,10 +809,12 @@ class Metagraph():
         while True:
             try:
                 # --- Make emission call ----
+                logger.debug('Emit -> {} {}', weight_keys, weight_vals)
                 await self.subtensor_client.emit(weight_keys, weight_vals, self.__keypair, wait_for_inclusion = False)
                 break
 
             except Exception as e:
+                logger.trace('Emit error {}', e)
 
                 if not wait_for_inclusion:
                     # --- No wait, and error during emit call ----
@@ -730,6 +828,7 @@ class Metagraph():
 
                 else:
                     # --- Wait for inclusion, no error.
+                    await asyncio.sleep(3) # To avoid ddos-ing the chain.
                     continue
 
         # --- Wait for inclusion ----
