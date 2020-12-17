@@ -28,27 +28,27 @@ def ip_to_int(str_val):
 
 
 class EmitSuccess (Exception):
-    """ Raised when try_async_emit emits weights successfully with known result """
+    """ Raised when try_async_emit emits successfully with known result. """
     pass
 
 class EmitNoOp(Exception):
-    """ Raised when calling emit does not change weights on chain. """
+    """ Raised when try_async_emit has no weights to change on chain. """
     pass
 
 class EmitUnknownError (Exception):
-    """ UnknownError during emit. """
+    """ UnknownError error thrown during try_async_emit. """
     pass
 
 class EmitValueError (Exception):
-    """ Raised during emission when passed weights are not properly set."""
+    """ Raised during try_async_emit when passed weights are not properly set."""
     pass
 
 class EmitTimeoutError (Exception):
-    """ Raised during emission during a timeout """
+    """ Raised during try_async_emit after a wait_for_inclusion timeout. """
     pass
 
 class EmitResultUnknown(Exception):
-    """ Called when an emit step end without a known result, for instance, if the user has wait_for_inclusion = False """
+    """ Raised when try_async_emit returns without known result, notably when the call has wait_for_inclusion = False """
     pass
 
 class ChainState():
@@ -560,13 +560,13 @@ class Metagraph():
         Failures are logged but do not break the process. 
 
         Args:
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+            Weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 weights to set on chain of length self.state.n
 
-            wait_for_inclusion: (bool, default: False):
+            Wait_for_inclusion: (bool, default: False):
                 if true, the call waits for inclusion in the block before continuing.
 
-            timeout: (int, default = 12 sec):
+            Timeout: (int, default = 12 sec):
                 time to wait for inclusion before raising a caught error.
         """
         loop = asyncio.get_event_loop()
@@ -574,17 +574,16 @@ class Metagraph():
         loop.run_until_complete(self.async_emit(weights, wait_for_inclusion, timeout))
 
     async def async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> bool:
-        r""" Checks before emitting the passed weights to the chain. Optionally waits for inclusion.
+        r""" Calls _try_async_emit, logs results based on raised exception. Only fails on an uncaught Exception.
+        
         Args:
             weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                weights to set on chain.
+                Weights to set on chain.
             wait_for_inclusion: (bool):
-                if true, the call waits for block-inclusion before continuing or throws error after timeout.
+                If true, the call waits for block-inclusion before continuing or throws error after timeout.
             timeout: (int, default = 12 sec):
-                time to wait for inclusion before raising a caught error.
-        Raises:
-            EmitError:
-                Error raised if the emission process produces an error or a timeout
+                Time to wait for inclusion before raising a caught error.
+ 
         """
         try:
             # --- Try emit, optionally wait ----
@@ -602,7 +601,7 @@ class Metagraph():
 
         except EmitUnknownError as e:
             # ---- Unknown error ----
-            logger.error("Unknown error during emission: {}", EmitValueError)
+            logger.error("Unknown error during emission: {}", e)
 
         except EmitTimeoutError as e:
             # ---- Timeout while waiting for inclusion ----
@@ -626,13 +625,13 @@ class Metagraph():
         r""" Makes emit checks, emits to chain, and raises one of the following errors.
         Args:
             weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                weights to set on chain.
+                Weights to set on chain.
 
             wait_for_inclusion: (bool):
-                if true, the call waits for block-inclusion before continuing or throws error after timeout.
+                If true, the call waits for block-inclusion before continuing or throws error after timeout.
 
             timeout: (int, default = 12 sec):
-                time to wait for inclusion before raising a caught error.
+                Time to wait for inclusion before raising a caught error.
 
         Raises:
             EmitSuccess (Exception):
