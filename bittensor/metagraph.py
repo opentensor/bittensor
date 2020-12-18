@@ -26,42 +26,6 @@ def int_to_ip(int_val):
 def ip_to_int(str_val):
     return int(netaddr.IPAddress(str_val))
 
-class SubscribeSuccess (Exception):
-    """ Raised when try_async_subscribe successfully subscribes to the chain. """
-    pass
-
-class SubscribeUnknownError(Exception):
-    """ Raised when try_async_subscribe throws an unknown error. """
-    pass
-
-class SubscribeTimeout (Exception):
-    """ Raised when try_async_subscribe times out trying to subscribe to chain. """
-    pass
-
-class EmitSuccess (Exception):
-    """ Raised when try_async_emit emits successfully with known result. """
-    pass
-
-class EmitNoOp(Exception):
-    """ Raised when try_async_emit has no weights to change on chain. """
-    pass
-
-class EmitUnknownError (Exception):
-    """ UnknownError error thrown during try_async_emit. """
-    pass
-
-class EmitValueError (Exception):
-    """ Raised during try_async_emit when passed weights are not properly set."""
-    pass
-
-class EmitTimeoutError (Exception):
-    """ Raised during try_async_emit after a wait_for_inclusion timeout. """
-    pass
-
-class EmitResultUnknown(Exception):
-    """ Raised when try_async_emit returns without known result, notably when the call has wait_for_inclusion = False """
-    pass
-
 class ChainState():
     def __init__(self):
         # Cached values.
@@ -560,6 +524,10 @@ class Metagraph():
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_subscribe(timeout))
 
+
+    SubscribeSuccess = 1
+    SubscribeUnknownError = 2
+    SubscribeTimeout = 3
     async def async_subscribe (self, timeout) -> bool:
         r""" Async: Makes a subscribe request to the chain. Waits for subscription inclusion or returns False
         Returns:
@@ -568,20 +536,20 @@ class Metagraph():
 
         # ---- Try Subscription ----
         try:
-            await self._try_async_subscribe(timeout)
+            code, message = await self._try_async_subscribe(timeout)
 
-        except SubscribeSuccess:
-            info = await self.subtensor_client.neurons(self.__keypair.public_key)
-            logger.info('Successfully subcribed session with: {}', info)
-            return True
+            if code == Metagraph.SubscribeSuccess:
+                info = await self.subtensor_client.neurons(self.__keypair.public_key)
+                logger.info('Successfully subcribed session with: {}', info)
+                return True
 
-        except SubscribeUnknownError as e:
-            logger.error('Subscription threw an unknown error: {}', e)
-            return False
-        
-        except SubscribeTimeout as e:
-            logger.error('Subscription timeout {}', e)
-            return False
+            elif code == Metagraph.SubscribeUnknownError:
+                logger.error('Subscription threw an unknown error: {}', message)
+                return False
+
+            elif code == Metagraph.SubscribeTimeout:
+                logger.error('Subscription timeout {}', message)
+                return False
 
         except Exception as e:
             logger.error('Subscription threw an uncaught error {}', e)
@@ -595,13 +563,13 @@ class Metagraph():
                 Time to wait before subscription times out.
 
         Raises:
-            SubscribeSuccess (Exception):
+            SubscribeSuccess:
                 Raised when the subscription is a success before the timeout
 
-            SubscribeUnknownError (Exception):
+            SubscribeUnknownError:
                 UnknownError during subscription.
 
-            SubscribeTimeout (Exception):
+            SubscribeTimeout:
                 Raised when the attempted subscription fails after timeout.
         """
         start_time = time.time()
@@ -615,7 +583,7 @@ class Metagraph():
                 if (time.time() - start_time) > timeout:
                     # --- Timeout during emit call ----
                     message = "Timed-out with Unknown Error while trying to make the subscription call. With last exception {}".format(e)
-                    raise SubscribeUnknownError(message)
+                    return Metagraph.SubscribeUnknownError, message
 
                 else:
                     # --- Wait for inclusion, no error.
@@ -630,15 +598,16 @@ class Metagraph():
 
             except Exception as e:
                 # ---- Catch errors in request ----
-                raise SubscribeUnknownError("Subscription threw an unknown exception {}".format(e))
+                message = "Subscription threw an unknown exception {}".format(e)
+                return Metagraph.SubscribeUnknownError, message
 
             if info != None:
                 # ---- Subscription was a success ----
-                raise SubscribeSuccess("Subscription success")
+                return Metagraph.SubscribeSuccess, "Subscription success"
 
             elif time.time() - start_time > timeout:
                 # ---- wait -----
-                return SubscribeTimeout("Subscription timeout")
+                return Metagraph.SubscribeTimeout, "Subscription timeout"
 
             else:
                 # ---- wait -----
@@ -646,7 +615,7 @@ class Metagraph():
 
         # ---- ?! WaT ?! ----
         logger.critical('Should not get here')
-        raise SubscribeUnknownError('Should not get here')
+        return SubscribeUnknownError, 'Should not get here'
 
       
     def emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12):
@@ -667,6 +636,13 @@ class Metagraph():
         loop.set_debug(enabled=True)
         loop.run_until_complete(self.async_emit(weights, wait_for_inclusion, timeout))
 
+
+    EmitSuccess = 1
+    EmitValueError = 2
+    EmitUnknownError = 3
+    EmitTimeoutError = 4
+    EmitTimeoutError = 5
+    EmitNoOp = 6
     async def async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> bool:
         r""" Calls _try_async_emit, logs results based on raised exception. Only fails on an uncaught Exception.
         
@@ -679,33 +655,32 @@ class Metagraph():
                 Time to wait for inclusion before raising a caught error.
  
         """
+        # --- Try emit, optionally wait ----
         try:
-            # --- Try emit, optionally wait ----
-            await self._try_async_emit(weights, wait_for_inclusion, timeout)
+            code, message= await self._try_async_emit(weights, wait_for_inclusion, timeout)
+            if code == Metagraph.EmitSuccess:
+                # ---- Emit was a success. ----
+                logger.info("Successful emission.")
 
-        except EmitSuccess as e:
-            # ---- Success ----
-            logger.info("Successful emission.")
+            elif code == Metagraph.EmitValueError:
+                # ---- Passed weights were incorrect ----
+                logger.warning("Value error during emission: {}", message)
 
-        except EmitValueError as e:
-            # ---- Passed weights were incorrect ----
-            logger.warning("Value error during emission: {}", e)
+            elif code == Metagraph.EmitUnknownError:
+                # ---- Unknown error ----
+                logger.error("Unknown error during emission: {}", message)
 
-        except EmitUnknownError as e:
-            # ---- Unknown error ----
-            logger.error("Unknown error during emission: {}", e)
+            elif code == Metagraph.EmitTimeoutError:
+                # ---- Timeout while waiting for inclusion ----
+                logger.warning("Emission timeout after {} seconds with error {}", timeout, message)
+            
+            elif code == Metagraph.EmitResultUnknown:
+                # ---- Did not wait, result unknown ----
+                logger.trace("Emit results unknown.")
 
-        except EmitTimeoutError as e:
-            # ---- Timeout while waiting for inclusion ----
-            logger.warning("Emission timeout after {} seconds with error {}", timeout, e)
-        
-        except EmitResultUnknown as e:
-            # ---- Did not wait, result unknown ----
-            logger.trace("Emit results unknown.")
-
-        except EmitNoOp as e:
-            # ---- Emit is a NoOp ----
-            logger.info("When trying to set weights on chain. Weights are unchanged, nothing to emit.")
+            elif code == Metagraph.EmitNoOp:
+                # ---- Emit is a NoOp ----
+                logger.info("When trying to set weights on chain. Weights are unchanged, nothing to emit.")
 
         except Exception as e:
             # ---- Unknown error, raises error again. Should never get here ----
@@ -728,29 +703,29 @@ class Metagraph():
                 Time to wait for inclusion before raising a caught error.
 
         Raises:
-            EmitSuccess (Exception):
+            EmitSuccess:
                 Raised when try_async_emit emits weights successfully with known result.
 
-            EmitNoOp(Exception):
+            EmitNoOp:
                 Raised when calling emit does not change weights on chain.
 
-            EmitUnknownError (Exception):
+            EmitUnknownError:
                 UnknownError during emit.
 
-            EmitValueError (Exception):
+            EmitValueError:
                 Raised during emission when passed weights are not properly set.
 
-            EmitTimeoutError (Exception):
+            EmitTimeoutError:
                 Raised during emission during a timeout.
 
-            EmitResultUnknown(Exception):
+            EmitResultUnknown:
                 Called when an emit step end without a known result, for instance, 
                 if the user has wait_for_inclusion = False.
         """
         # --- Check type ----
         if not isinstance(weights, torch.Tensor):
             message = "Error trying to set weights on chain. Got weights type {}, but weights must be of type {}".format(type(weights), torch.Tensor)
-            raise EmitValueError(message)
+            return Metagraph.EmitValueError, message
 
         # ---- Convert weights to list ----
         weights = [float(w) for w in weights.tolist()]
@@ -758,49 +733,49 @@ class Metagraph():
         # ---- Check length > 0 ----
         if len(weights) == 0:
             message = "Error tyring to set weight on china. Got a length 0 set of values, must be at least length 1."
-            raise EmitValueError(message)
+            return Metagraph.EmitValueError, message
 
         # ---- Check length ----
         if len(weights) != self.state.n:
             message = "Error trying to set weights on chain. Got length {}, but the length must match the number of neurons in metagraph.neurons {}".format(len(weights), self.state.n)
-            raise EmitValueError(message)
+            return Metagraph.EmitValueError, message
 
         # ---- Check approximate sum ----
         sum_weights = sum(weights)
         epsilon = 0.001
         if abs(1.0 - sum_weights) > epsilon:
             message = "Error trying to set weights on chain. Got {} for sum, but passed weights must sum to 1 ".format(len(sum_weights), self.state.n)
-            raise EmitValueError(message)
+            return Metagraph.EmitValueError, message
 
         # ---- Check min ----
         min_weights = min(weights)
         if min_weights < 0.0:
             message = "Error trying to set weights on chain. Got min value {} but values must be in range [0,1]".format(min_weights)
-            raise EmitValueError(message)
+            return Metagraph.EmitValueError, message
 
         # ---- Check max ----
         max_weights = max(weights)
         if max_weights > 1.0:
             message = "Error trying to set weights on chain. Got max value {} but values must be in range [0,1]".format(max_weights)
-            raise EmitValueError(message)
+            return Metagraph.EmitValueError, message
 
         # ---- Convert Weights to int-vals and pubkeys ----
         try:
             weight_keys, weight_vals = self._convert_weights_to_ints(weights)
         except Exception as e:
             message = "Unknown error when converting weights to ints with weights {} and error {}".format(weight_vals, e)
-            raise EmitUnknownError(message)
+            return Metagraph.EmitUnknownError, message
 
         # ---- Check sum ----
         weight_sum = sum(weight_vals)
         if weight_sum != MAX_INT_WEIGHT:
             message = "Error trying to set weights on chain. Converted weights do not sum to {} with weights_vals {}".format(MAX_INT_WEIGHT, weight_vals)
-            raise EmitValueError(message)
+            return Metagraph.EmitValueError, message
 
         # ---- Check NO-OP ----
         if await self._are_set_on_chain(weight_vals, weight_keys):
             message = "When trying to set weights on chain. Weights are unchanged, nothing to emit."
-            raise EmitNoOp(message)
+            return Metagraph.EmitNoOp, message
 
         # ---- Emit ----
         start_time = time.time()
@@ -817,12 +792,12 @@ class Metagraph():
                 if not wait_for_inclusion:
                     # --- No wait, and error during emit call ----
                     message = "Error raised during call to emit {}".format( e )
-                    raise EmitUnknownError(message)
+                    return Metagraph.EmitUnknownError, message
                 
                 elif (time.time() - start_time) > timeout:
                     # --- Timeout during emit call ----
                     message = "Timed-out with unknown Error while trying to make the emit call. With last exception {}".format(e)
-                    raise EmitUnknownError(message)
+                    return Metagraph.EmitUnknownError, message
 
                 else:
                     # --- Wait for inclusion, no error.
@@ -832,7 +807,7 @@ class Metagraph():
         # --- Wait for inclusion ----
         if not wait_for_inclusion:
             message = "Emit ended but we don't know if weights were set on chain"
-            raise EmitResultUnknown(message)
+            return Metagraph.EmitResultUnknown, message
 
         else:
             while True:
@@ -841,7 +816,7 @@ class Metagraph():
                 if not did_emit and (time.time() - start_time) > timeout:
                     # ---- Emit caused timeout  -----
                     message = "Timed-out while waiting for inclusion."
-                    raise EmitTimeoutError (message)
+                    return Metagraph.EmitTimeoutError, message
 
                 elif not did_emit:
                     # ---- Did not emit, but waiting for inclusion -----
@@ -851,11 +826,11 @@ class Metagraph():
                 else:
                     # --- Did emit, return latest chain weights ----
                     messages = "Successful emission"
-                    raise EmitSuccess(messages)
+                    return Metagraph.EmitSuccess, messages
 
         message = 'Should never get here'
         logger.critical(message)
-        raise EmitUnknownError(message)
+        return Metagraph.EmitUnknownError, message
 
     async def _are_set_on_chain(self, weight_keys, weight_vals) -> bool:
         r""" Returns true if the passed key and vals are set on chain.

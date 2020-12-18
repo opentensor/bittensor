@@ -9,7 +9,7 @@ class WSClient:
         "types": {
             "NeuronMetadataOf": {
                 "type": "struct",
-                "type_mapping": [["ip", "u128"], ["port", "u16"], ["ip_type", "u8"], ["coldkey", "AccountId"]]
+                "type_mapping": [["ip", "u128"], ["port", "u16"], ["ip_type", "u8"], ["uid", "u64"], ["coldkey", "AccountId"]]
             }
         }
     }
