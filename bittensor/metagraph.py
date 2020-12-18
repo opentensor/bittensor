@@ -615,7 +615,7 @@ class Metagraph():
 
         # ---- ?! WaT ?! ----
         logger.critical('Should not get here')
-        return SubscribeUnknownError, 'Should not get here'
+        return Metagraph.SubscribeUnknownError, 'Should not get here'
 
       
     def emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12):
