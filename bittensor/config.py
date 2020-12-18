@@ -13,7 +13,7 @@ from bittensor.axon import Axon
 from bittensor.session import Session, KeyError
 from bittensor.dendrite import Dendrite
 from bittensor.metagraph import Metagraph
-from bittensor.metadata import Metadata
+from bittensor.nucleus import Nucleus
 from bittensor.subtensor.interface import Keypair, KeypairRepresenter
 
 
@@ -62,6 +62,7 @@ class Config:
         Dendrite.add_args(parser)
         Metagraph.add_args(parser)
         Session.add_args(parser)
+        Nucleus.add_args(parser)
        
         # 2. Parse.
         params = parser.parse_known_args()[0]
@@ -86,6 +87,8 @@ class Config:
             Session.check_config(config)
             Metagraph.check_config(config)
             Axon.check_config(config)
+            Nucleus.check_config(config)
+
         except KeyFileError:
             quit()
 
