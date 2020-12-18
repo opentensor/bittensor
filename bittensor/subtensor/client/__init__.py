@@ -7,9 +7,9 @@ class WSClient:
     custom_type_registry = {
         "runtime_id": 2,
         "types": {
-            "NeuronMetadata": {
+            "NeuronMetadataOf": {
                 "type": "struct",
-                "type_mapping": [["ip", "u128"], ["port", "u16"], ["ip_type", "u8"]]
+                "type_mapping": [["ip", "u128"], ["port", "u16"], ["ip_type", "u8"], ["coldkey", "AccountId"]]
             }
         }
     }
@@ -51,9 +51,13 @@ class WSClient:
     def is_connected(self):
         return self.substrate.is_connected()
 
-    async def subscribe(self, ip: str, port: int):
-        params = {'ip': self.__ip_to_int(ip),
-                  'port': port, 'ip_type': 4}
+    async def subscribe(self, ip: str, port: int, coldkey: str):
+        params = {
+            'ip': self.__ip_to_int(ip),
+            'port': port, 
+            'ip_type': 4,
+            'coldkey': coldkey
+        }
 
         call = await self.substrate.compose_call(
             call_module='SubtensorModule',

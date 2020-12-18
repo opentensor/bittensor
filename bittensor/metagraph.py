@@ -187,8 +187,6 @@ class Metagraph():
         Args:
             config (bittensor.Config):
                 An bittensor config object.
-            keypair (substrateinterface.Keypair):
-                An bittensor keys object.
         """
         # Protected vars
         self._config = config
@@ -574,11 +572,11 @@ class Metagraph():
 
         except SubscribeSuccess:
             info = await self.subtensor_client.neurons(self.__keypair.public_key)
-            logger.info('Successfully wubcribed with: {}', info)
+            logger.info('Successfully subcribed session with: {}', info)
             return True
 
         except SubscribeUnknownError as e:
-            logger.error('Subscription through an unknown error: {}', e)
+            logger.error('Subscription threw an unknown error: {}', e)
             return False
         
         except SubscribeTimeout as e:
@@ -586,7 +584,7 @@ class Metagraph():
             return False
 
         except Exception as e:
-            logger.error('Subscription threw uncaught error {}', e)
+            logger.error('Subscription threw an uncaught error {}', e)
             return False
         
     async def _try_async_subscribe(self, timeout: int):
@@ -610,7 +608,7 @@ class Metagraph():
         # ---- Make Subscription transaction ----
         while True:
             try:
-                await self.subtensor_client.subscribe(self._config.axon.remote_ip, self._config.axon.port)
+                await self.subtensor_client.subscribe(self._config.axon.remote_ip, self._config.axon.port, self._config.session.coldkey)
                 break
 
             except Exception as e:
@@ -632,7 +630,7 @@ class Metagraph():
 
             except Exception as e:
                 # ---- Catch errors in request ----
-                raise SubscribeUnknownError("Subscription threw unknown exception {}".format(e))
+                raise SubscribeUnknownError("Subscription threw an unknown exception {}".format(e))
 
             if info != None:
                 # ---- Subscription was a success ----

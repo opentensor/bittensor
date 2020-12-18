@@ -11,7 +11,6 @@ from bittensor.metagraph import Metagraph
 from bittensor.nucleus import Nucleus
 from bittensor.utils.asyncio import Asyncio
 from bittensor.subtensor.interface import Keypair
-from bittensor.metadata import Metadata
 from bittensor.exceptions.handlers import rollbar
 from loguru import logger
 from bittensor.crypto import is_encrypted
@@ -85,7 +84,13 @@ class Session:
                 data = Session.decrypt_data(data)
 
             keypair = Session.load_keypair_from_data(data)
-            config.session.keypair = keypair
+            config.session.coldkey = keypair.public_key
+
+        # ---- Create a new hotkey
+        hotkey_mnemonic = Keypair.generate_mnemonic()
+        logger.info('hotkey: {}', hotkey_mnemonic)
+        hotkey = Keypair.create_from_mnemonic(hotkey_mnemonic)
+        config.session.keypair = hotkey
 
     @staticmethod
     def load_keypair_from_data(data) -> Keypair:
