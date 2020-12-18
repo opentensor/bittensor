@@ -42,19 +42,17 @@ class Axon(bittensor_grpc.BittensorServicer):
     It recieves Forward and Backward requests and process the corresponding Synapse.call_forward and Synapse.call_backward.
     
     """
-    def __init__(self, config):
+    def __init__(self, config, nucleus):
         r""" Initializes a new Axon endpoint with passed config and keypair.
             Args:
                 config (:obj:`Munch`, `required`): 
                     bittensor Munch config.
-                keypair (:obj:`substrateinterface.Keypair`, `required`): 
-                    bittensor keypair.
+                nucleus (:obj:`bittensor.nucleus.Nucleus`, `required`):
+                    backend processing nucleus.
         """
         self._config = config
         self.__keypair = config.session.keypair
-
-        # Background threaded processing object.
-        self._nucleus = Nucleus(config)
+        self._nucleus = nucleus
 
         # Init server objects.
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=self._config.axon.max_workers))
@@ -92,7 +90,6 @@ class Axon(bittensor_grpc.BittensorServicer):
         parser.add_argument('--axon.remote_ip', default=None, type=str, help='Remote IP to serve to chain.')
         parser.add_argument('--axon.max_workers', default=10, type=int, help='Max number connection handler threads working simultaneously.')
         parser.add_argument('--axon.max_gradients', default=100, type=int, help='Max number of lingering gradient stored in the gradient queue')
-        Nucleus.add_args(parser)
 
     @staticmethod   
     def check_config(config: Munch):
@@ -104,7 +101,6 @@ class Axon(bittensor_grpc.BittensorServicer):
         logger.info('obtaining remote ip ...')
         config = obtain_ip(config)
         assert config.axon.port > 1024 and config.axon.port < 65535, 'config.axon.port must be in range [1024, 65535]'
-        Nucleus.check_config(config)
 
     def serve(self, synapse: Synapse):
         r""" Set the synapse being served on this axon endpoint. 

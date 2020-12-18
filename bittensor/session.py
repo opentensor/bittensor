@@ -8,6 +8,7 @@ from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
+from bittensor.nucleus import Nucleus
 from bittensor.utils.asyncio import Asyncio
 from bittensor.subtensor.interface import Keypair
 from bittensor.metadata import Metadata
@@ -41,13 +42,12 @@ class KeyFileError(Exception):
 class KeyError(Exception):
     pass
 
-
-
 class Session:
     def __init__(self, config):
         self.config = config
         self.metagraph = Metagraph(self.config)
-        self.axon = Axon(self.config)
+        self.nucleus = Nucleus(self.config)
+        self.axon = Axon(self.config, self.nucleus)
         self.dendrite = Dendrite(self.config)
 
     @staticmethod   
@@ -184,7 +184,11 @@ class Session:
 
         logger.info('Subscribe to chain ...')
         try:
-            self.metagraph.subscribe(10)
+            is_subscribed = self.metagraph.subscribe(12)
+            if is_subscribed == False:
+                logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
+                raise FailedToEnterSession
+
         except Exception as e:
             logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
             raise FailedToEnterSession
