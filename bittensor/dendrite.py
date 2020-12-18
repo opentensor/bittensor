@@ -38,9 +38,6 @@ class Dendrite(nn.Module):
     Args:
         config (:obj:`bittensor.Config`, `required`):
             Bittensor config object.
-
-        keypair (:obj:`bittensor.subtensor.Keypair`, `required`):
-            keypair object for signing forward and backward calls.
     """
 
     def __init__(self, config):
