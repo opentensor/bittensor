@@ -109,11 +109,11 @@ class WSClient:
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
-    async def get_stake(self, pubkey):
+    async def get_stake(self, uid):
         stake = await self.substrate.get_runtime_state(
             module='SubtensorModule',
             storage_function='Stake',
-            params=[pubkey]
+            params = [uid]
         )
 
         return stake['result']
@@ -128,23 +128,20 @@ class WSClient:
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=wait_for_inclusion)
 
-
-    async def weight_keys(self, pubkey):
+    async def weight_keys(self, uid):
         result = await self.substrate.get_runtime_state(
             module='SubtensorModule',
-            storage_function='WeightKeys',
-            params=[pubkey]
+            storage_function='WeightUids',
+            params = [uid]
         )
 
         return result['result']
 
-
-
-    async def weight_vals(self, pubkey):
+    async def weight_vals(self, uid):
         result = await self.substrate.get_runtime_state(
             module='SubtensorModule',
             storage_function='WeightVals',
-            params=[pubkey]
+            params = [uid]
         )
 
         return result['result']
@@ -179,12 +176,12 @@ class WSClient:
     async def get_current_block(self):
         return await self.substrate.get_block_number(None)
 
-    async def get_last_emit_data(self, pubkey=None):
-        if pubkey:
+    async def get_last_emit_data(self, uid=None):
+        if uid:
             result = await self.substrate.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='LastEmit',
-                params=[pubkey]
+                params = [uid]
             )
 
             return result['result']

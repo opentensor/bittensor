@@ -35,38 +35,39 @@ class ChainState():
         self.stake = []
         self.lastemit = []
         self.neuron_weights = []
-        self.weight_pubkeys = []
+        self.weight_uids = []
         self.weight_vals = []
         self.neurons = []
         self.index_for_uid = {}
         self.index_for_pubkey = {}
         self.pubkey_for_index = {}
 
-    def add_or_update(self, pubkey:str, ip: int, port: int, lastemit: int, stake: int, w_keys: List[str], w_vals: List[int]):
+    def add_or_update(self, pubkey:str, ip: int, port: int, uid: int, ip_type: int, lastemit: int, stake: int, w_uids: List[str], w_vals: List[int]):
         neuron = bittensor_pb2.Neuron(
-            version=bittensor.__version__,
-            public_key=pubkey,
-            address=int_to_ip(ip),
-            port=int(port)
+            version = bittensor.__version__,
+            public_key = pubkey,
+            address = int_to_ip(ip),
+            port = int(port),
+            ip_type = int(iptype),
+            uid = int(uid),
         )
         if pubkey in self.index_for_pubkey:
             index = self.index_for_pubkey[pubkey]
             self.neurons[index] = neuron
             self.stake[index] = float(stake)
             self.lastemit[index] = int(lastemit)
-            self.weight_pubkeys[index] = list(w_keys)
+            self.weight_uids[index] = list(w_uids)
             self.weight_vals[index] = list(w_vals)
+            self.uids[index] = int(uid)
         else:
             index = self.n
-            uid = self.next_uid
             self.n += 1
-            self.next_uid += 1
             self.index_for_pubkey[pubkey] = index
             self.pubkey_for_index[index] = pubkey
             self.neurons.append(neuron)
             self.stake.append(float(stake))
             self.lastemit.append(int(lastemit))
-            self.weight_pubkeys.append(list(w_keys))
+            self.weight_uids.append(list(w_uids))
             self.weight_vals.append(list(w_vals))
             self.uids.append( uid )
             self.index_for_uid[uid] = index
@@ -131,15 +132,15 @@ class TorchChainState():
         state.stake = torch.tensor(copy.deepcopy(cache.stake), dtype=torch.float32)
         for idx, (uid, n) in enumerate(list(zip(cache.uids, cache.neurons))):
             state.uid_for_pubkey[n.public_key] = uid
-            state.index_for_pubkey[n.public_key] = idx
+            state.index_for_uid[uid] = idx
         weights_numpy = numpy.zeros( (state.n, state.n) )
         for i in range(state.n):
-            keys = cache.weight_pubkeys[i]
+            uids = cache.weight_uids[i]
             vals = cache.weight_vals[i]
             val_sum = sum(vals)
-            for k, val in list(zip(keys, vals)):
-                if k in cache.index_for_pubkey:
-                    j = cache.index_for_pubkey[k]
+            for uid, val in list(zip(uids, vals)):
+                if uid in cache.index_for_uid:
+                    j = cache.index_for_uid[uid]
                     weights_numpy[i, j] = float(val) / float(val_sum)
         state.W = torch.tensor(weights_numpy, dtype=torch.float32)
         return state
@@ -395,7 +396,7 @@ class Metagraph():
                 weights on chain as torch tensor.
         """
         # --- Get chain weights ----
-        chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
+        chain_uids = await self.subtensor_client.weight_uids(self.__keypair.public_key)
         chain_weights = await self.subtensor_client.weight_vals(self.__keypair.public_key)
         if chain_weights == None or len(chain_weights) == 0:
             return torch.tensor([])
@@ -409,12 +410,12 @@ class Metagraph():
                 logger.error('Chain weights do not sum to {} with vals {}', MAX_INT_WEIGHT, chain_weights)
 
             # ---- Fill torch tensor ----
-            for key, weight in list(zip(chain_keys, chain_weights)):
-                if key not in self.state.index_for_pubkey:
-                    logger.critical('key {} on chain not in state.index', key)
+            for uid, weight in list(zip(chain_uids, chain_weights)):
+                if uid not in self.state.index_for_uid:
+                    logger.critical('uid {} on chain not in state.index', uid)
                     continue
                 else:
-                    idx = self.state.index_for_pubkey[key]
+                    idx = self.state.index_for_uid[ uid ]
                     if idx >= self.state.n:
                         logger.critical('idx {} in state.index > state.n', idx)
                         continue
@@ -493,23 +494,22 @@ class Metagraph():
         # Make asyncronous calls to chain filling local state cache.
         calls = []
         current_block = await self.async_chain_block()
-        emits = await self.subtensor_client.get_last_emit_data()
-        for (pubkey, last_emit) in emits:
-                # Filter based on stale emissions.
+        neurons = await self.subtensor_client.neurons()
+        for (pubkey, neuron) in neurons:
+                last_emit = await self.subtensor_client.get_last_emit_data(neuron['uid'])
                 if (current_block - last_emit) < self._config.metagraph.stale_emit_filter:
-                    calls.append(self._poll_pubkey(pubkey))
+                    calls.append(self._poll_pubkey(neuron, pubkey))
         await asyncio.gather(*calls)
 
-    async def _poll_pubkey(self, pubkey):
+    async def _poll_pubkey(self, neuron, pubkey):
         r""" Polls info info for a specfic public key.
         """
         try:
-            stake = await self.subtensor_client.get_stake(pubkey)
-            lastemit = await self.subtensor_client.get_last_emit_data(pubkey)
-            info = await self.subtensor_client.neurons(pubkey)
-            w_keys = await self.subtensor_client.weight_keys(pubkey)
-            w_vals = await self.subtensor_client.weight_vals(pubkey)
-            self.cache.add_or_update(pubkey = pubkey, ip = info['ip'], port = info['port'], lastemit = lastemit, stake = stake, w_keys = w_keys, w_vals = w_vals)
+            stake = await self.subtensor_client.get_stake(neuron['uid'])
+            lastemit = await self.subtensor_client.get_last_emit_data(neuron['uid'])
+            w_uids = await self.subtensor_client.weight_uids(neuron['uid'])
+            w_vals = await self.subtensor_client.weight_vals(neuron['uid'])
+            self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], lastemit = lastemit, stake = stake, w_uids = w_uids, w_vals = w_vals)
         except Exception as e:
             logger.error("Exception occurred: {}".format(e))
             traceback.print_exc()
@@ -761,7 +761,7 @@ class Metagraph():
 
         # ---- Convert Weights to int-vals and pubkeys ----
         try:
-            weight_keys, weight_vals = self._convert_weights_to_ints(weights)
+            weight_uids, weight_vals = self._convert_weights_to_ints(weights)
         except Exception as e:
             message = "Unknown error when converting weights to ints with weights {} and error {}".format(weight_vals, e)
             return Metagraph.EmitUnknownError, message
@@ -773,7 +773,7 @@ class Metagraph():
             return Metagraph.EmitValueError, message
 
         # ---- Check NO-OP ----
-        if await self._are_set_on_chain(weight_vals, weight_keys):
+        if await self._are_set_on_chain(weight_vals, weight_uids):
             message = "When trying to set weights on chain. Weights are unchanged, nothing to emit."
             return Metagraph.EmitNoOp, message
 
@@ -782,8 +782,8 @@ class Metagraph():
         while True:
             try:
                 # --- Make emission call ----
-                logger.debug('Emit -> {} {}', weight_keys, weight_vals)
-                await self.subtensor_client.emit(weight_keys, weight_vals, self.__keypair, wait_for_inclusion = False)
+                logger.debug('Emit -> {} {}', weight_uids, weight_vals)
+                await self.subtensor_client.emit(weight_uids, weight_vals, self.__keypair, wait_for_inclusion = False)
                 break
 
             except Exception as e:
@@ -811,7 +811,7 @@ class Metagraph():
 
         else:
             while True:
-                did_emit = await self._are_set_on_chain(weight_keys, weight_vals)
+                did_emit = await self._are_set_on_chain(weight_uids, weight_vals)
 
                 if not did_emit and (time.time() - start_time) > timeout:
                     # ---- Emit caused timeout  -----
@@ -832,17 +832,17 @@ class Metagraph():
         logger.critical(message)
         return Metagraph.EmitUnknownError, message
 
-    async def _are_set_on_chain(self, weight_keys, weight_vals) -> bool:
+    async def _are_set_on_chain(self, weight_uids, weight_vals) -> bool:
         r""" Returns true if the passed key and vals are set on chain.
         """
         cmap = {}
-        chain_keys = await self.subtensor_client.weight_keys(self.__keypair.public_key)
+        chain_keys = await self.subtensor_client.weight_uids(self.__keypair.public_key)
         chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
         if chain_keys != None and chain_vals != None:
             n_same = 0
             for key, val in list(zip(chain_keys, chain_vals)):
                 cmap[key] = val
-            for key, val in list(zip(weight_keys, weight_vals)):
+            for key, val in list(zip(weight_uids, weight_vals)):
                 if key in cmap:
                     if cmap[key] == val:
                         n_same += 1
@@ -879,12 +879,12 @@ class Metagraph():
                 
             weight_vals.append(int_val) # int weights sum to MAX_INT_WEIGHT.
 
-        # ---- Get Pub keys ----
-        weight_keys = []
+        # ---- Get uids  ----
+        weight_uids = []
         for index in range(self.state.n):
             neuron = self.state.neurons[index]
-            weight_keys.append( neuron.public_key ) # Gets the pubkey at this index.
+            weight_uids.append( neuron.public_key ) # Gets the pubkey at this index.
 
-        return weight_keys, weight_vals
+        return weight_uids, weight_vals
 
 
