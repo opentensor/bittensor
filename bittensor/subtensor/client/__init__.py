@@ -98,7 +98,7 @@ class WSClient:
             return Balance(0)
 
         balance = balance_info['data']['free']
-        logger.debug("{} has {} balance", address, balance)
+        logger.debug("{} has {} rao", address, balance)
         return Balance(balance)
 
     async def add_stake(self, amount, keypair):

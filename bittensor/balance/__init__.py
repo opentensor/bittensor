@@ -1,11 +1,11 @@
 class Balance:
-    unit = "TAO"
-    planck_tao : int
+    unit = "Tao"
+    rao : int
     tao: float
 
     def __init__(self, balance):
         self.planck_tao = balance
-        self.tao = self.planck_tao / pow(10, 15)
+        self.tao = self.planck_tao / pow(10, 9)
 
     def __str__(self):
-        return "{unit:s} {balance:.15f}".format(unit=self.unit, balance=self.tao)
+        return "{unit:s} {balance:.9f}".format(unit=self.unit, balance=self.tao)

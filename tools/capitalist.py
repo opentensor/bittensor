@@ -70,7 +70,7 @@ Functions :
 
 def main():
     parser = ArgumentParser(description="Capitalism yeey")
-    parser.add_argument("--chain-endpoint", default="localhost:9944", required=False, help="The endpoint to the subtensor chain <hostname/ip>:<port>")
+    parser.add_argument("--chain-endpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, help="The endpoint to the subtensor chain <hostname/ip>:<port>")
     parser.add_argument("--cold-key", default='~/.bittensor/cold_key', help="Path to the cold key")
 
     cmd_parsers = parser.add_subparsers(dest='command', required=True)
