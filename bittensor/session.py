@@ -186,7 +186,7 @@ class Session:
         try:
             is_subscribed = self.metagraph.subscribe(12)
             if is_subscribed == False:
-                logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
+                logger.error('SESSION: Error while subscribing to the chain endpoint')
                 raise FailedToEnterSession
 
         except Exception as e:
