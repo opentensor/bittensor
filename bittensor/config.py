@@ -89,7 +89,11 @@ class Config:
         #5. Load key
         try:
             Session.load_keypair(config)
-        except (KeyError, KeyFileError):
+        except (KeyError):
+            logger.error("Invalid password")
+            quit()
+        except KeyFileError:
+            logger.error("Keyfile corrupt")
             quit()
 
         return config

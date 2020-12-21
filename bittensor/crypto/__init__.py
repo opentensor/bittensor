@@ -40,5 +40,4 @@ def decrypt_data(password, data):
     try:
         return decrypt_keypair(data, password)
     except (InvalidSignature, InvalidKey, InvalidToken):
-        logger.error("Invalid password")
         raise KeyError

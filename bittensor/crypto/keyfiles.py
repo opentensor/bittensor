@@ -14,5 +14,4 @@ def load_keypair_from_data(data) -> Keypair:
         return Keypair.create_from_seed(data['secretSeed'])
     except BaseException as e:
         logger.debug(e)
-        logger.error("Invalid keypair")
-        raise KeyFileError
+        raise KeyFileError("Keyfile corrupt")
