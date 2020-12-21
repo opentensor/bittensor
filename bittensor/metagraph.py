@@ -48,7 +48,7 @@ class ChainState():
             public_key = pubkey,
             address = int_to_ip(ip),
             port = int(port),
-            ip_type = int(iptype),
+            ip_type = int(ip_type),
             uid = int(uid),
         )
         if pubkey in self.index_for_pubkey:
@@ -115,7 +115,7 @@ class TorchChainState():
         self.W = torch.tensor([[]])
         self.neurons = []
         self.uid_for_pubkey = {}
-        self.index_for_pubkey = {}
+        self.index_for_uid = {}
 
     @staticmethod
     def from_cache(cache: ChainState):
@@ -159,6 +159,9 @@ class Metagraph():
 
         # Client for talking to chain.
         self.subtensor_client = WSClient(self._config.metagraph.chain_endpoint, self.__keypair)
+
+        # This neurons metadata on chain, initially None, filled on subscribe.
+        self.metadata = None
 
         # Chain state cached before converted into the torch state.
         self.cache = ChainState()
@@ -396,8 +399,8 @@ class Metagraph():
                 weights on chain as torch tensor.
         """
         # --- Get chain weights ----
-        chain_uids = await self.subtensor_client.weight_uids(self.__keypair.public_key)
-        chain_weights = await self.subtensor_client.weight_vals(self.__keypair.public_key)
+        chain_uids = await self.subtensor_client.weight_uids(self.metadata['uid'])
+        chain_weights = await self.subtensor_client.weight_vals(self.metadata['uid'])
         if chain_weights == None or len(chain_weights) == 0:
             return torch.tensor([])
 
@@ -496,7 +499,7 @@ class Metagraph():
         current_block = await self.async_chain_block()
         neurons = await self.subtensor_client.neurons()
         for (pubkey, neuron) in neurons:
-                last_emit = await self.subtensor_client.get_last_emit_data(neuron['uid'])
+                last_emit = await self.subtensor_client.get_last_emit_data_for_uid(neuron['uid'])
                 if (current_block - last_emit) < self._config.metagraph.stale_emit_filter:
                     calls.append(self._poll_pubkey(neuron, pubkey))
         await asyncio.gather(*calls)
@@ -505,20 +508,20 @@ class Metagraph():
         r""" Polls info info for a specfic public key.
         """
         try:
-            stake = await self.subtensor_client.get_stake(neuron['uid'])
-            lastemit = await self.subtensor_client.get_last_emit_data(neuron['uid'])
-            w_uids = await self.subtensor_client.weight_uids(neuron['uid'])
-            w_vals = await self.subtensor_client.weight_vals(neuron['uid'])
+            stake = await self.subtensor_client.get_stake_for_uid(neuron['uid'])
+            lastemit = await self.subtensor_client.get_last_emit_data_for_uid(neuron['uid'])
+            w_uids = await self.subtensor_client.weight_uids_for_uid(neuron['uid'])
+            w_vals = await self.subtensor_client.weight_vals_for_uid(neuron['uid'])
             self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], lastemit = lastemit, stake = stake, w_uids = w_uids, w_vals = w_vals)
         except Exception as e:
             logger.error("Exception occurred: {}".format(e))
             traceback.print_exc()
 
 
-    def subscribe(self, timeout) -> bool:
+    def subscribe(self, timeout) -> Tuple[int, str]:
         r""" Syncronous: Makes a subscribe request to the chain. Waits for subscription inclusion or returns False
         Returns:
-            subscribed: (bool): true if the subscription is a success.
+            see: _try_async_subscribe
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
@@ -528,10 +531,10 @@ class Metagraph():
     SubscribeSuccess = 1
     SubscribeUnknownError = 2
     SubscribeTimeout = 3
-    async def async_subscribe (self, timeout) -> bool:
+    async def async_subscribe (self, timeout) -> Tuple[int, str]:
         r""" Async: Makes a subscribe request to the chain. Waits for subscription inclusion or returns False
         Returns:
-            subscribed: (bool): true if the subscription is a success.
+            see: _try_async_subscribe
         """
 
         # ---- Try Subscription ----
@@ -539,21 +542,21 @@ class Metagraph():
             code, message = await self._try_async_subscribe(timeout)
 
             if code == Metagraph.SubscribeSuccess:
-                info = await self.subtensor_client.neurons(self.__keypair.public_key)
-                logger.info('Successfully subcribed session with: {}', info)
-                return True
+                self.metadata = await self.subtensor_client.neurons(self.__keypair.public_key)
+                logger.info('Successfully subcribed session with: {}', self.metadata)
+                return code, message
 
             elif code == Metagraph.SubscribeUnknownError:
                 logger.error('Subscription threw an unknown error: {}', message)
-                return False
+                return code, message
 
             elif code == Metagraph.SubscribeTimeout:
                 logger.error('Subscription timeout {}', message)
-                return False
+                return code, message
 
         except Exception as e:
             logger.error('Subscription threw an uncaught error {}', e)
-            return False
+            return code, e
         
     async def _try_async_subscribe(self, timeout: int):
         r""" Makes subscription attempts to the chain, continuing to attempt until timeout and finally waiting for inclusion.
@@ -563,14 +566,18 @@ class Metagraph():
                 Time to wait before subscription times out.
 
         Raises:
-            SubscribeSuccess:
-                Raised when the subscription is a success before the timeout
+            code (ENUM) {}
+                SubscribeSuccess:
+                    Raised when the subscription is a success before the timeout
 
-            SubscribeUnknownError:
-                UnknownError during subscription.
+                SubscribeUnknownError:
+                    UnknownError during subscription.
 
-            SubscribeTimeout:
-                Raised when the attempted subscription fails after timeout.
+                SubscribeTimeout:
+                    Raised when the attempted subscription fails after timeout.
+            }
+            message:
+                Message associated with code. 
         """
         start_time = time.time()
         # ---- Make Subscription transaction ----
@@ -594,14 +601,14 @@ class Metagraph():
         while True:
             try:
                 # ---- Request info from chain ----
-                info = await self.subtensor_client.neurons(self.__keypair.public_key)
+                metadata = await self.subtensor_client.neurons(self.__keypair.public_key)
 
             except Exception as e:
                 # ---- Catch errors in request ----
                 message = "Subscription threw an unknown exception {}".format(e)
                 return Metagraph.SubscribeUnknownError, message
 
-            if info != None:
+            if metadata != None:
                 # ---- Subscription was a success ----
                 return Metagraph.SubscribeSuccess, "Subscription success"
 
@@ -642,9 +649,10 @@ class Metagraph():
     EmitUnknownError = 3
     EmitTimeoutError = 4
     EmitTimeoutError = 5
-    EmitNoOp = 6
-    async def async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> bool:
-        r""" Calls _try_async_emit, logs results based on raised exception. Only fails on an uncaught Exception.
+    EmitResultUnknown = 6
+    EmitNoOp = 7
+    async def async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> Tuple[int, str]:
+        r""" Calls _try_async_emit, logs and returns results based on code. Only fails on an uncaught Exception.
         
         Args:
             weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
@@ -653,7 +661,9 @@ class Metagraph():
                 If true, the call waits for block-inclusion before continuing or throws error after timeout.
             timeout: (int, default = 12 sec):
                 Time to wait for inclusion before raising a caught error.
- 
+
+        Returns:
+            see: _try_async_emit
         """
         # --- Try emit, optionally wait ----
         try:
@@ -673,7 +683,7 @@ class Metagraph():
             elif code == Metagraph.EmitTimeoutError:
                 # ---- Timeout while waiting for inclusion ----
                 logger.warning("Emission timeout after {} seconds with error {}", timeout, message)
-            
+
             elif code == Metagraph.EmitResultUnknown:
                 # ---- Did not wait, result unknown ----
                 logger.trace("Emit results unknown.")
@@ -687,10 +697,10 @@ class Metagraph():
             logger.error("Unknown Error during emission {}", e)
             raise e
 
-        chain_weights = await self.async_chain_weights()
-        logger.info('After emit, weights on chain: {}', chain_weights)
+        return code, message
 
-    async def _try_async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> bool:
+
+    async def _try_async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> Tuple[int, str]:
         r""" Makes emit checks, emits to chain, and raises one of the following errors.
         Args:
             weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
@@ -702,25 +712,29 @@ class Metagraph():
             timeout: (int, default = 12 sec):
                 Time to wait for inclusion before raising a caught error.
 
-        Raises:
-            EmitSuccess:
-                Raised when try_async_emit emits weights successfully with known result.
+        Returns:
+            code (ENUM) {
+                EmitSuccess (ENUM):
+                    Raised when try_async_emit emits weights successfully with known result.
 
-            EmitNoOp:
-                Raised when calling emit does not change weights on chain.
+                EmitNoOp (ENUM):
+                    Raised when calling emit does not change weights on chain.
 
-            EmitUnknownError:
-                UnknownError during emit.
+                EmitUnknownError (ENUM):
+                    UnknownError during emit.
 
-            EmitValueError:
-                Raised during emission when passed weights are not properly set.
+                EmitValueError (ENUM):
+                    Raised during emission when passed weights are not properly set.
 
-            EmitTimeoutError:
-                Raised during emission during a timeout.
+                EmitTimeoutError (ENUM):
+                    Raised during emission during a timeout.
 
-            EmitResultUnknown:
-                Called when an emit step end without a known result, for instance, 
-                if the user has wait_for_inclusion = False.
+                EmitResultUnknown (ENUM):
+                    Called when an emit step end without a known result, for instance, 
+                    if the user has wait_for_inclusion = False.
+            }
+            message:
+                Message associated with code.
         """
         # --- Check type ----
         if not isinstance(weights, torch.Tensor):
@@ -761,7 +775,7 @@ class Metagraph():
 
         # ---- Convert Weights to int-vals and pubkeys ----
         try:
-            weight_uids, weight_vals = self._convert_weights_to_ints(weights)
+            weight_uids, weight_vals = self._convert_weights_to_emit(weights)
         except Exception as e:
             message = "Unknown error when converting weights to ints with weights {} and error {}".format(weight_vals, e)
             return Metagraph.EmitUnknownError, message
@@ -801,6 +815,7 @@ class Metagraph():
 
                 else:
                     # --- Wait for inclusion, no error.
+                    logger.info('retry emit...')
                     await asyncio.sleep(3) # To avoid ddos-ing the chain.
                     continue
 
@@ -836,15 +851,20 @@ class Metagraph():
         r""" Returns true if the passed key and vals are set on chain.
         """
         cmap = {}
-        chain_keys = await self.subtensor_client.weight_uids(self.__keypair.public_key)
-        chain_vals = await self.subtensor_client.weight_vals(self.__keypair.public_key)
-        if chain_keys != None and chain_vals != None:
+        chain_uids = await self.subtensor_client.weight_uids_for_uid(self.metadata['uid'])
+        chain_vals = await self.subtensor_client.weight_vals_for_uid(self.metadata['uid'])
+
+        logger.info('chain_uids {}, chain_vals {}', chain_uids, chain_vals)
+        logger.info('weight_uids {}, weight_vals {}', weight_uids, weight_vals)
+        if chain_uids != None and chain_vals != None:
             n_same = 0
-            for key, val in list(zip(chain_keys, chain_vals)):
-                cmap[key] = val
-            for key, val in list(zip(weight_uids, weight_vals)):
-                if key in cmap:
-                    if cmap[key] == val:
+            for uid, val in list(zip(chain_uids, chain_vals)):
+                cmap[uid] = val
+            for uid, val in list(zip(weight_uids, weight_vals)):
+                logger.info(uid)
+                if uid in cmap:
+                    if cmap[uid] == val:
+                        logger.info('same')
                         n_same += 1
             if n_same == len(weight_vals):
                 return True
@@ -854,7 +874,7 @@ class Metagraph():
             return False 
 
 
-    def _convert_weights_to_ints(self, weights: List[float]) -> Tuple[List[str], List[int]]:
+    def _convert_weights_to_emit(self, weights: List[float]) -> Tuple[List[str], List[int]]:
         r""" Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
         Returns:
             keys: (List[str]):
@@ -864,6 +884,7 @@ class Metagraph():
         """
         remainder = MAX_INT_WEIGHT
         weight_vals = []
+        weight_uids = []
         for i, val in enumerate(weights):
             int_val = int(float(val) * int(MAX_INT_WEIGHT)) # convert to int representation.
             remainder -= int_val
@@ -876,14 +897,11 @@ class Metagraph():
             if i == (len(weights) -1) and remainder > 0: # last item.
                 int_val += remainder
                 remainder = 0
-                
-            weight_vals.append(int_val) # int weights sum to MAX_INT_WEIGHT.
 
-        # ---- Get uids  ----
-        weight_uids = []
-        for index in range(self.state.n):
-            neuron = self.state.neurons[index]
-            weight_uids.append( neuron.public_key ) # Gets the pubkey at this index.
+            # Do not add zero values. 
+            if int_val != 0:
+                weight_vals.append( int_val ) # int weights sum to MAX_INT_WEIGHT.
+                weight_uids.append( self.state.uids.tolist()[i] ) # Gets the uid at this index
 
         return weight_uids, weight_vals
 
