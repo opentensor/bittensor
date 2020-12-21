@@ -8,6 +8,7 @@ import json
 from bittensor.crypto import is_encrypted, decrypt_data, KeyError
 from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError
 from bittensor.utils import Cli
+import asyncio
 
 
 import os
@@ -42,6 +43,16 @@ def load_key(path) -> Keypair:
         raise e
 
 
+async def balance(socket, keypair : Keypair):
+    client = WSClient(socket=socket, keypair=keypair)
+    client.connect()
+
+    await client.is_connected()
+
+    balance = await client.get_balance(keypair.ss58_address)
+    logger.info("Balance: {}", balance)
+    pass
+
 
 
 
@@ -62,11 +73,22 @@ def main():
     parser.add_argument("--chain-endpoint", default="localhost:9944", required=False, help="The endpoint to the subtensor chain <hostname/ip>:<port>")
     parser.add_argument("--cold-key", default='~/.bittensor/cold_key', help="Path to the cold key")
 
+    cmd_parsers = parser.add_subparsers(dest='command', required=True)
+    balance_parser = cmd_parsers.add_parser('balance')
 
     args = parser.parse_args()
+    endpoint = args.chain_endpoint
+
+    print(args)
 
     __validate_path(args.cold_key)
     keypair = load_key(args.cold_key)
+
+    if (args.command == "balance"):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(balance(endpoint, keypair))
+
+
 
     print(keypair)
 
