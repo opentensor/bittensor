@@ -10,7 +10,6 @@ import random
 import torch
 from torch import nn
 import torch.nn.functional as F
-import transformers
 from transformers import GPT2Config, GPT2Model
 
 def nextbatch(data, batch_size, tokenizer):
@@ -256,7 +255,7 @@ class GPT2LMSynapse(Synapse):
                 shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
             output.local_target_loss = local_target_loss
             output.loss = output.loss + local_target_loss
-
+        
         if remote:
             output = self.forward_remote(local_context, local_hidden, inputs, pooled, encoding, training, output)
 
@@ -359,6 +358,9 @@ class GPT2LMSynapse(Synapse):
             output.loss = output.loss + remote_target_loss
             output.remote_target_loss = remote_target_loss
         
+        remote_context.to(torch.device("cpu"))
+        local_context.to(torch.device("cpu"))
+        local_hidden.to(torch.device("cpu"))
         return output
 
 
