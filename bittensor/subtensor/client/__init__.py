@@ -1,7 +1,7 @@
 from bittensor.subtensor.interface import SubstrateWSInterface, Keypair
 import netaddr
 from loguru import logger
-
+from bittensor.balance import Balance
 
 class WSClient:
     custom_type_registry = {
@@ -84,6 +84,7 @@ class WSClient:
         return peers
 
     async def get_balance(self, address):
+        logger.debug("Getting balance for: {}", address)
         result  = await self.substrate.get_runtime_state(
             module='System',
             storage_function='Account',
@@ -92,8 +93,13 @@ class WSClient:
         )
 
         balance_info = result.get('result')
+        if not balance_info:
+            logger.debug("{} has no balance", address)
+            return Balance(0)
 
-        return balance_info['data']['free']
+        balance = balance_info['data']['free']
+        logger.debug("{} has {} balance", address, balance)
+        return Balance(balance)
 
     async def add_stake(self, amount, keypair):
         call = await self.substrate.compose_call(
