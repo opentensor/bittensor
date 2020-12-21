@@ -1,8 +1,13 @@
-from cryptography.fernet import Fernet
+from cryptography.exceptions import InvalidSignature, InvalidKey
+from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from loguru import logger
 import base64
+
+class KeyError(Exception):
+    pass
 
 __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
 
@@ -29,3 +34,11 @@ def __generate_key(password):
 
 def is_encrypted(data):
     return data[:6] == b"gAAAAA"
+
+
+def decrypt_data(password, data):
+    try:
+        return decrypt_keypair(data, password)
+    except (InvalidSignature, InvalidKey, InvalidToken):
+        logger.error("Invalid password")
+        raise KeyError

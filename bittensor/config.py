@@ -10,15 +10,11 @@ import yaml
 from munch import Munch
 
 from bittensor.axon import Axon
-from bittensor.session import Session, KeyError
+from bittensor.session import Session
 from bittensor.dendrite import Dendrite
 from bittensor.metagraph import Metagraph
-from bittensor.metadata import Metadata
-from bittensor.subtensor.interface import Keypair, KeypairRepresenter
-
-
-
-from bittensor.session import KeyFileError
+from bittensor.crypto import KeyError
+from bittensor.crypto.keyfiles import KeyFileError
 
 class InvalidConfigFile(Exception):
     pass
@@ -93,7 +89,7 @@ class Config:
         #5. Load key
         try:
             Session.load_keypair(config)
-        except KeyError:
+        except (KeyError, KeyFileError):
             quit()
 
         return config

@@ -13,11 +13,13 @@ from bittensor.subtensor.interface import Keypair
 from bittensor.metadata import Metadata
 from bittensor.exceptions.handlers import rollbar
 from loguru import logger
-from bittensor.crypto import is_encrypted
+from bittensor.crypto import is_encrypted, decrypt_data
 from bittensor.utils import Cli
 from bittensor.crypto import decrypt_keypair
 from cryptography.exceptions import InvalidSignature, InvalidKey
 from cryptography.fernet import InvalidToken
+from bittensor.crypto.keyfiles import KeyFileError, load_keypair_from_data
+
 import json
 
 
@@ -35,11 +37,7 @@ class FailedToEnterSession(Exception):
 class FailedToPollChain(Exception):
     pass
 
-class KeyFileError(Exception):
-    pass
 
-class KeyError(Exception):
-    pass
 
 
 
@@ -82,32 +80,12 @@ class Session:
             data = file.read()
 
             if is_encrypted(data):
-                data = Session.decrypt_data(data)
+                password = Cli.ask_password()
+                data = decrypt_data(password, data)
 
-            keypair = Session.load_keypair_from_data(data)
+            keypair = load_keypair_from_data(data)
             config.session.keypair = keypair
 
-    @staticmethod
-    def load_keypair_from_data(data) -> Keypair:
-        try:
-            data = json.loads(data)
-            if "secretSeed" not in data:
-                raise KeyFileError("Keyfile corrupt")
-
-            return Keypair.create_from_seed(data['secretSeed'])
-        except BaseException as e:
-            logger.debug(e)
-            logger.error("Invalid keypair")
-            raise KeyError
-
-    @staticmethod
-    def decrypt_data(data):
-        try:
-            password = Cli.ask_password()
-            return decrypt_keypair(data, password)
-        except (InvalidSignature, InvalidKey, InvalidToken):
-            logger.error("Invalid password")
-            raise KeyError
 
     def __del__(self):
         self.stop()
