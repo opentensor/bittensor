@@ -28,7 +28,7 @@ neuron:
   trial_path: data/adam/1608300539
 nucleus:
   max_workers: 5
-  queue_maxsize: 1000
+  queue_maxsize: 10
   queue_timeout: 5
 session:
   keyfile: ~/.bittensor/key
