@@ -15,7 +15,7 @@ metagraph:
   chain_endpoint: 206.189.254.5:12345
   stale_emit_filter: 10000
 neuron:
-  accumulation_interval: 1
+  accumulation_interval: 5
   apply_remote_gradients: true
   batch_size_train: 3
   datapath: data
@@ -25,7 +25,7 @@ neuron:
   name: Adam
   sync_interval: 100
   trial_id: '1608300539'
-  trial_path: data/gpt-wiki/1608300539
+  trial_path: data/adam/1608300539
 nucleus:
   max_workers: 5
   queue_maxsize: 1000

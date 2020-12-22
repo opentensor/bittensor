@@ -113,7 +113,7 @@ class GPT2LMSynapse(Synapse):
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = torch.nn.CrossEntropyLoss()
-        self.to(self.device)
+        #self.to(self.device)
     
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
@@ -163,7 +163,7 @@ class GPT2LMSynapse(Synapse):
                 hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Hidden layer representation produced using the local_context.
         """
-        hidden = self.forward(inputs=inputs.to(self.device), training = False, remote = False).local_hidden
+        hidden = self.forward(inputs=inputs, training = False, remote = False).local_hidden
         return hidden
 
     def forward(self, 
@@ -223,7 +223,7 @@ class GPT2LMSynapse(Synapse):
 
         # Return vars to be filled.
         output = SynapseOutput(loss = torch.tensor(0.0))
-
+        
         # encoding: transformer encoded sentences.
         # encoding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         encoding = self.encoder_transformer(input_ids=inputs, return_dict=True).last_hidden_state
@@ -240,12 +240,12 @@ class GPT2LMSynapse(Synapse):
         # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         local_hidden = torch.cat([encoding, local_context], dim=2)
         local_hidden = self.hidden_layer(local_hidden)
-        output.local_hidden = local_hidden
+        
         if training:
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
             local_target = self.target_layer(local_hidden)
-            output.local_target = local_target
+            #output.local_target = local_target
 
             # local_target_loss: MLM loss between local_target and passed targets.
             # local_target_loss.shape = [1]
@@ -253,8 +253,10 @@ class GPT2LMSynapse(Synapse):
             shift_labels = inputs[..., 1:].contiguous()
             local_target_loss = self.loss_fct(
                 shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
-            output.local_target_loss = local_target_loss
             output.loss = output.loss + local_target_loss
+            output.local_target_loss = local_target_loss.item()
+           
+            del local_target_loss
         
         if remote:
             output = self.forward_remote(local_context, local_hidden, inputs, pooled, encoding, training, output)
@@ -330,18 +332,21 @@ class GPT2LMSynapse(Synapse):
         output.return_codes = return_codes
         output.request_sizes = sizes 
         remote_context = remote_context.to(self.device)
+        del weights, sizes, return_codes
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
         distillation_loss = F.mse_loss(local_context, remote_context.detach())
-        output.distillation_loss = distillation_loss
         output.loss = output.loss + distillation_loss
+        output.distillation_loss = distillation_loss.item()
+        del distillation_loss
 
         # remote_hidden: hidden layer encoding using remote_context.
         # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         remote_hidden = torch.cat([encoding, remote_context], dim=2)
         remote_hidden = self.hidden_layer(remote_hidden)
-        output.remote_hidden = remote_hidden
+        #soutput.remote_hidden = remote_hidden
+        del remote_context, remote_hidden
 
         if training:
             # remote_target: projection of remote_hidden onto target dimension.
@@ -352,15 +357,18 @@ class GPT2LMSynapse(Synapse):
             # remote_target_loss: MLM loss between remote_target and passed targets.
             # remote_target_loss.shape = [1]
             shift_logits = remote_target[..., :-1, :].contiguous()
+            del remote_target
+            
             shift_labels = inputs[..., 1:].contiguous()
             remote_target_loss = self.loss_fct(
                 shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+            del shift_logits
+
             output.loss = output.loss + remote_target_loss
-            output.remote_target_loss = remote_target_loss
+            output.remote_target_loss = remote_target_loss.item()
+            del remote_target_loss
         
-        remote_context.to(torch.device("cpu"))
-        local_context.to(torch.device("cpu"))
-        local_hidden.to(torch.device("cpu"))
+
         return output
 
 
