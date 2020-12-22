@@ -225,17 +225,17 @@ def log_outputs(history: List[bittensor.synapse.SynapseOutput]):
             row.append('')
 
         if output.local_target_loss != None:
-            row.append(output.local_target_loss.item())
+            row.append(output.local_target_loss)
         else:
             row.append('')
 
         if output.remote_target_loss != None:
-            row.append(output.remote_target_loss.item())
+            row.append(output.remote_target_loss)
         else:
             row.append('')
 
         if output.distillation_loss != None:
-            row.append(output.distillation_loss.item())
+            row.append(output.distillation_loss)
         else:
             row.append('')
 
