@@ -15,6 +15,11 @@ from bittensor.dendrite import Dendrite
 from bittensor.metagraph import Metagraph
 from bittensor.crypto import KeyError
 from bittensor.crypto.keyfiles import KeyFileError
+from bittensor.nucleus import Nucleus
+
+
+
+from bittensor.session import KeyFileError
 
 class InvalidConfigFile(Exception):
     pass
@@ -58,7 +63,8 @@ class Config:
         Dendrite.add_args(parser)
         Metagraph.add_args(parser)
         Session.add_args(parser)
-       
+        Nucleus.add_args(parser)
+
         # 2. Parse.
         params = parser.parse_known_args()[0]
 
@@ -82,6 +88,8 @@ class Config:
             Session.check_config(config)
             Metagraph.check_config(config)
             Axon.check_config(config)
+            Nucleus.check_config(config)
+
         except KeyFileError:
             quit()
 
