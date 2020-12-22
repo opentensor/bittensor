@@ -260,7 +260,6 @@ class Axon(bittensor_grpc.BittensorServicer):
                 mode = inputs.modality, 
                 priority = call_priority
             )
-            del x
 
             # ---- Catch Nucleus errors ----
             if code != bittensor_pb2.ReturnCode.Success:

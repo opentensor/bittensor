@@ -85,13 +85,12 @@ def main(config: Munch, session: Session):
         local_step = 0
         local_epochs = 10
         output = None
-
+        net = torch.nn.DataParallel(model)
         while local_step < local_epochs:
             try:
                 global_step += 1
                 inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__)
                 
-                net = torch.nn.DataParallel(model)
                 output = net(
                     inputs, 
                     training = True, 
