@@ -94,7 +94,7 @@ def upnpc_create_port_map(local_port: int):
         u = miniupnpc.UPnP()
         u.discoverdelay = 200
         logger.debug('UPNPC: Using UPnP to open a port on your router ...')
-        logger.debub('UPNPC: Discovering... delay={}ms', u.discoverdelay)
+        logger.debug('UPNPC: Discovering... delay={}ms', u.discoverdelay)
         ndevices = u.discover()
         u.selectigd()
         logger.debug('UPNPC: ' + str(ndevices) + ' device(s) detected')
