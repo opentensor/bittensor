@@ -115,7 +115,7 @@ class PKMDendrite():
         # query: (torch.FloatTensor): projection of the query on to the key dimension.
         # query.shape = [batch_size, config.dendrite.key_dim]
         # On Cuda if it's available.
-        query = self.projection( query )
+        query = self.projection( query ).to(self.device)
 
         # scores: (torch.FloatTensor): cartesian product between keys and projection.
         # scores.shape = [batch_size, n_uids]
