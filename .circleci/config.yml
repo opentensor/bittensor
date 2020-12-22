@@ -45,6 +45,7 @@ jobs:
       - python/load-cache
       - run: pip install -r requirements.txt
       - run: pip install pyyaml
+      - run: pip install miniupnpc
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
