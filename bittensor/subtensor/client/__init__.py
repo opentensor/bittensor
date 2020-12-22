@@ -76,12 +76,13 @@ class WSClient:
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
-    async def get_peers(self):
-        peers = await self.substrate.iterate_map(
-            module='SubtensorModule',
-            storage_function='Peers')
-
-        return peers
+    # TODO (21-12-2020, Parall4x) Delete if not needed anymore
+    # async def get_peers(self):
+    #     peers = await self.substrate.iterate_map(
+    #         module='SubtensorModule',
+    #         storage_function='Peers')
+    #
+    #     return peers
 
     async def get_balance(self, address):
         logger.debug("Getting balance for: {}", address)
@@ -176,7 +177,6 @@ class WSClient:
                 storage_function='Neurons'
             )
             return neurons
-
 
     async def get_current_block(self):
         return await self.substrate.get_block_number(None)

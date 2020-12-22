@@ -9,9 +9,26 @@ from bittensor.crypto import is_encrypted, decrypt_data, KeyError
 from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError
 from bittensor.utils import Cli
 import asyncio
-
+import sys
 
 import os
+
+class CommandExecutor:
+    __keypair : Keypair
+    __client : WSClient
+    def __init__(self, keypair : Keypair, client : WSClient):
+        self.__keypair = keypair
+        self.__client = client
+
+    async def connect(self):
+        self.__client.connect()
+        await self.__client.is_connected()
+
+
+    async def overview(self):
+        balance = await self.__client.get_balance(self.__keypair.ss58_address)
+        logger.info("Balance: {}", balance)
+
 
 def __validate_path(path):
     path = os.path.expanduser(path)
@@ -43,14 +60,27 @@ def load_key(path) -> Keypair:
         raise e
 
 
-async def balance(socket, keypair : Keypair):
+
+def enable_debug(should_debug):
+    if not should_debug:
+        logger.remove()
+        logger.add(sink=sys.stderr, level="INFO")
+
+
+async def overview(socket, keypair : Keypair):
+
+
     client = WSClient(socket=socket, keypair=keypair)
-    client.connect()
+    exec = CommandExecutor(keypair, client)
+    await exec.connect()
+    overview = await exec.overview()
 
-    await client.is_connected()
 
-    balance = await client.get_balance(keypair.ss58_address)
-    logger.info("Balance: {}", balance)
+
+    pass
+
+
+async def get_hotkeys(keypair : Keypair):
     pass
 
 
@@ -72,21 +102,21 @@ def main():
     parser = ArgumentParser(description="Capitalism yeey")
     parser.add_argument("--chain-endpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, help="The endpoint to the subtensor chain <hostname/ip>:<port>")
     parser.add_argument("--cold-key", default='~/.bittensor/cold_key', help="Path to the cold key")
+    parser.add_argument("--debug", default=False, help="Turn on debugging information")
 
     cmd_parsers = parser.add_subparsers(dest='command', required=True)
-    balance_parser = cmd_parsers.add_parser('balance')
+    overview_parser = cmd_parsers.add_parser('overview')
 
     args = parser.parse_args()
     endpoint = args.chain_endpoint
-
-    print(args)
+    enable_debug(args.debug)
 
     __validate_path(args.cold_key)
     keypair = load_key(args.cold_key)
 
-    if (args.command == "balance"):
+    if (args.command == "overview"):
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(balance(endpoint, keypair))
+        loop.run_until_complete(overview(endpoint, keypair))
 
 
 
