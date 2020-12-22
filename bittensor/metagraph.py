@@ -583,7 +583,7 @@ class Metagraph():
         # ---- Make Subscription transaction ----
         while True:
             try:
-                await self.subtensor_client.subscribe(self._config.axon.remote_ip, self._config.axon.remote_port, self._config.session.coldkey)
+                await self.subtensor_client.subscribe(self._config.axon.external_ip, self._config.axon.external_port, self._config.session.coldkey)
                 break
 
             except Exception as e:
