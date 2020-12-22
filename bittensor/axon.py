@@ -76,8 +76,8 @@ class Axon(bittensor_grpc.BittensorServicer):
         parser.add_argument('--axon.local_port', default=8091, type=int, help='Port to serve axon')
         parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, help='IP this axon binds to.')
         parser.add_argument('--axon.use_upnpc', default=False, type=bool, help='Will we attempt to use upnpc to open a port on your router.')
-        parser.add_argument('--axon.remote_ip', default=None, type=str, help='Remote IP to serve to chain.')
-        parser.add_argument('--axon.remote_port', default=None, type=str, help='Remote Port to serve to chain.')
+        parser.add_argument('--axon.external_ip', default=None, type=str, help='Remote IP to serve to chain.')
+        parser.add_argument('--axon.external_port', default=None, type=str, help='Remote Port to serve to chain.')
         parser.add_argument('--axon.max_workers', default=10, type=int, help='Max number connection handler threads working simultaneously.')
         parser.add_argument('--axon.max_gradients', default=100, type=int, help='Max number of lingering gradient stored in the gradient queue')
 
@@ -92,7 +92,7 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # Attain external ip.
         try:
-            config.axon.remote_ip = net.get_remote_ip()
+            config.axon.external_ip = net.get_external_ip()
         except net.ExternalIPNotFound as external_port_exception:
             logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
             raise external_port_exception
@@ -101,15 +101,15 @@ class Axon(bittensor_grpc.BittensorServicer):
         if config.axon.use_upnpc:
             # Open a port on your router
             try:
-                config.axon.remote_port = net.upnpc_create_port_map(local_port = config.axon.local_port)
+                config.axon.external_port = net.upnpc_create_port_map(local_port = config.axon.local_port)
             except net.UPNPCException as upnpc_exception:
                 logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
                 raise upnpc_exception
         # Falls back to using your provided local_port.
         else:
-            config.axon.remote_port = config.axon.local_port
+            config.axon.external_port = config.axon.local_port
 
-        logger.info('Public Endpoint: {}:{}', config.axon.remote_ip, config.axon.remote_port)
+        logger.info('Public Endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
         logger.info('Local Endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
 
     def __del__(self):
@@ -138,7 +138,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         # Delete port maps if required.
         if self._config.axon.use_upnpc:
             try:
-                net.upnpc_create_port_map(self._config.axon.remote_port)
+                net.upnpc_create_port_map(self._config.axon.external_port)
             except net.UPNPCException:
                 # Catch but continue.
                 logger.error('Error while trying to destroy port map on your router.')

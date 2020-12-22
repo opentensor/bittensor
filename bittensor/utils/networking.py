@@ -8,7 +8,7 @@ from loguru import logger
 class ExternalIPNotFound(Exception):
     """ Raised if we cannot attain your external ip from CURL/URLLIB/IPIFY/AWS """
 
-def get_remote_ip() -> str:
+def get_external_ip() -> str:
     r""" Checks CURL/URLLIB/IPIFY/AWS for your external ip.
         Returns:
             external_ip  (:obj:`str` `required`):
@@ -76,7 +76,7 @@ def upnpc_delete_port_map(external_port: int):
         raise UPNPCException(e)
 
 def upnpc_create_port_map(local_port: int):
-    r""" Creates a upnpc port map on your router from passed remote_port to local port.
+    r""" Creates a upnpc port map on your router from passed external_port to local port.
 
         Args: 
             local_port (int, `required`):

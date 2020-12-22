@@ -21,7 +21,7 @@ config = {'neuron':
                'name': 'mnist', 'trial_id': '1608070667'},
           'synapse': {'target_dim': 10},
           'dendrite': {'key_dim': 100, 'topk': 10, 'stale_emit_filter': 10000, 'pass_gradients': True, 'timeout': 0.5,
-                       'do_backoff': True, 'max_backoff': 100}, 'axon': {'port': 8091, 'remote_ip': '191.97.53.53'},
+                       'do_backoff': True, 'max_backoff': 100}, 'axon': {'port': 8091, 'external_ip': '191.97.53.53'},
           'nucleus': {'max_workers': 5, 'queue_timeout': 5, 'queue_maxsize': 1000},
           'metagraph': {'chain_endpoint': '206.189.254.5:12345', 'stale_emit_filter': 10000},
           'meta_logger': {'log_dir': 'data/'},
