@@ -15,26 +15,13 @@ from types import SimpleNamespace
 from typing import List
 
 import bittensor
+import bittensor.utils.networking as net
 from bittensor.nucleus import Nucleus
 from bittensor.synapse import Synapse
 from bittensor import bittensor_pb2
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor.serializer import PyTorchSerializer
 
-def obtain_ip(config: Munch) -> Munch:
-    if config.axon.remote_ip != None:
-        return config
-    try:
-        value = requests.get('https://api.ipify.org').text
-    except Exception as e:
-        logger.error("CONFIG: Could not retrieve public facing IP from IP API. Exception: ".format(e))
-        raise SystemError('CONFIG: Could not retrieve public facing IP from IP API.')
-    if not validators.ipv4(value):
-        logger.error("CONFIG: Response from IP API is not a valid IP with ip {}", value)
-        raise SystemError('CONFIG: Response from IP API is not a valid IP with ip {}'.format(value))
-    config.axon.remote_ip = value
-    logger.info('remote ip: {}', value)
-    return config
 
 class Axon(bittensor_grpc.BittensorServicer):
     r"""
@@ -57,7 +44,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         # Init server objects.
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=self._config.axon.max_workers))
         bittensor_grpc.add_BittensorServicer_to_server(self, self._server)
-        self._server.add_insecure_port('[::]:' + str(self._config.axon.port))
+        self._server.add_insecure_port('[::]:' + str(self._config.axon.local_port))
 
         # Local synapse to serve.
         self.synapse = None
@@ -86,8 +73,11 @@ class Axon(bittensor_grpc.BittensorServicer):
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
                     parser argument to append args to.
         """
-        parser.add_argument('--axon.port', default=8091, type=int, help='Port to serve axon')
+        parser.add_argument('--axon.local_port', default=8091, type=int, help='Port to serve axon')
+        parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, help='IP this axon binds to.')
+        parser.add_argument('--axon.use_upnpc', default=False, type=bool, help='Will we attempt to use upnpc to open a port on your router.')
         parser.add_argument('--axon.remote_ip', default=None, type=str, help='Remote IP to serve to chain.')
+        parser.add_argument('--axon.remote_port', default=None, type=str, help='Remote Port to serve to chain.')
         parser.add_argument('--axon.max_workers', default=10, type=int, help='Max number connection handler threads working simultaneously.')
         parser.add_argument('--axon.max_gradients', default=100, type=int, help='Max number of lingering gradient stored in the gradient queue')
 
@@ -98,9 +88,65 @@ class Axon(bittensor_grpc.BittensorServicer):
                 config (:obj:`munch.Munch, `required`): 
                     config to check.
         """
-        logger.info('obtaining remote ip ...')
-        config = obtain_ip(config)
-        assert config.axon.port > 1024 and config.axon.port < 65535, 'config.axon.port must be in range [1024, 65535]'
+        assert config.axon.local_port > 1024 and config.axon.local_port < 65535, 'config.axon.local_port must be in range [1024, 65535]'
+
+        # Attain external ip.
+        try:
+            config.axon.remote_ip = net.get_remote_ip()
+        except net.ExternalIPNotFound as external_port_exception:
+            logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
+            raise external_port_exception
+
+        # Optionally: use upnpc to map your router to the local host.
+        if config.axon.use_upnpc:
+            # Open a port on your router
+            try:
+                config.axon.remote_port = net.upnpc_create_port_map(local_port = config.axon.local_port)
+            except net.UPNPCException as upnpc_exception:
+                logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
+                raise upnpc_exception
+        # Falls back to using your provided local_port.
+        else:
+            config.axon.remote_port = config.axon.local_port
+
+        logger.info('Public Endpoint: {}:{}', config.axon.remote_ip, config.axon.remote_port)
+        logger.info('Local Endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
+
+    def __del__(self):
+        r""" Called when this axon is deleted, ensures background threads shut down properly.
+        """
+        self.stop()
+
+    def start(self):
+        r""" Starts the standalone axon GRPC server thread.
+        """
+        # Serving thread.
+        self._thread = threading.Thread(target=self._serve, daemon=False)
+        self._thread.start()
+
+    def _serve(self):
+        try:
+            self._server.start()
+        except (KeyboardInterrupt, SystemExit):
+            self.stop()
+        except Exception as e:
+            logger.error(e)
+
+    def stop(self):
+        r""" Stop the axon grpc server.
+        """
+        # Delete port maps if required.
+        if self._config.axon.use_upnpc:
+            try:
+                net.upnpc_create_port_map(self._config.axon.remote_port)
+            except net.UPNPCException:
+                # Catch but continue.
+                logger.error('Error while trying to destroy port map on your router.')
+        logger.info('Shutting down the Nucleus...')
+        self._nucleus.stop()
+        if self._server != None:
+            self._server.stop(0)
+
 
     def serve(self, synapse: Synapse):
         r""" Set the synapse being served on this axon endpoint. 
@@ -358,34 +404,6 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # ---- Finaly return ----
         return outputs_serialized, message, code
-
-
-    def __del__(self):
-        r""" Called when this axon is deleted, ensures background threads shut down properly.
-        """
-        self.stop()
-
-    def start(self):
-        r""" Starts the standalone axon GRPC server thread.
-        """
-        self._thread = threading.Thread(target=self._serve, daemon=False)
-        self._thread.start()
-
-    def _serve(self):
-        try:
-            self._server.start()
-        except (KeyboardInterrupt, SystemExit):
-            self.stop()
-        except Exception as e:
-            logger.error(e)
-
-    def stop(self):
-        r""" Stop the axon grpc server.
-        """
-        logger.info('Shutting down the Nucleus...')
-        self._nucleus.stop()
-        if self._server != None:
-            self._server.stop(0)
 
 
 
