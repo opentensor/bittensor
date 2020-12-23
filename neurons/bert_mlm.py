@@ -39,7 +39,7 @@ def add_args(parser: argparse.ArgumentParser):
                         help='Testing batch size.')
     parser.add_argument('--neuron.sync_interval', default=100, type=int, 
                         help='Batches before we we sync with chain and emit new weights.')
-    parser.add_argument('--neuron.name', default='bert_nsp', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
+    parser.add_argument('--neuron.name', default='bert_mlm', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
     parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
     BertMLMSynapse.add_args(parser)
 
