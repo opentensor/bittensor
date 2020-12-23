@@ -195,6 +195,9 @@ def main():
             confirm = input("This will remove all stake from associated neurons, and transfer the balance in the account associated with the cold key. Continue? (y/N) ")
             if confirm not in (["Y", 'y']):
                 quit()
+            loop.run_until_complete(executor.unstake_all())
+            quit()
+
 
         if not args.uid:
             logger.error("The --uid argument is required for this command")
