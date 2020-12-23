@@ -17,15 +17,16 @@ metagraph:
 neuron:
   accumulation_interval: 5
   apply_remote_gradients: true
-  batch_size_train: 3
+  batch_size_train: 4
   datapath: data
-  learning_rate: 0.001
+  learning_rate: 0.00002
   log_interval: 10
   momentum: 0.98
   name: Adam
-  sync_interval: 100
+  sync_interval: 200
   trial_id: '1608300539'
   trial_path: data/adam/1608300539
+  record_log: true
 nucleus:
   max_workers: 5
   queue_maxsize: 10
@@ -39,8 +40,7 @@ synapse:
   embd_pdrop: 0.1
   initializer_range: 0.02
   layer_norm_epsilon: 1.0e-05
-  n_head: 2
-  n_hidden: 3
+  n_head: 16
   n_inner: null
   n_layer: 12
   resid_pdrop: 0.1

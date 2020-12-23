@@ -13,6 +13,9 @@ import os
 import time
 import torch
 import torch.nn.functional as F
+import traceback
+import time
+import bittensor
 
 from termcolor import colored
 from munch import Munch
@@ -20,13 +23,11 @@ from datasets import load_dataset
 from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
 
-import bittensor
 from bittensor import Session
 from bittensor.utils.logging import log_all
 from bittensor.config import Config
 from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
-import torch.autograd.profiler as profiler
-
+from pytorch_transformers import WarmupLinearSchedule
 
 def add_args(parser: argparse.ArgumentParser):    
     parser.add_argument('--neuron.datapath', default='data', type=str,help='Path to load and save data.')
@@ -40,6 +41,7 @@ def add_args(parser: argparse.ArgumentParser):
     parser.add_argument('--neuron.name', default='gpt-wiki', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
     parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
     parser.add_argument('--neuron.config_file', default='adam_config.yaml', help='Saved run config')
+    parser.add_argument('--neuron.record_log', default=True, help='Record all logs when running this session')
     GPT2LMSynapse.add_args(parser)
 
 def check_config(config: Munch):
@@ -57,38 +59,38 @@ def main(config: Munch, session: Session):
 
     #  # ---- Model ----
     model = GPT2LMSynapse(config, session)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    #model.to(device)
 
     # ---- Serve ----
     session.serve( model ) # Serves model to Axon RPC endpoint for network access.
 
     # ---- Optimizer ----
     optimizer = torch.optim.SGD(model.parameters(), lr = config.neuron.learning_rate, momentum=config.neuron.momentum)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
+    scheduler = WarmupLinearSchedule(optimizer,5,1000)
 
     # ---- Dataset ----
     # 74 million sentences pulled from books.
     dataset = load_dataset('bookcorpus')['train']
 
-    global_step = 0
     tensorboard = SummaryWriter(log_dir = config.neuron.trial_path)
-        
+
+    if config.neuron.record_log:
+        current_time = time.strftime("%H_%M_%S", time.localtime())
+        logger.add("{}_{}.log".format(config.neuron.name, current_time),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
 
     # ---- Train Epoch ----
     def train(epoch: int, global_step: int):
         # ----- Init training state --- 
         model.train() 
         session.metagraph.sync() # Sync with the chain.
-        row_weights = session.metagraph.W[ 0, :].to(device) # My weights on the chain-state (zeros initially).
+        row_weights = session.metagraph.W[ 0, :] # My weights on the chain-state (zeros initially).
         history = []
         local_step = 0
         local_epochs = 10
         output = None
         net = torch.nn.DataParallel(model)
+        
         while local_step < local_epochs:
             try:
-                global_step += 1
                 inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__)
                 
                 output = net(
@@ -101,13 +103,11 @@ def main(config: Munch, session: Session):
                 output.loss.backward() # Accumulates gradients on the model.
                 optimizer.step() # Applies accumulated gradients.
                 optimizer.zero_grad() # Zeros out gradients for next accummulation 
-
-                # ---- Serve Model ----
-                session.serve( model.deepcopy() ) # Serve the newest model.
                 
                 history.append(output) # Save for later analysis/logs.
-                logger.info('GS: {} Epoch: {} \t Local Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}', 
-                        colored('{}'.format(global_step), 'blue'), 
+                logger.info('GS: {} LS: {} Epoch: {} \t Local Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}', 
+                        colored('{}'.format(global_step), 'red'),
+                        colored('{}'.format(local_step), 'blue'), 
                         colored('{}'.format(epoch), 'green'), 
                         colored('{:.4f}'.format(output.local_target_loss), 'green'),
                         colored('{:.4f}'.format(output.remote_target_loss), 'blue'),
@@ -116,15 +116,13 @@ def main(config: Munch, session: Session):
                 tensorboard.add_scalar('Rloss', output.remote_target_loss, global_step)
                 tensorboard.add_scalar('Lloss', output.local_target_loss, global_step)
                 tensorboard.add_scalar('Dloss', output.distillation_loss, global_step)
-                if (local_step + 1) % config.neuron.log_interval == 0:
-                    log_all(session, history); history = [] # Log batch history.
                 
                 # ---- Update State ----
                 batch_weights = torch.mean(output.weights, axis = 0) # Average over batch.
-                row_weights = (1 - 0.03) * row_weights.to(device) + 0.03 * batch_weights # Moving avg update.
+                row_weights = (1 - 0.03) * row_weights + 0.03 * batch_weights # Moving avg update.
                 row_weights = F.normalize(row_weights, p = 1, dim = 0) # Ensure normalization.
 
-                if (local_step + 1) % config.neuron.sync_interval == 0:
+                if (global_step + 1) % config.neuron.sync_interval == 0:
                     # ---- Sync Metagraph State ----
                     logger.info('Emitting with weights {}', row_weights.tolist())
                     session.metagraph.emit( row_weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
@@ -132,35 +130,34 @@ def main(config: Munch, session: Session):
                     row_weights = session.metagraph.W[ 0, :] 
                     
                     # ---- Update Axon Priority ----
-                    col_weights = session.metagraph.W[:,0] # weights to me.
+                    col_weights = session.metagraph.W[:,0] 
                     session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
                 
                 local_step += 1
-                del inputs, batch_weights
+                global_step += 1
                 torch.cuda.empty_cache()
 
             # --- Catch Errors during training ----
             except Exception as e:
                 logger.error('Execution in training script with error: {}', e)
+                traceback.print_exc()
                 logger.info('Continuing to train.')
             
-        return output
+        return output, global_step
     
     epoch = -1
+    global_step = 0
     best_train_loss = math.inf
     while True:
         epoch += 1
 
         # ---- Train Model ----
-        #with profiler.profile(profile_memory=True, record_shapes=True, use_cuda=True) as prof:
-        output = train(epoch, global_step)
-        #import pdb; pdb.set_trace()
-
+        output, global_step = train(epoch, global_step)
         scheduler.step()
 
-        # Save best
+        # Save best loss and model
         if output:
-            train_loss = output.loss
+            train_loss = output.local_target_loss
 
             if train_loss < best_train_loss:
                 best_train_loss = train_loss # update best train loss

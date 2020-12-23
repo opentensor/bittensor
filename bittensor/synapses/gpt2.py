@@ -113,14 +113,11 @@ class GPT2LMSynapse(Synapse):
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = torch.nn.CrossEntropyLoss()
-        #self.to(self.device)
     
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
         r""" Add custom params to the parser.
         """
-        parser.add_argument('--synapse.n_hidden', default=3, type=int, 
-                            help='Number of hidden layers in the Transformer encoder.')
         parser.add_argument('--synapse.n_head', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
         parser.add_argument('--synapse.n_layer', default=12, type=int, 
@@ -256,7 +253,7 @@ class GPT2LMSynapse(Synapse):
             output.loss = output.loss + local_target_loss
             output.local_target_loss = local_target_loss.item()
            
-            # del local_target_loss
+            del local_target_loss
         
         if remote:
             output = self.forward_remote(local_context, local_hidden, inputs, pooled, encoding, training, output)
@@ -331,22 +328,20 @@ class GPT2LMSynapse(Synapse):
         output.weights = weights
         output.return_codes = return_codes
         output.request_sizes = sizes 
-        remote_context = remote_context.to(self.device)
-        #del weights, sizes, return_codes
+        del weights, sizes, return_codes
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
         distillation_loss = F.mse_loss(local_context, remote_context.detach())
         output.loss = output.loss + distillation_loss
         output.distillation_loss = distillation_loss.item()
-        # del distillation_loss
+        del distillation_loss
 
         # remote_hidden: hidden layer encoding using remote_context.
         # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         remote_hidden = torch.cat([encoding, remote_context], dim=2)
         remote_hidden = self.hidden_layer(remote_hidden)
-        #soutput.remote_hidden = remote_hidden
-        # del remote_context, remote_hidden
+        del remote_context, remote_hidden
 
         if training:
             # remote_target: projection of remote_hidden onto target dimension.
@@ -357,16 +352,16 @@ class GPT2LMSynapse(Synapse):
             # remote_target_loss: MLM loss between remote_target and passed targets.
             # remote_target_loss.shape = [1]
             shift_logits = remote_target[..., :-1, :].contiguous()
-            # del remote_target
+            del remote_target
             
             shift_labels = inputs[..., 1:].contiguous()
             remote_target_loss = self.loss_fct(
                 shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
-            # del shift_logits
+            del shift_logits
 
             output.loss = output.loss + remote_target_loss
             output.remote_target_loss = remote_target_loss.item()
-            # del remote_target_loss
+            del remote_target_loss
         
 
         return output
