@@ -99,7 +99,6 @@ class Synapse(nn.Module):
         self.config = config
         self.session = session
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.to(self.device)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser): 
