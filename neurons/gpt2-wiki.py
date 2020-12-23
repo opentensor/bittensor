@@ -1,4 +1,3 @@
-#!/bin/python3
 """GPT2 Language Modelling
 
 This file demonstrates training the GPT2 neuron with language modelling.

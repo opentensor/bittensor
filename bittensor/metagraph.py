@@ -848,18 +848,13 @@ class Metagraph():
         cmap = {}
         chain_uids = await self.subtensor_client.weight_uids_for_uid(self.metadata['uid'])
         chain_vals = await self.subtensor_client.weight_vals_for_uid(self.metadata['uid'])
-
-        logger.info('chain_uids {}, chain_vals {}', chain_uids, chain_vals)
-        logger.info('weight_uids {}, weight_vals {}', weight_uids, weight_vals)
         if chain_uids != None and chain_vals != None:
             n_same = 0
             for uid, val in list(zip(chain_uids, chain_vals)):
                 cmap[uid] = val
             for uid, val in list(zip(weight_uids, weight_vals)):
-                logger.info(uid)
                 if uid in cmap:
                     if cmap[uid] == val:
-                        logger.info('same')
                         n_same += 1
             if n_same == len(weight_vals):
                 return True
