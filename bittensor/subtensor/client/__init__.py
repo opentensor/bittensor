@@ -116,6 +116,17 @@ class WSClient:
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
+    async def unstake(self, amount : Balance, hotkey_id):
+        logger.debug("Requesting unstake of {} rao for hotkey: {} to coldkey: {}", amount.rao, hotkey_id, self.__keypair.public_key)
+        call = await self.substrate.compose_call(
+            call_module='SubtensorModule',
+            call_function='remove_stake',
+            call_params={'ammount_unstaked': amount.rao, 'hotkey': hotkey_id}
+        )
+
+        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
+        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+
     async def set_weights(self, destinations, values, keypair, wait_for_inclusion=False):
         call = await self.substrate.compose_call(
             call_module = 'SubtensorModule',

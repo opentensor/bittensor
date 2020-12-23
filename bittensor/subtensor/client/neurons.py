@@ -40,6 +40,17 @@ class Neurons(list):
 
         return output
 
+    def has_uid(self,uid):
+        neurons = filter(lambda x: x.uid == uid, self)
+        return len(list(neurons)) > 0
+
+    def get_by_uid(self, uid):
+        neurons = Neurons(filter(lambda x: x.uid == uid, self))
+        return None if len(neurons) == 0 else neurons[0]
+
+
+
+
     def __str__(self):
         y = map(lambda x : x.__str__(), self)
 
