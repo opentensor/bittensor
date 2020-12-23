@@ -138,7 +138,7 @@ message Tensor {
 	// Buffer: [REQUIRED] Serialized raw tensor content.
 	bytes buffer = 2;
 
-	// Encoding: [REQUIRED] The encoding type specifies the serialization
+	// Serializer: [REQUIRED] The encoding type specifies the serialization
 	// deserialization method. Users should be able to decode all tensors 
 	// by specifying the encoding type and the raw data. 
 	// i.e.
@@ -149,6 +149,10 @@ message Tensor {
 	// SIZE: 32-bits (4 bytes)
 	Serializer serializer = 3;
 
+	// TensorType: [REQUIRED] Purely a placeholder, not used in deserialization etc, 
+	// however, could come in handy later
+	TensorType tensor_type = 4;
+
 	// Shape: [REQUIRED] Shape of this tensor.
 	// NOTE: Variable dimensions (i.e. batch) are non-explicit here as -1.
 	// ~ 5 * int32 = 128 bits - (16 bytes)
@@ -157,14 +161,14 @@ message Tensor {
 	// Dtype: [REQUIRED] The tensor datatype.
 	// Used for serialization deserialization.
 	// int32 32-bits (4-bytes)
-	DataType dtype = 5;
+	DataType dtype = 6;
 
 	// Modality: TEXT, TENSOR, IMAGE
-	Modality modality = 6;
+	Modality modality = 7;
 
 	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
 	// 1 bit.
-	bool requires_grad = 7;
+	bool requires_grad = 8;
 }
 
 // Dtype: [REQUIRED] The tensor serializer type.

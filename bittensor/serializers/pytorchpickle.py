@@ -78,15 +78,16 @@ def bittensor_dtype_np_dtype(bdtype):
 
 class PyTorchPickleSerializer( BittensorSerializerBase ):
 
-    ENUM = bittensor_pb2.Serializer.TORCHPICKLE
-
     @staticmethod
-    def serialize_from_torch(torch_tensor: torch.Tensor) -> bittensor_pb2.Tensor:
+    def serialize_from_torch(torch_tensor: torch.Tensor, modality: bittensor_pb2.Modality) -> bittensor_pb2.Tensor:
         """ Serializes a torch.Tensor to an bittensor Tensor proto.
 
         Args:
             torch_tensor (torch.Tensor): 
                 Torch tensor to serialize.
+
+            modality (bittensor_pb2.Modality): 
+                Datatype modality. i.e. TENSOR, TEXT, IMAGE
 
         Returns:
             bittensor_pb2.Tensor: 
@@ -103,7 +104,8 @@ class PyTorchPickleSerializer( BittensorSerializerBase ):
                                      buffer = data_buffer,
                                      shape = shape,
                                      dtype = dtype,
-                                     serializer = PyTorchPickleSerializer.ENUM,
+                                     serializer = bittensor_pb2.TensorType.PICKLE,
+                                     tensor_type = bittensor_pb2.TensorType.TORCH,
                                      modality = bittensor_pb2.Modality.TEXT,
                                      requires_grad = torch_tensor.requires_grad)
         return torch_proto
