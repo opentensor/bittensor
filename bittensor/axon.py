@@ -332,7 +332,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         try:
             self.gradients.put( (call_priority, (request.public_key, inputs_x, grads_dy, modality_x)) , block=False)
         except queue.Full:
-            logger.trace('gradient queue is full at size: {}', self.gradient_queue.qsize())
+            logger.trace('gradient queue is full at size: {}', self.gradients.qsize())
 
         # ---- Nucleus backward call ----
         try:
