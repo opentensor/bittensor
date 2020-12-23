@@ -1,5 +1,5 @@
 from bittensor.subtensor.interface import SubstrateWSInterface, Keypair
-import netaddr
+import bittensor.utils.networking as net
 from loguru import logger
 
 
@@ -29,17 +29,6 @@ class WSClient:
         self.__keypair = keypair
 
     '''
-    PRIVATE METHODS
-    '''
-
-    def __int_to_ip(self, int_val):
-        return str(netaddr.IPAddress(int_val))
-
-    def __ip_to_int(self, str_val):
-        return int(netaddr.IPAddress(str_val))
-
-
-    '''
     PUBLIC METHODS
     '''
 
@@ -51,8 +40,9 @@ class WSClient:
         return self.substrate.is_connected()
 
     async def subscribe(self, ip: str, port: int, coldkey: str):
+        ip_as_int  = net.ip_to_int(ip)
         params = {
-            'ip': self.__ip_to_int(ip),
+            'ip': ip_as_int,
             'port': port, 
             'ip_type': 4,
             'coldkey': coldkey

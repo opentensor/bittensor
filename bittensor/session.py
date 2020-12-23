@@ -1,8 +1,8 @@
 import argparse
 from io import StringIO
 import traceback as tb
-from bittensor.utils.replicate_utils import ReplicateUtility
 from munch import Munch
+from loguru import logger
 
 from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
@@ -12,7 +12,6 @@ from bittensor.nucleus import Nucleus
 from bittensor.utils.asyncio import Asyncio
 from bittensor.subtensor.interface import Keypair
 from bittensor.exceptions.handlers import rollbar
-from loguru import logger
 from bittensor.crypto import is_encrypted
 from bittensor.utils import Cli
 from bittensor.crypto import decrypt_keypair
