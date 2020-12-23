@@ -52,11 +52,12 @@ class CommandExecutor:
     async def overview(self):
         await self.connect()
         balance = await self.__client.get_balance(self.__keypair.ss58_address)
-        logger.info("Balance: {}", balance)
-
         neurons = await self._associated_neurons()
 
-        t = PrettyTable(["uid", "ip", "stake"])
+        print("BALANCE: %s : [%s]" % (self.__keypair.ss58_address, balance))
+        print()
+        print("--===[[ STAKES ]]===--")
+        t = PrettyTable(["UID", "IP", "STAKE"])
         t.align = 'l'
         for neuron in neurons:
             t.add_row([neuron.uid, neuron.ip, neuron.stake])
