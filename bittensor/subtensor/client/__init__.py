@@ -2,6 +2,7 @@ from bittensor.subtensor.interface import SubstrateWSInterface, Keypair
 import netaddr
 from loguru import logger
 from bittensor.balance import Balance
+from .neurons import Neuron, Neurons
 
 class WSClient:
     custom_type_registry = {
@@ -137,29 +138,35 @@ class WSClient:
     async def get_current_block(self):
         return await self.substrate.get_block_number(None)
 
-    async def neurons(self, pubkey=None):
+    async def neurons(self, pubkey=None, decorator=False):
+
+        # Todo (parall4x, 23-12-2020) Get rid of this decorator flag. This should be refactored into something that returns Neuron objects only
         if pubkey:
             result = await self.substrate.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='Neurons',
                 params=[pubkey]
             )
-            return result['result']
+            return Neurons.from_list(result['result']) if decorator else result['result']
 
         else:
             neurons = await self.substrate.iterate_map(
                 module='SubtensorModule',
                 storage_function='Neurons'
             )
-            return neurons
+            return Neurons.from_list(neurons) if decorator else neurons
 
-    async def get_stake_for_uid(self, uid):
+    async def get_stake_for_uid(self, uid) -> Balance:
         stake = await self.substrate.get_runtime_state(
             module='SubtensorModule',
             storage_function='Stake',
             params = [uid]
         )
-        return stake['result']
+
+        if not stake:
+            return Balance(0)
+
+        return Balance(stake['result'])
 
     async def weight_uids_for_uid(self, uid):
         result = await self.substrate.get_runtime_state(
