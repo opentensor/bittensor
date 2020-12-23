@@ -1,6 +1,8 @@
 #!/bin/python3
 
 from argparse import ArgumentParser
+
+from balance import Balance
 from bittensor.subtensor.client import WSClient
 from bittensor.subtensor.interface import Keypair
 from loguru import logger
@@ -14,7 +16,7 @@ import sys
 import os
 
 from prettytable import PrettyTable
-from subtensor.client import Neuron
+from subtensor.client import Neuron, Neurons
 
 
 class CommandExecutor:
@@ -28,7 +30,7 @@ class CommandExecutor:
         self.__client.connect()
         await self.__client.is_connected()
 
-    async def _associated_neurons(self):
+    async def _associated_neurons(self) -> Neurons:
         pubkey = self.__keypair.public_key
 
         logger.debug("Retrieving all nodes associated with cold key : {}", pubkey)
@@ -37,7 +39,7 @@ class CommandExecutor:
 
         result = filter(lambda x : x.coldkey == pubkey, neurons )# These are the neurons associated with the provided cold key
 
-        associated_neurons = list(result)
+        associated_neurons = Neurons(result)
 
         # Load stakes
         for neuron in associated_neurons:
@@ -47,9 +49,8 @@ class CommandExecutor:
         return associated_neurons
 
 
-
-
     async def overview(self):
+        await self.connect()
         balance = await self.__client.get_balance(self.__keypair.ss58_address)
         logger.info("Balance: {}", balance)
 
@@ -62,8 +63,27 @@ class CommandExecutor:
 
         print(t.get_string())
 
+    async def unstake_all(self):
+        await self.connect()
+        neurons = await self._associated_neurons()
+        for neuron in neurons:
+            neuron.stake = await self.__client.get_stake_for_uid(neuron.uid)
+            await self.__client.unstake(neuron.stake, neuron.hotkey)
 
+    async def unstake(self, uid, amount : Balance):
+        await self.connect()
+        neurons = await self._associated_neurons()
+        neuron = neurons.get_by_uid(uid)
+        if not neuron:
+            logger.error("Neuron with uid {} is not associated with this cold key")
+            quit()
 
+        neuron.stake = await self.__client.get_stake_for_uid(uid)
+        if amount > neuron.stake:
+            logger.error("Neuron with uid {} does not have enough stake ({}) to be able to unstake {}", uid, neuron.stake, amount)
+            quit()
+
+        await self.__client.unstake(amount, neuron.hotkey)
 
 
 
@@ -99,29 +119,13 @@ def load_key(path) -> Keypair:
         logger.error("Keyfile corrupt")
         raise e
 
-
+def get_client(endpoint, keypair):
+    return WSClient(socket=endpoint, keypair=keypair)
 
 def enable_debug(should_debug):
     if not should_debug:
         logger.remove()
         logger.add(sink=sys.stderr, level="INFO")
-
-
-async def overview(socket, keypair : Keypair):
-
-
-    client = WSClient(socket=socket, keypair=keypair)
-    exec = CommandExecutor(keypair, client)
-    await exec.connect()
-    overview = await exec.overview()
-
-
-
-    pass
-
-
-async def get_hotkeys(keypair : Keypair):
-    pass
 
 
 
@@ -146,21 +150,62 @@ def main():
 
     cmd_parsers = parser.add_subparsers(dest='command', required=True)
     overview_parser = cmd_parsers.add_parser('overview')
+    unstake_parser = cmd_parsers.add_parser('unstake')
+    unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
+    unstake_parser.add_argument('--uid', dest="unstake_uid", type=int, required=False)
+    unstake_parser.add_argument('--amount', dest="unstake_amount", type=float, required=False)
 
     args = parser.parse_args()
+
     endpoint = args.chain_endpoint
     enable_debug(args.debug)
 
     __validate_path(args.cold_key)
     keypair = load_key(args.cold_key)
 
-    if (args.command == "overview"):
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(overview(endpoint, keypair))
+    client = get_client(endpoint, keypair)
+    executor = CommandExecutor(keypair, client)
+    loop = asyncio.get_event_loop()
+
+    if args.command == "overview":
+        loop.run_until_complete(executor.overview())
+
+    if args.command == "unstake":
+        if args.unstake_all:
+            confirm = input("This will remove all stake from associated neurons, and transfer the balance in the account associated with the cold key. Continue? (y/N) ")
+            if confirm not in (["Y", 'y']):
+                quit()
+
+        if not args.unstake_uid:
+            logger.error("The --uid argument is required for this command")
+            quit()
+
+        if not args.unstake_amount:
+            logger.error("The --amount argument is required for this command")
+            quit()
+
+        amount = Balance.from_float(args.unstake_amount)
+
+        loop.run_until_complete(executor.unstake(args.unstake_uid, amount))
+
+
+
+
+
+
+
+
+        logger.info(args)
+
+        logger.info("TEST")
+
 
 
 
     print(keypair)
+
+
+
 
 
 if __name__ == '__main__':
