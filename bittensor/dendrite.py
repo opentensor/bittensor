@@ -419,7 +419,6 @@ class _RemoteModuleCall(torch.autograd.Function):
                 public_key = ctx.caller.keypair.public_key,
                 nounce = ctx.caller.nounce,
                 signature = ctx.caller.signature,
-                serializer = bittensor_pb2.Serializer.PICKLE,
                 tensors = [serialized_inputs])
         
             # ---- Make RPC call ----
@@ -539,7 +538,6 @@ class _RemoteModuleCall(torch.autograd.Function):
                     public_key = ctx.caller.keypair.public_key,
                     nounce = ctx.caller.nounce,
                     signature = ctx.caller.signature,
-                    serializer = bittensor_pb2.Serializer.PICKLE,
                     tensors = [serialized_inputs, serialized_grads])
 
                 # --- Send non blocking grad request ----

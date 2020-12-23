@@ -47,13 +47,13 @@ class BittensorSerializerBase(object):
         """
         # TODO (const): add deserialization types for torch -> tensorflow 
         if from_type == bittensor_pb2.TensorType.TORCH:
-            return BittensorSerializerBase.serialize_from_torch(tensor_obj)
+            return BittensorSerializerBase.serialize_from_torch( tensor_obj )
 
         elif from_type == bittensor_pb2.TensorType.NUMPY:
-            return BittensorSerializerBase.serialize_from_numpy(tensor_obj)
+            return BittensorSerializerBase.serialize_from_numpy( tensor_obj )
 
         elif from_type == bittensor_pb2.TensorType.TENSORFLOW:
-            return BittensorSerializerBase.serialize_from_tensorflow(tensor_obj)
+            return BittensorSerializerBase.serialize_from_tensorflow( tensor_obj )
 
         else:
             raise SerializationTypeNotImplementedException("Serialization from type {} not implemented.".format(from_type))
@@ -84,13 +84,13 @@ class BittensorSerializerBase(object):
         """
         # TODO (const): add deserialization types for torch -> tensorflow 
         if to_type == bittensor_pb2.TensorType.TORCH:
-            return BittensorSerializerBase.derserialize_to_torch(tensor_pb2)
+            return BittensorSerializerBase.derserialize_to_torch( tensor_pb2 )
 
         elif to_type == bittensor_pb2.TensorType.NUMPY:
-            return BittensorSerializerBase.derserialize_to_numpy(tensor_pb2)
+            return BittensorSerializerBase.derserialize_to_numpy( tensor_pb2 )
 
         elif to_type == bittensor_pb2.TensorType.TENSORFLOW:
-            return BittensorSerializerBase.derserialize_to_tensorflow(tensor_pb2)
+            return BittensorSerializerBase.derserialize_to_tensorflow( tensor_pb2 )
 
         else:
             raise SerializationTypeNotImplementedException("Deserialization to type {} not implemented.".format(to_type))
