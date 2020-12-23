@@ -85,6 +85,20 @@ class CommandExecutor:
 
         await self.__client.unstake(amount, neuron.hotkey)
 
+    async def stake(self, uid, amount : Balance):
+        await self.connect()
+        balance = await self.__client.get_balance(self.__keypair.ss58_address)
+        if balance < amount:
+            logger.error("Not enough balance ({}) to stake {}", balance, amount)
+
+        neurons = await self._associated_neurons()
+        neuron = neurons.get_by_uid(uid)
+        if not neuron:
+            logger.error("Neuron with uid {} is not associated with this cold key")
+            quit()
+
+        await self.__client.add_stake(amount, neuron.hotkey)
+
 
 
 
@@ -152,8 +166,13 @@ def main():
     overview_parser = cmd_parsers.add_parser('overview')
     unstake_parser = cmd_parsers.add_parser('unstake')
     unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
-    unstake_parser.add_argument('--uid', dest="unstake_uid", type=int, required=False)
-    unstake_parser.add_argument('--amount', dest="unstake_amount", type=float, required=False)
+    unstake_parser.add_argument('--uid', dest="uid", type=int, required=False)
+    unstake_parser.add_argument('--amount', dest="amount", type=float, required=False)
+
+    stake_parser = cmd_parsers.add_parser('stake')
+    stake_parser.add_argument('--uid', dest="uid", type=int, required=False)
+    stake_parser.add_argument('--amount', dest="amount", type=float, required=False)
+
 
     args = parser.parse_args()
 
@@ -176,35 +195,29 @@ def main():
             if confirm not in (["Y", 'y']):
                 quit()
 
-        if not args.unstake_uid:
+        if not args.uid:
             logger.error("The --uid argument is required for this command")
             quit()
 
-        if not args.unstake_amount:
+        if not args.amount:
             logger.error("The --amount argument is required for this command")
             quit()
 
-        amount = Balance.from_float(args.unstake_amount)
+        amount = Balance.from_float(args.amount)
 
-        loop.run_until_complete(executor.unstake(args.unstake_uid, amount))
+        loop.run_until_complete(executor.unstake(args.uid, amount))
 
+    if args.command == "stake":
+        if not args.uid:
+            logger.error("The --uid argument is required for this command")
+            quit()
 
+        if not args.amount:
+            logger.error("The --amount argument is required for this command")
+            quit()
 
-
-
-
-
-
-        logger.info(args)
-
-        logger.info("TEST")
-
-
-
-
-    print(keypair)
-
-
+        amount = Balance.from_float(args.amount)
+        loop.run_until_complete(executor.stake(args.uid, amount))
 
 
 

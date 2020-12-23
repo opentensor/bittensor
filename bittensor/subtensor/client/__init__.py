@@ -106,14 +106,18 @@ class WSClient:
         logger.debug("{} has {} rao", address, balance)
         return Balance(balance)
 
-    async def add_stake(self, amount, keypair):
+    async def add_stake(self, amount : Balance, hotkey_id):
+        logger.debug("Adding stake of {} rao from coldkey {} to hotkey {}", amount.rao, self.__keypair.public_key, hotkey_id)
         call = await self.substrate.compose_call(
             call_module='SubtensorModule',
             call_function='add_stake',
-            call_params={'stake_amount': amount}
+            call_params={
+                'hotkey': hotkey_id,
+                'ammount_staked': amount.rao
+            }
         )
 
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
+        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
     async def unstake(self, amount : Balance, hotkey_id):
