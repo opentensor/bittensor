@@ -7,6 +7,7 @@ import os
 import pathlib
 import validators
 import yaml
+import stat
 from munch import Munch
 
 from bittensor.axon import Axon
@@ -56,6 +57,10 @@ class Config:
         """
         if parser == None:
             parser = argparse.ArgumentParser()
+
+        # 0. Check for and create .bittensor directory
+        Config.check_and_create_config_dir()
+
             
         # 1. Load args from bittensor backend components.
         Axon.add_args(parser)
@@ -95,11 +100,27 @@ class Config:
 
         #5. Load key
         try:
-            Session.load_keypair(config)
+            Session.load_hotkeypair(config)
+            Session.load_cold_key(config)
         except KeyError:
             quit()
 
         return config
+
+    @staticmethod
+    def check_and_create_config_dir():
+        path = "~/.bittensor"
+        path = os.path.expanduser(path)
+
+        if not os.path.isdir(path):
+            Config.create_config_dir(path)
+
+
+    @staticmethod
+    def create_config_dir(path):
+        logger.info("Creating {} config dir", path)
+        os.makedirs(path, exist_ok=True)
+        os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
             
     @staticmethod
