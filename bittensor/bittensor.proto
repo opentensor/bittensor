@@ -133,7 +133,7 @@ message Tensor {
 	// Indentifies protocol version for backward compatibility.
 	// i.e. '0.0.0'
 	// SIZE: 32 bits (4-bytes)
-	string version = 1;
+	int32 version = 1;
 
 	// Buffer: [REQUIRED] Serialized raw tensor content.
 	bytes buffer = 2;
@@ -151,12 +151,13 @@ message Tensor {
 
 	// TensorType: [REQUIRED] Purely a placeholder, not used in deserialization etc, 
 	// however, could come in handy later
+	// SIZE: 32-bits (4 bytes)
 	TensorType tensor_type = 4;
 
 	// Shape: [REQUIRED] Shape of this tensor.
 	// NOTE: Variable dimensions (i.e. batch) are non-explicit here as -1.
 	// ~ 5 * int32 = 128 bits - (16 bytes)
-	repeated int64 shape = 4;
+	repeated int64 shape = 5;
     	
 	// Dtype: [REQUIRED] The tensor datatype.
 	// Used for serialization deserialization.
@@ -183,7 +184,6 @@ enum TensorType {
 	TENSORFLOW = 1; // Tensorflow tensor type.
 	NUMPY = 2; // Numper tensor type.
 }
-
 
 // Dtype: [REQUIRED] The tensor datatype.
 // Used for serialization deserialization.

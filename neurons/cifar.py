@@ -1,4 +1,3 @@
-#!/bin/python3
 """Training a MNIST Neuron.
 This file demonstrates a training pipeline for an MNIST Neuron.
 Example:

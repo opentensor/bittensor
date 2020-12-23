@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x19\x62ittensor/bittensor.proto\"j\n\x06Neuron\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x12\n\npublic_key\x18\x02 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x03 \x01(\t\x12\x0c\n\x04port\x18\x04 \x01(\x05\x12\x0f\n\x07ip_type\x18\x05 \x01(\x05\x12\x0b\n\x03uid\x18\x06 \x01(\x03\"\xa4\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x12\n\npublic_key\x18\x02 \x01(\t\x12\x0e\n\x06nounce\x18\x03 \x01(\x03\x12\x11\n\tsignature\x18\x04 \x01(\x0c\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\x12\x0f\n\x07message\x18\x06 \x01(\t\x12\x18\n\x07tensors\x18\x07 \x03(\x0b\x32\x07.Tensor\"\xa6\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\x1e\n\tserialzer\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12\r\n\x05shape\x18\x04 \x03(\x03\x12\x18\n\x05\x64type\x18\x05 \x01(\x0e\x32\t.DataType\x12\x1b\n\x08modality\x18\x06 \x01(\x0e\x32\t.Modality\x12\x15\n\rrequires_grad\x18\x07 \x01(\x08*\x82\x04\n\nReturnCode\x12\x0b\n\x07Success\x10\x00\x12\x0b\n\x07Timeout\x10\x01\x12\x0b\n\x07\x42\x61\x63koff\x10\x02\x12\x0f\n\x0bUnavailable\x10\x03\x12\x12\n\x0eNotImplemented\x10\x04\x12\x10\n\x0c\x45mptyRequest\x10\x05\x12\x11\n\rEmptyResponse\x10\x06\x12\x13\n\x0fInvalidResponse\x10\x07\x12\x12\n\x0eInvalidRequest\x10\x08\x12\x19\n\x15RequestShapeException\x10\t\x12\x1a\n\x16ResponseShapeException\x10\n\x12!\n\x1dRequestSerializationException\x10\x0b\x12\"\n\x1eResponseSerializationException\x10\x0c\x12#\n\x1fRequestDeserializationException\x10\r\x12$\n ResponseDeserializationException\x10\x0e\x12\x15\n\x11NotServingSynapse\x10\x0f\x12\x12\n\x0eNucleusTimeout\x10\x10\x12\x0f\n\x0bNucleusFull\x10\x11\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x12\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x13\x12\x14\n\x10UnknownException\x10\x14*\x1d\n\nSerializer\x12\x0f\n\x0bTORCHPICKLE\x10\x00*Q\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05*+\n\x08Modality\x12\n\n\x06TENSOR\x10\x00\x12\t\n\x05IMAGE\x10\x01\x12\x08\n\x04TEXT\x10\x02\x32\x66\n\tBittensor\x12+\n\x07\x46orward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12,\n\x08\x42\x61\x63kward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x19\x62ittensor/bittensor.proto\"j\n\x06Neuron\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x12\n\npublic_key\x18\x02 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x03 \x01(\t\x12\x0c\n\x04port\x18\x04 \x01(\x05\x12\x0f\n\x07ip_type\x18\x05 \x01(\x05\x12\x0b\n\x03uid\x18\x06 \x01(\x03\"\xa4\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x12\n\npublic_key\x18\x02 \x01(\t\x12\x0e\n\x06nounce\x18\x03 \x01(\x03\x12\x11\n\tsignature\x18\x04 \x01(\x0c\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\x12\x0f\n\x07message\x18\x06 \x01(\t\x12\x18\n\x07tensors\x18\x07 \x03(\x0b\x32\x07.Tensor\"\xc9\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\x1f\n\nserializer\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x04 \x01(\x0e\x32\x0b.TensorType\x12\r\n\x05shape\x18\x05 \x03(\x03\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x1b\n\x08modality\x18\x07 \x01(\x0e\x32\t.Modality\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08*\x82\x04\n\nReturnCode\x12\x0b\n\x07Success\x10\x00\x12\x0b\n\x07Timeout\x10\x01\x12\x0b\n\x07\x42\x61\x63koff\x10\x02\x12\x0f\n\x0bUnavailable\x10\x03\x12\x12\n\x0eNotImplemented\x10\x04\x12\x10\n\x0c\x45mptyRequest\x10\x05\x12\x11\n\rEmptyResponse\x10\x06\x12\x13\n\x0fInvalidResponse\x10\x07\x12\x12\n\x0eInvalidRequest\x10\x08\x12\x19\n\x15RequestShapeException\x10\t\x12\x1a\n\x16ResponseShapeException\x10\n\x12!\n\x1dRequestSerializationException\x10\x0b\x12\"\n\x1eResponseSerializationException\x10\x0c\x12#\n\x1fRequestDeserializationException\x10\r\x12$\n ResponseDeserializationException\x10\x0e\x12\x15\n\x11NotServingSynapse\x10\x0f\x12\x12\n\x0eNucleusTimeout\x10\x10\x12\x0f\n\x0bNucleusFull\x10\x11\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x12\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x13\x12\x14\n\x10UnknownException\x10\x14*\x18\n\nSerializer\x12\n\n\x06PICKLE\x10\x00*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*Q\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05*+\n\x08Modality\x12\n\n\x06TENSOR\x10\x00\x12\t\n\x05IMAGE\x10\x01\x12\x08\n\x04TEXT\x10\x02\x32\x66\n\tBittensor\x12+\n\x07\x46orward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12,\n\x08\x42\x61\x63kward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x62\x06proto3'
 )
 
 _RETURNCODE = _descriptor.EnumDescriptor(
@@ -138,8 +138,8 @@ _RETURNCODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=474,
-  serialized_end=988,
+  serialized_start=509,
+  serialized_end=1023,
 )
 _sym_db.RegisterEnumDescriptor(_RETURNCODE)
 
@@ -152,19 +152,50 @@ _SERIALIZER = _descriptor.EnumDescriptor(
   create_key=_descriptor._internal_create_key,
   values=[
     _descriptor.EnumValueDescriptor(
-      name='TORCHPICKLE', index=0, number=0,
+      name='PICKLE', index=0, number=0,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=990,
-  serialized_end=1019,
+  serialized_start=1025,
+  serialized_end=1049,
 )
 _sym_db.RegisterEnumDescriptor(_SERIALIZER)
 
 Serializer = enum_type_wrapper.EnumTypeWrapper(_SERIALIZER)
+_TENSORTYPE = _descriptor.EnumDescriptor(
+  name='TensorType',
+  full_name='TensorType',
+  filename=None,
+  file=DESCRIPTOR,
+  create_key=_descriptor._internal_create_key,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='TORCH', index=0, number=0,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='TENSORFLOW', index=1, number=1,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='NUMPY', index=2, number=2,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+  ],
+  containing_type=None,
+  serialized_options=None,
+  serialized_start=1051,
+  serialized_end=1101,
+)
+_sym_db.RegisterEnumDescriptor(_TENSORTYPE)
+
+TensorType = enum_type_wrapper.EnumTypeWrapper(_TENSORTYPE)
 _DATATYPE = _descriptor.EnumDescriptor(
   name='DataType',
   full_name='DataType',
@@ -205,8 +236,8 @@ _DATATYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1021,
-  serialized_end=1102,
+  serialized_start=1103,
+  serialized_end=1184,
 )
 _sym_db.RegisterEnumDescriptor(_DATATYPE)
 
@@ -236,8 +267,8 @@ _MODALITY = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1104,
-  serialized_end=1147,
+  serialized_start=1186,
+  serialized_end=1229,
 )
 _sym_db.RegisterEnumDescriptor(_MODALITY)
 
@@ -263,7 +294,10 @@ NucleusFull = 17
 RequestIncompatibleVersion = 18
 ResponseIncompatibleVersion = 19
 UnknownException = 20
-TORCHPICKLE = 0
+PICKLE = 0
+TORCH = 0
+TENSORFLOW = 1
+NUMPY = 2
 UNKNOWN = 0
 FLOAT32 = 1
 FLOAT64 = 2
@@ -427,8 +461,8 @@ _TENSOR = _descriptor.Descriptor(
   fields=[
     _descriptor.FieldDescriptor(
       name='version', full_name='Tensor.version', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -440,36 +474,43 @@ _TENSOR = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='serialzer', full_name='Tensor.serialzer', index=2,
+      name='serializer', full_name='Tensor.serializer', index=2,
       number=3, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='shape', full_name='Tensor.shape', index=3,
-      number=4, type=3, cpp_type=2, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='dtype', full_name='Tensor.dtype', index=4,
-      number=5, type=14, cpp_type=8, label=1,
+      name='tensor_type', full_name='Tensor.tensor_type', index=3,
+      number=4, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='modality', full_name='Tensor.modality', index=5,
+      name='shape', full_name='Tensor.shape', index=4,
+      number=5, type=3, cpp_type=2, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='dtype', full_name='Tensor.dtype', index=5,
       number=6, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='requires_grad', full_name='Tensor.requires_grad', index=6,
-      number=7, type=8, cpp_type=7, label=1,
+      name='modality', full_name='Tensor.modality', index=6,
+      number=7, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='requires_grad', full_name='Tensor.requires_grad', index=7,
+      number=8, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -487,12 +528,13 @@ _TENSOR = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=305,
-  serialized_end=471,
+  serialized_end=506,
 )
 
 _TENSORMESSAGE.fields_by_name['return_code'].enum_type = _RETURNCODE
 _TENSORMESSAGE.fields_by_name['tensors'].message_type = _TENSOR
-_TENSOR.fields_by_name['serialzer'].enum_type = _SERIALIZER
+_TENSOR.fields_by_name['serializer'].enum_type = _SERIALIZER
+_TENSOR.fields_by_name['tensor_type'].enum_type = _TENSORTYPE
 _TENSOR.fields_by_name['dtype'].enum_type = _DATATYPE
 _TENSOR.fields_by_name['modality'].enum_type = _MODALITY
 DESCRIPTOR.message_types_by_name['Neuron'] = _NEURON
@@ -500,6 +542,7 @@ DESCRIPTOR.message_types_by_name['TensorMessage'] = _TENSORMESSAGE
 DESCRIPTOR.message_types_by_name['Tensor'] = _TENSOR
 DESCRIPTOR.enum_types_by_name['ReturnCode'] = _RETURNCODE
 DESCRIPTOR.enum_types_by_name['Serializer'] = _SERIALIZER
+DESCRIPTOR.enum_types_by_name['TensorType'] = _TENSORTYPE
 DESCRIPTOR.enum_types_by_name['DataType'] = _DATATYPE
 DESCRIPTOR.enum_types_by_name['Modality'] = _MODALITY
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -534,8 +577,8 @@ _BITTENSOR = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=1149,
-  serialized_end=1251,
+  serialized_start=1231,
+  serialized_end=1333,
   methods=[
   _descriptor.MethodDescriptor(
     name='Forward',

@@ -16,12 +16,11 @@ from typing import List
 
 import bittensor
 import bittensor.utils.networking as net
-import bittensor.serialization import serialization
+import bittensor.serialization as serialization
 from bittensor.nucleus import Nucleus
 from bittensor.synapse import Synapse
 from bittensor import bittensor_pb2
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
-from bittensor.serializer import PyTorchSerializer
 
 
 class Axon(bittensor_grpc.BittensorServicer):
@@ -101,6 +100,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         # Optionally: use upnpc to map your router to the local host.
         if config.axon.use_upnpc:
             # Open a port on your router
+            logger.info('UPNPC: ON')
             try:
                 config.axon.external_port = net.upnpc_create_port_map(local_port = config.axon.local_port)
             except net.UPNPCException as upnpc_exception:
@@ -108,9 +108,10 @@ class Axon(bittensor_grpc.BittensorServicer):
                 raise upnpc_exception
         # Falls back to using your provided local_port.
         else:
+            logger.info('UPNPC: OFF')
             config.axon.external_port = config.axon.local_port
 
-        logger.info('Public Endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
+        logger.info('External Endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
         logger.info('Local Endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
 
     def __del__(self):
@@ -346,7 +347,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         # ---- Serialize response ----
         try:
             serializer = serialization.get_serializer ( bittensor_pb2.Serializer.PICKLE )
-            outputs_serialized = serializer.serialize ( outputs, from_type = bittensor_pb2.TensorType.TORCH )
+            outputs_serialized = serializer.serialize ( outputs, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH )
         
         except Exception as e:
             message = "Serializtion of forward response failed with error {} and inputs: {}".format(e, outputs)
@@ -427,7 +428,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         # ---- Deserialize response ----
         try:
             serializer = serialization.get_serializer( bittensor_pb2.Serializer.PICKLE )
-            outputs_serialized = serializer.serialize( outputs, from_type = serialization.SerializationTypes.TORCH ))
+            outputs_serialized = serializer.serialize( outputs, modality = bittensor_pb2.Modality.TENSOR, from_type = serialization.SerializationTypes.TORCH )
 
         except Exception as e:
             message = "Backward request serialization failed with error {} and inputs {}".format(e, outputs_serialized)

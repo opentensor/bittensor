@@ -14,10 +14,9 @@ from loguru import logger
 from munch import Munch
 
 import bittensor
-import bittensor.serialization import serialization
+import bittensor.serialization as serialization
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
-from bittensor.serializer import PyTorchSerializer
 from bittensor.exceptions.handlers import rollbar
 
 # dummy tensor that triggers autograd in a RemoteExpert
@@ -405,12 +404,12 @@ class _RemoteModuleCall(torch.autograd.Function):
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.EmptyRequest)
 
             # ---- Inputs Serialization ----
-            try:
-                serializer = serialization.get_serializer( bittensor_pb2.Serializer.PICKLE )
-                serialized_inputs = serializer.serialize(inputs, from_type = bittensor_pb2.TensorType.TORCH)
-            except Exception as e:
-                logger.warning('Serialization error with error {}', e)
-                return zeros, torch.tensor(bittensor_pb2.ReturnCode.RequestSerializationException)
+            # try:
+            serializer = serialization.get_serializer( bittensor_pb2.Serializer.PICKLE )
+            serialized_inputs = serializer.serialize(inputs, modality = mode, from_type = bittensor_pb2.TensorType.TORCH)
+            # except Exception as e:
+            #     logger.warning('Serialization error with error {}', e)
+            #     return zeros, torch.tensor(bittensor_pb2.ReturnCode.RequestSerializationException)
             ctx.serialized_inputs =  serialized_inputs
 
             # ---- Build request ----
@@ -529,7 +528,7 @@ class _RemoteModuleCall(torch.autograd.Function):
                 serializer = serialization.get_serializer( bittensor_pb2.Serializer.PICKLE )
 
                 # ---- Serialize grads to bitensor_pb2.Tensors ----
-                serialized_grads = serializer.serialize (grads, bittensor_pb2.TensorType.TORCH)
+                serialized_grads = serializer.serialize (grads, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH)
                 serialized_inputs = ctx.serialized_inputs
 
                 # ---- Build request for backward ----
