@@ -20,6 +20,7 @@ jobs:
       - run:
           command: pip install -e .
           name: setup
+      - run: pip install miniupnpc
 
   "Run Unit Tests":
     executor: bittensor-executor
@@ -31,6 +32,7 @@ jobs:
       - run:
           command: pip install -e .
           name: setup
+      - run: pip install miniupnpc
       - run:
           name: "Run unit tests"
           command: pytest ./tests/unit_tests
@@ -64,6 +66,7 @@ jobs:
       - python/load-cache
       - run: pip3 install -r requirements.txt
       - run: ./scripts/build_protos.sh
+      - run: pip install miniupnpc
       - run:
           command: pip install -e .
           name: setup
