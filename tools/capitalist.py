@@ -13,6 +13,10 @@ import sys
 
 import os
 
+from prettytable import PrettyTable
+from subtensor.client import Neuron
+
+
 class CommandExecutor:
     __keypair : Keypair
     __client : WSClient
@@ -24,10 +28,46 @@ class CommandExecutor:
         self.__client.connect()
         await self.__client.is_connected()
 
+    async def _associated_neurons(self):
+        pubkey = self.__keypair.public_key
+
+        logger.debug("Retrieving all nodes associated with cold key : {}", pubkey)
+
+        neurons = await self.__client.neurons(decorator=True)
+
+        result = filter(lambda x : x.coldkey == pubkey, neurons )# These are the neurons associated with the provided cold key
+
+        associated_neurons = list(result)
+
+        # Load stakes
+        for neuron in associated_neurons:
+            neuron.stake = await self.__client.get_stake_for_uid(neuron.uid)
+
+
+        return associated_neurons
+
+
+
 
     async def overview(self):
         balance = await self.__client.get_balance(self.__keypair.ss58_address)
         logger.info("Balance: {}", balance)
+
+        neurons = await self._associated_neurons()
+
+        t = PrettyTable(["uid", "ip", "stake"])
+        t.align = 'l'
+        for neuron in neurons:
+            t.add_row([neuron.uid, neuron.ip, neuron.stake])
+
+        print(t.get_string())
+
+
+
+
+
+
+
 
 
 def __validate_path(path):
@@ -102,7 +142,7 @@ def main():
     parser = ArgumentParser(description="Capitalism yeey")
     parser.add_argument("--chain-endpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, help="The endpoint to the subtensor chain <hostname/ip>:<port>")
     parser.add_argument("--cold-key", default='~/.bittensor/cold_key', help="Path to the cold key")
-    parser.add_argument("--debug", default=False, help="Turn on debugging information")
+    parser.add_argument("--debug", default=False, help="Turn on debugging information", action="store_true")
 
     cmd_parsers = parser.add_subparsers(dest='command', required=True)
     overview_parser = cmd_parsers.add_parser('overview')
