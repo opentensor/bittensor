@@ -11,7 +11,6 @@ from bittensor.metagraph import Metagraph
 from bittensor.nucleus import Nucleus
 from bittensor.utils.asyncio import Asyncio
 from bittensor.subtensor.interface import Keypair
-from bittensor.metadata import Metadata
 from bittensor.exceptions.handlers import rollbar
 from loguru import logger
 from bittensor.crypto import is_encrypted, decrypt_data
@@ -22,6 +21,8 @@ from cryptography.fernet import InvalidToken
 from bittensor.crypto.keyfiles import KeyFileError, load_keypair_from_data
 
 import json
+import re
+import stat
 
 
 import os
@@ -50,32 +51,97 @@ class Session:
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        parser.add_argument('--session.keyfile', required=False, default='~/.bittensor/key', help="Path to the bittensor key file")
+        parser.add_argument('--session.hotkeyfile', required=False, default='~/.bittensor/hotkey', help="Path to the bittensor hot key file")
+        parser.add_argument('--session.coldkeyfile', required=False, default='~/.bittensor/coldkey', help="Path to the bittensor cold key file")
         return parser
 
     @staticmethod   
     def check_config(config: Munch) -> Munch:
-        Session.__check_key_path(config.session.keyfile)
+        Session.__check_hot_key_path(config.session.hotkeyfile)
+        Session.__check_cold_key_path(config.session.coldkeyfile)
 
     @staticmethod
-    def __check_key_path(path):
+    def __check_hot_key_path(path):
         path = os.path.expanduser(path)
-        if not os.path.exists(path):
-            logger.error("--session.keyfile {} does not exist", path)
-            raise KeyFileError
+
+        if not Session.__has_keypair(path):
+            logger.info("No key found, generating a new one and storing it in {}", path)
+            keypair = Session.__create_keypair()
+            Session.__save_keypair(keypair, path)
 
         if not os.path.isfile(path):
-            logger.error("--session.keyfile {} is not a file", path)
+            logger.error("--session.hotkeyfile {} is not a file", path)
             raise KeyFileError
 
         if not os.access(path, os.R_OK):
-            logger.error("--session.keyfile {} is not readable", path)
+            logger.error("--session.hotkeyfile {} is not readable", path)
+            raise KeyFileError
+
+        if Session.__is_world_readable(path):
+            logger.error("--session.hotkeyfile {} is world readable.", path)
             raise KeyFileError
 
     @staticmethod
-    def load_keypair(config):
-        logger.info("Loading keypair")
-        keyfile = os.path.expanduser(config.session.keyfile)
+    def __is_world_readable(path):
+        st = os.stat(path)
+        return st.st_mode & stat.S_IROTH
+
+    @staticmethod
+    def __check_cold_key_path(path):
+        path = os.path.expanduser(path)
+
+        if not os.path.isfile(path):
+            logger.error("--session.coldkeyfile {} does not exist", path)
+            raise KeyFileError
+
+        if not os.path.isfile(path):
+            logger.error("--session.coldkeyfile {} is not a file", path)
+            raise KeyFileError
+
+        if not os.access(path, os.R_OK):
+            logger.error("--session.coldkeyfile {} is not readable", path)
+            raise KeyFileError
+
+        with open(path, "r") as file:
+            key = file.readline().strip()
+            if not re.match("^0x[a-z0-9]{64}$", key):
+                logger.error("Cold key file corrupt")
+                raise KeyFileError
+
+    @staticmethod
+    def __create_keypair() -> Keypair:
+        return Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+
+    @staticmethod
+    def __save_keypair(keypair : Keypair, path : str):
+        path = os.path.expanduser(path)
+        with open(path, 'w') as file:
+            json.dump(keypair.toDict(), file)
+            file.close()
+
+        os.chmod(path, stat.S_IWUSR | stat.S_IRUSR)
+
+    @staticmethod
+    def __has_keypair(path):
+        path = os.path.expanduser(path)
+
+        return os.path.exists(path)
+
+    @staticmethod
+    def load_cold_key(config):
+        path = config.session.coldkeyfile
+        path = os.path.expanduser(path)
+        logger.debug("Loading cold key from {}", path)
+
+        with open(path, "r") as file:
+            config.session.coldkey = file.readline().strip()
+
+        logger.info("Using coldkey : {}", config.session.coldkey)
+
+    @staticmethod
+    def load_hotkeypair(config):
+        logger.info("Loading hot keypair")
+        keyfile = os.path.expanduser(config.session.hotkeyfile)
         with open(keyfile, 'rb') as file:
             data = file.read()
 
@@ -83,8 +149,8 @@ class Session:
                 password = Cli.ask_password()
                 data = decrypt_data(password, data)
 
-            keypair = load_keypair_from_data(data)
-            config.session.keypair = keypair
+            hotkey = load_keypair_from_data(data)
+            config.session.keypair = hotkey
 
 
     def __del__(self):
@@ -162,9 +228,9 @@ class Session:
 
         logger.info('Subscribe to chain ...')
         try:
-            is_subscribed = self.metagraph.subscribe(12)
-            if is_subscribed == False:
-                logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
+            code, message = self.metagraph.subscribe(12)
+            if code != Metagraph.SubscribeSuccess:
+                logger.error('SESSION: Error while subscribing to the chain endpoint with message: {}', message)
                 raise FailedToEnterSession
 
         except Exception as e:
