@@ -4,7 +4,6 @@ import copy
 import argparse
 import bittensor
 import math
-import netaddr
 import numpy
 import time
 import torch
@@ -16,15 +15,10 @@ from bittensor import bittensor_pb2
 from bittensor.subtensor.client import WSClient
 from typing import List, Tuple, List
 
+import bittensor.utils.networking as net
 from bittensor.exceptions.handlers import rollbar
 
 MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
-
-def int_to_ip(int_val):
-    return str(netaddr.IPAddress(int_val))
- 
-def ip_to_int(str_val):
-    return int(netaddr.IPAddress(str_val))
 
 class ChainState():
     def __init__(self):
@@ -43,10 +37,11 @@ class ChainState():
         self.pubkey_for_index = {}
 
     def add_or_update(self, pubkey:str, ip: int, port: int, uid: int, ip_type: int, lastemit: int, stake: int, w_uids: List[str], w_vals: List[int]):
+        address_str = net.int_to_ip(ip)
         neuron = bittensor_pb2.Neuron(
             version = bittensor.__version__,
             public_key = pubkey,
-            address = int_to_ip(ip),
+            address = address_str,
             port = int(port),
             ip_type = int(ip_type),
             uid = int(uid),
