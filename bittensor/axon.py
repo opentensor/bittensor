@@ -284,7 +284,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         # ---- Check deserialization ----
         inputs = request.tensors[0]
         try:
-            deserializer = serialization.get_serializer( serialzer_type = inputs.serialzer )
+            deserializer = serialization.get_serializer( serialzer_type = inputs.serializer )
             x = deserializer.deserialize(inputs, to_type = bittensor_pb2.TensorType.TORCH)
         except Exception as e:
             message  = "Forward request deserialization failed with error {}".format(e)
@@ -390,9 +390,9 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # ---- Deserialize request ---
         try:
-            deserializer = serialization.get_serializer( inputs_x.serializer )
-            inputs_x = deserializer.deserialize( inputs_x, to_type = serialization.SerializationTypes.TORCH )
-            grads_dy = deserializer.deserialize( grads_dy, to_type = serialization.SerializationTypes.TORCH )
+            serializer = serialization.get_serializer( inputs_x.serializer )
+            inputs_x = serializer.deserialize( inputs_x, to_type = bittensor_pb2.TensorType.TORCH )
+            grads_dy = serializer.deserialize( grads_dy, to_type = bittensor_pb2.TensorType.TORCH )
                 
         except Exception as e:
             message = "Backward request deserialization failed with unknown error {}".format(e)
@@ -428,10 +428,10 @@ class Axon(bittensor_grpc.BittensorServicer):
         # ---- Deserialize response ----
         try:
             serializer = serialization.get_serializer( bittensor_pb2.Serializer.PICKLE )
-            outputs_serialized = serializer.serialize( outputs, modality = bittensor_pb2.Modality.TENSOR, from_type = serialization.SerializationTypes.TORCH )
+            outputs_serialized = serializer.serialize( outputs, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH )
 
         except Exception as e:
-            message = "Backward request serialization failed with error {} and inputs {}".format(e, outputs_serialized)
+            message = "Backward request serialization failed with error {} and inputs {}".format(e, outputs)
             code =  bittensor_pb2.ReturnCode.ResponseSerializationException
             return None, message, code
 
