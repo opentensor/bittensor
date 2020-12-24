@@ -404,12 +404,12 @@ class _RemoteModuleCall(torch.autograd.Function):
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.EmptyRequest)
 
             # ---- Inputs Serialization ----
-            # try:
-            serializer = serialization.get_serializer( bittensor_pb2.Serializer.PICKLE )
-            serialized_inputs = serializer.serialize(inputs, modality = mode, from_type = bittensor_pb2.TensorType.TORCH)
-            # except Exception as e:
-            #     logger.warning('Serialization error with error {}', e)
-            #     return zeros, torch.tensor(bittensor_pb2.ReturnCode.RequestSerializationException)
+            try:
+                serializer = serialization.get_serializer( bittensor_pb2.Serializer.PICKLE )
+                serialized_inputs = serializer.serialize(inputs, modality = mode, from_type = bittensor_pb2.TensorType.TORCH)
+            except Exception as e:
+                logger.warning('Serialization error with error {}', e)
+                return zeros, torch.tensor(bittensor_pb2.ReturnCode.RequestSerializationException)
             ctx.serialized_inputs =  serialized_inputs
 
             # ---- Build request ----
@@ -465,7 +465,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             # ---- Deserialize response ----
             try:
                 outputs = response.tensors[0]
-                deserializer = serialization.get_serializer( outputs.serialzer )
+                deserializer = serialization.get_serializer(  outputs.serializer )
                 outputs = deserializer.deserialize( outputs, to_type = bittensor_pb2.TensorType.TORCH )
 
             except Exception as e:

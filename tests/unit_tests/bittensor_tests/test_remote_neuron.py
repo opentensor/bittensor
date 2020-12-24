@@ -12,7 +12,7 @@ from bittensor.dendrite import RemoteNeuron, _RemoteModuleCall
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
 from unittest.mock import MagicMock
-from bittensor.serializer import PyTorchSerializer
+import bittensor.serialization as serialization
 from munch import Munch
 
 config = {'neuron':
@@ -71,19 +71,17 @@ def test_remote_neuron_request_empty():
     assert ops.item() == bittensor_pb2.ReturnCode.EmptyRequest
     assert list(out.shape) == [0]
 
-def test_remote_neuron_serialization():
-    x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = remote.forward( x, -1)
-    assert ops.item() == bittensor_pb2.ReturnCode.RequestSerializationException
-    assert list(out.shape) == [3, 3, bittensor.__network_dim__]
-
 def test_remote_neuron_mock_server():
     y = torch.rand(3, 3, bittensor.__network_dim__)
+    
+    serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.PICKLE )
+    y_serialized = serializer.serialize(y, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH)
+            
     mock_return_val = bittensor_pb2.TensorMessage(
             version = bittensor.__version__,
             public_key = keypair.public_key,
             return_code = bittensor_pb2.ReturnCode.Success,
-            tensors = [PyTorchSerializer.serialize_tensor(y)])
+            tensors = [y_serialized])
 
     stub.Forward = MagicMock( return_value=mock_return_val )
     remote.stub = stub
@@ -92,7 +90,6 @@ def test_remote_neuron_mock_server():
     out, ops = remote.forward(x, bittensor_pb2.Modality.TENSOR)
     assert ops.item() == bittensor_pb2.ReturnCode.Success
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
-
 
 
 def test_remote_neuron_mock_server_deserialization_error():
@@ -114,11 +111,15 @@ def test_remote_neuron_mock_server_deserialization_error():
 
 def test_remote_neuron_mock_server_shape_error():
     y = torch.rand(1, 3, bittensor.__network_dim__)
+
+    serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.PICKLE )
+    y_serialized = serializer.serialize(y, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH)
+   
     mock_return_val = bittensor_pb2.TensorMessage(
             version = bittensor.__version__,
             public_key = keypair.public_key,
             return_code = bittensor_pb2.ReturnCode.Success,
-            tensors = [PyTorchSerializer.serialize_tensor(y)])
+            tensors = [y_serialized])
 
     stub.Forward = MagicMock( return_value=mock_return_val )
     remote.stub = stub
@@ -133,7 +134,6 @@ if __name__ == "__main__":
     test_remote_neuron_image ()
     test_remote_neuron_tensor ()
     test_remote_neuron_request_empty ()
-    test_remote_neuron_serialization()
     test_remote_neuron_mock_server ()
     test_remote_neuron_mock_server_deserialization_error ()
     test_remote_neuron_mock_server_shape_error ()
