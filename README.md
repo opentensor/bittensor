@@ -14,7 +14,6 @@ Neural networks which mine crypto by producing information for their peers.
 ## Acknowledgments
 **learning-at-home/hivemind**:
 
-
 ## License
 The MIT License (MIT)
 Copyright © 2020 <copyright holders>
