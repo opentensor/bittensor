@@ -18,7 +18,7 @@ numpy
 pandas
 password_strength
 pickle-mixin
-prettytables
+prettytable
 pycryptodome
 pycrypto
 py-sr25519-bindings==0.1.2
