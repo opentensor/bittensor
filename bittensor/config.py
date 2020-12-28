@@ -7,14 +7,16 @@ import os
 import pathlib
 import validators
 import yaml
+import stat
 from munch import Munch
 
 from bittensor.axon import Axon
-from bittensor.session import Session, KeyError
+from bittensor.session import Session
 from bittensor.dendrite import Dendrite
 from bittensor.metagraph import Metagraph
+from bittensor.crypto import KeyError
+from bittensor.crypto.keyfiles import KeyFileError
 from bittensor.nucleus import Nucleus
-from bittensor.subtensor.interface import Keypair, KeypairRepresenter
 
 
 
@@ -56,14 +58,18 @@ class Config:
         """
         if parser == None:
             parser = argparse.ArgumentParser()
-            
+
+        # 0. Check for and create .bittensor directory
+        Config.check_and_create_config_dir()
+
+
         # 1. Load args from bittensor backend components.
         Axon.add_args(parser)
         Dendrite.add_args(parser)
         Metagraph.add_args(parser)
         Session.add_args(parser)
         Nucleus.add_args(parser)
-       
+
         # 2. Parse.
         params = parser.parse_known_args()[0]
         config_file = None
@@ -101,13 +107,33 @@ class Config:
 
         #5. Load key
         try:
-            Session.load_keypair(config)
-        except KeyError:
+            Session.load_hotkeypair(config)
+            Session.load_cold_key(config)
+        except (KeyError):
+            logger.error("Invalid password")
+            quit()
+        except KeyFileError:
+            logger.error("Keyfile corrupt")
             quit()
 
         return config
 
-            
+    @staticmethod
+    def check_and_create_config_dir():
+        path = "~/.bittensor"
+        path = os.path.expanduser(path)
+
+        if not os.path.isdir(path):
+            Config.create_config_dir(path)
+
+
+    @staticmethod
+    def create_config_dir(path):
+        logger.info("Creating {} config dir", path)
+        os.makedirs(path, exist_ok=True)
+        os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+
     @staticmethod
     def load_from_relative_path(path: str)  -> Munch:
         r""" Loads and returns a Munched config object from a relative path.
