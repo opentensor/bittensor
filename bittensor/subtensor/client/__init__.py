@@ -7,9 +7,9 @@ class WSClient:
     custom_type_registry = {
         "runtime_id": 2,
         "types": {
-            "NeuronMetadata": {
+            "NeuronMetadataOf": {
                 "type": "struct",
-                "type_mapping": [["ip", "u128"], ["port", "u16"], ["ip_type", "u8"]]
+                "type_mapping": [["ip", "u128"], ["port", "u16"], ["ip_type", "u8"], ["uid", "u64"], ["coldkey", "AccountId"]]
             }
         }
     }
@@ -43,7 +43,6 @@ class WSClient:
     PUBLIC METHODS
     '''
 
-
     def connect(self):
         logger.trace("connect() C")
         self.substrate.connect()
@@ -51,9 +50,13 @@ class WSClient:
     def is_connected(self):
         return self.substrate.is_connected()
 
-    async def subscribe(self, ip: str, port: int):
-        params = {'ip': self.__ip_to_int(ip),
-                  'port': port, 'ip_type': 4}
+    async def subscribe(self, ip: str, port: int, coldkey: str):
+        params = {
+            'ip': self.__ip_to_int(ip),
+            'port': port, 
+            'ip_type': 4,
+            'coldkey': coldkey
+        }
 
         call = await self.substrate.compose_call(
             call_module='SubtensorModule',
@@ -105,55 +108,27 @@ class WSClient:
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
-    async def get_stake(self, pubkey):
-        stake = await self.substrate.get_runtime_state(
-            module='SubtensorModule',
-            storage_function='Stake',
-            params=[pubkey]
-        )
-
-        return stake['result']
-
     async def set_weights(self, destinations, values, keypair, wait_for_inclusion=False):
         call = await self.substrate.compose_call(
             call_module = 'SubtensorModule',
             call_function = 'set_weights',
-            call_params = {'dests': destinations, 'values': values}
+            call_params = {'dests': destinations, 'weights': values}
         )
 
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=wait_for_inclusion)
-
-
-    async def weight_keys(self, pubkey):
-        result = await self.substrate.get_runtime_state(
-            module='SubtensorModule',
-            storage_function='WeightKeys',
-            params=[pubkey]
-        )
-
-        return result['result']
-
-
-
-    async def weight_vals(self, pubkey):
-        result = await self.substrate.get_runtime_state(
-            module='SubtensorModule',
-            storage_function='WeightVals',
-            params=[pubkey]
-        )
-
-        return result['result']
 
     async def emit(self, destinations, values, keypair, wait_for_inclusion=False):
         call = await self.substrate.compose_call(
             call_module='SubtensorModule',
-            call_function='emit',
-            call_params = {'dests': destinations, 'values': values}
+            call_function='set_weights',
+            call_params = {'dests': destinations, 'weights': values}
         )
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=wait_for_inclusion)
 
+    async def get_current_block(self):
+        return await self.substrate.get_block_number(None)
 
     async def neurons(self, pubkey=None):
         if pubkey:
@@ -171,25 +146,43 @@ class WSClient:
             )
             return neurons
 
+    async def get_stake_for_uid(self, uid):
+        stake = await self.substrate.get_runtime_state(
+            module='SubtensorModule',
+            storage_function='Stake',
+            params = [uid]
+        )
+        return stake['result']
 
-    async def get_current_block(self):
-        return await self.substrate.get_block_number(None)
+    async def weight_uids_for_uid(self, uid):
+        result = await self.substrate.get_runtime_state(
+            module='SubtensorModule',
+            storage_function='WeightUids',
+            params = [uid]
+        )
+        return result['result']
 
-    async def get_last_emit_data(self, pubkey=None):
-        if pubkey:
-            result = await self.substrate.get_runtime_state(
-                module='SubtensorModule',
-                storage_function='LastEmit',
-                params=[pubkey]
-            )
+    async def weight_vals_for_uid(self, uid):
+        result = await self.substrate.get_runtime_state(
+            module='SubtensorModule',
+            storage_function='WeightVals',
+            params = [uid]
+        )
+        return result['result']
 
-            return result['result']
-        else:
-            result = await self.substrate.iterate_map(
-                module='SubtensorModule',
-                storage_function='LastEmit'
-            )
-
+    async def get_last_emit_data_for_uid(self, uid):
+        result = await self.substrate.get_runtime_state(
+            module='SubtensorModule',
+            storage_function='LastEmit',
+            params = [uid]
+        )
+        return result['result']
+        
+    async def get_last_emit_data(self):
+        result = await self.substrate.iterate_map(
+            module='SubtensorModule',
+            storage_function='LastEmit'
+        )
         return result
 
 
