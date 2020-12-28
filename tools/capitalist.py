@@ -2,7 +2,7 @@
 
 from argparse import ArgumentParser
 
-from balance import Balance
+from bittensor.balance import Balance
 from bittensor.subtensor.client import WSClient
 from bittensor.subtensor.interface import Keypair
 from loguru import logger
@@ -16,7 +16,7 @@ import sys
 import os
 
 from prettytable import PrettyTable
-from subtensor.client import Neuron, Neurons
+from bittensor.subtensor.client import Neuron, Neurons
 
 
 class CommandExecutor:
