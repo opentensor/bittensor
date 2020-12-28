@@ -1,7 +1,8 @@
 from bittensor.subtensor.interface import SubstrateWSInterface, Keypair
 import netaddr
 from loguru import logger
-
+from bittensor.balance import Balance
+from .neurons import Neuron, Neurons
 
 class WSClient:
     custom_type_registry = {
@@ -53,7 +54,7 @@ class WSClient:
     async def subscribe(self, ip: str, port: int, coldkey: str):
         params = {
             'ip': self.__ip_to_int(ip),
-            'port': port, 
+            'port': port,
             'ip_type': 4,
             'coldkey': coldkey
         }
@@ -79,14 +80,16 @@ class WSClient:
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
-    async def get_peers(self):
-        peers = await self.substrate.iterate_map(
-            module='SubtensorModule',
-            storage_function='Peers')
-
-        return peers
+    # TODO (21-12-2020, Parall4x) Delete if not needed anymore
+    # async def get_peers(self):
+    #     peers = await self.substrate.iterate_map(
+    #         module='SubtensorModule',
+    #         storage_function='Peers')
+    #
+    #     return peers
 
     async def get_balance(self, address):
+        logger.debug("Getting balance for: {}", address)
         result  = await self.substrate.get_runtime_state(
             module='System',
             storage_function='Account',
@@ -95,17 +98,37 @@ class WSClient:
         )
 
         balance_info = result.get('result')
+        if not balance_info:
+            logger.debug("{} has no balance", address)
+            return Balance(0)
 
-        return balance_info['data']['free']
+        balance = balance_info['data']['free']
+        logger.debug("{} has {} rao", address, balance)
+        return Balance(balance)
 
-    async def add_stake(self, amount, keypair):
+    async def add_stake(self, amount : Balance, hotkey_id):
+        logger.debug("Adding stake of {} rao from coldkey {} to hotkey {}", amount.rao, self.__keypair.public_key, hotkey_id)
         call = await self.substrate.compose_call(
             call_module='SubtensorModule',
             call_function='add_stake',
-            call_params={'stake_amount': amount}
+            call_params={
+                'hotkey': hotkey_id,
+                'ammount_staked': amount.rao
+            }
         )
 
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
+        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
+        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+
+    async def unstake(self, amount : Balance, hotkey_id):
+        logger.debug("Requesting unstake of {} rao for hotkey: {} to coldkey: {}", amount.rao, hotkey_id, self.__keypair.public_key)
+        call = await self.substrate.compose_call(
+            call_module='SubtensorModule',
+            call_function='remove_stake',
+            call_params={'ammount_unstaked': amount.rao, 'hotkey': hotkey_id}
+        )
+
+        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
     async def set_weights(self, destinations, values, keypair, wait_for_inclusion=False):
@@ -130,29 +153,35 @@ class WSClient:
     async def get_current_block(self):
         return await self.substrate.get_block_number(None)
 
-    async def neurons(self, pubkey=None):
+    async def neurons(self, pubkey=None, decorator=False):
+
+        # Todo (parall4x, 23-12-2020) Get rid of this decorator flag. This should be refactored into something that returns Neuron objects only
         if pubkey:
             result = await self.substrate.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='Neurons',
                 params=[pubkey]
             )
-            return result['result']
+            return Neurons.from_list(result['result']) if decorator else result['result']
 
         else:
             neurons = await self.substrate.iterate_map(
                 module='SubtensorModule',
                 storage_function='Neurons'
             )
-            return neurons
+            return Neurons.from_list(neurons) if decorator else neurons
 
-    async def get_stake_for_uid(self, uid):
+    async def get_stake_for_uid(self, uid) -> Balance:
         stake = await self.substrate.get_runtime_state(
             module='SubtensorModule',
             storage_function='Stake',
             params = [uid]
         )
-        return stake['result']
+
+        if not stake:
+            return Balance(0)
+
+        return Balance(stake['result'])
 
     async def weight_uids_for_uid(self, uid):
         result = await self.substrate.get_runtime_state(
@@ -177,7 +206,7 @@ class WSClient:
             params = [uid]
         )
         return result['result']
-        
+
     async def get_last_emit_data(self):
         result = await self.substrate.iterate_map(
             module='SubtensorModule',
