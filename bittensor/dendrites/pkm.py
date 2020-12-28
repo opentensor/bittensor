@@ -82,7 +82,6 @@ class PKMDendrite():
                     dendrite call return codes.
         """
         # For ease of use.
-        #inputs = inputs.to(self.device)
         batch_size = inputs.shape[0]
 
 
