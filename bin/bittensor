@@ -1,23 +1,22 @@
-#!/bin/python3
+#!/usr/bin/env python
 
-from argparse import ArgumentParser
-
-from bittensor.balance import Balance
-from bittensor.subtensor.client import WSClient
-from bittensor.subtensor.interface import Keypair
-from loguru import logger
-import json
-from bittensor.crypto import is_encrypted, decrypt_data, KeyError
-from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError
-from bittensor.utils import Cli
+import argparse
 import asyncio
+import json
+import os
 import sys
 
-import os
-
+from argparse import ArgumentParser
+from loguru import logger
 from prettytable import PrettyTable
-from bittensor.subtensor.client import Neuron, Neurons
 
+from bittensor.balance import Balance
+from bittensor.crypto import is_encrypted, decrypt_data, KeyError
+from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError
+from bittensor.subtensor.client import WSClient
+from bittensor.subtensor.interface import Keypair
+from bittensor.utils import Cli
+from bittensor.subtensor.client import Neuron, Neurons
 
 class CommandExecutor:
     __keypair : Keypair
@@ -47,7 +46,6 @@ class CommandExecutor:
 
 
         return associated_neurons
-
 
     async def overview(self):
         await self.connect()
@@ -101,10 +99,6 @@ class CommandExecutor:
         await self.__client.add_stake(amount, neuron.hotkey)
 
 
-
-
-
-
 def __validate_path(path):
     path = os.path.expanduser(path)
 
@@ -143,40 +137,15 @@ def enable_debug(should_debug):
         logger.add(sink=sys.stderr, level="INFO")
 
 
-
-
 '''
-
 Functions :
 - Generate cold key
 - View balance
 - View hotkeys associated with the supplied cold key
 - Stake funds into hotkey ( one by one / amount devided equally over keys)
 - Unstake funds into coldkey (one by one / withdraw all)
-
-
 '''
-
-def main():
-    parser = ArgumentParser(description="Capitalism yeey")
-    parser.add_argument("--chain-endpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, help="The endpoint to the subtensor chain <hostname/ip>:<port>")
-    parser.add_argument("--cold-key", default='~/.bittensor/cold_key', help="Path to the cold key")
-    parser.add_argument("--debug", default=False, help="Turn on debugging information", action="store_true")
-
-    cmd_parsers = parser.add_subparsers(dest='command', required=True)
-    overview_parser = cmd_parsers.add_parser('overview')
-    unstake_parser = cmd_parsers.add_parser('unstake')
-    unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
-    unstake_parser.add_argument('--uid', dest="uid", type=int, required=False)
-    unstake_parser.add_argument('--amount', dest="amount", type=float, required=False)
-
-    stake_parser = cmd_parsers.add_parser('stake')
-    stake_parser.add_argument('--uid', dest="uid", type=int, required=False)
-    stake_parser.add_argument('--amount', dest="amount", type=float, required=False)
-
-
-    args = parser.parse_args()
-
+def run(args):
     endpoint = args.chain_endpoint
     enable_debug(args.debug)
 
@@ -187,9 +156,11 @@ def main():
     executor = CommandExecutor(keypair, client)
     loop = asyncio.get_event_loop()
 
+    # --- Overview command
     if args.command == "overview":
         loop.run_until_complete(executor.overview())
 
+    # --- Unstake command
     if args.command == "unstake":
         if args.unstake_all:
             confirm = input("This will remove all stake from associated neurons, and transfer the balance in the account associated with the cold key. Continue? (y/N) ")
@@ -197,33 +168,61 @@ def main():
                 quit()
             loop.run_until_complete(executor.unstake_all())
             quit()
-
-
         if not args.uid:
             logger.error("The --uid argument is required for this command")
             quit()
-
         if not args.amount:
             logger.error("The --amount argument is required for this command")
             quit()
-
         amount = Balance.from_float(args.amount)
-
         loop.run_until_complete(executor.unstake(args.uid, amount))
 
+    # --- Stake command
     if args.command == "stake":
         if not args.uid:
             logger.error("The --uid argument is required for this command")
             quit()
-
         if not args.amount:
             logger.error("The --amount argument is required for this command")
             quit()
-
         amount = Balance.from_float(args.amount)
         loop.run_until_complete(executor.stake(args.uid, amount))
 
 
+def main():
+    
+    # Build top level parser.
+    parser = ArgumentParser(description="Bittensor cli", usage="bittensor <args> <command>", add_help=True)
+    parser._positionals.title = "commands"
+     
+    # Add args
+    parser.add_argument("--chain-endpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, help="The endpoint to the subtensor chain <hostname/ip>:<port>")
+    parser.add_argument("--cold-key", default='~/.bittensor/coldkey', help="Path to the cold key")
+    parser.add_argument("--debug", default=False, help="Turn on debugging information", action="store_true")
 
+    # Add subparsers.
+    cmd_parsers = parser.add_subparsers(dest='command', required=True)
+    overview_parser = cmd_parsers.add_parser('overview', help='show account overview')
+    unstake_parser = cmd_parsers.add_parser('unstake', help='unstake from hotkey accounts')
+    stake_parser = cmd_parsers.add_parser('stake', help='stake to hotkey accounts')
+   
+    # Fill arguments for unstake command. 
+    unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
+    unstake_parser.add_argument('--uid', dest="uid", type=int, required=False)
+    unstake_parser.add_argument('--amount', dest="amount", type=float, required=False)
+
+    # Fill arguments for stake command.
+    stake_parser.add_argument('--uid', dest="uid", type=int, required=False)
+    stake_parser.add_argument('--amount', dest="amount", type=float, required=False)
+
+    # Hack to print formatted help
+    if len(sys.argv) == 1:
+    	parser.print_help()
+    	sys.exit(0)
+
+    # Load args and run the script.
+    args = parser.parse_args()
+    run(args)
+ 
 if __name__ == '__main__':
     main()
