@@ -277,12 +277,6 @@ yaml.add_representer(Keypair, KeypairRepresenter)
 
 
 
-
-
-
-
-
-
 class SubtensorClientProtocol(WebSocketClientProtocol):
 
     def __init__(self):

@@ -11,11 +11,12 @@ import stat
 from munch import Munch
 
 from bittensor.axon import Axon
-from bittensor.session import Session, KeyError
+from bittensor.session import Session
 from bittensor.dendrite import Dendrite
 from bittensor.metagraph import Metagraph
+from bittensor.crypto import KeyError
+from bittensor.crypto.keyfiles import KeyFileError
 from bittensor.nucleus import Nucleus
-from bittensor.subtensor.interface import Keypair, KeypairRepresenter
 
 
 
@@ -61,14 +62,14 @@ class Config:
         # 0. Check for and create .bittensor directory
         Config.check_and_create_config_dir()
 
-            
+
         # 1. Load args from bittensor backend components.
         Axon.add_args(parser)
         Dendrite.add_args(parser)
         Metagraph.add_args(parser)
         Session.add_args(parser)
         Nucleus.add_args(parser)
-       
+
         # 2. Parse.
         params = parser.parse_known_args()[0]
 
@@ -102,7 +103,11 @@ class Config:
         try:
             Session.load_hotkeypair(config)
             Session.load_cold_key(config)
-        except KeyError:
+        except (KeyError):
+            logger.error("Invalid password")
+            quit()
+        except KeyFileError:
+            logger.error("Keyfile corrupt")
             quit()
 
         return config
@@ -122,7 +127,7 @@ class Config:
         os.makedirs(path, exist_ok=True)
         os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
-            
+
     @staticmethod
     def load_from_relative_path(path: str)  -> Munch:
         r""" Loads and returns a Munched config object from a relative path.

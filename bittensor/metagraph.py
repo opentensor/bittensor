@@ -509,7 +509,7 @@ class Metagraph():
             lastemit = await self.subtensor_client.get_last_emit_data_for_uid(neuron['uid'])
             w_uids = await self.subtensor_client.weight_uids_for_uid(neuron['uid'])
             w_vals = await self.subtensor_client.weight_vals_for_uid(neuron['uid'])
-            self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], lastemit = lastemit, stake = stake, w_uids = w_uids, w_vals = w_vals)
+            self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
         except Exception as e:
             logger.error("Exception occurred: {}".format(e))
             traceback.print_exc()
