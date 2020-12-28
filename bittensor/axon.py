@@ -255,8 +255,8 @@ class Axon(bittensor_grpc.BittensorServicer):
         # ---- Make Nucleus forward call. ----
         try:
             outputs, message, code = self._nucleus.forward(
-                synapse = self.synapse.to(self._nucleus.device), 
-                inputs = x.to(self._nucleus.device), 
+                synapse = self.synapse.to(self.synapse.device), 
+                inputs = x.to(self.synapse.device), 
                 mode = inputs.modality, 
                 priority = call_priority
             )
