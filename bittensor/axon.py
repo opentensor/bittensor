@@ -194,7 +194,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 code: (:obj:`bittensor_pb2.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.
         """
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         # ---- Check synapse exists ----
         if self.synapse == None:
             message = "Remote axon not serving a synapse"
@@ -255,8 +255,8 @@ class Axon(bittensor_grpc.BittensorServicer):
         # ---- Make Nucleus forward call. ----
         try:
             outputs, message, code = self._nucleus.forward(
-                synapse = self.synapse.to(device), 
-                inputs = x.to(device), 
+                synapse = self.synapse.to(self._nucleus.device), 
+                inputs = x.to(self._nucleus.device), 
                 mode = inputs.modality, 
                 priority = call_priority
             )
