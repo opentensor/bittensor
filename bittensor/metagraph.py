@@ -473,17 +473,14 @@ class Metagraph():
         connected = await self.subtensor_client.is_connected()
         return connected        
 
-    def sync(self) -> torch.FloatTensor:
+    def sync(self):
         r""" Synchronizes the local self.state with the chain state.
-            Returns:
-                weights: (torch.FloatTensor):
-                    weights on chain.
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_sync())
+        loop.run_until_complete(self.async_sync())
 
-    async def async_sync(self) -> torch.FloatTensor:
+    async def async_sync(self):
         r""" Async: Synchronizes the local self.state with the chain state by polling the chain.
         """
         await self._sync_cache()

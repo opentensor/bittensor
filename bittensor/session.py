@@ -1,7 +1,6 @@
 import argparse
 from io import StringIO
 import traceback as tb
-from bittensor.utils.replicate_utils import ReplicateUtility
 from munch import Munch
 
 from bittensor.synapse import Synapse
