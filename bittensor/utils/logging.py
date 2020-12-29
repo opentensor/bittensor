@@ -145,7 +145,7 @@ def log_row_weights(session: Session):
     print ('Row Weights: \n ')
     if session.metagraph.uids != None and session.metagraph.weights != None:
         uids = session.metagraph.uids.tolist()
-        weights = session.metagraph.W[0,:].tolist()
+        weights = session.metagraph.row_weights.tolist()
         weights, uids  = zip(*sorted(zip(weights, uids), reverse=True))
         df = pd.DataFrame([weights], columns=uids)
         df.rename_axis("[uid]", axis=1)
@@ -162,7 +162,7 @@ def log_col_weights(session: Session):
     print ('Col Weights: \n ')
     if session.metagraph.uids != None and session.metagraph.weights != None:
         uids = session.metagraph.uids.tolist()
-        weights = session.metagraph.W[:,0].tolist()
+        weights = session.metagraph.col_weights.tolist()
         weights, uids  = zip(*sorted(zip(weights, uids), reverse=True))
         df = pd.DataFrame([weights], columns=uids)
         df.rename_axis("[uid]", axis=1)

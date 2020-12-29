@@ -237,6 +237,13 @@ class Session:
             logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
             raise FailedToEnterSession
 
+        logger.info('Sync chain ...')
+        try:
+            self.metagraph.sync()
+        except Exception as e:
+            logger.error('SESSION: Error while syncing chain state with error {}', e)
+            raise FailedToEnterSession
+
     def stop(self):
 
         logger.info('Shutting down the Axon server ...')

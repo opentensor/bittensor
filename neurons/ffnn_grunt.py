@@ -60,7 +60,7 @@ def main(config, session):
         
     # ---- Init training state ----
     session.metagraph.sync() # Sync with the chain.
-    col_weights = session.metagraph.W[:, 0] # Weights from others to me.
+    col_weights = session.metagraph.col_weights # Weights from others to me.
     priority_map = dict(zip(session.metagraph.public_keys, col_weights.tolist()))
     session.axon.set_priority( priority_map )
 
@@ -92,10 +92,9 @@ def main(config, session):
             session.metagraph.sync() # Sync with the chain.
             
             # ---- Get col Weights.
-            col_weights = session.metagraph.W[:, 0] # Other to me.
+            col_weights = session.metagraph.col_weights # Other to me.
 
             # ---- Update Axon Priority ----
-            col_weights = session.metagraph.W[:,0] # weights to me.
             session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
 
             # --- Save Model ----
