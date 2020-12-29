@@ -97,7 +97,7 @@ def train(model, config, session, optimizer, scheduler, dataset, collator):
             weights = weights.to(device)
 
         # Next batch.
-        inputs, labels = mlm_batch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__, collator)
+        inputs, labels = mlm_batch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__(), collator)
                 
         # Forward pass.
         output = model( inputs.to(model.device), labels.to(model.device), remote = True)

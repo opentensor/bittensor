@@ -450,17 +450,14 @@ class Metagraph():
         logger.info('Unsubscribe from chain endpoint')
         await self.subtensor_client.unsubscribe()      
 
-    def sync(self) -> torch.FloatTensor:
+    def sync(self):
         r""" Synchronizes the local self.state with the chain state.
-            Returns:
-                weights: (torch.FloatTensor):
-                    weights on chain.
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_sync())
+        loop.run_until_complete(self.async_sync())
 
-    async def async_sync(self) -> torch.FloatTensor:
+    async def async_sync(self):
         r""" Async: Synchronizes the local self.state with the chain state by polling the chain.
         """
         await self._sync_cache()
@@ -477,8 +474,9 @@ class Metagraph():
         neurons = await self.subtensor_client.neurons()
         for (pubkey, neuron) in neurons:
                 last_emit = await self.subtensor_client.get_last_emit_data_for_uid(neuron['uid'])
-                if (current_block - last_emit) < self._config.metagraph.stale_emit_filter:
-                    calls.append(self._poll_pubkey(neuron, pubkey))
+                if last_emit:
+                    if (current_block - last_emit) < self._config.metagraph.stale_emit_filter:
+                        calls.append(self._poll_pubkey(neuron, pubkey))
         await asyncio.gather(*calls)
 
     async def _poll_pubkey(self, neuron, pubkey):
@@ -489,7 +487,7 @@ class Metagraph():
             lastemit = await self.subtensor_client.get_last_emit_data_for_uid(neuron['uid'])
             w_uids = await self.subtensor_client.weight_uids_for_uid(neuron['uid'])
             w_vals = await self.subtensor_client.weight_vals_for_uid(neuron['uid'])
-            self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], lastemit = lastemit, stake = stake, w_uids = w_uids, w_vals = w_vals)
+            self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
         except Exception as e:
             logger.error("Exception occurred: {}".format(e))
             traceback.print_exc()

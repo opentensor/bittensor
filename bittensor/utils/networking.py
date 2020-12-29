@@ -6,6 +6,9 @@ import urllib
 
 from loguru import logger
 
+def ip__str__(self, ip_type, ip_str):
+    return "/ipv%i/%s" % (ip_type, ip_str)
+
 def int_to_ip(int_val: int) -> str:
     r""" Maps an integer to a unique ip-string 
         Args:

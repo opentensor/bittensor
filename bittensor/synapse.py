@@ -46,8 +46,8 @@ class SynapseOutput(object):
             return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
                 dendrite return codes. 0 for success.
 
-            metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
-                additional metadata output, specifically accuracy.
+            metadata (:obj:`dict {'key_val', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
+                additional metadata output, for instance accuracy.
 
     """
     def __init__(   
@@ -99,7 +99,6 @@ class Synapse(nn.Module):
         self.config = config
         self.session = session
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.to(self.device)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser): 
