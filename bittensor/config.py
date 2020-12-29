@@ -263,7 +263,7 @@ class Config:
 
     @staticmethod
     def obtain_ip_address(items):
-        if items.axon.remote_ip:
+        if items.axon.external_ip:
             return
             
         try:
@@ -275,7 +275,7 @@ class Config:
         if not validators.ipv4(value):
             logger.error("CONFIG: Response from IP API is not a valid IP.")
             raise PostProcessingError
-        items.axon.remote_ip = value
+        items.axon.external_ip = value
         return items
 
     @staticmethod
