@@ -74,7 +74,7 @@ def test_remote_neuron_request_empty():
 def test_remote_neuron_mock_server():
     y = torch.rand(3, 3, bittensor.__network_dim__)
     
-    serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.PICKLE )
+    serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH)
             
     mock_return_val = bittensor_pb2.TensorMessage(
@@ -112,7 +112,7 @@ def test_remote_neuron_mock_server_deserialization_error():
 def test_remote_neuron_mock_server_shape_error():
     y = torch.rand(1, 3, bittensor.__network_dim__)
 
-    serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.PICKLE )
+    serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH)
    
     mock_return_val = bittensor_pb2.TensorMessage(
