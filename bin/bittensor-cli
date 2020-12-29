@@ -192,7 +192,7 @@ def run(args):
 def main():
     
     # Build top level parser.
-    parser = ArgumentParser(description="Bittensor cli", usage="bittensor <args> <command>", add_help=True)
+    parser = ArgumentParser(description="Bittensor cli", usage="bittensor-cli <args> <command>", add_help=True)
     parser._positionals.title = "commands"
      
     # Add args
