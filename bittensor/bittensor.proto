@@ -175,7 +175,8 @@ message Tensor {
 // Dtype: [REQUIRED] The tensor serializer type.
 // For use between multiple serialziation deserialziation methods.
 enum Serializer {
-	PICKLE = 0; // 32 bit float encoding, using pickle, returns a torch tensor.
+	PICKLE = 0; // PICKLE serializer
+	MSGPACK = 1; // MSGPACK serializer
 }
 
 // TensorType: [REQUIRED] The tensor type, for use between multipl frameworks.

@@ -405,7 +405,7 @@ class _RemoteModuleCall(torch.autograd.Function):
 
             # ---- Inputs Serialization ----
             try:
-                serializer = serialization.get_serializer( bittensor_pb2.Serializer.PICKLE )
+                serializer = serialization.get_serializer( bittensor_pb2.Serializer.MSGPACK )
                 serialized_inputs = serializer.serialize(inputs, modality = mode, from_type = bittensor_pb2.TensorType.TORCH)
             except Exception as e:
                 logger.warning('Serialization error with error {}', e)
@@ -525,7 +525,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             try:
 
                 # ---- Get serializer ----
-                serializer = serialization.get_serializer( bittensor_pb2.Serializer.PICKLE )
+                serializer = serialization.get_serializer( bittensor_pb2.Serializer.MSGPACK )
 
                 # ---- Serialize grads to bitensor_pb2.Tensors ----
                 serialized_grads = serializer.serialize (grads, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH)
