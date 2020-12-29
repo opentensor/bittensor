@@ -36,7 +36,7 @@ def init():
     logger.info("Error reporting enabled using {}:{}", token, env)
     rollbar.init(token, env)
     set_runtime_status("OK")
-
+    
     loop = asyncio.get_event_loop()
     loop.set_exception_handler(asyncio_exception_handler)
 

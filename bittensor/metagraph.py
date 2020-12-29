@@ -497,8 +497,9 @@ class Metagraph():
         neurons = await self.subtensor_client.neurons()
         for (pubkey, neuron) in neurons:
                 last_emit = await self.subtensor_client.get_last_emit_data_for_uid(neuron['uid'])
-                if (current_block - last_emit) < self._config.metagraph.stale_emit_filter:
-                    calls.append(self._poll_pubkey(neuron, pubkey))
+                if last_emit:
+                    if (current_block - last_emit) < self._config.metagraph.stale_emit_filter:
+                        calls.append(self._poll_pubkey(neuron, pubkey))
         await asyncio.gather(*calls)
 
     async def _poll_pubkey(self, neuron, pubkey):
