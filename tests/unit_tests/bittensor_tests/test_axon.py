@@ -46,7 +46,7 @@ def test_forward_not_implemented():
     nucleus.forward = MagicMock(return_value=[None, 'not implemented', bittensor_pb2.ReturnCode.NotImplemented])
     x = torch.rand(3, 3, bittensor.__network_dim__)
 
-    serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.PICKLE )
+    serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.MSGPACK )
     x_serialized = serializer.serialize(x, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH)
   
     request = bittensor_pb2.TensorMessage(

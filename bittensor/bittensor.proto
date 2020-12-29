@@ -18,8 +18,7 @@ service Bittensor {
 message Neuron {
 	// Version: [REQUIRED] Strictly increasing protocol version identifier.
 	// Indentifies protocol version for backward compatibility.
-	// i.e. 0
-	// SIZE: 24 bits (3-bytes)
+	// i.e. '0.0.0'
 	string version = 1;
 	
 	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key.
@@ -56,8 +55,7 @@ message Neuron {
 message TensorMessage {
 	// Version: [REQUIRED] Strictly increasing protocol version identifier.
 	// Indentifies protocol version for backward compatibility.
-	// i.e. '0'
-	// SIZE: 32 bits (4-bytes)
+	// i.e. '0.0.0'
 	string version = 1;
 
 	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key.
@@ -132,32 +130,30 @@ message Tensor {
 	// Version: [REQUIRED] Strictly increasing protocol version identifier.
 	// Indentifies protocol version for backward compatibility.
 	// i.e. '0.0.0'
-	// SIZE: 32 bits (4-bytes)
 	string version = 1;
 
 	// Buffer: [REQUIRED] Serialized raw tensor content.
 	bytes buffer = 2;
 
-	// Serializer: [REQUIRED] The encoding type specifies the serialization
-	// deserialization method. Users should be able to decode all tensors 
-	// by specifying the encoding type and the raw data. 
+	// Shape: [REQUIRED] Shape of this tensor.
+	// NOTE: Variable dimensions (i.e. batch) are non-explicit here as -1.
+	// ~ 5 * int32 = 128 bits - (16 bytes)
+	repeated int64 shape = 3;
+
+	// Serializer: [REQUIRED] Specifies the serialization/deserialization method.
+	// Users should be able to decode all tensors by specifying the encoding type and the raw data. 
 	// i.e.
-	// 1. (client) serializer = bittensor.serialization.get_serializer_for_type(bittensor.Serializer.PICKLE)
+	// 1. (client) serializer = bittensor.serialization.get_serializer_for_type(bittensor.Serializer.MSGPACK)
 	// 2. (client) serializer.serialize(torch.Tensor, from_type = bittensor_pb2.TensorType.TORCH) --> bittensor_pb2.Tensor
 	// 3. (server) deserializer = bittensor.serialization.get_serializer_for_type(request.serialzer)
 	// 4. (server) deserializer.deserialize(request.tensor, to_type = bittensor_pb2.TensorType.TENSORFLOW) --> tensorflow.Tensor    	
 	// SIZE: 32-bits (4 bytes)
-	Serializer serializer = 3;
+	Serializer serializer = 4;
 
 	// TensorType: [REQUIRED] Purely a placeholder, not used in deserialization etc, 
 	// however, could come in handy later
 	// SIZE: 32-bits (4 bytes)
-	TensorType tensor_type = 4;
-
-	// Shape: [REQUIRED] Shape of this tensor.
-	// NOTE: Variable dimensions (i.e. batch) are non-explicit here as -1.
-	// ~ 5 * int32 = 128 bits - (16 bytes)
-	repeated int64 shape = 5;
+	TensorType tensor_type = 5;
     	
 	// Dtype: [REQUIRED] The tensor datatype.
 	// Used for serialization deserialization.
@@ -175,15 +171,15 @@ message Tensor {
 // Dtype: [REQUIRED] The tensor serializer type.
 // For use between multiple serialziation deserialziation methods.
 enum Serializer {
-	PICKLE = 0; // PICKLE serializer
-	MSGPACK = 1; // MSGPACK serializer
+	// PICKLE = 0; // PICKLE serializer (REMOVED for security reasons.)
+	MSGPACK = 0; // MSGPACK serializer
 }
 
 // TensorType: [REQUIRED] The tensor type, for use between multipl frameworks.
 enum TensorType {
 	TORCH = 0; // Torch object
 	TENSORFLOW = 1; // Tensorflow tensor type.
-	NUMPY = 2; // Numper tensor type.
+	NUMPY = 2; // Numpy tensor type.
 }
 
 // Dtype: [REQUIRED] The tensor datatype.
