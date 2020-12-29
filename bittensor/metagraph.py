@@ -296,6 +296,38 @@ class Metagraph():
         return self.ranks()
 
     @property
+    def row_weights(self) -> torch.FloatTensor:
+        r""" Returns this neuron's row weights, i.e. weights to other neurons.
+        Returns
+            row_weights: (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n)`):
+                w_{i,*}
+        """
+        if self.metadata == None:
+            raise ValueError('Must be subscribed before you can return your row_weights')
+        try:
+            self_idx = self.state.index_for_uid[self.metadata['uid']] 
+            return self.state.W[self_idx, :]
+        except:
+            logger.critical('Self index not in self.state with index {}'.format(self_idx))
+            return torch.tensor([])
+
+    @property
+    def col_weights(self) -> torch.FloatTensor:
+        r""" Returns this neuron's col weights, i.e. weights from other neurons to us.
+        Returns
+            col_weights: (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n)`):
+                w_{*,i}
+        """
+        if self.metadata == None:
+            raise ValueError('Must be subscribed before you can return your col_weights')
+        try:
+            self_idx = self.state.index_for_uid[self.metadata['uid']] 
+            return self.state.W[:, self_idx]
+        except:
+            logger.critical('Self index not in self.state with index {}'.format(self_idx))
+            return torch.tensor([])
+
+    @property
     def W(self) -> torch.FloatTensor:
         r""" Full chain weight matrix for each neuron.
         Returns
