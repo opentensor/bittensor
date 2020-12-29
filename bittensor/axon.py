@@ -194,7 +194,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response: (bittensor_pb2.TensorMessage): 
                     proto response carring the synapse forward output or None under failure.
         """
-        if request.version in bittensor.__compatability__:
+        if request.version in bittensor.__compatability__[bittensor.__version__]:
             tensor, message, code = self._forward(request)
             response = bittensor_pb2.TensorMessage(
                 version = bittensor.__version__, 
@@ -207,7 +207,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         # Catch incompatible request versions.
         else:
             code = bittensor_pb2.ReturnCode.RequestIncompatibleVersion
-            message = "request version must be in {}".format(bittensor.__compatability__)
+            message = "request version {} must be in {}".format(request.version, bittensor.__compatability__[bittensor.__version__])
             response = bittensor_pb2.TensorMessage(
                 version = bittensor.__version__, 
                 public_key = self.__keypair.public_key, 
@@ -232,7 +232,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response: (bittensor_pb2.TensorMessage): 
                     proto response carring the synapse backward output or None under failure.
         """
-        if request.version in bittensor.__compatability__:
+        if request.version in bittensor.__compatability__[bittensor.__version__]:
             tensor, message, code = self._backward(request)
             response = bittensor_pb2.TensorMessage(
                 version = bittensor.__version__, 
@@ -245,7 +245,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         # Catch incompatible request versions.
         else:
             code = bittensor_pb2.ReturnCode.RequestIncompatibleVersion
-            message = "request version must be in {}".format(self._compatible_request_versions)
+            message = "request version {} must be in {}".format(request.version, bittensor.__compatability__[bittensor.__version__])
             response = bittensor_pb2.TensorMessage(
                 version = bittensor.__version__, 
                 public_key = self.__keypair.public_key, 
