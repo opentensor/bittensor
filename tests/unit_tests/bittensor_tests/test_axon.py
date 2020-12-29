@@ -94,7 +94,7 @@ def test_forward_deserialization_error():
 def test_forward_success():
     axon.synapse = synapse
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.PICKLE )
+    serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.MSGPACK )
     x_serialized = serializer.serialize(x, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH)
   
     request = bittensor_pb2.TensorMessage(
@@ -134,7 +134,7 @@ def test_empty_backward_request():
 def test_single_item_backward_request():
     axon.serve(synapse)
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.PICKLE )
+    serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.MSGPACK )
     x_serialized = serializer.serialize(x, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH)
   
     request = bittensor_pb2.TensorMessage(
@@ -162,7 +162,7 @@ def test_backward_deserialization_error():
 def test_backward_success():
     axon.serve(synapse)
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.PICKLE )
+    serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.MSGPACK )
     x_serialized = serializer.serialize(x, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH)
   
     request = bittensor_pb2.TensorMessage(
