@@ -12,7 +12,7 @@ from bittensor.session import Session
 # Bittensor code and protocol version.
 __version__ = '0.0.0'
 # Version compatiability, users running these code versions should be able to speak with each other
-__compatability__ = ['0.0.0']
+__compatability__ = { __version__ : [ __version__ ] }
 
 # Tokenizer
 __vocab_size__ = 204483
