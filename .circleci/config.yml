@@ -32,7 +32,10 @@ jobs:
       - run:
           command: pip install -e .
           name: setup
+      - run: pip install pyyaml
       - run: pip install miniupnpc
+      - run: pip install msgpack
+      - run: pip install msgpack-numpy
       - run:
           name: "Run unit tests"
           command: pytest ./tests/unit_tests
@@ -48,6 +51,8 @@ jobs:
       - run: pip install -r requirements.txt
       - run: pip install pyyaml
       - run: pip install miniupnpc
+      - run: pip install msgpack
+      - run: pip install msgpack-numpy
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
@@ -66,7 +71,10 @@ jobs:
       - python/load-cache
       - run: pip3 install -r requirements.txt
       - run: ./scripts/build_protos.sh
+      - run: pip install pyyaml
       - run: pip install miniupnpc
+      - run: pip install msgpack
+      - run: pip install msgpack-numpy
       - run:
           command: pip install -e .
           name: setup
