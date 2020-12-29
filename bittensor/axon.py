@@ -269,6 +269,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 code: (:obj:`bittensor_pb2.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.
         """
+
         # ---- Check synapse exists ----
         if self.synapse == None:
             message = "Remote axon not serving a synapse"
@@ -329,8 +330,8 @@ class Axon(bittensor_grpc.BittensorServicer):
         # ---- Make Nucleus forward call. ----
         try:
             outputs, message, code = self._nucleus.forward(
-                synapse = self.synapse, 
-                inputs = x, 
+                synapse = self.synapse.to(self.synapse.device), 
+                inputs = x.to(self.synapse.device), 
                 mode = inputs.modality, 
                 priority = call_priority
             )
@@ -409,7 +410,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         try:
             self.gradients.put( (call_priority, (request.public_key, inputs_x, grads_dy, modality_x)) , block=False)
         except queue.Full:
-            logger.trace('gradient queue is full at size: {}', self.gradient_queue.qsize())
+            logger.trace('gradient queue is full at size: {}', self.gradients.qsize())
 
         # ---- Nucleus backward call ----
         try:

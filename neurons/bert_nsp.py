@@ -106,7 +106,7 @@ def train(model, config, session, optimizer, scheduler, dataset):
 
 
          # Next batch.
-        inputs, targets = nsp_batch(dataset['train'], config.neuron.batch_size_train, bittensor.__tokenizer__)
+        inputs, targets = nsp_batch(dataset['train'], config.neuron.batch_size_train, bittensor.__tokenizer__())
 
         # Forward pass.
         output = model (inputs = inputs['input_ids'].to(model.device), 

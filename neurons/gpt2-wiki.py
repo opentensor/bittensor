@@ -82,7 +82,7 @@ def main(config, session):
         try:
             step += 1
             # ---- Next Batch ----
-            inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__)
+            inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__())
 
             # ---- Forward Pass ----
             output = model(inputs.to(model.device), training = True, remote = True)

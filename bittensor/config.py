@@ -11,11 +11,12 @@ import stat
 from munch import Munch
 
 from bittensor.axon import Axon
-from bittensor.session import Session, KeyError
+from bittensor.session import Session
 from bittensor.dendrite import Dendrite
 from bittensor.metagraph import Metagraph
+from bittensor.crypto import KeyError
+from bittensor.crypto.keyfiles import KeyFileError
 from bittensor.nucleus import Nucleus
-from bittensor.subtensor.interface import Keypair, KeypairRepresenter
 
 
 
@@ -61,30 +62,36 @@ class Config:
         # 0. Check for and create .bittensor directory
         Config.check_and_create_config_dir()
 
-            
+
         # 1. Load args from bittensor backend components.
         Axon.add_args(parser)
         Dendrite.add_args(parser)
         Metagraph.add_args(parser)
         Session.add_args(parser)
         Nucleus.add_args(parser)
-       
+
         # 2. Parse.
         params = parser.parse_known_args()[0]
-
-        # 3. Splits params on dot synatax i.e session.axon_port
-        config = Munch()
-        for arg_key, arg_val in params.__dict__.items():
-            split_keys = arg_key.split('.')
-            if len(split_keys) == 1:
-                config[arg_key] = arg_val
-            else:
-                head = config
-                for key in split_keys[:-1]:
-                    if key not in config:
-                        head[key] = Munch()
-                    head = head[key] 
-                head[split_keys[-1]] = arg_val
+        config_file = None
+        if 'neuron.config_file' in vars(params).keys():
+            config_file = vars(params)['neuron.config_file']
+        
+        if config_file:
+            config = Config.load_from_relative_path(config_file)
+        else:
+            # 3. Splits params on dot syntax i.e session.axon_port
+            config = Munch()
+            for arg_key, arg_val in params.__dict__.items():
+                split_keys = arg_key.split('.')
+                if len(split_keys) == 1:
+                    config[arg_key] = arg_val
+                else:
+                    head = config
+                    for key in split_keys[:-1]:
+                        if key not in config:
+                            head[key] = Munch()
+                        head = head[key] 
+                    head[split_keys[-1]] = arg_val
 
         # 4. Run session checks.
         try:
@@ -102,7 +109,11 @@ class Config:
         try:
             Session.load_hotkeypair(config)
             Session.load_cold_key(config)
-        except KeyError:
+        except (KeyError):
+            logger.error("Invalid password")
+            quit()
+        except KeyFileError:
+            logger.error("Keyfile corrupt")
             quit()
 
         return config
@@ -122,7 +133,7 @@ class Config:
         os.makedirs(path, exist_ok=True)
         os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
-            
+
     @staticmethod
     def load_from_relative_path(path: str)  -> Munch:
         r""" Loads and returns a Munched config object from a relative path.
@@ -138,7 +149,7 @@ class Config:
         # Load yaml items from relative path.
         path_items = munch.Munch()
         if path != None:
-            path = os.getcwd() + '/' + path + '/config.yaml'
+            path = os.getcwd() + '/' + path
             if not os.path.isfile(path):
                 logger.error('CONFIG: cannot find passed configuration file at {}', path)
                 raise FileNotFoundError('Cannot find a configuration file at', path)

@@ -21,9 +21,7 @@ from loguru import logger
 import bittensor
 from bittensor import Session
 from bittensor.utils.logging import log_all
-from bittensor.subtensor.interface import Keypair
 from bittensor.config import Config
-from bittensor.synapse import Synapse
 from bittensor.synapses.ffnn import FFNNSynapse
 
 def add_args(parser: argparse.ArgumentParser):    
