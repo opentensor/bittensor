@@ -257,7 +257,7 @@ class Axon(bittensor_grpc.BittensorServicer):
 
     def _forward(self, request):
         r""" Performs validity checks on the grpc request before calling nucleus forward.
-            Returns a the output, message and code from the backend forward call.
+            Returns the output, message and code from the backend forward call.
             Args:
                 request (:obj:`bittensor_pb2`, `required`): 
                     Tensor request proto.
@@ -346,7 +346,7 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # ---- Serialize response ----
         try:
-            serializer = serialization.get_serializer ( bittensor_pb2.Serializer.PICKLE )
+            serializer = serialization.get_serializer ( bittensor_pb2.Serializer.MSGPACK )
             outputs_serialized = serializer.serialize ( outputs, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH )
         
         except Exception as e:
@@ -427,7 +427,7 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # ---- Deserialize response ----
         try:
-            serializer = serialization.get_serializer( bittensor_pb2.Serializer.PICKLE )
+            serializer = serialization.get_serializer( bittensor_pb2.Serializer.MSGPACK )
             outputs_serialized = serializer.serialize( outputs, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH )
 
         except Exception as e:

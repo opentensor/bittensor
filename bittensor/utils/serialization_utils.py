@@ -25,7 +25,6 @@ def torch_dtype_to_bittensor_dtype(tdtype):
         dtype = bittensor_pb2.DataType.UNKNOWN
     return dtype
 
-
 def bittensor_dtype_to_torch_dtype(bdtype):
     """ Translates between bittensor.dtype and torch.dtypes.
 

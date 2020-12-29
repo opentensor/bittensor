@@ -240,9 +240,10 @@ class Session:
 
         logger.trace('Connect to chain ...')
         try:
-            connected = self.metagraph.connect()
-            if not connected:
-                logger.error('SESSION: Timeout while subscribing to the chain endpoint')
+            code, message = self.metagraph.connect(timeout=3)
+            if code != Metagraph.ConnectSuccess:
+                logger.error('SESSION: Timeout while subscribing to the chain endpoint with message {}', message)
+                logger.error('Check that your internet connection is working and the chain endpoint {} is available', self.config.metagraph.chain_endpoint)
                 raise FailedConnectToChain
         except Exception as e:
             logger.error('SESSION: Error while connecting to the chain endpoint: {}', e)
@@ -250,7 +251,7 @@ class Session:
 
         logger.info('Subscribe to chain ...')
         try:
-            code, message = self.metagraph.subscribe(12)
+            code, message = self.metagraph.subscribe(timeout=12)
             if code != Metagraph.SubscribeSuccess:
                 logger.error('SESSION: Error while subscribing to the chain endpoint with message: {}', message)
                 raise FailedToEnterSession

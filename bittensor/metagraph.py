@@ -167,7 +167,7 @@ class Metagraph():
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         # TODO(const): check this endpoint in check_config.
-        parser.add_argument('--metagraph.chain_endpoint', default='206.189.254.5:12345', type=str, 
+        parser.add_argument('--metagraph.chain_endpoint', default='feynman.kusanagi.bittensor.com:9944', type=str, 
                             help='chain endpoint.')
         parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
                             help='filter neurons with last emit beyond this many blocks.')
@@ -448,25 +448,7 @@ class Metagraph():
         r""" Async: Unsubscribes the local neuron from the chain.
         """
         logger.info('Unsubscribe from chain endpoint')
-        await self.subtensor_client.unsubscribe()
-
-    def connect(self) -> bool:
-        r""" Synchronous: Connects to the chain.
-        Returns:
-            connected: (bool): true if the connection is a success.
-        """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_connect())
-
-    async def async_connect(self) -> bool:
-        r""" Async: Makes and awaits for a connection to the chain.
-        Returns:
-            connected: (bool): true if the connection is a success.
-        """
-        self.subtensor_client.connect()
-        connected = await self.subtensor_client.is_connected()
-        return connected        
+        await self.subtensor_client.unsubscribe()      
 
     def sync(self) -> torch.FloatTensor:
         r""" Synchronizes the local self.state with the chain state.
@@ -512,7 +494,100 @@ class Metagraph():
             logger.error("Exception occurred: {}".format(e))
             traceback.print_exc()
 
+    ConnectSuccess = 1
+    ConnectUnknownError = 2
+    ConnectTimeout = 3
+    def connect(self, timeout:int) -> Tuple[int, str]:
+        r""" Synchronous: Connects to the chain.
+        Args:
+            timeout (int):
+                Time to wait before connecting times out.
+        Returns:
+            see: _try_async_connect
+        """
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        return loop.run_until_complete(self.async_connect(timeout))
 
+    async def async_connect(self, timeout: int) -> Tuple[int, str]:
+        r""" Async: Makes and awaits for a connection to the chain.
+        Args:
+            timeout (int):
+                Time to wait before connecting times out.
+        Returns:
+            see: _try_async_connect
+        """
+        # ---- Try Connection ----
+        try:
+            code, message = await self._try_async_connect(timeout)
+
+            if code == Metagraph.ConnectSuccess:
+                logger.info('Successfully connected to chain endpoint: {}', self._config.metagraph.chain_endpoint)
+                return code, message
+
+            elif code == Metagraph.ConnectUnknownError:
+                logger.error('Connection threw an unknown error: {}', message)
+                return code, message
+
+            elif code == Metagraph.ConnectTimeout:
+                logger.error('Connection timeout {}', message)
+                return code, message
+
+        except Exception as e:
+            logger.error('Connection threw an uncaught error {}', e)
+            return Metagraph.ConnectUnknownError, e
+
+    async def _try_async_connect(self, timeout: int) -> Tuple[int, str]:
+        r""" Makes connection attempts to the chain, continuing to attempt until timeout.
+
+        Args:
+            timeout (int):
+                Time to wait before connecting times out.
+        Raises:
+            code (ENUM) {}
+                ConnectSuccess:
+                    Raised when the connection is a success before the timeout
+
+                ConnectUnknownError:
+                    UnknownError during connecting to chain.
+
+                Connectimeout:
+                    Raised when the attempted connection fails after timeout.
+            }
+            message:
+                Message associated with code. 
+        """
+        # ---- Make Chain connection attempt  ----
+        start_time = time.time()
+        while True:
+            # ---- Make connection call.
+            try:
+                self.subtensor_client.connect()
+            except Exception as e:
+                return Metagraph.ConnectUnknownError, e
+            
+            # ---- Wait for connection future to reture, or timeout.
+            is_connected = self.subtensor_client.is_connected()
+            try:
+                await asyncio.wait_for(is_connected, timeout=timeout)
+            except asyncio.TimeoutError:
+                return Metagraph.ConnectTimeout, "Timeout"
+
+            # ---- Return on success.
+            if is_connected:
+                return Metagraph.ConnectSuccess, "Success"
+
+            # ---- Retry or timeout.
+            elif (time.time() - start_time) > timeout:
+                return Metagraph.ConnectTimeout, "Timeout"
+            else:
+                await asyncio.sleep(1)
+                continue
+
+    SubscribeSuccess = 1
+    SubscribeUnknownError = 2
+    SubscribeTimeout = 3
+    SubscribeNotConnected = 4
     def subscribe(self, timeout) -> Tuple[int, str]:
         r""" Syncronous: Makes a subscribe request to the chain. Waits for subscription inclusion or returns False
         Returns:
@@ -522,10 +597,6 @@ class Metagraph():
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_subscribe(timeout))
 
-
-    SubscribeSuccess = 1
-    SubscribeUnknownError = 2
-    SubscribeTimeout = 3
     async def async_subscribe (self, timeout) -> Tuple[int, str]:
         r""" Async: Makes a subscribe request to the chain. Waits for subscription inclusion or returns False
         Returns:
@@ -541,6 +612,10 @@ class Metagraph():
                 logger.info('Successfully subcribed session with: {}', self.metadata)
                 return code, message
 
+            elif code == Metagraph.SubscribeNotConnected:
+                logger.error('Subscription failed because you are not connected to a chain endpoint, call metagraph.connect() first')
+                return code, message
+
             elif code == Metagraph.SubscribeUnknownError:
                 logger.error('Subscription threw an unknown error: {}', message)
                 return code, message
@@ -551,7 +626,7 @@ class Metagraph():
 
         except Exception as e:
             logger.error('Subscription threw an uncaught error {}', e)
-            return code, e
+            return Metagraph.SubscribeUnknownError, e
         
     async def _try_async_subscribe(self, timeout: int):
         r""" Makes subscription attempts to the chain, continuing to attempt until timeout and finally waiting for inclusion.
@@ -570,11 +645,24 @@ class Metagraph():
 
                 SubscribeTimeout:
                     Raised when the attempted subscription fails after timeout.
+
+                SubscribeNotConnected:
+                    Raised if a subscription is attempted while before metagraph.connect is called.
+                    Mush call metagraph.connect() before metagraph.subscribe()
             }
             message:
                 Message associated with code. 
         """
         start_time = time.time()
+        # --- Check that we are already connected to the chain.
+        is_connected = self.subtensor_client.is_connected()
+        try:
+            await asyncio.wait_for(is_connected, timeout = 1)
+        except asyncio.TimeoutError:
+            return Metagraph.SubscribeNotConnected, "Not connected"
+        if not is_connected:
+            return Metagraph.SubscribeNotConnected, "Not connected"
+
         # ---- Make Subscription transaction ----
         while True:
             try:
@@ -772,7 +860,7 @@ class Metagraph():
         try:
             weight_uids, weight_vals = self._convert_weights_to_emit(weights)
         except Exception as e:
-            message = "Unknown error when converting weights to ints with weights {} and error {}".format(weight_vals, e)
+            message = "Unknown error when converting weights to ints with weights {} and error {}".format(weights, e)
             return Metagraph.EmitUnknownError, message
 
         # ---- Check sum ----
