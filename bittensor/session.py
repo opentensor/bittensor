@@ -226,6 +226,7 @@ class Session:
             logger.error('SESSION: Error while connecting to the chain endpoint: {}', e)
             raise FailedToEnterSession
 
+        if 
         logger.info('Subscribe to chain ...')
         try:
             code, message = self.metagraph.subscribe(12)

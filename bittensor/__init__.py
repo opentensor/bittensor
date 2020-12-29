@@ -16,6 +16,7 @@ __tokenizer__ = GPT2Tokenizer.from_pretrained("gpt2", local_files_only=False)
 __tokenizer__.pad_token = '[PAD]'
 __tokenizer__.mask_token = -100
 __vocab_size__ = 204483
+__max_sequence_length__ = 1024
 
 # Default logger
 logger_config = {

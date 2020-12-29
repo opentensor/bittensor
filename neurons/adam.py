@@ -92,7 +92,7 @@ def main(config: Munch, session: Session):
         while local_step < local_epochs:
             try:
                 inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__)
-                
+
                 output = net(
                     inputs, 
                     training = True, 
@@ -139,8 +139,8 @@ def main(config: Munch, session: Session):
 
             # --- Catch Errors during training ----
             except Exception as e:
-                logger.error('Execution in training script with error: {}', e)
-                traceback.print_exc()
+                logger.error('Exception in training script with error: {}', e)
+                logger.info(traceback.print_exc())
                 logger.info('Continuing to train.')
             
         return output, global_step
