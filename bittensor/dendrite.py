@@ -279,9 +279,9 @@ class RemoteNeuron(nn.Module):
             }
         ) 
         # Loop back if the neuron is local.
-        if neuron.address == config.axon.remote_ip:
+        if neuron.address == config.axon.external_ip:
             ip = "localhost:"
-            if config.axon.remote_ip == "host.docker.internal":
+            if config.axon.external_ip == "host.docker.internal":
                 ip = "host.docker.internal:"
             self.endpoint = ip + str(neuron.port)
         else:
