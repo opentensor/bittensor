@@ -188,7 +188,7 @@ class MSGPackSerializer( BittensorSerializerBase ):
         """
         dtype = serialization_utils.bittensor_dtype_to_torch_dtype(torch_proto.dtype)
         shape = tuple(torch_proto.shape)
-        numpy_object = msgpack.unpackb(torch_proto.buffer, object_hook=msgpack_numpy.decode)
+        numpy_object = msgpack.unpackb(torch_proto.buffer, object_hook=msgpack_numpy.decode).copy()
         torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)
         return torch_object.type(dtype)
 
