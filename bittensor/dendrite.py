@@ -524,13 +524,26 @@ class _RemoteModuleCall(torch.autograd.Function):
         else:
             try:
 
-                # ---- Get serializer ----
-                serializer = serialization.get_serializer( bittensor_pb2.Serializer.MSGPACK )
+                # ---- Get forward call serialzied inputs ----
+                try:
+                    serialized_inputs = ctx.serialized_inputs
+                finally:
+                    logger.trace('backward failed because forward previously failed.')
+                    return (None, None, zeros, None)
 
-                # ---- Serialize grads to bitensor_pb2.Tensors ----
-                serialized_grads = serializer.serialize (grads, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH)
-                serialized_inputs = ctx.serialized_inputs
+                # ---- Serialization ----
+                try:
+                    # ---- Get serializer ----
+                    serializer = serialization.get_serializer( bittensor_pb2.Serializer.MSGPACK )
 
+                    # ---- Serialize grads to bitensor_pb2.Tensors ----
+                    serialized_grads = serializer.serialize (grads, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH)
+
+                except Exception as e:
+                    logger.trace('backward failed during serialization of gradients.')
+                    return (None, None, zeros, None)
+
+    
                 # ---- Build request for backward ----
                 request = bittensor_pb2.TensorMessage(
                     version = bittensor.__version__,
@@ -541,7 +554,11 @@ class _RemoteModuleCall(torch.autograd.Function):
 
                 # --- Send non blocking grad request ----
                 # NOTE(const): we dont care about the response.
-                ctx.caller.stub.Backward.future(request, timeout=ctx.caller.config.dendrite.timeout)
+                try:
+                    ctx.caller.stub.Backward.future(request, timeout=ctx.caller.config.dendrite.timeout)
+                except:
+                    logger.trace('backward failed during backward call. Do not care.')
+                    return (None, None, zeros, None)
 
                 # ---- Always return zeros ----
                 # NOTE(const): We can return non zeros but a remote host could mess with your training
