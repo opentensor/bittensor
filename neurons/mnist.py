@@ -1,4 +1,3 @@
-#!/bin/python3
 """Training a MNIST Neuron.
 This file demonstrates a training pipeline for an MNIST Neuron.
 Example:
@@ -38,11 +37,11 @@ def add_args(parser: argparse.ArgumentParser):
     FFNNSynapse.add_args(parser)
 
 def check_config(config: Munch):
-    assert config.neuron.log_interval > 0, "log_interval dimension must positive"
+    assert config.neuron.log_interval > 0, "log_interval dimension must be positive"
     assert config.neuron.momentum > 0 and config.neuron.momentum < 1, "momentum must be a value between 0 and 1"
-    assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
-    assert config.neuron.batch_size_test > 0, "batch_size_test must a positive value"
-    assert config.neuron.learning_rate > 0, "learning rate must be a positive value."
+    assert config.neuron.batch_size_train > 0, "batch_size_train must be a positive value"
+    assert config.neuron.batch_size_test > 0, "batch_size_test must be a positive value"
+    assert config.neuron.learning_rate > 0, "learning rate must be be a positive value."
     trial_path = '{}/{}/{}'.format(config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
     config.neuron.trial_path = trial_path
     if not os.path.exists(config.neuron.trial_path):

@@ -18,8 +18,7 @@ service Bittensor {
 message Neuron {
 	// Version: [REQUIRED] Strictly increasing protocol version identifier.
 	// Indentifies protocol version for backward compatibility.
-	// i.e. 0.0.0
-	// SIZE: 24 bits (3-bytes)
+	// i.e. '0.0.0'
 	string version = 1;
 	
 	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key.
@@ -57,7 +56,6 @@ message TensorMessage {
 	// Version: [REQUIRED] Strictly increasing protocol version identifier.
 	// Indentifies protocol version for backward compatibility.
 	// i.e. '0.0.0'
-	// SIZE: 32 bits (4-bytes)
 	string version = 1;
 
 	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key.
@@ -121,7 +119,9 @@ enum ReturnCode {
 	NotServingSynapse = 15; // Axon is not serving a synapse to query.
 	NucleusTimeout = 16; // Processing on the server side timedout.
 	NucleusFull = 17; // Returned when the processing queue on the server is full.
-	UnknownException = 18; // Unknown exception.
+	RequestIncompatibleVersion = 18; // The request handler is incompatible with the request version.
+	ResponseIncompatibleVersion = 19; // The request handler is incompatible with the request version.
+	UnknownException = 20; // Unknown exception.
 }
 
 // A serialized tensor object created using the serializer class.
@@ -130,38 +130,57 @@ message Tensor {
 	// Version: [REQUIRED] Strictly increasing protocol version identifier.
 	// Indentifies protocol version for backward compatibility.
 	// i.e. '0.0.0'
-	// SIZE: 32 bits (4-bytes)
 	string version = 1;
 
-	// Buffer: [REQUIRED] Serialized raw tensor content. This representation
-  	// can be used for all tensor types. The purpose of this representation is to
-  	// reduce serialization overhead during RPC calls by avoiding serialization of
-  	// many repeated small items. In other words, we just copy the bytes and let
-	// the application layer serialize and deserialize the bytes. 
-  	// e.g.
-	// 1. PyTorchSerialzier.serialize(torch.Tensor) --> bittensor_pb2.Tensor
-	// 2. PyTorchSerializer.deserialize(bittensor_pb2.Tensor) --> torch.Tensor    	
-	// SIZE: variable
+	// Buffer: [REQUIRED] Serialized raw tensor content.
 	bytes buffer = 2;
 
 	// Shape: [REQUIRED] Shape of this tensor.
 	// NOTE: Variable dimensions (i.e. batch) are non-explicit here as -1.
 	// ~ 5 * int32 = 128 bits - (16 bytes)
 	repeated int64 shape = 3;
+
+	// Serializer: [REQUIRED] Specifies the serialization/deserialization method.
+	// Users should be able to decode all tensors by specifying the encoding type and the raw data. 
+	// i.e.
+	// 1. (client) serializer = bittensor.serialization.get_serializer_for_type(bittensor.Serializer.MSGPACK)
+	// 2. (client) serializer.serialize(torch.Tensor, from_type = bittensor_pb2.TensorType.TORCH) --> bittensor_pb2.Tensor
+	// 3. (server) deserializer = bittensor.serialization.get_serializer_for_type(request.serialzer)
+	// 4. (server) deserializer.deserialize(request.tensor, to_type = bittensor_pb2.TensorType.TENSORFLOW) --> tensorflow.Tensor    	
+	// SIZE: 32-bits (4 bytes)
+	Serializer serializer = 4;
+
+	// TensorType: [REQUIRED] Purely a placeholder, not used in deserialization etc, 
+	// however, could come in handy later
+	// SIZE: 32-bits (4 bytes)
+	TensorType tensor_type = 5;
     	
 	// Dtype: [REQUIRED] The tensor datatype.
 	// Used for serialization deserialization.
 	// int32 32-bits (4-bytes)
-	DataType dtype = 4;
+	DataType dtype = 6;
 
 	// Modality: TEXT, TENSOR, IMAGE
-	Modality modality = 5;
+	Modality modality = 7;
 
 	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
 	// 1 bit.
-	bool requires_grad = 6;
+	bool requires_grad = 8;
 }
 
+// Dtype: [REQUIRED] The tensor serializer type.
+// For use between multiple serialziation deserialziation methods.
+enum Serializer {
+	// PICKLE = 0; // PICKLE serializer (REMOVED for security reasons.)
+	MSGPACK = 0; // MSGPACK serializer
+}
+
+// TensorType: [REQUIRED] The tensor type, for use between multipl frameworks.
+enum TensorType {
+	TORCH = 0; // Torch object
+	TENSORFLOW = 1; // Tensorflow tensor type.
+	NUMPY = 2; // Numpy tensor type.
+}
 
 // Dtype: [REQUIRED] The tensor datatype.
 // Used for serialization deserialization.

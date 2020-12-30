@@ -1,19 +1,19 @@
-from .ip import IP
 
 from loguru import logger
-
-
+import bittensor.utils.networking as net
 
 class Neuron:
     uid: int
     hotkey : str
-    ip: IP
+    ip: str
+    ip_type: int
     coldkey : str
 
     def __init__(self, uid, hotkey, ip, ip_type, coldkey):
         self.uid = uid
         self.hotkey = hotkey
-        self.ip = IP(ip, ip_type)
+        self.ip = net.int_to_ip (ip)
+        self.ip_type = ip_type
         self.coldkey = coldkey
         self.stake = int
 
@@ -22,8 +22,7 @@ class Neuron:
         return Neuron(attrs['uid'], attrs['hotkey'], attrs['ip'], attrs['ip_type'], attrs['coldkey'])
 
     def __str__(self):
-        return "<neuron uid: %s hotkey: %s ip: %s coldkey: %s>" % (self.uid, self.hotkey, self.ip, self.coldkey)
-
+        return "<neuron uid: %s hotkey: %s ip: %s coldkey: %s>" % (self.uid, self.hotkey, net.ip__str__(self.ip, self.ip_type), self.coldkey)
 
 class Neurons(list):
     @staticmethod
@@ -48,12 +47,8 @@ class Neurons(list):
         neurons = Neurons(filter(lambda x: x.uid == uid, self))
         return None if len(neurons) == 0 else neurons[0]
 
-
-
-
     def __str__(self):
         y = map(lambda x : x.__str__(), self)
-
         return "".join(y)
 
 

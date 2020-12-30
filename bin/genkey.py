@@ -163,8 +163,6 @@ def main():
                         default='~/.bittensor/key')
 
 
-
-
     args = parser.parse_args()
     keyfile = validate_path(args.keyfile)
 
