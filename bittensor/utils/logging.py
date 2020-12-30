@@ -6,6 +6,7 @@ from loguru import logger
 from termcolor import colored
 from typing import List
 from bittensor import Session
+from bittensor import bittensor_pb2
 
 np.set_printoptions(precision=2, suppress=True, linewidth=500, sign=' ')
 pd.set_option('display.max_rows', 5000)
