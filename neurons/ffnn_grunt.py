@@ -34,7 +34,7 @@ def add_args(parser: argparse.ArgumentParser):
     parser.add_argument('--neuron.log_interval', default=10, type=int, help='Batches before we log session info.')
     parser.add_argument('--neuron.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
     parser.add_argument('--neuron.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
-    parser.add_argument('--neuron.name', default='gpt-wiki', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
+    parser.add_argument('--neuron.name', default='ffnn-grunt', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
     parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
     FFNNSynapse.add_args(parser)
 

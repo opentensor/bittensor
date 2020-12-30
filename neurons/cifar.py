@@ -1,4 +1,3 @@
-#!/bin/python3
 """Training a MNIST Neuron.
 This file demonstrates a training pipeline for an MNIST Neuron.
 Example:
@@ -33,7 +32,7 @@ def add_args(parser: argparse.ArgumentParser):
     parser.add_argument('--neuron.batch_size_test', default=16, type=int, help='Testing batch size.')
     parser.add_argument('--neuron.log_interval', default=150, type=int, help='Batches until neuron prints log statements.')
     parser.add_argument('--neuron.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
-    parser.add_argument('--neuron.name', default='mnist', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
+    parser.add_argument('--neuron.name', default='cifar', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
     parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
     DPNSynapse.add_args(parser)
 

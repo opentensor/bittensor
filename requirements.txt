@@ -12,6 +12,8 @@ google-api-python-client
 grpcio
 grpcio-tools
 loguru
+msgpack
+msgpack-numpy
 miniupnpc
 munch
 netaddr

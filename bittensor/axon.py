@@ -16,11 +16,11 @@ from typing import List
 
 import bittensor
 import bittensor.utils.networking as net
+import bittensor.serialization as serialization
 from bittensor.nucleus import Nucleus
 from bittensor.synapse import Synapse
 from bittensor import bittensor_pb2
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
-from bittensor.serializer import PyTorchSerializer
 
 
 class Axon(bittensor_grpc.BittensorServicer):
@@ -100,6 +100,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         # Optionally: use upnpc to map your router to the local host.
         if config.axon.use_upnpc:
             # Open a port on your router
+            logger.info('UPNPC: ON')
             try:
                 config.axon.external_port = net.upnpc_create_port_map(local_port = config.axon.local_port)
             except net.UPNPCException as upnpc_exception:
@@ -107,9 +108,10 @@ class Axon(bittensor_grpc.BittensorServicer):
                 raise upnpc_exception
         # Falls back to using your provided local_port.
         else:
+            logger.info('UPNPC: OFF')
             config.axon.external_port = config.axon.local_port
 
-        logger.info('Public Endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
+        logger.info('External Endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
         logger.info('Local Endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
 
     def __del__(self):
@@ -192,15 +194,29 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response: (bittensor_pb2.TensorMessage): 
                     proto response carring the synapse forward output or None under failure.
         """
-        tensor, message, code = self._forward(request)
-        response = bittensor_pb2.TensorMessage(
-            version = bittensor.__version__, 
-            public_key = self.__keypair.public_key, 
-            return_code = code,
-            message = message,
-            tensors = [tensor] if tensor is not None else [],
-        )
+        if request.version in bittensor.__compatability__[bittensor.__version__]:
+            tensor, message, code = self._forward(request)
+            response = bittensor_pb2.TensorMessage(
+                version = bittensor.__version__, 
+                public_key = self.__keypair.public_key, 
+                return_code = code,
+                message = message,
+                tensors = [tensor] if tensor is not None else [],
+            )
+
+        # Catch incompatible request versions.
+        else:
+            code = bittensor_pb2.ReturnCode.RequestIncompatibleVersion
+            message = "request version {} must be in {}".format(request.version, bittensor.__compatability__[bittensor.__version__])
+            response = bittensor_pb2.TensorMessage(
+                version = bittensor.__version__, 
+                public_key = self.__keypair.public_key, 
+                return_code = code,
+                message = message,
+            )
+
         return response
+
 
     def Backward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext) -> bittensor_pb2.TensorMessage:
         r""" The function called by remote GRPC Backward requests from other neurons.
@@ -216,19 +232,32 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response: (bittensor_pb2.TensorMessage): 
                     proto response carring the synapse backward output or None under failure.
         """
-        tensor, message, code = self._backward(request)
-        response = bittensor_pb2.TensorMessage(
-            version = bittensor.__version__, 
-            public_key = self.__keypair.public_key, 
-            return_code = code,
-            message = message,
-            tensors = [tensor] if tensor is not None else [],
-        )
+        if request.version in bittensor.__compatability__[bittensor.__version__]:
+            tensor, message, code = self._backward(request)
+            response = bittensor_pb2.TensorMessage(
+                version = bittensor.__version__, 
+                public_key = self.__keypair.public_key, 
+                return_code = code,
+                message = message,
+                tensors = [tensor] if tensor is not None else [],
+            )
+
+        # Catch incompatible request versions.
+        else:
+            code = bittensor_pb2.ReturnCode.RequestIncompatibleVersion
+            message = "request version {} must be in {}".format(request.version, bittensor.__compatability__[bittensor.__version__])
+            response = bittensor_pb2.TensorMessage(
+                version = bittensor.__version__, 
+                public_key = self.__keypair.public_key, 
+                return_code = code,
+                message = message,
+            )
         return response
+            
 
     def _forward(self, request):
         r""" Performs validity checks on the grpc request before calling nucleus forward.
-            Returns a the output, message and code from the backend forward call.
+            Returns the output, message and code from the backend forward call.
             Args:
                 request (:obj:`bittensor_pb2`, `required`): 
                     Tensor request proto.
@@ -247,7 +276,7 @@ class Axon(bittensor_grpc.BittensorServicer):
             code = bittensor_pb2.ReturnCode.NotServingSynapse
             return None, message, code
 
-        # C---- heck Empty request ----
+        # ---- Check Empty request ----
         if len(request.tensors) == 0:
             message = "Forward request contains {} tensors, expected 1 tensor in the forward call".format(len(request.tensors))
             code = bittensor_pb2.ReturnCode.EmptyRequest
@@ -256,12 +285,12 @@ class Axon(bittensor_grpc.BittensorServicer):
         # ---- Check deserialization ----
         inputs = request.tensors[0]
         try:
-            x = PyTorchSerializer.deserialize(inputs)
+            deserializer = serialization.get_serializer( serialzer_type = inputs.serializer )
+            x = deserializer.deserialize(inputs, to_type = bittensor_pb2.TensorType.TORCH)
         except Exception as e:
             message  = "Forward request deserialization failed with error {}".format(e)
             code = bittensor_pb2.ReturnCode.RequestDeserializationException
             return None, message, code
-
 
         # ---- Check shape and modality ----
         if x.shape[0] < 1:
@@ -318,7 +347,8 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # ---- Serialize response ----
         try:
-            outputs_serialized = PyTorchSerializer.serialize_tensor(outputs)
+            serializer = serialization.get_serializer ( bittensor_pb2.Serializer.MSGPACK )
+            outputs_serialized = serializer.serialize ( outputs, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH )
         
         except Exception as e:
             message = "Serializtion of forward response failed with error {} and inputs: {}".format(e, outputs)
@@ -361,8 +391,9 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # ---- Deserialize request ---
         try:
-            inputs_x = PyTorchSerializer.deserialize(inputs_x)
-            grads_dy = PyTorchSerializer.deserialize(grads_dy)
+            serializer = serialization.get_serializer( inputs_x.serializer )
+            inputs_x = serializer.deserialize( inputs_x, to_type = bittensor_pb2.TensorType.TORCH )
+            grads_dy = serializer.deserialize( grads_dy, to_type = bittensor_pb2.TensorType.TORCH )
                 
         except Exception as e:
             message = "Backward request deserialization failed with unknown error {}".format(e)
@@ -397,9 +428,11 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # ---- Deserialize response ----
         try:
-            outputs_serialized = PyTorchSerializer.serialize_tensor(outputs)
+            serializer = serialization.get_serializer( bittensor_pb2.Serializer.MSGPACK )
+            outputs_serialized = serializer.serialize( outputs, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH )
+
         except Exception as e:
-            message = "Backward request serialization failed with error {} and inputs {}".format(e, outputs_serialized)
+            message = "Backward request serialization failed with error {} and inputs {}".format(e, outputs)
             code =  bittensor_pb2.ReturnCode.ResponseSerializationException
             return None, message, code
 

@@ -1,9 +1,45 @@
 import miniupnpc
+import netaddr
 import os
 import requests
 import urllib
 
 from loguru import logger
+
+def ip__str__(self, ip_type, ip_str):
+    return "/ipv%i/%s" % (ip_type, ip_str)
+
+def int_to_ip(int_val: int) -> str:
+    r""" Maps an integer to a unique ip-string 
+        Args:
+            int_val  (:type:`int128`, `required`):
+                The integer representation of an ip. Must be in the range (0, 3.4028237e+38).
+
+        Returns:
+            str_val (:tyep:`str`, `required):
+                The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
+
+        Raises:
+            netaddr.core.AddrFormatError (Exception):
+                Raised when the passed int_vals is not a valid ip int value.
+    """
+    return str(netaddr.IPAddress(int_val))
+ 
+def ip_to_int(str_val: str) -> int:
+    r""" Maps an ip-string to a unique integer.
+        arg:
+            str_val (:tyep:`str`, `required):
+                The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
+
+        Returns:
+            int_val  (:type:`int128`, `required`):
+                The integer representation of an ip. Must be in the range (0, 3.4028237e+38).
+
+        Raises:
+            netaddr.core.AddrFormatError (Exception):
+                Raised when the passed str_val is not a valid ip string value.
+    """
+    return int(netaddr.IPAddress(str_val))
 
 class ExternalIPNotFound(Exception):
     """ Raised if we cannot attain your external ip from CURL/URLLIB/IPIFY/AWS """
