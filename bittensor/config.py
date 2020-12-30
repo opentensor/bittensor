@@ -73,18 +73,30 @@ class Config:
         # 2. Parse.
         params = parser.parse_known_args()[0]
         config_file = None
+        config = Munch()
         if 'neuron.config_file' in vars(params).keys():
             config_file = vars(params)['neuron.config_file']
         
         if config_file:
             config = Config.load_from_relative_path(config_file)
-        else:
-            # 3. Splits params on dot syntax i.e session.axon_port
-            config = Munch()
-            for arg_key, arg_val in params.__dict__.items():
-                split_keys = arg_key.split('.')
-                if len(split_keys) == 1:
-                    config[arg_key] = arg_val
+
+        # 3. Splits params on dot syntax i.e session.axon_port
+        for arg_key, arg_val in params.__dict__.items():
+            split_keys = arg_key.split('.')
+            
+            if len(split_keys) == 1:
+                config[arg_key] = arg_val
+            else:
+                if hasattr(config, split_keys[0]):
+                    section = getattr(config, split_keys[0])
+                
+                    if not hasattr(section, split_keys[1]):
+                        head = config
+                        for key in split_keys[:-1]:
+                            if key not in config:
+                                head[key] = Munch()
+                            head = head[key] 
+                        head[split_keys[-1]] = arg_val
                 else:
                     head = config
                     for key in split_keys[:-1]:
