@@ -527,7 +527,7 @@ class _RemoteModuleCall(torch.autograd.Function):
                 # ---- Get forward call serialzied inputs ----
                 try:
                     serialized_inputs = ctx.serialized_inputs
-                finally:
+                except:
                     logger.trace('backward failed because forward previously failed.')
                     return (None, None, zeros, None)
 
