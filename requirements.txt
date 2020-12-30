@@ -12,12 +12,16 @@ google-api-python-client
 grpcio
 grpcio-tools
 loguru
+msgpack
+msgpack-numpy
+miniupnpc
 munch
 netaddr
 numpy
 pandas
 password_strength
 pickle-mixin
+prettytable
 pycryptodome
 pycrypto
 py-sr25519-bindings==0.1.2

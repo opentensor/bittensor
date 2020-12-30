@@ -14,9 +14,9 @@ from loguru import logger
 from munch import Munch
 
 import bittensor
+import bittensor.serialization as serialization
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
-from bittensor.serializer import PyTorchSerializer
 from bittensor.exceptions.handlers import rollbar
 
 # dummy tensor that triggers autograd in a RemoteExpert
@@ -279,9 +279,9 @@ class RemoteNeuron(nn.Module):
             }
         ) 
         # Loop back if the neuron is local.
-        if neuron.address == config.axon.remote_ip:
+        if neuron.address == config.axon.external_ip:
             ip = "localhost:"
-            if config.axon.remote_ip == "host.docker.internal":
+            if config.axon.external_ip == "host.docker.internal":
                 ip = "host.docker.internal:"
             self.endpoint = ip + str(neuron.port)
         else:
@@ -405,7 +405,8 @@ class _RemoteModuleCall(torch.autograd.Function):
 
             # ---- Inputs Serialization ----
             try:
-                serialized_inputs = PyTorchSerializer.serialize(inputs, mode)
+                serializer = serialization.get_serializer( bittensor_pb2.Serializer.MSGPACK )
+                serialized_inputs = serializer.serialize(inputs, modality = mode, from_type = bittensor_pb2.TensorType.TORCH)
             except Exception as e:
                 logger.warning('Serialization error with error {}', e)
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.RequestSerializationException)
@@ -413,18 +414,24 @@ class _RemoteModuleCall(torch.autograd.Function):
 
             # ---- Build request ----
             request = bittensor_pb2.TensorMessage(
-                version=bittensor.__version__,
-                public_key=ctx.caller.keypair.public_key,
-                nounce=ctx.caller.nounce,
-                signature=ctx.caller.signature,
-                tensors=[serialized_inputs])
+                version = bittensor.__version__,
+                public_key = ctx.caller.keypair.public_key,
+                nounce = ctx.caller.nounce,
+                signature = ctx.caller.signature,
+                tensors = [serialized_inputs])
         
             # ---- Make RPC call ----
             try:
                 response = ctx.caller.stub.Forward(request, timeout=caller.config.dendrite.timeout)
 
+                # ---- Catch non-code ----
+                try:
+                    bittensor_code = response.return_code
+                except:
+                    logger.error('Unknown exception returned from remote host with message {}', response.message)
+                    return zeros, torch.tensor(bittensor_code)
+
                 # ---- Catch bittensor errors ----
-                bittensor_code = response.return_code
                 if bittensor_code == bittensor_pb2.ReturnCode.UnknownException:
                     logger.error('Unknown exception returned from remote host with message {}', response.message)
                     return zeros, torch.tensor(bittensor_code)
@@ -457,7 +464,10 @@ class _RemoteModuleCall(torch.autograd.Function):
 
             # ---- Deserialize response ----
             try:
-                outputs = PyTorchSerializer.deserialize_tensor(response.tensors[0])
+                outputs = response.tensors[0]
+                deserializer = serialization.get_serializer(  outputs.serializer )
+                outputs = deserializer.deserialize( outputs, to_type = bittensor_pb2.TensorType.TORCH )
+
             except Exception as e:
                 logger.error('Failed to serialize responses from forward call with error {}', e)
                 return zeros, torch.tensor(bittensor_pb2.ReturnCode.ResponseDeserializationException)
@@ -513,25 +523,46 @@ class _RemoteModuleCall(torch.autograd.Function):
         # ---- Try to pass gradients ----
         else:
             try:
-                # ---- Serialize inputs to bitensor_pb2.Tensor ----
-                serialized_grads = PyTorchSerializer.serialize_tensor(grads)
-                serialized_inputs = ctx.serialized_inputs
 
+                # ---- Get forward call serialzied inputs ----
+                try:
+                    serialized_inputs = ctx.serialized_inputs
+                finally:
+                    logger.trace('backward failed because forward previously failed.')
+                    return (None, None, zeros, None)
+
+                # ---- Serialization ----
+                try:
+                    # ---- Get serializer ----
+                    serializer = serialization.get_serializer( bittensor_pb2.Serializer.MSGPACK )
+
+                    # ---- Serialize grads to bitensor_pb2.Tensors ----
+                    serialized_grads = serializer.serialize (grads, modality = bittensor_pb2.Modality.TENSOR, from_type = bittensor_pb2.TensorType.TORCH)
+
+                except Exception as e:
+                    logger.trace('backward failed during serialization of gradients.')
+                    return (None, None, zeros, None)
+
+    
                 # ---- Build request for backward ----
                 request = bittensor_pb2.TensorMessage(
-                    version=bittensor.__version__,
-                    public_key=ctx.caller.keypair.public_key,
-                    nounce=ctx.caller.nounce,
-                    signature=ctx.caller.signature,
-                    tensors=[serialized_inputs, serialized_grads])
+                    version = bittensor.__version__,
+                    public_key = ctx.caller.keypair.public_key,
+                    nounce = ctx.caller.nounce,
+                    signature = ctx.caller.signature,
+                    tensors = [serialized_inputs, serialized_grads])
 
                 # --- Send non blocking grad request ----
                 # NOTE(const): we dont care about the response.
-                ctx.caller.stub.Backward.future(request, timeout=ctx.caller.config.dendrite.timeout)
+                try:
+                    ctx.caller.stub.Backward.future(request, timeout=ctx.caller.config.dendrite.timeout)
+                except:
+                    logger.trace('backward failed during backward call. Do not care.')
+                    return (None, None, zeros, None)
 
                 # ---- Always return zeros ----
-                # NOTE(const): We can return non zeros or a remote host could mess with your training
-                # without you knowing about it.
+                # NOTE(const): We can return non zeros but a remote host could mess with your training
+                # without you knowing about it. i.e. by passing you malicious gradients.
                 return (None, None, zeros, None)
 
             except:

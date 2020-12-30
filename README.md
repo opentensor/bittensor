@@ -1,4 +1,4 @@
-# Adam
+# Bittensor 
 [![Build status](https://circleci.com/gh/opentensor/bittensor.svg?style=shield)](https://circleci.com/gh/opentensor/bittensor)
 [![Documentation Status](https://readthedocs.org/projects/bittensor-docs/badge/?version=latest)](https://bittensor-docs.readthedocs.io/en/latest/?badge=latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -13,7 +13,6 @@ Neural networks which mine crypto by producing information for their peers.
 
 ## Acknowledgments
 **learning-at-home/hivemind**:
-
 
 ## License
 The MIT License (MIT)

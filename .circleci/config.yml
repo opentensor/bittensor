@@ -1,0 +1,128 @@
+version: 2.1
+
+executors:
+    bittensor-executor:
+        docker:
+          - image: bittensor/bittensor:latest
+
+orbs:
+  python: circleci/python@0.2.1
+  shellcheck: circleci/shellcheck@2.0.0
+
+jobs:
+  "Build Bittensor":
+    executor: bittensor-executor
+    steps:
+      - checkout
+      - python/load-cache
+      - python/install-deps
+      - python/save-cache
+      - run:
+          command: pip install -e .
+          name: setup
+      - run: pip install miniupnpc
+
+  "Run Unit Tests":
+    executor: bittensor-executor
+    steps:
+      - checkout
+      - python/load-cache
+      - run: pip3 install -r requirements.txt
+      - run: ./scripts/build_protos.sh
+      - run:
+          command: pip install -e .
+          name: setup
+      - run: pip install pyyaml
+      - run: pip install miniupnpc
+      - run: pip install msgpack
+      - run: pip install msgpack-numpy
+      - run:
+          name: "Run unit tests"
+          command: pytest ./tests/unit_tests
+      - run:
+          name: "Code Coverage"
+          command: codecov
+  
+  MNIST:
+    executor: bittensor-executor
+    steps:
+      - checkout
+      - python/load-cache
+      - run: pip install -r requirements.txt
+      - run: pip install pyyaml
+      - run: pip install miniupnpc
+      - run: pip install msgpack
+      - run: pip install msgpack-numpy
+      - run: ./scripts/build_protos.sh
+      - run:
+          name: setup
+          command: pip install -e .
+      - run:
+          name: Unset HTTP Proxy
+          command: unset https_proxy;unset http_proxy
+      - run:
+          name: Run MNIST node
+          command: python3 tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.5 --metagraph.chain_endpoint feynman.kusanagi.bittensor.com:9944
+
+  "Run Integration Tests":
+    executor: bittensor-executor
+    steps:
+      - checkout
+      - python/load-cache
+      - run: pip3 install -r requirements.txt
+      - run: ./scripts/build_protos.sh
+      - run: pip install pyyaml
+      - run: pip install miniupnpc
+      - run: pip install msgpack
+      - run: pip install msgpack-numpy
+      - run:
+          command: pip install -e .
+          name: setup
+      - run:
+          name: "Run Localized CPU Integration tests"
+          command: pytest ./tests/integration_tests/cpu_tests -k 'not MnistNode'
+      - run:
+          name: "Code Coverage"
+          command: codecov
+
+  "Push Production candidate to DockerHub":
+    docker:
+      - image: circleci/python:3.8.1
+        auth: 
+           username: $DOCKER_USER
+           password: $DOCKERPASS
+    steps:
+      - checkout
+      - python/load-cache
+      - setup_remote_docker:
+             version: 19.03.13
+      - run:
+          name: "Docker credentials"
+          command: echo $DOCKERPASS | docker login --username $DOCKER_USER --password-stdin
+      - run:
+          name: "Push production candidate"
+          command: ./scripts/push_image.sh
+ 
+workflows:
+  main:
+    jobs:
+      - "Build Bittensor"
+      - "Run Unit Tests":
+              requires:
+                - "Build Bittensor"
+      - "Run Integration Tests":
+              requires:
+                - "Build Bittensor"
+      - MNIST:
+              requires:
+                - "Run Integration Tests"
+      - "Push Production candidate to DockerHub":
+              requires:
+                - "Build Bittensor"
+                - "Run Unit Tests"
+                - "Run Integration Tests"
+                - MNIST
+              filters:
+                branches:
+                  only:
+                    - master
