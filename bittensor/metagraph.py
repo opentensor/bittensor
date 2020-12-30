@@ -49,7 +49,7 @@ class ChainState():
         if pubkey in self.index_for_pubkey:
             index = self.index_for_pubkey[pubkey]
             self.neurons[index] = neuron
-            self.stake[index] = float(stake)
+            self.stake[index] = float(stake) / 1000000000 
             self.lastemit[index] = int(lastemit)
             self.weight_uids[index] = list(w_uids)
             self.weight_vals[index] = list(w_vals)
@@ -293,7 +293,7 @@ class Metagraph():
             rank: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 rank of each known neuron.
         """
-        return self.ranks()
+        return self.ranks
 
     @property
     def row_weights(self) -> torch.FloatTensor:
@@ -496,6 +496,7 @@ class Metagraph():
         last_sync = await self.async_chain_block()
         self.state = TorchChainState.from_cache(self.cache)
         self.state.block = last_sync
+        print (self.__str__())
 
     async def _sync_cache(self):
         r""" Async: Makes calls to chain updating local chain cache with newest info.
@@ -1012,5 +1013,35 @@ class Metagraph():
                 weight_uids.append( self.state.uids.tolist()[i] ) # Gets the uid at this index
 
         return weight_uids, weight_vals
+
+    def __str__(self):
+        return """ 
+        Metagraph: 
+            block {} 
+            inflation_rate: {} 
+            n_neurons: {}
+            uids: {} 
+            stake: {}
+            lastemit {}
+            W {} 
+            W[*:] {}
+            W[:*] {}
+            S {}
+            R {}
+            I {}
+        """.format(
+        self.block, 
+        self.tau.item(), 
+        self.n, 
+        self.uids.tolist(), 
+        self.stake.tolist(), 
+        self.lastemit.tolist(), 
+        self.W.tolist(), 
+        self.row_weights.tolist(), 
+        self.col_weights.tolist(), 
+        self.S.tolist(), 
+        self.R.tolist(), 
+        self.I.tolist()
+        )
 
 
