@@ -2,27 +2,24 @@ import argparse
 from io import StringIO
 import traceback as tb
 from munch import Munch
-from loguru import logger
+import asyncio
 
 from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
 from bittensor.nucleus import Nucleus
-from bittensor.utils.asyncio import Asyncio
 from bittensor.subtensor.interface import Keypair
 from bittensor.exceptions.handlers import rollbar
+from loguru import logger
 from bittensor.crypto import is_encrypted, decrypt_data
 from bittensor.utils import Cli
-from bittensor.crypto import decrypt_keypair
-from cryptography.exceptions import InvalidSignature, InvalidKey
-from cryptography.fernet import InvalidToken
 from bittensor.crypto.keyfiles import KeyFileError, load_keypair_from_data
 
 import json
 import re
 import stat
-
+import time
 
 import os
 
@@ -150,6 +147,7 @@ class Session:
 
             hotkey = load_keypair_from_data(data)
             config.session.keypair = hotkey
+            logger.info("Using hotkey : {}", hotkey.public_key)
 
 
     def __del__(self):
@@ -207,6 +205,7 @@ class Session:
         return self
 
     def start(self):
+
         # Stop background grpc threads for serving the synapse object.
         logger.info('Start axon server...')
         try:
@@ -217,25 +216,52 @@ class Session:
 
         logger.trace('Connect to chain ...')
         try:
-            code, message = self.metagraph.connect(timeout=3)
-            if code != Metagraph.ConnectSuccess:
-                logger.error('SESSION: Timeout while subscribing to the chain endpoint with message {}', message)
-                logger.error('Check that your internet connection is working and the chain endpoint {} is available', self.config.metagraph.chain_endpoint)
+            connected = self.metagraph.connect()
+            if not connected:
+                logger.error('SESSION: Timeout while subscribing to the chain endpoint')
                 raise FailedConnectToChain
         except Exception as e:
             logger.error('SESSION: Error while connecting to the chain endpoint: {}', e)
             raise FailedToEnterSession
 
-        logger.info('Subscribe to chain ...')
-        try:
-            code, message = self.metagraph.subscribe(timeout=12)
-            if code != Metagraph.SubscribeSuccess:
-                logger.error('SESSION: Error while subscribing to the chain endpoint with message: {}', message)
+        loop = asyncio.get_event_loop()
+        subscription_found = loop.run_until_complete(self.check_subscription_status())
+        logger.info("Subscription found: {}".format(subscription_found))
+
+        if subscription_found == 1:
+            logger.info("Subscribed already to the chain.")
+        else:
+            logger.info('Subscription not found. Subscribe to chain ...')
+            try:
+                code, message = self.metagraph.subscribe(12)
+                if code != Metagraph.SubscribeSuccess:
+                    logger.error('SESSION: Error while subscribing to the chain endpoint with message: {}', message)
+                    raise FailedToEnterSession
+
+            except Exception as e:
+                logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
                 raise FailedToEnterSession
 
+    async def check_subscription_status(self, timeout=60):
+        metadata = None
+        start_time = time.time()
+        try:
+            # ---- Request info from chain ----
+            metadata = await asyncio.wait_for(self.metagraph.subtensor_client.neurons(self.config.session.keypair.public_key), timeout=1)
+            self.metagraph.metadata = metadata
         except Exception as e:
-            logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
-            raise FailedToEnterSession
+            # ---- Catch errors in request ----
+            logger.info("Subscription threw an unknown exception {}".format(e))
+            return Metagraph.SubscribeUnknownError
+
+        if metadata != None:
+            # ---- Subscription was a success ----
+            return Metagraph.SubscribeSuccess 
+        elif time.time() - start_time > timeout:
+            # ---- wait -----
+            return Metagraph.SubscribeTimeout, "Subscription timeout"
+        else:
+            await asyncio.sleep(1)
 
     def stop(self):
 
@@ -245,15 +271,7 @@ class Session:
         except Exception as e:
             logger.error('SESSION: Error while stopping axon server: {} ', e)
 
-        # Stop background grpc threads for serving synapse objects.
-        logger.info('Unsubscribe from chain ...')
-        try:
-            self.metagraph.unsubscribe()
-        except Exception as e:
-            logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
-
     def subscribe (self):
        self.metagraph.subscribe()
 
-    def unsubscribe (self):
-        self.metagraph.unsubscribe()
+
