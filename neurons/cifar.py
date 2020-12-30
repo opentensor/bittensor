@@ -100,7 +100,7 @@ def main(config: Munch, session: Session):
         # ---- Init training state ----
         model.train() # Turn on dropout etc.
         session.metagraph.sync() # Sync with the chain.
-        row_weights = session.metagraph.W[ 0, :].to(device) # My weights on the chain-state (zeros initially).
+        row_weights = session.metagraph.row_weights.to(device) # My weights on the chain-state (zeros initially).
 
         history = []
         for batch_idx, (images, targets) in enumerate(trainloader):    
@@ -149,10 +149,10 @@ def main(config: Munch, session: Session):
                 logger.info('Emitting with weights {}', row_weights.tolist())
                 session.metagraph.emit( row_weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
                 session.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                row_weights = session.metagraph.W[ 0, :] 
+                row_weights = session.metagraph.row_weights
                 
                 # ---- Update Axon Priority ----
-                col_weights = session.metagraph.W[:,0] # weights to me.
+                col_weights = session.metagraph.col_weights # weights to me.
                 session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
 
 

@@ -6,6 +6,7 @@ from loguru import logger
 from termcolor import colored
 from typing import List
 from bittensor import Session
+from bittensor import bittensor_pb2
 
 np.set_printoptions(precision=2, suppress=True, linewidth=500, sign=' ')
 pd.set_option('display.max_rows', 5000)
@@ -42,7 +43,7 @@ def log_dendrite_success_times(session: Session):
     remotes = session.dendrite.remotes
     neurons = [remote.neuron for remote in remotes]
     uids = session.metagraph.neurons_to_uids(neurons)
-    succees_time = [remote.stats.avg_success_time for remote in remotes]
+    succees_time = [float(remote.stats.codes[bittensor_pb2.ReturnCode.Success]) / remote.stats.n_forward_calls for remote in remotes]
     df = pd.DataFrame([succees_time], columns=uids.tolist())
     pd.set_option('display.float_format', lambda x: '%.4f' % x)
     df.rename_axis("[uid]", axis=1)
@@ -145,7 +146,7 @@ def log_row_weights(session: Session):
     print ('Row Weights: \n ')
     if session.metagraph.uids != None and session.metagraph.weights != None:
         uids = session.metagraph.uids.tolist()
-        weights = session.metagraph.W[0,:].tolist()
+        weights = session.metagraph.row_weights.tolist()
         weights, uids  = zip(*sorted(zip(weights, uids), reverse=True))
         df = pd.DataFrame([weights], columns=uids)
         df.rename_axis("[uid]", axis=1)
@@ -162,7 +163,7 @@ def log_col_weights(session: Session):
     print ('Col Weights: \n ')
     if session.metagraph.uids != None and session.metagraph.weights != None:
         uids = session.metagraph.uids.tolist()
-        weights = session.metagraph.W[:,0].tolist()
+        weights = session.metagraph.col_weights.tolist()
         weights, uids  = zip(*sorted(zip(weights, uids), reverse=True))
         df = pd.DataFrame([weights], columns=uids)
         df.rename_axis("[uid]", axis=1)

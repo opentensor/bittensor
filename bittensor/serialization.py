@@ -188,61 +188,8 @@ class MSGPackSerializer( BittensorSerializerBase ):
         """
         dtype = serialization_utils.bittensor_dtype_to_torch_dtype(torch_proto.dtype)
         shape = tuple(torch_proto.shape)
-        numpy_object = msgpack.unpackb(torch_proto.buffer, object_hook=msgpack_numpy.decode)
+        numpy_object = msgpack.unpackb(torch_proto.buffer, object_hook=msgpack_numpy.decode).copy()
         torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)
         return torch_object.type(dtype)
-
-# Removed for insecurity.
-# class PyTorchPickleSerializer( BittensorSerializerBase ):
-
-#     def serialize_from_torch(self, torch_tensor: torch.Tensor, modality: bittensor_pb2.Modality) -> bittensor_pb2.Tensor:
-#         """ Serializes a torch.Tensor to an bittensor Tensor proto.
-
-#         Args:
-#             torch_tensor (torch.Tensor): 
-#                 Torch tensor to serialize.
-
-#             modality (bittensor_pb2.Modality): 
-#                 Datatype modality. i.e. TENSOR, TEXT, IMAGE
-
-#         Returns:
-#             bittensor_pb2.Tensor: 
-#                 The serialized torch tensor as bittensor_pb2.proto. 
-#         """
-#         if torch_tensor.requires_grad:
-#             data_buffer = torch_tensor.cpu().detach().numpy().tobytes()
-#         else:
-#             data_buffer = torch_tensor.cpu().numpy().tobytes()
-        
-#         dtype = serialization_utils.torch_dtype_to_bittensor_dtype(torch_tensor.dtype)
-#         shape = list(torch_tensor.shape)
-#         torch_proto = bittensor_pb2.Tensor(version = bittensor.__version__,
-#                                     buffer = data_buffer,
-#                                     shape = shape,
-#                                     dtype = dtype,
-#                                     serializer = bittensor_pb2.Serializer.PICKLE,
-#                                     tensor_type = bittensor_pb2.TensorType.TORCH,
-#                                     modality = modality,
-#                                     requires_grad = torch_tensor.requires_grad)
-#         return torch_proto
-
-
-#     def deserialize_to_torch(self, torch_proto: bittensor_pb2.Tensor) -> torch.Tensor:
-#         """Deserializes an bittensor_pb2.Tensor to a torch.Tensor object.
-
-#         Args:
-#             torch_proto (bittensor_pb2.Tensor): 
-#                 Proto containing torch tensor to derserialize.
-
-#         Returns:
-#             torch.Tensor: 
-#                 Deserialized torch tensor.
-#         """
-#         dtype = serialization_utils.bittensor_dtype_np_dtype(torch_proto.dtype)
-#         array = np.frombuffer(torch_proto.buffer, dtype=np.dtype(dtype)).copy()
-#         shape = tuple(torch_proto.shape)
-#         tensor = torch.as_tensor(array).view(shape).requires_grad_(
-#             torch_proto.requires_grad)
-#         return tensor
 
 
