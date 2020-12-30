@@ -518,7 +518,6 @@ class Metagraph():
         r""" Polls info info for a specfic public key.
         """
         try:
-            logger.info('poll {}', neuron['uid'])
             stake = await self.subtensor_client.get_stake_for_uid(neuron['uid'])
             lastemit = await self.subtensor_client.get_last_emit_data_for_uid(neuron['uid'])
             w_uids = await self.subtensor_client.weight_uids_for_uid(neuron['uid'])
@@ -1019,7 +1018,7 @@ class Metagraph():
 
     def __str__(self):
         return """ 
-        Metagraph: 
+        Metagraph {{ 
             block {} 
             inflation_rate: {} 
             n_neurons: {}
@@ -1032,6 +1031,7 @@ class Metagraph():
             S {}
             R {}
             I {}
+        }}
         """.format(
         self.block, 
         self.tau.item(), 
