@@ -9,14 +9,25 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bittensor.config import Config
 from bittensor.session import Session
 
+# Bittensor code and protocol version.
 __version__ = '0.0.0'
-__blocktime__ = 6 # seconds
-__network_dim__ = 512
-__tokenizer__ = GPT2Tokenizer.from_pretrained("gpt2", local_files_only=False)
-__tokenizer__.pad_token = '[PAD]'
-__tokenizer__.mask_token = -100
+# Version compatiability, users running these code versions should be able to speak with each other
+__compatability__ = { __version__ : [ __version__ ] }
+
+# Tokenizer
 __vocab_size__ = 204483
-__max_sequence_length__ = 1024
+def __tokenizer__():
+    from transformers import GPT2Tokenizer
+    if __version__ in [ "0.0.0" ]:
+        tokenizer = GPT2Tokenizer.from_pretrained("gpt2", local_files_only=False)
+        tokenizer.pad_token = '[PAD]'
+        tokenizer.mask_token = -100
+        return tokenizer
+    else:
+        raise ValueError
+
+__blocktime__ = 6 # seconds
+__network_dim__ = 512 # Tensor.shape = [batch_size, sequence_lenght, 512]
 
 # Default logger
 logger_config = {
@@ -36,5 +47,3 @@ def init(config: Config):
 
     session = Session(config)
     return session
-
-

@@ -1,8 +1,8 @@
 import argparse
 from io import StringIO
 import traceback as tb
-from bittensor.utils.replicate_utils import ReplicateUtility
 from munch import Munch
+from loguru import logger
 
 from bittensor.synapse import Synapse
 from bittensor.dendrite import Dendrite
@@ -12,7 +12,6 @@ from bittensor.nucleus import Nucleus
 from bittensor.utils.asyncio import Asyncio
 from bittensor.subtensor.interface import Keypair
 from bittensor.exceptions.handlers import rollbar
-from loguru import logger
 from bittensor.crypto import is_encrypted, decrypt_data
 from bittensor.utils import Cli
 from bittensor.crypto import decrypt_keypair
@@ -218,18 +217,18 @@ class Session:
 
         logger.trace('Connect to chain ...')
         try:
-            connected = self.metagraph.connect()
-            if not connected:
-                logger.error('SESSION: Timeout while subscribing to the chain endpoint')
+            code, message = self.metagraph.connect(timeout=3)
+            if code != Metagraph.ConnectSuccess:
+                logger.error('SESSION: Timeout while subscribing to the chain endpoint with message {}', message)
+                logger.error('Check that your internet connection is working and the chain endpoint {} is available', self.config.metagraph.chain_endpoint)
                 raise FailedConnectToChain
         except Exception as e:
             logger.error('SESSION: Error while connecting to the chain endpoint: {}', e)
             raise FailedToEnterSession
 
-        if 
         logger.info('Subscribe to chain ...')
         try:
-            code, message = self.metagraph.subscribe(12)
+            code, message = self.metagraph.subscribe(timeout=12)
             if code != Metagraph.SubscribeSuccess:
                 logger.error('SESSION: Error while subscribing to the chain endpoint with message: {}', message)
                 raise FailedToEnterSession

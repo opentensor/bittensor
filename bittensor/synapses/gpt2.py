@@ -24,9 +24,8 @@ def nextbatch(data, batch_size, tokenizer):
     """
     batch_text = []
     for _ in range(batch_size):
-        text = data[random.randint(0, len(data))]['text']
-        batch_text.append(text)
-    batch_inputs = tokenizer.encode(batch_text, return_tensors='pt', padding=True, max_length=bittensor.__max_sequence_length__)
+        batch_text.append(data[random.randint(0, len(data))]['text'])
+    batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True)['input_ids']
     return batch_inputs
 
 class GPT2Pooler(nn.Module):

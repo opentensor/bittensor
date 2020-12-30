@@ -1,0 +1,30 @@
+FROM python:3.7-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        python3-setuptools \
+        libffi-dev \
+        libssl-dev \
+        rsync \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+#RUN rm -rf /var/lib/apt/lists/*
+
+# Copy BitTensor source to this image.
+RUN mkdir bittensor
+WORKDIR bittensor
+COPY requirements.txt .
+
+RUN pip3 install -r requirements.txt
+
+COPY . .
+
+# Install Bittensor
+RUN pip3 install -e .
+
+
+
+
+  
