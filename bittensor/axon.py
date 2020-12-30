@@ -5,14 +5,17 @@ import requests
 import sys
 import threading
 import torch
+import time
 import queue
 import validators
 
 from concurrent import futures
 from munch import Munch
 from loguru import logger
+from termcolor import colored
 from types import SimpleNamespace
 from typing import List
+
 
 import bittensor
 import bittensor.utils.networking as net
@@ -60,12 +63,20 @@ class Axon(bittensor_grpc.BittensorServicer):
         # Stats.
         #TODO(\u290B,\u290A)
         self.stats = SimpleNamespace(
-            forward_in_bytes_per_second = 0.0,
-            backward_in_bytes_per_second = 0.0,
-            forward_out_bytes_per_second = 0.0,
-            backward_out_bytes_per_second = 0.0,
+            start_time = time.time(),
+            forward_in_bytes = 0.0,
+            backward_in_bytes= 0.0,
+            forward_out_bytes = 0.0,
+            backward_out_bytes = 0.0,
         )
 
+    def __str__(self):
+        total_in_bytes = (self.stats.forward_in_bytes + self.stats.backward_in_bytes) / (time.time() - self.stats.start_time)
+        total_out_bytes = (self.stats.forward_in_bytes + self.stats.backward_in_bytes) / (time.time() - self.stats.start_time)
+        total_in_bytes_str = colored('\u290A {:.1f}'.format((total_in_bytes*8)/1000), 'green')
+        total_out_bytes_str = colored('\u290B {:.1f}'.format((total_out_bytes*8)/1000), 'red')
+        return total_in_bytes_str + "/" + total_out_bytes_str + "kB/s"
+        
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         r""" Adds this axon's command line arguments to the passed parser.
@@ -194,6 +205,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response: (bittensor_pb2.TensorMessage): 
                     proto response carring the synapse forward output or None under failure.
         """
+        self.stats.forward_in_bytes += sys.getsizeof(request)
         if request.version in bittensor.__compatability__[bittensor.__version__]:
             tensor, message, code = self._forward(request)
             response = bittensor_pb2.TensorMessage(
@@ -203,7 +215,6 @@ class Axon(bittensor_grpc.BittensorServicer):
                 message = message,
                 tensors = [tensor] if tensor is not None else [],
             )
-
         # Catch incompatible request versions.
         else:
             code = bittensor_pb2.ReturnCode.RequestIncompatibleVersion
@@ -214,7 +225,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 return_code = code,
                 message = message,
             )
-
+        self.stats.forward_out_bytes += sys.getsizeof(response)
         return response
 
 
@@ -232,6 +243,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response: (bittensor_pb2.TensorMessage): 
                     proto response carring the synapse backward output or None under failure.
         """
+        self.stats.backward_in_bytes += sys.getsizeof(request)
         if request.version in bittensor.__compatability__[bittensor.__version__]:
             tensor, message, code = self._backward(request)
             response = bittensor_pb2.TensorMessage(
@@ -252,6 +264,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 return_code = code,
                 message = message,
             )
+        self.stats.backward_out_bytes += sys.getsizeof(request)
         return response
             
 

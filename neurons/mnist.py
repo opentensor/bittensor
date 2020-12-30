@@ -95,7 +95,6 @@ def main(config: Munch, session: Session):
 
         # ---- Init training state ----
         model.train() # Turn on dropout etc.
-        session.metagraph.sync() # Sync with the chain.
         row_weights = session.metagraph.row_weights.to(device) # My weights on the chain-state (zeros initially).
 
         history = []
@@ -121,19 +120,19 @@ def main(config: Munch, session: Session):
             history.append(output) # Save for later analysis/logs.
             processed = ((batch_idx + 1) * config.neuron.batch_size_train)
             progress = (100. * processed) / len(train_data)
-            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\t Loss: {}\t Acc: {}', 
+            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\t Loss: {}\t Acc: {}\t Axon: {}\t Dendrite: {}', 
                     colored('{}'.format(global_step), 'blue'), 
                     colored('{}'.format(epoch), 'blue'), 
                     colored('{}'.format(processed), 'green'), 
                     colored('{}'.format(len(train_data)), 'red'),
                     colored('{:.2f}%'.format(progress), 'green'),
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
-                    colored('{:.4f}'.format(output.metadata['local_accuracy'].item()), 'green'))
+                    colored('{:.4f}'.format(output.metadata['local_accuracy'].item()), 'green'),
+                    session.axon,
+                    session.dendrite)
             tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), global_step)
             tensorboard.add_scalar('Lloss', output.local_target_loss.item(), global_step)
             tensorboard.add_scalar('Dloss', output.distillation_loss.item(), global_step)
-            if (batch_idx+1) % config.neuron.log_interval == 0:
-                log_all(session, history); history = [] # Log batch history.
 
             # ---- Update State ----
             batch_weights = torch.mean(output.weights, axis = 0) # Average over batch.
