@@ -308,7 +308,7 @@ class Metagraph():
             self_idx = self.state.index_for_uid[self.metadata['uid']] 
             return self.state.W[self_idx, :]
         except:
-            logger.critical('Self index not in self.state with index {}'.format(self_idx))
+            logger.error('your uid is not in self.state with state.uids {} and uid {}'.format(self.state.uids, self.metadata['uid']))
             return torch.tensor([])
 
     @property
@@ -324,7 +324,7 @@ class Metagraph():
             self_idx = self.state.index_for_uid[self.metadata['uid']] 
             return self.state.W[:, self_idx]
         except:
-            logger.critical('Self index not in self.state with index {}'.format(self_idx))
+            logger.error('your uid is not in self.state with state.uids {} and uid {}'.format(self.state.uids, self.metadata['uid']))
             return torch.tensor([])
 
     @property
@@ -505,6 +505,8 @@ class Metagraph():
         calls = []
         current_block = await self.async_chain_block()
         neurons = await self.subtensor_client.neurons()
+        logger.info(self.metadata)
+        calls.append(self._poll_pubkey(self.metadata, self.__keypair.public_key))
         for (pubkey, neuron) in neurons:
                 last_emit = await self.subtensor_client.get_last_emit_data_for_uid(neuron['uid'])
                 if last_emit:
@@ -516,6 +518,7 @@ class Metagraph():
         r""" Polls info info for a specfic public key.
         """
         try:
+            logger.info('poll {}', neuron['uid'])
             stake = await self.subtensor_client.get_stake_for_uid(neuron['uid'])
             lastemit = await self.subtensor_client.get_last_emit_data_for_uid(neuron['uid'])
             w_uids = await self.subtensor_client.weight_uids_for_uid(neuron['uid'])
