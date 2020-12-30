@@ -61,7 +61,6 @@ class Axon(bittensor_grpc.BittensorServicer):
         self._thread = None
 
         # Stats.
-        #TODO(\u290B,\u290A)
         self.stats = SimpleNamespace(
             start_time = time.time(),
             forward_in_bytes = 0.0,

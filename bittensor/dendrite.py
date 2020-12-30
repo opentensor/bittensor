@@ -308,12 +308,8 @@ class RemoteNeuron(nn.Module):
         self.stub = bittensor_grpc.BittensorStub(self.channel)
 
     def __str__(self):
-        #avg_elapsed_time = self.stats.forward_elapsed_time / self.stats.n_forward_calls
-        #percent_success = float(self.stats.codes[bittensor_pb2.ReturnCode.Success]) / self.stats.n_forward_calls
         total_out_bytes = (self.stats.forward_bytes_out + self.stats.backward_bytes_out) / (time.time() - self.stats.start_time)
         total_in_bytes = (self.stats.forward_bytes_in + self.stats.backward_bytes_in) / (time.time() - self.stats.start_time)
-        # avg_elapsed_time_str = colored('{:.3f}'.format(avg_elapsed_time), 'green')
-        #percent_success_str = colored('{:.1f}%'.format(percent_success * 100), 'blue')
         total_in_bytes_str = colored('\u290A {:.1f}'.format((total_in_bytes*8)/1000), 'green')
         total_out_bytes_str = colored('\u290B {:.1f}'.format((total_out_bytes*8)/1000), 'red')
         return str(self.neuron.uid) + ":(" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s)"
