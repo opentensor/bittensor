@@ -24,6 +24,13 @@ class Nucleus ():
         self._forward_pool = ThreadPoolExecutor(maxsize = self._config.nucleus.queue_maxsize, max_workers=self._config.nucleus.max_workers)
         self._backward_pool = ThreadPoolExecutor(maxsize = self._config.nucleus.queue_maxsize, max_workers=self._config.nucleus.max_workers)
 
+    def __init__(self, config):
+        r""" Initializes a nucleus backward and forward threading pools.
+        """
+        self._config = config
+        self._forward_pool = ThreadPoolExecutor(maxsize = self._config.nucleus.queue_maxsize, max_workers=self._config.nucleus.max_workers)
+        self._backward_pool = ThreadPoolExecutor(maxsize = self._config.nucleus.queue_maxsize, max_workers=self._config.nucleus.max_workers)
+
     def forward(self, synapse: Synapse, inputs: torch.Tensor, mode: bittensor_pb2.Modality, priority: float) -> Tuple[torch.FloatTensor, str, int]:
         r""" Accepts a synapse object with inputs and priority, submits them to the forward work pool
             and waits for a response from the threading future. Processing errors or timeouts result in

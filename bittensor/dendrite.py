@@ -15,6 +15,7 @@ from loguru import logger
 from munch import Munch
 
 import bittensor
+import bittensor.utils.stats as stat_utils
 import bittensor.serialization as serialization
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 from bittensor import bittensor_pb2
@@ -63,8 +64,8 @@ class Dendrite(nn.Module):
         total_bytes_out = 0
         total_bytes_in = 0
         for remote in self._remotes.values():
-            total_bytes_out += remote.stats.forward_bytes_out / (time.time() - remote.stats.start_time)
-            total_bytes_in += remote.stats.forward_bytes_in / (time.time() - remote.stats.start_time)
+            total_bytes_out += remote.stats.forward_bytes_out.value
+            total_bytes_in += remote.stats.forward_bytes_in.value
         total_in_bytes_str = colored('\u290A {:.1f}'.format((total_bytes_in*8)/1000), 'green')
         total_out_bytes_str = colored('\u290B {:.1f}'.format((total_bytes_out*8)/1000), 'red')
         return total_in_bytes_str + "/" + total_out_bytes_str + "kB/s"
@@ -263,14 +264,13 @@ class RemoteNeuron(nn.Module):
         self.backoff = 0 # Number o queries to backoff.
         self.next_backoff = 1 # Next backoff level.
         self.stats = SimpleNamespace(
-            start_time = time.time(),
             n_forward_calls = 0,
-            forward_elapsed_time = 0.0,
-            forward_bytes_out = 0.0,
-            forward_bytes_in = 0.0,
             n_backward_calls = 0,
-            backward_bytes_out = 0.0,
-            backward_bytes_in = 0.0,
+            forward_elapsed_time = stat_utils.timed_rolling_avg(0.0, 0.001),
+            forward_bytes_out = stat_utils.timed_rolling_avg(0.0, 0.001),
+            forward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.001),
+            backward_bytes_out = stat_utils.timed_rolling_avg(0.0, 0.001),
+            backward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.001),
             codes = {
                 bittensor_pb2.ReturnCode.Success: 0,
                 bittensor_pb2.ReturnCode.Timeout: 0,
@@ -308,8 +308,8 @@ class RemoteNeuron(nn.Module):
         self.stub = bittensor_grpc.BittensorStub(self.channel)
 
     def __str__(self):
-        total_out_bytes = (self.stats.forward_bytes_out + self.stats.backward_bytes_out) / (time.time() - self.stats.start_time)
-        total_in_bytes = (self.stats.forward_bytes_in + self.stats.backward_bytes_in) / (time.time() - self.stats.start_time)
+        total_out_bytes = self.stats.forward_bytes_out.value + self.stats.backward_bytes_out.value
+        total_in_bytes = self.stats.forward_bytes_in.value + self.stats.backward_bytes_in.value
         total_in_bytes_str = colored('\u290A {:.1f}'.format((total_in_bytes*8)/1000), 'green')
         total_out_bytes_str = colored('\u290B {:.1f}'.format((total_out_bytes*8)/1000), 'red')
         return str(self.neuron.uid) + ":(" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s)"
@@ -440,10 +440,10 @@ class _RemoteModuleCall(torch.autograd.Function):
                 
                 start_time = time.time()
                 ctx.caller.stats.n_forward_calls += 1
-                ctx.caller.stats.forward_bytes_out += sys.getsizeof(request)
+                ctx.caller.stats.forward_bytes_out.update(sys.getsizeof(request))
                 response = ctx.caller.stub.Forward(request, timeout=caller.config.dendrite.timeout)
-                ctx.caller.stats.forward_bytes_in += sys.getsizeof(response)
-                ctx.caller.stats.forward_elapsed_time += (time.time() - start_time)
+                ctx.caller.stats.forward_bytes_in.update(sys.getsizeof(response))
+                ctx.caller.stats.forward_elapsed_time.update((time.time() - start_time))
 
                 # ---- Catch non-code ----
                 try:
@@ -577,9 +577,9 @@ class _RemoteModuleCall(torch.autograd.Function):
                 # NOTE(const): we dont care about the response.
                 try:
                     ctx.caller.stats.n_backward_calls += 1
-                    ctx.caller.stats.backwar_bytes_out += sys.getsizeof(request)
+                    ctx.caller.stats.backwar_bytes_out.update(sys.getsizeof(request))
                     ctx.caller.stub.Backward.future(request, timeout=ctx.caller.config.dendrite.timeout)
-                    ctx.caller.stats.backwar_bytes_in += 0.0 # responses are dropped.
+                    ctx.caller.stats.backwar_bytes_in.update(0.0) # responses are dropped.
 
                 except:
                     logger.trace('backward failed during backward call. Do not care.')
