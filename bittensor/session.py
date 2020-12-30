@@ -22,8 +22,6 @@ from bittensor.crypto.keyfiles import KeyFileError, load_keypair_from_data
 import json
 import re
 import stat
-import asyncio
-import time
 
 
 import os
@@ -209,7 +207,6 @@ class Session:
         return self
 
     def start(self):
-
         # Stop background grpc threads for serving the synapse object.
         logger.info('Start axon server...')
         try:
@@ -220,52 +217,25 @@ class Session:
 
         logger.trace('Connect to chain ...')
         try:
-            connected = self.metagraph.connect(timeout=12)
-            if not connected:
-                logger.error('SESSION: Timeout while subscribing to the chain endpoint')
+            code, message = self.metagraph.connect(timeout=3)
+            if code != Metagraph.ConnectSuccess:
+                logger.error('SESSION: Timeout while subscribing to the chain endpoint with message {}', message)
+                logger.error('Check that your internet connection is working and the chain endpoint {} is available', self.config.metagraph.chain_endpoint)
                 raise FailedConnectToChain
         except Exception as e:
             logger.error('SESSION: Error while connecting to the chain endpoint: {}', e)
             raise FailedToEnterSession
 
-        loop = asyncio.get_event_loop()
-        subscription_found = loop.run_until_complete(self.check_subscription_status())
-        logger.info("Subscription found: {}".format(subscription_found))
-
-        if subscription_found == 1:
-            logger.info("Subscribed already to the chain.")
-        else:
-            logger.info('Subscription not found. Subscribe to chain ...')
-            try:
-                code, message = self.metagraph.subscribe(12)
-                if code != Metagraph.SubscribeSuccess:
-                    logger.error('SESSION: Error while subscribing to the chain endpoint with message: {}', message)
-                    raise FailedToEnterSession
-
-            except Exception as e:
-                logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
+        logger.info('Subscribe to chain ...')
+        try:
+            code, message = self.metagraph.subscribe(timeout=12)
+            if code != Metagraph.SubscribeSuccess:
+                logger.error('SESSION: Error while subscribing to the chain endpoint with message: {}', message)
                 raise FailedToEnterSession
 
-    async def check_subscription_status(self, timeout=60):
-        metadata = None
-        start_time = time.time()
-        try:
-            # ---- Request info from chain ----
-            metadata = await asyncio.wait_for(self.metagraph.subtensor_client.neurons(self.config.session.keypair.public_key), timeout=timeout)
-            self.metagraph.metadata = metadata
         except Exception as e:
-            # ---- Catch errors in request ----
-            logger.info("Subscription threw an unknown exception {}".format(e))
-            return Metagraph.SubscribeUnknownError
-
-        if metadata != None:
-            # ---- Subscription was a success ----
-            return Metagraph.SubscribeSuccess 
-        elif time.time() - start_time > timeout:
-            # ---- wait -----
-            return Metagraph.SubscribeTimeout, "Subscription timeout"
-        else:
-            await asyncio.sleep(1)
+            logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
+            raise FailedToEnterSession
 
     def stop(self):
 
@@ -275,7 +245,15 @@ class Session:
         except Exception as e:
             logger.error('SESSION: Error while stopping axon server: {} ', e)
 
+        # Stop background grpc threads for serving synapse objects.
+        logger.info('Unsubscribe from chain ...')
+        try:
+            self.metagraph.unsubscribe()
+        except Exception as e:
+            logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
+
     def subscribe (self):
        self.metagraph.subscribe()
 
-
+    def unsubscribe (self):
+        self.metagraph.unsubscribe()
