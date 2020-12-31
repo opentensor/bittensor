@@ -25,12 +25,14 @@ from bittensor.subtensor.interface import Keypair
 from bittensor.utils.logging import log_all
 from bittensor.config import Config
 from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
+from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
+
 
 def add_args(parser: argparse.ArgumentParser):    
     parser.add_argument('--neuron.datapath', default='data', type=str,help='Path to load and save data.')
-    parser.add_argument('--neuron.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
+    parser.add_argument('--neuron.learning_rate', default=0.00002, type=float, help='Training initial learning rate.')
     parser.add_argument('--neuron.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
-    parser.add_argument('--neuron.batch_size_train', default=20, type=int, help='Training batch size.')
+    parser.add_argument('--neuron.batch_size_train', default=5, type=int, help='Training batch size.')
     parser.add_argument('--neuron.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
     parser.add_argument('--neuron.log_interval', default=10, type=int, help='Batches before we log session info.')
     parser.add_argument('--neuron.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
@@ -63,7 +65,7 @@ def main(config, session):
 
     # ---- Optimizer ----
     optimizer = torch.optim.SGD(model.parameters(), lr = config.neuron.learning_rate, momentum=config.neuron.momentum)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
+    scheduler = WarmupCosineWithHardRestartsSchedule(optimizer, 50, 300)
 
     # ---- Tensorboard ----
     tensorboard = SummaryWriter(log_dir = config.neuron.trial_path)
