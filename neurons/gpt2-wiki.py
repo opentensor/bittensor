@@ -54,6 +54,7 @@ def check_config(config: Munch):
     GPT2LMSynapse.check_config(config)
 
 # Neuron main.
+@profile
 def main(config: Munch, session: Session):
 
     #  # ---- Model ----
@@ -85,68 +86,69 @@ def main(config: Munch, session: Session):
         row_weights = session.metagraph.row_weights # My weights on the chain-state (zeros initially).
         history = []
         local_step = 0
-        local_epochs = 10
+        local_epochs = 1
         output = None
-        net = torch.nn.DataParallel(model)
+        training_loss = None
 
-        while local_step < local_epochs:
-            try:
-                inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__())
+        try:
+            inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__())
 
-                output = net(
-                    inputs,
-                    training = True,
-                    remote = True # WITH rpc-queries made to the network
-                )
+            output = model(
+                inputs,
+                training = True,
+                remote = True # WITH rpc-queries made to the network
+            )
 
-                # ---- Backward pass ----
-                output.loss.backward() # Accumulates gradients on the model.
-                optimizer.step() # Applies accumulated gradients.
-                optimizer.zero_grad() # Zeros out gradients for next accummulation
+            # ---- Backward pass ----
+            output.loss.backward() # Accumulates gradients on the model.
+            optimizer.step() # Applies accumulated gradients.
+            optimizer.zero_grad() # Zeros out gradients for next accummulation
 
-                history.append(output) # Save for later analysis/logs.
-                logger.info('GS: {} LS: {} Epoch: {} \t Local Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}\t Dendrite: {}\t Axon: {}',
-                        colored('{}'.format(global_step), 'red'),
-                        colored('{}'.format(local_step), 'blue'),
-                        colored('{}'.format(epoch), 'green'),
-                        colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
-                        colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
-                        colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
-                        session.dendrite,
-                        session.axon)
+            #history.append(output) # Save for later analysis/logs.
+            logger.info('GS: {} LS: {} Epoch: {} \t Local Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}\t Dendrite: {}\t Axon: {}',
+                    colored('{}'.format(global_step), 'red'),
+                    colored('{}'.format(local_step), 'blue'),
+                    colored('{}'.format(epoch), 'green'),
+                    colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
+                    colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
+                    colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
+                    session.dendrite,
+                    session.axon)
 
-                
-                tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), global_step)
-                tensorboard.add_scalar('Lloss', output.local_target_loss.item(), global_step)
-                tensorboard.add_scalar('Dloss', output.distillation_loss.item(), global_step)
+            
+            tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), global_step)
+            tensorboard.add_scalar('Lloss', output.local_target_loss.item(), global_step)
+            tensorboard.add_scalar('Dloss', output.distillation_loss.item(), global_step)
 
-                # ---- Update State ----
-                batch_weights = torch.mean(output.weights, axis = 0) # Average over batch.
-                row_weights = (1 - 0.03) * row_weights + 0.03 * batch_weights # Moving avg update.
-                row_weights = F.normalize(row_weights, p = 1, dim = 0) # Ensure normalization.
+            # ---- Update State ----
+            batch_weights = torch.mean(output.weights, axis = 0) # Average over batch.
+            row_weights = (1 - 0.03) * row_weights + 0.03 * batch_weights # Moving avg update.
+            row_weights = F.normalize(row_weights, p = 1, dim = 0) # Ensure normalization.
 
-                if (global_step + 1) % config.neuron.sync_interval == 0:
-                    # ---- Sync Metagraph State ----
-                    logger.info('Emitting with weights {}', row_weights.tolist())
-                    session.metagraph.emit( row_weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
-                    session.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                    row_weights = session.metagraph.row_weights
+            if (global_step + 1) % config.neuron.sync_interval == 0:
+                # ---- Sync Metagraph State ----
+                logger.info('Emitting with weights {}', row_weights.tolist())
+                session.metagraph.emit( row_weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+                session.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                row_weights = session.metagraph.row_weights
 
-                    # ---- Update Axon Priority ----
-                    col_weights = session.metagraph.row_weights
-                    session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
+                # ---- Update Axon Priority ----
+                col_weights = session.metagraph.row_weights
+                session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
 
-                local_step += 1
-                global_step += 1
-                torch.cuda.empty_cache()
+            local_step += 1
+            global_step += 1
+            training_loss = output.local_target_loss.item()
+            del output
+            torch.cuda.empty_cache()
 
-            # --- Catch Errors during training ----
-            except Exception as e:
-                logger.error('Exception in training script with error: {}', e)
-                logger.info(traceback.print_exc())
-                logger.info('Continuing to train.')
+        # --- Catch Errors during training ----
+        except Exception as e:
+            logger.error('Exception in training script with error: {}', e)
+            logger.info(traceback.print_exc())
+            logger.info('Continuing to train.')
 
-        return output, global_step
+        return training_loss, global_step
 
     epoch = -1
     global_step = 0
@@ -155,13 +157,12 @@ def main(config: Munch, session: Session):
         epoch += 1
 
         # ---- Train Model ----
-        output, global_step = train(epoch, global_step)
+        loss, global_step = train(epoch, global_step)
         scheduler.step()
 
         # Save best loss and model
-        if output:
-            train_loss = output.local_target_loss
-
+        if loss and epoch % 100 == 0:
+            train_loss = loss
             if train_loss < best_train_loss:
                 best_train_loss = train_loss # update best train loss
                 logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(epoch, best_train_loss, config.neuron.trial_path))
