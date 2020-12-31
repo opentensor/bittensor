@@ -33,7 +33,7 @@ def add_args(parser: argparse.ArgumentParser):
     parser.add_argument('--neuron.datapath', default='data', type=str,help='Path to load and save data.')
     parser.add_argument('--neuron.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
     parser.add_argument('--neuron.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
-    parser.add_argument('--neuron.batch_size_train', default=4, type=int, help='Training batch size.')
+    parser.add_argument('--neuron.batch_size_train', default=1, type=int, help='Training batch size.')
     parser.add_argument('--neuron.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
     parser.add_argument('--neuron.log_interval', default=10, type=int, help='Batches before we log session info.')
     parser.add_argument('--neuron.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
