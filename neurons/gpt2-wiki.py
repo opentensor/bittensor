@@ -54,7 +54,6 @@ def check_config(config: Munch):
     GPT2LMSynapse.check_config(config)
 
 # Neuron main.
-@profile
 def main(config: Munch, session: Session):
 
     #  # ---- Model ----
