@@ -115,9 +115,7 @@ def main(config: Munch, session: Session):
                         session.dendrite,
                         session.axon)
 
-                if (global_step+1) % config.neuron.log_interval == 0:	
-                    log_all(session, history); history = [] # Log batch history.
-
+                
                 tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), global_step)
                 tensorboard.add_scalar('Lloss', output.local_target_loss.item(), global_step)
                 tensorboard.add_scalar('Dloss', output.distillation_loss.item(), global_step)
