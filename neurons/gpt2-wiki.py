@@ -83,9 +83,7 @@ def main(config: Munch, session: Session):
         model.train()
         session.metagraph.sync() # Sync with the chain.
         row_weights = session.metagraph.row_weights # My weights on the chain-state (zeros initially).
-        history = []
         local_step = 0
-        local_epochs = 1
         output = None
         training_loss = None
 
