@@ -69,7 +69,7 @@ def main(config: Munch, session: Session):
 
     # ---- Dataset ----
     # 74 million sentences pulled from books.
-    dataset = load_dataset('bookcorpus')['train']
+    dataset = load_dataset('ag_news')['train']
 
     tensorboard = SummaryWriter(log_dir = config.neuron.trial_path)
 
