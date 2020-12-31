@@ -1,6 +1,7 @@
-"""GPT2 Language Modelling
+#!/bin/python3
+"""PT2 Language Modelling miner
 
-This file demonstrates training the GPT2 neuron with language modelling.
+This is the genesis miner of Bittensor, built to run indefinitely to mine tokens and learn as it runs GPT2.
 
 Example:
         $ python neurons/gpt2-wiki.py
@@ -9,10 +10,12 @@ Example:
 import argparse
 import math
 import os
-import pathlib
 import time
 import torch
 import torch.nn.functional as F
+import traceback
+import time
+import bittensor
 
 from termcolor import colored
 from munch import Munch
@@ -20,25 +23,24 @@ from datasets import load_dataset
 from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
 
-import bittensor
-from bittensor.subtensor.interface import Keypair
+from bittensor import Session
 from bittensor.utils.logging import log_all
 from bittensor.config import Config
 from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
-
-def add_args(parser: argparse.ArgumentParser):    
+def add_args(parser: argparse.ArgumentParser):
     parser.add_argument('--neuron.datapath', default='data', type=str,help='Path to load and save data.')
-    parser.add_argument('--neuron.learning_rate', default=0.00002, type=float, help='Training initial learning rate.')
+    parser.add_argument('--neuron.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
     parser.add_argument('--neuron.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
-    parser.add_argument('--neuron.batch_size_train', default=5, type=int, help='Training batch size.')
+    parser.add_argument('--neuron.batch_size_train', default=4, type=int, help='Training batch size.')
     parser.add_argument('--neuron.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
     parser.add_argument('--neuron.log_interval', default=10, type=int, help='Batches before we log session info.')
     parser.add_argument('--neuron.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
     parser.add_argument('--neuron.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
     parser.add_argument('--neuron.name', default='gpt-wiki', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
     parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
+    parser.add_argument('--neuron.record_log', default=True, help='Record all logs when running this session')
     GPT2LMSynapse.add_args(parser)
 
 def check_config(config: Munch):
@@ -50,110 +52,128 @@ def check_config(config: Munch):
     if not os.path.exists(config.neuron.trial_path):
         os.makedirs(config.neuron.trial_path)
     GPT2LMSynapse.check_config(config)
-    
-# Neuron main.
-def main(config, session):
 
-    # ---- Build Model ----
+# Neuron main.
+def main(config: Munch, session: Session):
+
+    #  # ---- Model ----
     model = GPT2LMSynapse(config, session)
-    model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-    session.serve( model )
+
+    # ---- Serve ----
+    session.serve( model ) # Serves model to Axon RPC endpoint for network access.
+
+    # ---- Optimizer ----
+    optimizer = torch.optim.SGD(model.parameters(), lr = config.neuron.learning_rate, momentum=config.neuron.momentum)
+    #scheduler = WarmupLinearSchedule(optimizer,5,1000)
+    scheduler = WarmupCosineWithHardRestartsSchedule(optimizer, 50, 300)
 
     # ---- Dataset ----
     # 74 million sentences pulled from books.
     dataset = load_dataset('bookcorpus')['train']
 
-    # ---- Optimizer ----
-    optimizer = torch.optim.SGD(model.parameters(), lr = config.neuron.learning_rate, momentum=config.neuron.momentum)
-    scheduler = WarmupCosineWithHardRestartsSchedule(optimizer, 50, 300)
-
-    # ---- Tensorboard ----
     tensorboard = SummaryWriter(log_dir = config.neuron.trial_path)
-        
-    # ---- Init training state ----
-    session.metagraph.sync() # Sync with the chain.
-    row_weights = session.metagraph.row_weights # Weight to others (zeros initially)
-    col_weights = session.metagraph.col_weights # Other to me.
-    priority_map = dict(zip(session.metagraph.public_keys, col_weights.tolist()))
-    session.axon.set_priority( priority_map )
 
-    # ---- Train forever ----
-    model.train()
-    step = -1; history = []; best_loss = math.inf; 
+    if config.neuron.record_log:
+        current_time = time.strftime("%H_%M_%S", time.localtime())
+        logger.add("{}_{}.log".format(config.neuron.name, current_time),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
+
+    # ---- Train Epoch ----
+    def train(epoch: int, global_step: int):
+        # ----- Init training state ---
+        model.train()
+        session.metagraph.sync() # Sync with the chain.
+        row_weights = session.metagraph.W[ 0, :] # My weights on the chain-state (zeros initially).
+        history = []
+        local_step = 0
+        local_epochs = 10
+        output = None
+        net = torch.nn.DataParallel(model)
+
+        while local_step < local_epochs:
+            try:
+                inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__())
+
+                output = net(
+                    inputs,
+                    training = True,
+                    remote = True # WITH rpc-queries made to the network
+                )
+
+                # ---- Backward pass ----
+                output.loss.backward() # Accumulates gradients on the model.
+                optimizer.step() # Applies accumulated gradients.
+                optimizer.zero_grad() # Zeros out gradients for next accummulation
+
+                history.append(output) # Save for later analysis/logs.
+                logger.info('GS: {} LS: {} Epoch: {} \t Local Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}\t Dendrite: {}\t Axon: {}',
+                        colored('{}'.format(global_step), 'red'),
+                        colored('{}'.format(local_step), 'blue'),
+                        colored('{}'.format(epoch), 'green'),
+                        colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
+                        colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
+                        colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
+                        session.dendrite,
+                        session.axon)
+
+                tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), global_step)
+                tensorboard.add_scalar('Lloss', output.local_target_loss.item(), global_step)
+                tensorboard.add_scalar('Dloss', output.distillation_loss.item(), global_step)
+
+                # ---- Update State ----
+                batch_weights = torch.mean(output.weights, axis = 0) # Average over batch.
+                row_weights = (1 - 0.03) * row_weights + 0.03 * batch_weights # Moving avg update.
+                row_weights = F.normalize(row_weights, p = 1, dim = 0) # Ensure normalization.
+
+                if (global_step + 1) % config.neuron.sync_interval == 0:
+                    # ---- Sync Metagraph State ----
+                    logger.info('Emitting with weights {}', row_weights.tolist())
+                    session.metagraph.emit( row_weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+                    session.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                    row_weights = session.metagraph.W[ 0, :]
+
+                    # ---- Update Axon Priority ----
+                    col_weights = session.metagraph.W[:,0]
+                    session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
+
+                local_step += 1
+                global_step += 1
+                torch.cuda.empty_cache()
+
+            # --- Catch Errors during training ----
+            except Exception as e:
+                logger.error('Exception in training script with error: {}', e)
+                logger.info(traceback.print_exc())
+                logger.info('Continuing to train.')
+
+        return output, global_step
+
+    epoch = -1
+    global_step = 0
+    best_train_loss = math.inf
     while True:
-        try:
-            step += 1
-            # ---- Next Batch ----
-            inputs = nextbatch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__())
+        epoch += 1
 
-            # ---- Forward Pass ----
-            output = model(inputs.to(model.device), training = True, remote = True)
-            history.append(output)
+        # ---- Train Model ----
+        output, global_step = train(epoch, global_step)
+        scheduler.step()
 
-            # ---- Accumulate Local Gradients ----
-            loss = output.loss / config.neuron.accumulation_interval # Need to average accross accumulation steps.
-            loss.backward() # Accumulates gradients on model via sum.
+        # Save best loss and model
+        if output:
+            train_loss = output.local_target_loss
 
-            # ---- Accumulate Remote Gradients  ----
-            if config.neuron.apply_remote_gradients:
-                # TODO (const): batch normalization over the gradients for consistency.
-                n_grads = session.axon.gradients.qsize
-                for _, (_, input_x, grads_dy, modality) in list(session.axon.gradients.queue):
-                    grads_dy = grads_dy / (config.neuron.accumulation_interval * n_grads)
-                    model.backward(input_x, grads_dy, modality)
-
-            # ---- Apply Gradients ----
-            if (step+1) % config.neuron.accumulation_interval == 0:
-                optimizer.step() # Apply accumulated gradients.
-                optimizer.zero_grad() # Zero grads for next accummulation 
-                scheduler.step() # Update learning rate etc.
-                session.serve( model ) # Serve the newest model.
-
-            # ---- Step Logs + Tensorboard ----
-            logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(step, output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
-            tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), step)
-            tensorboard.add_scalar('Lloss', output.local_target_loss.item(), step)
-            tensorboard.add_scalar('Dloss', output.distillation_loss.item(), step)
-            if (step+1) % config.neuron.log_interval == 0:
-                log_all(session, history); history = [] # Log batch history.
+            if train_loss < best_train_loss:
+                best_train_loss = train_loss # update best train loss
+                logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(epoch, best_train_loss, config.neuron.trial_path))
+                torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': best_train_loss},"{}/model.torch".format(config.neuron.trial_path))
+                tensorboard.add_scalar('Train loss', train_loss, global_step)
 
 
-            # ---- Update Weights ----
-            batch_weights = torch.mean(output.weights, axis = 0)
-            row_weights = (1 - 0.05) * row_weights + 0.05 * batch_weights # Moving Avg weights.
-            row_weights = F.normalize(row_weights, p = 1, dim = 0)  
-
-            # ---- Sync State ----
-            if (step+1) % config.neuron.sync_interval == 0:
-                # ---- Emit weights and sync from chain ----
-                logger.info('Emitting with weights {}', row_weights.tolist())
-                session.metagraph.emit( row_weights, wait_for_inclusion = True ) # Set weights on chain.
-                session.metagraph.sync() # Sync with the chain.
-                
-                # ---- Get row and col Weights.
-                row_weights = session.metagraph.row_weights # Weight to others.
-                col_weights = session.metagraph.col_weights # Other to me.
-
-                # ---- Update Axon Priority ----
-                session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
-
-            # --- Save Model ----
-            if output.loss.item() < best_loss:
-                best_loss = output.loss
-                logger.info( 'Saving model: epoch: {}, loss: {}, path: {}/model.torch', step, output.loss, config.neuron.trial_path)
-                torch.save( {'epoch': step, 'model': model.state_dict(), 'loss': output.loss},"{}/model.torch".format(config.neuron.trial_path))
-
-        # --- Catch Errors during training ----
-        except Exception as e:
-            logger.error('Exection in training script with error: {}', e)
-            logger.info('Continuing to train.')
-    
 if __name__ == "__main__":
     # ---- Load config ----
-    parser = argparse.ArgumentParser(); add_args(parser) # Load local args.
-    config = Config.load(parser); check_config(config) # Load bittensor args and check.
+    parser = argparse.ArgumentParser(); add_args(parser)
+    config = Config.load(parser); check_config(config)
     logger.info(Config.toString(config))
-    
+
     # ---- Build Session ----
     session = bittensor.init(config)
 
