@@ -1,7 +1,7 @@
 #!/bin/python3
-"""PT2 Language Modelling miner
+"""GPT2 Language Modelling miner
 
-This is the genesis miner of Bittensor, built to run indefinitely to mine tokens and learn as it runs GPT2.
+This file demonstrates training the GPT2 neuron with language modelling.
 
 Example:
         $ python neurons/gpt2-wiki.py
@@ -114,6 +114,9 @@ def main(config: Munch, session: Session):
                         colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
                         session.dendrite,
                         session.axon)
+
+                if (global_step+1) % config.neuron.log_interval == 0:	
+                    log_all(session, history); history = [] # Log batch history.
 
                 tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), global_step)
                 tensorboard.add_scalar('Lloss', output.local_target_loss.item(), global_step)
