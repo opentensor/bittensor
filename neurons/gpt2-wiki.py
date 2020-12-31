@@ -99,7 +99,7 @@ def main(config: Munch, session: Session):
             )
 
             # ---- Backward pass ----
-            output.loss.backward() # Accumulates gradients on the model.
+            output.remote_target_loss.backward() # Accumulates gradients on the model.
             optimizer.step() # Applies accumulated gradients.
             optimizer.zero_grad() # Zeros out gradients for next accummulation
 

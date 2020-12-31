@@ -46,7 +46,6 @@ class GPT2Pooler(nn.Module):
 class GPT2LMSynapse(Synapse):
     """ A Bittensor Synapse training GPT2 with Masked Language Modelling (MLM)
     """
-
     def __init__(self,
                  config: Munch,
                  session: Session):
