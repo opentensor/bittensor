@@ -122,7 +122,7 @@ class GPT2LMSynapse(Synapse):
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
         parser.add_argument('--synapse.n_layer', default=2, type=int, 
                             help='Number of hidden layers in the Transformer encoder.')
-        parser.add_argument('--synapse.n_inner', default=512, type=int, 
+        parser.add_argument('--synapse.n_inner', default=8, type=int, 
                             help='The dimensionality of the inner feed-forward layers. :obj:`None` will set it to 4 times n_embd')
         parser.add_argument('--synapse.activation_function', default='gelu_new', type=str, 
                             help='Activation function, to be selected in the list :obj:`["relu", "silu", "gelu", "tanh", "gelu_new"]')
@@ -227,7 +227,7 @@ class GPT2LMSynapse(Synapse):
         
         # pooled: pooled encodings by taking the hidden units of the last token.
         # pooled.shape = [batch_size, bittensor.__network_dim__]
-        pooled = self.pooler(encoding)
+        pooled = self.pooler(encoding.detach())
         
         # local_context: distilled version of remote_context.
         # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
