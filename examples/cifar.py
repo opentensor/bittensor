@@ -20,33 +20,35 @@ from loguru import logger
 
 import bittensor
 from bittensor.neuron import Neuron
-from bittensor.utils.logging import log_all
 from bittensor.config import Config
+from bittensor.utils.logging import log_all
 from bittensor.synapses.dpn import DPNSynapse
 
 def add_args(parser: argparse.ArgumentParser):    
-    parser.add_argument('--neuron.datapath', default='data/', type=str,  help='Path to load and save data.')
-    parser.add_argument('--neuron.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
-    parser.add_argument('--neuron.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
-    parser.add_argument('--neuron.batch_size_train', default=32, type=int, help='Training batch size.')
-    parser.add_argument('--neuron.batch_size_test', default=16, type=int, help='Testing batch size.')
-    parser.add_argument('--neuron.log_interval', default=150, type=int, help='Batches until neuron prints log statements.')
-    parser.add_argument('--neuron.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
-    parser.add_argument('--neuron.name', default='cifar', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
-    parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
+    parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
+    parser.add_argument('--session.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
+    parser.add_argument('--session.batch_size_train', default=64, type=int, help='Training batch size.')
+    parser.add_argument('--session.batch_size_test', default=64, type=int, help='Testing batch size.')
+    parser.add_argument('--session.log_interval', default=150, type=int, help='Batches until session prints log statements.')
+    parser.add_argument('--session.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
+    parser.add_argument('--session.root_dir', default='data/', type=str,  help='Root path to load and save data associated with each session')
+    parser.add_argument('--session.name', default='cifar', type=str, help='Trials for this session go in session.root / session.name')
+    parser.add_argument('--session.uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
+    Neuron.add_args(parser)
     DPNSynapse.add_args(parser)
 
 def check_config(config: Munch):
-    assert config.neuron.log_interval > 0, "log_interval dimension must positive"
-    assert config.neuron.momentum > 0 and config.neuron.momentum < 1, "momentum must be a value between 0 and 1"
-    assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
-    assert config.neuron.batch_size_test > 0, "batch_size_test must a positive value"
-    assert config.neuron.learning_rate > 0, "learning rate must be a positive value."
-    trial_path = '{}/{}/{}'.format(config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
-    config.neuron.trial_path = trial_path
-    if not os.path.exists(config.neuron.trial_path):
-        os.makedirs(config.neuron.trial_path)
+    assert config.session.log_interval > 0, "log_interval dimension must be positive"
+    assert config.session.momentum > 0 and config.session.momentum < 1, "momentum must be a value between 0 and 1"
+    assert config.session.batch_size_train > 0, "batch_size_train must be a positive value"
+    assert config.session.batch_size_test > 0, "batch_size_test must be a positive value"
+    assert config.session.learning_rate > 0, "learning rate must be be a positive value."
+    full_path = '{}/{}/{}'.format(config.session.root_dir, config.session.name, config.session.uid)
+    config.session.full_path = full_path
+    if not os.path.exists(config.session.full_path):
+        os.makedirs(config.session.full_path)
     DPNSynapse.check_config(config)
+    Neuron.check_config(config)
 
 # --- Train epoch ----
 def main(config: Munch, neuron: Neuron):
@@ -59,24 +61,24 @@ def main(config: Munch, neuron: Neuron):
     neuron.axon.serve( model ) # Serves model to Axon RPC endpoint for network access.
 
     # ---- Optimizer ---- 
-    optimizer = optim.SGD(model.parameters(), lr=config.neuron.learning_rate, momentum=config.neuron.momentum)
+    optimizer = optim.SGD(model.parameters(), lr=config.session.learning_rate, momentum=config.session.momentum)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10.0, gamma=0.1)
 
     # ---- Dataset ----
     train_data = torchvision.datasets.CIFAR10(
-        root=config.neuron.datapath, train=True, download=True, transform=transforms.Compose([
+        root=config.session.root_dir + "datasets/", train=True, download=True, transform=transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
     ]))
-    trainloader = torch.utils.data.DataLoader(train_data, batch_size = config.neuron.batch_size_train, shuffle=True, num_workers=2)
-    test_data = torchvision.datasets.CIFAR10(root=config.neuron.datapath, train=False, download=True, transform=transforms.ToTensor())
-    testloader = torch.utils.data.DataLoader(test_data, batch_size = config.neuron.batch_size_test, shuffle=False, num_workers=2)
-    test_data = torchvision.datasets.CIFAR10(root = config.neuron.datapath + "datasets/", train=False, download=True, transform=transforms.ToTensor())
+    trainloader = torch.utils.data.DataLoader(train_data, batch_size = config.session.batch_size_train, shuffle=True, num_workers=2)
+    test_data = torchvision.datasets.CIFAR10(root = config.session.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
+    testloader = torch.utils.data.DataLoader(test_data, batch_size = config.session.batch_size_test, shuffle=False, num_workers=2)
+    test_data = torchvision.datasets.CIFAR10(root = config.session.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
 
     # ---- Tensorboard ----
     global_step = 0
-    tensorboard = SummaryWriter(log_dir = config.neuron.trial_path)
+    tensorboard = SummaryWriter(log_dir = config.session.full_path)
 
     # --- Test epoch ----
     def test ():
@@ -123,7 +125,7 @@ def main(config: Munch, neuron: Neuron):
 
             # ---- Step Logs + Tensorboard ----
             history.append(output) # Save for later analysis/logs.
-            processed = ((batch_idx + 1) * config.neuron.batch_size_train)
+            processed = ((batch_idx + 1) * config.session.batch_size_train)
             progress = (100. * processed) / len(train_data)
             logger.info('GS: {} Epoch: {} [{}/{} ({})]\t Loss: {}\t Acc: {}', 
                     colored('{}'.format(global_step), 'blue'), 
@@ -136,7 +138,7 @@ def main(config: Munch, neuron: Neuron):
             tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), global_step)
             tensorboard.add_scalar('Lloss', output.local_target_loss.item(), global_step)
             tensorboard.add_scalar('Dloss', output.distillation_loss.item(), global_step)
-            if (batch_idx+1) % config.neuron.log_interval == 0:
+            if (batch_idx+1) % config.session.log_interval == 0:
                 log_all(neuron, history); history = [] # Log batch history.
 
             # ---- Update State ----
@@ -144,7 +146,7 @@ def main(config: Munch, neuron: Neuron):
             row_weights = (1 - 0.03) * row_weights.to(device) + 0.03 * batch_weights # Moving avg update.
             row_weights = F.normalize(row_weights, p = 1, dim = 0) # Ensure normalization.
 
-            if (batch_idx+1) % config.neuron.sync_interval == 0:
+            if (batch_idx+1) % config.session.sync_interval == 0:
                 # ---- Sync Metagraph State ----
                 logger.info('Emitting with weights {}', row_weights.tolist())
                 neuron.metagraph.emit( row_weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
@@ -171,19 +173,19 @@ def main(config: Munch, neuron: Neuron):
          # ---- Save Best ----
         if test_loss < best_test_loss:
             best_test_loss = test_loss # Update best loss.
-            logger.info( 'Saving/Serving model: epoch: {}, accuracy: {}, loss: {}, path: {}/model.torch'.format(epoch, test_accuracy, best_test_loss, config.neuron.trial_path))
-            torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': best_test_loss},"{}/model.torch".format(config.neuron.trial_path))
+            logger.info( 'Saving/Serving model: epoch: {}, accuracy: {}, loss: {}, path: {}/model.torch'.format(epoch, test_accuracy, best_test_loss, config.session.full_path))
+            torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': best_test_loss},"{}/model.torch".format(config.session.full_path))
             tensorboard.add_scalar('Test loss', test_loss, global_step)
+ 
 
-        
 if __name__ == "__main__":
-    # ---- Load config ----
-    parser = argparse.ArgumentParser(); add_args(parser)
-    config = Config.load(parser); check_config(config)
+    # ---- Load command line args ----
+    parser = argparse.ArgumentParser(); add_args(parser) 
+    config = Config.to_config(parser); check_config(config)
     logger.info(Config.toString(config))
    
     # ---- Build Neuron ----
-    neuron = bittensor.init(config)
+    neuron = Neuron(config)
 
     # ---- Start Neuron ----
     with neuron:
