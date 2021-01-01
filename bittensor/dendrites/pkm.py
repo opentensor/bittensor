@@ -43,7 +43,6 @@ class PKMDendrite():
         # Query -> Keys
         self.projection = nn.Linear(query_dim, self.config.dendrite.key_dim, bias=True).to(self.device)
 
-
     @staticmethod
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
         parser.add_argument('--dendrite.key_dim', default=100, type=int, help='Product keys dimension.')

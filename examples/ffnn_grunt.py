@@ -44,7 +44,7 @@ def check_config(config: Munch):
     assert config.session.batch_size_train > 0, "batch_size_train must be a positive value"
     assert config.session.batch_size_test > 0, "batch_size_test must be a positive value"
     assert config.session.learning_rate > 0, "learning rate must be be a positive value."
-    full_path = '{}/{}/{}'.format(config.session.root_dir, config.session.name, config.session.uid)
+    full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.uid)
     config.session.full_path = full_path
     if not os.path.exists(config.session.full_path):
         os.makedirs(config.session.full_path)
