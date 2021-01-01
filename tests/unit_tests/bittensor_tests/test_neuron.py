@@ -1,13 +1,14 @@
 
 from loguru import logger
 import bittensor
+from bittensor.neuron import Neuron
 from bittensor.config import Config
 from bittensor.subtensor.interface import Keypair
 from munch import Munch
 
-def new_session():
+def new_neuron():
     # 1. Init Config item.
-    config = {'neuron':
+    config = {'session':
                   {'datapath': 'data/', 'learning_rate': 0.01, 'momentum': 0.9, 'batch_size_train': 64,
                    'batch_size_test': 64, 'log_interval': 10, 'sync_interval': 100, 'priority_interval': 100,
                    'name': 'mnist', 'trial_id': '1608070667'},
@@ -18,7 +19,7 @@ def new_session():
               'nucleus': {'max_workers': 5, 'queue_timeout': 5, 'queue_maxsize': 1000},
               'metagraph': {'chain_endpoint': '206.189.254.5:12345', 'stale_emit_filter': 10000},
               'meta_logger': {'log_dir': 'data/'},
-              'session': {'keyfile': None, 'keypair': None}
+              'neuron': {'keyfile': None, 'keypair': None}
               }
 
     config = Munch.fromDict(config)
@@ -26,12 +27,12 @@ def new_session():
     logger.info(Config.toString(config))
     mnemonic = Keypair.generate_mnemonic()
     keypair = Keypair.create_from_mnemonic(mnemonic)
-    session = bittensor.init(config)
-    session.keypair = keypair
-    return session
+    neuron = Neuron(config)
+    neuron.keypair = keypair
+    return neuron
 
 def test_new_session():
-    new_session()
+    new_neuron()
 
 if __name__ == "__main__":
-    test_new_session()
+    test_new_neuron()

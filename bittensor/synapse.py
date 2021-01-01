@@ -84,20 +84,20 @@ class Synapse(nn.Module):
 
     def __init__(   self,
                     config: Munch,
-                    session):
+                    neuron):
         r""" Init synapse module.
 
             Args:
                 config (:obj:`SynapseConfig`, `required`): 
                     Base synapse config configuration class.
 
-                session (:obj:`bittensor.Session`, `optional`): 
-                    bittensor training session.
+                neuron (:obj:`bittensor.Neuron`, `optional`): 
+                    bittensor training neuron.
         """
         super().__init__()
 
         self.config = config
-        self.session = session
+        self.neuron = neuron
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     @staticmethod
@@ -116,7 +116,7 @@ class Synapse(nn.Module):
                     Deep copy synapse object.
         """
         SynapseClass = self.__class__
-        synapse_copy = SynapseClass(self.config, self.session)
+        synapse_copy = SynapseClass(self.config, self.neuron)
         synapse_copy.load_state_dict(self.state_dict())
         return synapse_copy
 

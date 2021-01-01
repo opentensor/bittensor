@@ -34,9 +34,9 @@ class PKMKeys(nn.Module):
         return self._keys[uids]
 
 class PKMDendrite():
-    def __init__(self, config, session, query_dim):
+    def __init__(self, config, neuron, query_dim):
         self.config = config
-        self.session = session
+        self.neuron = neuron
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # UIDs -> Keys.
         self.keys = PKMKeys(self.config.dendrite.key_dim)
@@ -84,15 +84,14 @@ class PKMDendrite():
         # For ease of use.
         batch_size = inputs.shape[0]
 
-
         # all_uids: (torch.LongTensor): unique keys for each peer neuron.
         # all_uids.shape = [metagraph.n]
-        all_uids = self.session.metagraph.uids # Returns a list of neuron uids.
+        all_uids = self.neuron.metagraph.uids # Returns a list of neuron uids.
 
         # filtered_uids: (torch.LongTensor): keys filtered by emit.
         # all_uids.shape = [metagraph.n]
-        current_block = self.session.metagraph.block
-        lastemit = self.session.metagraph.lastemit
+        current_block = self.neuron.metagraph.block
+        lastemit = self.neuron.metagraph.lastemit
         staleness = (current_block - lastemit)
         filtered_uids = all_uids[torch.where(staleness < self.config.dendrite.stale_emit_filter)] 
         n_uids = torch.numel(filtered_uids)
@@ -100,7 +99,7 @@ class PKMDendrite():
         # Return if there are no uids to query
         if n_uids == 0:
             # Return nill responses.
-            n = self.session.metagraph.n
+            n = self.neuron.metagraph.n
             null_response = torch.zeros(size=(inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
             null_weights = torch.zeros(size=(inputs.shape[0], n))
             null_sizes = torch.zeros(n)
@@ -165,18 +164,18 @@ class PKMDendrite():
         
         # neurons: List[bittensor_pb2.Neuron]: endpoint information for filtered keys.
         # neurons.shape = n_uids * [ bittensor_pb2.Neuron ]
-        neurons = self.session.metagraph.uids_to_neurons(filtered_uids)
+        neurons = self.neuron.metagraph.uids_to_neurons(filtered_uids)
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
         if modality == bittensor_pb2.Modality.TEXT:
-            responses, retops = self.session.dendrite.forward_text(neurons, requests)
+            responses, retops = self.neuron.dendrite.forward_text(neurons, requests)
 
         elif modality == bittensor_pb2.Modality.IMAGE:
-            responses, retops = self.session.dendrite.forward_image(neurons, requests)
+            responses, retops = self.neuron.dendrite.forward_image(neurons, requests)
 
         elif modality == bittensor_pb2.Modality.TENSOR:
-            responses, retops = self.session.dendrite.forward_tensor(neurons, requests)
+            responses, retops = self.neuron.dendrite.forward_tensor(neurons, requests)
 
         else:
             raise NotImplementedError
@@ -214,16 +213,16 @@ class PKMDendrite():
 
         # indices: (torch.LongTensor): indices of uids queried during this forward call.
         # indices = [batch_size, metagraph.n]
-        indices = self.session.metagraph.uids_to_indices(filtered_uids)
+        indices = self.neuron.metagraph.uids_to_indices(filtered_uids)
 
         # weights: (torch.LongTensor): weights scattered onto uids per example.
         # weights.shape = [batch_size, metagraph.n]
-        weights = torch.zeros(inputs.shape[0], self.session.metagraph.n)
+        weights = torch.zeros(inputs.shape[0], self.neuron.metagraph.n)
         weights.to(self.device).scatter_(1, indices.to(self.device).repeat(batch_size, 1), gates)
 
         # filled_sizes: (torch.LongTensor): number of examples queried to each uid.
         # filled_sizes.shape = [metagraph.n]
-        filled_request_sizes = torch.zeros(self.session.metagraph.n, dtype=torch.long)
+        filled_request_sizes = torch.zeros(self.neuron.metagraph.n, dtype=torch.long)
         filled_request_sizes.scatter_(0, indices, torch.tensor(request_sizes))
 
         # Return.

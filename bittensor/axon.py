@@ -42,7 +42,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                     backend processing nucleus.
         """
         self._config = config
-        self.__keypair = config.session.keypair
+        self.__keypair = config.neuron.keypair
         self._nucleus = nucleus
 
         # Init server objects.

@@ -2,7 +2,7 @@ import bittensor
 from bittensor.dendrites.pkm import PKMDendrite
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseOutput
-from bittensor.session import Session
+from bittensor.neuron import Neuron
 
 import argparse
 from munch import Munch
@@ -49,20 +49,20 @@ class GPT2LMSynapse(Synapse):
 
     def __init__(self,
                  config: Munch,
-                 session: Session):
+                 neuron: Neuron):
         r""" Init a new ffnn synapse module.
 
             Args:
                 config (:obj:`munch.Munch`, `required`): 
                     munched config class.
 
-                session (:obj:`bittensor.Session`, `required`): 
-                    bittensor session object. 
-                    Defaults to bittensor.session global if exists.
+                neuron (:obj:`bittensor.Neuron`, `required`): 
+                    bittensor neuron object. 
+                    Defaults to bittensor.neuron global if exists.
         """
         super(GPT2LMSynapse, self).__init__(
             config = config,
-            session = session)
+            neuron = neuron)
 
         # Build hugging face config.
         huggingface_config = GPT2Config(
@@ -96,7 +96,7 @@ class GPT2LMSynapse(Synapse):
 
         # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, bittensor.__network_dim__] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite(config, session, query_dim = bittensor.__network_dim__)
+        self.dendrite = PKMDendrite(config, neuron, query_dim = bittensor.__network_dim__)
 
         # context_transformer: distills the remote_context from inputs
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]

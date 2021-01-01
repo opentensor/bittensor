@@ -10,17 +10,10 @@ import yaml
 import stat
 from munch import Munch
 
-from bittensor.axon import Axon
-from bittensor.session import Session
-from bittensor.dendrite import Dendrite
-from bittensor.metagraph import Metagraph
 from bittensor.crypto import KeyError
 from bittensor.crypto.keyfiles import KeyFileError
 from bittensor.nucleus import Nucleus
-
-
-
-from bittensor.session import KeyFileError
+from bittensor.neuron import KeyFileError
 
 class InvalidConfigFile(Exception):
     pass
@@ -37,6 +30,7 @@ class InvalidConfigError(Exception):
 class MustPassNeuronPath(Exception):
     pass
 
+
 class Config:
     @staticmethod
     def toString(items) -> str:
@@ -44,33 +38,10 @@ class Config:
         print(items.toDict())
         return "\n" + yaml.dump(items.toDict())
 
-    @staticmethod   
-    def load(parser: argparse.ArgumentParser = None)  -> Munch:
-        r""" Loads and return the bittensor Munched config.
 
-            Args:
-                parser (str, `required`): 
-                    argument parser.    
+    @staticmethod
+    def to_config(parser: argparse.ArgumentParser) -> Munch:
     
-            Returns:
-                config  (:obj:`Munch` `required`):
-                    Python Munch object with values from parsed string.
-        """
-        if parser == None:
-            parser = argparse.ArgumentParser()
-
-        # 0. Check for and create .bittensor directory
-        Config.check_and_create_config_dir()
-
-
-        # 1. Load args from bittensor backend components.
-        Axon.add_args(parser)
-        Dendrite.add_args(parser)
-        Metagraph.add_args(parser)
-        Session.add_args(parser)
-        Nucleus.add_args(parser)
-
-        # 2. Parse.
         params = parser.parse_known_args()[0]
         config_file = None
         config = Munch()
@@ -80,7 +51,7 @@ class Config:
         if config_file:
             config = Config.load_from_relative_path(config_file)
 
-        # 3. Splits params on dot syntax i.e session.axon_port
+        # 3. Splits params on dot syntax i.e neuron.axon_port
         for arg_key, arg_val in params.__dict__.items():
             split_keys = arg_key.split('.')
             
@@ -104,29 +75,6 @@ class Config:
                             head[key] = Munch()
                         head = head[key] 
                     head[split_keys[-1]] = arg_val
-
-        # 4. Run session checks.
-        try:
-            Dendrite.check_config(config)
-            Session.check_config(config)
-            Metagraph.check_config(config)
-            Axon.check_config(config)
-            Nucleus.check_config(config)
-
-        except KeyFileError:
-            quit()
-
-
-        #5. Load key
-        try:
-            Session.load_hotkeypair(config)
-            Session.load_cold_key(config)
-        except (KeyError):
-            logger.error("Invalid password")
-            quit()
-        except KeyFileError:
-            logger.error("Keyfile corrupt")
-            quit()
 
         return config
 
@@ -197,19 +145,6 @@ class Config:
                 logger.error('CONFIG: failed parsing passed yaml with input {}. Exception: {}'.format(yaml_str, e))
                 raise InvalidConfigFile
         return yaml_items
-
-    @staticmethod
-    def validate(config, neuron_path) -> Munch:
-        # 1. Run session checks.
-        config = Dendrite.check_config(config)
-        config = Session.check_config(config)
-        config = Metagraph.check_config(config)
-        config = Axon.check_config(config)
-
-        # 2. Run neuron checks.
-        neuron_module = SourceFileLoader("Neuron", os.getcwd() + '/' + neuron_path + '/neuron.py').load_module()
-        config = neuron_module.Neuron.check_config( config )
-        return config
 
     @staticmethod
     def post_process(items):

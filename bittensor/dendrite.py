@@ -45,7 +45,7 @@ class Dendrite(nn.Module):
     def __init__(self, config):
         super().__init__()
         self._config = config
-        self.__keypair = config.session.keypair
+        self.__keypair = config.neuron.keypair
         self._remotes = {}
 
     @staticmethod   
