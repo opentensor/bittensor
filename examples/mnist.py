@@ -120,16 +120,16 @@ def main(config: Munch, neuron: Neuron):
             history.append(output) # Save for later analysis/logs.
             processed = ((batch_idx + 1) * config.session.batch_size_train)
             progress = (100. * processed) / len(train_data)
-            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\t Loss: {}\t Acc: {}\t Axon: {}\t Dendrite: {}', 
+            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\t Loss: {}\t Acc: {}\t', 
                     colored('{}'.format(global_step), 'blue'), 
                     colored('{}'.format(epoch), 'blue'), 
                     colored('{}'.format(processed), 'green'), 
                     colored('{}'.format(len(train_data)), 'red'),
                     colored('{:.2f}%'.format(progress), 'green'),
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
-                    colored('{:.4f}'.format(output.metadata['local_accuracy'].item()), 'green'),
-                    neuron.axon,
-                    neuron.dendrite)
+                    colored('{:.4f}'.format(output.metadata['local_accuracy'].item()), 'green'))
+            logger.info('Axon: {}', neuron.axon.__full_str__())
+            logger.info('Dendrite: {}', neuron.dendrite.__full_str__())
             tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), global_step)
             tensorboard.add_scalar('Lloss', output.local_target_loss.item(), global_step)
             tensorboard.add_scalar('Dloss', output.distillation_loss.item(), global_step)

@@ -15,6 +15,7 @@ from loguru import logger
 from munch import Munch
 
 import bittensor
+from bittensor.metagraph import Metagraph
 import bittensor.utils.stats as stat_utils
 import bittensor.serialization as serialization
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
@@ -42,9 +43,10 @@ class Dendrite(nn.Module):
             Bittensor config object.
     """
 
-    def __init__(self, config):
+    def __init__(self, config: Munch, metagraph: Metagraph):
         super().__init__()
         self._config = config
+        self._metagraph = metagraph
         self.__keypair = config.neuron.keypair
         self._remotes = {}
 
@@ -69,7 +71,17 @@ class Dendrite(nn.Module):
         total_in_bytes_str = colored('\u290A {:.1f}'.format((total_bytes_in*8)/1000), 'green')
         total_out_bytes_str = colored('\u290B {:.1f}'.format((total_bytes_out*8)/1000), 'red')
         return total_in_bytes_str + "/" + total_out_bytes_str + "kB/s"
-        
+
+    def __full_str__(self):
+        response = ""
+        for remote in self._remotes.values():
+            bytes_out = remote.stats.forward_bytes_out.value + remote.stats.backward_bytes_out.value
+            bytes_in = remote.stats.forward_bytes_in.value + remote.stats.backward_bytes_in.value
+            bytes_out_str = colored('\u290A {:.1f}'.format((bytes_out * 8 ) / 1000), 'green')
+            bytes_in_str = colored('\u290B {:.1f}'.format((bytes_in * 8 ) / 1000), 'red')
+            response += "\t" + str(remote.neuron.uid) + ":" + bytes_out_str + "/" + bytes_in_str + "kB/s"
+        return response
+
     @staticmethod   
     def check_config(config: Munch):
         assert config.dendrite.timeout >= 0, 'timeout must be positive value, got {}'.format(config.dendrite.timeout)

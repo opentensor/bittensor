@@ -21,6 +21,7 @@ import bittensor
 import bittensor.utils.networking as net
 import bittensor.serialization as serialization
 import bittensor.utils.stats as stat_utils
+from bittensor.metagraph import Metagraph
 from bittensor.nucleus import Nucleus
 from bittensor.synapse import Synapse
 from bittensor import bittensor_pb2
@@ -33,15 +34,18 @@ class Axon(bittensor_grpc.BittensorServicer):
     It recieves Forward and Backward requests and process the corresponding Synapse.call_forward and Synapse.call_backward.
     
     """
-    def __init__(self, config, nucleus):
+    def __init__(self, config: Munch, nucleus: Nucleus, metagraph: Metagraph):
         r""" Initializes a new Axon endpoint with passed config and keypair.
             Args:
                 config (:obj:`Munch`, `required`): 
                     bittensor Munch config.
                 nucleus (:obj:`bittensor.nucleus.Nucleus`, `required`):
                     backend processing nucleus.
+                metagraph (:obj:`bittensor.nucleus.Metagraph`, `required`):
+                    bittensor network metagraph.
         """
         self._config = config
+        self._metagraph = metagraph
         self.__keypair = config.neuron.keypair
         self._nucleus = nucleus
 
@@ -63,19 +67,25 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # Stats.
         self.stats = SimpleNamespace(
-            forward_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.001),
-            backward_in_bytes= stat_utils.timed_rolling_avg(0.0, 0.001),
-            forward_out_bytes = stat_utils.timed_rolling_avg(0.0, 0.001),
-            backward_out_bytes = stat_utils.timed_rolling_avg(0.0, 0.001),
+            total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
+            total_out_bytes= stat_utils.timed_rolling_avg(0.0, 0.01),
+            in_bytes_per_uid = {},
+            out_bytes_per_uid = {},
         )
 
     def __str__(self):
-        total_in_bytes = self.stats.forward_in_bytes.value + self.stats.backward_in_bytes.value
-        total_out_bytes = self.stats.forward_in_bytes.value + self.stats.backward_in_bytes.value
-        total_in_bytes_str = colored('\u290A {:.1f}'.format((total_in_bytes*8)/1000), 'green')
-        total_out_bytes_str = colored('\u290B {:.1f}'.format((total_out_bytes*8)/1000), 'red')
-        return total_in_bytes_str + "/" + total_out_bytes_str + "kB/s"
-        
+        total_in_bytes_str = colored('\u290A {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'red')
+        total_out_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'green')
+        return total_out_bytes_str + "/" + total_in_bytes_str + "kB/s"
+
+    def __full_str__(self):
+        response = ""
+        for uid in self.stats.in_bytes_per_uid.keys():
+            in_bytes_str = colored('\u290A {:.1f}'.format((self.stats.in_bytes_per_uid[uid].value * 8) / 1000), 'red')
+            out_bytes_str = colored('\u290B {:.1f}'.format((self.stats.out_bytes_per_uid[uid].value * 8) / 1000), 'green')
+            response += "\t" + str(uid) + ":" + out_bytes_str + "/" + in_bytes_str + "kB/s"
+        return response
+
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         r""" Adds this axon's command line arguments to the passed parser.
@@ -204,7 +214,10 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response: (bittensor_pb2.TensorMessage): 
                     proto response carring the synapse forward output or None under failure.
         """
-        self.stats.forward_in_bytes.update(sys.getsizeof(request))
+        # TODO(const): check signature
+        # TODO(const): black and white listing.
+
+        # ---- Check request versioning.
         if request.version in bittensor.__compatability__[bittensor.__version__]:
             tensor, message, code = self._forward(request)
             response = bittensor_pb2.TensorMessage(
@@ -214,7 +227,8 @@ class Axon(bittensor_grpc.BittensorServicer):
                 message = message,
                 tensors = [tensor] if tensor is not None else [],
             )
-        # Catch incompatible request versions.
+
+        # ---- Catch incompatible request versions.
         else:
             code = bittensor_pb2.ReturnCode.RequestIncompatibleVersion
             message = "request version {} must be in {}".format(request.version, bittensor.__compatability__[bittensor.__version__])
@@ -224,7 +238,9 @@ class Axon(bittensor_grpc.BittensorServicer):
                 return_code = code,
                 message = message,
             )
-        self.stats.forward_out_bytes.update(sys.getsizeof(response))
+
+        # ---- Update stats for this request.
+        self.update_stats_for_request(request, response)
         return response
 
 
@@ -242,7 +258,6 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response: (bittensor_pb2.TensorMessage): 
                     proto response carring the synapse backward output or None under failure.
         """
-        self.stats.backward_in_bytes.update(sys.getsizeof(request))
         if request.version in bittensor.__compatability__[bittensor.__version__]:
             tensor, message, code = self._backward(request)
             response = bittensor_pb2.TensorMessage(
@@ -263,7 +278,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 return_code = code,
                 message = message,
             )
-        self.stats.backward_out_bytes.update(sys.getsizeof(request))
+        self.update_stats_for_request(request, response)
         return response
             
 
@@ -450,6 +465,22 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # ---- Finaly return ----
         return outputs_serialized, message, code
+
+
+    def update_stats_for_request(self, request, response):
+        in_bytes = sys.getsizeof(request)
+        out_bytes = sys.getsizeof(response)
+        self.stats.total_in_bytes.update(in_bytes)
+        self.stats.total_out_bytes.update(out_bytes)
+        if request.public_key in self._metagraph.state.uid_for_pubkey:
+            # ---- Check we have a stats column for this peer
+            request_uid = self._metagraph.state.uid_for_pubkey[request.public_key]
+            if request_uid in self.stats.in_bytes_per_uid:
+                self.stats.in_bytes_per_uid[request_uid].update(in_bytes)
+                self.stats.out_bytes_per_uid[request_uid].update(out_bytes)
+            else:
+                self.stats.in_bytes_per_uid[request_uid] = stat_utils.timed_rolling_avg(in_bytes, 0.01)
+                self.stats.out_bytes_per_uid[request_uid] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
 
 
 
