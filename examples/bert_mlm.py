@@ -80,7 +80,7 @@ def mlm_batch(data, batch_size, tokenizer, collator):
     collated_batch =  collator(tokenized)
     return collated_batch['input_ids'], collated_batch['labels']
 
-def train(model, config, session, optimizer, scheduler, dataset, collator):
+def train(model, config, neuron, optimizer, scheduler, dataset, collator):
     step = 0
     best_loss = math.inf
     model.train()  # Turn on the train mode.
@@ -93,7 +93,7 @@ def train(model, config, session, optimizer, scheduler, dataset, collator):
 
         # Sync with chain.
         if batch_idx % config.neuron.sync_interval == 0:
-            weights = session.metagraph.sync(weights)
+            weights = neuron.metagraph.sync(weights)
             weights = weights.to(device)
 
         # Next batch.
@@ -118,9 +118,9 @@ def train(model, config, session, optimizer, scheduler, dataset, collator):
         logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
             step, output.loss.item(), output.remote_target_loss.item(), output.distillation_loss.item()))
         log_outputs(history)
-        log_batch_weights(session, history)
-        log_chain_weights(session)
-        log_request_sizes(session, history)
+        log_batch_weights(neuron, history)
+        log_chain_weights(neuron)
+        log_request_sizes(neuron, history)
         history = []
 
         # After each epoch, checkpoint the losses and re-serve the network.
@@ -129,17 +129,17 @@ def train(model, config, session, optimizer, scheduler, dataset, collator):
             logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/{}/model.torch', step, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
             torch.save( {'epoch': step, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
             # Save experiment metrics
-            session.serve( model.deepcopy() )
+            neuron.axon.serve( model.deepcopy() )
         
         batch_idx += 1
 
 
-def main(config, session):
+def main(config, neuron):
     # Build Synapse
-    model = BertMLMSynapse(config, session)
+    model = BertMLMSynapse(config, neuron)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
-    session.serve( model )
+    neuron.axon.serve( model )
 
     # Dataset: 74 million sentences pulled from books.
     # The collator accepts a list [ dict{'input_ids, ...; } ] where the internal dict 
@@ -159,21 +159,19 @@ def main(config, session):
         os.makedirs(data_directory)
 
     # train forever.
-    train(model, config, session, optimizer, scheduler, dataset, data_collator)
+    train(model, config, neuron, optimizer, scheduler, dataset, data_collator)
     
 
 if __name__ == "__main__":
     # Load bittensor config.
-    parser = argparse.ArgumentParser()
-    add_args(parser)
-    config = Config.load(parser)
-    check_config(config)
+    parser = argparse.ArgumentParser(); add_args(parser)
+    config = Config.to_config(parser); check_config(config)
     logger.info(Config.toString(config))
 
-    # Load Session.
-    session = bittensor.init(config)
+    # Load Neuron.
+    neuron = bittensor.Neuron(config)
 
     # Start Neuron.
-    with session:
-        main(config, session)
+    with neuron:
+        main(config, neuron)
             

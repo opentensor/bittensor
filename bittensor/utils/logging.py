@@ -5,7 +5,7 @@ import pandas as pd
 from loguru import logger
 from termcolor import colored
 from typing import List
-from bittensor import Session
+from bittensor.neuron import Neuron
 from bittensor import bittensor_pb2
 
 np.set_printoptions(precision=2, suppress=True, linewidth=500, sign=' ')
@@ -15,22 +15,22 @@ pd.set_option('display.width', 1000)
 pd.set_option('display.precision', 2)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
-def log_all( session: Session, history: List[bittensor.synapse.SynapseOutput] ):
+def log_all( neuron: Neuron, history: List[bittensor.synapse.SynapseOutput] ):
     log_outputs(history)
-    log_batch_weights(session, history)
-    log_row_weights(session)
+    log_batch_weights(neuron, history)
+    log_row_weights(neuron)
     log_col_weights
-    log_incentive(session)
-    log_ranks(session)
-    log_request_sizes(session, history)
-    log_return_codes(session, history)
-    log_dendrite_success_times( session )
+    log_incentive(neuron)
+    log_ranks(neuron)
+    log_request_sizes(neuron, history)
+    log_return_codes(neuron, history)
+    log_dendrite_success_times( neuron )
 
 
-def _calculate_request_sizes_sum(session: Session, history: List[bittensor.synapse.SynapseOutput]):
+def _calculate_request_sizes_sum(neuron: Neuron, history: List[bittensor.synapse.SynapseOutput]):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     request_size_list = []
-    request_sizes_sum = torch.zeros(session.metagraph.n).to(device)
+    request_sizes_sum = torch.zeros(neuron.metagraph.n).to(device)
     for output in history:
         request_sizes_sum += output.request_sizes
         request_size_list.append(output.request_sizes)
@@ -38,11 +38,11 @@ def _calculate_request_sizes_sum(session: Session, history: List[bittensor.synap
 
     return request_sizes_sum, request_size_list
 
-def log_dendrite_success_times(session: Session):
+def log_dendrite_success_times(neuron: Neuron):
     print ('Avg Success time: \n ')
-    remotes = session.dendrite.remotes
+    remotes = neuron.dendrite.remotes
     neurons = [remote.neuron for remote in remotes]
-    uids = session.metagraph.neurons_to_uids(neurons)
+    uids = neuron.metagraph.neurons_to_uids(neurons)
     succees_time = [float(remote.stats.codes[bittensor_pb2.ReturnCode.Success]) / remote.stats.n_forward_calls for remote in remotes]
     df = pd.DataFrame([succees_time], columns=uids.tolist())
     pd.set_option('display.float_format', lambda x: '%.4f' % x)
@@ -50,11 +50,11 @@ def log_dendrite_success_times(session: Session):
     print (df)
     print('\n')
 
-def log_ranks(session: Session):
+def log_ranks(neuron: Neuron):
     print ('Ranks: \n ')
-    if session.metagraph.uids != None and session.metagraph.weights != None:
-        uids = session.metagraph.uids.tolist()
-        ranks = session.metagraph.ranks.tolist()
+    if neuron.metagraph.uids != None and neuron.metagraph.weights != None:
+        uids = neuron.metagraph.uids.tolist()
+        ranks = neuron.metagraph.ranks.tolist()
         ranks, uids  = zip(*sorted(zip(ranks, uids), reverse=True))
         df = pd.DataFrame([ranks], columns=uids)
         df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
@@ -68,11 +68,11 @@ def log_ranks(session: Session):
     print('\n')
 
 
-def log_incentive(session: Session):
+def log_incentive(neuron: Neuron):
     print ('Incentive: \n ')
-    if session.metagraph.uids != None and session.metagraph.weights != None:
-        uids = session.metagraph.uids.tolist()
-        incentive = session.metagraph.incentive.tolist()
+    if neuron.metagraph.uids != None and neuron.metagraph.weights != None:
+        uids = neuron.metagraph.uids.tolist()
+        incentive = neuron.metagraph.incentive.tolist()
         incentive, uids  = zip(*sorted(zip(incentive, uids), reverse=True))
         df = pd.DataFrame([incentive], columns=uids)
         df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
@@ -85,10 +85,10 @@ def log_incentive(session: Session):
         print (df)
     print('\n')
 
-def log_return_codes(session: Session, history: List[bittensor.synapse.SynapseOutput]):
+def log_return_codes(neuron: Neuron, history: List[bittensor.synapse.SynapseOutput]):
     print('Return Codes: \n ')
     request_size_list = []
-    request_sizes_sum = torch.zeros(session.metagraph.n)
+    request_sizes_sum = torch.zeros(neuron.metagraph.n)
     for output in history:
         request_sizes_sum += output.request_sizes
         request_size_list.append(output.request_sizes)
@@ -96,30 +96,30 @@ def log_return_codes(session: Session, history: List[bittensor.synapse.SynapseOu
 
     return request_sizes_sum, request_size_list
 
-def log_return_codes(session: Session, history: List[bittensor.synapse.SynapseOutput]):
+def log_return_codes(neuron: Neuron, history: List[bittensor.synapse.SynapseOutput]):
     print('Return Codes: \n ')
-    request_sizes_sum, _ = _calculate_request_sizes_sum(session, history)
+    request_sizes_sum, _ = _calculate_request_sizes_sum(neuron, history)
 
     rows = []
     for output in history:
         _, retcodes  = zip(*sorted(zip(request_sizes_sum, output.return_codes.tolist()), reverse=True))
         rows.append(retcodes)
-    _, uids  = zip(*sorted(zip(request_sizes_sum, session.metagraph.uids.tolist()), reverse=True))
+    _, uids  = zip(*sorted(zip(request_sizes_sum, neuron.metagraph.uids.tolist()), reverse=True))
     pd.set_option('display.float_format', lambda x: '%.1f' % x)
     df = pd.DataFrame(rows, columns=uids)
     df.rename_axis('[batch]').rename_axis("[uid]", axis=1)
     print (df)
     print('\n')
 
-def log_request_sizes(session: Session, history: List[bittensor.synapse.SynapseOutput]):
+def log_request_sizes(neuron: Neuron, history: List[bittensor.synapse.SynapseOutput]):
     print('Request Sizes: \n ')
-    request_sizes_sum, request_size_list = _calculate_request_sizes_sum(session, history)
+    request_sizes_sum, request_size_list = _calculate_request_sizes_sum(neuron, history)
 
     rows = []
     for rs in request_size_list:
         _, rs  = zip(*sorted(zip(request_sizes_sum, rs.tolist()), reverse=True))
         rows.append(rs)
-    _, uids  = zip(*sorted(zip(request_sizes_sum, session.metagraph.uids.tolist()), reverse=True))
+    _, uids  = zip(*sorted(zip(request_sizes_sum, neuron.metagraph.uids.tolist()), reverse=True))
     pd.set_option('display.float_format', lambda x: '%.1f' % x)
     df = pd.DataFrame(rows, columns=uids)
     total_row = df.sum(numeric_only=True, axis=1)
@@ -142,11 +142,11 @@ def log_request_sizes(session: Session, history: List[bittensor.synapse.SynapseO
     print (df)
     print('\n')
 
-def log_row_weights(session: Session):
+def log_row_weights(neuron: Neuron):
     print ('Row Weights: \n ')
-    if session.metagraph.uids != None and session.metagraph.weights != None:
-        uids = session.metagraph.uids.tolist()
-        weights = session.metagraph.row_weights.tolist()
+    if neuron.metagraph.uids != None and neuron.metagraph.weights != None:
+        uids = neuron.metagraph.uids.tolist()
+        weights = neuron.metagraph.row_weights.tolist()
         weights, uids  = zip(*sorted(zip(weights, uids), reverse=True))
         df = pd.DataFrame([weights], columns=uids)
         df.rename_axis("[uid]", axis=1)
@@ -159,11 +159,11 @@ def log_row_weights(session: Session):
         print (df)
     print('\n')
 
-def log_col_weights(session: Session):
+def log_col_weights(neuron: Neuron):
     print ('Col Weights: \n ')
-    if session.metagraph.uids != None and session.metagraph.weights != None:
-        uids = session.metagraph.uids.tolist()
-        weights = session.metagraph.col_weights.tolist()
+    if neuron.metagraph.uids != None and neuron.metagraph.weights != None:
+        uids = neuron.metagraph.uids.tolist()
+        weights = neuron.metagraph.col_weights.tolist()
         weights, uids  = zip(*sorted(zip(weights, uids), reverse=True))
         df = pd.DataFrame([weights], columns=uids)
         df.rename_axis("[uid]", axis=1)
@@ -176,14 +176,14 @@ def log_col_weights(session: Session):
         print (df)
     print('\n')
 
-def log_batch_weights(session: Session, history: List[bittensor.synapse.SynapseOutput]):
+def log_batch_weights(neuron: Neuron, history: List[bittensor.synapse.SynapseOutput]):
     print ('Batch Weights: \n ')
     weights_sum = history[0].weights
     for output in history[1:]:
         weights_sum += torch.mean(output.weights, axis=0)
     weights_sum = weights_sum.tolist()
 
-    uids = session.metagraph.uids.tolist()
+    uids = neuron.metagraph.uids.tolist()
     _, sorted_uids  = zip(*sorted(zip(weights_sum, uids), reverse=True))
 
     rows = []
@@ -257,7 +257,7 @@ def log_outputs(history: List[bittensor.synapse.SynapseOutput]):
     print('\n')
 
 
-def log_training_output_history(session, epoch, batch_idx, batch_size, total_examples, history):
+def log_training_output_history(neuron, epoch, batch_idx, batch_size, total_examples, history):
    
     # Colorize outputs and log.
     processed = ((batch_idx + 1) * batch_size)
@@ -297,9 +297,9 @@ def log_training_output_history(session, epoch, batch_idx, batch_size, total_exa
 
     # Log chain weights
     print ('Chain weights: \n ')
-    if session.metagraph.state.uids != None and session.metagraph.chain_weights != None:
-        uids = session.metagraph.state.uids.tolist()
-        weights = session.metagraph.chain_weights().tolist()
+    if neuron.metagraph.state.uids != None and neuron.metagraph.chain_weights != None:
+        uids = neuron.metagraph.state.uids.tolist()
+        weights = neuron.metagraph.chain_weights().tolist()
         weights, uids  = zip(*sorted(zip(weights, uids), reverse=True))
         df = pd.DataFrame([weights], columns=uids)
         df.rename_axis('[batch]').rename_axis("[uid]", axis=1)

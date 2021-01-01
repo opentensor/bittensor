@@ -150,7 +150,7 @@ class Metagraph():
         """
         # Protected vars
         self._config = config
-        self.__keypair = config.session.keypair
+        self.__keypair = config.neuron.keypair
 
         # Client for talking to chain.
         self.subtensor_client = WSClient(self._config.metagraph.chain_endpoint, self.__keypair)
@@ -642,7 +642,7 @@ class Metagraph():
 
             if code == Metagraph.SubscribeSuccess:
                 self.metadata = await self.subtensor_client.neurons(self.__keypair.public_key)
-                logger.info('Successfully subcribed session with: {}', self.metadata)
+                logger.info('Successfully subcribed neuron with: {}', self.metadata)
                 return code, message
 
             elif code == Metagraph.SubscribeNotConnected:
@@ -699,7 +699,7 @@ class Metagraph():
         # ---- Make Subscription transaction ----
         while True:
             try:
-                await self.subtensor_client.subscribe(self._config.axon.external_ip, self._config.axon.external_port, self._config.session.coldkey)
+                await self.subtensor_client.subscribe(self._config.axon.external_ip, self._config.axon.external_port, self._config.neuron.coldkey)
                 break
 
             except Exception as e:

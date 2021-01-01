@@ -12,7 +12,7 @@ from bittensor.nucleus import Nucleus
 from bittensor.synapse import Synapse
 from munch import Munch
 
-config = {'neuron':
+config = {'session':
               {'datapath': 'data/', 'learning_rate': 0.01, 'momentum': 0.9, 'batch_size_train': 64,
                'batch_size_test': 64, 'log_interval': 10, 'sync_interval': 100, 'priority_interval': 100,
                'name': 'mnist', 'trial_id': '1608070667'},
@@ -22,7 +22,7 @@ config = {'neuron':
           'nucleus': {'max_workers': 5, 'queue_timeout': 5, 'queue_maxsize': 1000},
           'metagraph': {'chain_endpoint': '206.189.254.5:12345', 'stale_emit_filter': 10000},
           'meta_logger': {'log_dir': 'data/'},
-          'session': {'keyfile': None, 'keypair': None }
+          'neuron': {'keyfile': None, 'keypair': None }
           }
 
 config = Munch.fromDict(config)

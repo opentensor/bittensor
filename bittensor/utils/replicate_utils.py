@@ -61,14 +61,14 @@ class ReplicateUtility():
             model (Torch.nn.Module): Torch model to be loaded
         """
         try:
-            experiment = replicate.experiments.get(self.config.session.checkout_experiment)
+            experiment = replicate.experiments.get(self.config.neuron.checkout_experiment)
             
             latest_experiment = experiment.best()
             if not best:
                 latest_experiment = experiment.latest()
             
             logger.info("Checking out experiment {} to {}".format(
-                self.config.session.checkout_experiment, 
+                self.config.neuron.checkout_experiment, 
                 self.config.neuron.datapath + self.config.neuron.neuron_name))
             
             model_file = latest_experiment.open(self.config.neuron.datapath + self.config.neuron.neuron_name + "/model.torch")

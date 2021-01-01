@@ -9,7 +9,6 @@ from bittensor.dendrite import Dendrite
 from bittensor.axon import Axon
 from bittensor.metagraph import Metagraph
 from bittensor.nucleus import Nucleus
-from bittensor.utils.asyncio import Asyncio
 from bittensor.subtensor.interface import Keypair
 from bittensor.exceptions.handlers import rollbar
 from bittensor.crypto import is_encrypted, decrypt_data
@@ -22,8 +21,6 @@ from bittensor.crypto.keyfiles import KeyFileError, load_keypair_from_data
 import json
 import re
 import stat
-
-
 import os
 
 class FailedConnectToChain(Exception):
@@ -32,15 +29,13 @@ class FailedConnectToChain(Exception):
 class FailedSubscribeToChain(Exception):
     pass
 
-class FailedToEnterSession(Exception):
+class FailedToEnterNeuron(Exception):
     pass
 
 class FailedToPollChain(Exception):
     pass
 
-
-
-class Session:
+class Neuron:
     def __init__(self, config):
         self.config = config
         self.metagraph = Metagraph(self.config)
@@ -50,34 +45,51 @@ class Session:
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        parser.add_argument('--session.hotkeyfile', required=False, default='~/.bittensor/hotkey', help="Path to the bittensor hot key file")
-        parser.add_argument('--session.coldkeyfile', required=False, default='~/.bittensor/coldkey', help="Path to the bittensor cold key file")
+        parser.add_argument('--neuron.hotkeyfile', required=False, default='~/.bittensor/hotkey', help="Path to the bittensor hot key file")
+        parser.add_argument('--neuron.coldkeyfile', required=False, default='~/.bittensor/coldkey', help="Path to the bittensor cold key file")
+        Axon.add_args(parser)
+        Dendrite.add_args(parser)
+        Metagraph.add_args(parser)
+        Nucleus.add_args(parser)
         return parser
 
     @staticmethod   
-    def check_config(config: Munch) -> Munch:
-        Session.__check_hot_key_path(config.session.hotkeyfile)
-        Session.__check_cold_key_path(config.session.coldkeyfile)
+    def check_config(config: Munch):
+        Dendrite.check_config(config)
+        Metagraph.check_config(config)
+        Axon.check_config(config)
+        Nucleus.check_config(config)
+        Neuron.__check_hot_key_path(config.neuron.hotkeyfile)
+        Neuron.__check_cold_key_path(config.neuron.coldkeyfile)
+        try:
+            Neuron.load_hotkeypair(config)
+            Neuron.load_cold_key(config)
+        except (KeyError):
+            logger.error("Invalid password")
+            quit()
+        except KeyFileError:
+            logger.error("Keyfile corrupt")
+            quit()
 
     @staticmethod
     def __check_hot_key_path(path):
         path = os.path.expanduser(path)
 
-        if not Session.__has_keypair(path):
+        if not Neuron.__has_keypair(path):
             logger.info("No key found, generating a new one and storing it in {}", path)
-            keypair = Session.__create_keypair()
-            Session.__save_keypair(keypair, path)
+            keypair = Neuron.__create_keypair()
+            Neuron.__save_keypair(keypair, path)
 
         if not os.path.isfile(path):
-            logger.error("--session.hotkeyfile {} is not a file", path)
+            logger.error("--neuron.hotkeyfile {} is not a file", path)
             raise KeyFileError
 
         if not os.access(path, os.R_OK):
-            logger.error("--session.hotkeyfile {} is not readable", path)
+            logger.error("--neuron.hotkeyfile {} is not readable", path)
             raise KeyFileError
 
-        if Session.__is_world_readable(path):
-            logger.error("--session.hotkeyfile {} is world readable.", path)
+        if Neuron.__is_world_readable(path):
+            logger.error("--neuron.hotkeyfile {} is world readable.", path)
             raise KeyFileError
 
     @staticmethod
@@ -90,15 +102,15 @@ class Session:
         path = os.path.expanduser(path)
 
         if not os.path.isfile(path):
-            logger.error("--session.coldkeyfile {} does not exist", path)
+            logger.error("--neuron.coldkeyfile {} does not exist", path)
             raise KeyFileError
 
         if not os.path.isfile(path):
-            logger.error("--session.coldkeyfile {} is not a file", path)
+            logger.error("--neuron.coldkeyfile {} is not a file", path)
             raise KeyFileError
 
         if not os.access(path, os.R_OK):
-            logger.error("--session.coldkeyfile {} is not readable", path)
+            logger.error("--neuron.coldkeyfile {} is not readable", path)
             raise KeyFileError
 
         with open(path, "r") as file:
@@ -128,19 +140,19 @@ class Session:
 
     @staticmethod
     def load_cold_key(config):
-        path = config.session.coldkeyfile
+        path = config.neuron.coldkeyfile
         path = os.path.expanduser(path)
         logger.debug("Loading cold key from {}", path)
 
         with open(path, "r") as file:
-            config.session.coldkey = file.readline().strip()
+            config.neuron.coldkey = file.readline().strip()
 
-        logger.info("Using coldkey : {}", config.session.coldkey)
+        logger.info("Using coldkey : {}", config.neuron.coldkey)
 
     @staticmethod
     def load_hotkeypair(config):
         logger.info("Loading hot keypair")
-        keyfile = os.path.expanduser(config.session.hotkeyfile)
+        keyfile = os.path.expanduser(config.neuron.hotkeyfile)
         with open(keyfile, 'rb') as file:
             data = file.read()
 
@@ -149,7 +161,7 @@ class Session:
                 data = decrypt_data(password, data)
 
             hotkey = load_keypair_from_data(data)
-            config.session.keypair = hotkey
+            config.neuron.keypair = hotkey
 
 
     def __del__(self):
@@ -167,7 +179,7 @@ class Session:
     def __enter__(self):
         rollbar.init() # If a rollbar token is present, this will enable error reporting to rollbar
 
-        logger.trace('session enter')
+        logger.trace('Neuron enter')
         self.start()
         return self
 
@@ -180,7 +192,7 @@ class Session:
             exc_traceback (traceback): The traceback that can be printed for this exception, detailing where error actually happend.
 
         Returns:
-            Session: present instance of session.
+            Neuron: present instance of Neuron.
         """        
         self.stop()
         if exc_value:
@@ -212,37 +224,37 @@ class Session:
         try:
             self.axon.start()
         except Exception as e:
-            logger.error('SESSION: Failed to start axon server with error: {}', e)
-            raise FailedToEnterSession
+            logger.error('Neuron: Failed to start axon server with error: {}', e)
+            raise FailedToEnterNeuron
 
         logger.trace('Connect to chain ...')
         try:
             code, message = self.metagraph.connect(timeout=3)
             if code != Metagraph.ConnectSuccess:
-                logger.error('SESSION: Timeout while subscribing to the chain endpoint with message {}', message)
+                logger.error('Neuron: Timeout while subscribing to the chain endpoint with message {}', message)
                 logger.error('Check that your internet connection is working and the chain endpoint {} is available', self.config.metagraph.chain_endpoint)
                 raise FailedConnectToChain
         except Exception as e:
-            logger.error('SESSION: Error while connecting to the chain endpoint: {}', e)
-            raise FailedToEnterSession
+            logger.error('Neuron: Error while connecting to the chain endpoint: {}', e)
+            raise FailedToEnterNeuron
 
         logger.info('Subscribe to chain ...')
         try:
             code, message = self.metagraph.subscribe(timeout=12)
             if code != Metagraph.SubscribeSuccess:
-                logger.error('SESSION: Error while subscribing to the chain endpoint with message: {}', message)
-                raise FailedToEnterSession
+                logger.error('Neuron: Error while subscribing to the chain endpoint with message: {}', message)
+                raise FailedToEnterNeuron
 
         except Exception as e:
-            logger.error('SESSION: Error while subscribing to the chain endpoint: {}', e)
-            raise FailedToEnterSession
+            logger.error('Neuron: Error while subscribing to the chain endpoint: {}', e)
+            raise FailedToEnterNeuron
 
         logger.info('Sync chain ...')
         try:
             self.metagraph.sync()
         except Exception as e:
-            logger.error('SESSION: Error while syncing chain state with error {}', e)
-            raise FailedToEnterSession
+            logger.error('Neuron: Error while syncing chain state with error {}', e)
+            raise FailedToEnterNeuron
 
     def stop(self):
 
@@ -250,17 +262,12 @@ class Session:
         try:
             self.axon.stop()
         except Exception as e:
-            logger.error('SESSION: Error while stopping axon server: {} ', e)
+            logger.error('Neuron: Error while stopping axon server: {} ', e)
 
         # Stop background grpc threads for serving synapse objects.
         logger.info('Unsubscribe from chain ...')
         try:
             self.metagraph.unsubscribe()
         except Exception as e:
-            logger.error('SESSION: Error while unsubscribing to the chain endpoint: {}', e)
+            logger.error('Neuron: Error while unsubscribing to the chain endpoint: {}', e)
 
-    def subscribe (self):
-       self.metagraph.subscribe()
-
-    def unsubscribe (self):
-        self.metagraph.unsubscribe()

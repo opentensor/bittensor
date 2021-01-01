@@ -8,7 +8,7 @@ import bittensor
 from bittensor.dendrites.pkm import PKMDendrite
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseOutput
-from bittensor.session import Session
+from bittensor.neuron import Neuron
 from bittensor.utils.batch_transforms import Normalize
 
 import argparse
@@ -25,19 +25,19 @@ class FFNNSynapse(Synapse):
 
     def __init__(self,
                  config: Munch,
-                 session: Session):
+                 neuron: Neuron):
         r""" Init a new ffnn synapse module.
 
             Args:
                 config (:obj:`munch.Munch`, `required`): 
                     munch namespace config item.
 
-                session (:obj:`bittensor.Session`, `required`): 
-                    bittensor session object. 
+                neuron (:obj:`bittensor.Neuron`, `required`): 
+                    bittensor neuron object. 
         """
         super(FFNNSynapse, self).__init__(
             config = config,
-            session = session)
+            neuron = neuron)
             
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
@@ -50,7 +50,7 @@ class FFNNSynapse(Synapse):
 
         # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite(config, session, query_dim = self.transform_dim)
+        self.dendrite = PKMDendrite(config, neuron, query_dim = self.transform_dim)
 
         # context_layer: distills the remote_context from the transform layer.
         # [batch_size, transform_dim] -> [batch_size, bittensor.__network_dim__]

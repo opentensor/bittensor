@@ -31,7 +31,7 @@ def add_args(parser: argparse.ArgumentParser):
     parser.add_argument('--neuron.learning_rate', default=0.005, type=float, help='Training initial learning rate.')
     parser.add_argument('--neuron.momentum', default=0.99, type=float, help='Training initial learning rate.')
     parser.add_argument('--neuron.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
-    parser.add_argument('--neuron.log_interval', default=10, type=int, help='Batches before we log session info.')
+    parser.add_argument('--neuron.log_interval', default=10, type=int, help='Batches before we log neuron info.')
     parser.add_argument('--neuron.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
     parser.add_argument('--neuron.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
     parser.add_argument('--neuron.name', default='ffnn-grunt', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
@@ -48,21 +48,21 @@ def check_config(config: Munch):
     FFNNSynapse.check_config(config)
     
 # Neuron main.
-def main(config, session):
+def main(config, neuron):
 
     # ---- Build FFNN Model ----
-    model = FFNNSynapse(config, session)
+    model = FFNNSynapse(config, neuron)
     model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-    session.serve( model )
+    neuron.axon.serve( model )
 
     # ---- Optimizer ----
     optimizer = torch.optim.SGD(model.parameters(), lr = config.neuron.learning_rate, momentum=config.neuron.momentum)
         
     # ---- Init training state ----
-    session.metagraph.sync() # Sync with the chain.
-    col_weights = session.metagraph.col_weights # Weights from others to me.
-    priority_map = dict(zip(session.metagraph.public_keys, col_weights.tolist()))
-    session.axon.set_priority( priority_map )
+    neuron.metagraph.sync() # Sync with the chain.
+    col_weights = neuron.metagraph.col_weights # Weights from others to me.
+    priority_map = dict(zip(neuron.metagraph.public_keys, col_weights.tolist()))
+    neuron.axon.set_priority( priority_map )
 
     # ---- Train forever ----
     model.train()
@@ -71,7 +71,7 @@ def main(config, session):
         step += 1
 
         # ---- Poll until gradients ----
-        public_key, inputs_x, grads_dy, modality_x = session.axon.gradients.get(block = True)
+        public_key, inputs_x, grads_dy, modality_x = neuron.axon.gradients.get(block = True)
 
         # ---- Backward Gradients ----
         # TODO (const): batch normalization over the gradients for consistency.
@@ -83,19 +83,19 @@ def main(config, session):
         optimizer.zero_grad() # Clear any lingering gradients
 
         # ---- Serve latest model ----
-        session.serve( model ) # Serve the newest model.
+        neuron.axon.serve( model ) # Serve the newest model.
         logger.info('Step: {} \t Key: {} \t sum(W[:,0])', step, public_key, torch.sum(col_weights).item())
     
         # ---- Sync State ----
         if (step + 1) % config.neuron.sync_interval == 0:
             # ---- Sync metagrapn from chain ----
-            session.metagraph.sync() # Sync with the chain.
+            neuron.metagraph.sync() # Sync with the chain.
             
             # ---- Get col Weights.
-            col_weights = session.metagraph.col_weights # Other to me.
+            col_weights = neuron.metagraph.col_weights # Other to me.
 
             # ---- Update Axon Priority ----
-            session.axon.set_priority( session.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
+            neuron.axon.set_priority( neuron.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
 
             # --- Save Model ----
             logger.info( 'Saving model: epoch: {}, sum(W[:,0]): {}, path: {}/{}/{}/model.torch', step, torch.sum(col_weights).item(), config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
@@ -103,9 +103,9 @@ def main(config, session):
 
         # ---- Session Logs ----
         if (step+1) % config.neuron.log_interval == 0:
-            log_col_weights(session)
-            log_incentive(session)
-            log_ranks(session)
+            log_col_weights(neuron)
+            log_incentive(neuron)
+            log_ranks(neuron)
                 
         
 if __name__ == "__main__":
@@ -115,15 +115,11 @@ if __name__ == "__main__":
     config = Config.load(parser)
     check_config(config)
     logger.info(Config.toString(config))
-
-    # ---- Load Keypair ----
-    mnemonic = Keypair.generate_mnemonic()
-    keypair = Keypair.create_from_mnemonic(mnemonic)
    
-    # ---- Build Session ----
-    session = bittensor.init(config, keypair)
+    # ---- Build Neuron ----
+    neuron = bittensor.Neuron(config)
 
     # ---- Start Neuron ----
-    with session:
-        main(config, session)
+    with neuron:
+        main(config, neuron)
 
