@@ -79,8 +79,8 @@ class Dendrite(nn.Module):
 
     def __full_str__(self):
         uids = [remote.neuron.uid for remote in self._remotes.values()]
-        bytes_out = [(remote.stats.forward_bytes_out.value + remote.stats.backward_bytes_out.value) * (8/1000) for remote in self._remotes.values()]
-        bytes_in = [remote.stats.forward_bytes_in.value + remote.stats.backward_bytes_in.value * (8/1000) for remote in self._remotes.values()]
+        bytes_out = [remote.stats.forward_bytes_out.value * (8/1000) for remote in self._remotes.values()]
+        bytes_in = [remote.stats.forward_bytes_in.value * (8/1000) for remote in self._remotes.values()]
         qps = [remote.stats.forward_qps.value + remote.stats.backward_qps.value for remote in self._remotes.values()]
         rows = [bytes_out, bytes_in, qps]
         df = pd.DataFrame(rows, columns=uids)
