@@ -74,11 +74,6 @@ class Dendrite(nn.Module):
         return total_in_bytes_str + "/" + total_out_bytes_str + "kB/s"
 
     def __full_str__(self):
-        pd.set_option('display.max_rows', 5000)
-        pd.set_option('display.max_columns', 25)
-        pd.set_option('display.width', 1000)
-        pd.set_option('display.precision', 2)
-        pd.set_option('display.float_format', lambda x: '%.3f' % x)
         uids = [remote.neuron.uid for remote in self._remotes.values()]
         bytes_out = [(remote.stats.forward_bytes_out.value + remote.stats.backward_bytes_out.value) * (8/1000) for remote in self._remotes.values()]
         bytes_in = [remote.stats.forward_bytes_in.value + remote.stats.backward_bytes_in.value * (8/1000) for remote in self._remotes.values()]
@@ -87,8 +82,8 @@ class Dendrite(nn.Module):
         df = pd.DataFrame(rows, columns=uids)
         df = df.rename(index={df.index[0]: colored('\u290A kB/s', 'green')})
         df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
-        df = df.rename(index={df.index[2]: colored('QPS', 'blue')})
-        return '\n' + df.to_string()
+        df = df.rename(index={df.index[2]: colored('Q/s', 'blue')})
+        return '\n Dendrite: \n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
 
     @staticmethod   
     def check_config(config: Munch):
