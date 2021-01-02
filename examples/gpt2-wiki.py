@@ -15,7 +15,6 @@ import torch
 import torch.nn.functional as F
 import traceback
 import time
-import bittensor
 
 from termcolor import colored
 from munch import Munch
@@ -23,6 +22,7 @@ from datasets import load_dataset
 from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
 
+import bittensor
 from bittensor.neuron import Neuron
 from bittensor.utils.logging import log_all
 from bittensor.config import Config
@@ -53,16 +53,13 @@ def check_config(config: Munch):
     if not os.path.exists(config.session.full_path):
         os.makedirs(config.session.full_path)
     GPT2LMSynapse.check_config(config)
-    Neuron.add_args(parser)
+    Neuron.check_config(config)
 
 # Neuron main.
 def main(config: Munch, neuron: Neuron):
 
-    #  # ---- Model ----
+    # ---- Model ----
     model = GPT2LMSynapse(config, neuron)
-
-    # ---- Serve ----
-    neuron.axon.serve( model ) # Serves model to Axon RPC endpoint for network access.
 
     # ---- Optimizer ----
     optimizer = torch.optim.SGD(model.parameters(), lr = config.session.learning_rate, momentum=config.session.momentum)
@@ -72,8 +69,8 @@ def main(config: Munch, neuron: Neuron):
     # 74 million sentences pulled from books.
     dataset = load_dataset('ag_news')['train']
 
-    tensorboard = SummaryWriter(log_dir = config.session.trial_path)
-
+    # ---- Logging ----
+    tensorboard = SummaryWriter(log_dir = config.session.full_path)
     if config.session.record_log:
         logger.add("{}_{}.log".format(config.session.name, config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
 
@@ -111,7 +108,6 @@ def main(config: Munch, neuron: Neuron):
                     colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
                     neuron.dendrite,
                     neuron.axon)
-
             
             tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), global_step)
             tensorboard.add_scalar('Lloss', output.local_target_loss.item(), global_step)
