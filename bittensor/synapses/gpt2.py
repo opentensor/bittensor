@@ -176,7 +176,6 @@ class GPT2LMSynapse(Synapse):
 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         GPT MLM loss using local_context.
-
                 }
         """
         # Return vars to be filled.

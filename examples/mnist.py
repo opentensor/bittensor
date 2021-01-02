@@ -126,7 +126,8 @@ class Session():
             ) 
             
             # ---- Remote Backward pass ----
-            output.loss.backward() # Accumulates gradients on the model.
+            loss = output.remote_target_loss + output.local_target_loss + output.distillation_loss
+            loss.backward() # Accumulates gradients on the model.
             self.optimizer.step() # Applies accumulated gradients.
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation 
 
