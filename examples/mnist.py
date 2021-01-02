@@ -145,11 +145,6 @@ def main(config: Munch, neuron: Neuron):
                 neuron.metagraph.emit( row_weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
                 neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
                 row_weights = neuron.metagraph.row_weights
-                
-                # ---- Update Axon Priority ----
-                col_weights = neuron.metagraph.col_weights # weights to me.
-                neuron.axon.set_priority( neuron.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
-
 
     # ---- Loop forever ----
     epoch = -1; best_test_loss = math.inf

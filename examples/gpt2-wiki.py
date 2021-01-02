@@ -109,6 +109,8 @@ def main(config, neuron):
 
             # ---- Step Logs + Tensorboard ----
             logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(step, output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item()))
+            logger.info('Axon {}', neuron.axon.__full_str__())
+            logger.info('Dendrite {}', neuron.dendrite.__full_str__())
             tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), step)
             tensorboard.add_scalar('Lloss', output.local_target_loss.item(), step)
             tensorboard.add_scalar('Dloss', output.distillation_loss.item(), step)
@@ -131,10 +133,6 @@ def main(config, neuron):
                 # ---- Get row and col Weights.
                 row_weights = neuron.metagraph.row_weights # Weight to others.
                 col_weights = neuron.metagraph.col_weights # Other to me.
-
-                # ---- Update Axon Priority ----
-                col_weights = neuron.metagraph.col_weights # weights to me.
-                neuron.axon.set_priority( neuron.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
 
             # --- Save Model ----
             if output.loss.item() < best_loss:

@@ -18,6 +18,7 @@ from typing import List
 
 
 import bittensor
+import bittensor.utils.metagraph as metagraph_utils
 import bittensor.utils.networking as net
 import bittensor.serialization as serialization
 import bittensor.utils.stats as stat_utils
@@ -200,6 +201,20 @@ class Axon(bittensor_grpc.BittensorServicer):
             priority_map[neuron.public_key] = priority
         self.priority = priority_map
 
+    def get_call_priority(self, request: bittensor_pb2.TensorMessage):
+        if request.public_key in self.priority:
+            call_priority = self.priority[request.public_key]
+        else:
+            try:
+                uid = self._metagraph.uid_for_pubkey(request.public_key)
+                idx = self._metagraph.uids_to_indices(torch.tensor([uid]))
+                call_priority = self._metagraph.incentive[idx]
+            except:
+                call_priority = 0.0
+        call_priority += random.random() * 0.0001
+        logger.info(call_priority)
+        return call_priority
+
     def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext) -> bittensor_pb2.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
             Forward is equivalent to a 'forward' pass through a neural network.
@@ -349,10 +364,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 return None, message, code
 
         # --- Get call priority ----
-        try:
-            call_priority = self.priority[request.public_key] + random.random()
-        except:
-            call_priority = 1 + random.random()
+        call_priority = self.get_call_priority(request)
 
         # ---- Make Nucleus forward call. ----
         try:
