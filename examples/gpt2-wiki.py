@@ -32,6 +32,7 @@ from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 def add_args(parser: argparse.ArgumentParser):
     parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
     parser.add_argument('--session.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
+    parser.add_argument('--session.epoch_length', default=10, type=int, help='Iterations of training per epoch')
     parser.add_argument('--session.batch_size_train', default=1, type=int, help='Training batch size.')
     parser.add_argument('--session.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
     parser.add_argument('--session.log_interval', default=10, type=int, help='Batches before we log session info.')
@@ -75,73 +76,58 @@ def main(config: Munch, neuron: Neuron):
         logger.add("{}_{}.log".format(config.session.name, config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
 
     # ---- Train Epoch ----
-    def train(epoch: int, global_step: int):
+    def train(epoch: int, global_step: int, row_weights: torch.Tensor):
         # ----- Init training state ---
         model.train()
-        neuron.metagraph.sync() # Sync with the chain.
-        row_weights = neuron.metagraph.row_weights # My weights on the chain-state (zeros initially).
-        local_step = 0
-        output = None
-        training_loss = None
+        training_loss = 0.0
+        for local_step in range(config.session.epoch_length):
+            try:
 
-        try:
-            inputs = nextbatch(dataset, config.session.batch_size_train, bittensor.__tokenizer__())
+                # ---- Forward pass ----
+                inputs = nextbatch(dataset, config.session.batch_size_train, bittensor.__tokenizer__())
+                output = model(
+                    inputs,
+                    training = True,
+                    remote = True # WITH rpc-queries made to the network
+                )
 
-            output = model(
-                inputs,
-                training = True,
-                remote = True # WITH rpc-queries made to the network
-            )
+                # ---- Backward pass ----
+                output.remote_target_loss.backward() # Accumulates gradients on the model.
+                optimizer.step() # Applies accumulated gradients.
+                optimizer.zero_grad() # Zeros out gradients for next accummulation
 
-            # ---- Backward pass ----
-            output.remote_target_loss.backward() # Accumulates gradients on the model.
-            optimizer.step() # Applies accumulated gradients.
-            optimizer.zero_grad() # Zeros out gradients for next accummulation
+                # ---- Train row weights ----
+                batch_weights = torch.mean(output.weights, axis = 0) # Average over batch.
+                row_weights = (1 - 0.03) * row_weights + 0.03 * batch_weights # Moving avg update.
+                row_weights = F.normalize(row_weights, p = 1, dim = 0) # Ensure normalization.
 
-            #history.append(output) # Save for later analysis/logs.
-            logger.info('GS: {} LS: {} Epoch: {} \t Local Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}\t Dendrite: {}\t Axon: {}',
-                    colored('{}'.format(global_step), 'red'),
-                    colored('{}'.format(local_step), 'blue'),
-                    colored('{}'.format(epoch), 'green'),
-                    colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
-                    colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
-                    colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
-                    neuron.dendrite,
-                    neuron.axon)
-            
-            tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), global_step)
-            tensorboard.add_scalar('Lloss', output.local_target_loss.item(), global_step)
-            tensorboard.add_scalar('Dloss', output.distillation_loss.item(), global_step)
+                # ---- Step logs ----
+                logger.info('GS: {} LS: {} Epoch: {} \t Local Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}\t Dendrite: {}\t Axon: {}',
+                        colored('{}'.format(global_step), 'red'),
+                        colored('{}'.format(local_step), 'blue'),
+                        colored('{}'.format(epoch), 'green'),
+                        colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
+                        colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
+                        colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
+                        neuron.dendrite,
+                        neuron.axon)
+                tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), global_step)
+                tensorboard.add_scalar('Lloss', output.local_target_loss.item(), global_step)
+                tensorboard.add_scalar('Dloss', output.distillation_loss.item(), global_step)
 
-            # ---- Update State ----
-            batch_weights = torch.mean(output.weights, axis = 0) # Average over batch.
-            row_weights = (1 - 0.03) * row_weights + 0.03 * batch_weights # Moving avg update.
-            row_weights = F.normalize(row_weights, p = 1, dim = 0) # Ensure normalization.
+                # ---- Step increments ----
+                global_step += 1
+                training_loss += output.local_target_loss.item()
+                torch.cuda.empty_cache()
+                del output
 
-            if (global_step + 1) % config.session.sync_interval == 0:
-                # ---- Sync Metagraph State ----
-                logger.info('Emitting with weights {}', row_weights.tolist())
-                neuron.metagraph.emit( row_weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
-                neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                row_weights = neuron.metagraph.row_weights
+            # --- Catch Errors during training ----
+            except Exception as e:
+                logger.error('Exception in training script with error: {}', e)
+                logger.info(traceback.print_exc())
+                logger.info('Continuing to train.')
 
-                # ---- Update Axon Priority ----
-                col_weights = neuron.metagraph.row_weights
-                neuron.axon.set_priority( neuron.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
-
-            local_step += 1
-            global_step += 1
-            training_loss = output.local_target_loss.item()
-            del output
-            torch.cuda.empty_cache()
-
-        # --- Catch Errors during training ----
-        except Exception as e:
-            logger.error('Exception in training script with error: {}', e)
-            logger.info(traceback.print_exc())
-            logger.info('Continuing to train.')
-
-        return training_loss, global_step
+        return training_loss, global_step, row_weights
 
     epoch = -1
     global_step = 0
@@ -150,17 +136,25 @@ def main(config: Munch, neuron: Neuron):
         epoch += 1
 
         # ---- Train Model ----
-        loss, global_step = train(epoch, global_step)
+        training_loss, global_step, trained_weights = train(epoch, global_step, neuron.metagraph.row_weights)
         scheduler.step()
 
-        # Save best loss and model
-        if loss and epoch % 100 == 0:
-            train_loss = loss
-            if train_loss < best_train_loss:
-                best_train_loss = train_loss # update best train loss
+        # ---- Emitting weights to chain. ----
+        neuron.metagraph.emit( trained_weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+
+        # ---- Sync metagraph ----
+        neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+    
+        # ---- Update Axon Priority ----
+        neuron.axon.set_priority( neuron.metagraph.neurons, neuron.metagraph.col_weights ) # Sets the nucleus-backend request priority.
+
+        # ---- Save best loss and model ----
+        if training_loss and epoch % 10 == 0:
+            if training_loss < best_train_loss:
+                best_train_loss = training_loss # update best train loss
                 logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(epoch, best_train_loss, config.session.full_path))
                 torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': best_train_loss},"{}/model.torch".format(config.session.full_path))
-                tensorboard.add_scalar('Train loss', train_loss, global_step)
+                tensorboard.add_scalar('Train loss', training_loss, global_step)
 
 
 if __name__ == "__main__":
