@@ -102,7 +102,7 @@ class Session():
                     # ---- Train Model ----
                     training_loss = self.train()
                     self.scheduler.step()
-                    self.logger.info('weights: {}', self.weights)
+                    logger.info('weights: {}', self.weights)
 
                     # ---- Emitting weights to chain. ----
                     self.neuron.metagraph.emit( self.weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
@@ -138,7 +138,8 @@ class Session():
             )
 
             # ---- Backward pass ----
-            output.remote_target_loss.backward() # Accumulates gradients on the model.
+            loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+            loss.backward() # Accumulates gradients on the model.
             self.optimizer.step() # Applies accumulated gradients.
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
