@@ -86,6 +86,7 @@ def main(config: Munch, neuron: Neuron):
                 # ---- Forward pass ----
                 inputs = nextbatch(dataset, config.session.batch_size_train, bittensor.__tokenizer__())
                 output = model(
+                    neuron,
                     inputs,
                     training = True,
                     remote = True # WITH rpc-queries made to the network
