@@ -63,10 +63,12 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # Stats.
         self.stats = SimpleNamespace(
-            forward_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.001),
-            backward_in_bytes= stat_utils.timed_rolling_avg(0.0, 0.001),
-            forward_out_bytes = stat_utils.timed_rolling_avg(0.0, 0.001),
-            backward_out_bytes = stat_utils.timed_rolling_avg(0.0, 0.001),
+            forward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
+            backward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
+            forward_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
+            backward_in_bytes= stat_utils.timed_rolling_avg(0.0, 0.01),
+            forward_out_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
+            backward_out_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
         )
 
     def __str__(self):

@@ -32,7 +32,7 @@ config.neuron.keypair = keypair
 
 nucleus = Nucleus(config)
 axon = bittensor.axon.Axon(config, nucleus)
-synapse = Synapse(config, None)
+synapse = Synapse(config)
 
 def test_serve():
     assert axon.synapse == None
