@@ -3,6 +3,7 @@ import asyncio
 import copy
 import argparse
 import bittensor
+import pandas as pd
 import math
 import numpy
 import time
@@ -10,6 +11,7 @@ import torch
 import traceback
 
 from munch import Munch
+from termcolor import colored
 from loguru import logger
 from bittensor import bittensor_pb2
 from bittensor.subtensor.client import WSClient
@@ -60,7 +62,7 @@ class ChainState():
             self.index_for_pubkey[pubkey] = index
             self.pubkey_for_index[index] = pubkey
             self.neurons.append(neuron)
-            self.stake.append(float(stake))
+            self.stake.append(float(stake) / 1000000000)
             self.lastemit.append(int(lastemit))
             self.weight_uids.append(list(w_uids))
             self.weight_vals.append(list(w_vals))
@@ -1023,34 +1025,20 @@ class Metagraph():
         return weight_uids, weight_vals
 
     def __str__(self):
-        return """ 
-        Metagraph {{ 
-            block {} 
-            inflation_rate: {} 
-            n_neurons: {}
-            uids: {} 
-            stake: {}
-            lastemit {}
-            W {} 
-            W[*:] {}
-            W[:*] {}
-            S {}
-            R {}
-            I {}
-        }}
-        """.format(
-        self.block, 
-        self.tau.item(), 
-        self.n, 
-        self.uids.tolist(), 
-        self.stake.tolist(), 
-        self.lastemit.tolist(), 
-        self.W.tolist(), 
-        self.row_weights.tolist(), 
-        self.col_weights.tolist(), 
-        self.S.tolist(), 
-        self.R.tolist(), 
-        self.I.tolist()
-        )
+        uids = self.state.uids.tolist()
+        rows = [self.S.tolist(), self.R.tolist(), self.I.tolist(), self.row_weights.tolist(), self.col_weights.tolist()]
+        for i in range(self.n):
+            rows.append(self.W[i, :].tolist())
+        df = pd.DataFrame(rows, columns=uids)
+        df = df.rename(index={df.index[0]: 'S'})
+        df = df.rename(index={df.index[1]: 'R'})
+        df = df.rename(index={df.index[2]: 'I'})
+        df = df.rename(index={df.index[3]: 'row'})
+        df = df.rename(index={df.index[4]: 'col'})
+        for i in range(self.n):
+            df = df.rename(index={df.index[i + 5]: uids[i]})
+        df.rename_axis(colored('[uid]', 'red'), axis=1)
+        return '\nMetagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.metadata['uid'], self.block, self.tau.item(), self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
+
 
 
