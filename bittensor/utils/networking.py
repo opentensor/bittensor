@@ -101,12 +101,13 @@ def upnpc_delete_port_map(external_port: int):
                 Raised if UPNPC port map delete fails.
     """
     try:
+        logger.info('UPNPC: Deleting port map {}', external_port)
         u = miniupnpc.UPnP()
         u.discoverdelay = 200
-        logger.info('UPNPC: Deleting port map {}', external_port)
+        u.discover()
         u.selectigd()
         u.deleteportmapping(external_port, 'TCP')
-        logger.info('UPNPC: Success')
+        logger.info('UPNPC: Delete Success')
 
     except Exception as e:
         raise UPNPCException(e)
@@ -153,7 +154,7 @@ def upnpc_create_port_map(local_port: int):
 
         logger.info('UPNPC: trying to redirect remote: {}:{} => local: {}:{} over TCP', external_ip, external_port, local_ip, local_port)
         u.addportmapping(external_port, 'TCP', local_ip, local_port, 'Bittensor: %u' % external_port, '')
-        logger.info('UPNPC: Success')
+        logger.info('UPNPC: Create Success')
 
         return external_port
 

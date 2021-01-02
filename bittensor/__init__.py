@@ -14,6 +14,8 @@ __vocab_size__ = 204483
 def __tokenizer__():
     from transformers import GPT2Tokenizer
     if __version__ in [ "0.0.0" ]:
+        global __vocab_size__
+        __vocab_size__ = 204485
         tokenizer = GPT2Tokenizer.from_pretrained("gpt2", local_files_only=False)
         tokenizer.pad_token = '[PAD]'
         tokenizer.mask_token = -100

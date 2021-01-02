@@ -150,7 +150,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         # Delete port maps if required.
         if self._config.axon.use_upnpc:
             try:
-                net.upnpc_create_port_map(self._config.axon.external_port)
+                net.upnpc_delete_port_map(self._config.axon.external_port)
             except net.UPNPCException:
                 # Catch but continue.
                 logger.error('Error while trying to destroy port map on your router.')

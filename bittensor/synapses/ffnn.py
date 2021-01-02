@@ -207,9 +207,6 @@ class FFNNSynapse(Synapse):
                     remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
                         FFNN Classification loss using the remote_context.
 
-                    local_accuracy (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        Accuracy of target predictions.
-
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
