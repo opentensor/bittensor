@@ -66,10 +66,17 @@ class Dendrite(nn.Module):
         for remote in self._remotes.values():
             total_bytes_out += remote.stats.forward_bytes_out.value
             total_bytes_in += remote.stats.forward_bytes_in.value
-        total_in_bytes_str = colored('\u290A {:.1f}'.format((total_bytes_in*8)/1000), 'green')
-        total_out_bytes_str = colored('\u290B {:.1f}'.format((total_bytes_out*8)/1000), 'red')
+        total_in_bytes_str = colored('\u290A {:.1f}'.format((total_bytes_out*8)/1000), 'green')
+        total_out_bytes_str = colored('\u290B {:.1f}'.format((total_bytes_in*8)/1000), 'red')
         return total_in_bytes_str + "/" + total_out_bytes_str + "kB/s"
+    
+    def __full_str__(self):
+        response = ""
+        for remote in self._remotes.values():
+            response += str(remote) + "\n"
         
+        return response
+
     @staticmethod   
     def check_config(config: Munch):
         assert config.dendrite.timeout >= 0, 'timeout must be positive value, got {}'.format(config.dendrite.timeout)
@@ -266,11 +273,11 @@ class RemoteNeuron(nn.Module):
         self.stats = SimpleNamespace(
             n_forward_calls = 0,
             n_backward_calls = 0,
-            forward_elapsed_time = stat_utils.timed_rolling_avg(0.0, 0.001),
-            forward_bytes_out = stat_utils.timed_rolling_avg(0.0, 0.001),
-            forward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.001),
-            backward_bytes_out = stat_utils.timed_rolling_avg(0.0, 0.001),
-            backward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.001),
+            forward_elapsed_time = stat_utils.timed_rolling_avg(0.0, 0.01),
+            forward_bytes_out = stat_utils.timed_rolling_avg(0.0, 0.01),
+            forward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.01),
+            backward_bytes_out = stat_utils.timed_rolling_avg(0.0, 0.01),
+            backward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.01),
             codes = {
                 bittensor_pb2.ReturnCode.Success: 0,
                 bittensor_pb2.ReturnCode.Timeout: 0,
@@ -310,8 +317,8 @@ class RemoteNeuron(nn.Module):
     def __str__(self):
         total_out_bytes = self.stats.forward_bytes_out.value + self.stats.backward_bytes_out.value
         total_in_bytes = self.stats.forward_bytes_in.value + self.stats.backward_bytes_in.value
-        total_in_bytes_str = colored('\u290A {:.1f}'.format((total_in_bytes*8)/1000), 'green')
-        total_out_bytes_str = colored('\u290B {:.1f}'.format((total_out_bytes*8)/1000), 'red')
+        total_in_bytes_str = colored('\u290A {:.1f}'.format((total_out_bytes*8)/1000), 'green')
+        total_out_bytes_str = colored('\u290B {:.1f}'.format((total_in_bytes*8)/1000), 'red')
         return str(self.neuron.uid) + ":(" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s)"
 
     def __del__(self):
@@ -595,4 +602,3 @@ class _RemoteModuleCall(torch.autograd.Function):
                 # ---- Catch all exceptions in Backward ----
                 rollbar.send_exception()
                 return (None, None, zeros, None)
-
