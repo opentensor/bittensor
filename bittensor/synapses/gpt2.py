@@ -46,7 +46,6 @@ class GPT2Pooler(nn.Module):
 class GPT2LMSynapse(Synapse):
     """ A Bittensor Synapse training GPT2 with Masked Language Modelling (MLM)
     """
-
     def __init__(self,
                  config: Munch,
                  neuron: Neuron):
@@ -88,7 +87,7 @@ class GPT2LMSynapse(Synapse):
 
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
-        self.encoder_transformer = GPT2Model(huggingface_config)
+        self.transformer = GPT2Model(huggingface_config)
 
         # pooler_layer: pools transformed sequence to network_dim for router.
         # [batch_size, bittensor.__network_dim__, sequence_len] -> [batch_size, bittensor.__network_dim__]
@@ -100,7 +99,7 @@ class GPT2LMSynapse(Synapse):
 
         # context_transformer: distills the remote_context from inputs
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
-        self.context_transformer = GPT2Model(huggingface_config)
+        #self.context_transformer = GPT2Model(huggingface_config)
 
         # hidden_layer: transforms context and encoding to network_dim hidden units.
         # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -118,11 +117,11 @@ class GPT2LMSynapse(Synapse):
     def add_args(parser: argparse.ArgumentParser):    
         r""" Add custom params to the parser.
         """
-        parser.add_argument('--synapse.n_head', default=2, type=int, 
+        parser.add_argument('--synapse.n_head', default=1, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
-        parser.add_argument('--synapse.n_layer', default=12, type=int, 
+        parser.add_argument('--synapse.n_layer', default=2, type=int, 
                             help='Number of hidden layers in the Transformer encoder.')
-        parser.add_argument('--synapse.n_inner', default=None, type=int, 
+        parser.add_argument('--synapse.n_inner', default=8, type=int, 
                             help='The dimensionality of the inner feed-forward layers. :obj:`None` will set it to 4 times n_embd')
         parser.add_argument('--synapse.activation_function', default='gelu_new', type=str, 
                             help='Activation function, to be selected in the list :obj:`["relu", "silu", "gelu", "tanh", "gelu_new"]')
@@ -167,7 +166,7 @@ class GPT2LMSynapse(Synapse):
                 inputs: torch.LongTensor, 
                 training: bool = True, 
                 remote: bool = False):
-        r""" Forward pass through GPT MLM synapse.
+        r""" Forward pass through GPT synapse.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
@@ -223,15 +222,15 @@ class GPT2LMSynapse(Synapse):
         
         # encoding: transformer encoded sentences.
         # encoding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        encoding = self.encoder_transformer(input_ids=inputs, return_dict=True).last_hidden_state
+        encoding = self.transformer(input_ids=inputs, return_dict=True).last_hidden_state
         
         # pooled: pooled encodings by taking the hidden units of the last token.
         # pooled.shape = [batch_size, bittensor.__network_dim__]
-        pooled = self.pooler(encoding)
+        pooled = self.pooler(encoding.detach())
         
         # local_context: distilled version of remote_context.
         # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        local_context = self.context_transformer(input_ids=inputs, return_dict=True).last_hidden_state
+        local_context = self.transformer(input_ids=inputs, return_dict=True).last_hidden_state
 
         # local_hidden: hidden layer encoding of sequence with local_context.
         # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]

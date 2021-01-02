@@ -856,6 +856,11 @@ class Metagraph():
         if not isinstance(weights, torch.Tensor):
             message = "Error trying to set weights on chain. Got weights type {}, but weights must be of type {}".format(type(weights), torch.Tensor)
             return Metagraph.EmitValueError, message
+        
+        # --- Check nan ---
+        if torch.any(weights.isnan()).item():
+            message = "Error trying to set weight on chain. Got nan values {}".format(weights)
+            return Metagraph.EmitValueError, message
 
         # ---- Convert weights to list ----
         weights = [float(w) for w in weights.tolist()]
