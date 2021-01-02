@@ -142,27 +142,21 @@ class Neuron:
     def load_cold_key(config):
         path = config.neuron.coldkeyfile
         path = os.path.expanduser(path)
-        logger.debug("Loading cold key from {}", path)
-
         with open(path, "r") as file:
             config.neuron.coldkey = file.readline().strip()
-
-        logger.info("Using coldkey : {}", config.neuron.coldkey)
+        logger.info("Loaded coldkey: {}", config.neuron.coldkey)
 
     @staticmethod
     def load_hotkeypair(config):
-        logger.info("Loading hot keypair")
         keyfile = os.path.expanduser(config.neuron.hotkeyfile)
         with open(keyfile, 'rb') as file:
             data = file.read()
-
             if is_encrypted(data):
                 password = Cli.ask_password()
                 data = decrypt_data(password, data)
-
             hotkey = load_keypair_from_data(data)
             config.neuron.keypair = hotkey
-
+            logger.info("Loaded hotkey: {}", config.neuron.keypair.public_key)
 
     def __del__(self):
         self.stop()
@@ -178,7 +172,6 @@ class Neuron:
 
     def __enter__(self):
         rollbar.init() # If a rollbar token is present, this will enable error reporting to rollbar
-
         logger.trace('Neuron enter')
         self.start()
         return self
@@ -220,14 +213,13 @@ class Neuron:
 
     def start(self):
         # Stop background grpc threads for serving the synapse object.
-        logger.info('Start axon server...')
         try:
             self.axon.start()
+            logger.info('Started Axon server')
         except Exception as e:
             logger.error('Neuron: Failed to start axon server with error: {}', e)
             raise FailedToEnterNeuron
 
-        logger.trace('Connect to chain ...')
         try:
             code, message = self.metagraph.connect(timeout=3)
             if code != Metagraph.ConnectSuccess:
@@ -238,7 +230,6 @@ class Neuron:
             logger.error('Neuron: Error while connecting to the chain endpoint: {}', e)
             raise FailedToEnterNeuron
 
-        logger.info('Subscribe to chain ...')
         try:
             code, message = self.metagraph.subscribe(timeout=12)
             if code != Metagraph.SubscribeSuccess:
@@ -249,9 +240,9 @@ class Neuron:
             logger.error('Neuron: Error while subscribing to the chain endpoint: {}', e)
             raise FailedToEnterNeuron
 
-        logger.info('Sync chain ...')
         try:
             self.metagraph.sync()
+            logger.info(self.metagraph)
         except Exception as e:
             logger.error('Neuron: Error while syncing chain state with error {}', e)
             raise FailedToEnterNeuron
@@ -261,6 +252,7 @@ class Neuron:
         logger.info('Shutting down the Axon server ...')
         try:
             self.axon.stop()
+            logger.info('Axon server stopped')
         except Exception as e:
             logger.error('Neuron: Error while stopping axon server: {} ', e)
 
@@ -268,6 +260,7 @@ class Neuron:
         logger.info('Unsubscribe from chain ...')
         try:
             self.metagraph.unsubscribe()
+            logger.info('Unsubscribed from chain')
         except Exception as e:
             logger.error('Neuron: Error while unsubscribing to the chain endpoint: {}', e)
 

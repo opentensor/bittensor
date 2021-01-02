@@ -99,25 +99,32 @@ class Session():
                 try:
                     self.epoch += 1
 
-                    # ---- Train Model ----
-                    training_loss = self.train()
-                    self.scheduler.step()
-                    logger.info('weights: {}', self.weights)
+                    # ---- Serve ----
+                    self.neuron.axon.serve( self.model )
 
-                    # ---- Emitting weights to chain. ----
+                    # ---- Train Model ----
+                    self.train()
+                    self.scheduler.step()
+
+                    # ---- Emitting weights ----
                     self.neuron.metagraph.emit( self.weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
 
                     # ---- Sync metagraph ----
                     self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
                     self.weights = self.neuron.metagraph.row_weights
+
+                    # --- Epoch logs ----
+                    print(self.neuron.axon.__full_str__())
+                    print(self.neuron.dendrite.__full_str__())
+                    print(self.neuron.metagraph)
                 
                     # ---- Save best loss and model ----
-                    if training_loss and self.epoch % 10 == 0:
-                        if training_loss < self.best_train_loss:
-                            self.best_train_loss = training_loss # update best train loss
+                    if self.training_loss and self.epoch % 10 == 0:
+                        if self.training_loss < self.best_train_loss:
+                            self.best_train_loss = self.training_loss # update best train loss
                             logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
                             torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_train_loss},"{}/model.torch".format(self.config.session.full_path))
-                            self.tensorboard.add_scalar('Train loss', training_loss, self.global_step)
+                            self.tensorboard.add_scalar('Train loss', self.training_loss, self.global_step)
                     
                 # --- Catch Errors ----
                 except Exception as e:
@@ -127,7 +134,7 @@ class Session():
     
     # ---- Train Epoch ----
     def train(self):
-        training_loss = 0.0
+        self.training_loss = 0.0
         for local_step in range(self.config.session.epoch_length):
             # ---- Forward pass ----
             inputs = nextbatch(self.dataset, self.config.session.batch_size_train, bittensor.__tokenizer__())
@@ -149,22 +156,23 @@ class Session():
             self.weights = F.normalize(self.weights, p = 1, dim = 0) # Ensure normalization.
 
             # ---- Step logs ----
-            logger.info('GS: {} LS: {} Epoch: {} \t Local Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}',
+            logger.info('GS: {} LS: {} Epoch: {}\tLocal Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}\tAxon: {}\tDendrite: {}',
                     colored('{}'.format(self.global_step), 'red'),
                     colored('{}'.format(local_step), 'blue'),
                     colored('{}'.format(self.epoch), 'green'),
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
                     colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
-                    colored('{:.4f}'.format(output.distillation_loss.item()), 'red'))
-            logger.info(self.neuron.axon.__full_str__())
-            logger.info(self.neuron.dendrite.__full_str__())
+                    colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
+                    self.neuron.axon,
+                    self.neuron.dendrite)
+            logger.info('Codes: {}', output.dendrite.return_codes.tolist())
             self.tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Lloss', output.local_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Dloss', output.distillation_loss.item(), self.global_step)
 
             # ---- Step increments ----
             self.global_step += 1
-            training_loss += output.local_target_loss.item()
+            self.training_loss += output.local_target_loss.item()
 
             # --- Memory clean up ----
             torch.cuda.empty_cache()

@@ -90,19 +90,27 @@ class Session():
             while True:
                 self.epoch += 1
 
-                # ---- Emit ----
-                self.neuron.metagraph.emit( self.weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
-                        
-                # ---- Sync ----  
-                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.weights = self.neuron.metagraph.row_weights.to(self.device)
-                        
+                # ---- Serve ----
+                self.neuron.axon.serve( self.model )
+         
                 # ---- Train ----
                 self.train()
                 self.scheduler.step()
                 
                 # ---- Test ----
                 test_loss, test_accuracy = self.test()
+
+                # ---- Emit ----
+                self.neuron.metagraph.emit( self.weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+                        
+                # ---- Sync ----  
+                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                self.weights = self.neuron.metagraph.row_weights.to(self.device)
+
+                # --- Display Epoch ----
+                print(self.neuron.axon.__full_str__())
+                print(self.neuron.dendrite.__full_str__())
+                print(self.neuron.metagraph)
 
                 # ---- Save ----
                 if test_loss < self.best_test_loss:
@@ -139,16 +147,16 @@ class Session():
             # ---- Step Logs + Tensorboard ----
             processed = ((batch_idx + 1) * self.config.session.batch_size_train)
             progress = (100. * processed) / len(self.train_data)
-            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\t Loss: {}\t Acc: {}', 
+            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\tLoss: {}\tAcc: {}\tAxon: {}\tDendrite: {}\t', 
                     colored('{}'.format(self.global_step), 'blue'), 
                     colored('{}'.format(self.epoch), 'blue'), 
                     colored('{}'.format(processed), 'green'), 
                     colored('{}'.format(len(self.train_data)), 'red'),
                     colored('{:.2f}%'.format(progress), 'green'),
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
-                    colored('{:.4f}'.format(output.local_accuracy.item()), 'green'))
-            logger.info(self.neuron.axon.__full_str__())
-            logger.info(self.neuron.dendrite.__full_str__())
+                    colored('{:.4f}'.format(output.local_accuracy.item()), 'green'),
+                    self.neuron.axon,
+                    self.neuron.dendrite)
             self.tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Lloss', output.local_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Dloss', output.distillation_loss.item(), self.global_step)

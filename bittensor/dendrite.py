@@ -50,6 +50,9 @@ class Dendrite(nn.Module):
         self._metagraph = metagraph
         self.__keypair = config.neuron.keypair
         self._remotes = {}
+        self.stats = SimpleNamespace(
+            qps = stat_utils.timed_rolling_avg(0.0, 0.01),
+        )
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
@@ -69,9 +72,10 @@ class Dendrite(nn.Module):
         for remote in self._remotes.values():
             total_bytes_out += remote.stats.forward_bytes_out.value
             total_bytes_in += remote.stats.forward_bytes_in.value
+        qps_str = colored('{:.3f}'.format(self.stats.qps.value), 'blue')
         total_in_bytes_str = colored('\u290A {:.1f}'.format((total_bytes_out*8)/1000), 'green')
         total_out_bytes_str = colored('\u290B {:.1f}'.format((total_bytes_in*8)/1000), 'red')
-        return total_in_bytes_str + "/" + total_out_bytes_str + "kB/s"
+        return "(" + qps_str + "q/s|" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s" + ")"
 
     def __full_str__(self):
         uids = [remote.neuron.uid for remote in self._remotes.values()]
@@ -83,7 +87,7 @@ class Dendrite(nn.Module):
         df = df.rename(index={df.index[0]: colored('\u290A kB/s', 'green')})
         df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
         df = df.rename(index={df.index[2]: colored('Q/s', 'blue')})
-        return '\n Dendrite: \n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
+        return '\nDendrite:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
 
     @staticmethod   
     def check_config(config: Munch):
@@ -216,6 +220,9 @@ class Dendrite(nn.Module):
         if len(x) < 1:
             error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
             raise ValueError(error_msg)
+
+        # ---- Stats ---
+        self.stats.qps.update(1)
 
         # ---- Run async calls ----
         loop = asyncio.new_event_loop()
@@ -490,7 +497,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             # ---- Catch Unknown Errors ----
             except Exception as e:
                 logger.error('Uncaught error in forward call with error {} and endpoint', e, caller.endpoint)
-                return zeros, torch.tensor(bittensor_pb2.ReturnCode.Unknown)
+                return zeros, torch.tensor(bittensor_pb2.ReturnCode.UnknownException)
 
             # ---- Check tensor response length ----
             if len(response.tensors) == 0:

@@ -76,9 +76,10 @@ class Axon(bittensor_grpc.BittensorServicer):
         )
 
     def __str__(self):
-        total_in_bytes_str = colored('\u290A {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'red')
-        total_out_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'green')
-        return total_out_bytes_str + "/" + total_in_bytes_str + "kB/s"
+        total_in_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'red')
+        total_out_bytes_str = colored('\u290A {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'green')
+        qps_str = colored("{:.3f}".format(float(self.stats.qps.value)), 'blue')
+        return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
 
     def __full_str__(self):
         uids = list(self.stats.in_bytes_per_uid.keys())
@@ -90,7 +91,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         df = df.rename(index={df.index[0]: colored('\u290A kB/s', 'green')})
         df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
         df = df.rename(index={df.index[2]: colored('Q/s', 'blue')})
-        return '\n Axon: \n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
+        return '\nAxon:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
@@ -137,8 +138,8 @@ class Axon(bittensor_grpc.BittensorServicer):
             logger.info('UPNPC: OFF')
             config.axon.external_port = config.axon.local_port
 
-        logger.info('External Endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
-        logger.info('Local Endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
+        logger.info('Using external endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
+        logger.info('Using local endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
 
     def __del__(self):
         r""" Called when this axon is deleted, ensures background threads shut down properly.
@@ -211,13 +212,12 @@ class Axon(bittensor_grpc.BittensorServicer):
             call_priority = self.priority[request.public_key]
         else:
             try:
-                uid = self._metagraph.uid_for_pubkey(request.public_key)
-                idx = self._metagraph.uids_to_indices(torch.tensor([uid]))
+                uid = self._metagraph.state.uid_for_pubkey[request.public_key]
+                idx = int(self._metagraph.uids_to_indices(torch.tensor([uid])).item())
                 call_priority = self._metagraph.incentive[idx]
-            except:
+            except Exception as e:
                 call_priority = 0.0
         call_priority += random.random() * 0.0001
-        logger.info(call_priority)
         return call_priority
 
     def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext) -> bittensor_pb2.TensorMessage:
@@ -236,7 +236,6 @@ class Axon(bittensor_grpc.BittensorServicer):
         """
         # TODO(const): check signature
         # TODO(const): black and white listing.
-
         # ---- Check request versioning.
         if request.version in bittensor.__compatability__[bittensor.__version__]:
             tensor, message, code = self._forward(request)

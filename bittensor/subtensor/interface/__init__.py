@@ -263,10 +263,7 @@ class Keypair:
 
 def KeypairRepresenter(dumper, data):
     serializedData = data.__repr__()
-
-    logger.debug(serializedData)
     return dumper.represent_scalar('Keypair', serializedData)
-
 
 yaml.add_representer(Keypair, KeypairRepresenter)
 
@@ -2045,10 +2042,7 @@ class SubstrateWSInterface:
             return False
 
     def debug_message(self, message):
-        logger.debug(message)
-
-
-
+        logger.trace(message)
 
 
 
