@@ -5,6 +5,7 @@ import math
 import sys
 import time
 import torch
+import pandas as pd
 import torch.nn as nn
 
 from termcolor import colored
@@ -15,6 +16,7 @@ from loguru import logger
 from munch import Munch
 
 import bittensor
+from bittensor.metagraph import Metagraph
 import bittensor.utils.stats as stat_utils
 import bittensor.serialization as serialization
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
@@ -42,9 +44,10 @@ class Dendrite(nn.Module):
             Bittensor config object.
     """
 
-    def __init__(self, config):
+    def __init__(self, config: Munch, metagraph: Metagraph):
         super().__init__()
         self._config = config
+        self._metagraph = metagraph
         self.__keypair = config.neuron.keypair
         self._remotes = {}
 
@@ -69,13 +72,23 @@ class Dendrite(nn.Module):
         total_in_bytes_str = colored('\u290A {:.1f}'.format((total_bytes_out*8)/1000), 'green')
         total_out_bytes_str = colored('\u290B {:.1f}'.format((total_bytes_in*8)/1000), 'red')
         return total_in_bytes_str + "/" + total_out_bytes_str + "kB/s"
-    
+
     def __full_str__(self):
-        response = ""
-        for remote in self._remotes.values():
-            response += str(remote) + "\n"
-        
-        return response
+        pd.set_option('display.max_rows', 5000)
+        pd.set_option('display.max_columns', 25)
+        pd.set_option('display.width', 1000)
+        pd.set_option('display.precision', 2)
+        pd.set_option('display.float_format', lambda x: '%.3f' % x)
+        uids = [remote.neuron.uid for remote in self._remotes.values()]
+        bytes_out = [(remote.stats.forward_bytes_out.value + remote.stats.backward_bytes_out.value) * (8/1000) for remote in self._remotes.values()]
+        bytes_in = [remote.stats.forward_bytes_in.value + remote.stats.backward_bytes_in.value * (8/1000) for remote in self._remotes.values()]
+        qps = [remote.stats.forward_qps.value + remote.stats.backward_qps.value for remote in self._remotes.values()]
+        rows = [bytes_out, bytes_in, qps]
+        df = pd.DataFrame(rows, columns=uids)
+        df = df.rename(index={df.index[0]: colored('\u290A kB/s', 'green')})
+        df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
+        df = df.rename(index={df.index[2]: colored('QPS', 'blue')})
+        return '\n' + df.to_string()
 
     @staticmethod   
     def check_config(config: Munch):

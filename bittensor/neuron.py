@@ -39,9 +39,9 @@ class Neuron:
     def __init__(self, config):
         self.config = config
         self.metagraph = Metagraph(self.config)
-        self.nucleus = Nucleus(self.config)
-        self.axon = Axon(self.config, self.nucleus)
-        self.dendrite = Dendrite(self.config)
+        self.nucleus = Nucleus(self.config, self.metagraph)
+        self.axon = Axon(self.config, self.nucleus, self.metagraph)
+        self.dendrite = Dendrite(self.config, self.metagraph)
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
