@@ -271,8 +271,8 @@ class RemoteNeuron(nn.Module):
         self.backoff = 0 # Number o queries to backoff.
         self.next_backoff = 1 # Next backoff level.
         self.stats = SimpleNamespace(
-            n_forward_calls = 0,
-            n_backward_calls = 0,
+            forward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
+            backward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             forward_elapsed_time = stat_utils.timed_rolling_avg(0.0, 0.01),
             forward_bytes_out = stat_utils.timed_rolling_avg(0.0, 0.01),
             forward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -350,9 +350,7 @@ class RemoteNeuron(nn.Module):
         else:
             try:
                 # Make and time the query.
-                start_time = time.time()
                 outputs, code = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
-                elapsed_time = time.time() - start_time
 
             # ---- On unknown failure: we return zeros and unknown code ---- 
             except Exception as e:
@@ -446,7 +444,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             try:
                 
                 start_time = time.time()
-                ctx.caller.stats.n_forward_calls += 1
+                ctx.caller.stats.forward_qps.update(1)
                 ctx.caller.stats.forward_bytes_out.update(sys.getsizeof(request))
                 response = ctx.caller.stub.Forward(request, timeout=caller.config.dendrite.timeout)
                 ctx.caller.stats.forward_bytes_in.update(sys.getsizeof(response))
@@ -583,7 +581,7 @@ class _RemoteModuleCall(torch.autograd.Function):
                 # --- Send non blocking grad request ----
                 # NOTE(const): we dont care about the response.
                 try:
-                    ctx.caller.stats.n_backward_calls += 1
+                    ctx.caller.stats.backward_qps.update(1)
                     ctx.caller.stats.backwar_bytes_out.update(sys.getsizeof(request))
                     ctx.caller.stub.Backward.future(request, timeout=ctx.caller.config.dendrite.timeout)
                     ctx.caller.stats.backwar_bytes_in.update(0.0) # responses are dropped.
