@@ -139,16 +139,16 @@ class Session():
             # ---- Step Logs + Tensorboard ----
             processed = ((batch_idx + 1) * self.config.session.batch_size_train)
             progress = (100. * processed) / len(self.train_data)
-            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\t Loss: {}\t Acc: {}\t Axon: {}\t Dendrite: {}', 
+            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\t Loss: {}\t Acc: {}', 
                     colored('{}'.format(self.global_step), 'blue'), 
                     colored('{}'.format(self.epoch), 'blue'), 
                     colored('{}'.format(processed), 'green'), 
                     colored('{}'.format(len(self.train_data)), 'red'),
                     colored('{:.2f}%'.format(progress), 'green'),
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
-                    colored('{:.4f}'.format(output.local_accuracy.item()), 'green'),
-                    self.neuron.axon,
-                    self.neuron.dendrite)
+                    colored('{:.4f}'.format(output.local_accuracy.item()), 'green'))
+            logger.info(self.neuron.axon.__full_str__())
+            logger.info(self.neuron.dendrite.__full_str__())
             self.tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Lloss', output.local_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Dloss', output.distillation_loss.item(), self.global_step)

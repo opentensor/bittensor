@@ -149,15 +149,15 @@ class Session():
             self.weights = F.normalize(self.weights, p = 1, dim = 0) # Ensure normalization.
 
             # ---- Step logs ----
-            logger.info('GS: {} LS: {} Epoch: {} \t Local Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}\t Dendrite: {}\t Axon: {}',
+            logger.info('GS: {} LS: {} Epoch: {} \t Local Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}',
                     colored('{}'.format(self.global_step), 'red'),
                     colored('{}'.format(local_step), 'blue'),
                     colored('{}'.format(self.epoch), 'green'),
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
                     colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
-                    colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
-                    self.neuron.dendrite,
-                    self.neuron.axon)
+                    colored('{:.4f}'.format(output.distillation_loss.item()), 'red'))
+            logger.info(self.neuron.axon.__full_str__())
+            logger.info(self.neuron.dendrite.__full_str__())
             self.tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Lloss', output.local_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Dloss', output.distillation_loss.item(), self.global_step)

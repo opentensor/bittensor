@@ -8,6 +8,7 @@ from loguru import logger
 from munch import Munch
 from typing import List, Tuple
 
+from bittensor.metagraph import Metagraph
 from bittensor import bittensor_pb2
 from bittensor.synapse import Synapse
 from bittensor.utils.ptp import ThreadPoolExecutor
@@ -17,17 +18,11 @@ class Nucleus ():
         The nucleus uses a prioritized thread pool to process requests according in priority. Priority is set by the Axon.
     """
 
-    def __init__(self, config):
+    def __init__(self, config: Munch, metagraph: Metagraph):
         r""" Initializes a nucleus backward and forward threading pools.
         """
         self._config = config
-        self._forward_pool = ThreadPoolExecutor(maxsize = self._config.nucleus.queue_maxsize, max_workers=self._config.nucleus.max_workers)
-        self._backward_pool = ThreadPoolExecutor(maxsize = self._config.nucleus.queue_maxsize, max_workers=self._config.nucleus.max_workers)
-
-    def __init__(self, config):
-        r""" Initializes a nucleus backward and forward threading pools.
-        """
-        self._config = config
+        self._metagraph = metagraph
         self._forward_pool = ThreadPoolExecutor(maxsize = self._config.nucleus.queue_maxsize, max_workers=self._config.nucleus.max_workers)
         self._backward_pool = ThreadPoolExecutor(maxsize = self._config.nucleus.queue_maxsize, max_workers=self._config.nucleus.max_workers)
 

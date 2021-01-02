@@ -250,14 +250,13 @@ class Metagraph():
 
     @property
     def incentive(self) -> torch.FloatTensor:
-        r""" Returns the ranks 
+        r""" Returns the incentive value from each known neuron to you.
         Returns
             incentive: (:obj:`torch.FLoatTensor` of shape :obj:`(metagraph.n)`):
-                inflation incentive of each each known neuron.
+                inflation incentive from each known neuron.
         """
-        I =  (self.tau * self.ranks) / torch.sum(self.ranks)
-        I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
-        return I
+        incentive = self.tau * self.col_weights * self.stake
+        return incentive
 
     @property
     def I(self) -> torch.FloatTensor:
@@ -266,7 +265,9 @@ class Metagraph():
             I: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 stake of each known neuron.
         """
-        return self.incentive
+        I =  (self.tau * self.ranks) / torch.sum(self.ranks)
+        I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
+        return I
 
     @property
     def ranks(self) -> torch.FloatTensor:

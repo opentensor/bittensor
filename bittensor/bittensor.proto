@@ -121,7 +121,8 @@ enum ReturnCode {
 	NucleusFull = 17; // Returned when the processing queue on the server is full.
 	RequestIncompatibleVersion = 18; // The request handler is incompatible with the request version.
 	ResponseIncompatibleVersion = 19; // The request handler is incompatible with the request version.
-	UnknownException = 20; // Unknown exception.
+	SenderUnknown = 20; // The requester is not known by the reciever. 
+	UnknownException = 21; // Unknown exception.
 }
 
 // A serialized tensor object created using the serializer class.
