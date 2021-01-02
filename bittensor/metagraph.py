@@ -102,7 +102,7 @@ class TorchChainState():
 
     """
     def __init__(self):
-        self.tau = torch.tensor([50.0], dtype = torch.float32)
+        self.tau = torch.tensor([0.5], dtype = torch.float32)
         self.block = 0
         self.n = 0
         self.uids = torch.tensor([])
@@ -121,7 +121,7 @@ class TorchChainState():
         # Deep copies chain state into metagraph state.
         state = TorchChainState()
         state.n = cache.n
-        state.tau = torch.tensor([50.0], dtype = torch.float32)
+        state.tau = torch.tensor([0.5], dtype = torch.float32)
         state.neurons = copy.deepcopy(cache.neurons)
         state.indices = torch.tensor(range(state.n), dtype=torch.int64)
         state.uids = torch.tensor(copy.deepcopy(cache.uids), dtype=torch.int64)
@@ -499,7 +499,6 @@ class Metagraph():
         last_sync = await self.async_chain_block()
         self.state = TorchChainState.from_cache(self.cache)
         self.state.block = last_sync
-        print (self.__str__())
 
     async def _sync_cache(self):
         r""" Async: Makes calls to chain updating local chain cache with newest info.
@@ -508,7 +507,6 @@ class Metagraph():
         calls = []
         current_block = await self.async_chain_block()
         neurons = await self.subtensor_client.neurons()
-        logger.info(self.metadata)
         calls.append(self._poll_pubkey(self.metadata, self.__keypair.public_key))
         for (pubkey, neuron) in neurons:
                 last_emit = await self.subtensor_client.get_last_emit_data_for_uid(neuron['uid'])
@@ -645,7 +643,7 @@ class Metagraph():
 
             if code == Metagraph.SubscribeSuccess:
                 self.metadata = await self.subtensor_client.neurons(self.__keypair.public_key)
-                logger.info('Successfully subcribed neuron with: {}', self.metadata)
+                logger.info('Successfully subcribed with: {}', self.metadata)
                 return code, message
 
             elif code == Metagraph.SubscribeNotConnected:
@@ -1026,19 +1024,20 @@ class Metagraph():
 
     def __str__(self):
         uids = self.state.uids.tolist()
-        rows = [self.S.tolist(), self.R.tolist(), self.I.tolist(), self.row_weights.tolist(), self.col_weights.tolist()]
+        rows = [self.S.tolist(), self.R.tolist(), self.I.tolist(), self.incentive.tolist(), self.row_weights.tolist(), self.col_weights.tolist()]
         for i in range(self.n):
             rows.append(self.W[i, :].tolist())
         df = pd.DataFrame(rows, columns=uids)
         df = df.rename(index={df.index[0]: 'S'})
         df = df.rename(index={df.index[1]: 'R'})
         df = df.rename(index={df.index[2]: 'I'})
-        df = df.rename(index={df.index[3]: 'row'})
-        df = df.rename(index={df.index[4]: 'col'})
+        df = df.rename(index={df.index[3]: 'incentive'})
+        df = df.rename(index={df.index[4]: 'row'})
+        df = df.rename(index={df.index[5]: 'col'})
         for i in range(self.n):
-            df = df.rename(index={df.index[i + 5]: uids[i]})
+            df = df.rename(index={df.index[i + 6]: uids[i]})
         df.rename_axis(colored('[uid]', 'red'), axis=1)
-        return '\nMetagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.metadata['uid'], self.block, self.tau.item(), self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
+        return '\nMetagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.metadata['uid'], self.tau.item(), self.block, self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
 
 
 
