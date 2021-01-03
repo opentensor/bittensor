@@ -49,6 +49,9 @@ class Session():
         # ---- Tensorboard ----
         self.global_step = 0
         self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
+        if self.config.session.record_log:
+            logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
+
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
