@@ -21,7 +21,7 @@ __blocktime__ = 6
 # NOTE (const): tokenizers are guaranteed to improve and expand as time progresses. We version the tokenizer here.
 # neurons must be aware that versions will increase and be ready to convert between tokenizers. 
 # TODO (const): Add functionality to allow tokenizer conversion. i.e. for input token conversion. 
-__vocab_size__ = 50278 if __version__ == "0.0.0" else ValueError ('No __vocab_size__ for version {}'.format( __version__ ) # Must match the __tokenizer__() vocab size.
+__vocab_size__ = (50278 + 100) if __version__ == "0.0.0" else ValueError ('No __vocab_size__ for version {}'.format( __version__ )) # Must match the __tokenizer__() vocab size.
 def __tokenizer__( version = __version__ ):
     from transformers import GPT2Tokenizer
     if version in [ "0.0.0" ]:
@@ -55,7 +55,7 @@ def __tokenizer__( version = __version__ ):
         ]
         tokenizer.additional_special_tokens = additional_special_tokens
         global __vocab_size__
-        __vocab_size__ = len(tokenizer) + len(additional_special_tokens)
+        __vocab_size__ = len(tokenizer) + len(additional_special_tokens) + 100 # Plus 100 for eventual toke size increase.
         return tokenizer
 
     else:
