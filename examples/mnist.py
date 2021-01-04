@@ -89,7 +89,7 @@ class Session():
         with self.neuron:
 
             # ---- Weights ----
-            self.row = self.neuron.metagraph.row
+            self.row = self.neuron.metagraph.row.to(self.model.device)
 
             # ---- Loop forever ----
             self.epoch = -1; self.best_test_loss = math.inf; self.global_step = 0
@@ -146,7 +146,7 @@ class Session():
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation 
 
             # ---- Train weights ----
-            batch_weights = torch.mean(output.dendrite.weights, axis = 0) # Average over batch.
+            batch_weights = torch.mean(output.dendrite.weights, axis = 0).to(self.model.device) # Average over batch.
             self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
             self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
 
