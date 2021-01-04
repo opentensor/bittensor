@@ -3,8 +3,10 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from typing import Tuple
+from types import SimpleNamespace
 
 import bittensor
+from bittensor.neuron import Neuron
 from bittensor import bittensor_pb2
 
 class PKMKeys(nn.Module):
@@ -34,15 +36,13 @@ class PKMKeys(nn.Module):
         return self._keys[uids]
 
 class PKMDendrite():
-    def __init__(self, config, session, query_dim):
+    def __init__(self, config, query_dim):
         self.config = config
-        self.session = session
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # UIDs -> Keys.
         self.keys = PKMKeys(self.config.dendrite.key_dim)
         # Query -> Keys
         self.projection = nn.Linear(query_dim, self.config.dendrite.key_dim, bias=True).to(self.device)
-
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
@@ -55,10 +55,13 @@ class PKMDendrite():
     def check_config(config):   
         return config
 
-    def _route(self, inputs, query, modality: bittensor_pb2.Modality) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.LongTensor, torch.LongTensor]:
+    def _route(self, neuron: Neuron, inputs: torch.FloatTensor, query: torch.FloatTensor, modality: bittensor_pb2.Modality) -> SimpleNamespace:
         r""" Routes inputs using context and metagraph state.
 
             Args:
+                neuron (:obj: `bittensor.Neuron`, `required`):
+                    Bittensor neuron, used for making queries to the remote network.
+
                 inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, *-1*)`, `required`): 
                     tensors inputs to distribute to neurons using context.
                 
@@ -69,30 +72,33 @@ class PKMDendrite():
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
-                responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
-                    Joined responses from each queried neuron.
+                output = SimpleNamespace {
+                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                        Joined responses from each queried neuron.
 
-                weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `required`): 
-                    weights for each neuron per example.
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `required`): 
+                        weights for each neuron per example.
 
-                requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `required`): 
-                    number of requests sent to each uid in this batch.
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `required`): 
+                        number of requests sent to each uid in this batch.
 
-                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
-                    dendrite call return codes.
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                        dendrite call return codes.
+                }
         """
+        output = SimpleNamespace ()
+
         # For ease of use.
         batch_size = inputs.shape[0]
 
-
         # all_uids: (torch.LongTensor): unique keys for each peer neuron.
         # all_uids.shape = [metagraph.n]
-        all_uids = self.session.metagraph.uids # Returns a list of neuron uids.
+        all_uids = neuron.metagraph.uids # Returns a list of neuron uids.
 
         # filtered_uids: (torch.LongTensor): keys filtered by emit.
         # all_uids.shape = [metagraph.n]
-        current_block = self.session.metagraph.block
-        lastemit = self.session.metagraph.lastemit
+        current_block = neuron.metagraph.block
+        lastemit = neuron.metagraph.lastemit
         staleness = (current_block - lastemit)
         filtered_uids = all_uids[torch.where(staleness < self.config.dendrite.stale_emit_filter)] 
         n_uids = torch.numel(filtered_uids)
@@ -100,12 +106,12 @@ class PKMDendrite():
         # Return if there are no uids to query
         if n_uids == 0:
             # Return nill responses.
-            n = self.session.metagraph.n
-            null_response = torch.zeros(size=(inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
-            null_weights = torch.zeros(size=(inputs.shape[0], n))
-            null_sizes = torch.zeros(n)
-            null_retops = torch.zeros(n)
-            return null_response, null_weights, null_sizes, null_retops
+            n = neuron.metagraph.n
+            output.response = torch.zeros(size=(inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
+            output.weights = torch.zeros(size=(inputs.shape[0], n))
+            output.requests_sizes = torch.zeros(n)
+            output.return_codes = torch.zeros(n)
+            return output
 
         # keys: (torch.FloatTensor): unique trainable torch keys for each uid
         # keys.shape = [n_uids, config.dendrite.key_dim]
@@ -165,18 +171,18 @@ class PKMDendrite():
         
         # neurons: List[bittensor_pb2.Neuron]: endpoint information for filtered keys.
         # neurons.shape = n_uids * [ bittensor_pb2.Neuron ]
-        neurons = self.session.metagraph.uids_to_neurons(filtered_uids)
+        neurons = neuron.metagraph.uids_to_neurons(filtered_uids)
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
         if modality == bittensor_pb2.Modality.TEXT:
-            responses, retops = self.session.dendrite.forward_text(neurons, requests)
+            responses, retops = neuron.dendrite.forward_text(neurons, requests)
 
         elif modality == bittensor_pb2.Modality.IMAGE:
-            responses, retops = self.session.dendrite.forward_image(neurons, requests)
+            responses, retops = neuron.dendrite.forward_image(neurons, requests)
 
         elif modality == bittensor_pb2.Modality.TENSOR:
-            responses, retops = self.session.dendrite.forward_tensor(neurons, requests)
+            responses, retops = neuron.dendrite.forward_tensor(neurons, requests)
 
         else:
             raise NotImplementedError
@@ -214,26 +220,33 @@ class PKMDendrite():
 
         # indices: (torch.LongTensor): indices of uids queried during this forward call.
         # indices = [batch_size, metagraph.n]
-        indices = self.session.metagraph.uids_to_indices(filtered_uids)
+        indices = neuron.metagraph.uids_to_indices(filtered_uids)
 
         # weights: (torch.LongTensor): weights scattered onto uids per example.
         # weights.shape = [batch_size, metagraph.n]
-        weights = torch.zeros(inputs.shape[0], self.session.metagraph.n)
+        weights = torch.zeros(inputs.shape[0], neuron.metagraph.n)
         weights.to(self.device).scatter_(1, indices.to(self.device).repeat(batch_size, 1), gates)
 
         # filled_sizes: (torch.LongTensor): number of examples queried to each uid.
         # filled_sizes.shape = [metagraph.n]
-        filled_request_sizes = torch.zeros(self.session.metagraph.n, dtype=torch.long)
+        filled_request_sizes = torch.zeros(neuron.metagraph.n, dtype=torch.long)
         filled_request_sizes.scatter_(0, indices, torch.tensor(request_sizes))
 
         # Return.
-        return combined, weights, filled_request_sizes, retops
+        output.response = combined
+        output.weights = weights
+        output.request_sizes = filled_request_sizes
+        output.return_codes = retops
+        return output
 
 
-    def forward_image(self, images: torch.FloatTensor, query: torch.FloatTensor) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.LongTensor]:
+    def forward_image(self, neuron: Neuron, images: torch.FloatTensor, query: torch.FloatTensor) -> SimpleNamespace:
         r""" Forwards images to connected neurons using the passed context to learn connectivity.
 
             Args:
+                neuron (:obj: `bittensor.Neuron`, `required`):
+                    Bittensor neuron, used for making queries to the remote network.
+
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
                     Image tensors to forward.
                 
@@ -241,24 +254,29 @@ class PKMDendrite():
                     query tensor used to select which neurons query for each example.
             
             Returns:
-                responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
-                    Joined responses from each queried neuron.
+                SimpleNamespace {
+                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                        Joined responses from each queried neuron.
 
-                weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                    weights for each neuron per example.
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each neuron per example.
 
-                requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                    number of requests sent to each uid in this batch.
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
 
-                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
-                    dendrite call return codes.
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                        dendrite call return codes.
+                }
         """
-        return self._route(images, query, bittensor_pb2.Modality.IMAGE)
+        return self._route(neuron, images, query, bittensor_pb2.Modality.IMAGE)
 
-    def forward_text(self, text: torch.LongTensor, query: torch.FloatTensor) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.LongTensor]:
+    def forward_text(self, neuron: Neuron, text: torch.LongTensor, query: torch.FloatTensor) -> SimpleNamespace:
         r""" Forwards text to connected neurons using the passed context to learn connectivity.
 
             Args:
+                neuron (:obj: `bittensor.Neuron`, `required`):
+                    Bittensor neuron, used for making queries to the remote network.
+
                 text (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_dim)`, `required`): 
                     tensor of tokenized sentences.
                 
@@ -266,26 +284,31 @@ class PKMDendrite():
                     Context tensor used to select which neurons query for each example.
             
             Returns:
-                responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
-                    Joined responses from each queried neuron.
+                SimpleNamespace {
+                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                        Joined responses from each queried neuron.
 
-                weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                    weights for each neuron per example.
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each neuron per example.
 
-                requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                    number of requests sent to each uid in this batch.
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
 
-                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
-                    dendrite call return codes.
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                        dendrite call return codes.
+                }
                 
         """
-        return self._route(text, query, bittensor_pb2.Modality.TEXT)
+        return self._route(neuron, text, query, bittensor_pb2.Modality.TEXT)
 
 
-    def forward_tensor(self, tensors: torch.FloatTensor, query: torch.FloatTensor) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.LongTensor]:
+    def forward_tensor(self, neuron: Neuron, tensors: torch.FloatTensor, query: torch.FloatTensor) -> SimpleNamespace:
         r""" Forwards tensors to connected neurons using the passed context to learn connectivity.
 
             Args:
+                neuron (:obj: `bittensor.Neuron`, `required`):
+                    Bittensor neuron, used for making queries to the remote network.
+
                 tensors (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
                     tensors sent to connected neurons.
                 
@@ -293,16 +316,18 @@ class PKMDendrite():
                     Query tensor used to select which neurons query for each example.
             
             Returns:
-                responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
-                    Joined responses from each queried neuron.
+                SimpleNamespace {
+                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                        Joined responses from each queried neuron.
 
-                weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                    weights for each neuron per example.
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each neuron per example.
 
-                requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                    number of requests sent to each uid in this batch.
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
 
-                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
-                    dendrite call return codes.
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                        dendrite call return codes.
+                }
         """
-        return self._route(tensors, query, bittensor_pb2.Modality.IMAGE)
+        return self._route(neuron, tensors, query, bittensor_pb2.Modality.IMAGE)

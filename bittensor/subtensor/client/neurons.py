@@ -7,22 +7,24 @@ class Neuron:
     hotkey : str
     ip: str
     ip_type: int
+    modality: int
     coldkey : str
 
-    def __init__(self, uid, hotkey, ip, ip_type, coldkey):
+    def __init__(self, uid, hotkey, ip, ip_type, modality, coldkey):
         self.uid = uid
         self.hotkey = hotkey
         self.ip = net.int_to_ip (ip)
         self.ip_type = ip_type
         self.coldkey = coldkey
+        self.modality = modality
         self.stake = int
 
     @staticmethod
     def from_dict(attrs : dict):
-        return Neuron(attrs['uid'], attrs['hotkey'], attrs['ip'], attrs['ip_type'], attrs['coldkey'])
+        return Neuron(attrs['uid'], attrs['hotkey'], attrs['ip'], attrs['ip_type'], attrs['modality'], attrs['coldkey'])
 
     def __str__(self):
-        return "<neuron uid: %s hotkey: %s ip: %s coldkey: %s>" % (self.uid, self.hotkey, net.ip__str__(self.ip, self.ip_type), self.coldkey)
+        return "<neuron uid: %s hotkey: %s ip: %s  modality: %s coldkey: %s>" % (self.uid, self.hotkey, net.ip__str__(self.ip, self.ip_type), self.modality, self.coldkey)
 
 class Neurons(list):
     @staticmethod

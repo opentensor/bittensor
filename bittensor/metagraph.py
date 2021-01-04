@@ -3,6 +3,7 @@ import asyncio
 import copy
 import argparse
 import bittensor
+import pandas as pd
 import math
 import numpy
 import time
@@ -10,6 +11,7 @@ import torch
 import traceback
 
 from munch import Munch
+from termcolor import colored
 from loguru import logger
 from bittensor import bittensor_pb2
 from bittensor.subtensor.client import WSClient
@@ -36,7 +38,7 @@ class ChainState():
         self.index_for_pubkey = {}
         self.pubkey_for_index = {}
 
-    def add_or_update(self, pubkey:str, ip: int, port: int, uid: int, ip_type: int, lastemit: int, stake: int, w_uids: List[str], w_vals: List[int]):
+    def add_or_update(self, pubkey:str, ip: int, port: int, uid: int, ip_type: int, modality: int, lastemit: int, stake: int, w_uids: List[str], w_vals: List[int]):
         address_str = net.int_to_ip(ip)
         neuron = bittensor_pb2.Neuron(
             version = bittensor.__version__,
@@ -44,6 +46,7 @@ class ChainState():
             address = address_str,
             port = int(port),
             ip_type = int(ip_type),
+            modality = int(modality),
             uid = int(uid),
         )
         if pubkey in self.index_for_pubkey:
@@ -60,7 +63,7 @@ class ChainState():
             self.index_for_pubkey[pubkey] = index
             self.pubkey_for_index[index] = pubkey
             self.neurons.append(neuron)
-            self.stake.append(float(stake))
+            self.stake.append(float(stake) / 1000000000)
             self.lastemit.append(int(lastemit))
             self.weight_uids.append(list(w_uids))
             self.weight_vals.append(list(w_vals))
@@ -100,7 +103,7 @@ class TorchChainState():
 
     """
     def __init__(self):
-        self.tau = torch.tensor([50.0], dtype = torch.float32)
+        self.tau = torch.tensor([0.5], dtype = torch.float32)
         self.block = 0
         self.n = 0
         self.uids = torch.tensor([])
@@ -119,7 +122,7 @@ class TorchChainState():
         # Deep copies chain state into metagraph state.
         state = TorchChainState()
         state.n = cache.n
-        state.tau = torch.tensor([50.0], dtype = torch.float32)
+        state.tau = torch.tensor([0.5], dtype = torch.float32)
         state.neurons = copy.deepcopy(cache.neurons)
         state.indices = torch.tensor(range(state.n), dtype=torch.int64)
         state.uids = torch.tensor(copy.deepcopy(cache.uids), dtype=torch.int64)
@@ -150,12 +153,13 @@ class Metagraph():
         """
         # Protected vars
         self._config = config
-        self.__keypair = config.session.keypair
+        self.__keypair = config.neuron.keypair
 
         # Client for talking to chain.
         self.subtensor_client = WSClient(self._config.metagraph.chain_endpoint, self.__keypair)
 
         # This neurons metadata on chain, initially None, filled on subscribe.
+        self.uid = None
         self.metadata = None
 
         # Chain state cached before converted into the torch state.
@@ -167,7 +171,7 @@ class Metagraph():
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         # TODO(const): check this endpoint in check_config.
-        parser.add_argument('--metagraph.chain_endpoint', default='feynman.kusanagi.bittensor.com:9944', type=str, 
+        parser.add_argument('--metagraph.chain_endpoint', default='localhost:9944', type=str, 
                             help='chain endpoint.')
         parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
                             help='filter neurons with last emit beyond this many blocks.')
@@ -250,14 +254,13 @@ class Metagraph():
 
     @property
     def incentive(self) -> torch.FloatTensor:
-        r""" Returns the ranks 
+        r""" Returns the incentive value from each known neuron to you.
         Returns
             incentive: (:obj:`torch.FLoatTensor` of shape :obj:`(metagraph.n)`):
-                inflation incentive of each each known neuron.
+                inflation incentive from each known neuron.
         """
-        I =  (self.tau * self.ranks) / torch.sum(self.ranks)
-        I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
-        return I
+        incentive = self.tau * self.col * self.stake
+        return incentive
 
     @property
     def I(self) -> torch.FloatTensor:
@@ -266,7 +269,9 @@ class Metagraph():
             I: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 stake of each known neuron.
         """
-        return self.incentive
+        I =  (self.tau * self.ranks) / torch.sum(self.ranks)
+        I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
+        return I
 
     @property
     def ranks(self) -> torch.FloatTensor:
@@ -296,35 +301,35 @@ class Metagraph():
         return self.ranks
 
     @property
-    def row_weights(self) -> torch.FloatTensor:
+    def row(self) -> torch.FloatTensor:
         r""" Returns this neuron's row weights, i.e. weights to other neurons.
         Returns
-            row_weights: (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n)`):
+            row: (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n)`):
                 w_{i,*}
         """
-        if self.metadata == None:
-            raise ValueError('Must be subscribed before you can return your row_weights')
+        if self.uid == None:
+            raise ValueError('Must be subscribed before you can return your row')
         try:
-            self_idx = self.state.index_for_uid[self.metadata['uid']] 
+            self_idx = self.state.index_for_uid[ self.uid ] 
             return self.state.W[self_idx, :]
         except:
-            logger.error('your uid is not in self.state with state.uids {} and uid {}'.format(self.state.uids, self.metadata['uid']))
+            logger.error('your uid is not in self.state with state.uids {} and uid {}'.format(self.state.uids, self.uid))
             return torch.tensor([])
 
     @property
-    def col_weights(self) -> torch.FloatTensor:
+    def col(self) -> torch.FloatTensor:
         r""" Returns this neuron's col weights, i.e. weights from other neurons to us.
         Returns
-            col_weights: (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n)`):
+            col: (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n)`):
                 w_{*,i}
         """
-        if self.metadata == None:
-            raise ValueError('Must be subscribed before you can return your col_weights')
+        if self.uid == None:
+            raise ValueError('Must be subscribed before you can return your col')
         try:
-            self_idx = self.state.index_for_uid[self.metadata['uid']] 
+            self_idx = self.state.index_for_uid[ self.uid ] 
             return self.state.W[:, self_idx]
         except:
-            logger.error('your uid is not in self.state with state.uids {} and uid {}'.format(self.state.uids, self.metadata['uid']))
+            logger.error('your uid is not in self.state with state.uids {} and uid {}'.format(self.state.uids, self.uid))
             return torch.tensor([])
 
     @property
@@ -469,19 +474,6 @@ class Metagraph():
         """
         return await self.subtensor_client.get_current_block()
 
-    def unsubscribe(self) -> bool:
-        r""" Syncronous: Unsubscribes the local neuron from the chain.
-         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_unsubscribe())  
-
-    async def async_unsubscribe (self):
-        r""" Async: Unsubscribes the local neuron from the chain.
-        """
-        logger.info('Unsubscribe from chain endpoint')
-        await self.subtensor_client.unsubscribe()      
-
     def sync(self):
         r""" Synchronizes the local self.state with the chain state.
         """
@@ -496,7 +488,6 @@ class Metagraph():
         last_sync = await self.async_chain_block()
         self.state = TorchChainState.from_cache(self.cache)
         self.state.block = last_sync
-        print (self.__str__())
 
     async def _sync_cache(self):
         r""" Async: Makes calls to chain updating local chain cache with newest info.
@@ -504,25 +495,26 @@ class Metagraph():
         # Make asyncronous calls to chain filling local state cache.
         calls = []
         current_block = await self.async_chain_block()
-        neurons = await self.subtensor_client.neurons()
-        logger.info(self.metadata)
-        calls.append(self._poll_pubkey(self.metadata, self.__keypair.public_key))
-        for (pubkey, neuron) in neurons:
-                last_emit = await self.subtensor_client.get_last_emit_data_for_uid(neuron['uid'])
-                if last_emit:
-                    if (current_block - last_emit) < self._config.metagraph.stale_emit_filter:
-                        calls.append(self._poll_pubkey(neuron, pubkey))
+        active = dict( await self.subtensor_client.get_active() )
+        last_emit = dict( await self.subtensor_client.get_last_emit_data() )
+        calls.append ( self._poll_uid ( self.__keypair.public_key, self.uid ) )        
+        for pubkey, uid in active.items():
+            if uid in last_emit:
+                emit_block = last_emit[ uid ]
+                if (current_block - emit_block) < self._config.metagraph.stale_emit_filter:
+                        calls.append( self._poll_uid ( pubkey, uid ) )
         await asyncio.gather(*calls)
 
-    async def _poll_pubkey(self, neuron, pubkey):
+    async def _poll_uid(self, pubkey: str, uid:int):
         r""" Polls info info for a specfic public key.
         """
         try:
-            stake = await self.subtensor_client.get_stake_for_uid(neuron['uid'])
-            lastemit = await self.subtensor_client.get_last_emit_data_for_uid(neuron['uid'])
-            w_uids = await self.subtensor_client.weight_uids_for_uid(neuron['uid'])
-            w_vals = await self.subtensor_client.weight_vals_for_uid(neuron['uid'])
-            self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
+            stake = await self.subtensor_client.get_stake_for_uid( uid )
+            lastemit = await self.subtensor_client.get_last_emit_data_for_uid( uid )
+            w_uids = await self.subtensor_client.weight_uids_for_uid( uid )
+            w_vals = await self.subtensor_client.weight_vals_for_uid( uid )
+            neuron = await self.subtensor_client.get_neuron_for_uid ( uid )
+            self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], modality = neuron['modality'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
         except Exception as e:
             logger.error("Exception occurred: {}".format(e))
             traceback.print_exc()
@@ -641,8 +633,7 @@ class Metagraph():
             code, message = await self._try_async_subscribe(timeout)
 
             if code == Metagraph.SubscribeSuccess:
-                self.metadata = await self.subtensor_client.neurons(self.__keypair.public_key)
-                logger.info('Successfully subcribed session with: {}', self.metadata)
+                logger.info('Successfully subcribed with: {}', self.metadata)
                 return code, message
 
             elif code == Metagraph.SubscribeNotConnected:
@@ -699,7 +690,7 @@ class Metagraph():
         # ---- Make Subscription transaction ----
         while True:
             try:
-                await self.subtensor_client.subscribe(self._config.axon.external_ip, self._config.axon.external_port, self._config.session.coldkey)
+                await self.subtensor_client.subscribe(self._config.axon.external_ip, self._config.axon.external_port, bittensor_pb2.Modality.TEXT, self._config.neuron.coldkey)
                 break
 
             except Exception as e:
@@ -717,19 +708,22 @@ class Metagraph():
         while True:
             try:
                 # ---- Request info from chain ----
-                metadata = await self.subtensor_client.neurons(self.__keypair.public_key)
+                self.uid = await self.subtensor_client.get_uid_for_pubkey(self.__keypair.public_key)
+
+                # ---- Request info from chain ----
+                self.metadata = await self.subtensor_client.neurons(self.uid)
 
             except Exception as e:
                 # ---- Catch errors in request ----
                 message = "Subscription threw an unknown exception {}".format(e)
                 return Metagraph.SubscribeUnknownError, message
 
-            if metadata != None:
+            if self.metadata != None:
                 # ---- Subscription was a success ----
                 return Metagraph.SubscribeSuccess, "Subscription success"
 
             elif time.time() - start_time > timeout:
-                # ---- wait -----
+                # ---- dont wait -----
                 return Metagraph.SubscribeTimeout, "Subscription timeout"
 
             else:
@@ -972,8 +966,8 @@ class Metagraph():
         r""" Returns true if the passed key and vals are set on chain.
         """
         cmap = {}
-        chain_uids = await self.subtensor_client.weight_uids_for_uid(self.metadata['uid'])
-        chain_vals = await self.subtensor_client.weight_vals_for_uid(self.metadata['uid'])
+        chain_uids = await self.subtensor_client.weight_uids_for_uid(self.uid)
+        chain_vals = await self.subtensor_client.weight_vals_for_uid(self.uid)
         if chain_uids != None and chain_vals != None:
             n_same = 0
             for uid, val in list(zip(chain_uids, chain_vals)):
@@ -1022,34 +1016,21 @@ class Metagraph():
         return weight_uids, weight_vals
 
     def __str__(self):
-        return """ 
-        Metagraph {{ 
-            block {} 
-            inflation_rate: {} 
-            n_neurons: {}
-            uids: {} 
-            stake: {}
-            lastemit {}
-            W {} 
-            W[*:] {}
-            W[:*] {}
-            S {}
-            R {}
-            I {}
-        }}
-        """.format(
-        self.block, 
-        self.tau.item(), 
-        self.n, 
-        self.uids.tolist(), 
-        self.stake.tolist(), 
-        self.lastemit.tolist(), 
-        self.W.tolist(), 
-        self.row_weights.tolist(), 
-        self.col_weights.tolist(), 
-        self.S.tolist(), 
-        self.R.tolist(), 
-        self.I.tolist()
-        )
+        uids = self.state.uids.tolist()
+        rows = [self.S.tolist(), self.R.tolist(), self.I.tolist(), self.incentive.tolist(), self.row.tolist(), self.col.tolist()]
+        for i in range(self.n):
+            rows.append(self.W[i, :].tolist())
+        df = pd.DataFrame(rows, columns=uids)
+        df = df.rename(index={df.index[0]: 'S'})
+        df = df.rename(index={df.index[1]: 'R'})
+        df = df.rename(index={df.index[2]: 'I'})
+        df = df.rename(index={df.index[3]: 'incentive'})
+        df = df.rename(index={df.index[4]: 'row'})
+        df = df.rename(index={df.index[5]: 'col'})
+        for i in range(self.n):
+            df = df.rename(index={df.index[i + 6]: uids[i]})
+        df.rename_axis(colored('[uid]', 'red'), axis=1)
+        return '\nMetagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.uid, self.tau.item(), self.block, self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
+
 
 

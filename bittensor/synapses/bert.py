@@ -2,7 +2,7 @@ import bittensor
 from bittensor.dendrites.pkm import PKMDendrite
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseOutput
-from bittensor.session import Session
+from bittensor.neuron import Neuron
 
 import argparse
 import random
@@ -15,20 +15,20 @@ from munch import Munch
 class BertSynapseBase (Synapse):
     def __init__(   self,
                 config: Munch,
-                session: Session):
+                neuron: Neuron):
         r""" Init a new base-bert synapse.
 
             Args:
                 config (:obj:`munch.Munch`, `required`): 
                     BertNSP configuration class.
 
-                Session (:obj:`bittensor.Session`, `optional`): 
-                    bittensor training session.
+                neuron (:obj:`bittensor.Neuron`, `optional`): 
+                    bittensor training neuron.
 
         """
         super(BertSynapseBase, self).__init__(
             config = config,
-            session = session)
+            neuron = neuron)
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
@@ -40,7 +40,7 @@ class BertSynapseBase (Synapse):
 
         # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite(config, session, query_dim = bittensor.__network_dim__)
+        self.dendrite = PKMDendrite(config, neuron, query_dim = bittensor.__network_dim__)
 
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -270,19 +270,19 @@ class BertSynapseBase (Synapse):
 class BertNSPSynapse (BertSynapseBase):
     def __init__(   self,
                     config: Munch,
-                    session: Session):
+                    neuron: Neuron):
         r""" Init a new bert nsp synapse module.
 
             Args:
                 config (:obj:`Munch`, `required`): 
                     BertNSP configuration class.
 
-                session (:obj:`bittensor.Session`, `required`): 
-                    bittensor session object. 
+                neuron (:obj:`bittensor.Neuron`, `required`): 
+                    bittensor neuron object. 
         """
         super(BertNSPSynapse, self).__init__(
             config = config,
-            session = session)
+            neuron = neuron)
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
@@ -409,19 +409,19 @@ class BertNSPSynapse (BertSynapseBase):
 class BertMLMSynapse (BertSynapseBase):
     def __init__(   self,
                     config: Munch,
-                    session: Session):
+                    neuron: Neuron):
         r""" Bert synapse for MLM training
 
             Args:
                 config (:obj:`Munch`, `required`): 
                     BertNSP configuration class.
 
-                session (:obj:`bittensor.Session`, `required`): 
-                    bittensor session object. 
+                neuron (:obj:`bittensor.Neuron`, `required`): 
+                    bittensor neuron object. 
         """
         super(BertMLMSynapse, self).__init__(
             config = config,
-            session = session)
+            neuron = neuron)
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 

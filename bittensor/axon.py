@@ -1,5 +1,6 @@
 import argparse
 import grpc
+import pandas as pd
 import random
 import requests
 import sys
@@ -16,11 +17,11 @@ from termcolor import colored
 from types import SimpleNamespace
 from typing import List
 
-
 import bittensor
 import bittensor.utils.networking as net
 import bittensor.serialization as serialization
 import bittensor.utils.stats as stat_utils
+from bittensor.metagraph import Metagraph
 from bittensor.nucleus import Nucleus
 from bittensor.synapse import Synapse
 from bittensor import bittensor_pb2
@@ -33,16 +34,19 @@ class Axon(bittensor_grpc.BittensorServicer):
     It recieves Forward and Backward requests and process the corresponding Synapse.call_forward and Synapse.call_backward.
     
     """
-    def __init__(self, config, nucleus):
+    def __init__(self, config: Munch, nucleus: Nucleus, metagraph: Metagraph):
         r""" Initializes a new Axon endpoint with passed config and keypair.
             Args:
                 config (:obj:`Munch`, `required`): 
                     bittensor Munch config.
                 nucleus (:obj:`bittensor.nucleus.Nucleus`, `required`):
                     backend processing nucleus.
+                metagraph (:obj:`bittensor.nucleus.Metagraph`, `required`):
+                    bittensor network metagraph.
         """
         self._config = config
-        self.__keypair = config.session.keypair
+        self._metagraph = metagraph
+        self.__keypair = config.neuron.keypair
         self._nucleus = nucleus
 
         # Init server objects.
@@ -63,19 +67,32 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # Stats.
         self.stats = SimpleNamespace(
-            forward_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.001),
-            backward_in_bytes= stat_utils.timed_rolling_avg(0.0, 0.001),
-            forward_out_bytes = stat_utils.timed_rolling_avg(0.0, 0.001),
-            backward_out_bytes = stat_utils.timed_rolling_avg(0.0, 0.001),
+            qps = stat_utils.timed_rolling_avg(0.0, 0.01),
+            total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
+            total_out_bytes= stat_utils.timed_rolling_avg(0.0, 0.01),
+            in_bytes_per_uid = {},
+            out_bytes_per_uid = {},
+            qps_per_uid = {},
         )
 
     def __str__(self):
-        total_in_bytes = self.stats.forward_in_bytes.value + self.stats.backward_in_bytes.value
-        total_out_bytes = self.stats.forward_in_bytes.value + self.stats.backward_in_bytes.value
-        total_in_bytes_str = colored('\u290A {:.1f}'.format((total_in_bytes*8)/1000), 'green')
-        total_out_bytes_str = colored('\u290B {:.1f}'.format((total_out_bytes*8)/1000), 'red')
-        return total_in_bytes_str + "/" + total_out_bytes_str + "kB/s"
-        
+        total_in_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'red')
+        total_out_bytes_str = colored('\u290A {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'green')
+        qps_str = colored("{:.3f}".format(float(self.stats.qps.value)), 'blue')
+        return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
+
+    def __full_str__(self):
+        uids = list(self.stats.in_bytes_per_uid.keys())
+        bytes_in = [avg.value * (8/1000) for avg in self.stats.in_bytes_per_uid.values()]
+        bytes_out = [avg.value * (8/1000) for avg in self.stats.in_bytes_per_uid.values()]
+        qps = [qps.value for qps in self.stats.qps_per_uid.values()]
+        rows = [bytes_out, bytes_in, qps]
+        df = pd.DataFrame(rows, columns=uids)
+        df = df.rename(index={df.index[0]: colored('\u290A kB/s', 'green')})
+        df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
+        df = df.rename(index={df.index[2]: colored('Q/s', 'blue')})
+        return '\nAxon:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
+
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         r""" Adds this axon's command line arguments to the passed parser.
@@ -121,8 +138,8 @@ class Axon(bittensor_grpc.BittensorServicer):
             logger.info('UPNPC: OFF')
             config.axon.external_port = config.axon.local_port
 
-        logger.info('External Endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
-        logger.info('Local Endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
+        logger.info('Using external endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
+        logger.info('Using local endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
 
     def __del__(self):
         r""" Called when this axon is deleted, ensures background threads shut down properly.
@@ -150,7 +167,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         # Delete port maps if required.
         if self._config.axon.use_upnpc:
             try:
-                net.upnpc_create_port_map(self._config.axon.external_port)
+                net.upnpc_delete_port_map(self._config.axon.external_port)
             except net.UPNPCException:
                 # Catch but continue.
                 logger.error('Error while trying to destroy port map on your router.')
@@ -190,6 +207,19 @@ class Axon(bittensor_grpc.BittensorServicer):
             priority_map[neuron.public_key] = priority
         self.priority = priority_map
 
+    def get_call_priority(self, request: bittensor_pb2.TensorMessage):
+        if request.public_key in self.priority:
+            call_priority = self.priority[request.public_key]
+        else:
+            try:
+                uid = self._metagraph.state.uid_for_pubkey[request.public_key]
+                idx = int(self._metagraph.uids_to_indices(torch.tensor([uid])).item())
+                call_priority = self._metagraph.incentive[idx]
+            except Exception as e:
+                call_priority = 0.0
+        call_priority += random.random() * 0.0001
+        return call_priority
+
     def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext) -> bittensor_pb2.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
             Forward is equivalent to a 'forward' pass through a neural network.
@@ -204,7 +234,9 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response: (bittensor_pb2.TensorMessage): 
                     proto response carring the synapse forward output or None under failure.
         """
-        self.stats.forward_in_bytes.update(sys.getsizeof(request))
+        # TODO(const): check signature
+        # TODO(const): black and white listing.
+        # ---- Check request versioning.
         if request.version in bittensor.__compatability__[bittensor.__version__]:
             tensor, message, code = self._forward(request)
             response = bittensor_pb2.TensorMessage(
@@ -214,7 +246,8 @@ class Axon(bittensor_grpc.BittensorServicer):
                 message = message,
                 tensors = [tensor] if tensor is not None else [],
             )
-        # Catch incompatible request versions.
+
+        # ---- Catch incompatible request versions.
         else:
             code = bittensor_pb2.ReturnCode.RequestIncompatibleVersion
             message = "request version {} must be in {}".format(request.version, bittensor.__compatability__[bittensor.__version__])
@@ -224,7 +257,9 @@ class Axon(bittensor_grpc.BittensorServicer):
                 return_code = code,
                 message = message,
             )
-        self.stats.forward_out_bytes.update(sys.getsizeof(response))
+
+        # ---- Update stats for this request.
+        self.update_stats_for_request(request, response)
         return response
 
 
@@ -242,7 +277,6 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response: (bittensor_pb2.TensorMessage): 
                     proto response carring the synapse backward output or None under failure.
         """
-        self.stats.backward_in_bytes.update(sys.getsizeof(request))
         if request.version in bittensor.__compatability__[bittensor.__version__]:
             tensor, message, code = self._backward(request)
             response = bittensor_pb2.TensorMessage(
@@ -263,7 +297,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 return_code = code,
                 message = message,
             )
-        self.stats.backward_out_bytes.update(sys.getsizeof(request))
+        self.update_stats_for_request(request, response)
         return response
             
 
@@ -334,10 +368,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 return None, message, code
 
         # --- Get call priority ----
-        try:
-            call_priority = self.priority[request.public_key] + random.random()
-        except:
-            call_priority = 1 + random.random()
+        call_priority = self.get_call_priority(request)
 
         # ---- Make Nucleus forward call. ----
         try:
@@ -450,6 +481,26 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # ---- Finaly return ----
         return outputs_serialized, message, code
+
+
+    def update_stats_for_request(self, request, response):
+        self.stats.qps.update(1)
+        in_bytes = sys.getsizeof(request)
+        out_bytes = sys.getsizeof(response)
+        self.stats.total_in_bytes.update(in_bytes)
+        self.stats.total_out_bytes.update(out_bytes)
+        if request.public_key in self._metagraph.state.uid_for_pubkey:
+            # ---- Check we have a stats column for this peer
+            request_uid = self._metagraph.state.uid_for_pubkey[request.public_key]
+            if request_uid in self.stats.in_bytes_per_uid:
+                self.stats.in_bytes_per_uid[request_uid].update(in_bytes)
+                self.stats.out_bytes_per_uid[request_uid].update(out_bytes)
+                self.stats.qps_per_uid[request_uid].update(1)
+            else:
+                self.stats.in_bytes_per_uid[request_uid] = stat_utils.timed_rolling_avg(in_bytes, 0.01)
+                self.stats.out_bytes_per_uid[request_uid] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
+                self.stats.qps_per_uid[request_uid] = stat_utils.timed_rolling_avg(1, 0.01)
+
 
 
 

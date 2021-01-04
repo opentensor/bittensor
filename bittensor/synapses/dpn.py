@@ -7,7 +7,7 @@ import bittensor
 from bittensor.dendrites.pkm import PKMDendrite
 from bittensor.synapse import Synapse
 from bittensor.synapse import SynapseOutput
-from bittensor.session import Session
+from bittensor.neuron import Neuron
 from bittensor.utils.batch_transforms import Normalize
 
 import argparse
@@ -22,7 +22,7 @@ class DPNSynapse(Synapse):
 
     def __init__(   self, 
                     config: Munch,
-                    session: Session,
+                    neuron: Neuron,
                 ):
         r""" Init a new DPN synapse module.
 
@@ -30,12 +30,12 @@ class DPNSynapse(Synapse):
                 config (:obj: `munch.Munch`, `required`)
                     munch namespace config item.
 
-                 session (:obj:`bittensor.Session`, `required`): 
-                    bittensor session object. 
+                 neuron (:obj:`bittensor.Neuron`, `required`): 
+                    bittensor neuron object. 
         """
         super(DPNSynapse, self).__init__(
             config = config,
-            session = session)
+            neuron = neuron)
 
         in_planes, out_planes = config.synapse.in_planes, config.synapse.out_planes
         num_blocks, dense_depth = config.synapse.num_blocks, config.synapse.dense_depth
@@ -62,7 +62,7 @@ class DPNSynapse(Synapse):
         
         # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite(config, session, query_dim = self.transform_dim)
+        self.dendrite = PKMDendrite(config, neuron, query_dim = self.transform_dim)
 
         # Context layers.
         """

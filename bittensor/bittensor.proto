@@ -41,10 +41,13 @@ message Neuron {
 	// SIZE: 32-bits (4-bytes)
 	int32 ip_type = 5;
 
+	// Modality: TEXT, TENSOR, IMAGE
+	Modality modality = 6;
+
 	// uid: [REQUIRED] unique network identifier.
   	// i.e. '1223213221'
 	// SIZE: 64-bits (8-bytes)
-	int64 uid = 6;
+	int64 uid = 7;
 }	
 
 // TensorMessage
@@ -121,7 +124,8 @@ enum ReturnCode {
 	NucleusFull = 17; // Returned when the processing queue on the server is full.
 	RequestIncompatibleVersion = 18; // The request handler is incompatible with the request version.
 	ResponseIncompatibleVersion = 19; // The request handler is incompatible with the request version.
-	UnknownException = 20; // Unknown exception.
+	SenderUnknown = 20; // The requester is not known by the reciever. 
+	UnknownException = 21; // Unknown exception.
 }
 
 // A serialized tensor object created using the serializer class.
@@ -195,8 +199,8 @@ enum DataType {
 }
 
 enum Modality {
-	TENSOR = 0;
+	TEXT = 0;
 	IMAGE = 1;
-	TEXT = 2;
+	TENSOR = 2;
 }
 
