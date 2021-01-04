@@ -153,7 +153,7 @@ class Session():
             # ---- Step Logs + Tensorboard ----
             processed = ((batch_idx + 1) * self.config.session.batch_size_train)
             progress = (100. * processed) / len(self.train_data)
-            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\tLoss: {}\tAcc: {}\tAxon: {}\tDendrite: {}\tMetagraph: {}', 
+            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\tLoss: {}\tAcc: {}\tAxon: {}\tDendrite: {}', 
                     colored('{}'.format(self.global_step), 'blue'), 
                     colored('{}'.format(self.epoch), 'blue'), 
                     colored('{}'.format(processed), 'green'), 
