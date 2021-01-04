@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock
+from bittensor.metagraph import Metagraph
 from bittensor.config import Config
 from bittensor.nucleus import Nucleus
 from bittensor.subtensor.interface import Keypair
@@ -30,8 +31,9 @@ mnemonic = Keypair.generate_mnemonic()
 keypair = Keypair.create_from_mnemonic(mnemonic)
 config.neuron.keypair = keypair
 
-nucleus = Nucleus(config)
-axon = bittensor.axon.Axon(config, nucleus)
+metagraph = Metagraph(config)
+nucleus = Nucleus(config, metagraph)
+axon = bittensor.axon.Axon(config, nucleus, metagraph)
 synapse = Synapse(config)
 
 def test_serve():
