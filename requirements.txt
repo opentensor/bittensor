@@ -30,7 +30,6 @@ py-bip39-bindings>=0.1.6
 pytest-asyncio
 pytest>=6.1.2
 pyyaml
-replicate
 rollbar
 scalecodec==0.10.30
 termcolor
