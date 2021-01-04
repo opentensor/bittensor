@@ -159,7 +159,7 @@ def main():
     regen_key_parser = cmd_parsers.add_parser('regen')
     regen_key_parser.add_argument("--mnemonic", required=True, nargs="+")
     regen_key_parser.add_argument('--password', action='store_true', help='Protect the generated bittensor key with a password')
-    regen_key_parser.add_argument('--file', help='The destination path of the keyfile (default: ~/.bittensor/keys)',
+    regen_key_parser.add_argument('--keyfile', help='The destination path of the keyfile (default: ~/.bittensor/keys)',
                         default='~/.bittensor/key')
 
 
@@ -176,14 +176,14 @@ def main():
         keypair = validate_generate_mnemonic(args.mnemonic)
 
     data = json.dumps(keypair.toDict()).encode()
-                                                            
+
     if args.password:
         password = input_password()
         print("Encrypting key, this might take a while")
-        data = encrypt(data, password)                      
-                                                            
-                                                            
-    save_keys(keyfile, data)                                
+        data = encrypt(data, password)
+
+
+    save_keys(keyfile, data)
     set_file_permissions(keyfile)
 
 if __name__ == '__main__':

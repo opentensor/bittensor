@@ -63,7 +63,8 @@ class Session():
         parser.add_argument('--session.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
         parser.add_argument('--session.root_dir', default='data/', type=str,  help='Root path to load and save data associated with each session')
         parser.add_argument('--session.name', default='mnist', type=str, help='Trials for this session go in session.root / session.name')
-        parser.add_argument('--session.uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
+        parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.trial_uid')
+        parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
         Neuron.add_args(parser)
         FFNNSynapse.add_args(parser)
 
@@ -74,7 +75,7 @@ class Session():
         assert config.session.batch_size_train > 0, "batch_size_train must be a positive value"
         assert config.session.batch_size_test > 0, "batch_size_test must be a positive value"
         assert config.session.learning_rate > 0, "learning rate must be be a positive value."
-        full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.uid)
+        full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.trial_uid)
         config.session.full_path = full_path
         if not os.path.exists(config.session.full_path):
             os.makedirs(config.session.full_path)

@@ -1,9 +1,5 @@
 from loguru import logger
-import os
 import sys
-from transformers import GPT2Tokenizer
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 # Bittensor code and protocol version.
 __version__ = '0.0.0'
 
@@ -15,12 +11,12 @@ __compatability__ = { __version__ : [ __version__ ] }
 __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __sequence_dim__, __network_dim__ ]
 
 # Substrate chain block time.
-__blocktime__ = 6 
+__blocktime__ = 6
 
 # Tokenizer
 # NOTE (const): tokenizers are guaranteed to improve and expand as time progresses. We version the tokenizer here.
-# neurons must be aware that versions will increase and be ready to convert between tokenizers. 
-# TODO (const): Add functionality to allow tokenizer conversion. i.e. for input token conversion. 
+# neurons must be aware that versions will increase and be ready to convert between tokenizers.
+# TODO (const): Add functionality to allow tokenizer conversion. i.e. for input token conversion.
 __vocab_size__ = (50278 + 100) if __version__ == "0.0.0" else ValueError ('No __vocab_size__ for version {}'.format( __version__ )) # Must match the __tokenizer__() vocab size.
 def __tokenizer__( version = __version__ ):
     from transformers import GPT2Tokenizer
@@ -32,8 +28,8 @@ def __tokenizer__( version = __version__ ):
         tokenizer.add_special_tokens({'eos_token': "[EOS]"}) # A special token representing the end of a sentence.
         tokenizer.add_special_tokens({'unk_token': "[UNK]"}) # A special token representing an out-of-vocabulary token.
         tokenizer.add_special_tokens({'sep_token': "[SEP]"}) # A special token separating two different sentences in the same input (used by BERT for instance)
-        tokenizer.add_special_tokens({'pad_token': "[PAD]"}) # A special token used to make arrays of tokens the same size for batching purpose. Will then be ignored by attention mechanisms or loss computation. 
-        tokenizer.add_special_tokens({'cls_token': "[CLS]"}) # A special token representing the class of the input (used by BERT for instance). 
+        tokenizer.add_special_tokens({'pad_token': "[PAD]"}) # A special token used to make arrays of tokens the same size for batching purpose. Will then be ignored by attention mechanisms or loss computation.
+        tokenizer.add_special_tokens({'cls_token': "[CLS]"}) # A special token representing the class of the input (used by BERT for instance).
         tokenizer.add_special_tokens({'mask_token': "[MASK]"}) # A special token representing a masked token (used by masked-language modeling pretraining objectives, like BERT).
         additional_special_tokens = [
             "<s>NOTUSED",  # Used by BARThez
