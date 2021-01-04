@@ -256,11 +256,3 @@ class Neuron:
         except Exception as e:
             logger.error('Neuron: Error while stopping axon server: {} ', e)
 
-        # Stop background grpc threads for serving synapse objects.
-        logger.info('Unsubscribe from chain ...')
-        try:
-            self.metagraph.unsubscribe()
-            logger.info('Unsubscribed from chain')
-        except Exception as e:
-            logger.error('Neuron: Error while unsubscribing to the chain endpoint: {}', e)
-

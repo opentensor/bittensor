@@ -87,7 +87,7 @@ class Session():
             # ---- Loop forever ----
             start_time = time.time()
             self.epoch = -1; self.best_test_loss = math.inf; self.global_step = 0
-            self.weights = self.neuron.metagraph.row_weights # Trained weights.
+            self.weights = self.neuron.metagraph.row # Trained weights.
             while True:
                 self.epoch += 1
 
@@ -96,7 +96,7 @@ class Session():
                         
                 # ---- Sync ----  
                 self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.weights = self.neuron.metagraph.row_weights.to(self.device)
+                self.weights = self.neuron.metagraph.row.to(self.device)
                         
                 # ---- Train ----
                 self.train()

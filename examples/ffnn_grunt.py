@@ -104,7 +104,7 @@ class Session():
 
                 # ---- Serve latest model ----
                 self.neuron.axon.serve( self.model ) # Serve the newest model.
-                logger.info('Step: {} \t Key: {} \t sum(W[:,0])', step, public_key, torch.sum(self.neuron.metagraph.col_weights).item())
+                logger.info('Step: {} \t Key: {} \t sum(W[:,0])', step, public_key, torch.sum(self.neuron.metagraph.col).item())
             
                 # ---- Sync State ----
                 if (step + 1) % self.config.session.sync_interval == 0:
@@ -118,8 +118,8 @@ class Session():
                     self.neuron.metagraph.sync() # Sync with the chain.
                     
                     # --- Save Model ----
-                    logger.info( 'Saving model: epoch: {}, sum(W[:,0]): {}, path: {}/{}/{}/model.torch', step, torch.sum(self.neuron.metagraph.col_weights).item(), self.config.session.full_path)
-                    torch.save( {'epoch': step, 'model': self.model.state_dict(), 'loss': torch.sum(self.neuron.metagraph.col_weights).item()},"{}//model.torch".format(self.config.session.full_path))                
+                    logger.info( 'Saving model: epoch: {}, sum(W[:,0]): {}, path: {}/{}/{}/model.torch', step, torch.sum(self.neuron.metagraph.col).item(), self.config.session.full_path)
+                    torch.save( {'epoch': step, 'model': self.model.state_dict(), 'loss': torch.sum(self.neuron.metagraph.col).item()},"{}//model.torch".format(self.config.session.full_path))                
                 
 
    
