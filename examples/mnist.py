@@ -88,9 +88,11 @@ class Session():
         # ---- Subscribe neuron ---- 
         with self.neuron:
 
+            # ---- Weights ----
+            self.row = self.neuron.metagraph.row
+
             # ---- Loop forever ----
             self.epoch = -1; self.best_test_loss = math.inf; self.global_step = 0
-            self.weights = self.neuron.metagraph.row_weights # Trained weights.
             while True:
                 self.epoch += 1
 
@@ -109,7 +111,7 @@ class Session():
                         
                 # ---- Sync ----  
                 self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.weights = self.neuron.metagraph.row_weights.to(self.device)
+                self.row = self.neuron.metagraph.row.to(self.device)
 
                 # --- Display Epoch ----
                 print(self.neuron.axon.__full_str__())
@@ -145,13 +147,13 @@ class Session():
 
             # ---- Train weights ----
             batch_weights = torch.mean(output.dendrite.weights, axis = 0) # Average over batch.
-            self.weights = (1 - 0.03) * self.weights + 0.03 * batch_weights # Moving avg update.
-            self.weights = F.normalize(self.weights, p = 1, dim = 0) # Ensure normalization.
+            self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
+            self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
 
             # ---- Step Logs + Tensorboard ----
             processed = ((batch_idx + 1) * self.config.session.batch_size_train)
             progress = (100. * processed) / len(self.train_data)
-            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\tLoss: {}\tAcc: {}\tAxon: {}\tDendrite: {}\t', 
+            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\tLoss: {}\tAcc: {}\tAxon: {}\tDendrite: {}\tMetagraph: {}', 
                     colored('{}'.format(self.global_step), 'blue'), 
                     colored('{}'.format(self.epoch), 'blue'), 
                     colored('{}'.format(processed), 'green'), 

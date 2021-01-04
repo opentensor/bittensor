@@ -18,8 +18,8 @@
 # def log_all( neuron: Neuron, history: List[bittensor.synapse.SynapseOutput] ):
 #     log_outputs(history)
 #     log_batch_weights(neuron, history)
-#     log_row_weights(neuron)
-#     log_col_weights
+#     log_row(neuron)
+#     log_col
 #     log_incentive(neuron)
 #     log_ranks(neuron)
 #     log_request_sizes(neuron, history)
@@ -142,11 +142,11 @@
 #     print (df)
 #     print('\n')
 
-# def log_row_weights(neuron: Neuron):
+# def log_row(neuron: Neuron):
 #     print ('Row Weights: \n ')
 #     if neuron.metagraph.uids != None and neuron.metagraph.weights != None:
 #         uids = neuron.metagraph.uids.tolist()
-#         weights = neuron.metagraph.row_weights.tolist()
+#         weights = neuron.metagraph.row.tolist()
 #         weights, uids  = zip(*sorted(zip(weights, uids), reverse=True))
 #         df = pd.DataFrame([weights], columns=uids)
 #         df.rename_axis("[uid]", axis=1)
@@ -159,11 +159,11 @@
 #         print (df)
 #     print('\n')
 
-# def log_col_weights(neuron: Neuron):
+# def log_col(neuron: Neuron):
 #     print ('Col Weights: \n ')
 #     if neuron.metagraph.uids != None and neuron.metagraph.weights != None:
 #         uids = neuron.metagraph.uids.tolist()
-#         weights = neuron.metagraph.col_weights.tolist()
+#         weights = neuron.metagraph.col.tolist()
 #         weights, uids  = zip(*sorted(zip(weights, uids), reverse=True))
 #         df = pd.DataFrame([weights], columns=uids)
 #         df.rename_axis("[uid]", axis=1)
