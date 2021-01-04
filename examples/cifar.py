@@ -1,7 +1,7 @@
-"""Training a MNIST Neuron.
-This file demonstrates a training pipeline for an MNIST Neuron.
+"""Training a CIFAR Neuron.
+This file demonstrates a training pipeline for an CIFAR Neuron.
 Example:
-        $ python neurons/mnist.py
+        $ python examples/cifar.py
 """
 import argparse
 import math
@@ -24,170 +24,184 @@ from bittensor.config import Config
 from bittensor.utils.logging import log_all
 from bittensor.synapses.dpn import DPNSynapse
 
-def add_args(parser: argparse.ArgumentParser):    
-    parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
-    parser.add_argument('--session.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
-    parser.add_argument('--session.batch_size_train', default=64, type=int, help='Training batch size.')
-    parser.add_argument('--session.batch_size_test', default=64, type=int, help='Testing batch size.')
-    parser.add_argument('--session.log_interval', default=150, type=int, help='Batches until session prints log statements.')
-    parser.add_argument('--session.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
-    parser.add_argument('--session.root_dir', default='data/', type=str,  help='Root path to load and save data associated with each session')
-    parser.add_argument('--session.name', default='cifar', type=str, help='Trials for this session go in session.root / session.name')
-    parser.add_argument('--session.uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
-    Neuron.add_args(parser)
-    DPNSynapse.add_args(parser)
+class Session():
 
-def check_config(config: Munch):
-    assert config.session.log_interval > 0, "log_interval dimension must be positive"
-    assert config.session.momentum > 0 and config.session.momentum < 1, "momentum must be a value between 0 and 1"
-    assert config.session.batch_size_train > 0, "batch_size_train must be a positive value"
-    assert config.session.batch_size_test > 0, "batch_size_test must be a positive value"
-    assert config.session.learning_rate > 0, "learning rate must be be a positive value."
-    full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.uid)
-    config.session.full_path = full_path
-    if not os.path.exists(config.session.full_path):
-        os.makedirs(config.session.full_path)
-    DPNSynapse.check_config(config)
-    Neuron.check_config(config)
+    def __init__(self, config: Munch):
+        self.config = config
 
-# --- Train epoch ----
-def main(config: Munch, neuron: Neuron):
-    # ---- Model ----
-    model = DPNSynapse(config, neuron) # Feedforward neural network with PKMDendrite.
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to( device ) # Set model to device
+        # ---- Neuron ----
+        self.neuron = Neuron(self.config)
     
-    # ---- Serve ----
-    neuron.axon.serve( model ) # Serves model to Axon RPC endpoint for network access.
+        # ---- Model ----
+        self.model = DPNSynapse( config ) # Feedforward neural network with PKMDendrite.
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to( self.device ) # Set model to device
+        
+        # ---- Optimizer ---- 
+        self.optimizer = optim.SGD(self.model.parameters(), lr=self.config.session.learning_rate, momentum=self.config.session.momentum)
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10.0, gamma=0.1)
 
-    # ---- Optimizer ---- 
-    optimizer = optim.SGD(model.parameters(), lr=config.session.learning_rate, momentum=config.session.momentum)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10.0, gamma=0.1)
+        # ---- Dataset ----
+        self.train_data = torchvision.datasets.CIFAR10(
+            root=self.config.session.root_dir + "datasets/", train=True, download=True, transform=transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+        ]))
+        self.trainloader = torch.utils.data.DataLoader(self.train_data, batch_size = self.config.session.batch_size_train, shuffle=True, num_workers=2)
+        self.test_data = torchvision.datasets.CIFAR10(root = self.config.session.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
+        self.testloader = torch.utils.data.DataLoader(self.test_data, batch_size = self.config.session.batch_size_test, shuffle=False, num_workers=2)
+        self.test_data = torchvision.datasets.CIFAR10(root = self.config.session.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
 
-    # ---- Dataset ----
-    train_data = torchvision.datasets.CIFAR10(
-        root=config.session.root_dir + "datasets/", train=True, download=True, transform=transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-    ]))
-    trainloader = torch.utils.data.DataLoader(train_data, batch_size = config.session.batch_size_train, shuffle=True, num_workers=2)
-    test_data = torchvision.datasets.CIFAR10(root = config.session.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
-    testloader = torch.utils.data.DataLoader(test_data, batch_size = config.session.batch_size_test, shuffle=False, num_workers=2)
-    test_data = torchvision.datasets.CIFAR10(root = config.session.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
+        # ---- Tensorboard ----
+        self.global_step = 0
+        self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
+        if self.config.session.record_log:
+            logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
 
-    # ---- Tensorboard ----
-    global_step = 0
-    tensorboard = SummaryWriter(log_dir = config.session.full_path)
 
-    # --- Test epoch ----
-    def test ():
-        model.eval() # Turns off Dropoutlayers, BatchNorm etc.
-        with torch.no_grad(): # Turns off gradient computation for inference speed up.
-            loss = 0.0; accuracy = 0.0
-            for _, (images, labels) in enumerate(testloader):                
-                # ---- Forward pass ----
-                outputs = model.forward(
-                    images = images.to(model.device), 
-                    targets = torch.LongTensor(labels).to(model.device), 
-                    remote = True 
-                )
-                loss = loss + outputs.loss / len(test_data)
-                accuracy = outputs.metadata['local_accuracy'] / len(test_data)
-        return loss, accuracy
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):    
+        parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
+        parser.add_argument('--session.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--session.batch_size_train', default=64, type=int, help='Training batch size.')
+        parser.add_argument('--session.batch_size_test', default=64, type=int, help='Testing batch size.')
+        parser.add_argument('--session.log_interval', default=150, type=int, help='Batches until session prints log statements.')
+        parser.add_argument('--session.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
+        parser.add_argument('--session.root_dir', default='data/', type=str,  help='Root path to load and save data associated with each session')
+        parser.add_argument('--session.name', default='cifar', type=str, help='Trials for this session go in session.root / session.name')
+        parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.trial_uid')
+        parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
+        Neuron.add_args(parser)
+        DPNSynapse.add_args(parser)
+
+    @staticmethod
+    def check_config(config: Munch):
+        assert config.session.log_interval > 0, "log_interval dimension must be positive"
+        assert config.session.momentum > 0 and config.session.momentum < 1, "momentum must be a value between 0 and 1"
+        assert config.session.batch_size_train > 0, "batch_size_train must be a positive value"
+        assert config.session.batch_size_test > 0, "batch_size_test must be a positive value"
+        assert config.session.learning_rate > 0, "learning rate must be be a positive value."
+        full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.trial_uid)
+        config.session.full_path = full_path
+        if not os.path.exists(config.session.full_path):
+            os.makedirs(config.session.full_path)
+        DPNSynapse.check_config(config)
+        Neuron.check_config(config)
+
+    # --- Main loop ----
+    def run(self):
+
+        # ---- Subscribe neuron ---- 
+        with self.neuron:
+
+            # ---- Loop forever ----
+            self.epoch = -1; self.best_test_loss = math.inf; self.global_step = 0
+            self.weights = self.neuron.metagraph.row_weights # Trained weights.
+            while True:
+                self.epoch += 1
+
+                # ---- Serve ----
+                self.neuron.axon.serve( self.model )
+         
+                # ---- Train ----
+                self.train()
+                self.scheduler.step()
+                
+                # ---- Test ----
+                test_loss, test_accuracy = self.test()
+
+                # ---- Emit ----
+                self.neuron.metagraph.emit( self.weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+                        
+                # ---- Sync ----  
+                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                self.weights = self.neuron.metagraph.row_weights.to(self.device)
+
+                # --- Display Epoch ----
+                print(self.neuron.axon.__full_str__())
+                print(self.neuron.dendrite.__full_str__())
+                print(self.neuron.metagraph)
+
+                # ---- Save ----
+                if test_loss < self.best_test_loss:
+                    self.best_test_loss = test_loss # Update best loss.
+                    logger.info( 'Saving/Serving model: epoch: {}, accuracy: {}, loss: {}, path: {}/model.torch'.format(self.epoch, test_accuracy, self.best_test_loss, self.config.session.full_path))
+                    torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_test_loss},"{}/model.torch".format(self.config.session.full_path))
+                    self.tensorboard.add_scalar('Test loss', test_loss, self.global_step)
 
     # ---- Train epoch ----
-    def train(epoch: int, global_step: int):
-
+    def train(self):
         # ---- Init training state ----
-        model.train() # Turn on dropout etc.
-        neuron.metagraph.sync() # Sync with the chain.
-        row_weights = neuron.metagraph.row_weights.to(device) # My weights on the chain-state (zeros initially).
+        self.model.train() # Turn on dropout etc.
+        for batch_idx, (images, targets) in enumerate(self.trainloader):    
+            self.global_step += 1 
 
-        history = []
-        for batch_idx, (images, targets) in enumerate(trainloader):    
-            global_step += 1 
-
-            # ---- Forward pass ----
-            output = model(  
-                images = images.to(model.device), 
-                targets = torch.LongTensor(targets).to(model.device), 
-                remote = True # *with* rpc-queries made to the network.
+            # ---- Remote Forward pass ----
+            output = self.model.remote_forward(  
+                neuron = self.neuron,
+                images = images.to(self.device), 
+                targets = torch.LongTensor(targets).to(self.device), 
             ) 
             
-            # ---- Backward pass ----
-            output.loss.backward() # Accumulates gradients on the model.
-            optimizer.step() # Applies accumulated gradients.
-            optimizer.zero_grad() # Zeros out gradients for next accummulation 
+            # ---- Remote Backward pass ----
+            loss = output.remote_target_loss + output.local_target_loss + output.distillation_loss
+            loss.backward() # Accumulates gradients on the model.
+            self.optimizer.step() # Applies accumulated gradients.
+            self.optimizer.zero_grad() # Zeros out gradients for next accummulation 
 
-            # ---- Serve Model ----
-            neuron.axon.serve( model.deepcopy() ) # Serve the newest model.
+            # ---- Train weights ----
+            batch_weights = torch.mean(output.dendrite.weights, axis = 0) # Average over batch.
+            self.weights = (1 - 0.03) * self.weights + 0.03 * batch_weights # Moving avg update.
+            self.weights = F.normalize(self.weights, p = 1, dim = 0) # Ensure normalization.
 
             # ---- Step Logs + Tensorboard ----
-            history.append(output) # Save for later analysis/logs.
-            processed = ((batch_idx + 1) * config.session.batch_size_train)
-            progress = (100. * processed) / len(train_data)
-            logger.info('GS: {} Epoch: {} [{}/{} ({})]\t Loss: {}\t Acc: {}', 
-                    colored('{}'.format(global_step), 'blue'), 
-                    colored('{}'.format(epoch), 'blue'), 
+            processed = ((batch_idx + 1) * self.config.session.batch_size_train)
+            progress = (100. * processed) / len(self.train_data)
+            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\tLoss: {}\tAcc: {}\tAxon: {}\tDendrite: {}\t', 
+                    colored('{}'.format(self.global_step), 'blue'), 
+                    colored('{}'.format(self.epoch), 'blue'), 
                     colored('{}'.format(processed), 'green'), 
-                    colored('{}'.format(len(train_data)), 'red'),
+                    colored('{}'.format(len(self.train_data)), 'red'),
                     colored('{:.2f}%'.format(progress), 'green'),
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
-                    colored('{:.4f}'.format(output.metadata['local_accuracy'].item()), 'green'))
-            tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), global_step)
-            tensorboard.add_scalar('Lloss', output.local_target_loss.item(), global_step)
-            tensorboard.add_scalar('Dloss', output.distillation_loss.item(), global_step)
-            if (batch_idx+1) % config.session.log_interval == 0:
-                log_all(neuron, history); history = [] # Log batch history.
+                    colored('{:.4f}'.format(output.local_accuracy.item()), 'green'),
+                    self.neuron.axon,
+                    self.neuron.dendrite)
+            self.tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('Lloss', output.local_target_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('Dloss', output.distillation_loss.item(), self.global_step)
 
-            # ---- Update State ----
-            batch_weights = torch.mean(output.weights, axis = 0) # Average over batch.
-            row_weights = (1 - 0.03) * row_weights.to(device) + 0.03 * batch_weights # Moving avg update.
-            row_weights = F.normalize(row_weights, p = 1, dim = 0) # Ensure normalization.
 
-            if (batch_idx+1) % config.session.sync_interval == 0:
-                # ---- Sync Metagraph State ----
-                logger.info('Emitting with weights {}', row_weights.tolist())
-                neuron.metagraph.emit( row_weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
-                neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                row_weights = neuron.metagraph.row_weights
+    # --- Test epoch ----
+    def test (self):
+        with torch.no_grad(): # Turns off gradient computation for inference speed up.
+            self.model.eval() # Turns off Dropoutlayers, BatchNorm etc.
+            loss = 0.0; accuracy = 0.0
+            for _, (images, labels) in enumerate(self.testloader):
+
+                # ---- Local Forward pass ----
+                outputs = self.model.local_forward(
+                    images = images.to(self.device), 
+                    targets = torch.LongTensor(labels).to(self.device), 
+                )
+                loss += outputs.local_target_loss.item()
+                accuracy += outputs.local_accuracy.item()
                 
-                # ---- Update Axon Priority ----
-                col_weights = neuron.metagraph.col_weights # weights to me.
-                neuron.axon.set_priority( neuron.metagraph.neurons, col_weights ) # Sets the nucleus-backend request priority.
+            return loss / len(self.testloader), accuracy / len(self.testloader) 
 
-
-    # ---- Loop forever ----
-    epoch = -1; best_test_loss = math.inf
-    while True:
-        epoch += 1
-
-        # ---- Train model ----
-        train(epoch, global_step)
-        scheduler.step()
         
-        # ---- Test model ----
-        test_loss, test_accuracy = test()
-
-         # ---- Save Best ----
-        if test_loss < best_test_loss:
-            best_test_loss = test_loss # Update best loss.
-            logger.info( 'Saving/Serving model: epoch: {}, accuracy: {}, loss: {}, path: {}/model.torch'.format(epoch, test_accuracy, best_test_loss, config.session.full_path))
-            torch.save( {'epoch': epoch, 'model': model.state_dict(), 'loss': best_test_loss},"{}/model.torch".format(config.session.full_path))
-            tensorboard.add_scalar('Test loss', test_loss, global_step)
- 
-
 if __name__ == "__main__":
     # ---- Load command line args ----
-    parser = argparse.ArgumentParser(); add_args(parser) 
-    config = Config.to_config(parser); check_config(config)
+    parser = argparse.ArgumentParser(); Session.add_args(parser) 
+    config = Config.to_config(parser); Session.check_config(config)
     logger.info(Config.toString(config))
-   
-    # ---- Build Neuron ----
-    neuron = Neuron(config)
 
-    # ---- Start Neuron ----
-    with neuron:
-        main(config, neuron)
+    # --- Create + Run ----
+    session = Session(config)
+    session.run()
+
+
+
+
 
