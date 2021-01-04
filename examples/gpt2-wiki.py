@@ -118,7 +118,7 @@ class Session():
                     # --- Epoch logs ----
                     print(self.neuron.axon.__full_str__())
                     print(self.neuron.dendrite.__full_str__())
-                    print(self.neuron.metagraph.__full_str__())
+                    print(self.neuron.metagraph)
                 
                     # ---- Save best loss and model ----
                     if self.training_loss and self.epoch % 10 == 0:
@@ -166,8 +166,7 @@ class Session():
                     colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
                     colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
                     self.neuron.axon,
-                    self.neuron.dendrite,
-                    self.neuron.metagraph)
+                    self.neuron.dendrite)
             logger.info('Codes: {}', output.dendrite.return_codes.tolist())
             self.tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Lloss', output.local_target_loss.item(), self.global_step)
