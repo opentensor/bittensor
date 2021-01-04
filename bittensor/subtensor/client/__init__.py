@@ -130,7 +130,6 @@ class WSClient:
             module='SubtensorModule',
             storage_function='Active',
         )
-        print (result)
         return result
 
     async def get_uid_for_pubkey(self, pubkey = str) -> int:

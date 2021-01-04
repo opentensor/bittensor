@@ -109,7 +109,7 @@ class Session():
                     self.scheduler.step()
 
                     # ---- Emitting weights ----
-                    self.neuron.metagraph.emit( self.weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+                    self.neuron.metagraph.emit( self.row, wait_for_inclusion = True ) # Sets my row-weights on the chain.
 
                     # ---- Sync metagraph ----
                     self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
