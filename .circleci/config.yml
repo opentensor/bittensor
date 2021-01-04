@@ -116,15 +116,11 @@ workflows:
       - "Run Integration Tests":
               requires:
                 - "Build Bittensor"
-      - MNIST:
-              requires:
-                - "Run Integration Tests"
       - "Push Production candidate to DockerHub":
               requires:
                 - "Build Bittensor"
                 - "Run Unit Tests"
                 - "Run Integration Tests"
-                - MNIST
               filters:
                 branches:
                   only:
