@@ -1,6 +1,6 @@
-from loguru import logger
 import os
 import sys
+from loguru import logger
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Bittensor code and protocol version.
