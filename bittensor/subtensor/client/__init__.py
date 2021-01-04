@@ -149,7 +149,6 @@ class WSClient:
                 storage_function='Neurons',
                 params=[uid]
         )
-        print (result)
         return result['result']
     
     async def neurons(self, uid=None, decorator=False):

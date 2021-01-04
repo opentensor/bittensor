@@ -513,8 +513,7 @@ class Metagraph():
             lastemit = await self.subtensor_client.get_last_emit_data_for_uid( uid )
             w_uids = await self.subtensor_client.weight_uids_for_uid( uid )
             w_vals = await self.subtensor_client.weight_vals_for_uid( uid )
-            neuron = await self.subtensor_client.neurons ( uid )
-            neuron = neuron[0][1]
+            neuron = await self.subtensor_client.get_neuron_for_uid ( uid )
             self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], modality = neuron['modality'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
         except Exception as e:
             logger.error("Exception occurred: {}".format(e))
@@ -1016,11 +1015,7 @@ class Metagraph():
 
         return weight_uids, weight_vals
 
-
     def __str__(self):
-        return 'block: {}\tn_neurons: {}\tincentive: {}'.format(self.block, self.n, float(torch.sum(self.incentive).item()))
-
-    def __full_str__(self):
         uids = self.state.uids.tolist()
         rows = [self.S.tolist(), self.R.tolist(), self.I.tolist(), self.incentive.tolist(), self.row.tolist(), self.col.tolist()]
         for i in range(self.n):
@@ -1035,7 +1030,7 @@ class Metagraph():
         for i in range(self.n):
             df = df.rename(index={df.index[i + 6]: uids[i]})
         df.rename_axis(colored('[uid]', 'red'), axis=1)
-        return '\nMetagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.metadata['uid'], self.tau.item(), self.block, self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
+        return '\nMetagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.uid, self.tau.item(), self.block, self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
 
 
 
