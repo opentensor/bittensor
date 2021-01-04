@@ -33,7 +33,7 @@ class Session():
         self.neuron = Neuron(self.config)
     
         # ---- Model ----
-        self.model = FFNNSynapse( config ) # Feedforward neural network with PKMDendrite.
+        self.model = DPNSynapse( config ) # Feedforward neural network with PKMDendrite.
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to( self.device ) # Set model to device
         
@@ -48,9 +48,9 @@ class Session():
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
         ]))
-        self.trainloader = torch.utils.data.DataLoader(train_data, batch_size = self.config.session.batch_size_train, shuffle=True, num_workers=2)
+        self.trainloader = torch.utils.data.DataLoader(self.train_data, batch_size = self.config.session.batch_size_train, shuffle=True, num_workers=2)
         self.test_data = torchvision.datasets.CIFAR10(root = self.config.session.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
-        self.testloader = torch.utils.data.DataLoader(test_data, batch_size = self.config.session.batch_size_test, shuffle=False, num_workers=2)
+        self.testloader = torch.utils.data.DataLoader(self.test_data, batch_size = self.config.session.batch_size_test, shuffle=False, num_workers=2)
         self.test_data = torchvision.datasets.CIFAR10(root = self.config.session.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
 
         # ---- Tensorboard ----
