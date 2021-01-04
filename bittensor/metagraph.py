@@ -966,8 +966,8 @@ class Metagraph():
         r""" Returns true if the passed key and vals are set on chain.
         """
         cmap = {}
-        chain_uids = await self.subtensor_client.weight_uids_for_uid(self.metadata['uid'])
-        chain_vals = await self.subtensor_client.weight_vals_for_uid(self.metadata['uid'])
+        chain_uids = await self.subtensor_client.weight_uids_for_uid(self.uid)
+        chain_vals = await self.subtensor_client.weight_vals_for_uid(self.uid)
         if chain_uids != None and chain_vals != None:
             n_same = 0
             for uid, val in list(zip(chain_uids, chain_vals)):
