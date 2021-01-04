@@ -97,7 +97,7 @@ class Session():
 
             # ---- Loop forever ----
             self.epoch = -1; self.best_test_loss = math.inf; self.global_step = 0
-            self.weights = self.neuron.metagraph.row # Trained weights.
+            self.row = self.neuron.metagraph.row # Trained weights.
             while True:
                 self.epoch += 1
 
@@ -112,7 +112,7 @@ class Session():
                 test_loss, test_accuracy = self.test()
 
                 # ---- Emit ----
-                self.neuron.metagraph.emit( self.weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+                self.neuron.metagraph.emit( self.row, wait_for_inclusion = True ) # Sets my row-weights on the chain.
                         
                 # ---- Sync ----  
                 self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
@@ -152,8 +152,8 @@ class Session():
 
             # ---- Train weights ----
             batch_weights = torch.mean(output.dendrite.weights, axis = 0) # Average over batch.
-            self.weights = (1 - 0.03) * self.weights + 0.03 * batch_weights # Moving avg update.
-            self.weights = F.normalize(self.weights, p = 1, dim = 0) # Ensure normalization.
+            self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
+            self.row = F.normalize( self.row, p = 1, dim = 0) # Ensure normalization.
 
             # ---- Step Logs + Tensorboard ----
             processed = ((batch_idx + 1) * self.config.session.batch_size_train)
