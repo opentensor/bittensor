@@ -36,6 +36,7 @@ jobs:
       - run: pip install miniupnpc
       - run: pip install msgpack
       - run: pip install msgpack-numpy
+      - run: pip install pytorch_transformers
       - run:
           name: "Run unit tests"
           command: pytest ./tests/unit_tests
@@ -53,6 +54,7 @@ jobs:
       - run: pip install miniupnpc
       - run: pip install msgpack
       - run: pip install msgpack-numpy
+      - run: pip install pytorch_transformers
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
@@ -75,6 +77,7 @@ jobs:
       - run: pip install miniupnpc
       - run: pip install msgpack
       - run: pip install msgpack-numpy
+      - run: pip install pytorch_transformers
       - run:
           command: pip install -e .
           name: setup
@@ -113,15 +116,11 @@ workflows:
       - "Run Integration Tests":
               requires:
                 - "Build Bittensor"
-      - MNIST:
-              requires:
-                - "Run Integration Tests"
       - "Push Production candidate to DockerHub":
               requires:
                 - "Build Bittensor"
                 - "Run Unit Tests"
                 - "Run Integration Tests"
-                - MNIST
               filters:
                 branches:
                   only:

@@ -5,6 +5,7 @@ import math
 import sys
 import time
 import torch
+import pandas as pd
 import torch.nn as nn
 
 from termcolor import colored
@@ -15,6 +16,7 @@ from loguru import logger
 from munch import Munch
 
 import bittensor
+from bittensor.metagraph import Metagraph
 import bittensor.utils.stats as stat_utils
 import bittensor.serialization as serialization
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
@@ -42,11 +44,15 @@ class Dendrite(nn.Module):
             Bittensor config object.
     """
 
-    def __init__(self, config):
+    def __init__(self, config: Munch, metagraph: Metagraph):
         super().__init__()
         self._config = config
-        self.__keypair = config.session.keypair
+        self._metagraph = metagraph
+        self.__keypair = config.neuron.keypair
         self._remotes = {}
+        self.stats = SimpleNamespace(
+            qps = stat_utils.timed_rolling_avg(0.0, 0.01),
+        )
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
@@ -66,16 +72,22 @@ class Dendrite(nn.Module):
         for remote in self._remotes.values():
             total_bytes_out += remote.stats.forward_bytes_out.value
             total_bytes_in += remote.stats.forward_bytes_in.value
+        qps_str = colored('{:.3f}'.format(self.stats.qps.value), 'blue')
         total_in_bytes_str = colored('\u290A {:.1f}'.format((total_bytes_out*8)/1000), 'green')
         total_out_bytes_str = colored('\u290B {:.1f}'.format((total_bytes_in*8)/1000), 'red')
-        return total_in_bytes_str + "/" + total_out_bytes_str + "kB/s"
-    
+        return "(" + qps_str + "q/s|" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s" + ")"
+
     def __full_str__(self):
-        response = ""
-        for remote in self._remotes.values():
-            response += str(remote) + "\n"
-        
-        return response
+        uids = [remote.neuron.uid for remote in self._remotes.values()]
+        bytes_out = [remote.stats.forward_bytes_out.value * (8/1000) for remote in self._remotes.values()]
+        bytes_in = [remote.stats.forward_bytes_in.value * (8/1000) for remote in self._remotes.values()]
+        qps = [remote.stats.forward_qps.value + remote.stats.backward_qps.value for remote in self._remotes.values()]
+        rows = [bytes_out, bytes_in, qps]
+        df = pd.DataFrame(rows, columns=uids)
+        df = df.rename(index={df.index[0]: colored('\u290A kB/s', 'green')})
+        df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
+        df = df.rename(index={df.index[2]: colored('Q/s', 'blue')})
+        return '\nDendrite:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
 
     @staticmethod   
     def check_config(config: Munch):
@@ -209,6 +221,9 @@ class Dendrite(nn.Module):
             error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
             raise ValueError(error_msg)
 
+        # ---- Stats ---
+        self.stats.qps.update(1)
+
         # ---- Run async calls ----
         loop = asyncio.new_event_loop()
         results = loop.run_until_complete(self._gather(loop, x, neurons, mode))
@@ -271,8 +286,8 @@ class RemoteNeuron(nn.Module):
         self.backoff = 0 # Number o queries to backoff.
         self.next_backoff = 1 # Next backoff level.
         self.stats = SimpleNamespace(
-            n_forward_calls = 0,
-            n_backward_calls = 0,
+            forward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
+            backward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             forward_elapsed_time = stat_utils.timed_rolling_avg(0.0, 0.01),
             forward_bytes_out = stat_utils.timed_rolling_avg(0.0, 0.01),
             forward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -350,9 +365,7 @@ class RemoteNeuron(nn.Module):
         else:
             try:
                 # Make and time the query.
-                start_time = time.time()
                 outputs, code = _RemoteModuleCall.apply(self, DUMMY, inputs, mode)
-                elapsed_time = time.time() - start_time
 
             # ---- On unknown failure: we return zeros and unknown code ---- 
             except Exception as e:
@@ -446,7 +459,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             try:
                 
                 start_time = time.time()
-                ctx.caller.stats.n_forward_calls += 1
+                ctx.caller.stats.forward_qps.update(1)
                 ctx.caller.stats.forward_bytes_out.update(sys.getsizeof(request))
                 response = ctx.caller.stub.Forward(request, timeout=caller.config.dendrite.timeout)
                 ctx.caller.stats.forward_bytes_in.update(sys.getsizeof(response))
@@ -484,7 +497,7 @@ class _RemoteModuleCall(torch.autograd.Function):
             # ---- Catch Unknown Errors ----
             except Exception as e:
                 logger.error('Uncaught error in forward call with error {} and endpoint', e, caller.endpoint)
-                return zeros, torch.tensor(bittensor_pb2.ReturnCode.Unknown)
+                return zeros, torch.tensor(bittensor_pb2.ReturnCode.UnknownException)
 
             # ---- Check tensor response length ----
             if len(response.tensors) == 0:
@@ -583,7 +596,7 @@ class _RemoteModuleCall(torch.autograd.Function):
                 # --- Send non blocking grad request ----
                 # NOTE(const): we dont care about the response.
                 try:
-                    ctx.caller.stats.n_backward_calls += 1
+                    ctx.caller.stats.backward_qps.update(1)
                     ctx.caller.stats.backwar_bytes_out.update(sys.getsizeof(request))
                     ctx.caller.stub.Backward.future(request, timeout=ctx.caller.config.dendrite.timeout)
                     ctx.caller.stats.backwar_bytes_in.update(0.0) # responses are dropped.

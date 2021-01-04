@@ -1,7 +1,7 @@
-"""Training a MNIST Neuron.
-This file demonstrates a training pipeline for an MNIST Neuron.
+"""Training a CIFAR Neuron.
+This file demonstrates a training pipeline for an CIFAR Neuron.
 Example:
-        $ python examples/mnist.py
+        $ python examples/cifar.py
 """
 import argparse
 import math
@@ -21,7 +21,8 @@ from loguru import logger
 import bittensor
 from bittensor.neuron import Neuron
 from bittensor.config import Config
-from bittensor.synapses.ffnn import FFNNSynapse
+from bittensor.utils.logging import log_all
+from bittensor.synapses.dpn import DPNSynapse
 
 class Session():
 
@@ -32,7 +33,7 @@ class Session():
         self.neuron = Neuron(self.config)
     
         # ---- Model ----
-        self.model = FFNNSynapse( config ) # Feedforward neural network with PKMDendrite.
+        self.model = DPNSynapse( config ) # Feedforward neural network with PKMDendrite.
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to( self.device ) # Set model to device
         
@@ -41,14 +42,23 @@ class Session():
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10.0, gamma=0.1)
 
         # ---- Dataset ----
-        self.train_data = torchvision.datasets.MNIST(root = self.config.session.root_dir + "datasets/", train=True, download=True, transform=transforms.ToTensor())
+        self.train_data = torchvision.datasets.CIFAR10(
+            root=self.config.session.root_dir + "datasets/", train=True, download=True, transform=transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+        ]))
         self.trainloader = torch.utils.data.DataLoader(self.train_data, batch_size = self.config.session.batch_size_train, shuffle=True, num_workers=2)
-        self.test_data = torchvision.datasets.MNIST(root = self.config.session.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
+        self.test_data = torchvision.datasets.CIFAR10(root = self.config.session.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
         self.testloader = torch.utils.data.DataLoader(self.test_data, batch_size = self.config.session.batch_size_test, shuffle=False, num_workers=2)
+        self.test_data = torchvision.datasets.CIFAR10(root = self.config.session.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
 
         # ---- Tensorboard ----
         self.global_step = 0
         self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
+        if self.config.session.record_log:
+            logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
+
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
@@ -59,10 +69,11 @@ class Session():
         parser.add_argument('--session.log_interval', default=150, type=int, help='Batches until session prints log statements.')
         parser.add_argument('--session.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
         parser.add_argument('--session.root_dir', default='data/', type=str,  help='Root path to load and save data associated with each session')
-        parser.add_argument('--session.name', default='mnist', type=str, help='Trials for this session go in session.root / session.name')
-        parser.add_argument('--session.uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
+        parser.add_argument('--session.name', default='cifar', type=str, help='Trials for this session go in session.root / session.name')
+        parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.trial_uid')
+        parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
         Neuron.add_args(parser)
-        FFNNSynapse.add_args(parser)
+        DPNSynapse.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
@@ -71,11 +82,11 @@ class Session():
         assert config.session.batch_size_train > 0, "batch_size_train must be a positive value"
         assert config.session.batch_size_test > 0, "batch_size_test must be a positive value"
         assert config.session.learning_rate > 0, "learning rate must be be a positive value."
-        full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.uid)
+        full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.trial_uid)
         config.session.full_path = full_path
         if not os.path.exists(config.session.full_path):
             os.makedirs(config.session.full_path)
-        FFNNSynapse.check_config(config)
+        DPNSynapse.check_config(config)
         Neuron.check_config(config)
 
     # --- Main loop ----
@@ -85,19 +96,14 @@ class Session():
         with self.neuron:
 
             # ---- Loop forever ----
-            start_time = time.time()
             self.epoch = -1; self.best_test_loss = math.inf; self.global_step = 0
-            self.weights = self.neuron.metagraph.row # Trained weights.
+            self.row = self.neuron.metagraph.row # Trained weights.
             while True:
                 self.epoch += 1
 
-                # ---- Emit ----
-                self.neuron.metagraph.emit( self.weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
-                        
-                # ---- Sync ----  
-                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.weights = self.neuron.metagraph.row.to(self.device)
-                        
+                # ---- Serve ----
+                self.neuron.axon.serve( self.model )
+         
                 # ---- Train ----
                 self.train()
                 self.scheduler.step()
@@ -105,15 +111,24 @@ class Session():
                 # ---- Test ----
                 test_loss, test_accuracy = self.test()
 
-                # ---- Test checks ----
-                time_elapsed = time.time() - start_time
-                assert test_accuracy > 0.8
-                assert test_loss < 0.2
-                assert len(self.neuron.metagraph.state.neurons) > 0
-                assert time_elapsed < 300 # 1 epoch of MNIST should take less than 5 mins.
+                # ---- Emit ----
+                self.neuron.metagraph.emit( self.row, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+                        
+                # ---- Sync ----  
+                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                self.weights = self.neuron.metagraph.row.to(self.device)
 
-                # ---- End test ----
-                break
+                # --- Display Epoch ----
+                print(self.neuron.axon.__full_str__())
+                print(self.neuron.dendrite.__full_str__())
+                print(self.neuron.metagraph)
+
+                # ---- Save ----
+                if test_loss < self.best_test_loss:
+                    self.best_test_loss = test_loss # Update best loss.
+                    logger.info( 'Saving/Serving model: epoch: {}, accuracy: {}, loss: {}, path: {}/model.torch'.format(self.epoch, test_accuracy, self.best_test_loss, self.config.session.full_path))
+                    torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_test_loss},"{}/model.torch".format(self.config.session.full_path))
+                    self.tensorboard.add_scalar('Test loss', test_loss, self.global_step)
 
     # ---- Train epoch ----
     def train(self):
@@ -137,13 +152,13 @@ class Session():
 
             # ---- Train weights ----
             batch_weights = torch.mean(output.dendrite.weights, axis = 0) # Average over batch.
-            self.weights = (1 - 0.03) * self.weights + 0.03 * batch_weights # Moving avg update.
-            self.weights = F.normalize(self.weights, p = 1, dim = 0) # Ensure normalization.
+            self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
+            self.row = F.normalize( self.row, p = 1, dim = 0) # Ensure normalization.
 
             # ---- Step Logs + Tensorboard ----
             processed = ((batch_idx + 1) * self.config.session.batch_size_train)
             progress = (100. * processed) / len(self.train_data)
-            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\t Loss: {}\t Acc: {}\t Axon: {}\t Dendrite: {}', 
+            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\tLoss: {}\tAcc: {}\tAxon: {}\tDendrite: {}\t', 
                     colored('{}'.format(self.global_step), 'blue'), 
                     colored('{}'.format(self.epoch), 'blue'), 
                     colored('{}'.format(processed), 'green'), 
@@ -185,4 +200,8 @@ if __name__ == "__main__":
     # --- Create + Run ----
     session = Session(config)
     session.run()
+
+
+
+
 

@@ -10,7 +10,7 @@ class WSClient:
         "types": {
             "NeuronMetadataOf": {
                 "type": "struct",
-                "type_mapping": [["ip", "u128"], ["port", "u16"], ["ip_type", "u8"], ["uid", "u64"], ["coldkey", "AccountId"]]
+                "type_mapping": [["ip", "u128"], ["port", "u16"], ["ip_type", "u8"], ["uid", "u64"], ["modality", "u8"], ["hotkey", "AccountId"], ["coldkey", "AccountId"]]
             }
         }
     }
@@ -40,12 +40,13 @@ class WSClient:
     def is_connected(self):
         return self.substrate.is_connected()
 
-    async def subscribe(self, ip: str, port: int, coldkey: str):
+    async def subscribe(self, ip: str, port: int, modality: int, coldkey: str):
         ip_as_int  = net.ip_to_int(ip)
         params = {
             'ip': ip_as_int,
             'port': port, 
             'ip_type': 4,
+            'modality': modality,
             'coldkey': coldkey
         }
 
@@ -57,26 +58,6 @@ class WSClient:
 
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)  # Waiting for inclusion and other does not work
-
-    async def unsubscribe(self, keypair=None):
-        if not keypair:
-            keypair = self.__keypair
-
-        call = await self.substrate.compose_call(
-            call_module='SubtensorModule',
-            call_function='unsubscribe'
-        )
-
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
-        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
-
-    # TODO (21-12-2020, Parall4x) Delete if not needed anymore
-    # async def get_peers(self):
-    #     peers = await self.substrate.iterate_map(
-    #         module='SubtensorModule',
-    #         storage_function='Peers')
-    #
-    #     return peers
 
     async def get_balance(self, address):
         logger.debug("Getting balance for: {}", address)
@@ -143,14 +124,40 @@ class WSClient:
     async def get_current_block(self):
         return await self.substrate.get_block_number(None)
 
-    async def neurons(self, pubkey=None, decorator=False):
+    async def get_active(self) -> int:
+
+        result = await self.substrate.iterate_map(
+            module='SubtensorModule',
+            storage_function='Active',
+        )
+        return result
+
+    async def get_uid_for_pubkey(self, pubkey = str) -> int:
+
+        result = await self.substrate.get_runtime_state(
+            module='SubtensorModule',
+            storage_function='Active',
+            params=[pubkey]
+        )
+        return int(result['result'])
+
+    async def get_neuron_for_uid(self, uid:int):
+
+        result = await self.substrate.get_runtime_state(
+                module='SubtensorModule',
+                storage_function='Neurons',
+                params=[uid]
+        )
+        return result['result']
+    
+    async def neurons(self, uid=None, decorator=False):
 
         # Todo (parall4x, 23-12-2020) Get rid of this decorator flag. This should be refactored into something that returns Neuron objects only
-        if pubkey:
+        if uid:
             result = await self.substrate.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='Neurons',
-                params=[pubkey]
+                params=[uid]
             )
             return Neurons.from_list(result['result']) if decorator else result['result']
 
