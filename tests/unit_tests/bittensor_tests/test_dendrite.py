@@ -4,6 +4,7 @@ import torch
 import bittensor
 import pytest
 
+from bittensor.metagraph import Metagraph
 from bittensor.config import Config
 from bittensor.subtensor.interface import Keypair
 from bittensor import bittensor_pb2
@@ -31,8 +32,8 @@ mnemonic = Keypair.generate_mnemonic()
 keypair = Keypair.create_from_mnemonic(mnemonic)
 
 config.neuron.keypair = keypair
-
-dendrite = bittensor.dendrite.Dendrite(config)
+metagraph = bittensor.metagraph.Metagraph(config)
+dendrite = bittensor.dendrite.Dendrite(config, metagraph)
 neuron_pb2 = bittensor_pb2.Neuron(
     version = bittensor.__version__,
     public_key = keypair.public_key,
@@ -81,7 +82,7 @@ def test_dendrite_backoff():
     _config.dendrite.max_backoff = 1
     _mnemonic = Keypair.generate_mnemonic()
     _keypair = Keypair.create_from_mnemonic(_mnemonic)
-    _dendrite = bittensor.dendrite.Dendrite(_config)
+    _dendrite = bittensor.dendrite.Dendrite(_config, metagraph)
     _neuron_pb2 = bittensor_pb2.Neuron(
         version = bittensor.__version__,
         public_key = _keypair.public_key,
