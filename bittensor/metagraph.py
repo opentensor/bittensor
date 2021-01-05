@@ -1032,5 +1032,8 @@ class Metagraph():
         df.rename_axis(colored('[uid]', 'red'), axis=1)
         return '\nMetagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.uid, self.tau.item(), self.block, self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
 
+    def __to_tensorboard__(self, tensorboard, global_step):
+        tensorboard.add_scalar('Metagraph/neurons', self.n, global_step)
+        tensorboard.add_scalar('Metagraph/inflation_rate', self.tau.item(), global_step)
 
 
