@@ -84,8 +84,9 @@ class Axon(bittensor_grpc.BittensorServicer):
     def __to_tensorboard__(self, tensorboard, global_step):
         total_in_bytes = (self.stats.total_in_bytes.value * 8)/1000
         total_out_bytes = (self.stats.total_out_bytes.value * 8)/1000
-        tensorboard.add_scalar("axon/total_in_bytes", total_in_bytes, global_step)
-        tensorboard.add_scalar("axon/total_in_bytes", total_out_bytes, global_step)
+        tensorboard.add_scalar("Axon/total_in_bytes", total_in_bytes, global_step)
+        tensorboard.add_scalar("Axon/total_in_bytes", total_out_bytes, global_step)
+        tensorboard.add_scalar("Axon/Queries/Sec", self.stats.qps.value, global_step)
 
     def __full_str__(self):
         uids = list(self.stats.in_bytes_per_uid.keys())
