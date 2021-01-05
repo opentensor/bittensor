@@ -116,12 +116,3 @@ workflows:
       - "Run Integration Tests":
               requires:
                 - "Build Bittensor"
-      - "Push Production candidate to DockerHub":
-              requires:
-                - "Build Bittensor"
-                - "Run Unit Tests"
-                - "Run Integration Tests"
-              filters:
-                branches:
-                  only:
-                    - master
