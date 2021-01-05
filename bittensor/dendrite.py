@@ -88,6 +88,17 @@ class Dendrite(nn.Module):
         df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
         df = df.rename(index={df.index[2]: colored('Q/s', 'blue')})
         return '\nDendrite:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
+    
+    def __to_tensorboard__(self, tensorboard, global_step):
+        total_bytes_out = 0
+        total_bytes_in = 0
+        for remote in self._remotes.values():
+            total_bytes_out += remote.stats.forward_bytes_out.value
+            total_bytes_in += remote.stats.forward_bytes_in.value
+        total_in_bytes = (total_bytes_in*8)/1000
+        total_out_bytes = (total_bytes_out*8)/1000
+        tensorboard.add_scalar('Dendrite/Incoming bytes', total_in_bytes, global_step)
+        tensorboard.add_scalar('Dendrite/Outgoing bytes', total_out_bytes, global_step)
 
     @staticmethod   
     def check_config(config: Munch):
@@ -335,6 +346,7 @@ class RemoteNeuron(nn.Module):
         total_in_bytes_str = colored('\u290A {:.1f}'.format((total_out_bytes*8)/1000), 'green')
         total_out_bytes_str = colored('\u290B {:.1f}'.format((total_in_bytes*8)/1000), 'red')
         return str(self.neuron.uid) + ":(" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s)"
+
 
     def __del__(self):
         if self.channel is not None:

@@ -80,6 +80,12 @@ class Axon(bittensor_grpc.BittensorServicer):
         total_out_bytes_str = colored('\u290A {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'green')
         qps_str = colored("{:.3f}".format(float(self.stats.qps.value)), 'blue')
         return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
+    
+    def __to_tensorboard__(self, tensorboard, global_step):
+        total_in_bytes = (self.stats.total_in_bytes.value * 8)/1000
+        total_out_bytes = (self.stats.total_out_bytes.value * 8)/1000
+        tensorboard.add_scalar("axon/total_in_bytes", total_in_bytes, global_step)
+        tensorboard.add_scalar("axon/total_in_bytes", total_out_bytes, global_step)
 
     def __full_str__(self):
         uids = list(self.stats.in_bytes_per_uid.keys())
