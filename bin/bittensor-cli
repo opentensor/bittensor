@@ -10,7 +10,6 @@ from argparse import ArgumentParser
 from loguru import logger
 from prettytable import PrettyTable
 
-from cli_utils import cli_utils
 
 from bittensor.balance import Balance
 from bittensor.crypto import encrypt
@@ -19,6 +18,7 @@ from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError
 from bittensor.subtensor.client import WSClient
 from bittensor.subtensor.interface import Keypair
 from bittensor.subtensor.client import Neuron, Neurons
+from bittensor.utils.cli_utils import cli_utils
 
 class CommandExecutor:
     __keypair : Keypair
@@ -171,6 +171,7 @@ def run( args ):
     elif args.command == "regen":
         executor = CommandExecutor(None, None)
         # ---- Run command new regen
+        print (args)
         loop.run_until_complete( executor.regen( mnemonic = args.mnemonic, keyfile_str = args.keyfile, use_password = args.use_password) )
 
     # --- Overview command
@@ -278,25 +279,28 @@ def main():
     # Fill arguments for the regen command.
     regen_key_parser = cmd_parsers.add_parser('regen')
     regen_key_parser.add_argument("--mnemonic", required=True, nargs="+", 
-        help='Mnemonic used to regen your key i.e. horse cart dog ...')
-    regen_key_parser.add_argument('--use_password', default=False,
-        help='''If set, protects the generated bittensor key with a password.''')
+        help='Mnemonic used to regen your key i.e. horse cart dog ...') 
+    regen_key_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
+    regen_key_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
+    regen_key_parser.set_defaults(use_password=True)
     regen_key_parser.add_argument('--keyfile', default='~/.bittensor/coldkey',
         help='The destination path of the keyfile (default: ~/.bittensor/coldkey)')
 
     # Fill arguments for hotkey command.
     new_hotkey_parser.add_argument('--n_words', type=int, choices=[12,15,18,21,24], default=12, 
         help='''The number of words representing the mnemonic. i.e. horse cart dog ... x 24''')
-    new_hotkey_parser.add_argument('--use_password', default=False,
-        help='''If set, protects the generated bittensor key with a password.''')
+    new_hotkey_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
+    new_hotkey_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
+    new_hotkey_parser.set_defaults(use_password=False)
     new_hotkey_parser.add_argument('--keyfile', default='~/.bittensor/hotkey', 
         help='''The destination path for the hotkey keyfile (default: ~/.bittensor/hotkey)''')
 
     # Fill arguments for coldkey command.
     new_coldkey_parser.add_argument('--n_words', dest="n_words", type=int, choices=[12,15,18,21,24], default=12, 
         help="The number of words the mnemonic. i.e. horse cart dog ... x 24")
-    new_coldkey_parser.add_argument('--use_password', dest="use_password", default=True,
-        help='''If set, protects the generated bittensor key with a password.''')
+    new_coldkey_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
+    new_coldkey_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
+    new_coldkey_parser.set_defaults(use_password=True)
     new_coldkey_parser.add_argument('--keyfile', dest="keyfile", default='~/.bittensor/coldkey',
         help='''The destination path for the coldkey keyfile (default: ~/.bittensor/coldkey)''')
 
