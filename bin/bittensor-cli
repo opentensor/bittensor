@@ -151,7 +151,6 @@ Functions :
 - Unstake funds into coldkey (one by one / withdraw all)
 '''
 def run( args ):
-   
     cli_utils.enable_debug(args.debug)
     loop = asyncio.get_event_loop()
 
@@ -171,7 +170,6 @@ def run( args ):
     elif args.command == "regen":
         executor = CommandExecutor(None, None)
         # ---- Run command new regen
-        print (args)
         loop.run_until_complete( executor.regen( mnemonic = args.mnemonic, keyfile_str = args.keyfile, use_password = args.use_password) )
 
     # --- Overview command
@@ -305,7 +303,7 @@ def main():
         help='''The destination path for the coldkey keyfile (default: ~/.bittensor/coldkey)''')
 
     # Fill arguments for unstake command. 
-    unstake_parser.add_argument('--all', dest="unstake_all", default=False, required=False)
+    unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
     unstake_parser.add_argument('--uid', dest="uid", type=int, required=False)
     unstake_parser.add_argument('--amount', dest="amount", type=float, required=False)
     unstake_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
@@ -314,7 +312,6 @@ def main():
         help="Path to your cold key that is associated with the hotkey-account you are unstaking from.")
 
     # Fill arguments for stake command.
-    stake_parser.add_argument('--all', dest="unstake_all", default=False, required=False)
     stake_parser.add_argument('--uid', dest="uid", type=int, required=False)
     stake_parser.add_argument('--amount', dest="amount", type=float, required=False)
     stake_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
