@@ -107,13 +107,26 @@ class Axon(bittensor_grpc.BittensorServicer):
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
                     parser argument to append args to.
         """
-        parser.add_argument('--axon.local_port', default=8091, type=int, help='Port to serve axon')
-        parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, help='IP this axon binds to.')
-        parser.add_argument('--axon.use_upnpc', default=False, type=bool, help='Will we attempt to use upnpc to open a port on your router.')
-        parser.add_argument('--axon.external_ip', default=None, type=str, help='Remote IP to serve to chain.')
-        parser.add_argument('--axon.external_port', default=None, type=str, help='Remote Port to serve to chain.')
-        parser.add_argument('--axon.max_workers', default=10, type=int, help='Max number connection handler threads working simultaneously.')
-        parser.add_argument('--axon.max_gradients', default=100, type=int, help='Max number of lingering gradient stored in the gradient queue')
+        parser.add_argument('--axon.local_port', default=8091, type=int, 
+            help='''The port this axon endpoint is served on. i.e. 8091''')
+        parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, 
+            help='''The local ip this axon binds to. ie. 0.0.0.0''')
+        parser.add_argument('--axon.use_upnpc', default=False, type=bool, 
+            help='''If true this axon will attempt to open a port on your router using upnpc.''')
+        parser.add_argument('--axon.external_ip', default=None, type=str, 
+            help='''The remote IP served to chain.
+                    This ip is subscribed to the chain on boot and is the endpoint other peers see.
+                    By default this field is None and is collected by querying a remote server during check_config. 
+                    i.e. 207.12.233.1''')
+        parser.add_argument('--axon.external_port', default=None, type=str, 
+            help='''The remote port to subscribe on chain. By default this port is the same as local_port.
+                    If use_upnpc is true this port is determined after the port mapping''')
+        parser.add_argument('--axon.max_workers', default=10, type=int, 
+            help='''The maximum number connection handler threads working simultaneously on this endpoint. 
+                    The grpc server distributes new worker threads to service requests up to this number.''')
+        parser.add_argument('--axon.max_gradients', default=100, type=int, 
+            help='''The max number of lingering gradients stored in the gradient queue.
+                    Gradients passed from other peers accumulate on this endpoint and queue in axon.gradients.''')
 
     @staticmethod   
     def check_config(config: Munch):
