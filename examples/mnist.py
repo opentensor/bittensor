@@ -118,6 +118,11 @@ class Session():
                 print(self.neuron.dendrite.__full_str__())
                 print(self.neuron.metagraph)
 
+                # ---- Update Tensorboard ----
+                self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
+                
                 # ---- Save ----
                 if test_loss < self.best_test_loss:
                     self.best_test_loss = test_loss # Update best loss.
