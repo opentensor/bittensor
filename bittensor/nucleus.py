@@ -26,6 +26,31 @@ class Nucleus ():
         self._forward_pool = ThreadPoolExecutor(maxsize = self._config.nucleus.queue_maxsize, max_workers=self._config.nucleus.max_workers)
         self._backward_pool = ThreadPoolExecutor(maxsize = self._config.nucleus.queue_maxsize, max_workers=self._config.nucleus.max_workers)
 
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser):
+        r""" Adds this nucleus's command line arguments to the passed parser.
+            Args:
+                parser (:obj:`argparse.ArgumentParser`, `required`): 
+                    parser argument to append args to.
+        """
+        parser.add_argument('--nucleus.max_workers', default=5, type=int, 
+                help='''The maximum number of outstanding nucleuss priority queue workers.
+                        Adding additional work to the work queue past this point does not trigger additional thread creation.''')
+        parser.add_argument('--nucleus.queue_timeout', default=5, type=int, 
+                help='''Nucleus future timeout. Work futures timout after 5 second and return a null response.''')
+        parser.add_argument('--nucleus.queue_maxsize', default=1000, type=int, 
+                help=''' The maximum number of pending tasks allowed in the threading priority queue. 
+                        Adding additional work to the work queue blocks until space becomes available.''')
+
+    @staticmethod   
+    def check_config(config: Munch):
+        r""" Checks the passed config items for validity.
+            Args:
+                config (:obj:`munch.Munch, `required`): 
+                    config to check.
+        """
+        pass
+
     def forward(self, synapse: Synapse, inputs: torch.Tensor, mode: bittensor_pb2.Modality, priority: float) -> Tuple[torch.FloatTensor, str, int]:
         r""" Accepts a synapse object with inputs and priority, submits them to the forward work pool
             and waits for a response from the threading future. Processing errors or timeouts result in
@@ -183,26 +208,6 @@ class Nucleus ():
             message = 'Unknown error when calling Synapse backward with errr {}'.format(e)
             code = bittensor_pb2.ReturnCode.UnknownException
         return [tensor, message, code]
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        r""" Adds this nucleus's command line arguments to the passed parser.
-            Args:
-                parser (:obj:`argparse.ArgumentParser`, `required`): 
-                    parser argument to append args to.
-        """
-        parser.add_argument('--nucleus.max_workers', default=5, type=int, help='Nucleus priority queue workers.')
-        parser.add_argument('--nucleus.queue_timeout', default=5, type=int, help='Nucleus future timeout.')
-        parser.add_argument('--nucleus.queue_maxsize', default=1000, type=int, help='Maximum number of pending tasks allowed in the threading priority queue.')
-
-    @staticmethod   
-    def check_config(config: Munch):
-        r""" Checks the passed config items for validity.
-            Args:
-                config (:obj:`munch.Munch, `required`): 
-                    config to check.
-        """
-        pass
 
     def __del__(self):
         """ Calls nucleus stop for clean threadpool closure """
