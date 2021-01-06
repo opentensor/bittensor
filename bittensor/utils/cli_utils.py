@@ -104,7 +104,7 @@ class cli_utils():
     def write_pubkey_to_text_file( keyfile, pubkey_str:str ):
         keyfile = os.path.expanduser(keyfile)
         with open(keyfile + "pub.txt", "w") as pubfile:
-            pubfile.write(pubkey_str)
+            pubfile.write(pubkey_str.strip())
 
     @staticmethod
     def input_password():
