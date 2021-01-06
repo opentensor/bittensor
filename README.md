@@ -5,11 +5,28 @@
 
 Neural networks which mine crypto by producing information for their peers.
 
-## Links
-- [Documentation](https://bittensor-docs.readthedocs.io/en/latest/index.html)
-- [Installation](https://bittensor-docs.readthedocs.io/en/latest/getting-started/installation.html)
-- [Getting Started](https://bittensor-docs.readthedocs.io/en/latest/getting-started/run-multiple-bittensor-instances.html)
-- [Architecture](https://bittensor-docs.readthedocs.io/en/latest/bittensor-deep-dive/bittensor-architecture.html)
+# Installation
+
+Bittensor setup and installation requires a few steps in order to work properly, namely that is the setup of the parity substrate chain and the setup of bittensor in itself. First we will go through deploying the parity substrate chain. 
+
+## Setup Parity Substrate chain
+The parity substrate chain framework is the blockchain framework on which bittensor is based. It is the foundation on which nodes can stake, unstake, and set the weights (scores) of their peers. 
+1. Clone the latest [subtensor](https://github.com/opentensor/subtensor) chain to your local environment. `git clone git@github.com:opentensor/subtensor.git`.
+2. In a separate `tmux`, `screen`, or terminal, compile and run the chain as follows:
+```
+$ cargo build --release
+./target/release/node-subtensor purge-chain --dev && ./target/release/node-subtensor --dev
+```
+
+## Setup bittensor
+1. Clone this repository: `git clone git@github.com:opentensor/bittensor.git`.
+2. Create a new virtual environment: `python3 -m venv env`.
+3. Activate the environment: `source env/bin/activate`
+4. Install requirements: `pip3 install -r requirements.txt`.
+5. Install bittensor: `pip3 install - e .`
+
+You should now be able to run the bittensor examples. A common error you may run into is `No module named 'bittensor'`. This is possibly because your `$PYTHONPATH` needs to be fixed, you can try running `export PYTHONPATH="$PYTHONPATH:$HOME/.python"` to fix it. 
+
 
 ## Acknowledgments
 **learning-at-home/hivemind**:

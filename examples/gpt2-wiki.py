@@ -119,6 +119,11 @@ class Session():
                     print(self.neuron.axon.__full_str__())
                     print(self.neuron.dendrite.__full_str__())
                     print(self.neuron.metagraph)
+
+                    # ---- Update Tensorboard ----
+                    self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
+                    self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
+                    self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
                 
                     # ---- Save best loss and model ----
                     if self.training_loss and self.epoch % 10 == 0:
@@ -126,7 +131,7 @@ class Session():
                             self.best_train_loss = self.training_loss # update best train loss
                             logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
                             torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_train_loss},"{}/model.torch".format(self.config.session.full_path))
-                            self.tensorboard.add_scalar('Train loss', self.training_loss, self.global_step)
+                            self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
                     
                 # --- Catch Errors ----
                 except Exception as e:
@@ -142,7 +147,7 @@ class Session():
             inputs = nextbatch(self.dataset, self.config.session.batch_size_train, bittensor.__tokenizer__())
             output = self.model.remote_forward(
                 self.neuron,
-                inputs,
+                inputs.to(self.model.device),
                 training = True,
             )
 
@@ -168,9 +173,10 @@ class Session():
                     self.neuron.axon,
                     self.neuron.dendrite)
             logger.info('Codes: {}', output.dendrite.return_codes.tolist())
-            self.tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), self.global_step)
-            self.tensorboard.add_scalar('Lloss', output.local_target_loss.item(), self.global_step)
-            self.tensorboard.add_scalar('Dloss', output.distillation_loss.item(), self.global_step)
+            
+            self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('Neuron/Dloss', output.distillation_loss.item(), self.global_step)
 
             # ---- Step increments ----
             self.global_step += 1
