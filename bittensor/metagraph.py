@@ -171,10 +171,10 @@ class Metagraph():
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         # TODO(const): check this endpoint in check_config.
-        parser.add_argument('--metagraph.chain_endpoint', default='feynman.akira.bittensor.com', type=str, 
+        parser.add_argument('--metagraph.chain_endpoint', default='feynman.akira.bittensor.com:9944', type=str, 
                             help='''The subtensor chain endpoint.
                                     Set this value to connect to separate bittensor networks,
-                                    for instance, feynman.akira.bittensor.com (testnet) or feynman.akira.bittensor.com (mainnet)''')
+                                    for instance, feynman.akira.bittensor.com:9944 (testnet) or feynman.akira.bittensor.com:12345 (mainnet)''')
         parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
                             help='''The metagraph filters neurons with last emit beyond this many blocks.
                                     Note, this is used to trim the graph size,
