@@ -10,12 +10,14 @@ from argparse import ArgumentParser
 from loguru import logger
 from prettytable import PrettyTable
 
+from cli_utils import cli_utils
+
 from bittensor.balance import Balance
-from bittensor.crypto import is_encrypted, decrypt_data, KeyError
+from bittensor.crypto import encrypt
+from bittensor.crypto import encrypt, is_encrypted, decrypt_data, KeyError
 from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError
 from bittensor.subtensor.client import WSClient
 from bittensor.subtensor.interface import Keypair
-from bittensor.utils import Cli
 from bittensor.subtensor.client import Neuron, Neurons
 
 class CommandExecutor:
@@ -25,25 +27,66 @@ class CommandExecutor:
         self.__keypair = keypair
         self.__client = client
 
+    async def new_hotkey( self, n_words:int, keyfile_str:str, use_password:bool ):
+        keyfile = cli_utils.validate_create_path( keyfile_str )
+        keypair = cli_utils.gen_new_key( n_words )
+        cli_utils.display_mnemonic_msg( keypair )
+        cli_utils.write_pubkey_to_text_file(keyfile_str, keypair.public_key )
+        if use_password:
+            password = cli_utils.input_password()
+            print("Encrypting key, this might take a while")
+            json_data = json.dumps(keypair.toDict()).encode()
+            data = encrypt(json_data, password)
+            del json_data
+        else:
+            data = json.dumps(keypair.toDict()).encode()
+        cli_utils.save_keys(keyfile, data)
+        cli_utils.set_file_permissions(keyfile)
+
+    async def new_coldkey( self, n_words:int, keyfile_str:str, use_password:bool ):
+        keyfile = cli_utils.validate_create_path( keyfile_str )
+        keypair = cli_utils.gen_new_key( n_words )
+        cli_utils.display_mnemonic_msg( keypair )
+        cli_utils.write_pubkey_to_text_file(keyfile_str, keypair.public_key )
+        if use_password:
+            password = cli_utils.input_password()
+            print("Encrypting key, this might take a while")
+            json_data = json.dumps(keypair.toDict()).encode()
+            data = encrypt(json_data, password)
+            del json_data
+        else:
+            data = json.dumps(keypair.toDict()).encode()
+        cli_utils.save_keys(keyfile, data)
+        cli_utils.set_file_permissions(keyfile)
+
+    async def regen( self, mnemonic: str, keyfile_str:str, use_password:bool):
+        keyfile = cli_utils.validate_create_path( keyfile_str )
+        keypair = cli_utils.validate_generate_mnemonic( mnemonic )
+        cli_utils.write_pubkey_to_text_file(keyfile_str, keypair.public_key )
+        if use_password:
+            password = cli_utils.input_password()
+            print("Encrypting key, this might take a while")
+            json_data = json.dumps(keypair.toDict()).encode()
+            data = encrypt(json_data, password)
+            del json_data
+        else:
+            data = json.dumps(keypair.toDict()).encode()
+        cli_utils.save_keys(keyfile, data)
+        cli_utils.set_file_permissions(keyfile)
+
     async def connect(self):
         self.__client.connect()
         await self.__client.is_connected()
 
     async def _associated_neurons(self) -> Neurons:
         pubkey = self.__keypair.public_key
-
         logger.debug("Retrieving all nodes associated with cold key : {}", pubkey)
-
         neurons = await self.__client.neurons(decorator=True)
-
         result = filter(lambda x : x.coldkey == pubkey, neurons )# These are the neurons associated with the provided cold key
-
         associated_neurons = Neurons(result)
-
         # Load stakes
         for neuron in associated_neurons:
             neuron.stake = await self.__client.get_stake_for_uid(neuron.uid)
-
 
         return associated_neurons
 
@@ -84,7 +127,7 @@ class CommandExecutor:
 
         await self.__client.unstake(amount, neuron.hotkey)
 
-    async def stake(self, uid, amount : Balance):
+    async def stake(self, uid, amount: Balance):
         await self.connect()
         balance = await self.__client.get_balance(self.__keypair.ss58_address)
         if balance < amount:
@@ -99,44 +142,6 @@ class CommandExecutor:
         await self.__client.add_stake(amount, neuron.hotkey)
 
 
-def __validate_path(path):
-    path = os.path.expanduser(path)
-
-    if not os.path.isfile(path):
-        logger.error("{} is not a file. Aborting", path)
-        quit()
-
-    if not os.access(path, os.R_OK):
-        logger.error("{} is not readable. Aborting", path)
-        quit()
-
-def load_key(path) -> Keypair:
-    path = os.path.expanduser(path)
-    try:
-        with open(path, 'rb') as file:
-            data = file.read()
-            if is_encrypted(data):
-                password = Cli.ask_password()
-                data = decrypt_data(password, data)
-
-            return load_keypair_from_data(data)
-
-    except KeyError:
-        logger.error("Invalid password")
-        quit()
-    except KeyFileError as e:
-        logger.error("Keyfile corrupt")
-        raise e
-
-def get_client(endpoint, keypair):
-    return WSClient(socket=endpoint, keypair=keypair)
-
-def enable_debug(should_debug):
-    if not should_debug:
-        logger.remove()
-        logger.add(sink=sys.stderr, level="INFO")
-
-
 '''
 Functions :
 - Generate cold key
@@ -145,27 +150,61 @@ Functions :
 - Stake funds into hotkey ( one by one / amount devided equally over keys)
 - Unstake funds into coldkey (one by one / withdraw all)
 '''
-def run(args):
-    endpoint = args.chain_endpoint
-    enable_debug(args.debug)
-
-    __validate_path(args.cold_key)
-    keypair = load_key(args.cold_key)
-
-    client = get_client(endpoint, keypair)
-    executor = CommandExecutor(keypair, client)
+def run( args ):
+   
+    cli_utils.enable_debug(args.debug)
     loop = asyncio.get_event_loop()
 
+    # --- New hotkey command
+    if args.command == "gen_hotkey":
+        executor = CommandExecutor(None, None)
+        # ---- Run command new hotkey.
+        loop.run_until_complete( executor.new_hotkey( n_words = args.n_words, keyfile_str = args.keyfile, use_password = args.use_password) )
+
+    # --- New coldkey command
+    elif args.command == "gen_coldkey":
+        executor = CommandExecutor(None, None)
+        # ---- Run command new coldkey
+        loop.run_until_complete( executor.new_coldkey( n_words = args.n_words, keyfile_str = args.keyfile, use_password = args.use_password ) )
+
+    # --- Regen command.
+    elif args.command == "regen":
+        executor = CommandExecutor(None, None)
+        # ---- Run command new regen
+        loop.run_until_complete( executor.regen( mnemonic = args.mnemonic, keyfile_str = args.keyfile, use_password = args.use_password) )
+
     # --- Overview command
-    if args.command == "overview":
-        loop.run_until_complete(executor.overview())
+    elif args.command == "overview":
+        if not args.chainendpoint:
+            logger.error("The --chain_endpoint argument is required for this command")
+            quit()
+        # ---- Get Executor for coldkey and endpoint.
+        cli_utils.validate_path(args.coldkey)
+        keypair = cli_utils.load_key(args.coldkey)
+        client = cli_utils.get_client(args.chainendpoint, keypair)
+        executor = CommandExecutor(keypair, client)
+
+        # ---- Run command new hotkey.
+        loop.run_until_complete( executor.overview() )
+
 
     # --- Unstake command
-    if args.command == "unstake":
+    elif args.command == "unstake":
+        if not args.chainendpoint:
+            logger.error("The --chain_endpoint argument is required for this command")
+            quit()
+
+        # ---- Get Executor for coldkey and endpoint.
+        cli_utils.validate_path(args.coldkey)
+        keypair = cli_utils.load_key(args.coldkey)
+        client = cli_utils.get_client(args.chainendpoint, keypair)
+        executor = CommandExecutor(keypair, client)
+        
         if args.unstake_all:
             confirm = input("This will remove all stake from associated neurons, and transfer the balance in the account associated with the cold key. Continue? (y/N) ")
             if confirm not in (["Y", 'y']):
                 quit()
+            # ---- Run command unstake all
             loop.run_until_complete(executor.unstake_all())
             quit()
         if not args.uid:
@@ -174,46 +213,116 @@ def run(args):
         if not args.amount:
             logger.error("The --amount argument is required for this command")
             quit()
+
+        # ---- Run command unstake.
         amount = Balance.from_float(args.amount)
-        loop.run_until_complete(executor.unstake(args.uid, amount))
+        loop.run_until_complete(executor.unstake( uid = args.uid, amount = amount ))
 
     # --- Stake command
-    if args.command == "stake":
+    elif args.command == "stake":
         if not args.uid:
             logger.error("The --uid argument is required for this command")
             quit()
         if not args.amount:
             logger.error("The --amount argument is required for this command")
             quit()
-        amount = Balance.from_float(args.amount)
-        loop.run_until_complete(executor.stake(args.uid, amount))
+        if not args.chainendpoint:
+            logger.error("The --chain_endpoint argument is required for this command")
+            quit()
+        # ---- Get Executor for coldkey and endpoint.
+        cli_utils.validate_path(args.coldkey)
+        keypair = cli_utils.load_key(args.coldkey)
+        client = cli_utils.get_client(args.chainendpoint, keypair)
+        executor = CommandExecutor(keypair, client)
 
+        # ---- Run command stake.
+        amount = Balance.from_float(args.amount)
+        loop.run_until_complete(executor.stake( uid = args.uid, amount = amount ))
+
+    else: 
+        logger.error("No command {}", args.command)
+        sys.exit(0)
+        quit()
 
 def main():
     
     # Build top level parser.
-    parser = ArgumentParser(description="Bittensor cli", usage="bittensor-cli <args> <command>", add_help=True)
+    parser = ArgumentParser(description="Bittensor cli", usage="bittensor-cli <command> <args>", add_help=True)
     parser._positionals.title = "commands"
      
     # Add args
-    parser.add_argument("--chain-endpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, help="The endpoint to the subtensor chain <hostname/ip>:<port>")
-    parser.add_argument("--cold-key", default='~/.bittensor/coldkey', help="Path to the cold key")
-    parser.add_argument("--debug", default=False, help="Turn on debugging information", action="store_true")
+    parser.add_argument("--debug", default=False, help="Turn on debugging information")
 
     # Add subparsers.
     cmd_parsers = parser.add_subparsers(dest='command', required=True)
-    overview_parser = cmd_parsers.add_parser('overview', help='show account overview')
-    unstake_parser = cmd_parsers.add_parser('unstake', help='unstake from hotkey accounts')
-    stake_parser = cmd_parsers.add_parser('stake', help='stake to hotkey accounts')
-   
+    overview_parser = cmd_parsers.add_parser('overview', 
+        help='''Show account overview.''')
+    unstake_parser = cmd_parsers.add_parser('unstake', 
+        help='''Unstake from hotkey accounts.''')
+    stake_parser = cmd_parsers.add_parser('stake', 
+        help='''Stake to your hotkey accounts.''')
+    regen_key_parser = cmd_parsers.add_parser('regen',
+        help='''Regenerate a keyfile from a passed mnemonic.''')
+    new_hotkey_parser = cmd_parsers.add_parser('gen_hotkey', 
+        help='''Create a new unencrypted hotkey.
+            Your hotkey is insecurely loaded into the bittensor node and used to subscribe and set weights.
+            You should never transfer balance into this account. 
+            ''')
+    new_coldkey_parser = cmd_parsers.add_parser('gen_coldkey', 
+        help='''Create a new encrypted coldkey.
+            Your coldkey is (by default) encrypted on this device and should never loaded into your running node.
+            In production ONLY your coldkey public key is loaded into the running node and linked with the a hotkey.
+            Once linked only this key has permissions to stake/unstake tokens from your subscribed neuron.
+            ''')
+
+    # Fill arguments for the regen command.
+    regen_key_parser = cmd_parsers.add_parser('regen')
+    regen_key_parser.add_argument("--mnemonic", required=True, nargs="+", 
+        help='Mnemonic used to regen your key i.e. horse cart dog ...')
+    regen_key_parser.add_argument('--use_password', default=False,
+        help='''If set, protects the generated bittensor key with a password.''')
+    regen_key_parser.add_argument('--keyfile', default='~/.bittensor/coldkey',
+        help='The destination path of the keyfile (default: ~/.bittensor/coldkey)')
+
+    # Fill arguments for hotkey command.
+    new_hotkey_parser.add_argument('--n_words', type=int, choices=[12,15,18,21,24], default=12, 
+        help='''The number of words representing the mnemonic. i.e. horse cart dog ... x 24''')
+    new_hotkey_parser.add_argument('--use_password', default=False,
+        help='''If set, protects the generated bittensor key with a password.''')
+    new_hotkey_parser.add_argument('--keyfile', default='~/.bittensor/hotkey', 
+        help='''The destination path for the hotkey keyfile (default: ~/.bittensor/hotkey)''')
+
+    # Fill arguments for coldkey command.
+    new_coldkey_parser.add_argument('--n_words', dest="n_words", type=int, choices=[12,15,18,21,24], default=12, 
+        help="The number of words the mnemonic. i.e. horse cart dog ... x 24")
+    new_coldkey_parser.add_argument('--use_password', dest="use_password", default=True,
+        help='''If set, protects the generated bittensor key with a password.''')
+    new_coldkey_parser.add_argument('--keyfile', dest="keyfile", default='~/.bittensor/coldkey',
+        help='''The destination path for the coldkey keyfile (default: ~/.bittensor/coldkey)''')
+
     # Fill arguments for unstake command. 
-    unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
+    unstake_parser.add_argument('--all', dest="unstake_all", default=False, required=False)
     unstake_parser.add_argument('--uid', dest="uid", type=int, required=False)
     unstake_parser.add_argument('--amount', dest="amount", type=float, required=False)
+    unstake_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
+        help="The endpoint to the subtensor chain <hostname/ip>:<port>")
+    unstake_parser.add_argument("--coldkey", dest="coldkey", default='~/.bittensor/coldkey', required=False,
+        help="Path to your cold key that is associated with the hotkey-account you are unstaking from.")
 
     # Fill arguments for stake command.
+    stake_parser.add_argument('--all', dest="unstake_all", default=False, required=False)
     stake_parser.add_argument('--uid', dest="uid", type=int, required=False)
     stake_parser.add_argument('--amount', dest="amount", type=float, required=False)
+    stake_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
+        help="The endpoint to the subtensor chain <hostname/ip>:<port>")
+    stake_parser.add_argument("--coldkey", dest="coldkey", default='~/.bittensor/coldkey', required=False,
+        help="Path to your cold key that is associated with the hotkey-account you are staking to.")
+
+    # Fill arguments for overview command.
+    overview_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
+        help="The endpoint to the subtensor chain <hostname/ip>:<port>")
+    overview_parser.add_argument("--coldkey", dest="coldkey", default='~/.bittensor/coldkey', required=False,
+        help="Path to your cold key that is associated with the hotkey-account you are staking to.")
 
     # Hack to print formatted help
     if len(sys.argv) == 1:
