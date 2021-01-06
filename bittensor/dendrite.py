@@ -57,13 +57,16 @@ class Dendrite(nn.Module):
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         parser.add_argument('--dendrite.pass_gradients', default=True, type=bool, 
-                            help='Switch to true is the neuron passes gradients to downstream peers.')
+            help='''Switch to true if the neuron passes gradients to downstream peers.
+                    By default the backward call i.e. loss.backward() triggers passing gradients on the wire.''')
         parser.add_argument('--dendrite.timeout', default=0.5, type=float, 
-                            help='Per request RPC timeout.')
+            help='''The per request RPC timeout. a.k.a the maximum request time.''')
         parser.add_argument('--dendrite.do_backoff', default=True, type=bool, 
-                            help='Neurons who return non successful return codes are periodically not called with a multiplicative backoff.')
+            help='''Neurons who return non successful return codes are
+                    periodically not called with a multiplicative backoff.
+                    The backoff doubles until max_backoff and then halves on ever sequential successful request.''')
         parser.add_argument('--dendrite.max_backoff', default=100, type=int, 
-                            help='Backoff saturates at this value.')
+            help='''The backoff doubles until this saturation point.''')
         return parser
 
     def __str__(self):
@@ -378,6 +381,10 @@ class RemoteNeuron(nn.Module):
         if code.item() == bittensor_pb2.ReturnCode.Success:
             self.backoff = 0
             self.next_backoff = max(1, self.next_backoff / 2)
+
+        elif code.item() == bittensor_pb2.ReturnCode.EmptyRequest:
+            # This was a NO-OP
+            pass
             
         # ---- On Backoff: Lower backoff value by 1 ---- 
         elif code.item() == bittensor_pb2.ReturnCode.Backoff:
