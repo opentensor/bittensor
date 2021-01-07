@@ -83,7 +83,7 @@ class Session():
         assert config.session.batch_size_test > 0, "batch_size_test must be a positive value"
         assert config.session.learning_rate > 0, "learning rate must be be a positive value."
         full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.trial_uid)
-        config.session.full_path = full_path
+        config.session.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.session.full_path):
             os.makedirs(config.session.full_path)
         DPNSynapse.check_config(config)
