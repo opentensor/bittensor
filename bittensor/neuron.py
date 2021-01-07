@@ -50,7 +50,7 @@ class Neuron:
                                         Hotkeys should not hold tokens and are only used
                                         for suscribing and setting weights from running code.
                                         Hotkeys are linked to coldkeys through the metagraph''')
-        parser.add_argument('--neuron.coldkeyfile', required=False, default='~/.bittensor/coldkey', 
+        parser.add_argument('--neuron.coldkeyfile', required=False, default='~/.bittensor/coldkeypub.txt', 
                                 help='''The path to your bittensor cold key file.
                                         Coldkeys can hold tokens and should be encrypted on your device
                                         The coldkey must be used to stake and unstake funds from a running node
