@@ -40,6 +40,7 @@ class WSClient:
     def is_connected(self):
         return self.substrate.is_connected()
 
+
     async def subscribe(self, ip: str, port: int, modality: int, coldkey: str):
         ip_as_int  = net.ip_to_int(ip)
         params = {
@@ -88,6 +89,19 @@ class WSClient:
             }
         )
 
+        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
+        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+
+    async def transfer(self, dest:str, amount: Balance):
+        logger.debug("Requesting transfer of {}, from {} to {}", amount.rao, self.__keypair.public_key, dest)
+        call = await self.substrate.compose_call(
+            call_module='Balances',
+            call_function='transfer',
+            call_params={
+                'dest': dest, 
+                'value': amount.rao
+            }
+        )
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
         await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
 
