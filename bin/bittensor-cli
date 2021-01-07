@@ -27,6 +27,7 @@ class CommandExecutor:
         self.__keypair = keypair
         self.__client = client
 
+
     async def new_hotkey( self, n_words:int, keyfile_str:str, use_password:bool ):
         keyfile = cli_utils.validate_create_path( keyfile_str )
         keypair = cli_utils.gen_new_key( n_words )
@@ -112,6 +113,14 @@ class CommandExecutor:
             neuron.stake = await self.__client.get_stake_for_uid(neuron.uid)
             await self.__client.unstake(neuron.stake, neuron.hotkey)
 
+    async def transfer( self, dest:str, amount: Balance ):
+        await self.connect()
+        balance = await self.__client.get_balance(self.__keypair.ss58_address)
+        if balance < amount:
+            logger.error("Not enough balance ({}) to transfer {}", balance, amount)
+            quit()
+        await self.__client.transfer( dest, amount )
+
     async def unstake(self, uid, amount : Balance):
         await self.connect()
         neurons = await self._associated_neurons()
@@ -132,6 +141,7 @@ class CommandExecutor:
         balance = await self.__client.get_balance(self.__keypair.ss58_address)
         if balance < amount:
             logger.error("Not enough balance ({}) to stake {}", balance, amount)
+            quit()
 
         neurons = await self._associated_neurons()
         neuron = neurons.get_by_uid(uid)
@@ -174,16 +184,14 @@ def run( args ):
 
     # --- Transfer command
     elif args.command == "transfer":
-        if not args.chainendpoint:
-            logger.error("The --chain-endpoint argument is required for this command")
-            quit()
         cli_utils.validate_path(args.coldkey)
         keypair = cli_utils.load_key(args.coldkey)
         client = cli_utils.get_client(args.chainendpoint, keypair)
         executor = CommandExecutor(keypair, client)
 
         # ---- Run command new regen
-        loop.run_until_complete( executor.regen( mnemonic = args.mnemonic, keyfile_str = args.keyfile, use_password = args.use_password) )
+        amount = Balance.from_float(args.amount)
+        loop.run_until_complete( executor.transfer( dest = args.dest, amount = amount ) )
 
     # --- Overview command
     elif args.command == "overview":
@@ -203,7 +211,7 @@ def run( args ):
         executor = CommandExecutor(keypair, client)
 
         # ---- Run command new hotkey.
-        loop.run_until_complete( executor.transfer( args.ammount, args.dest ) )
+        loop.run_until_complete( executor.overview( ) )
 
 
     # --- Unstake command
@@ -347,7 +355,8 @@ def main():
         help="Path to your cold key that is associated with the hotkey-account you are staking to.")
 
      # Fill arguments for transfer
-    transfer_parser.add_argument('--amount', dest="amount", type=float, required=False)
+    transfer_parser.add_argument('--dest', dest="dest", type=str, required=True)
+    transfer_parser.add_argument('--amount', dest="amount", type=float, required=True)
     transfer_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
         help="The endpoint to the subtensor chain <hostname/ip>:<port>")
     transfer_parser.add_argument("--coldkey", dest="coldkey", default='~/.bittensor/coldkey', required=False,

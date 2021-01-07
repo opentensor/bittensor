@@ -21,7 +21,6 @@ def create_config_dir_if_not_exists():
         else:
             print(colored("~/.bittensor exists, but is not a directory. Aborting", 'red'))
             quit()
-
     os.mkdir(config_dir)
 
 def may_overwrite(file):
