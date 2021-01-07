@@ -27,45 +27,56 @@ class CommandExecutor:
         self.__keypair = keypair
         self.__client = client
 
-    async def new_hotkey( self, n_words:int, keyfile_str:str, use_password:bool ):
-        keyfile = cli_utils.validate_create_path( keyfile_str )
-        keypair = cli_utils.gen_new_key( n_words )
-        cli_utils.display_mnemonic_msg( keypair )
-        cli_utils.write_pubkey_to_text_file(keyfile_str, keypair.public_key )
+    async def new_wallet( self, n_words:int, wallets_path:str,  wallet_name: str, use_password: bool):
+
+        # Ensure the user wants ot use the passed wallet_name (i.e. default)
+        wallet_name = cli_utils.validate_wallet_name(wallet_name)
+        cli_utils.create_wallet_dir_if_not_exists(wallets_path + '/' + wallet_name)
+
+        # Create coldkey.
+        coldkey_path = wallets_path + wallet_name + "/coldkey"
+        coldkey_file = cli_utils.validate_create_path( coldkey_path )
+        coldkey_keypair = cli_utils.gen_new_key( n_words )
+        cli_utils.display_mnemonic_msg( coldkey_keypair )
+        cli_utils.write_pubkey_to_text_file(coldkey_path, coldkey_keypair.public_key )
         if use_password:
             password = cli_utils.input_password()
-            print("Encrypting key, this might take a while")
-            json_data = json.dumps(keypair.toDict()).encode()
-            data = encrypt(json_data, password)
-            del json_data
+            print("Encrypting coldkey ... (this might take a few moments)")
+            coldkey_json_data = json.dumps(coldkey_keypair.toDict()).encode()
+            coldkey_data = encrypt(coldkey_json_data, password)
+            del coldkey_json_data
         else:
-            data = json.dumps(keypair.toDict()).encode()
-        cli_utils.save_keys(keyfile, data)
-        cli_utils.set_file_permissions(keyfile)
+            coldkey_data = json.dumps(coldkey_keypair.toDict()).encode()
+        cli_utils.save_keys(coldkey_file, coldkey_data)
+        cli_utils.set_file_permissions(coldkey_file)
 
-    async def new_coldkey( self, n_words:int, keyfile_str:str, use_password:bool ):
-        keyfile = cli_utils.validate_create_path( keyfile_str )
-        keypair = cli_utils.gen_new_key( n_words )
-        cli_utils.display_mnemonic_msg( keypair )
-        cli_utils.write_pubkey_to_text_file(keyfile_str, keypair.public_key )
-        if use_password:
-            password = cli_utils.input_password()
-            print("Encrypting key, this might take a while")
-            json_data = json.dumps(keypair.toDict()).encode()
-            data = encrypt(json_data, password)
-            del json_data
-        else:
-            data = json.dumps(keypair.toDict()).encode()
-        cli_utils.save_keys(keyfile, data)
-        cli_utils.set_file_permissions(keyfile)
+        # Create default hotkey.
+        cli_utils.create_hotkeys_dir_if_not_exists(wallets_path + "/" + wallet_name + "/hotkeys")
+        hotkey_path = wallets_path + wallet_name + "/hotkeys/default"
+        hotkey_file = cli_utils.validate_create_path( hotkey_path )
+        hotkey_keypair = cli_utils.gen_new_key( n_words )
+        hotkey_data = json.dumps(hotkey_keypair.toDict()).encode()
+        cli_utils.save_keys(hotkey_file, hotkey_data)
+        cli_utils.set_file_permissions(hotkey_file)
 
-    async def regen( self, mnemonic: str, keyfile_str:str, use_password:bool):
-        keyfile = cli_utils.validate_create_path( keyfile_str )
+    async def new_hotkey( self, n_words:int, wallet_path: str, hotkey_name: str):
+        cli_utils.create_wallet_dir_if_not_exists(wallet_path)
+        cli_utils.create_hotkeys_dir_if_not_exists(wallet_path + "/hotkeys")
+        hotkey_name = cli_utils.validate_hotkey_name( hotkey_name )
+        hotkey_path = wallet_path + "hotkeys/" + hotkey_name 
+        hotkey_file = cli_utils.validate_create_path( hotkey_path )
+        hotkey_keypair = cli_utils.gen_new_key( n_words )
+        hotkey_data = json.dumps(hotkey_keypair.toDict()).encode()
+        cli_utils.save_keys(hotkey_file, hotkey_data)
+        cli_utils.set_file_permissions(hotkey_file)
+
+    async def regen_key( self, mnemonic: str, keypath_str:str, use_password:bool):
+        keyfile = cli_utils.validate_create_path( keypath_str )
         keypair = cli_utils.validate_generate_mnemonic( mnemonic )
-        cli_utils.write_pubkey_to_text_file(keyfile_str, keypair.public_key )
+        cli_utils.write_pubkey_to_text_file(keypath_str, keypair.public_key )
         if use_password:
             password = cli_utils.input_password()
-            print("Encrypting key, this might take a while")
+            print("Encrypting key ... (this might take a few moments)")
             json_data = json.dumps(keypair.toDict()).encode()
             data = encrypt(json_data, password)
             del json_data
@@ -125,7 +136,7 @@ class CommandExecutor:
         neurons = await self._associated_neurons()
         neuron = neurons.get_by_uid(uid)
         if not neuron:
-            logger.error("Neuron with uid {} is not associated with this cold key")
+            logger.error("Neuron with uid {} is not associated with this cold key".format(uid))
             quit()
 
         neuron.stake = await self.__client.get_stake_for_uid(uid)
@@ -162,25 +173,27 @@ Functions :
 '''
 def run( args ):
     cli_utils.enable_debug(args.debug)
+    cli_utils.create_config_dir_if_not_exists()
+    cli_utils.create_wallets_dir_if_not_exists()
     loop = asyncio.get_event_loop()
 
-    # --- New hotkey command
-    if args.command == "gen_hotkey":
+    # --- New wallet command
+    if args.command == "new_wallet":
         executor = CommandExecutor(None, None)
         # ---- Run command new hotkey.
-        loop.run_until_complete( executor.new_hotkey( n_words = args.n_words, keyfile_str = args.keyfile, use_password = args.use_password) )
+        loop.run_until_complete( executor.new_wallet( n_words = args.n_words, wallets_path = args.wallets_path, wallet_name = args.name, use_password = args.use_password) )
 
-    # --- New coldkey command
-    elif args.command == "gen_coldkey":
+    # --- New hotkey command
+    elif args.command == "new_hotkey":
         executor = CommandExecutor(None, None)
-        # ---- Run command new coldkey
-        loop.run_until_complete( executor.new_coldkey( n_words = args.n_words, keyfile_str = args.keyfile, use_password = args.use_password ) )
+        # ---- Run command new hotkey.
+        loop.run_until_complete( executor.new_hotkey( n_words = args.n_words, wallet_path = args.wallet, hotkey_name = args.name) )
 
     # --- Regen command.
-    elif args.command == "regen":
+    elif args.command == "regen_key":
         executor = CommandExecutor(None, None)
         # ---- Run command new regen
-        loop.run_until_complete( executor.regen( mnemonic = args.mnemonic, keyfile_str = args.keyfile, use_password = args.use_password) )
+        loop.run_until_complete( executor.regen_key( mnemonic = args.mnemonic, keypath_str = args.keypath, use_password = args.use_password) )
 
     # --- Transfer command
     elif args.command == "transfer":
@@ -193,8 +206,8 @@ def run( args ):
         if not args.amount:
             logger.error("The --amount argument is required for this command")
             quit()
-        cli_utils.validate_path(args.coldkey)
-        keypair = cli_utils.load_key(args.coldkey)
+        cli_utils.validate_path(args.wallet + '/coldkey')
+        keypair = cli_utils.load_key(args.wallet + '/coldkey')
         client = cli_utils.get_client(args.chainendpoint, keypair)
         executor = CommandExecutor(keypair, client)
 
@@ -208,8 +221,8 @@ def run( args ):
             logger.error("The --chain-endpoint argument is required for this command")
             quit()
         # ---- Get Executor for coldkey and endpoint.
-        cli_utils.validate_path(args.coldkey)
-        keypair = cli_utils.load_key(args.coldkey)
+        cli_utils.validate_path(args.wallet + '/coldkey')
+        keypair = cli_utils.load_key(args.wallet + '/coldkey')
         client = cli_utils.get_client(args.chainendpoint, keypair)
         executor = CommandExecutor(keypair, client)
 
@@ -224,8 +237,8 @@ def run( args ):
             quit()
 
         # ---- Get Executor for coldkey and endpoint.
-        cli_utils.validate_path(args.coldkey)
-        keypair = cli_utils.load_key(args.coldkey)
+        cli_utils.validate_path(args.wallet + '/coldkey')
+        keypair = cli_utils.load_key(args.wallet + '/coldkey')
         client = cli_utils.get_client(args.chainendpoint, keypair)
         executor = CommandExecutor(keypair, client)
         
@@ -259,8 +272,8 @@ def run( args ):
             logger.error("The --chain-endpoint argument is required for this command")
             quit()
         # ---- Get Executor for coldkey and endpoint.
-        cli_utils.validate_path(args.coldkey)
-        keypair = cli_utils.load_key(args.coldkey)
+        cli_utils.validate_path(args.wallet + '/coldkey')
+        keypair = cli_utils.load_key(args.wallet + '/coldkey')
         client = cli_utils.get_client(args.chainendpoint, keypair)
         executor = CommandExecutor(keypair, client)
 
@@ -292,78 +305,78 @@ def main():
         help='''Unstake from hotkey accounts.''')
     stake_parser = cmd_parsers.add_parser('stake', 
         help='''Stake to your hotkey accounts.''')
-    regen_key_parser = cmd_parsers.add_parser('regen',
-        help='''Regenerate a keyfile from a passed mnemonic.''')
-    new_hotkey_parser = cmd_parsers.add_parser('gen_hotkey', 
-        help='''Create a new unencrypted hotkey.
-            Your hotkey is insecurely loaded into the bittensor node and used to subscribe and set weights.
-            You should never transfer balance into this account. 
+    regen_key_parser = cmd_parsers.add_parser('regen_key',
+        help='''Regenerates a keyfile into the specified path given a passed mnemonic''')
+    wallet_parser = cmd_parsers.add_parser('new_wallet', 
+        help='''Creates a new wallet containing your coldkey (for containing balance)
+            and a default hotkey (for running your node). The default wallet is stored 
+            in ~/.bittensor/wallets/default/. 
             ''')
-    new_coldkey_parser = cmd_parsers.add_parser('gen_coldkey', 
-        help='''Create a new encrypted coldkey.
-            Your coldkey is (by default) encrypted on this device and should never loaded into your running node.
-            In production ONLY your coldkey public key is loaded into the running node and linked with the a hotkey.
-            Once linked only this key has permissions to stake/unstake tokens from your subscribed neuron.
+    new_hotkey_parser = cmd_parsers.add_parser('new_hotkey', 
+        help='''Creates a new hotkey (for running a node) under the specified wallet path.
+            The created hotkey is stored in plain text under ~/.bittensor/wallets/$wallet_name$/hotkeys/$hotkey_name$. 
             ''')
 
     # Fill arguments for the regen command.
-    regen_key_parser = cmd_parsers.add_parser('regen')
+    regen_key_parser = cmd_parsers.add_parser('regen_key')
     regen_key_parser.add_argument("--mnemonic", required=True, nargs="+", 
         help='Mnemonic used to regen your key i.e. horse cart dog ...') 
     regen_key_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
     regen_key_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
     regen_key_parser.set_defaults(use_password=True)
-    regen_key_parser.add_argument('--keyfile', default='~/.bittensor/coldkey',
-        help='The destination path of the keyfile (default: ~/.bittensor/coldkey)')
+    regen_key_parser.add_argument('--keypath', default=None, type=str, required=True,
+        help='The destination path for the regenerated keyfile (i.e. ~/.bittensor/wallets/regenerated/coldkey or ~/.bittensor/wallets/default/hotkeys/regenerated_hotkey)')
 
-    # Fill arguments for hotkey command.
+    # Fill arguments for the regen command.
+    new_hotkey_parser = cmd_parsers.add_parser('new_hotkey')
     new_hotkey_parser.add_argument('--n_words', type=int, choices=[12,15,18,21,24], default=12, 
         help='''The number of words representing the mnemonic. i.e. horse cart dog ... x 24''')
-    new_hotkey_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
-    new_hotkey_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
-    new_hotkey_parser.set_defaults(use_password=False)
-    new_hotkey_parser.add_argument('--keyfile', default='~/.bittensor/hotkey', 
-        help='''The destination path for the hotkey keyfile (default: ~/.bittensor/hotkey)''')
+    new_hotkey_parser.add_argument('--wallet', default='~/.bittensor/wallets/default/', type=str,
+        help='''The wallet where the new hotkey will be stored (by default: ~/.bittensor/wallets/default)''')
+    new_hotkey_parser.add_argument('--name', default=None, type=str, 
+        help='''The name of the hotkey which allows you to distinguish between the node uid you are running with bittensor.py --wallet $wallet_name$ --hotkey $hotkey_name$''')
 
-    # Fill arguments for coldkey command.
-    new_coldkey_parser.add_argument('--n_words', dest="n_words", type=int, choices=[12,15,18,21,24], default=12, 
-        help="The number of words the mnemonic. i.e. horse cart dog ... x 24")
-    new_coldkey_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
-    new_coldkey_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
-    new_coldkey_parser.set_defaults(use_password=True)
-    new_coldkey_parser.add_argument('--keyfile', dest="keyfile", default='~/.bittensor/coldkey',
-        help='''The destination path for the coldkey keyfile (default: ~/.bittensor/coldkey)''')
+    # Fill arguments for new wallet command
+    wallet_parser.add_argument('--n_words', type=int, choices=[12,15,18,21,24], default=12, 
+        help='''The number of words representing the mnemonic. i.e. horse cart dog ... x 24''')
+    wallet_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
+    wallet_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
+    wallet_parser.set_defaults(use_password=True)
+    wallet_parser.add_argument('--wallets_path', default='~/.bittensor/wallets/', type=str, 
+        help='''Where the wallet is stored (by default: ~/.bittensor/wallets/)''')
+    wallet_parser.add_argument('--name', default=None, type=str, 
+        help='''The name of the wallet, (default: 'default' and stores in ~/.bittensor/wallets/default)''')
 
     # Fill arguments for unstake command. 
     unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
     unstake_parser.add_argument('--uid', dest="uid", type=int, required=False)
     unstake_parser.add_argument('--amount', dest="amount", type=float, required=False)
-    unstake_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
+    unstake_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.akira.bittensor.com:9944", required=False, 
         help="The endpoint to the subtensor chain <hostname/ip>:<port>")
-    unstake_parser.add_argument("--coldkey", dest="coldkey", default='~/.bittensor/coldkey', required=False,
-        help="Path to your cold key that is associated with the hotkey-account you are unstaking from.")
+    unstake_parser.add_argument("--wallet", dest="wallet", default='~/.bittensor/wallets/default/', required=False,
+        help="Path to the wallet which holds the hotkey-account you are unstaking to.")
 
     # Fill arguments for stake command.
     stake_parser.add_argument('--uid', dest="uid", type=int, required=False)
     stake_parser.add_argument('--amount', dest="amount", type=float, required=False)
-    stake_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
+    stake_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.akira.bittensor.com:9944", required=False, 
         help="The endpoint to the subtensor chain <hostname/ip>:<port>")
-    stake_parser.add_argument("--coldkey", dest="coldkey", default='~/.bittensor/coldkey', required=False,
-        help="Path to your cold key that is associated with the hotkey-account you are staking to.")
+    stake_parser.add_argument("--wallet", dest="wallet", default='~/.bittensor/wallets/default/', required=False,
+        help="Path to the wallet which holds the hotkey-account you are staking to.")
 
     # Fill arguments for overview command.
-    overview_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
+    overview_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.akira.bittensor.com:9944", required=False, 
         help="The endpoint to the subtensor chain <hostname/ip>:<port>")
-    overview_parser.add_argument("--coldkey", dest="coldkey", default='~/.bittensor/coldkey', required=False,
-        help="Path to your cold key that is associated with the hotkey-account you are staking to.")
+    overview_parser.add_argument("--wallet", dest="wallet", default='~/.bittensor/wallets/default/', required=False,
+        help="Path to your wallet")
 
      # Fill arguments for transfer
     transfer_parser.add_argument('--dest', dest="dest", type=str, required=True)
     transfer_parser.add_argument('--amount', dest="amount", type=float, required=True)
-    transfer_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
+    transfer_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.akira.bittensor.com:9944", required=False, 
         help="The endpoint to the subtensor chain <hostname/ip>:<port>")
-    transfer_parser.add_argument("--coldkey", dest="coldkey", default='~/.bittensor/coldkey', required=False,
-        help="Path to your cold key that is associated with the hotkey-account you are staking to.")
+    transfer_parser.add_argument("--wallet", dest="wallet", default='~/.bittensor/wallets/default/', required=False,
+        help="Path to the wallet which holds the tokens for making the transfer.")
 
     # Hack to print formatted help
     if len(sys.argv) == 1:

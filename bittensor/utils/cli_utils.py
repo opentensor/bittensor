@@ -60,6 +60,62 @@ class cli_utils():
         os.mkdir(config_dir)
 
     @staticmethod
+    def create_wallet_dir_if_not_exists(wallet_dir):
+        wallet_dir = os.path.expanduser(wallet_dir)
+        if os.path.exists(wallet_dir):
+            if os.path.isdir(wallet_dir):
+                return
+            else:
+                print(colored("{} exists, but is not a directory. Aborting".format(wallet_dir), 'red'))
+                quit()
+        os.mkdir(wallet_dir)
+
+    @staticmethod
+    def create_hotkeys_dir_if_not_exists(hotkeys_dir):
+        hotkeys_dir = os.path.expanduser(hotkeys_dir)
+        if os.path.exists(hotkeys_dir):
+            if os.path.isdir(hotkeys_dir):
+                return
+            else:
+                print(colored("{} exists, but is not a directory. Aborting".format(hotkeys_dir), 'red'))
+                quit()
+        os.mkdir(hotkeys_dir)
+
+    @staticmethod
+    def create_wallets_dir_if_not_exists():
+        wallet_dir = "~/.bittensor/wallets"
+        wallet_dir = os.path.expanduser(wallet_dir)
+        if os.path.exists(wallet_dir):
+            if os.path.isdir(wallet_dir):
+                return
+            else:
+                print(colored("~/.bittensor/wallets exists, but is not a directory. Aborting", 'red'))
+                quit()
+        os.mkdir(wallet_dir)
+
+    @staticmethod
+    def validate_wallet_name( wallet_name:str ) -> str:
+        if wallet_name == None:
+            choice = input("Use 'default' as wallet ? (y/N) ")
+            if choice == "y":
+                return 'default'
+            else:
+                return input("Wallet name: ")
+        else:
+            return wallet_name
+
+    @staticmethod
+    def validate_hotkey_name( hotkey_name:str ) -> str:
+        if hotkey_name == None:
+            choice = input("Use 'default' as hotkey name ? (y/N) ")
+            if choice == "y":
+                return 'default'
+            else:
+                return input("Hotkey name: ")
+        else:
+            return hotkey_name
+            
+    @staticmethod
     def may_overwrite( file:str ):
         choice = input("File %s already exists. Overwrite ? (y/N) " % file)
         if choice == "y":
@@ -82,7 +138,6 @@ class cli_utils():
     @staticmethod
     def validate_create_path( keyfile ):
         keyfile = os.path.expanduser(keyfile)
-
         if os.path.isfile(keyfile):
             if os.access(keyfile, os.W_OK):
                 if cli_utils.may_overwrite( keyfile ):
