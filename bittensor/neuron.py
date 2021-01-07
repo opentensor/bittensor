@@ -45,12 +45,12 @@ class Neuron:
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        parser.add_argument('--neuron.hotkeyfile', required=False, default='~/.bittensor/hotkey', 
+        parser.add_argument('--neuron.hotkeyfile', required=False, default='~/.bittensor/wallets/default/hotkeys/default', 
                                 help='''The path to your bittensor hot key file,
                                         Hotkeys should not hold tokens and are only used
                                         for suscribing and setting weights from running code.
                                         Hotkeys are linked to coldkeys through the metagraph''')
-        parser.add_argument('--neuron.coldkeyfile', required=False, default='~/.bittensor/coldkeypub.txt', 
+        parser.add_argument('--neuron.coldkeyfile', required=False, default='~/.bittensor/wallets/default/coldkeypub.txt', 
                                 help='''The path to your bittensor cold key file.
                                         Coldkeys can hold tokens and should be encrypted on your device
                                         The coldkey must be used to stake and unstake funds from a running node
