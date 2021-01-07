@@ -16,8 +16,8 @@ $ bittensor-cli new_wallet                                                      
 
 # Run
 ```
-$ python examples/gpt-wiki.py   --session.trial_uid=test                            # Train gpt on wiki-text
-$ tensorboard --logdir=~/.bittensor/sessions/gpt-wiki/test                          # Serve tensorboard
+$ python examples/gpt2-wiki.py   --session.trial_uid=test                           # Train gpt2 on wiki-text
+$ tensorboard --logdir=~/.bittensor/sessions/gpt2-wiki/test                          # Serve tensorboard
 ```
 
 # Validate
