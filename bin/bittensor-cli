@@ -27,7 +27,6 @@ class CommandExecutor:
         self.__keypair = keypair
         self.__client = client
 
-
     async def new_hotkey( self, n_words:int, keyfile_str:str, use_password:bool ):
         keyfile = cli_utils.validate_create_path( keyfile_str )
         keypair = cli_utils.gen_new_key( n_words )
@@ -149,6 +148,7 @@ class CommandExecutor:
             logger.error("Neuron with uid {} is not associated with this cold key")
             quit()
 
+        print (amount, neuron.hotkey, neuron)
         await self.__client.add_stake(amount, neuron.hotkey)
 
 
@@ -184,6 +184,15 @@ def run( args ):
 
     # --- Transfer command
     elif args.command == "transfer":
+        if not args.chainendpoint:
+            logger.error("The --chain-endpoint argument is required for this command")
+            quit()
+        if not args.dest:
+            logger.error("The --dest argument is required for this command")
+            quit()
+        if not args.amount:
+            logger.error("The --amount argument is required for this command")
+            quit()
         cli_utils.validate_path(args.coldkey)
         keypair = cli_utils.load_key(args.coldkey)
         client = cli_utils.get_client(args.chainendpoint, keypair)
@@ -197,12 +206,6 @@ def run( args ):
     elif args.command == "overview":
         if not args.chainendpoint:
             logger.error("The --chain-endpoint argument is required for this command")
-            quit()
-        if not args.dest:
-            logger.error("The --dest argument is required for this command")
-            quit()
-        if not args.amount:
-            logger.error("The --amount argument is required for this command")
             quit()
         # ---- Get Executor for coldkey and endpoint.
         cli_utils.validate_path(args.coldkey)

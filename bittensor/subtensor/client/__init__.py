@@ -79,7 +79,7 @@ class WSClient:
         return Balance(balance)
 
     async def add_stake(self, amount : Balance, hotkey_id):
-        logger.debug("Adding stake of {} rao from coldkey {} to hotkey {}", amount.rao, self.__keypair.public_key, hotkey_id)
+        logger.info("Adding stake of {} rao from coldkey {} to hotkey {}", amount.rao, self.__keypair.public_key, hotkey_id)
         call = await self.substrate.compose_call(
             call_module='SubtensorModule',
             call_function='add_stake',

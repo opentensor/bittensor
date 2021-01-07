@@ -6,9 +6,6 @@ import urllib
 
 from loguru import logger
 
-def ip__str__(self, ip_type, ip_str):
-    return "/ipv%i/%s" % (ip_type, ip_str)
-
 def int_to_ip(int_val: int) -> str:
     r""" Maps an integer to a unique ip-string 
         Args:
@@ -40,6 +37,9 @@ def ip_to_int(str_val: str) -> int:
                 Raised when the passed str_val is not a valid ip string value.
     """
     return int(netaddr.IPAddress(str_val))
+
+def ip__str__(ip_type, ip_str):
+    return "/ipv%i/%s" % (ip_type, ip_str)
 
 class ExternalIPNotFound(Exception):
     """ Raised if we cannot attain your external ip from CURL/URLLIB/IPIFY/AWS """
