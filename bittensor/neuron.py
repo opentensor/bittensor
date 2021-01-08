@@ -51,10 +51,11 @@ class Neuron:
                                         for suscribing and setting weights from running code.
                                         Hotkeys are linked to coldkeys through the metagraph''')
         parser.add_argument('--neuron.coldkeyfile', required=False, default='~/.bittensor/wallets/default/coldkeypub.txt', 
-                                help='''The path to your bittensor cold key file.
-                                        Coldkeys can hold tokens and should be encrypted on your device
-                                        The coldkey must be used to stake and unstake funds from a running node
-                                        The coldkey account it linked to the hotkey through the chain metadata''')
+                                help='''The path to your bittensor cold publickey text file.
+                                        Coldkeys can hold tokens and should be encrypted on your device.
+                                        The coldkey must be used to stake and unstake funds from a running node.
+                                        On subscribe this coldkey account is linked to the associated hotkey on the subtensor chain.
+                                        Only this key is capable of making staking and unstaking requests for this neuron.''')
         Axon.add_args(parser)
         Dendrite.add_args(parser)
         Metagraph.add_args(parser)
@@ -83,21 +84,19 @@ class Neuron:
     def __check_hot_key_path(path):
         path = os.path.expanduser(path)
 
-        if not Neuron.__has_keypair(path):
-            logger.info("No key found, generating a new one and storing it in {}", path)
-            keypair = Neuron.__create_keypair()
-            Neuron.__save_keypair(keypair, path)
-
         if not os.path.isfile(path):
             logger.error("--neuron.hotkeyfile {} is not a file", path)
+            logger.error("You can create keys with: bittensor-cli new_wallet")
             raise KeyFileError
 
         if not os.access(path, os.R_OK):
             logger.error("--neuron.hotkeyfile {} is not readable", path)
+            logger.error("Ensure you have proper privileges to read the file {}", path)
             raise KeyFileError
 
         if Neuron.__is_world_readable(path):
             logger.error("--neuron.hotkeyfile {} is world readable.", path)
+            logger.error("Ensure you have proper privileges to read the file {}", path)
             raise KeyFileError
 
     @staticmethod
@@ -233,6 +232,13 @@ class Neuron:
             if code != Metagraph.ConnectSuccess:
                 logger.error('Neuron: Timeout while subscribing to the chain endpoint with message {}', message)
                 logger.error('Check that your internet connection is working and the chain endpoint {} is available', self.config.metagraph.chain_endpoint)
+                failed_connect_msg_help = ''' The subtensor chain endpoint should likely be one of the following choices:
+                                        -- localhost:9944 -- (your locally running node)
+                                        -- feynman.akira.bittensor.com:9944 (testnet)
+                                        -- feynman.kusanagi.bittensor.com:9944 (mainnet)
+                                    To connect to your local node you will need to run the subtensor locally: (See: docs/running_a_validator.md)
+                                '''
+                logger.error(failed_connect_msg_help)
                 raise FailedConnectToChain
         except Exception as e:
             logger.error('Neuron: Error while connecting to the chain endpoint: {}', e)
