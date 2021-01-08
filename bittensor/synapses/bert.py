@@ -1,6 +1,7 @@
 import argparse
 import random
 import torch
+from torch import nn
 import torch.nn.functional as F
 import transformers
 
@@ -12,6 +13,20 @@ import bittensor
 from bittensor.dendrites.pkm import PKMDendrite
 from bittensor.synapse import Synapse
 from bittensor.neuron import Neuron
+
+class BertPooler(nn.Module):
+    def __init__(self, config):
+        super(BertPooler, self).__init__()
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.activation = nn.Tanh()
+
+    def forward(self, hidden_states):
+        # We "pool" the model by simply taking the hidden state corresponding
+        # to the first token.
+        first_token_tensor = hidden_states[:, 0]
+        pooled_output = self.dense(first_token_tensor)
+        pooled_output = self.activation(pooled_output)
+        return pooled_output
 
 class BertSynapseBase (Synapse):
     def __init__(self, config: Munch):
@@ -39,8 +54,12 @@ class BertSynapseBase (Synapse):
         self.transformer = BertModel( huggingface_config, add_pooling_layer=True )
 
         # hidden_layer: transforms context and encoding to network_dim hidden units.
-        # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
+        # [batch_size, sequence_dim, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
         self.hidden_layer = torch.nn.Linear( bittensor.__network_dim__, bittensor.__network_dim__ )
+
+        # pooling_layer: transforms teh hidden layer into a pooled representation by taking the encoding of the first token
+        # [batch_size, sequence_dim,  bittensor.__network_dim__] -> [batch_size, bittensor.__network_dim__]
+        self.pooler = BertPooler( huggingface_config )
 
         self.to(self.device)
 
@@ -72,15 +91,21 @@ class BertSynapseBase (Synapse):
                 hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Hidden layer representation produced using the local_context.
         """
-        hidden = self.local_forward( inputs=inputs ).local_hidden
+        hidden = self.base_local_forward( inputs=inputs ).local_hidden
         return hidden
 
-    def local_forward(self, inputs: torch.LongTensor ):
+    def base_local_forward(self, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None):
         r""" Forward pass inputs and labels through the NSP BERT module.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
+
+                attention_mask (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
+                    Mask to avoid performing attention on padding token indices.
+                    Mask values selected in ``[0, 1]``:
+                        - 1 for tokens that are **not masked**,
+                        - 0 for tokens that are **maked**.    
 
              SimpleNamespace {
                     local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
@@ -89,8 +114,8 @@ class BertSynapseBase (Synapse):
                     local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Hidden layer encoding produced using local_context.
 
-                    pooled_local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
-                        Local context pooled by returning the encoding of the first token.
+                    local_pooled (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
+                        Local hidden state pooled by returning the encoding of the first token.
                 }
         """        
         # Return vars to be filled.
@@ -98,17 +123,16 @@ class BertSynapseBase (Synapse):
    
         # local_context: distilled version of remote_context.
         # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        encoding = self.transformer( input_ids = inputs, return_dict = True )
-        output.local_context = encoding.last_hidden_state
-        output.pooled_local_context = encoding.pooler_output
+        output.local_context = self.transformer( input_ids = inputs, return_dict = True, attention_mask = attention_mask ).last_hidden_state
 
         # local_hidden: hidden layer encoding of sequence using local context
         # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         output.local_hidden = self.hidden_layer( output.local_context )
+        output.local_pooled = self.pooler( output.local_hidden )
 
         return output
 
-    def remote_forward(self, neuron, inputs: torch.LongTensor):
+    def base_remote_forward(self, neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None):
         """Forward pass inputs and labels through the remote BERT networks.
 
         Args:
@@ -117,6 +141,13 @@ class BertSynapseBase (Synapse):
 
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.                
+
+            attention_mask (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
+                    Mask to avoid performing attention on padding token indices.
+                    Mask values selected in ``[0, 1]``:
+                        - 1 for tokens that are **not masked**,
+                        - 0 for tokens that are **maked**.        
+
         Returns:
             SimpleNamespace ( 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
@@ -129,11 +160,11 @@ class BertSynapseBase (Synapse):
                         Outputs from the pkm dendrite.
                 )
         """
-        output = self.local_forward( inputs )
+        output = self.base_local_forward( inputs = inputs, attention_mask = attention_mask )
 
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.dendrite = self.dendrite.forward_text( neuron = neuron, text = inputs, query = output.pooled_local_context )
+        output.dendrite = self.dendrite.forward_text( neuron = neuron, text = inputs, query = output.local_pooled )
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
@@ -142,6 +173,7 @@ class BertSynapseBase (Synapse):
         # remote_hidden: hidden layer encoding using remote_context.
         # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         output.remote_hidden = self.hidden_layer( output.dendrite.response )
+        output.remote_pooled = self.pooler( output.remote_hidden )
 
         return output
 
@@ -172,7 +204,7 @@ class BertNSPSynapse (BertSynapseBase):
 
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
-        self.loss_fct = torch.nn.CrossEntropyLoss()
+        self.loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-1)
     
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the BERT NSP Synapse.
@@ -218,11 +250,11 @@ class BertNSPSynapse (BertSynapseBase):
                 )
         """
         # Call forward method from bert base.
-        output = BertSynapseBase.local_forward( self, inputs = inputs ) 
+        output = BertSynapseBase.base_local_forward( self, inputs = inputs, attention_mask = attention_mask ) 
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
             # local_target.shape = [batch_size, 2]
-            local_target = self.target_layer( output.local_hidden )
+            local_target = self.target_layer( output.local_pooled )
             output.local_target = F.softmax( local_target, dim=1 )
             output.local_target_loss = self.loss_fct( output.local_target.view(-1, 2), targets )            
         return output
@@ -257,19 +289,20 @@ class BertNSPSynapse (BertSynapseBase):
                         BERT NSP loss using remote_target_loss.
                 )
         """
-        output = BertSynapseBase.remote_forward( self, neuron = neuron, inputs = inputs)
+        output = BertSynapseBase.base_remote_forward( self, neuron = neuron, attention_mask = attention_mask, inputs = inputs)
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
             # local_target.shape = [batch_size, 2]
-            local_target = self.target_layer( output.local_hidden )
+            local_target = self.target_layer( output.local_pooled )
             output.local_target = F.softmax( local_target, dim=1 )
             output.local_target_loss = self.loss_fct( output.local_target.view(-1, 2), targets ) 
 
             # remote_target: projection the local_hidden to target dimension.
             # remote_target.shape = [batch_size, 2]
-            remote_target = self.target_layer( output.remote_hidden )
+            remote_target = self.target_layer( output.remote_pooled )
             output.remote_target = F.softmax( remote_target, dim=1 )
             output.remote_target_loss = self.loss_fct( remote_target.view(-1, 2), targets )
+        return output
 
         
 class BertMLMSynapse (BertSynapseBase):
@@ -338,7 +371,7 @@ class BertMLMSynapse (BertSynapseBase):
             )
         """
         # Call forward method from bert base.
-        output = BertSynapseBase.local_forward( self, inputs = inputs ) 
+        output = BertSynapseBase.base_local_forward( self, inputs = inputs ) 
 
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
@@ -346,6 +379,7 @@ class BertMLMSynapse (BertSynapseBase):
             local_target = self.target_layer( output.local_hidden )
             output.local_target = F.softmax( local_target, dim=1 )
             output.local_target_loss = self.loss_fct( output.local_target.view( -1, bittensor.__vocab_size__ ), targets.view(-1) )
+        return output
 
 
     def remote_forward(self, neuron: Neuron, inputs: torch.LongTensor, targets: torch.LongTensor = None):
@@ -374,18 +408,16 @@ class BertMLMSynapse (BertSynapseBase):
             )
         """
         # Call forward method from bert base.
-        output = BertSynapseBase.remote_forward( self, neuron = neuron, inputs = inputs ) 
+        output = BertSynapseBase.base_remote_forward( self, neuron = neuron, inputs = inputs ) 
 
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
             # local_target.shape = [batch_size, bittensor.__vocab_size__]
-            local_target = self.target_layer( output.local_hidden )
-            output.local_target = F.softmax( local_target, dim=1 )
+            output.local_target =  F.softmax(self.target_layer( output.local_hidden ), dim=1)
             output.local_target_loss = self.loss_fct(output.local_target.view(-1, bittensor.__vocab_size__), targets.view(-1))
             
             # remote_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
             # remote_target_loss: [1]
-            output.remote_target = self.target_layer( output.remote_hidden )
-            output.remote_target_loss = F.softmax(output.remote_target, dim=1)
-
+            output.remote_target = F.softmax(self.target_layer( output.remote_hidden ), dim=1)
+            output.remote_target_loss = self.loss_fct(output.remote_target.view(-1, bittensor.__vocab_size__), targets.view(-1))
         return output
