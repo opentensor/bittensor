@@ -880,8 +880,9 @@ class SubstrateWSInterface:
                                 elif storage_item.type['MapType']['hasher'] == "Twox64Concat":
                                     concat_hash_len = 16
                                 elif storage_item.type['MapType']['hasher'] == "Identity":
-                                    concat_hash_len = 8
+                                    concat_hash_len = 0
                                 else:
+                                    logger.error("hasher : {}", storage_item.type['MapType']['hasher'])
                                     raise ValueError('Unsupported hash type')
                             else:
                                 raise ValueError('Given storage is not a map')
