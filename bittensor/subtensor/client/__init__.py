@@ -57,8 +57,12 @@ class WSClient:
             call_params=params
         )
 
+        logger.info(self.__keypair)
+
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
-        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)  # Waiting for inclusion and other does not work
+        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)  # Waiting for inclusion and other does not work
+        logger.info(result)
+
 
     async def get_balance(self, address):
         logger.debug("Getting balance for: {}", address)
@@ -147,14 +151,13 @@ class WSClient:
         return result
 
     async def get_uid_for_pubkey(self, pubkey = str) -> int:
-
         result = await self.substrate.get_runtime_state(
             module='SubtensorModule',
             storage_function='Active',
             params=[pubkey]
         )
 
-        if not result['result']:
+        if result['result'] is None:
             return None
 
         return int(result['result'])
