@@ -33,7 +33,7 @@ rollbar
 scalecodec==0.10.30
 termcolor
 tensorboard
-torch==1.6.0
+torch
 torchvision
 transformers
 validators
