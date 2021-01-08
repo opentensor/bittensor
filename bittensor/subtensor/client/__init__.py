@@ -57,11 +57,9 @@ class WSClient:
             call_params=params
         )
 
-        logger.info(self.__keypair)
-
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
-        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)  # Waiting for inclusion and other does not work
-        logger.info(result)
+        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)  # Waiting for inclusion and other does not work
+
 
 
     async def get_balance(self, address):
