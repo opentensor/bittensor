@@ -4,59 +4,33 @@
 This file demonstrates training the BERT neuron with masked language modelling.
 
 Example:
-        $ python neurons/bert_mlm.py
+        $ python examples/bert_mlm.py
 
 """
-import bittensor
 import argparse
-from bittensor.config import Config
-from bittensor.utils.logging import log_outputs
-from bittensor.subtensor.interface import Keypair
-from bittensor.synapses.bert import BertMLMSynapse
-
-from loguru import logger
-from datasets import load_dataset
-from bittensor.utils.logging import log_batch_weights, log_chain_weights, log_request_sizes
+import math
+import os
 import random
 import time
 import torch
 import torch.nn.functional as F
-from transformers import DataCollatorForLanguageModeling
+import traceback
+import time
+
+from termcolor import colored
 from munch import Munch
-import math
-import os
+from datasets import load_dataset
+from loguru import logger
+from torch.utils.tensorboard import SummaryWriter
 
-def add_args(parser: argparse.ArgumentParser):    
-    parser.add_argument('--neuron.datapath', default='data/', type=str, 
-                        help='Path to load and save data.')
-    parser.add_argument('--neuron.learning_rate', default=0.01, type=float, 
-                        help='Training initial learning rate.')
-    parser.add_argument('--neuron.momentum', default=0.98, type=float, 
-                        help='Training initial momentum for SGD.')
-    parser.add_argument('--neuron.batch_size_train', default=20, type=int, 
-                        help='Training batch size.')
-    parser.add_argument('--neuron.batch_size_test', default=20, type=int, 
-                        help='Testing batch size.')
-    parser.add_argument('--neuron.sync_interval', default=100, type=int, 
-                        help='Batches before we we sync with chain and emit new weights.')
-    parser.add_argument('--neuron.name', default='bert_mlm', type=str, help='Trials for this neuron go in neuron.datapath / neuron.name')
-    parser.add_argument('--neuron.trial_id', default=str(time.time()).split('.')[0], type=str, help='Saved models go in neuron.datapath / neuron.name / neuron.trial_id')
-    BertMLMSynapse.add_args(parser)
-
-def check_config(config: Munch):
-    assert config.neuron.momentum > 0 and config.neuron.momentum < 1, "momentum must be a value between 0 and 1"
-    assert config.neuron.batch_size_train > 0, "batch_size_train must a positive value"
-    assert config.neuron.batch_size_test > 0, "batch_size_test must a positive value"
-    assert config.neuron.learning_rate > 0, "learning_rate must be a positive value."
-    trial_path = '{}/{}/{}'.format(config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
-    config.neuron.trial_path = trial_path
-    if not os.path.exists(config.neuron.trial_path):
-        os.makedirs(config.neuron.trial_path)
-    BertMLMSynapse.check_config(config)
+import bittensor
+from bittensor.neuron import Neuron
+from bittensor.config import Config
+from bittensor.synapses.bert import BertMLMSynapse
+from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
 def mlm_batch(data, batch_size, tokenizer, collator):
     """ Returns a random batch from text dataset with 50 percent NSP.
-
         Args:
             data: (List[dict{'text': str}]): Dataset of text inputs.
             batch_size: size of batch to create.
@@ -80,98 +54,177 @@ def mlm_batch(data, batch_size, tokenizer, collator):
     collated_batch =  collator(tokenized)
     return collated_batch['input_ids'], collated_batch['labels']
 
-def train(model, config, neuron, optimizer, scheduler, dataset, collator):
-    step = 0
-    best_loss = math.inf
-    model.train()  # Turn on the train mode.
-    weights = None
-    history = []
-    batch_idx = 0
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    while True:
-        optimizer.zero_grad() # Clear gradients.
 
-        # Sync with chain.
-        if batch_idx % config.neuron.sync_interval == 0:
-            weights = neuron.metagraph.sync(weights)
-            weights = weights.to(device)
+class Session():
 
-        # Next batch.
-        inputs, labels = mlm_batch(dataset, config.neuron.batch_size_train, bittensor.__tokenizer__(), collator)
+    def __init__(self, config: Munch):
+        self.config = config
+
+        # ---- Neuron ----
+        self.neuron = Neuron(self.config)
+
+        # ---- Model ----
+        self.model = BertNSPSynapse( self.config )
+
+        # ---- Optimizer ----
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.session.learning_rate, momentum=self.config.session.momentum)
+        self.scheduler = WarmupCosineWithHardRestartsSchedule(self.optimizer, 50, 300)
+
+        # ---- Dataset ----
+        # Dataset: 74 million sentences pulled from books.
+        self.dataset = load_dataset('bookcorpus')
+        # The collator accepts a list [ dict{'input_ids, ...; } ] where the internal dict 
+        # is produced by the tokenizer.
+        self.data_collator = DataCollatorForLanguageModeling (
+            tokenizer=bittensor.__tokenizer__(), mlm=True, mlm_probability=0.15
+        )
+
+        # ---- Logging ----
+        self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
+        if self.config.session.record_log:
+            logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
+        parser.add_argument('--session.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--session.epoch_length', default=10, type=int, help='Iterations of training per epoch')
+        parser.add_argument('--session.batch_size_train', default=1, type=int, help='Training batch size.')
+        parser.add_argument('--session.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
+        parser.add_argument('--session.log_interval', default=10, type=int, help='Batches before we log session info.')
+        parser.add_argument('--session.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
+        parser.add_argument('--session.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
+        parser.add_argument('--session.root_dir', default='~/.bittensor/sessions/', type=str,  help='Root path to load and save data associated with each session')
+        parser.add_argument('--session.name', default='bert-nsp', type=str, help='Trials for this session go in session.root / session.name')
+        parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
+        parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
+        BertMLMSynapse.add_args(parser)
+        Neuron.add_args(parser)
+
+    @staticmethod
+    def check_config(config: Munch):
+        assert config.session.momentum > 0 and config.session.momentum < 1, "momentum must be a value between 0 and 1"
+        assert config.session.batch_size_train > 0, "batch_size_train must a positive value"
+        assert config.session.learning_rate > 0, "learning_rate must be a positive value."
+        full_path = '{}/{}/{}'.format(config.session.root_dir, config.session.name, config.session.trial_uid)
+        config.session.full_path = os.path.expanduser(full_path)
+        if not os.path.exists(config.session.full_path):
+            os.makedirs(config.session.full_path)
+        BertMLMSynapse.check_config(config)
+        Neuron.check_config(config)
+
+    # --- Main loop ----
+    def run (self):
+
+        # ---- Subscribe ----
+        with self.neuron:
+
+            # ---- Weights ----
+            self.row = self.neuron.metagraph.row
+
+            # --- Run state ---
+            self.epoch = -1
+            self.global_step = 0
+            self.best_train_loss = math.inf
+
+            # --- Loop forever ---
+            while True:
+                try:
+                    self.epoch += 1
+
+                    # ---- Serve ----
+                    self.neuron.axon.serve( self.model )
+
+                    # ---- Train Model ----
+                    self.train()
+                    self.scheduler.step()
+
+                    # ---- Emitting weights ----
+                    self.neuron.metagraph.emit( self.row, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+
+                    # ---- Sync metagraph ----
+                    self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                    self.row = self.neuron.metagraph.row
+
+                    # --- Epoch logs ----
+                    print(self.neuron.axon.__full_str__())
+                    print(self.neuron.dendrite.__full_str__())
+                    print(self.neuron.metagraph)
+
+                    # ---- Update Tensorboard ----
+                    self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
+                    self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
+                    self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
                 
-        # Forward pass.
-        output = model( inputs.to(model.device), labels.to(model.device), remote = True)
-        history.append(output)
-
-        # Backprop.
-        output.loss.backward()
-        optimizer.step()
-        scheduler.step()
-
-        # Update weights.
-        batch_weights = F.softmax(torch.mean(output.weights, axis=0), dim=0) # Softmax weights.
-        weights = (1 - 0.05) * weights + 0.05 * batch_weights # Moving Avg
-        weights = weights / torch.sum(weights) # Normalize.
-        
-        # Log.
-        step += 1
-        logger.info('Step: {} \t Remote Loss: {:.6f}\t Local Loss: {:.6f}\t Distilation Loss: {:.6f}'.format(
-            step, output.loss.item(), output.remote_target_loss.item(), output.distillation_loss.item()))
-        log_outputs(history)
-        log_batch_weights(neuron, history)
-        log_chain_weights(neuron)
-        log_request_sizes(neuron, history)
-        history = []
-
-        # After each epoch, checkpoint the losses and re-serve the network.
-        if output.loss.item() < best_loss:
-            best_loss = output.loss
-            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/{}/{}/model.torch', step, output.loss, config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
-            torch.save( {'epoch': step, 'model': model.state_dict(), 'loss': output.loss},"{}/{}/{}/model.torch".format(config.neuron.datapath , config.neuron.name, config.neuron.trial_id))
-            # Save experiment metrics
-            neuron.axon.serve( model.deepcopy() )
-        
-        batch_idx += 1
-
-
-def main(config, neuron):
-    # Build Synapse
-    model = BertMLMSynapse(config, neuron)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-    neuron.axon.serve( model )
-
-    # Dataset: 74 million sentences pulled from books.
-    # The collator accepts a list [ dict{'input_ids, ...; } ] where the internal dict 
-    # is produced by the tokenizer.
-    dataset = load_dataset('bookcorpus')['train']
-    data_collator = DataCollatorForLanguageModeling(
-        tokenizer=bittensor.__tokenizer__, mlm=True, mlm_probability=0.15
-    )
-
-    # Optimizer.
-    optimizer = torch.optim.SGD(model.parameters(), lr = config.neuron.learning_rate)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
+                    # ---- Save best loss and model ----
+                    if self.training_loss and self.epoch % 10 == 0:
+                        if self.training_loss < self.best_train_loss:
+                            self.best_train_loss = self.training_loss # update best train loss
+                            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
+                            torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_train_loss},"{}/model.torch".format(self.config.session.full_path))
+                            self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
+                    
+                # --- Catch Errors ----
+                except Exception as e:
+                    logger.error('Exception in training script with error: {}', e)
+                    logger.info(traceback.print_exc())
+                    logger.info('Continuing to train.')
+                    time.sleep(1)
     
-    # Create directory if it does not exist.
-    data_directory = '{}/{}/{}'.format(config.neuron.datapath, config.neuron.name, config.neuron.trial_id)
-    if not os.path.exists(data_directory):
-        os.makedirs(data_directory)
+    # ---- Train Epoch ----
+    def train(self):
+        self.training_loss = 0.0
+        for local_step in range(self.config.session.epoch_length):
+            # ---- Forward pass ----
+            inputs, targets = mlm_batch(self.dataset, self.config.session.batch_size_train, bittensor.__tokenizer__(), collator)
+            output = self.model.remote_forward (
+                    self.neuron,
+                    inputs = inputs.to(self.model.device), 
+                    targets = targets.to(self.model.device)
+            )
 
-    # train forever.
-    train(model, config, neuron, optimizer, scheduler, dataset, data_collator)
-    
+            # ---- Backward pass ----
+            loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+            loss.backward() # Accumulates gradients on the model.
+            self.optimizer.step() # Applies accumulated gradients.
+            self.optimizer.zero_grad() # Zeros out gradients for next accummulation
+
+            # ---- Train row weights ----
+            batch_weights = torch.mean(output.dendrite.weights, axis = 0) # Average over batch.
+            self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
+            self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
+
+            # ---- Step logs ----
+            logger.info('GS: {} LS: {} Epoch: {}\tLocal Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}\tAxon: {}\tDendrite: {}',
+                    colored('{}'.format(self.global_step), 'red'),
+                    colored('{}'.format(local_step), 'blue'),
+                    colored('{}'.format(self.epoch), 'green'),
+                    colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
+                    colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
+                    colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
+                    self.neuron.axon,
+                    self.neuron.dendrite)
+            logger.info('Codes: {}', output.dendrite.return_codes.tolist())
+            
+            self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('Neuron/Dloss', output.distillation_loss.item(), self.global_step)
+
+            # ---- Step increments ----
+            self.global_step += 1
+            self.training_loss += output.local_target_loss.item()
+
+            # --- Memory clean up ----
+            torch.cuda.empty_cache()
+            del output
 
 if __name__ == "__main__":
-    # Load bittensor config.
-    parser = argparse.ArgumentParser(); add_args(parser)
-    config = Config.to_config(parser); check_config(config)
+    # ---- Config ----
+    parser = argparse.ArgumentParser(); Session.add_args(parser) 
+    config = Config.to_config(parser); Session.check_config(config)
     logger.info(Config.toString(config))
+   
+    # ---- Build + Run ----
+    session = Session(config)
+    session.run()
 
-    # Load Neuron.
-    neuron = bittensor.Neuron(config)
-
-    # Start Neuron.
-    with neuron:
-        main(config, neuron)
-            

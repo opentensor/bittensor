@@ -45,8 +45,8 @@ class Session():
         self.scheduler = WarmupCosineWithHardRestartsSchedule(self.optimizer, 50, 300)
 
         # ---- Dataset ----
-        # 74 million sentences pulled from books.
-        self.dataset = load_dataset('ag_news')['train']
+        # Dataset: 74 million sentences pulled from books.
+        self.dataset = load_dataset('bookcorpus')
 
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
