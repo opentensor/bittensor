@@ -296,7 +296,7 @@ def main():
     parser.add_argument("--debug", default=False, help="Turn on debugging information")
 
     # Add subparsers.
-    cmd_parsers = parser.add_subparsers(dest='command', required=True)
+    cmd_parsers = parser.add_subparsers(dest='command')
     overview_parser = cmd_parsers.add_parser('overview', 
         help='''Show account overview.''')
     transfer_parser = cmd_parsers.add_parser('transfer', 
