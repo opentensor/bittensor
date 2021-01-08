@@ -57,7 +57,7 @@ class Session():
         parser.add_argument('--session.log_interval', default=150, type=int, help='Batches until session prints log statements.')
         parser.add_argument('--session.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
         parser.add_argument('--neuron.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
-        parser.add_argument('--session.root_dir', default='data/', type=str,  help='Root path to load and save data associated with each session')
+        parser.add_argument('--session.root_dir', default='~/.bittensor/sessions/', type=str,  help='Root path to load and save data associated with each session')
         parser.add_argument('--session.name', default='ffnn-grunt', type=str, help='Trials for this session go in session.root / session.name')
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
@@ -72,7 +72,7 @@ class Session():
         assert config.session.batch_size_test > 0, "batch_size_test must be a positive value"
         assert config.session.learning_rate > 0, "learning rate must be be a positive value."
         full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.trial_uid)
-        config.session.full_path = full_path
+        config.session.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.session.full_path):
             os.makedirs(config.session.full_path)
         FFNNSynapse.check_config(config)

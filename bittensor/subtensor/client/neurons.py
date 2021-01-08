@@ -24,7 +24,7 @@ class Neuron:
         return Neuron(attrs['uid'], attrs['hotkey'], attrs['ip'], attrs['ip_type'], attrs['modality'], attrs['coldkey'])
 
     def __str__(self):
-        return "<neuron uid: %s hotkey: %s ip: %s  modality: %s coldkey: %s>" % (self.uid, self.hotkey, net.ip__str__(self.ip, self.ip_type), self.modality, self.coldkey)
+        return "<neuron uid: %s hotkey: %s ip: %s  modality: %s coldkey: %s>" % (self.uid, self.hotkey, net.ip__str__(self.ip_type, self.ip), self.modality, self.coldkey)
 
 class Neurons(list):
     @staticmethod
