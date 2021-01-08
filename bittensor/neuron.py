@@ -229,7 +229,7 @@ class Neuron:
             raise FailedToEnterNeuron
 
         try:
-            code, message = self.metagraph.connect(timeout=3)
+            code, message = self.metagraph.connect(timeout=12)
             if code != Metagraph.ConnectSuccess:
                 logger.error('Neuron: Timeout while subscribing to the chain endpoint with message {}', message)
                 logger.error('Check that your internet connection is working and the chain endpoint {} is available', self.config.metagraph.chain_endpoint)
