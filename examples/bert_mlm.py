@@ -22,12 +22,13 @@ from munch import Munch
 from datasets import load_dataset
 from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
+from transformers import DataCollatorForLanguageModeling
+from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
 import bittensor
 from bittensor.neuron import Neuron
 from bittensor.config import Config
 from bittensor.synapses.bert import BertMLMSynapse
-from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
 def mlm_batch(data, batch_size, tokenizer, collator):
     """ Returns a random batch from text dataset with 50 percent NSP.
@@ -64,7 +65,7 @@ class Session():
         self.neuron = Neuron(self.config)
 
         # ---- Model ----
-        self.model = BertNSPSynapse( self.config )
+        self.model = BertMLMSynapse( self.config )
 
         # ---- Optimizer ----
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.session.learning_rate, momentum=self.config.session.momentum)
@@ -72,7 +73,7 @@ class Session():
 
         # ---- Dataset ----
         # Dataset: 74 million sentences pulled from books.
-        self.dataset = load_dataset('bookcorpus')
+        self.dataset = load_dataset('bookcorpus')['train']
         # The collator accepts a list [ dict{'input_ids, ...; } ] where the internal dict 
         # is produced by the tokenizer.
         self.data_collator = DataCollatorForLanguageModeling (
@@ -176,7 +177,7 @@ class Session():
         self.training_loss = 0.0
         for local_step in range(self.config.session.epoch_length):
             # ---- Forward pass ----
-            inputs, targets = mlm_batch(self.dataset, self.config.session.batch_size_train, bittensor.__tokenizer__(), collator)
+            inputs, targets = mlm_batch(self.dataset, self.config.session.batch_size_train, bittensor.__tokenizer__(), self.data_collator)
             output = self.model.remote_forward (
                     self.neuron,
                     inputs = inputs.to(self.model.device), 

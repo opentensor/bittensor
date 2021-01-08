@@ -144,7 +144,7 @@ class Session():
                     self.train()
                     self.scheduler.step()
 
-                    # ---- Emitting weights ----
+                    # ---- Emit row-weights ----
                     self.neuron.metagraph.emit( self.row, wait_for_inclusion = True ) # Sets my row-weights on the chain.
 
                     # ---- Sync metagraph ----
@@ -185,6 +185,7 @@ class Session():
             output = self.model.remote_forward (
                     self.neuron,
                     inputs = inputs['input_ids'].to(self.model.device), 
+                    attention_mask = inputs['attention_mask'].to(self.model.device),
                     targets = targets.to(self.model.device)
             )
 
