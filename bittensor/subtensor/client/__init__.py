@@ -153,6 +153,10 @@ class WSClient:
             storage_function='Active',
             params=[pubkey]
         )
+
+        if not result['result']:
+            return None
+
         return int(result['result'])
 
     async def get_neuron_for_uid(self, uid:int):
