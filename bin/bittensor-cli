@@ -8,6 +8,7 @@ import sys
 
 from argparse import ArgumentParser
 from loguru import logger
+from termcolor import colored
 from prettytable import PrettyTable
 
 from bittensor.balance import Balance
@@ -128,7 +129,7 @@ class CommandExecutor:
 
     async def _associated_neurons(self) -> Neurons:
         pubkey = self.__keypair.public_key
-        logger.debug("Retrieving all nodes associated with cold key : {}", pubkey)
+        print(colored("Retrieving all nodes associated with cold key : {}".format(pubkey), 'white'))
         neurons = await self.__client.neurons(decorator=True)
         result = filter(lambda x : x.coldkey == pubkey, neurons )# These are the neurons associated with the provided cold key
         associated_neurons = Neurons(result)
@@ -158,35 +159,51 @@ class CommandExecutor:
         for neuron in neurons:
             neuron.stake = await self.__client.get_stake_for_uid(neuron.uid)
             await self.__client.unstake(neuron.stake, neuron.hotkey)
+            print(colored("Unstaked: {} Tao from uid: {} to coldkey.pub: {}".format(neuron.stake, neuron.uid, self.__keypair.public_key), 'green'))
 
-    async def unstake(self, uid, amount : Balance):
+    async def unstake(self, uid, amount: Balance):
         await self.connect()
         neurons = await self._associated_neurons()
         neuron = neurons.get_by_uid(uid)
         if not neuron:
-            logger.error("Neuron with uid: {} is not associated with coldkey.pub: {}".format(uid, self.__keypair.public_key))
+            print(colored("Neuron with uid: {} is not associated with coldkey.pub: {}".format(uid, self.__keypair.public_key), 'red'))
             quit()
 
         neuron.stake = await self.__client.get_stake_for_uid(uid)
         if amount > neuron.stake:
-            logger.error("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}", uid, neuron.stake, amount)
+            print(colored("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format(uid, neuron.stake, amount), 'red'))
             quit()
 
         await self.__client.unstake(amount, neuron.hotkey)
+        print(colored("Unstaked:{} from uid:{} to coldkey.pub:{}".format(amount.tao, uid, self.__keypair.public_key), 'green'))
 
-    async def stake(self, uid, amount : Balance):
+
+    async def stake(self, uid, amount: Balance):
         await self.connect()
         balance = await self.__client.get_balance(self.__keypair.ss58_address)
         if balance < amount:
-            logger.error("Not enough balance ({}) to stake {}", balance, amount)
+            print(colored("Not enough balance ({}) to stake {}".format(balance, amount), 'red'))
+            quit()
 
         neurons = await self._associated_neurons()
         neuron = neurons.get_by_uid(uid)
         if not neuron:
-            logger.error("Neuron with uid: {} is not associated with coldkey.pub: {}".format(uid, self.__keypair.public_key))
+            print(colored("Neuron with uid: {} is not associated with coldkey.pub: {}".format(uid, self.__keypair.public_key), 'red'))
             quit()
 
         await self.__client.add_stake(amount, neuron.hotkey)
+        print(colored("Staked: {} Tao to uid: {} from coldkey.pub: {}".format(amount.tao, uid, self.__keypair.public_key), 'green'))
+
+    async def transfer(self, dest: str, amount: Balance):
+        await self.connect()
+        balance = await self.__client.get_balance(self.__keypair.ss58_address)
+        if balance < amount:
+            print(colored("Not enough balance ({}) to transfer {}".format(balance, amount), 'red'))
+            quit()
+
+        await self.__client.transfer(dest, amount)
+        print(colored("Transfered: {} Tao to dest: {} from coldkey.pub: {}".format(amount.tao, dest, self.__keypair.public_key), 'green'))
+
 
 
 '''
@@ -223,13 +240,13 @@ def run(args):
     # --- Transfer command
     elif args.command == "transfer":
         if not args.chainendpoint:
-            logger.error("The --chain-endpoint argument is required for this command")
+            print(colored("The --chain-endpoint argument is required for this command", 'red'))
             quit()
         if not args.dest:
-            logger.error("The --dest argument is required for this command")
+            print(colored("The --dest argument is required for this command", 'red'))
             quit()
         if not args.amount:
-            logger.error("The --amount argument is required for this command")
+            print(colored("The --amount argument is required for this command", 'red'))
             quit()
         wallet_name = cli_utils.validate_wallet_name(args.wallet_name)
         coldkey_path = args.wallet_path + "/" + wallet_name + '/coldkey'
@@ -237,11 +254,13 @@ def run(args):
         keypair = cli_utils.load_key( coldkey_path )
         client = cli_utils.get_client(args.chainendpoint, keypair)
         executor = CommandExecutor(keypair, client)
+        amount = Balance.from_float(args.amount)
+        loop.run_until_complete( executor.transfer( dest = args.dest, amount = amount ) )
 
     # --- Overview command
     elif args.command == "overview":
         if not args.chainendpoint:
-            logger.error("The --chain-endpoint argument is required for this command")
+            print(colored("The --chain-endpoint argument is required for this command", 'red'))
             quit()
         # ---- Get Executor for coldkey and endpoint.
         wallet_name = cli_utils.validate_wallet_name(args.wallet_name)
@@ -258,7 +277,7 @@ def run(args):
     # --- Unstake command
     elif args.command == "unstake":
         if not args.chainendpoint:
-            logger.error("The --chain-endpoint argument is required for this command")
+            print(colored("The --chain-endpoint argument is required for this command", 'red'))
             quit()
 
         # ---- Get Executor for coldkey and endpoint.
@@ -275,25 +294,25 @@ def run(args):
                 quit()
             loop.run_until_complete(executor.unstake_all())
             quit()
-        if not args.uid:
-            logger.error("The --uid argument is required for this command")
+        if args.uid is None:
+            print(colored("The --uid argument is required for this command", 'red'))
             quit()
         if not args.amount:
-            logger.error("The --amount argument is required for this command")
+            print(colored("The --amount argument is required for this command", 'red'))
             quit()
         amount = Balance.from_float(args.amount)
         loop.run_until_complete(executor.unstake(args.uid, amount))
 
     # --- Stake command
     elif args.command == "stake":
-        if not args.uid:
-            logger.error("The --uid argument is required for this command")
+        if args.uid is None:
+            print(colored("The --uid argument is required for this command", 'red'))
             quit()
-        if not args.amount:
-            logger.error("The --amount argument is required for this command")
+        if args.amount is None:
+            print(colored("The --amount argument is required for this command", 'red'))
             quit()
         if not args.chainendpoint:
-            logger.error("The --chain-endpoint argument is required for this command")
+            print(colored("The --chain-endpoint argument is required for this command", 'red'))
             quit()
         # ---- Get Executor for coldkey and endpoint.
         wallet_name = cli_utils.validate_wallet_name(args.wallet_name)
@@ -313,10 +332,6 @@ def main():
     # Build top level parser.
     parser = ArgumentParser(description="Bittensor cli", usage="bittensor-cli <args> <command>", add_help=True)
     parser._positionals.title = "commands"
-     
-    # Add args
-    parser.add_argument("--chain-endpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, help="The endpoint to the subtensor chain <hostname/ip>:<port>")
-    parser.add_argument("--cold-key", default='~/.bittensor/coldkey', help="Path to the cold key")
     parser.add_argument("--debug", default=False, help="Turn on debugging information", action="store_true")
 
     # Add subparsers.
