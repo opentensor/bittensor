@@ -25,16 +25,16 @@ class cli_utils():
                 data = file.read()
                 if is_encrypted(data):
                     password = Cli.ask_password()
-                    logger.info("decrypting key... (this may take a few moments)")
+                    print("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
 
                 return load_keypair_from_data(data)
 
         except KeyError:
-            logger.error("Invalid password")
+            print(colored("Invalid password", 'red'))
             quit()
         except KeyFileError as e:
-            logger.error("Keyfile corrupt")
+            print(colored("Keyfile corrupt", 'red'))
             raise e
 
     @staticmethod
@@ -128,12 +128,19 @@ class cli_utils():
         path = os.path.expanduser(path)
 
         if not os.path.isfile(path):
-            logger.error("{} is not a file. Aborting", path)
+            print(colored("{} is not a file. Aborting".format(path), 'red'))
             quit()
 
         if not os.access(path, os.R_OK):
-            logger.error("{} is not readable. Aborting", path)
+            print(colored("{} is not readable. Aborting".format(path), 'red'))
             quit()
+
+    @staticmethod
+    def create_dirs():
+        path = '~/.bittensor/wallets/'
+        path = os.path.expanduser(path)
+        if not os.path.exists(path):
+            os.makedirs(path)
 
     @staticmethod
     def validate_create_path( keyfile ):
