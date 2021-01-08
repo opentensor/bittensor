@@ -684,7 +684,7 @@ class Metagraph():
         # --- Check that we are already connected to the chain.
         is_connected = self.subtensor_client.is_connected()
         try:
-            await asyncio.wait_for(is_connected, timeout = 1)
+            await asyncio.wait_for(is_connected, timeout = 10)
         except asyncio.TimeoutError:
             return Metagraph.SubscribeNotConnected, "Not connected"
         if not is_connected:
@@ -695,6 +695,7 @@ class Metagraph():
             try:
                 await self.subtensor_client.subscribe(self._config.axon.external_ip, self._config.axon.external_port, bittensor_pb2.Modality.TEXT, self._config.neuron.coldkey)
                 break
+
 
             except Exception as e:
                 if (time.time() - start_time) > timeout:
@@ -712,16 +713,17 @@ class Metagraph():
             try:
                 # ---- Request info from chain ----
                 self.uid = await self.subtensor_client.get_uid_for_pubkey(self.__keypair.public_key)
-
-                # ---- Request info from chain ----
-                self.metadata = await self.subtensor_client.neurons(self.uid)
-
             except Exception as e:
                 # ---- Catch errors in request ----
                 message = "Subscription threw an unknown exception {}".format(e)
                 return Metagraph.SubscribeUnknownError, message
 
-            if self.metadata != None:
+            if self.uid != None:
+                # ---- Request info from chain ----
+                self.metadata = await self.subtensor_client.neurons(self.uid)
+                if not self.metadata:
+                    return Metagraph.SubscribeUnknownError, "Critical error: There no metadata returned"
+
                 # ---- Subscription was a success ----
                 return Metagraph.SubscribeSuccess, "Subscription success"
 
