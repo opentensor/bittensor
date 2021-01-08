@@ -149,7 +149,6 @@ class WSClient:
             storage_function='Active',
         )
 
-        logger.error("Active: {}", result)
         return result
 
     async def get_uid_for_pubkey(self, pubkey = str) -> int:
