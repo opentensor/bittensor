@@ -36,7 +36,6 @@ class Neurons(list):
 
         for row in input:
             data = row[1]  # Attributes of the neuron are stored in the second element of the list
-            data['hotkey'] = row[0] # the hotkey pub key is stored in the first element
             output.append(Neuron.from_dict(data))
 
         return output
