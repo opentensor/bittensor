@@ -136,6 +136,13 @@ class cli_utils():
             quit()
 
     @staticmethod
+    def create_dirs():
+        path = '~/.bittensor/wallets/'
+        path = os.path.expanduser(path)
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+    @staticmethod
     def validate_create_path( keyfile ):
         keyfile = os.path.expanduser(keyfile)
         if os.path.isfile(keyfile):
