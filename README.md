@@ -9,8 +9,7 @@
 # Setup
 
 ```
-$ git clone https://github.com/opentensor/bittensor.git                             # Clone this repo
-$ cd bittensor && pip3 install -r requirements.txt && pip3 install -e .             # Install python dependencies and bittensor
+$ pip install -i https://test.pypi.org/simple/ bittensor==0.0.0                     # Install bittensor
 $ bittensor-cli new_wallet                                                          # Generate default keys
 ```
 

@@ -1,34 +1,41 @@
-import bittensor
-from bittensor.dendrites.pkm import PKMDendrite
-from bittensor.synapse import Synapse
-from bittensor.synapse import SynapseOutput
-from bittensor.neuron import Neuron
-
 import argparse
 import random
 import torch
+from torch import nn
 import torch.nn.functional as F
 import transformers
-from transformers import BertModel, BertConfig
+
 from munch import Munch
+from transformers import BertModel, BertConfig
+from types import SimpleNamespace
+
+import bittensor
+from bittensor.dendrites.pkm import PKMDendrite
+from bittensor.synapse import Synapse
+from bittensor.neuron import Neuron
+
+class BertPooler(nn.Module):
+    def __init__(self, config):
+        super(BertPooler, self).__init__()
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.activation = nn.Tanh()
+
+    def forward(self, hidden_states):
+        # We "pool" the model by simply taking the hidden state corresponding
+        # to the first token.
+        first_token_tensor = hidden_states[:, 0]
+        pooled_output = self.dense(first_token_tensor)
+        pooled_output = self.activation(pooled_output)
+        return pooled_output
 
 class BertSynapseBase (Synapse):
-    def __init__(   self,
-                config: Munch,
-                neuron: Neuron):
+    def __init__(self, config: Munch):
         r""" Init a new base-bert synapse.
 
             Args:
                 config (:obj:`munch.Munch`, `required`): 
-                    BertNSP configuration class.
-
-                neuron (:obj:`bittensor.Neuron`, `optional`): 
-                    bittensor training neuron.
-
         """
-        super(BertSynapseBase, self).__init__(
-            config = config,
-            neuron = neuron)
+        super(BertSynapseBase, self).__init__( config = config )
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
@@ -40,24 +47,24 @@ class BertSynapseBase (Synapse):
 
         # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite(config, neuron, query_dim = bittensor.__network_dim__)
+        self.dendrite = PKMDendrite( config, query_dim = bittensor.__network_dim__ )
 
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
-        self.encoder_transformer = BertModel(huggingface_config, add_pooling_layer=True)
-
-        # context_transformer: distills the remote_context from inputs
-        # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
-        self.context_transformer = BertModel(huggingface_config, add_pooling_layer=False)
+        self.transformer = BertModel( huggingface_config, add_pooling_layer=True )
 
         # hidden_layer: transforms context and encoding to network_dim hidden units.
-        # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
-        self.hidden_layer = torch.nn.Linear(2 * bittensor.__network_dim__, bittensor.__network_dim__)
+        # [batch_size, sequence_dim, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
+        self.hidden_layer = torch.nn.Linear( bittensor.__network_dim__, bittensor.__network_dim__ )
+
+        # pooling_layer: transforms teh hidden layer into a pooled representation by taking the encoding of the first token
+        # [batch_size, sequence_dim,  bittensor.__network_dim__] -> [batch_size, bittensor.__network_dim__]
+        self.pooler = BertPooler( huggingface_config )
 
         self.to(self.device)
 
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser):    
+    def add_args( parser: argparse.ArgumentParser ):    
         r""" Add custom params to the parser.
         """
         parser.add_argument('--synapse.num_hidden_layers', default=2, type=int, 
@@ -66,6 +73,12 @@ class BertSynapseBase (Synapse):
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
         parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
         PKMDendrite.add_args(parser)
+
+    @staticmethod
+    def check_config( config: Munch ):    
+        r""" Add custom checks to the config.
+        """
+        pass
 
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the BERT NSP Synapse.
@@ -78,199 +91,94 @@ class BertSynapseBase (Synapse):
                 hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Hidden layer representation produced using the local_context.
         """
-        hidden = self.forward(inputs=inputs, remote = False).local_hidden
+        hidden = self.base_local_forward( inputs=inputs ).local_hidden
         return hidden
 
-    def forward(self,
-                inputs: torch.LongTensor,
-                remote: bool = False):
+    def base_local_forward(self, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None):
         r""" Forward pass inputs and labels through the NSP BERT module.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
-                remote (:obj:`bool')`, `optional`):
-                    Switch to True if this forward pass queries the network for the remote_context.
+                attention_mask (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
+                    Mask to avoid performing attention on padding token indices.
+                    Mask values selected in ``[0, 1]``:
+                        - 1 for tokens that are **not masked**,
+                        - 0 for tokens that are **maked**.    
 
-            bittensor.SynapseOutput ( 
-                    loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
-                        Total loss acumulation used by loss.backward()
+             SimpleNamespace {
+                    local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Hidden layer context.
 
                     local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Hidden layer encoding produced using local_context.
 
-                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
-                        Hidden layer encoding produced using the remote_context.
-
-                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        Distillation loss between local_context and remote_context.
-
-                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                        weights for each active neuron.
-
-                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                        number of requests sent to each uid in this batch.
-
-                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
-
-                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
-                        additional metadata output, specifically accuracy.
-                )
-        """
-        inputs = inputs.to(self.device)
+                    local_pooled (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
+                        Local hidden state pooled by returning the encoding of the first token.
+                }
+        """        
         # Return vars to be filled.
-        output = SynapseOutput(loss = torch.tensor(0.0))
+        output = SimpleNamespace()
    
-        # encoding: transformer encoded sentences.
-        # encoding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        encoding = self.encoder_transformer(input_ids=inputs, return_dict=True)
-        encoding_hidden = encoding.last_hidden_state
-        encoding_pooled = encoding.pooler_output
-
         # local_context: distilled version of remote_context.
         # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        local_context = self.context_transformer(input_ids=inputs, return_dict=True).last_hidden_state
+        output.local_context = self.transformer( input_ids = inputs, return_dict = True, attention_mask = attention_mask ).last_hidden_state
 
-        # local_hidden: hidden layer encoding of sequence with local_context.
+        # local_hidden: hidden layer encoding of sequence using local context
         # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        local_hidden = torch.cat([encoding_hidden, local_context], dim=2)
-        local_hidden = self.hidden_layer(local_hidden)
-        output.local_hidden = local_hidden
-
-        if remote:
-            output = self.base_remote_forward(local_context, inputs, encoding_pooled, encoding_hidden, output)
+        output.local_hidden = self.hidden_layer( output.local_context )
+        output.local_pooled = self.pooler( output.local_hidden )
 
         return output
 
-    def base_remote_forward(self, local_context, inputs, encoding_pooled, encoding_hidden, output):
+    def base_remote_forward(self, neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None):
         """Forward pass inputs and labels through the remote BERT networks.
 
         Args:
-            local_context (:obj: `torch.FloatTensor` of shape :obj: `(batch_size, bittensor.__network_dim__)`, `required`)
-                    Distillation model for remote_context.
-            
+            neuron (:obj: `bittensor.Neuron`, `required`):
+                    Bittensor neuron, used for making queries to the remote network.
+
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
-                    Batch_size length list of text sentences.
+                    Batch_size length list of text sentences.                
 
-            encoding_pooled (:obj:`torch.FloatTensor` of shape (batch_size, bittensor.__network_dim__), `required`): 
-                    pooled hidden-states at the output of the last layer of the encoder.
-           
-            encoding_hidden (:obj:`torch.FloatTensor` of shape (batch_size, sequence_length, hidden_size), `optional`) :
-                    Sequence of hidden-states at the output of the last layer of the encoder of the model.
-
-            output (:obj: `Bittensor.SynapseOutput`, `required`)
-                    The object containing the output thus far of the local context run
+            attention_mask (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
+                    Mask to avoid performing attention on padding token indices.
+                    Mask values selected in ``[0, 1]``:
+                        - 1 for tokens that are **not masked**,
+                        - 0 for tokens that are **maked**.        
 
         Returns:
-            bittensor.SynapseOutput ( 
-                    loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
-                        Total loss acumulation used by loss.backward()
-
-                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                        Hidden layer encoding produced using local_context.
+            SimpleNamespace ( 
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        Distillation loss between local_context and remote_context.
 
                     remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
 
-                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        Distillation loss between local_context and remote_context.
-
-                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                        weights for each active neuron.
-
-                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                        number of requests sent to each uid in this batch.
-
-                    retops (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                        return op from each neuron. (-1 = no call, 0 = call failed, 1 = call success)
-
-                    metadata (:obj:`dict {'accuracy', torch.FloatTensor} ` of shape :obj:`(1)`, `optional`):
-                        additional metadata output, specifically accuracy.
+                    dendrite (:obj:`SimpleNamespace`, `required`): 
+                        Outputs from the pkm dendrite.
                 )
         """
+        output = self.base_local_forward( inputs = inputs, attention_mask = attention_mask )
+
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        remote_context, weights, sizes, return_codes = self.dendrite.forward_text(text = inputs, query = encoding_pooled)
-        output.weights = weights
-        output.request_sizes = sizes
-        output.return_codes = return_codes
-        remote_context = remote_context.to(self.device)
+        output.dendrite = self.dendrite.forward_text( neuron = neuron, text = inputs, query = output.local_pooled )
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
-        distillation_loss = F.mse_loss(local_context, remote_context.detach())
-        output.distillation_loss = distillation_loss
-        output.loss = output.loss + distillation_loss
+        output.distillation_loss = F.mse_loss( output.local_context, output.dendrite.response.detach() )
 
         # remote_hidden: hidden layer encoding using remote_context.
         # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        remote_hidden = torch.cat([encoding_hidden, remote_context], dim=2)
-        remote_hidden = self.hidden_layer(remote_hidden)
-        output.remote_hidden = remote_hidden
+        output.remote_hidden = self.hidden_layer( output.dendrite.response )
+        output.remote_pooled = self.pooler( output.remote_hidden )
 
         return output
-    
-    def remote_forward(self, output, targets):
-        """ 
-
-        Args:
-            output (bittensor.SynapseOutput): 
-                    The output object being populated by the local forward.
-            targets (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, target_dim)`, `optional`, defaults to None): 
-                    Image labels.
-
-        Returns:
-            output (bittensor.SynapseOutput ( 
-                    loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
-                        Total loss acumulation to be used by loss.backward()
-
-                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
-                        Hidden layer encoding produced using local_context.
-
-                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
-                        FFNN Target predictions using local_context. 
-
-                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        FFNN Classification loss using local_context.
-
-                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
-                        Hidden layer encoding produced using the remote_context.
-
-                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
-                        FFNN Target predictions using the remote_context.
-
-                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
-                        FFNN Classification loss using the remote_context.
-
-                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        Distillation loss between local_context and remote_context.
-
-                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `required`): 
-                        weights for each active neuron.
-
-                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `required`): 
-                        number of requests sent to each uid in this batch.
-
-                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[metagraph.state.n]`, `required`):
-                        dendrite call return codes. 0 for success.
-                )
-        """
-        if targets is not None:
-            # remote_target: projection the local_hidden to target dimension.
-            # remote_target.shape = [batch_size, 2]
-            remote_target = self.target_layer(output.remote_hidden)
-            remote_target = F.softmax(remote_target, dim=1)
-            output.remote_target = remote_target
-            
-        return output
-
 
 class BertNSPSynapse (BertSynapseBase):
-    def __init__(   self,
-                    config: Munch,
-                    neuron: Neuron):
+    def __init__( self, config: Munch ):
         r""" Init a new bert nsp synapse module.
 
             Args:
@@ -280,9 +188,7 @@ class BertNSPSynapse (BertSynapseBase):
                 neuron (:obj:`bittensor.Neuron`, `required`): 
                     bittensor neuron object. 
         """
-        super(BertNSPSynapse, self).__init__(
-            config = config,
-            neuron = neuron)
+        super(BertNSPSynapse, self).__init__(config = config)
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
@@ -294,11 +200,11 @@ class BertNSPSynapse (BertSynapseBase):
         
         # target_layer: maps from hidden layer to vocab dimension for each token. Used by MLM loss.
         # [batch_size, sequence_len, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__vocab_size__]
-        self.target_layer = transformers.modeling_bert.BertOnlyNSPHead(huggingface_config)
+        self.target_layer = transformers.modeling_bert.BertOnlyNSPHead( huggingface_config )
 
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
-        self.loss_fct = torch.nn.CrossEntropyLoss()
+        self.loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-1)
     
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the BERT NSP Synapse.
@@ -311,22 +217,16 @@ class BertNSPSynapse (BertSynapseBase):
                 hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Hidden layer representation produced using the local_context.
         """
-        hidden = self.forward(inputs = inputs, remote = False).local_hidden
+        hidden = self.local_forward( inputs = inputs ).local_hidden
         return hidden
 
 
-    def forward(self,
-                inputs: torch.LongTensor,
-                targets: torch.Tensor = None,
-                remote: bool = False):
+    def local_forward(self, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None, targets: torch.Tensor = None):
         r""" Forward pass inputs and labels through the NSP BERT module.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
-
-                token_type_ids (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
-                    Token Type IDs for training to distinguish between the sentence context and the next sentence.
 
                 attention_mask (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
                     Mask to avoid performing attention on padding token indices.
@@ -340,76 +240,73 @@ class BertNSPSynapse (BertSynapseBase):
                         - 0 indicates sequence B is a continuation of sequence A,
                         - eqw1 indicates sequence B is a random sequence.
 
-                remote (:obj:`bool')`, `optional`):
-                    Switch to True if this forward pass queries the network for the remote_context.
-
-            bittensor.SynapseOutput ( 
-                    loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
-                        Total loss acumulation used by loss.backward()
-
-                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                        Hidden layer encoding produced using local_context.
-
+        BertSynapseBase.local_forward + SimpleNamespace ( 
+                    
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
                         BERT NSP Target predictions produced using local_context. 
 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         BERT NSP loss using local_context.
-
-                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
-                        Hidden layer encoding produced using the remote_context.
-
-                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
-                        BERT NSP Target predictions using the remote_context.
-
-                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
-                        BERT NSP loss using the remote_context.
-
-                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        Distillation loss between local_context and remote_context.
-
-                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                        weights for each active neuron.
-
-                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                        number of requests sent to each uid in this batch.
-
-                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[metagraph.state.n]`, `required`):
-                        dendrite call return codes. 0 for success.
                 )
         """
         # Call forward method from bert base.
-        output = BertSynapseBase.forward(self, inputs = inputs, remote = remote) 
-
+        output = BertSynapseBase.base_local_forward( self, inputs = inputs, attention_mask = attention_mask ) 
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
             # local_target.shape = [batch_size, 2]
-            local_target = self.target_layer(output.local_hidden)
-            local_target = F.softmax(local_target, dim=1)
-            output.local_target = local_target
-            
-            # local_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
-            # local_target_loss: [1]
-            local_target_loss = self.loss_fct(local_target.view(targets.shape[0], -1), targets)
-            output.local_target_loss = local_target_loss
-            output.loss = output.loss + local_target_loss
-
-
-        if remote:
-            output = self.remote_forward(output, targets)
-            # remote_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
-            # remote_target_loss: [1]
-            remote_target_loss = self.loss_fct(output.remote_target.view(targets.shape[0], -1), targets)
-            output.remote_target_loss = remote_target_loss
-            output.loss = output.loss + remote_target_loss
+            local_target = self.target_layer( output.local_pooled )
+            output.local_target = F.softmax( local_target, dim=1 )
+            output.local_target_loss = self.loss_fct( output.local_target.view(-1, 2), targets )            
         return output
-    
 
+    def remote_forward(self, neuron: Neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None, targets: torch.Tensor = None):
+        r""" Forward pass inputs and labels through the NSP BERT module. (with queries to the network)
 
+            Args:
+                neuron (:obj: `bittensor.Neuron`, `required`):
+                    Bittensor neuron, used for making queries to the remote network.
+
+                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                    Batch_size length list of text sentences.
+
+                attention_mask (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
+                    Mask to avoid performing attention on padding token indices.
+                    Mask values selected in ``[0, 1]``:
+                        - 1 for tokens that are **not masked**,
+                        - 0 for tokens that are **maked**.        
+
+                targets (``torch.LongTensor`` of shape ``(batch_size,)``, `optional`):
+                    Targets for computing the next sequence prediction (classification) loss. 
+                    Indices should be in ``[0, 1]``:
+                        - 0 indicates sequence B is a continuation of sequence A,
+                        - eqw1 indicates sequence B is a random sequence.
+
+        BertSynapseBase.remote_forward + SimpleNamespace ( 
+                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                        BERT NSP Target predictions produced using remote_context. 
+
+                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        BERT NSP loss using remote_target_loss.
+                )
+        """
+        output = BertSynapseBase.base_remote_forward( self, neuron = neuron, attention_mask = attention_mask, inputs = inputs)
+        if targets is not None:
+            # local_target: projection the local_hidden to target dimension.
+            # local_target.shape = [batch_size, 2]
+            local_target = self.target_layer( output.local_pooled )
+            output.local_target = F.softmax( local_target, dim=1 )
+            output.local_target_loss = self.loss_fct( output.local_target.view(-1, 2), targets ) 
+
+            # remote_target: projection the local_hidden to target dimension.
+            # remote_target.shape = [batch_size, 2]
+            remote_target = self.target_layer( output.remote_pooled )
+            output.remote_target = F.softmax( remote_target, dim=1 )
+            output.remote_target_loss = self.loss_fct( remote_target.view(-1, 2), targets )
+        return output
+
+        
 class BertMLMSynapse (BertSynapseBase):
-    def __init__(   self,
-                    config: Munch,
-                    neuron: Neuron):
+    def __init__(self, config: Munch):
         r""" Bert synapse for MLM training
 
             Args:
@@ -419,9 +316,7 @@ class BertMLMSynapse (BertSynapseBase):
                 neuron (:obj:`bittensor.Neuron`, `required`): 
                     bittensor neuron object. 
         """
-        super(BertMLMSynapse, self).__init__(
-            config = config,
-            neuron = neuron)
+        super(BertMLMSynapse, self).__init__(config = config)
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
@@ -433,7 +328,7 @@ class BertMLMSynapse (BertSynapseBase):
       
         # target_layer: maps from hidden layer to vocab dimension for each token. Used by MLM loss.
         # [batch_size, sequence_len, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__vocab_size__]
-        self.target_layer = transformers.modeling_bert.BertLMPredictionHead(huggingface_config)
+        self.target_layer = transformers.modeling_bert.BertLMPredictionHead( huggingface_config )
 
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
@@ -450,13 +345,10 @@ class BertMLMSynapse (BertSynapseBase):
                 hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Hidden layer representation produced using the local_context.
         """
-        hidden = self.forward(inputs = inputs, remote = False).local_hidden
+        hidden = self.local_forward( inputs = inputs, targets = None ).local_hidden
         return hidden
 
-    def forward(self,
-                inputs: torch.LongTensor,
-                targets: torch.LongTensor = None,
-                remote: bool = False):
+    def local_forward(self, inputs: torch.LongTensor, targets: torch.LongTensor = None):
         r""" Forward pass inputs and labels through the MLM BERT module.
 
             Args:
@@ -469,66 +361,63 @@ class BertMLMSynapse (BertSynapseBase):
                     Tokens with indices set to ``-100`` are ignored (masked), the loss is only computed for the tokens with targets
                     in ``[0, ..., config.vocab_size]``   
 
-                remote (:obj:`bool')`, `optional`):
-                    Switch to True if this forward pass queries the network for the remote_context.
-
-            bittensor.SynapseOutput  ( 
-                    loss  (:obj:`List[str]` of shape :obj:`(batch_size)`, `required`):
-                        Total loss acumulation used by loss.backward()
-
-                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                        Hidden layer encoding produced using local_context.
-
+            BertSynapseBase.local_forward + SimpleNamespace ( 
+                    
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
-                        BERT MLM Target predictions produced using local_context. 
+                        BERT NSP Target predictions produced using local_context. 
 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        BERT MLM loss using local_context.
-
-                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
-                        Hidden layer encoding produced using the remote_context.
-
-                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
-                        BERT MLM Target predictions using the remote_context.
-
-                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
-                        BERT MLM loss using the remote_context.
-
-                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        Distillation loss between local_context and remote_context.
-
-                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                        weights for each active neuron.
-
-                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                        number of requests sent to each uid in this batch.
-
-                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[metagraph.state.n]`, `required`):
-                        dendrite call return codes. 0 for success.
-                )
+                        BERT NSP loss using local_context.
+            )
         """
         # Call forward method from bert base.
-        output = BertSynapseBase.forward(self, inputs = inputs, remote = remote) 
+        output = BertSynapseBase.base_local_forward( self, inputs = inputs ) 
 
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
             # local_target.shape = [batch_size, bittensor.__vocab_size__]
-            local_target = self.target_layer(output.local_hidden)
-            local_target = F.softmax(local_target, dim=1)
-            output.local_target = local_target
-            
-            # local_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
-            # local_target_loss: [1]
-            local_target_loss = self.loss_fct(local_target.view(-1, bittensor.__vocab_size__), targets.view(-1))
-            output.local_target_loss = local_target_loss
-            output.loss = output.loss + local_target_loss
+            local_target = self.target_layer( output.local_hidden )
+            output.local_target = F.softmax( local_target, dim=1 )
+            output.local_target_loss = self.loss_fct( output.local_target.view( -1, bittensor.__vocab_size__ ), targets.view(-1) )
+        return output
 
-        if remote:
-            output = self.remote_forward(output, targets)
+
+    def remote_forward(self, neuron: Neuron, inputs: torch.LongTensor, targets: torch.LongTensor = None):
+        r""" Forward pass inputs and labels through the MLM BERT module. (with queries to the network)
+
+            Args:
+                neuron (:obj: `bittensor.Neuron`, `required`):
+                    Bittensor neuron, used for making queries to the remote network.
+
+                inputs (:obj:`torch.LongTensor` of shape ``(batch_size, sequence_length)``, `required`):
+                    Batch_size length list of tokenized sentences.
+                
+                targets (:obj:`torch.LongTensor` of shape ``(batch_size, sequence_length)``, `optional`):
+                    Targets for computing the masked language modeling loss.
+                    Indices should be in ``[-100, 0, ..., config.vocab_size]`` (see ``input_ids`` docstring)
+                    Tokens with indices set to ``-100`` are ignored (masked), the loss is only computed for the tokens with targets
+                    in ``[0, ..., config.vocab_size]``   
+
+            BertSynapseBase.remote_forward + SimpleNamespace ( 
+                    
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                        BERT NSP Target predictions produced using local_context. 
+
+                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        BERT NSP loss using local_context.
+            )
+        """
+        # Call forward method from bert base.
+        output = BertSynapseBase.base_remote_forward( self, neuron = neuron, inputs = inputs ) 
+
+        if targets is not None:
+            # local_target: projection the local_hidden to target dimension.
+            # local_target.shape = [batch_size, bittensor.__vocab_size__]
+            output.local_target =  F.softmax(self.target_layer( output.local_hidden ), dim=1)
+            output.local_target_loss = self.loss_fct(output.local_target.view(-1, bittensor.__vocab_size__), targets.view(-1))
+            
             # remote_target_loss: logit(1) > logit(0) if next_inputs are the real next sequences.
             # remote_target_loss: [1]
-            remote_target_loss = self.loss_fct(output.remote_target.view(-1, bittensor.__vocab_size__), targets.view(-1))
-            output.remote_target_loss = remote_target_loss
-            output.loss = output.loss + remote_target_loss
-
+            output.remote_target = F.softmax(self.target_layer( output.remote_hidden ), dim=1)
+            output.remote_target_loss = self.loss_fct(output.remote_target.view(-1, bittensor.__vocab_size__), targets.view(-1))
         return output
