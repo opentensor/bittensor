@@ -684,7 +684,6 @@ class Metagraph():
             message:
                 Message associated with code. 
         """
-        start_time = time.time()
         # --- Check that we are already connected to the chain.
         is_connected = self.subtensor_client.is_connected()
         try:
@@ -696,14 +695,16 @@ class Metagraph():
 
         # ---- Make Subscription transaction ----
         logger.info("Subscribing to subtensor")
+        main_start_time = time.time()
         while True:
+
+            subscribe_start_time = time.time()
             try:
                 await self.subtensor_client.subscribe(self._config.axon.external_ip, self._config.axon.external_port, bittensor_pb2.Modality.TEXT, self._config.neuron.coldkey)
                 break
 
-
             except Exception as e:
-                if (time.time() - start_time) > timeout:
+                if (time.time() - subscribe_start_time) > 8:
                     # --- Timeout during emit call ----
                     message = "Timed-out with Unknown Error while trying to make the subscription call. With last exception {}".format(e)
                     return Metagraph.SubscribeUnknownError, message
@@ -713,32 +714,36 @@ class Metagraph():
                     logger.trace('Error while attempting subscription {}', e)
                     continue
 
-        # ---- Wait for inclusion ----
-        while True:
-            try:
-                # ---- Request info from chain ----
-                self.uid = await self.subtensor_client.get_uid_for_pubkey(self.__keypair.public_key)
-            except Exception as e:
-                # ---- Catch errors in request ----
-                message = "Subscription threw an unknown exception {}".format(e)
-                return Metagraph.SubscribeUnknownError, message
+            # ---- Wait for inclusion ----
+            check_start_time = time.time()
+            while True:
+                try:
+                    # ---- Request info from chain ----
+                    self.uid = await self.subtensor_client.get_uid_for_pubkey(self.__keypair.public_key)
+                except Exception as e:
+                    # ---- Catch errors in request ----
+                    message = "Subscription threw an unknown exception {}".format(e)
+                    return Metagraph.SubscribeUnknownError, message
 
-            if self.uid != None:
-                # ---- Request info from chain ----
-                self.metadata = await self.subtensor_client.neurons(self.uid)
-                if not self.metadata:
-                    return Metagraph.SubscribeUnknownError, "Critical error: There no metadata returned"
+                if self.uid != None:
+                    # ---- Request info from chain ----
+                    self.metadata = await self.subtensor_client.neurons(self.uid)
+                    if not self.metadata:
+                        return Metagraph.SubscribeUnknownError, "Critical error: There no metadata returned"
 
-                # ---- Subscription was a success ----
-                return Metagraph.SubscribeSuccess, "Subscription success"
+                    # ---- Subscription was a success ----
+                    return Metagraph.SubscribeSuccess, "Subscription success"
 
-            elif time.time() - start_time > timeout:
-                # ---- dont wait -----
-                return Metagraph.SubscribeTimeout, "Subscription timeout"
+                elif time.time() - check_start_time > 8:
+                    break
 
-            else:
-                # ---- wait -----
-                await asyncio.sleep(1)
+                else:
+                    # ---- wait -----
+                    await asyncio.sleep(1)
+            
+            if time.time() - main_start_time > 90:
+                return Metagraph.SubscribeTimeout, "Timeout occured while trying to subscribe to the chain, potentially the chain is recieving too many subsribe requests at this time."
+                 
 
         # ---- ?! WaT ?! ----
         logger.critical('Should not get here')
