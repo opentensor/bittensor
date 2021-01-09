@@ -46,7 +46,7 @@ class Session():
 
         # ---- Dataset ----
         # Dataset: 74 million sentences pulled from books.
-        self.dataset = load_dataset('bookcorpus')
+        self.dataset = load_dataset('ag_news')['train']
 
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
