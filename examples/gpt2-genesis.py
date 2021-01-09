@@ -15,6 +15,7 @@ import torch
 import torch.nn.functional as F
 import traceback
 import time
+import random
 
 from termcolor import colored
 from munch import Munch
@@ -27,6 +28,42 @@ from bittensor.neuron import Neuron
 from bittensor.config import Config
 from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
+from os import listdir
+
+class AdamCorpus():
+
+    def __init__(self, directory: str):
+        file_names = listdir(directory)
+        files = []
+        for file_name in file_names:
+            file_thing = open(directory + file_name, 'r')
+            file_thing = file_thing.readlines()
+            files.append(file_thing)
+
+        self.lines = []
+        for file_thing in files:
+            for line in file_thing:
+                if len(line) > 10:
+                    self.lines.append(line.strip())
+
+
+    def nextbatch(self, batch_size, tokenizer):
+        """ Returns a random batch of sentences from text dataset.
+
+            Args:
+                data: (List[dict{'text': str}]): Dataset of text inputs.
+                batch_size: size of batch to create.
+
+            Returns:
+                batch_inputs torch.Tensor (batch_size, sequence_length): List of tokenized sentences.
+        """
+        batch_text = []
+        for _ in range(batch_size):
+            random_line = self.lines[ random.randint(0, len(self.lines))]
+            batch_text.append( random_line )
+
+        batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True)['input_ids']
+        return batch_inputs
 
 
 class Session():
@@ -46,9 +83,8 @@ class Session():
 
         # ---- Dataset ----
         # Dataset: 74 million sentences pulled from books.
-        self.dataset = load_dataset('ag_news')['train']
-
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self.dataset = load_dataset('ag_news')['train']
+        self.dataset = AdamCorpus(self.config.session.custom_datasets)
 
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
@@ -69,6 +105,7 @@ class Session():
         parser.add_argument('--session.name', default='gpt-wiki', type=str, help='Trials for this session go in session.root / session.name')
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
+        parser.add_argument('--session.custom_datasets', type=str, help='Custom datasets to train on.')
         GPT2LMSynapse.add_args(parser)
         Neuron.add_args(parser)
 
@@ -126,7 +163,7 @@ class Session():
                     self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
                     self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
                     self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
-                
+
                     # ---- Save best loss and model ----
                     if self.training_loss and self.epoch % 10 == 0:
                         if self.training_loss < self.best_train_loss:
@@ -134,26 +171,23 @@ class Session():
                             logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
                             torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_train_loss},"{}/model.torch".format(self.config.session.full_path))
                             self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
-                    
+
                 # --- Catch Errors ----
                 except Exception as e:
                     logger.error('Exception in training script with error: {}', e)
                     logger.info(traceback.print_exc())
                     logger.info('Continuing to train.')
-    
+
     # ---- Train Epoch ----
     def train(self):
         self.training_loss = 0.0
         for local_step in range(self.config.session.epoch_length):
             # ---- Forward pass ----
-            inputs = nextbatch(self.dataset, self.config.session.batch_size_train, bittensor.__tokenizer__())
+            # inputs = nextbatch(self.dataset, self.config.session.batch_size_train, bittensor.__tokenizer__())
+            inputs = self.dataset.nextbatch( self.config.session.batch_size_train, bittensor.__tokenizer__() )
             output = self.model.remote_forward(
                 self.neuron,
-<<<<<<< Updated upstream
                 inputs.to(self.model.device),
-=======
-                inputs.to(self.device),
->>>>>>> Stashed changes
                 training = True,
             )
 
@@ -179,7 +213,7 @@ class Session():
                     self.neuron.axon,
                     self.neuron.dendrite)
             logger.info('Codes: {}', output.dendrite.return_codes.tolist())
-            
+
             self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Neuron/Dloss', output.distillation_loss.item(), self.global_step)
@@ -194,10 +228,10 @@ class Session():
 
 if __name__ == "__main__":
     # ---- Config ----
-    parser = argparse.ArgumentParser(); Session.add_args(parser) 
+    parser = argparse.ArgumentParser(); Session.add_args(parser)
     config = Config.to_config(parser); Session.check_config(config)
     logger.info(Config.toString(config))
-   
+
     # ---- Build + Run ----
     session = Session(config)
     session.run()
