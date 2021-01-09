@@ -105,7 +105,7 @@ class Session():
         parser.add_argument('--session.name', default='gpt-wiki', type=str, help='Trials for this session go in session.root / session.name')
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
-        parser.add_argument('--session.custom_datasets', type=str, help='Custom datasets to train on.')
+        parser.add_argument('--session.custom_datasets', default="./genesis_dataset/", type=str, help='Custom datasets to train on.')
         GPT2LMSynapse.add_args(parser)
         Neuron.add_args(parser)
 
