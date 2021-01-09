@@ -701,7 +701,6 @@ class Metagraph():
             subscribe_start_time = time.time()
             try:
                 await self.subtensor_client.subscribe(self._config.axon.external_ip, self._config.axon.external_port, bittensor_pb2.Modality.TEXT, self._config.neuron.coldkey)
-                break
 
             except Exception as e:
                 if (time.time() - subscribe_start_time) > 8:
@@ -743,6 +742,7 @@ class Metagraph():
             
             if time.time() - main_start_time > 90:
                 return Metagraph.SubscribeTimeout, "Timeout occured while trying to subscribe to the chain, potentially the chain is recieving too many subsribe requests at this time."
+
                  
 
         # ---- ?! WaT ?! ----
