@@ -1,7 +1,7 @@
 from loguru import logger
 import sys
 # Bittensor code and protocol version.
-__version__ = '0.0.0'
+__version__ = '1.0.0'
 
 # Version compatiability, users running these code versions should be able to speak with each other
 __compatability__ = { __version__ : [ __version__ ] }
@@ -17,10 +17,10 @@ __blocktime__ = 6
 # NOTE (const): tokenizers are guaranteed to improve and expand as time progresses. We version the tokenizer here.
 # neurons must be aware that versions will increase and be ready to convert between tokenizers.
 # TODO (const): Add functionality to allow tokenizer conversion. i.e. for input token conversion.
-__vocab_size__ = (50278 + 100) if __version__ == "0.0.0" else ValueError ('No __vocab_size__ for version {}'.format( __version__ )) # Must match the __tokenizer__() vocab size.
+__vocab_size__ = (50278 + 100) if __version__ == "1.0.0" else ValueError ('No __vocab_size__ for version {}'.format( __version__ )) # Must match the __tokenizer__() vocab size.
 def __tokenizer__( version = __version__ ):
     from transformers import GPT2Tokenizer
-    if version in [ "0.0.0" ]:
+    if version in [ "1.0.0" ]:
         tokenizer = GPT2Tokenizer.from_pretrained("gpt2", local_files_only=False)
         tokenizer.padding_side = "left"
         tokenizer.add_prefix_space = False
