@@ -256,27 +256,16 @@ class Axon(bittensor_grpc.BittensorServicer):
         """
         # TODO(const): check signature
         # TODO(const): black and white listing.
-        # ---- Check request versioning.
-        if request.version in bittensor.__compatability__[bittensor.__version__]:
-            tensor, message, code = self._forward(request)
-            response = bittensor_pb2.TensorMessage(
-                version = bittensor.__version__, 
-                public_key = self.__keypair.public_key, 
-                return_code = code,
-                message = message,
-                tensors = [tensor] if tensor is not None else [],
-            )
 
-        # ---- Catch incompatible request versions.
-        else:
-            code = bittensor_pb2.ReturnCode.RequestIncompatibleVersion
-            message = "request version {} must be in {}".format(request.version, bittensor.__compatability__[bittensor.__version__])
-            response = bittensor_pb2.TensorMessage(
-                version = bittensor.__version__, 
-                public_key = self.__keypair.public_key, 
-                return_code = code,
-                message = message,
-            )
+        tensor, message, code = self._forward(request)
+        response = bittensor_pb2.TensorMessage(
+            version = bittensor.__version__, 
+            public_key = self.__keypair.public_key, 
+            return_code = code,
+            message = message,
+            tensors = [tensor] if tensor is not None else [],
+        )
+
 
         # ---- Update stats for this request.
         self.update_stats_for_request(request, response)
@@ -297,26 +286,16 @@ class Axon(bittensor_grpc.BittensorServicer):
                 response: (bittensor_pb2.TensorMessage): 
                     proto response carring the synapse backward output or None under failure.
         """
-        if request.version in bittensor.__compatability__[bittensor.__version__]:
-            tensor, message, code = self._backward(request)
-            response = bittensor_pb2.TensorMessage(
-                version = bittensor.__version__, 
-                public_key = self.__keypair.public_key, 
-                return_code = code,
-                message = message,
-                tensors = [tensor] if tensor is not None else [],
-            )
+        tensor, message, code = self._backward(request)
+        response = bittensor_pb2.TensorMessage(
+            version = bittensor.__version__, 
+            public_key = self.__keypair.public_key, 
+            return_code = code,
+            message = message,
+            tensors = [tensor] if tensor is not None else [],
+        )
 
-        # Catch incompatible request versions.
-        else:
-            code = bittensor_pb2.ReturnCode.RequestIncompatibleVersion
-            message = "request version {} must be in {}".format(request.version, bittensor.__compatability__[bittensor.__version__])
-            response = bittensor_pb2.TensorMessage(
-                version = bittensor.__version__, 
-                public_key = self.__keypair.public_key, 
-                return_code = code,
-                message = message,
-            )
+       
         self.update_stats_for_request(request, response)
         return response
             
