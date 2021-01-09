@@ -149,11 +149,7 @@ class Session():
             inputs = nextbatch(self.dataset, self.config.session.batch_size_train, bittensor.__tokenizer__())
             output = self.model.remote_forward(
                 self.neuron,
-<<<<<<< Updated upstream
                 inputs.to(self.model.device),
-=======
-                inputs.to(self.device),
->>>>>>> Stashed changes
                 training = True,
             )
 
