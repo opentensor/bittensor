@@ -51,7 +51,7 @@ class CommandExecutor:
         cli_utils.save_keys(coldkey_path, coldkey_data)
         cli_utils.set_file_permissions(coldkey_path)
 
-        cli_utils.save_keys(coldkey_path, data)
+        cli_utils.save_keys(coldkey_path, coldkey_data)
         cli_utils.set_file_permissions(coldkey_path)
 
         # Create default hotkey.
@@ -67,7 +67,7 @@ class CommandExecutor:
             hotkey_name = input("Hotkey name: ")
             hotkey_path = wallet_path + "/hotkeys/" + hotkey_name
         hotkey_path = cli_utils.validate_create_path( hotkey_path )
-        hotkey_keypair = cli_utils.gen_new_key( n_words )
+        hotkey_keypair = cli_utils.gen_new_key( 14 )
         hotkey_data = json.dumps(hotkey_keypair.toDict()).encode()
         cli_utils.save_keys(hotkey_path, hotkey_data)
         cli_utils.set_file_permissions(hotkey_path)
@@ -146,7 +146,7 @@ class CommandExecutor:
         # expand wallet path.
         hotkey_file_path = hotkeys_dir_path + hotkey_name
         hotkey_file_path = cli_utils.validate_create_path( hotkey_file_path )
-        hotkey_keypair = cli_utils.gen_new_key( n_words )
+        hotkey_keypair = cli_utils.gen_new_key( 12 )
         hotkey_data = json.dumps(hotkey_keypair.toDict()).encode()
         cli_utils.save_keys(hotkey_file_path, hotkey_data)
         cli_utils.set_file_permissions(hotkey_file_path)
