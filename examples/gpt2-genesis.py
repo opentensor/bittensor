@@ -137,46 +137,39 @@ class Session():
 
             # --- Loop forever ---
             while True:
-                try:
-                    self.epoch += 1
+            self.epoch += 1
 
-                    # ---- Serve ----
-                    self.neuron.axon.serve( self.model )
+            # ---- Serve ----
+            self.neuron.axon.serve( self.model )
 
-                    # ---- Train Model ----
-                    self.train()
-                    self.scheduler.step()
+            # ---- Train Model ----
+            self.train()
+            self.scheduler.step()
 
-                    # ---- Emitting weights ----
-                    self.neuron.metagraph.emit( self.row, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+            # ---- Emitting weights ----
+            self.neuron.metagraph.emit( self.row, wait_for_inclusion = True ) # Sets my row-weights on the chain.
 
-                    # ---- Sync metagraph ----
-                    self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                    self.row = self.neuron.metagraph.row
+            # ---- Sync metagraph ----
+            self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+            self.row = self.neuron.metagraph.row
 
-                    # --- Epoch logs ----
-                    print(self.neuron.axon.__full_str__())
-                    print(self.neuron.dendrite.__full_str__())
-                    print(self.neuron.metagraph)
+            # --- Epoch logs ----
+            print(self.neuron.axon.__full_str__())
+            print(self.neuron.dendrite.__full_str__())
+            print(self.neuron.metagraph)
 
-                    # ---- Update Tensorboard ----
-                    self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
-                    self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
-                    self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
+            # ---- Update Tensorboard ----
+            self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
+            self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
+            self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
 
-                    # ---- Save best loss and model ----
-                    if self.training_loss and self.epoch % 10 == 0:
-                        if self.training_loss < self.best_train_loss:
-                            self.best_train_loss = self.training_loss # update best train loss
-                            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
-                            torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_train_loss},"{}/model.torch".format(self.config.session.full_path))
-                            self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
-
-                # --- Catch Errors ----
-                except Exception as e:
-                    logger.error('Exception in training script with error: {}', e)
-                    logger.info(traceback.print_exc())
-                    logger.info('Continuing to train.')
+            # ---- Save best loss and model ----
+            if self.training_loss and self.epoch % 10 == 0:
+                if self.training_loss < self.best_train_loss:
+                    self.best_train_loss = self.training_loss # update best train loss
+                    logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
+                    torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_train_loss},"{}/model.torch".format(self.config.session.full_path))
+                    self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
 
     # ---- Train Epoch ----
     def train(self):
