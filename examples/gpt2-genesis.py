@@ -195,7 +195,6 @@ class Session():
             self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
             self.row = torch.log( torch.abs( self.row ) + 1 )
             self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
-            logger.info('row:', self.row.tolist())
 
             # ---- Step logs ----
             logger.info('GS: {} LS: {} Epoch: {}\tLocal Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}\tAxon: {}\tDendrite: {}',
