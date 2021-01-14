@@ -1,10 +1,16 @@
+<div align="center">
+
 # **Bittensor**
 [![Build status](https://circleci.com/gh/opentensor/bittensor.svg?style=shield)](https://circleci.com/gh/opentensor/bittensor)
 [![Documentation Status](https://readthedocs.org/projects/bittensor-docs/badge/?version=latest)](https://bittensor-docs.readthedocs.io/en/latest/?badge=latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
-### p2p neural networks which mine crypto
+### Incentivized Peer to Peer Neural Networks
+
+[Docs](https://opentensor.github.io/book/index.html) • [Network](https://opentensor.github.io/visualizer/index.html) • [Research](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/5fa940aea6a95b870067cf09_bittensor.pdf) • [Code](https://github.com/opentensor/BitTensor)
+
+</div>
 
 # Setup
 
@@ -28,12 +34,6 @@ $ ./bin/release/node-subtensor                                                  
 
 ---
 
-1. ### [Docs](https://opentensor.github.io/book/index.html)
-1. ### [Network](https://opentensor.github.io/visualizer/index.html)
-1. ### [Research](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/5fa940aea6a95b870067cf09_bittensor.pdf)
-1. ### [Code](https://github.com/opentensor/BitTensor)
-
----
 ### License
 The MIT License (MIT)
 Copyright © 2020 <copyright holders>

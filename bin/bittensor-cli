@@ -28,6 +28,50 @@ class CommandExecutor:
         self.__keypair = keypair
         self.__client = client
 
+    async def regen_wallet( self, wallet_path: str, wallet_name: str, mnemonic: str):
+        if wallet_name == None:
+            wallet_name = input("Wallet name: ")
+
+        # expand wallet path.
+        wallet_path = os.path.expanduser(wallet_path + '/' + wallet_name)
+        if not os.path.exists(wallet_path):
+            os.makedirs(wallet_path)
+
+        coldkey_path = wallet_path + "/coldkey"
+        coldkey_path = cli_utils.validate_create_path( coldkey_path )
+        coldkey_keypair = cli_utils.validate_generate_mnemonic( mnemonic )
+        cli_utils.write_pubkey_to_text_file(coldkey_path, coldkey_keypair.public_key )
+        
+        password = cli_utils.input_password()
+        print("Encrypting key ... (this might take a few moments)")
+        json_data = json.dumps(coldkey_keypair.toDict()).encode()
+        coldkey_data = encrypt(json_data, password)
+        del json_data
+        
+        cli_utils.save_keys(coldkey_path, coldkey_data)
+        cli_utils.set_file_permissions(coldkey_path)
+
+        cli_utils.save_keys(coldkey_path, coldkey_data)
+        cli_utils.set_file_permissions(coldkey_path)
+
+        # Create default hotkey.
+        hotkeys_dir_path = wallet_path + '/hotkeys/'
+        if not os.path.exists(hotkeys_dir_path):
+            os.makedirs(hotkeys_dir_path)
+            
+        cli_utils.create_hotkeys_dir_if_not_exists(wallet_path + "/hotkeys")
+        choice = input("Create 'default' hotkey ? (y/N) ")
+        if choice == "y":
+            hotkey_path = wallet_path + "/hotkeys/default"
+        else:
+            hotkey_name = input("Hotkey name: ")
+            hotkey_path = wallet_path + "/hotkeys/" + hotkey_name
+        hotkey_path = cli_utils.validate_create_path( hotkey_path )
+        hotkey_keypair = cli_utils.gen_new_key( 14 )
+        hotkey_data = json.dumps(hotkey_keypair.toDict()).encode()
+        cli_utils.save_keys(hotkey_path, hotkey_data)
+        cli_utils.set_file_permissions(hotkey_path)
+
     async def new_wallet( self, n_words:int, wallet_path: str, wallet_name:str,  use_password: bool):
 
         if wallet_name == None:
@@ -94,7 +138,6 @@ class CommandExecutor:
         wallet_path = os.path.expanduser(wallet_path + '/' + wallet_name)
         if not os.path.exists(wallet_path):
             os.makedirs(wallet_path)
-            os.makedirs(wallet_path + '/hotkeys/')
         
         hotkeys_dir_path = wallet_path + '/hotkeys/'
         if not os.path.exists(hotkeys_dir_path):
@@ -103,25 +146,10 @@ class CommandExecutor:
         # expand wallet path.
         hotkey_file_path = hotkeys_dir_path + hotkey_name
         hotkey_file_path = cli_utils.validate_create_path( hotkey_file_path )
-        hotkey_keypair = cli_utils.gen_new_key( n_words )
+        hotkey_keypair = cli_utils.gen_new_key( 12 )
         hotkey_data = json.dumps(hotkey_keypair.toDict()).encode()
         cli_utils.save_keys(hotkey_file_path, hotkey_data)
         cli_utils.set_file_permissions(hotkey_file_path)
-
-    async def regen_key( self, mnemonic: str, keypath_str:str, use_password:bool):
-        keyfile = cli_utils.validate_create_path( keypath_str )
-        keypair = cli_utils.validate_generate_mnemonic( mnemonic )
-        cli_utils.write_pubkey_to_text_file(keypath_str, keypair.public_key )
-        if use_password:
-            password = cli_utils.input_password()
-            print("Encrypting key ... (this might take a few moments)")
-            json_data = json.dumps(keypair.toDict()).encode()
-            data = encrypt(json_data, password)
-            del json_data
-        else:
-            data = json.dumps(keypair.toDict()).encode()
-        cli_utils.save_keys(keyfile, data)
-        cli_utils.set_file_permissions(keyfile)
 
     async def connect(self):
         self.__client.connect()
@@ -150,7 +178,6 @@ class CommandExecutor:
         t.align = 'l'
         for neuron in neurons:
             t.add_row([neuron.uid, neuron.ip, neuron.stake])
-
         print(t.get_string())
 
     async def unstake_all(self):
@@ -232,10 +259,10 @@ def run(args):
         loop.run_until_complete( executor.new_hotkey( n_words = args.n_words, wallet_path = args.wallet_path, wallet_name = args.wallet_name, hotkey_name = args.hotkey_name) )
 
     # --- Regen command.
-    elif args.command == "regen_key":
+    elif args.command == "regen_wallet":
         executor = CommandExecutor(None, None)
         # ---- Run command new regen
-        loop.run_until_complete( executor.regen_key( mnemonic = args.mnemonic, keypath_str = args.keypath, use_password = args.use_password) )
+        loop.run_until_complete( executor.regen_wallet( wallet_path = args.wallet_path, wallet_name = args.wallet_name, mnemonic = args.mnemonic ) )
 
     # --- Transfer command
     elif args.command == "transfer":
@@ -344,8 +371,8 @@ def main():
         help='''Unstake from hotkey accounts.''')
     stake_parser = cmd_parsers.add_parser('stake', 
         help='''Stake to your hotkey accounts.''')
-    regen_key_parser = cmd_parsers.add_parser('regen_key',
-        help='''Regenerates a keyfile into the specified path given a passed mnemonic''')
+    regen_wallet_parser = cmd_parsers.add_parser('regen_wallet',
+        help='''Regenerates a wallet from a passed mnemonic''')
     wallet_parser = cmd_parsers.add_parser('new_wallet', 
         help='''Creates a new wallet containing your coldkey (for containing balance)
             and a default hotkey (for running your node). The default wallet is stored 
@@ -357,14 +384,14 @@ def main():
             ''')
 
     # Fill arguments for the regen command.
-    regen_key_parser = cmd_parsers.add_parser('regen_key')
-    regen_key_parser.add_argument("--mnemonic", required=True, nargs="+", 
+    regen_wallet_parser = cmd_parsers.add_parser('regen_key')
+    regen_wallet_parser.add_argument("--mnemonic", required=True, nargs="+", 
         help='Mnemonic used to regen your key i.e. horse cart dog ...') 
-    regen_key_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
-    regen_key_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
-    regen_key_parser.set_defaults(use_password=True)
-    regen_key_parser.add_argument('--keypath', default=None, type=str, required=True,
-        help='The destination path for the regenerated keyfile (i.e. ~/.bittensor/wallets/regenerated/coldkey or ~/.bittensor/wallets/default/hotkeys/regenerated_hotkey)')
+    regen_wallet_parser.add_argument('--wallets_path',  dest="wallet_path", default='~/.bittensor/wallets/', type=str, 
+        help='''Path to your wallets directory (default: ~/.bittensor/wallets/)''')
+    regen_wallet_parser.add_argument('--wallet', dest="wallet_name", default=None, type=str, 
+        help='''The wallet where the new hotkey will be stored. Will overwrite previous wallet if it is already in place.''')
+
 
     # Fill arguments for the regen command.
     new_hotkey_parser = cmd_parsers.add_parser('new_hotkey')
