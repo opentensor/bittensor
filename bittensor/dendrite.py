@@ -307,6 +307,7 @@ class RemoteNeuron(nn.Module):
             forward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.01),
             backward_bytes_out = stat_utils.timed_rolling_avg(0.0, 0.01),
             backward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.01),
+
             codes = {
                 bittensor_pb2.ReturnCode.Success: 0,
                 bittensor_pb2.ReturnCode.Timeout: 0,
@@ -326,9 +327,12 @@ class RemoteNeuron(nn.Module):
                 bittensor_pb2.ReturnCode.NotServingSynapse: 0,
                 bittensor_pb2.ReturnCode.NucleusTimeout: 0,
                 bittensor_pb2.ReturnCode.NucleusFull: 0,
+                bittensor_pb2.ReturnCode.RequestIncompatibleVersion: 0,
+                bittensor_pb2.ReturnCode.ResponseIncompatibleVersion: 0,
+                bittensor_pb2.ReturnCode.SenderUnknown: 0,
                 bittensor_pb2.ReturnCode.UnknownException: 0,
             }
-        ) 
+        )
         # Loop back if the neuron is local.
         if neuron.address == config.axon.external_ip:
             ip = "localhost:"
@@ -389,7 +393,10 @@ class RemoteNeuron(nn.Module):
                 code = torch.tensor(bittensor_pb2.ReturnCode.UnknownException)
 
         # ---- On Success: set zero backoff and halve the next backoff ---- 
-        self.stats.codes[code.item()] += 1
+        try:
+            self.stats.codes[code.item()] += 1
+        except Exception: 
+            pass
         if code.item() == bittensor_pb2.ReturnCode.Success:
             self.backoff = 0
             self.next_backoff = max(1, self.next_backoff / 2)
