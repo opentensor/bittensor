@@ -900,7 +900,7 @@ class Metagraph():
 
         # ---- Convert Weights to int-vals and pubkeys ----
         try:
-            weight_uids, weight_vals = self._convert_weights_to_emit(weights)
+            weight_uids, weight_vals = self.convert_weights_to_emit(weights)
         except Exception as e:
             message = "Unknown error when converting weights to ints with weights {} and error {}".format(weights, e)
             return Metagraph.EmitUnknownError, message
@@ -994,7 +994,7 @@ class Metagraph():
             return False 
 
 
-    def _convert_weights_to_emit(self, weights: List[float]) -> Tuple[List[str], List[int]]:
+    def convert_weights_to_emit(self, weights: List[float]) -> Tuple[List[str], List[int]]:
         r""" Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
         Returns:
             keys: (List[str]):
@@ -1005,9 +1005,11 @@ class Metagraph():
         remainder = MAX_INT_WEIGHT
         weight_vals = []
         weight_uids = []
+        pos_self_uid = -1
         for i, val in enumerate(weights):
             int_val = int(float(val) * int(MAX_INT_WEIGHT)) # convert to int representation.
             remainder -= int_val
+            uid_i = self.state.uids.tolist()[i]
 
             # ---- Fix remainders and overflows ----
             if remainder < 0:
@@ -1021,8 +1023,15 @@ class Metagraph():
             # Do not add zero values. 
             if int_val != 0:
                 weight_vals.append( int_val ) # int weights sum to MAX_INT_WEIGHT.
-                weight_uids.append( self.state.uids.tolist()[i] ) # Gets the uid at this index
+                weight_uids.append( uid_i ) # Gets the uid at this index
 
+            if uid_i == self.uid:
+                pos_self_uid = i
+
+        # Places the self weight in the first position if it exists
+        if pos_self_uid != -1 and len(weight_uids) > 1:
+            weight_uids.insert(0, weight_uids.pop(pos_self_uid))
+            weight_vals.insert(0, weight_vals.pop(pos_self_uid))
         return weight_uids, weight_vals
 
     def __str__(self):
