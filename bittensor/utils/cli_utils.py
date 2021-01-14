@@ -190,7 +190,7 @@ class cli_utils():
         tested_pass = policy.password(password)
         result = tested_pass.test()
         if len(result) > 0:
-            print(colored('Password not strong enough. Try increasing the length of the password or the password comlexity'))
+            print(colored('Password not strong enough. Try increasing the length of the password or the password complexity'))
             return False
 
         password_verification = getpass.getpass("Retype your password: ")
