@@ -1,0 +1,162 @@
+The Story of MooT
+
+MooT is a board game containing 1008 difficult questions about the English language;
+here are some examples:
+
+
+
+According to the Ontario Department of Education, how does a sexist say "synthetic?"
+
+(man-made)
+
+Which word entered English first: "socialist" or "capitalist"?
+
+(capitalist)
+
+I read a lot, and when I read I both look up the words I don't know and look up the words I think I do know. In doing this over the years, I made two discoveries:
+
+(1) I was looking up the same words over and over again (e.g., indolent) and
+
+(2) many words that I was sure I understood -- you know, words we learn from context and never bother to look up (e.g., "prose") -- I actually misunderstood.
+
+So, I decided to improve my vocabulary. Instead of buying one of those increase-your-word-power books, which make you memorize words that the author feels are important, I decided to create a method that would allow me to improve my vocabulary while reading what I wanted to read.
+
+My solution was a mnemonic device: When reading, if I ran into a word I either didn't understand or didn't completely understand in its context, I would look it up in the dictionary and transform the definition into a question. For example:
+
+In Latin dolere means "pain"; describe someone who avoids the pain of exertion?
+
+(indolent)
+
+
+
+Do cons speak prose?
+
+(Yes. Non-metrical spoken or written language is prose.)
+
+The first question uses the word's Latin root as a mnemonic, whereas the second fashions a mnemonic out of a pun.
+
+The method worked. I found that question-making made it easier to remember a word's meaning, thereby expanding my vocabulary's size and depth -- i.e., I both understood more words and had a more profound understanding of the words I already used. It was also fun.
+
+Eventually, I had a cigar box full of questions, so I began posing them to friends. Doing this, I discovered that my semantic handicap was widespread: many other people had also looked up indolent many times and still couldn't remember what it meant.
+
+I also discovered that people enjoyed answering my questions, so much so that one person suggested I compile them into a game, "a sort of a Trivial Pursuit for pedants."
+
+I liked the idea, so I pursued it; however, I wanted my game to differ from Trivial Pursuit by having it stress problem solving and discussion, rather than memory recall. To get a feel for the difference, compare the following questions:
+
+How much wood did American woodchucks chuck in 1968?
+
+(Lots)
+
+Does antiquity include the year 1 AD?
+
+(Yes. The time before the Middle Ages -- i.e., before 600 AD -- is antiquity.)
+
+With the first (Trivial-Pursuit-like) question, either you know the answer or you guess; with the second (MooT-like) question, you think you know the answer, you talk it over with others, you experience doubt ("When exactly is antiquity?"), then you guess.
+
+With this approach in mind, I got out my trusty Trivial-Pursuit board and, using their rules, started testing my questions on friends. I did this for a year: writing and posing hundreds of questions to friends who mercilessly tore them apart.
+
+The goal was to discover what constituted a good MooT question -- i.e., one that was informative and tricky and, most important, had an authoritative and indisputable answer.
+
+(1) The questions had to be authoritative, because I was an amateur language buff who was going to be telling other people whether or not their diction was correct.
+
+(2) The questions had to be indisputable, because the people who played my game were going to spend long periods of time discussing these questions, and if they came up with an answer that was correct, but was different from the one I gave, they would experience anger and frustration -- and they would hate my game.
+
+
+
+I solved the first problem by basing all my answers and interpretations on the information contained in the Concise Oxford Dictionary. Hence, if players disagreed with an answer, they could look it up in the COD. If they disagreed with the lexicographers, they could write them, not me.
+
+I solved the problem of indisputability by testing my questions repeatedly on friends until we either had spotted and removed most of the duds or had made disputable questions indisputable.
+
+
+
+For example:
+
+(disputable) Is George Bush, Jr. an invertebrate?
+
+(indisputable) Is George Bush, Jr. literally an invertebrate?
+
+(No. Bush is a mammal; mammals have backbones.)
+
+Eventually, I came up with 1008 questions.
+
+
+
+In addition to criticizing questions, my friends also suggested rules; soon the Trivial-Pursuit board was abandoned in favour of a crib board and a new game was born.
+
+I won't list the game's rules ; however, I will say that a MooT game consists of teams discussing and solving language-oriented questions of varying difficulty.
+
+For example:
+
+(Easy) Is the Pope a primate?
+
+(Yes. We are all primates, the Pope doubly so.)
+
+(Harder) Its name means "opposite bear" in Greek. Which large landmass is it?
+
+(The Antarctic. In Greek "anti arkitos" means "opposite bear." )
+
+(Damn hard) Gays call them "seafood". What do heteros call them?
+
+(Sailors. Source: "The Political Vocabulary of Homosexuality")
+
+While I was developing MooT, many people asked me if they could buy a copy. This eventually caused me to:
+
+(1) Type 1008 questions into my computer.
+
+(2) Edit, format, print, and photocopy them onto coloured card-stock
+
+(3) Cut the card-stock into cards (by hand); and
+
+(4) Sell the result in cigar boxes scavenged from tobacco stores and flea markets.
+
+Each game was numbered and every time I made a new game I tried to eliminate errors and improve the packaging. After several months' work, I had made and sold 60 games, most of them to relatives and friends. In addition, I had contrived packaging that was sophisticated enough to sell over the counter at a local used-bookstore.
+
+
+
+Nowadays, I am often asked if I expect to make big bucks from MooT -- i.e., will I cash in by selling it to a large game-manufacturer. Of course, I want to do that but, for several reasons, I doubt that it is possible.
+
+First, MooT has a market-niche problem: it is a game that should be sold in book stores. Unfortunately, most book stores don't sell games and don't want to start selling them.
+
+One time, a major Canadian book publisher became quite interested in MooT, but the owner, who was initially quite enthusiastic about the game -- especially with the possibility of Trivial-Pursuit-like profits -- eventually backed off because he didn't know much about the game business and felt that it was too risky to spend a lot of time and money trying to learn.
+
+
+
+The second problem is that game-industry types don't like MooT because:
+
+(1) The name is weird; they are more comfortable with cute, multisyllabic names like HUMZINGER and BALDERDASH and
+
+(2) the questions are strange, even offensive; for example:
+
+Is urine pith?
+
+(No. Pith is essential; urine, a waste product, is not.)
+
+One interested venture-capitalist, before he had even played the game, started suggesting improvements that I would have to make to entice him to invest: change the name, make the questions easier, remove offensive material, etc.
+
+I have nothing against selling out, but I balked because the result would have been a watered-down version of MooT that, by trying to appeal to everybody, would appeal to nobody. He disagreed with my reasoning and moved on.
+
+
+
+Finally, contrary to popular myth, very few game-makers become millionaires. In fact, very few of the thousands of games published annually in North America make a profit. The standard scenario is:
+
+(1) Person X develops a game; for example, one that combines bingo with charades.
+
+(2) Everyone X knows plays it and loves it -- visions of immense wealth ensue.
+
+(3) X's infectious, tsunami-like enthusiasm entices family and friends to invest -- $150,000 is raised.
+
+(4) The local game-manufacturing specialists (two guys with mustaches) are hired to package it and print up 5000 copies ("You gotta get the per-unit cost down to make any money.").
+
+(5) X sells 500 copies of ChaBingo in the first year. But, sad to say, he has spent all of his money, so is forced to go out of business. The result: fewer friends, tense family gatherings, and 4500 copies of ChaBingo in storage.
+
+
+
+I have seen this occur in Vancouver several times. Still, the few successes excite popular imagination and lead to the prevailing belief that games are a gold mine.
+
+They're not. One local game distributor described it to me as a "rags to rags business," and advised me to take any money I was willing to invest in MooT, fly to Las Vegas, and bet it all on red; that way, I would have at least some chance of making money and would save myself several years of futile effort.
+
+In addition, a Vancouver game-store owner advised me not to mail MooT to any of the big publishers: "They'll just send the package back unopened; they're afraid that it will contain a game that resembles one they are developing in-house" -- lawsuits resulting.
+
+He added that if my game was any good, a company would hear about it, and if it showed a decent sales record ("about 20,000 units annually"), they might be willing to risk promoting it. He wasn't impressed when I told him that I had, at that time, sold 47 copies packaged in cigar boxes.
+
+The conclusions I drew from all this were: don't quit your job and don't spend your retirement savings. Instead, I will continue to print up small batches of MooT (1000 per year), sell them by word of mouth, and attempt to put out another set of 1008 questions before the meteor arrives. If I can't develop a market, I will, instead, try to develop an audience -- i.e., a group of people who enjoy what I do and hope that I do more of it.

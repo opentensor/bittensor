@@ -153,7 +153,7 @@ class GPT2LMSynapse(Synapse):
                 hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Hidden layer representation produced using the local_context.
         """
-        hidden = self.local_forward(inputs=inputs, training = False).local_hidden
+        hidden = self.local_forward(inputs=inputs.to(self.device), training = False).local_hidden
         return hidden
 
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
@@ -247,7 +247,7 @@ class GPT2LMSynapse(Synapse):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.dendrite = self.dendrite.forward_text(neuron, inputs, pooled)
+        output.dendrite = self.dendrite.forward_text(neuron, inputs.to(self.device), pooled)
         remote_context = output.dendrite.response
 
         # distillation_loss: distillation loss between local_context and remote_context

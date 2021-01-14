@@ -60,7 +60,7 @@ class Session():
         parser.add_argument('--session.batch_size_train', default=64, type=int, help='Training batch size.')
         parser.add_argument('--session.batch_size_test', default=64, type=int, help='Testing batch size.')
         parser.add_argument('--session.log_interval', default=150, type=int, help='Batches until session prints log statements.')
-        parser.add_argument('--session.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
+        parser.add_argument('--session.sync_interval', default=10, type=int, help='Batches before we we sync with chain and emit new weights.')
         parser.add_argument('--session.root_dir', default='~/.bittensor/sessions/', type=str,  help='Root path to load and save data associated with each session')
         parser.add_argument('--session.name', default='mnist', type=str, help='Trials for this session go in session.root / session.name')
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
@@ -98,11 +98,11 @@ class Session():
 
                 # ---- Serve ----
                 self.neuron.axon.serve( self.model )
-         
+
                 # ---- Train ----
                 self.train()
                 self.scheduler.step()
-                
+
                 # ---- Test ----
                 test_loss, test_accuracy = self.test()
 
@@ -122,7 +122,7 @@ class Session():
                 self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
                 self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
                 self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
-                
+
                 # ---- Save ----
                 if test_loss < self.best_test_loss:
                     self.best_test_loss = test_loss # Update best loss.
