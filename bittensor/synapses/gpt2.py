@@ -25,7 +25,7 @@ def nextbatch(data, batch_size, tokenizer):
     batch_text = []
     for _ in range(batch_size):
         batch_text.append(data[random.randint(0, len(data))]['text'])
-    batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True)['input_ids']
+    batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True, truncation=True)['input_ids']
     return batch_inputs
 
 class GPT2Pooler(nn.Module):
@@ -73,8 +73,6 @@ class GPT2LMSynapse(Synapse):
                 summary_activation=config.synapse.summary_activation, 
                 summary_proj_to_labels=config.synapse.summary_proj_to_labels, 
                 summary_first_dropout=config.synapse.summary_first_dropout, 
-                bos_token_id=50256, 
-                eos_token_id=50256
         )
 
         # encoder_layer: encodes tokenized sequences to network dim.
