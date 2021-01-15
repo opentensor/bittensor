@@ -122,23 +122,22 @@ class Session():
                     print(self.neuron.dendrite.__full_str__())
                     print(self.neuron.metagraph)
 
+
                     # ---- Update Tensorboard ----
                     self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
                     self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
                     self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
                 
                     # ---- Save best loss and model ----
-                    if self.training_loss and self.epoch % 10 == 0:
-                        if self.training_loss < self.best_train_loss:
-                            self.best_train_loss = self.training_loss # update best train loss
-                            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
-                            torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_train_loss},"{}/model.torch".format(self.config.session.full_path))
-                            self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
+                    if self.training_loss and self.epoch % 10 == 0 and self.training_loss < self.best_train_loss:
+                        self.best_train_loss = self.training_loss # update best train loss
+                        logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
+                        torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_train_loss},"{}/model.torch".format(self.config.session.full_path))
+                        self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
                     
                 # --- Catch Errors ----
                 except Exception as e:
-                    logger.error('Exception in training script with error: {}', e)
-                    logger.info(traceback.print_exc())
+                    logger.error('Exception in training script with error: {}, {}', e, traceback.format_exc())
                     logger.info('Continuing to train.')
     
     # ---- Train Epoch ----
