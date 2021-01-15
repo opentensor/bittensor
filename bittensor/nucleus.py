@@ -175,7 +175,7 @@ class Nucleus ():
 
         except Exception as e:
             tensor = None
-            message = 'Unknown error when calling Synapse forward with errr {}'.format(e)
+            message = 'Unknown error when calling Synapse forward with errr {}, {}'.format(e, traceback.format_exc())
             code = bittensor_pb2.ReturnCode.UnknownException
 
         return [tensor, message, code]
