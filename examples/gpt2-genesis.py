@@ -59,7 +59,8 @@ class AdamCorpus():
         """
         batch_text = []
         for _ in range(batch_size):
-            random_line = self.lines[ random.randint(0, len(self.lines))]
+
+            random_line = self.lines[ random.randint(0, len(self.lines)-1)]
             batch_text.append( random_line )
 
         batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True)['input_ids']
