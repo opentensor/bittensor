@@ -7,6 +7,7 @@ import time
 import torch
 import pandas as pd
 import torch.nn as nn
+import traceback
 
 from termcolor import colored
 from torch.autograd.function import once_differentiable
@@ -388,7 +389,7 @@ class RemoteNeuron(nn.Module):
 
             # ---- On unknown failure: we return zeros and unknown code ---- 
             except Exception as e:
-                logger.error('Uncaught error in forward call with error {}'.format( e ))
+                logger.error('Uncaught error in forward call with error {}, {}'.format( e, traceback.format_exc()))
                 outputs = nill_response_for(inputs)
                 code = torch.tensor(bittensor_pb2.ReturnCode.UnknownException)
 
@@ -495,12 +496,12 @@ class _RemoteModuleCall(torch.autograd.Function):
                 try:
                     bittensor_code = response.return_code
                 except:
-                    logger.error('Unknown exception returned from remote host with message {}', response.message)
+                    logger.error('Unknown exception returned from remote host with message {}, {}', response.message, traceback.format_exc())
                     return zeros, torch.tensor(bittensor_code)
 
                 # ---- Catch bittensor errors ----
                 if bittensor_code == bittensor_pb2.ReturnCode.UnknownException:
-                    logger.error('Unknown exception returned from remote host with message {}', response.message)
+                    logger.error('Unknown exception returned from remote host with message {}, {}', response.message, traceback.format_exc())
                     return zeros, torch.tensor(bittensor_code)
 
                 elif bittensor_code != bittensor_pb2.ReturnCode.Success:
