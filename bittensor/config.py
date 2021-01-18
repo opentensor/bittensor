@@ -42,7 +42,7 @@ class Config:
         params = parser.parse_known_args()[0]
         config_file = None
         config = Munch()
-        if 'neuron.config_file' in vars(params).keys():
+        if 'session.config_file' in vars(params).keys():
             config_file = vars(params)['neuron.config_file']
         
         if config_file:
