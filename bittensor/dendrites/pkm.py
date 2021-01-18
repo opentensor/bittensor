@@ -225,7 +225,9 @@ class PKMDendrite():
         # weights: (torch.LongTensor): weights scattered onto uids per example.
         # weights.shape = [batch_size, metagraph.n]
         weights = torch.zeros(inputs.shape[0], neuron.metagraph.n)
-        weights.to(self.device).scatter_(1, indices.to(self.device).repeat(batch_size, 1), gates)
+        weights = weights.to(self.device)
+        indices = indices.to(self.device)
+        weights.scatter_(1, indices.repeat(batch_size, 1), gates)
 
         # filled_sizes: (torch.LongTensor): number of examples queried to each uid.
         # filled_sizes.shape = [metagraph.n]
