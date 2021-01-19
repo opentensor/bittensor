@@ -1,14 +1,15 @@
-import requests
-from loguru import logger
 import argparse
-from importlib.machinery import SourceFileLoader
 import munch
 import os
 import pathlib
+import requests
+import stat
 import validators
 import yaml
-import stat
+
+from loguru import logger
 from munch import Munch
+from importlib.machinery import SourceFileLoader
 
 from bittensor.crypto import KeyError
 from bittensor.crypto.keyfiles import KeyFileError
