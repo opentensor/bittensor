@@ -92,7 +92,8 @@ class WSClient:
         )
 
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
-        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        return result
 
     async def transfer(self, dest:str, amount: Balance):
         logger.debug("Requesting transfer of {}, from {} to {}", amount.rao, self.__keypair.public_key, dest)
@@ -105,7 +106,8 @@ class WSClient:
             }
         )
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
-        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        return result
 
     async def unstake(self, amount : Balance, hotkey_id):
         logger.debug("Requesting unstake of {} rao for hotkey: {} to coldkey: {}", amount.rao, hotkey_id, self.__keypair.public_key)

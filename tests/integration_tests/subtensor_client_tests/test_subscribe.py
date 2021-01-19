@@ -17,9 +17,10 @@ async def test_subscribe():
     client.connect()
     await client.is_connected()
 
-    await client.subscribe("127.0.0.1", 666, 0, keypair.public_key)
+    await client.subscribe("8.8.8.8", 666, 0, keypair.public_key)
     await asyncio.sleep(10)
     uid = await client.get_uid_for_pubkey(keypair.public_key)
+
     assert uid is not None
 
 
