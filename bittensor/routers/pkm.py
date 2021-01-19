@@ -40,7 +40,7 @@ class PKMKeys(nn.Module):
 class PKMRouter():
     def __init__(self, config: Munch, query_dim = bittensor.__network_dim__):
         if config == None:
-            config = PKMRouter.config()
+            config = PKMRouter.build_config()
         self.config = config
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # UIDs -> Keys.
@@ -49,7 +49,7 @@ class PKMRouter():
         self.projection = nn.Linear(query_dim, self.config.router.key_dim, bias=True).to(self.device)
 
     @staticmethod   
-    def config() -> Munch:
+    def build_config() -> Munch:
         parser = argparse.ArgumentParser()
         PKMRouter.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 

@@ -22,25 +22,32 @@ class Nucleus ():
     """
 
     def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, metagraph: 'metagraph.Metagraph' = None):
-        r""" Initializes a nucleus backward and forward threading pools.
+        r""" Initializes a new tensor processing backend
+            Args:
+                config (:obj:`Munch`, `optional`): 
+                    nucleus.Nucleus.config()
+                wallet (:obj:`bittensor.nucleus.Nucleus`, `optional`):
+                    bittensor wallet with hotkey and coldkeypub.
+                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
+                    bittensor network metagraph.
         """
         if config == None:
-            config = Nucleus.config()
-        self._config = config
+            config = Nucleus.build_config()
+        self.config = config
 
         if wallet == None:
-            wallet = bittensor.wallet.Wallet(self._config)
-        self.__wallet = wallet
+            wallet = bittensor.wallet.Wallet(self.config)
+        self.wallet = wallet
 
         if metagraph == None:
-            metagraph = bittensor_metagraph.Metagraph( config = self._config, wallet = self.__wallet )
-        self._metagraph = metagraph
-        
-        self._forward_pool = ptp.ThreadPoolExecutor(maxsize = self._config.nucleus.queue_maxsize, max_workers=self._config.nucleus.max_workers)
-        self._backward_pool = ptp.ThreadPoolExecutor(maxsize = self._config.nucleus.queue_maxsize, max_workers=self._config.nucleus.max_workers)
+            metagraph = bittensor_metagraph.Metagraph( config = self.config, wallet = self.wallet )
+        self.metagraph = metagraph
+
+        self._forward_pool = ptp.ThreadPoolExecutor(maxsize = self.config.nucleus.queue_maxsize, max_workers=self.config.nucleus.max_workers)
+        self._backward_pool = ptp.ThreadPoolExecutor(maxsize = self.config.nucleus.queue_maxsize, max_workers=self.config.nucleus.max_workers)
 
     @staticmethod   
-    def config() -> Munch:
+    def build_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Nucleus.add_args(parser) 
         config = config_utils.Config.to_config(parser); 
@@ -54,7 +61,7 @@ class Nucleus ():
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
                     parser argument to append args to.
         """
-        bittensor_metagraph.Metagraph.add_args( parser )
+        bittensor_metagraph.Metagraph.add_args( parser ) # Add wallet args from within metagraph.
         try:
             # Can be called twice.
             parser.add_argument('--nucleus.max_workers', default=5, type=int, 
@@ -117,7 +124,7 @@ class Nucleus ():
 
         # Try to get response or error on timeout.
         try:
-            outputs = future.result (timeout = self._config.nucleus.queue_timeout)
+            outputs = future.result (timeout = self.config.nucleus.queue_timeout)
             tensor = outputs[0]
             message = outputs[1]
             code = outputs[2]
@@ -160,7 +167,7 @@ class Nucleus ():
         future = self._backward_pool.submit( fn =  self._backward, call_params = call_params, priority = priority )
         # Recieve respoonse from the future or fail.
         try:
-            outputs = future.result (timeout = self._config.nucleus.queue_timeout)
+            outputs = future.result (timeout = self.config.nucleus.queue_timeout)
             tensor = outputs[0]
             message = outputs[1]
             code = outputs[2]

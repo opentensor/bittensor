@@ -17,15 +17,17 @@ class Synapse(nn.Module):
         r""" Init synapse module.
 
             Args:
-                config (:obj:`SynapseConfig`, `required`): 
-                    Base synapse config configuration class.
+                config (:obj:`Munch`, `required`): 
+                    synapse.config()
         """
         super().__init__()
+        if config == None:
+            config = Synapse.build_config()
         self.config = config
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     @staticmethod   
-    def config() -> Munch:
+    def build_config() -> Munch:
         return Munch()
 
     @staticmethod   

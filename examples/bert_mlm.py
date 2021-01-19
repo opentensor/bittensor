@@ -60,7 +60,7 @@ class Session():
 
     def __init__(self, config: Munch = None):
         if config == None:
-            config = Session.config(); logger.info(Config.toString(config))
+            config = Session.build_config(); logger.info(Config.toString(config))
         self.config = config
 
         # ---- Neuron ----
@@ -88,29 +88,12 @@ class Session():
             logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
 
     @staticmethod
-    def config() -> Munch:
+    def build_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Session.add_args(parser) 
         config = Config.to_config(parser); 
         Session.check_config(config)
         return config
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
-        parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
-        parser.add_argument('--session.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
-        parser.add_argument('--session.epoch_length', default=10, type=int, help='Iterations of training per epoch')
-        parser.add_argument('--session.batch_size_train', default=1, type=int, help='Training batch size.')
-        parser.add_argument('--session.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
-        parser.add_argument('--session.log_interval', default=10, type=int, help='Batches before we log session info.')
-        parser.add_argument('--session.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
-        parser.add_argument('--session.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
-        parser.add_argument('--session.root_dir', default='~/.bittensor/sessions/', type=str,  help='Root path to load and save data associated with each session')
-        parser.add_argument('--session.name', default='bert-nsp', type=str, help='Trials for this session go in session.root / session.name')
-        parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
-        parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
-        BertMLMSynapse.add_args(parser)
-        Neuron.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
@@ -123,6 +106,23 @@ class Session():
             os.makedirs(config.session.full_path)
         BertMLMSynapse.check_config(config)
         Neuron.check_config(config)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
+        parser.add_argument('--session.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--session.epoch_length', default=500, type=int, help='Iterations of training per epoch')
+        parser.add_argument('--session.batch_size_train', default=1, type=int, help='Training batch size.')
+        parser.add_argument('--session.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
+        parser.add_argument('--session.log_interval', default=10, type=int, help='Batches before we log session info.')
+        parser.add_argument('--session.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
+        parser.add_argument('--session.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
+        parser.add_argument('--session.root_dir', default='~/.bittensor/sessions/', type=str,  help='Root path to load and save data associated with each session')
+        parser.add_argument('--session.name', default='bert-nsp', type=str, help='Trials for this session go in session.root / session.name')
+        parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
+        parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
+        BertMLMSynapse.add_args(parser)
+        Neuron.add_args(parser)
 
     # --- Main loop ----
     def run (self):
@@ -231,7 +231,7 @@ class Session():
 
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Session.config(); logger.info(Config.toString(config))
+    config = Session.build_config(); logger.info(Config.toString(config))
     session = Session(config)
     session.run()
 

@@ -32,10 +32,10 @@ class Axon(bittensor_grpc.BittensorServicer):
     
     """
     def __init__(self, config: Munch = None, wallet: 'bittenosr.wallet.Wallet' = None, nucleus: 'bittensor.nucleus.Nucleus' = None, metagraph: 'bittensor.metagraph.Metagraph' = None):
-        r""" Initializes a new Axon endpoint with passed config and keypair.
+        r""" Initializes a new Axon tensor processing endpoint.
             Args:
                 config (:obj:`Munch`, `optional`): 
-                    bittensor Axon config.
+                    axon.Axon.config()
                 wallet (:obj:`bittensor.nucleus.Nucleus`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 nucleus (:obj:`bittensor.nucleus.Nucleus`, `optional`):
@@ -45,25 +45,25 @@ class Axon(bittensor_grpc.BittensorServicer):
         """
         # Deal with empty elements.
         if config == None:
-            config = Axon.config()
-        self._config = config
+            config = Axon.build_config()
+        self.config = config
 
         if wallet == None:
-            wallet = bittensor.wallet.Wallet( config = self._config )
-        self.__wallet = wallet
+            wallet = bittensor.wallet.Wallet( config = self.config )
+        self.wallet = wallet
         
         if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph( config = self._config, wallet = self.__wallet )
-        self._metagraph = metagraph
+            metagraph = bittensor.metagraph.Metagraph( config = self.config, wallet = self.wallet )
+        self.metagraph = metagraph
 
         if nucleus == None:
-            nucleus = bittensor.nucleus.Nucleus( config = self._config, wallet = self.__wallet, metagraph = self._metagraph )
-        self._nucleus = nucleus
+            nucleus = bittensor.nucleus.Nucleus( config = self.config, wallet = self.wallet, metagraph = self.metagraph )
+        self.nucleus = nucleus
 
         # Init server objects.
-        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=self._config.axon.max_workers))
+        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=self.config.axon.max_workers))
         bittensor_grpc.add_BittensorServicer_to_server(self, self._server)
-        self._server.add_insecure_port('[::]:' + str(self._config.axon.local_port))
+        self._server.add_insecure_port('[::]:' + str(self.config.axon.local_port))
 
         # Local synapse to serve.
         self.synapse = None
@@ -71,7 +71,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         self._next_unknown_priority_increment = 0 
 
         # Gradient queue
-        self.gradients = queue.PriorityQueue(maxsize = self._config.axon.max_gradients)
+        self.gradients = queue.PriorityQueue(maxsize = self.config.axon.max_gradients)
 
         # Serving thread.
         self._thread = None
@@ -112,7 +112,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         return '\nAxon:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
 
     @staticmethod   
-    def config() -> Munch:
+    def build_config() -> Munch:
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Axon.add_args(parser) 
@@ -128,7 +128,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                     parser argument to append args to.
         """
         bittensor.nucleus.Nucleus.add_args(parser)
-        bittensor.metagraph.Metagraph.add_args(parser)
+        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
         try:
             parser.add_argument('--axon.local_port', default=8091, type=int, 
                 help='''The port this axon endpoint is served on. i.e. 8091''')
@@ -161,7 +161,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                     config to check.
         """
         bittensor.nucleus.Nucleus.check_config(config)
-        bittensor.metagraph.Metagraph.check_config(config)
+        bittensor.metagraph.Metagraph.check_config(config) # Also checks for wallet.
         assert config.axon.local_port > 1024 and config.axon.local_port < 65535, 'config.axon.local_port must be in range [1024, 65535]'
 
         # Attain external ip.
@@ -214,15 +214,15 @@ class Axon(bittensor_grpc.BittensorServicer):
         r""" Stop the axon grpc server.
         """
         # Delete port maps if required.
-        if self._config.axon.use_upnpc:
+        if self.config.axon.use_upnpc:
             try:
-                net.upnpc_delete_port_map(self._config.axon.external_port)
+                net.upnpc_delete_port_map(self.config.axon.external_port)
             except net.UPNPCException:
                 # Catch but continue.
                 logger.error('Error while trying to destroy port map on your router.')
         logger.info('Shutting down the nucleus.Nucleus...')
-        if self._nucleus != None:
-            self._nucleus.stop()
+        if self.nucleus != None:
+            self.nucleus.stop()
         if self._server != None:
             self._server.stop(0)
 
@@ -238,12 +238,12 @@ class Axon(bittensor_grpc.BittensorServicer):
         """
         self.synapse = synapse
 
-    def set_priority(self, neurons: List[bittensor_pb2.Neuron], priority: torch.FloatTensor):
+    def set_priority(self, neurons: List[bittensor.bittensor_pb2.Neuron], priority: torch.FloatTensor):
         r""" Set the serving priority for requests on the served synapse. 
             Float values must are normalized to 1.
             
             Args:
-                neurons (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                neurons (:obj:`List[bittensor.bittensor_pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`):
                     List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
 
                 priority (:obj:`torch.FloatTnsor` of shape :obj:`(num_neurons)`, `required`): 
@@ -257,20 +257,20 @@ class Axon(bittensor_grpc.BittensorServicer):
             priority_map[neuron.public_key] = priority
         self.priority = priority_map
 
-    def get_call_priority(self, request: bittensor_pb2.TensorMessage):
+    def get_call_priority(self, request: bittensor.bittensor_pb2.TensorMessage):
         if request.public_key in self.priority:
             call_priority = self.priority[request.public_key]
         else:
             try:
-                uid = self._metagraph.state.uid_for_pubkey[request.public_key]
-                idx = int(self._metagraph.uids_to_indices(torch.tensor([uid])).item())
-                call_priority = self._metagraph.incentive[idx]
+                uid = self.metagraph.state.uid_for_pubkey[request.public_key]
+                idx = int(self.metagraph.uids_to_indices(torch.tensor([uid])).item())
+                call_priority = self.metagraph.incentive[idx]
             except Exception as e:
                 call_priority = 0.0
         call_priority += random.random() * 0.0001
         return call_priority
 
-    def Forward(self, request: bittensor_pb2.TensorMessage, context: grpc.ServicerContext) -> bittensor_pb2.TensorMessage:
+    def Forward(self, request: bittensor.bittensor_pb2.TensorMessage, context: grpc.ServicerContext) -> bittensor.bittensor_pb2.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
             Forward is equivalent to a 'forward' pass through a neural network.
             After checking request validity, passes the request to the nucleus for processing.
@@ -290,7 +290,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         tensor, message, code = self._forward(request)
         response = bittensor_pb2.TensorMessage(
             version = bittensor.__version__, 
-            public_key = self.__wallet.keypair.public_key, 
+            public_key = self.wallet.keypair.public_key, 
             return_code = code,
             message = message,
             tensors = [tensor] if tensor is not None else [],
@@ -319,7 +319,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         tensor, message, code = self._backward(request)
         response = bittensor_pb2.TensorMessage(
             version = bittensor.__version__, 
-            public_key = self.__wallet.keypair.public_key, 
+            public_key = self.wallet.keypair.public_key, 
             return_code = code,
             message = message,
             tensors = [tensor] if tensor is not None else [],
@@ -401,7 +401,7 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # ---- Make nucleus.Nucleus forward call. ----
         try:
-            outputs, message, code = self._nucleus.forward(
+            outputs, message, code = self.nucleus.forward(
                 synapse = self.synapse.to(self.synapse.device), 
                 inputs = x.to(self.synapse.device), 
                 mode = inputs.modality, 
@@ -486,7 +486,7 @@ class Axon(bittensor_grpc.BittensorServicer):
 
         # ---- nucleus.Nucleus backward call ----
         try:
-            outputs, message, code = self._nucleus.backward(
+            outputs, message, code = self.nucleus.backward(
                     synapse = self.synapse, 
                     inputs_x = inputs_x, 
                     grads_dy = grads_dy, 
@@ -518,9 +518,9 @@ class Axon(bittensor_grpc.BittensorServicer):
         out_bytes = sys.getsizeof(response)
         self.stats.total_in_bytes.update(in_bytes)
         self.stats.total_out_bytes.update(out_bytes)
-        if request.public_key in self._metagraph.state.uid_for_pubkey:
+        if request.public_key in self.metagraph.state.uid_for_pubkey:
             # ---- Check we have a stats column for this peer
-            request_uid = self._metagraph.state.uid_for_pubkey[request.public_key]
+            request_uid = self.metagraph.state.uid_for_pubkey[request.public_key]
             if request_uid in self.stats.in_bytes_per_uid:
                 self.stats.in_bytes_per_uid[request_uid].update(in_bytes)
                 self.stats.out_bytes_per_uid[request_uid].update(out_bytes)

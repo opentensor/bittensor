@@ -29,7 +29,7 @@ class FFNNSynapse(bittensor.synapse.Synapse):
         """
         super(FFNNSynapse, self).__init__(config = config)
         if config == None:
-            config = FFNNSynapse.config()
+            config = FFNNSynapse.build_config()
             
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
@@ -62,7 +62,7 @@ class FFNNSynapse(bittensor.synapse.Synapse):
         self.to(self.device)
 
     @staticmethod   
-    def config() -> Munch:
+    def build_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         FFNNSynapse.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 

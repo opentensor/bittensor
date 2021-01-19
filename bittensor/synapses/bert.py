@@ -34,8 +34,8 @@ class BertSynapseBase (bittensor.synapse.Synapse):
                 config (:obj:`munch.Munch`, `required`): 
         """
         super(BertSynapseBase, self).__init__( config = config )
-        if config = None:
-            config = BertSynapseBase.config()
+        if config == None:
+            config = BertSynapseBase.build_config()
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
@@ -64,7 +64,7 @@ class BertSynapseBase (bittensor.synapse.Synapse):
         self.to(self.device)
 
     @staticmethod   
-    def config() -> Munch:
+    def build_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         BertSynapseBase.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 

@@ -12,15 +12,15 @@ from unittest.mock import MagicMock
 import bittensor.serialization as serialization
 from munch import Munch
 
-config = bittensor.receptor.Receptor.config()
-config.receptor.do_backoff = False
+config = bittensor.receptor.Receptor.build_config(); config.receptor.do_backoff = False
+wallet = bittensor.wallet.Wallet( config )
 neuron = bittensor_pb2.Neuron(
     version = bittensor.__version__,
-    public_key = config.wallet.keypair.public_key,
+    public_key = wallet.keypair.public_key,
     address = '0.0.0.0',
     port = 22424,
 )
-receptor = bittensor.receptor.Receptor(config, neuron)
+receptor = bittensor.receptor.Receptor( neuron, config=config, wallet=wallet )
 channel = grpc.insecure_channel('localhost',
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])          
@@ -59,7 +59,7 @@ def test_receptor_neuron_mock_server():
             
     mock_return_val = bittensor_pb2.TensorMessage(
             version = bittensor.__version__,
-            public_key = config.wallet.keypair.public_key,
+            public_key = wallet.keypair.public_key,
             return_code = bittensor_pb2.ReturnCode.Success,
             tensors = [y_serialized])
 
@@ -76,7 +76,7 @@ def test_receptor_neuron_mock_server_deserialization_error():
     y = dict() # bad response
     mock_return_val = bittensor_pb2.TensorMessage(
             version = bittensor.__version__,
-            public_key = config.wallet.keypair.public_key,
+            public_key = wallet.keypair.public_key,
             return_code = bittensor_pb2.ReturnCode.Success,
             tensors = [y])
 
@@ -97,7 +97,7 @@ def test_receptor_neuron_mock_server_shape_error():
    
     mock_return_val = bittensor_pb2.TensorMessage(
             version = bittensor.__version__,
-            public_key = config.wallet.keypair.public_key,
+            public_key = wallet.keypair.public_key,
             return_code = bittensor_pb2.ReturnCode.Success,
             tensors = [y_serialized])
 
