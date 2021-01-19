@@ -51,6 +51,45 @@ class Synapse(nn.Module):
         synapse_copy.load_state_dict(self.state_dict())
         return synapse_copy
 
+    def forward_text(self, text: torch.LongTensor) -> torch.FloatTensor:
+        r"""Forward tokenized text inputs through this synapse.
+
+            Args:
+                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                    Batch_size length list of tokenized sentences.
+            
+            Returns:
+                outputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Output representations produced by this synapse for passed text.
+        """
+        raise NotImplementedError('Must be overriden in synapse implementation')
+
+    def forward_image(self, images: torch.FloatTensor) -> torch.FloatTensor:
+        r"""Forward sequential image inputs through this synapse.
+
+            Args:
+                inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
+                    Sequenced Image tensors i.e. created using PIL.toTensor() and an added sequence dimension.
+            
+            Returns:
+                outputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                    Output representations produced by this synapse for passed images.
+        """
+        raise NotImplementedError('Must be overriden in synapse implementation')
+
+    def forward_tensor(self, tensors: torch.FloatTensor) -> torch.FloatTensor:
+        r"""Forward raw float encoded tensors through this synapse.
+
+            Args:
+                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Sequenced float tensors to be passed through this synapse.
+            
+            Returns:
+                output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Output representations produced by this synapse for passed tensors.
+        """
+        raise NotImplementedError('Must be overriden in synapse implementation')
+
     def call_forward(self, inputs: torch.Tensor, modality: bittensor.proto.Modality, no_grad=True) -> torch.FloatTensor:
         """
         Apply forward pass to the bittensor.synapse given inputs and modality.
@@ -76,63 +115,22 @@ class Synapse(nn.Module):
                 raise NotImplementedError
 
         return outputs
-        
-    def forward_text(self, inputs: torch.Tensor) -> torch.FloatTensor:
-        """ Local forward inputs through the bittensor.Synapse. To be implemented by sub-classes.
-
-            Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
-                    Batch_size length list of text sentences.
-            
-            Returns:
-                hidden_units (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
-                    Output encoding of the text produced by the synapse.
-        """
-        raise NotImplementedError
-
-    def forward_image(self, inputs: torch.Tensor) -> torch.FloatTensor:
-        r""" Forward pass inputs through the bittensor.synapse. To be implemented by sub-classes.
-
-            Args:
-                inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
-                    batch_size list of image tensors. (batch index, sequence_len, channel, row, col) produced for images
-                    by calling PIL.toTensor().
-            
-            Returns:
-                hidden_units (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.network_size)`, `required`): 
-                    Output encoding of the images produced by the synapse.
-        """
-        raise NotImplementedError
-
-    def forward_tensor(self, inputs: torch.Tensor) -> torch.FloatTensor:
-        """ Forward tensor inputs through the bittensor.synapse. To be implemented by sub-classes.
-
-            Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
-                    Batch_size length sequences of tensors.
-            
-            Returns:
-                hidden_units (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
-                    Output encoding of the tensors produced by the synapse.
-        """
-        raise NotImplementedError
-
 
     def grad(self, inputs_x: torch.Tensor, grads_dy: torch.Tensor, modality: bittensor.proto.Modality) -> torch.Tensor:
         """
-            Returns gradients for the inputs given inputs and output grads.
+            Returns gradients for the inputs given outputs and output grads.
         """
         with torch.enable_grad():
             outputs_y = self.call_forward(inputs = inputs_x.to(self.device), modality = modality, no_grad=False)
             grads_dx = torch.autograd.grad(
                 outputs = outputs_y.to(self.device), 
                 inputs = inputs_x.to(self.device), 
-                grad_tensors = grads_dy.to(self.device), 
+                grad_outputs = grads_dy.to(self.device), 
                 only_inputs = True,
                 create_graph = False, 
                 retain_graph = False
             )
-        return grads_dx
+        return grads_dx[0]
 
     def backward(self, inputs_x: torch.Tensor, grads_dy: torch.Tensor, modality: bittensor.proto.Modality):
         """

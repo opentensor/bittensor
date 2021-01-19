@@ -721,7 +721,7 @@ class Metagraph():
 
             subscribe_start_time = time.time()
             try:
-                await self.subtensor_client.subscribe(self.config.axon.external_ip, self.config.axon.external_port, bittensor.proto.Modality.TEXT, self.config.wallet.coldkey)
+                await self.subtensor_client.subscribe(self.config.axon.external_ip, self.config.axon.external_port, bittensor.proto.Modality.TEXT, self.wallet.coldkey)
 
             except Exception as e:
                 if (time.time() - subscribe_start_time) > 8:

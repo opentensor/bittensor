@@ -28,11 +28,11 @@ class FailedToPollChain(Exception):
 class Neuron:
     def __init__(self, 
                 config: Munch = None, 
-                wallet: bittensor.wallet.Wallet = None, 
-                metagraph: bittensor.metagraph.Metagraph = None,
-                nucleus: bittensor.nucleus.Nucleus = None,
-                axon: bittensor.axon.Axon = None,
-                dendrite: bittensor.dendrite.Dendrite = None,
+                wallet: 'bittensor.wallet.Wallet' = None, 
+                metagraph: 'bittensor.metagraph.Metagraph' = None,
+                nucleus: 'bittensor.nucleus.Nucleus' = None,
+                axon: 'bittensor.axon.Axon' = None,
+                dendrite: 'bittensor.dendrite.Dendrite' = None,
             ):
         r""" Initializes a new full Neuron object.
             Args:
@@ -95,7 +95,7 @@ class Neuron:
     def __del__(self):
         self.stop()
 
-    def serve(self, synapse: bittensor.synapse.Synapse):
+    def serve(self, synapse: 'bittensor.synapse.Synapse'):
         r""" Serves a synapse.Synapse to the axon server replacing the previous synapse.Synapse if exists.
 
             Args:

@@ -56,63 +56,6 @@ class Dendrite(nn.Module):
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
         )
 
-    @staticmethod   
-    def build_config() -> Munch:
-        parser = argparse.ArgumentParser(); 
-        Dendrite.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        Dendrite.check_config(config)
-        return config
-
-    @staticmethod   
-    def check_config(config: Munch):
-        bittensor.metagraph.Metagraph.check_config(config) # Also checks wallet
-        bittensor.receptor.Receptor.check_config(config)
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
-        bittensor.receptor.Receptor.add_args(parser)
-        return parser
-
-    def __str__(self):
-        total_bytes_out = 0
-        total_bytes_in = 0
-        for receptor in self._receptors.values():
-            total_bytes_out += receptor.stats.forward_bytes_out.value
-            total_bytes_in += receptor.stats.forward_bytes_in.value
-        qps_str = colored('{:.3f}'.format(self.stats.qps.value), 'blue')
-        total_in_bytes_str = colored('\u290A {:.1f}'.format((total_bytes_out*8)/1000), 'green')
-        total_out_bytes_str = colored('\u290B {:.1f}'.format((total_bytes_in*8)/1000), 'red')
-        return "(" + qps_str + "q/s|" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s" + ")"
-
-    def __full_str__(self):
-        uids = [receptor.neuron.uid for receptor in self._receptors.values()]
-        bytes_out = [receptor.stats.forward_bytes_out.value * (8/1000) for receptor in self._receptors.values()]
-        bytes_in = [receptor.stats.forward_bytes_in.value * (8/1000) for receptor in self._receptors.values()]
-        qps = [receptor.stats.forward_qps.value + receptor.stats.backward_qps.value for receptor in self._receptors.values()]
-        rows = [bytes_out, bytes_in, qps]
-        df = pd.DataFrame(rows, columns=uids)
-        df = df.rename(index={df.index[0]: colored('\u290A kB/s', 'green')})
-        df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
-        df = df.rename(index={df.index[2]: colored('Q/s', 'blue')})
-        return '\nDendrite:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
-    
-    def __to_tensorboard__(self, tensorboard, global_step):
-        total_bytes_out = 0
-        total_bytes_in = 0
-        for receptor in self._receptors.values():
-            total_bytes_out += receptor.stats.forward_bytes_out.value
-            total_bytes_in += receptor.stats.forward_bytes_in.value
-        total_in_bytes = (total_bytes_in*8)/1000
-        total_out_bytes = (total_bytes_out*8)/1000
-        tensorboard.add_scalar('Dendrite/Incoming bytes', total_in_bytes, global_step)
-        tensorboard.add_scalar('Dendrite/Outgoing bytes', total_out_bytes, global_step)
-
-    @property
-    def receptors(self):
-        return self._receptors.values()
-
     def forward_text(self, neurons: List[bittensor.proto.Neuron],
                      x: List[torch.Tensor]) -> Tuple[List[torch.Tensor], torch.Tensor]:
         r""" Forward text inputs to neurons.
@@ -287,3 +230,61 @@ class Dendrite(nn.Module):
         # ---- Gather results and return ---- 
         results = await asyncio.gather(*calls)
         return results
+
+
+    @staticmethod   
+    def build_config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        Dendrite.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        Dendrite.check_config(config)
+        return config
+
+    @staticmethod   
+    def check_config(config: Munch):
+        bittensor.metagraph.Metagraph.check_config(config) # Also checks wallet
+        bittensor.receptor.Receptor.check_config(config)
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser):
+        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
+        bittensor.receptor.Receptor.add_args(parser)
+        return parser
+
+    def __str__(self):
+        total_bytes_out = 0
+        total_bytes_in = 0
+        for receptor in self._receptors.values():
+            total_bytes_out += receptor.stats.forward_bytes_out.value
+            total_bytes_in += receptor.stats.forward_bytes_in.value
+        qps_str = colored('{:.3f}'.format(self.stats.qps.value), 'blue')
+        total_in_bytes_str = colored('\u290A {:.1f}'.format((total_bytes_out*8)/1000), 'green')
+        total_out_bytes_str = colored('\u290B {:.1f}'.format((total_bytes_in*8)/1000), 'red')
+        return "(" + qps_str + "q/s|" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s" + ")"
+
+    def __full_str__(self):
+        uids = [receptor.neuron.uid for receptor in self._receptors.values()]
+        bytes_out = [receptor.stats.forward_bytes_out.value * (8/1000) for receptor in self._receptors.values()]
+        bytes_in = [receptor.stats.forward_bytes_in.value * (8/1000) for receptor in self._receptors.values()]
+        qps = [receptor.stats.forward_qps.value + receptor.stats.backward_qps.value for receptor in self._receptors.values()]
+        rows = [bytes_out, bytes_in, qps]
+        df = pd.DataFrame(rows, columns=uids)
+        df = df.rename(index={df.index[0]: colored('\u290A kB/s', 'green')})
+        df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
+        df = df.rename(index={df.index[2]: colored('Q/s', 'blue')})
+        return '\nDendrite:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
+    
+    def __to_tensorboard__(self, tensorboard, global_step):
+        total_bytes_out = 0
+        total_bytes_in = 0
+        for receptor in self._receptors.values():
+            total_bytes_out += receptor.stats.forward_bytes_out.value
+            total_bytes_in += receptor.stats.forward_bytes_in.value
+        total_in_bytes = (total_bytes_in*8)/1000
+        total_out_bytes = (total_bytes_out*8)/1000
+        tensorboard.add_scalar('Dendrite/Incoming bytes', total_in_bytes, global_step)
+        tensorboard.add_scalar('Dendrite/Outgoing bytes', total_out_bytes, global_step)
+
+    @property
+    def receptors(self):
+        return self._receptors.values()
