@@ -6,22 +6,12 @@ from munch import Munch
 from unittest.mock import MagicMock
 
 import bittensor
-import bittensor.nucleus as nucleus
-import bittensor.metagraph as metagraph
-import bittensor.synapse as synapse
-import bittensor.nucleus as nucleus
-import bittensor.dendrite as dendrite
-import bittensor.axon as axon
 import bittensor.serialization as serialization
 import bittensor.utils.serialization_utils as serialization_utils
 from bittensor import bittensor_pb2
 
-config = axon.Axon.config()
-wallet = bittensor.wallet.Wallet()
-nucleus = bittensor.nucleus.Nucleus()
-metagraph = bittensor.metagraph.Metagraph()
-axon = axon.Axon( config = config, wallet = wallet, nucleus = nucleus, metagraph = metagraph)
-synapse = synapse.Synapse()
+axon = bittensor.axon.Axon()
+synapse = bittensor.synapse.Synapse()
 
 def test_serve():
     assert axon.synapse == None
@@ -31,7 +21,7 @@ def test_serve():
 
 def test_forward_not_implemented():
     axon.serve(synapse)
-    nucleus.forward = MagicMock(return_value=[None, 'not implemented', bittensor_pb2.ReturnCode.NotImplemented])
+    axon.nucleus.forward = MagicMock(return_value=[None, 'not implemented', bittensor_pb2.ReturnCode.NotImplemented])
     x = torch.rand(3, 3, bittensor.__network_dim__)
 
     serializer = serialization.get_serializer( serialzer_type = bittensor_pb2.Serializer.MSGPACK )
@@ -39,7 +29,7 @@ def test_forward_not_implemented():
   
     request = bittensor_pb2.TensorMessage(
         version = bittensor.__version__,
-        public_key = wallet.keypair.public_key,
+        public_key = axon.wallet.keypair.public_key,
         tensors=[x_serialized]
     )
     response = axon.Forward(request, None)
@@ -50,7 +40,7 @@ def test_forward_not_serving():
     axon.synapse = None
     request = bittensor_pb2.TensorMessage(
         version=bittensor.__version__,
-        public_key= wallet.keypair.public_key,
+        public_key = axon.wallet.keypair.public_key,
     )
     response = axon.Forward(request, None)
     assert response.return_code == bittensor_pb2.ReturnCode.NotServingSynapse
@@ -60,7 +50,7 @@ def test_empty_forward_request():
     axon.serve(synapse)
     request = bittensor_pb2.TensorMessage(
         version=bittensor.__version__,
-        public_key = wallet.keypair.public_key,
+        public_key = axon.wallet.keypair.public_key,
     )
     response = axon.Forward(request, None)
     assert response.return_code == bittensor_pb2.ReturnCode.EmptyRequest
@@ -72,7 +62,7 @@ def test_forward_deserialization_error():
     y = dict()  # Not tensors that can be deserialized.
     request = bittensor_pb2.TensorMessage(
         version=bittensor.__version__,
-        public_key = wallet.keypair.public_key,
+        public_key = axon.wallet.keypair.public_key,
         tensors=[x, y]
     )
     response = axon.Forward(request, None)
@@ -87,10 +77,10 @@ def test_forward_success():
   
     request = bittensor_pb2.TensorMessage(
         version=bittensor.__version__,
-        public_key = wallet.keypair.public_key,
+        public_key = axon.wallet.keypair.public_key,
         tensors=[x_serialized]
     )
-    nucleus.forward = MagicMock(return_value=[x, 'success', bittensor_pb2.ReturnCode.Success])
+    axon.nucleus.forward = MagicMock(return_value=[x, 'success', bittensor_pb2.ReturnCode.Success])
 
     response = axon.Forward(request, None)
     assert response.return_code == bittensor_pb2.ReturnCode.Success
@@ -103,7 +93,7 @@ def test_backward_not_serving():
     axon.synapse = None
     request = bittensor_pb2.TensorMessage(
         version=bittensor.__version__,
-        public_key = wallet.keypair.public_key,
+        public_key = axon.wallet.keypair.public_key,
     )
     response = axon.Backward(request, None)
     assert response.return_code == bittensor_pb2.ReturnCode.NotServingSynapse
@@ -113,7 +103,7 @@ def test_empty_backward_request():
     axon.serve(synapse)
     request = bittensor_pb2.TensorMessage(
         version=bittensor.__version__,
-        public_key = wallet.keypair.public_key,
+        public_key = axon.wallet.keypair.public_key,
     )
     response = axon.Backward(request, None)
     assert response.return_code == bittensor_pb2.ReturnCode.InvalidRequest
@@ -127,7 +117,7 @@ def test_single_item_backward_request():
   
     request = bittensor_pb2.TensorMessage(
         version=bittensor.__version__,
-        public_key = wallet.keypair.public_key,
+        public_key = axon.wallet.keypair.public_key,
         tensors=[x_serialized]
     )
     response = axon.Backward(request, None)
@@ -140,7 +130,7 @@ def test_backward_deserialization_error():
     y = dict()  # Not tensors that can be deserialized.
     request = bittensor_pb2.TensorMessage(
         version=bittensor.__version__,
-        public_key = wallet.keypair.public_key,
+        public_key = axon.wallet.keypair.public_key,
         tensors=[x, y]
     )
     response = axon.Backward(request, None)
@@ -155,10 +145,10 @@ def test_backward_success():
   
     request = bittensor_pb2.TensorMessage(
         version=bittensor.__version__,
-        public_key = wallet.keypair.public_key,
+        public_key = axon.wallet.keypair.public_key,
         tensors=[x_serialized, x_serialized]
     )
-    nucleus.backward = MagicMock(return_value=[x, 'success', bittensor_pb2.ReturnCode.Success])
+    axon.nucleus.backward = MagicMock(return_value=[x, 'success', bittensor_pb2.ReturnCode.Success])
     response = axon.Backward(request, None)
 
     assert response.return_code == bittensor_pb2.ReturnCode.Success

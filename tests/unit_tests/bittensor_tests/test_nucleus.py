@@ -4,28 +4,25 @@ import random
 import time
 import concurrent.futures
 from loguru import logger
-from unittest.mock import MagicMock
-from bittensor import bittensor_pb2
-from bittensor.metagraph import Metagraph
-from bittensor.config import Config
-from bittensor.subtensor.interface import Keypair
-from bittensor.nucleus import Nucleus
-from bittensor.synapse import Synapse
 from munch import Munch
+from unittest.mock import MagicMock
 
-config = Nucleus.config()
+from bittensor import bittensor_pb2
+from bittensor.subtensor.interface import Keypair
+
 nucleus = None
 
 def test_init():
-    nucleus = Nucleus(config)
+    global nucleus
+    nucleus = bittensor.nucleus.Nucleus()
 
 def test_stop():
-    nucleus = Nucleus(config)
+    nucleus = bittensor.nucleus.Nucleus()
     nucleus.stop()
 
 def test_not_implemented():
-    nucleus = Nucleus(config)
-    synapse = Synapse()
+    nucleus = bittensor.nucleus.Nucleus()
+    synapse = bittensor.synapse.Synapse()
     x = torch.tensor([])
     mode = bittensor_pb2.Modality.TEXT
     outputs, _, code = nucleus.forward(synapse = synapse, inputs = x, mode = mode, priority = 1)
@@ -33,8 +30,8 @@ def test_not_implemented():
     assert code == bittensor_pb2.ReturnCode.NotImplemented
 
 def test_forward_success():
-    nucleus = Nucleus(config)
-    synapse = Synapse()
+    nucleus = bittensor.nucleus.Nucleus()
+    synapse = bittensor.synapse.Synapse()
     x = torch.rand(3, 3)
     synapse.call_forward = MagicMock(return_value = x)
     mode = bittensor_pb2.Modality.TEXT
@@ -43,8 +40,8 @@ def test_forward_success():
     assert code == bittensor_pb2.ReturnCode.Success
 
 def test_multiple_forward_success():
-    nucleus = Nucleus(config)
-    synapse = Synapse()
+    nucleus = bittensor.nucleus.Nucleus()
+    synapse = bittensor.synapse.Synapse()
     x = torch.rand(3, 3, bittensor.__network_dim__)
     synapse.call_forward = MagicMock(return_value = x)
     mode = bittensor_pb2.Modality.TEXT
@@ -66,13 +63,14 @@ def test_multiple_forward_success():
     assert code4 == bittensor_pb2.ReturnCode.Success
     assert code5 == bittensor_pb2.ReturnCode.Success
 
-class SlowSynapse(Synapse):
+class SlowSynapse(bittensor.synapse.Synapse):
     def call_forward(self, a, b):
         time.sleep(1)
 
 def test_queue_full():
+    config = bittensor.nucleus.Nucleus.build_config()
     config.nucleus.queue_maxsize = 10
-    nucleus = Nucleus(config)
+    nucleus = bittensor.nucleus.Nucleus( config )
     synapse = SlowSynapse()
     x = torch.rand(3, 3, bittensor.__network_dim__)
     mode = bittensor_pb2.Modality.TEXT
@@ -98,10 +96,11 @@ def test_queue_full():
 
 def test_stress_test():
     n_to_call = 100
-    config.nucleus.queue_maxsize = 10000
-    config.nucleus.queue_timeout = n_to_call
-    nucleus = Nucleus(config)
-    synapse = SlowSynapse(None)
+    nucleus = bittensor.nucleus.Nucleus()
+    synapse = SlowSynapse()
+    nucleus.config.nucleus.queue_maxsize = 10000
+    nucleus.config.nucleus.queue_timeout = n_to_call
+
     x = torch.rand(3, 3, bittensor.__network_dim__)
     mode = bittensor_pb2.Modality.TEXT
 
@@ -125,8 +124,8 @@ def test_stress_test():
     assert True
 
 def test_backward_success():
-    nucleus = Nucleus(config)
-    synapse = Synapse(None)
+    nucleus = bittensor.nucleus.Nucleus()
+    synapse = bittensor.synapse.Synapse(None)
     x = torch.rand(3, 3)
     synapse.call_backward = MagicMock(return_value = x)
     mode = bittensor_pb2.Modality.TEXT

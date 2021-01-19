@@ -30,7 +30,7 @@ class Session():
 
     def __init__(self, config: Munch = None):
         if config == None:
-            config = Session.config()
+            config = Session.build_config()
 
         self.config = config
 
@@ -51,7 +51,7 @@ class Session():
             logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
      
     @staticmethod
-    def config() -> Munch:
+    def build_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Session.add_args(parser) 
         config = Config.to_config(parser); 
@@ -135,6 +135,6 @@ class Session():
    
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Session.config(); logger.info(Config.toString(config))
+    config = Session.build_config(); logger.info(Config.toString(config))
     session = Session(config)
     session.run()

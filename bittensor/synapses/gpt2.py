@@ -53,7 +53,7 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
         """
         super(GPT2LMSynapse, self).__init__(config = config)
         if config == None:
-            config = GPT2LMSynapse.config()
+            config = GPT2LMSynapse.build_config()
 
         # Build hugging face config.
         huggingface_config = GPT2Config(
@@ -102,7 +102,7 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
         self.to(self.device)
 
     @staticmethod   
-    def config() -> Munch:
+    def build_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         GPT2LMSynapse.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 

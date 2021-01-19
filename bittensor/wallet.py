@@ -16,12 +16,38 @@ from bittensor.crypto.keyfiles import KeyFileError, load_keypair_from_data
 class Wallet():
     def __init__(self, config: Munch = None):
         if config == None:
-            config = Wallet.config()
-        self._config = config
-        self.keypair = self._config.wallet.keypair
+            config = Wallet.build_config()
+        self.config = config
+        try:
+            self.load_hotkeypair()
+            self.load_cold_key()
+        except (KeyError):
+            logger.error("Invalid password")
+            quit()
+        except KeyFileError:
+            logger.error("Keyfile corrupt")
+            quit()
 
+    def load_cold_key(self):
+        path = self.config.wallet.coldkeyfile
+        path = os.path.expanduser(path)
+        with open(path, "r") as file:
+            self.coldkey = file.readline().strip()
+        logger.info("Loaded coldkey: {}", self.coldkey)
+
+    def load_hotkeypair(self):
+        keyfile = os.path.expanduser(self.config.wallet.hotkeyfile)
+        with open(keyfile, 'rb') as file:
+            data = file.read()
+            if is_encrypted(data):
+                password = bittensor.utils.Cli.ask_password()
+                data = decrypt_data(password, data)
+            hotkey = load_keypair_from_data(data)
+            self.keypair = hotkey
+            logger.info("Loaded hotkey: {}", self.keypair.public_key)
+        
     @staticmethod   
-    def config() -> Munch:
+    def build_config() -> Munch:
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Wallet.add_args(parser) 
@@ -50,15 +76,7 @@ class Wallet():
     def check_config(config: Munch):
         Wallet.__check_hot_key_path(config.wallet.hotkeyfile)
         Wallet.__check_cold_key_path(config.wallet.coldkeyfile)
-        try:
-            Wallet.load_hotkeypair(config)
-            Wallet.load_cold_key(config)
-        except (KeyError):
-            logger.error("Invalid password")
-            quit()
-        except KeyFileError:
-            logger.error("Keyfile corrupt")
-            quit()
+       
 
     @staticmethod
     def __check_hot_key_path(path):
@@ -122,25 +140,4 @@ class Wallet():
     @staticmethod
     def __has_keypair(path):
         path = os.path.expanduser(path)
-
         return os.path.exists(path)
-
-    @staticmethod
-    def load_cold_key(config):
-        path = config.wallet.coldkeyfile
-        path = os.path.expanduser(path)
-        with open(path, "r") as file:
-            config.wallet.coldkey = file.readline().strip()
-        logger.info("Loaded coldkey: {}", config.wallet.coldkey)
-
-    @staticmethod
-    def load_hotkeypair(config):
-        keyfile = os.path.expanduser(config.wallet.hotkeyfile)
-        with open(keyfile, 'rb') as file:
-            data = file.read()
-            if is_encrypted(data):
-                password = bittensor.utils.Cli.ask_password()
-                data = decrypt_data(password, data)
-            hotkey = load_keypair_from_data(data)
-            config.wallet.keypair = hotkey
-            logger.info("Loaded hotkey: {}", config.wallet.keypair.public_key)

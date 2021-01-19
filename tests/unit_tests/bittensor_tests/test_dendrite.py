@@ -7,12 +7,11 @@ from munch import Munch
 import bittensor
 from bittensor import bittensor_pb2
 
-config = bittensor.dendrite.Dendrite.config()
-config.receptor.do_backoff = False
-dendrite = bittensor.dendrite.Dendrite( config )
+dendrite = bittensor.dendrite.Dendrite()
+dendrite.config.receptor.do_backoff = False
 neuron_pb2 = bittensor_pb2.Neuron(
     version = bittensor.__version__,
-    public_key = config.wallet.keypair.public_key,
+    public_key = dendrite.wallet.keypair.public_key,
     address = '0.0.0.0',
     port = 12345,
 )
@@ -51,13 +50,12 @@ def test_dendrite_forward_tensor():
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
 
 def test_dendrite_backoff():
-    _config = bittensor.dendrite.Dendrite.config()
-    _config.receptor.do_backoff = True
-    _config.receptor.max_backoff = 1
-    _dendrite = bittensor.dendrite.Dendrite(_config)
+    _dendrite = bittensor.dendrite.Dendrite()
+    _dendrite.config.receptor.do_backoff = True
+    _dendrite.config.receptor.max_backoff = 1
     _neuron_pb2 = bittensor_pb2.Neuron(
         version = bittensor.__version__,
-        public_key = config.wallet.keypair.public_key,
+        public_key = _dendrite.wallet.keypair.public_key,
         address = '0.0.0.0',
         port = 12345,
     )

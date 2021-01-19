@@ -26,7 +26,7 @@ class DPNSynapse(bittensor.synapse.Synapse):
         """
         super(DPNSynapse, self).__init__(config = config)
         if config == None:
-            config = DPNSynapse.config()
+            config = DPNSynapse.build_config()
         
         in_planes, out_planes = config.synapse.in_planes, config.synapse.out_planes
         num_blocks, dense_depth = config.synapse.num_blocks, config.synapse.dense_depth
@@ -78,7 +78,7 @@ class DPNSynapse(bittensor.synapse.Synapse):
         self.to(self.device)
 
     @staticmethod   
-    def config() -> Munch:
+    def build_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         DPNSynapse.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 

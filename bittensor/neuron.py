@@ -34,8 +34,23 @@ class Neuron:
                 axon: bittensor.axon.Axon = None,
                 dendrite: bittensor.dendrite.Dendrite = None,
             ):
+        r""" Initializes a new full Neuron object.
+            Args:
+                config (:obj:`Munch`, `optional`): 
+                    neuron.Neuron.config()
+                wallet (:obj:`bittensor.nucleus.Nucleus`, `optional`):
+                    bittensor wallet with hotkey and coldkeypub.
+                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
+                    bittensor network metagraph.
+                nucleus (:obj:`bittensor.nucleus.Nucleus`, `optional`):
+                    backend processing nucleus.
+                axon (:obj:`bittensor.axon.Axon`, `optional`):
+                    synapse serving endpoint.
+                dendrite (:obj:`bittensor.dendrite.Dendrite`, `optional`):
+                    synapse connecting object. 
+        """
         if config == None:
-            config = Neuron.config()
+            config = Neuron.build_config()
         self.config = config
         if wallet == None:
             wallet = bittensor.wallet.Wallet(self.config)
@@ -46,14 +61,14 @@ class Neuron:
             nucleus = bittensor.nucleus.Nucleus(config = self.config, wallet = wallet, metagraph = self.metagraph)
         self.nucleus = nucleus
         if axon == None:
-            axon = bittensor.axon.Axon(config = self.config, nucleus = self.nucleus, metagraph = self.metagraph)
+            axon = bittensor.axon.Axon(config = self.config, wallet = wallet, nucleus = self.nucleus, metagraph = self.metagraph)
         self.axon = axon
         if dendrite == None:
-            dendrite = bittensor.dendrite.Dendrite(config = self.config, metagraph = self.metagraph)
+            dendrite = bittensor.dendrite.Dendrite(config = self.config, wallet = wallet, metagraph = self.metagraph)
         self.dendrite = dendrite
 
     @staticmethod   
-    def config() -> Munch:
+    def build_config() -> Munch:
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Neuron.add_args(parser) 

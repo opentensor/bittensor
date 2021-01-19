@@ -15,6 +15,7 @@ from torch.autograd.function import once_differentiable
 from typing import Tuple, List, Optional
 
 import bittensor
+import bittensor.utils.networking as net
 import bittensor.utils.stats as stat_utils
 import bittensor.serialization as serialization
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
@@ -31,14 +32,27 @@ def nill_response_for(inputs):
     return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype = torch.float32)
 
 class Receptor(nn.Module):
-    """ Class which bundles a grpc connection to a remote host as a standard auto-grad torch.nn.Module.
+    """ Encapsulates a grpc connection to an axon endpoint as a standard auto-grad torch.nn.Module.
     """
 
-    def __init__(self, config, neuron: bittensor_pb2.Neuron):
+    def __init__(self, neuron: bittensor_pb2.Neuron, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None):
+        r""" Initializes a receptor grpc connection.
+            Args:
+                neuron (:obj:`bittensor_pb2.Neuron`, `required`):
+                    neuron endpoint descriptor proto.
+                config (:obj:`Munch`, `optional`): 
+                    receptor.Receptor.config()
+                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                    bittensor wallet with hotkey and coldkeypub.
+        """
         super().__init__()
+        if config == None:
+            config = Receptor.build_config()
+        self.config = config # Configuration information.
+        if wallet == None:
+            wallet = bittensor.wallet.Wallet()
+        self.wallet = wallet # Keypair information
         self.neuron = neuron # Endpoint information.
-        self.config = config # Configuration i.e. rpc timeout.
-        self.keypair  = config.wallet.keypair
         self.signature = None # Call signature.
         self.nounce = None # Call nounce.
         self.backoff = 0 # Number o queries to backoff.
@@ -78,7 +92,17 @@ class Receptor(nn.Module):
             }
         )
         # Loop back if the neuron is local.
-        if neuron.address == config.axon.external_ip:
+        try:
+            external_ip = self.config.axon.external_ip
+        except:
+            pass
+        try:
+            external_ip = self.config.axon.external_ip
+        except:
+            pass
+        finally:
+            external_ip = None
+        if neuron.address == external_ip:
             ip = "localhost:"
             self.endpoint = ip + str(neuron.port)
         else:
@@ -90,7 +114,7 @@ class Receptor(nn.Module):
         self.stub = bittensor_grpc.BittensorStub(self.channel)
 
     @staticmethod   
-    def config() -> Munch:
+    def build_config() -> Munch:
         parser = argparse.ArgumentParser()
         Receptor.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
@@ -99,12 +123,12 @@ class Receptor(nn.Module):
 
     @staticmethod   
     def check_config(config: Munch):
-        bittensor.axon.Axon.check_config( config )
+        bittensor.wallet.Wallet.check_config( config )
         assert config.receptor.timeout >= 0, 'timeout must be positive value, got {}'.format(config.receptor.timeout)
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
-        bittensor.axon.Axon.add_args(parser)
+        bittensor.wallet.Wallet.add_args( parser )
         try:
             # Can be called multiple times.
             parser.add_argument('--receptor.pass_gradients', default=True, type=bool, 
@@ -249,7 +273,7 @@ class _ReceptorCall(torch.autograd.Function):
             # ---- Build request ----
             request = bittensor_pb2.TensorMessage(
                 version = bittensor.__version__,
-                public_key = ctx.caller.keypair.public_key,
+                public_key = ctx.caller.wallet.keypair.public_key,
                 nounce = ctx.caller.nounce,
                 signature = ctx.caller.signature,
                 tensors = [serialized_inputs])
@@ -387,7 +411,7 @@ class _ReceptorCall(torch.autograd.Function):
                 # ---- Build request for backward ----
                 request = bittensor_pb2.TensorMessage(
                     version = bittensor.__version__,
-                    public_key = ctx.caller.keypair.public_key,
+                    public_key = ctx.caller.wallet.keypair.public_key,
                     nounce = ctx.caller.nounce,
                     signature = ctx.caller.signature,
                     tensors = [serialized_inputs, serialized_grads])

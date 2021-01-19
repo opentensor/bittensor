@@ -33,7 +33,7 @@ class Session():
 
     def __init__(self, config: Munch = None):
         if config = None:
-            config = Session.config()
+            config = Session.build_config()
         self.config = config
 
         # ---- Neuron ----
@@ -58,7 +58,7 @@ class Session():
             logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
     
     @staticmethod
-    def config() -> Munch:
+    def build_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Session.add_args(parser) 
         config = Config.to_config(parser); 
@@ -69,7 +69,7 @@ class Session():
     def add_args(parser: argparse.ArgumentParser):
         parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--session.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
-        parser.add_argument('--session.epoch_length', default=10, type=int, help='Iterations of training per epoch')
+        parser.add_argument('--session.epoch_length', default=500, type=int, help='Iterations of training per epoch')
         parser.add_argument('--session.batch_size_train', default=1, type=int, help='Training batch size.')
         parser.add_argument('--session.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
         parser.add_argument('--session.log_interval', default=10, type=int, help='Batches before we log session info.')
@@ -199,6 +199,6 @@ class Session():
 
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Session.config(); logger.info(Config.toString(config))
+    config = Session.build_config(); logger.info(Config.toString(config))
     session = Session(config)
     session.run()

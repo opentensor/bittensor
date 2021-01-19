@@ -9,6 +9,8 @@ import bittensor.dendrite
 import bittensor.synapse
 import bittensor.config 
 import bittensor.receptor
+import bittensor.bittensor_pb2
+import bittensor.bittensor_pb2_grpc
 
 # Bittensor code and protocol version.
 __version__ = '1.0.2'

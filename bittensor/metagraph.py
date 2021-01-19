@@ -154,20 +154,23 @@ class TorchChainState():
 class Metagraph():
 
     def __init__(self, config: 'Munch' = None, wallet: 'bittensor.wallet.Wallet' = None):
-        r"""Initializes a new Metagraph subtensor interface.
-        Args:
-            config (Munch): Metagraph config munch, use Metagraph.Config()
+        r""" Initializes a new Metagraph chain interface.
+            Args:
+                config (:obj:`Munch`, `optional`): 
+                    metagraph.Metagraph.config()
+                wallet (:obj:`bittensor.nucleus.Nucleus`, `optional`):
+                    bittensor wallet with hotkey and coldkeypub.
         """
         if config == None:
-            config = Metagraph.config()
-        self._config = config
+            config = Metagraph.build_config()
+        self.config = config
 
         if wallet == None:
-            wallet = bittensor.wallet.Wallet( self._config )
-        self.__wallet = wallet
+            wallet = bittensor.wallet.Wallet( self.config )
+        self.wallet = wallet
 
         # Client for talking to chain.
-        self.subtensor_client = WSClient(self._config.metagraph.chain_endpoint, keypair = self.__wallet.keypair)
+        self.subtensor_client = WSClient(self.config.metagraph.chain_endpoint, keypair = self.wallet.keypair)
 
         # This neurons metadata on chain, initially None, filled on subscribe.
         self.uid = None
@@ -180,7 +183,7 @@ class Metagraph():
         self.state = TorchChainState.from_cache(self.cache)
 
     @staticmethod
-    def config() -> Munch:
+    def build_config() -> Munch:
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Metagraph.add_args(parser) 
@@ -529,11 +532,11 @@ class Metagraph():
         current_block = await self.async_chain_block()
         active = dict( await self.subtensor_client.get_active() )
         last_emit = dict( await self.subtensor_client.get_last_emit_data() )
-        calls.append ( self._poll_uid ( self.__wallet.keypair.public_key, self.uid ) )        
+        calls.append ( self._poll_uid ( self.wallet.keypair.public_key, self.uid ) )        
         for pubkey, uid in active.items():
             if uid in last_emit:
                 emit_block = last_emit[ uid ]
-                if (current_block - emit_block) < self._config.metagraph.stale_emit_filter:
+                if (current_block - emit_block) < self.config.metagraph.stale_emit_filter:
                         calls.append( self._poll_uid ( pubkey, uid ) )
         await asyncio.gather(*calls)
 
@@ -579,7 +582,7 @@ class Metagraph():
             code, message = await self._try_async_connect(timeout)
 
             if code == Metagraph.ConnectSuccess:
-                logger.info('Successfully connected to chain endpoint: {}', self._config.metagraph.chain_endpoint)
+                logger.info('Successfully connected to chain endpoint: {}', self.config.metagraph.chain_endpoint)
                 return code, message
 
             elif code == Metagraph.ConnectUnknownError:
@@ -725,7 +728,7 @@ class Metagraph():
 
             subscribe_start_time = time.time()
             try:
-                await self.subtensor_client.subscribe(self._config.axon.external_ip, self._config.axon.external_port, bittensor_pb2.Modality.TEXT, self._config.wallet.coldkey)
+                await self.subtensor_client.subscribe(self.config.axon.external_ip, self.config.axon.external_port, bittensor_pb2.Modality.TEXT, self.config.wallet.coldkey)
 
             except Exception as e:
                 if (time.time() - subscribe_start_time) > 8:
@@ -743,7 +746,7 @@ class Metagraph():
             while True:
                 try:
                     # ---- Request info from chain ----
-                    self.uid = await self.subtensor_client.get_uid_for_pubkey(self.__wallet.keypair.public_key)
+                    self.uid = await self.subtensor_client.get_uid_for_pubkey(self.wallet.keypair.public_key)
                 except Exception as e:
                     # ---- Catch errors in request ----
                     message = "Subscription threw an unknown exception {}".format(e)
@@ -952,7 +955,7 @@ class Metagraph():
             try:
                 # --- Make emission call ----
                 logger.debug('Emit -> {} {}', weight_uids, weight_vals)
-                await self.subtensor_client.emit(weight_uids, weight_vals, self.__wallet, wait_for_inclusion = False)
+                await self.subtensor_client.emit(weight_uids, weight_vals, self.wallet, wait_for_inclusion = False)
                 break
 
             except Exception as e:

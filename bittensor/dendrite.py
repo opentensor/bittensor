@@ -35,18 +35,27 @@ class Dendrite(nn.Module):
     """
 
     def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, metagraph: 'bittensor.metagraph.Metagraph' = None):
+        r""" Initializes a new Dendrite entry point.
+            Args:
+                config (:obj:`Munch`, `optional`): 
+                    dendrite.Dendrite.config()
+                wallet (:obj:`bittensor.nucleus.Nucleus`, `optional`):
+                    bittensor wallet with hotkey and coldkeypub.
+                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
+                    bittensor network metagraph.
+        """
         super().__init__()
         if config == None:
-            config = Dendrite.config()
-        self._config = config
+            config = Dendrite.build_config()
+        self.config = config
 
         if wallet == None:
-            wallet = bittensor.wallet.Wallet(self._config)
-        self.__wallet = wallet
+            wallet = bittensor.wallet.Wallet(self.config)
+        self.wallet = wallet
 
         if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph(self._config, self.__wallet)
-        self._metagraph = metagraph
+            metagraph = bittensor.metagraph.Metagraph(self.config, self.wallet)
+        self.metagraph = metagraph
 
         self._receptors = {}
         self.stats = SimpleNamespace(
@@ -54,7 +63,7 @@ class Dendrite(nn.Module):
         )
 
     @staticmethod   
-    def config() -> Munch:
+    def build_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Dendrite.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
@@ -63,12 +72,12 @@ class Dendrite(nn.Module):
 
     @staticmethod   
     def check_config(config: Munch):
-        bittensor.metagraph.Metagraph.check_config(config)
+        bittensor.metagraph.Metagraph.check_config(config) # Also checks wallet
         bittensor.receptor.Receptor.check_config(config)
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
-        bittensor.metagraph.Metagraph.add_args(parser)
+        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
         bittensor.receptor.Receptor.add_args(parser)
         return parser
 
@@ -275,7 +284,7 @@ class Dendrite(nn.Module):
 
             # ---- Find receptor or create one ---- 
             if neuron_i.public_key not in self._receptors:
-                self._receptors[neuron_i.public_key] = bittensor.receptor.Receptor(self._config, neuron_i)
+                self._receptors[neuron_i.public_key] = bittensor.receptor.Receptor(neuron_i, self.config, self.wallet)
             receptor = self._receptors[neuron_i.public_key]
 
             # ---- Append async calls ---- 
