@@ -8,6 +8,7 @@ import bittensor.axon
 import bittensor.config 
 import bittensor.dendrite
 import bittensor.metagraph
+import bittensor.neuron
 import bittensor.nucleus
 import bittensor.receptor
 import bittensor.synapse

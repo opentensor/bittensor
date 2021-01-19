@@ -76,7 +76,6 @@ class Wallet():
     def check_config(config: Munch):
         Wallet.__check_hot_key_path(config.wallet.hotkeyfile)
         Wallet.__check_cold_key_path(config.wallet.coldkeyfile)
-       
 
     @staticmethod
     def __check_hot_key_path(path):

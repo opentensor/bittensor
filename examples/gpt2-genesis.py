@@ -106,7 +106,7 @@ class Session():
     def add_args(parser: argparse.ArgumentParser):
         parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--session.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
-        parser.add_argument('--session.epoch_length', default=500, type=int, help='Iterations of training per epoch')
+        parser.add_argument('--session.epoch_length', default=10, type=int, help='Iterations of training per epoch')
         parser.add_argument('--session.batch_size_train', default=1, type=int, help='Training batch size.')
         parser.add_argument('--session.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
         parser.add_argument('--session.log_interval', default=10, type=int, help='Batches before we log session info.')
@@ -178,7 +178,7 @@ class Session():
                 if self.training_loss and self.epoch % 10 == 0:
                     if self.training_loss < self.best_train_loss:
                         self.best_train_loss = self.training_loss # update best train loss
-                        logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
+                        logger.info( 'Saving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
                         torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_train_loss},"{}/model.torch".format(self.config.session.full_path))
                         self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
 

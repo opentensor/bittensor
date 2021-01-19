@@ -1,4 +1,3 @@
-import bittensor
 import torch
 import random
 import time
@@ -6,6 +5,7 @@ import concurrent.futures
 from loguru import logger
 from munch import Munch
 from unittest.mock import MagicMock
+import bittensor
 
 nucleus = None
 

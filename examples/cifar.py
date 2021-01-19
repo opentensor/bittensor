@@ -135,7 +135,7 @@ class Session():
                 # ---- Save ----
                 if test_loss < self.best_test_loss:
                     self.best_test_loss = test_loss # Update best loss.
-                    logger.info( 'Saving/Serving model: epoch: {}, accuracy: {}, loss: {}, path: {}/model.torch'.format(self.epoch, test_accuracy, self.best_test_loss, self.config.session.full_path))
+                    logger.info( 'Saving model: epoch: {}, accuracy: {}, loss: {}, path: {}/model.torch'.format(self.epoch, test_accuracy, self.best_test_loss, self.config.session.full_path))
                     torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_test_loss},"{}/model.torch".format(self.config.session.full_path))
                     self.tensorboard.add_scalar('Test loss', test_loss, self.global_step)
 

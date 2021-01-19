@@ -171,7 +171,7 @@ class Session():
                     if self.training_loss and self.epoch % 10 == 0:
                         if self.training_loss < self.best_train_loss:
                             self.best_train_loss = self.training_loss # update best train loss
-                            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
+                            logger.info( 'Saving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
                             torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_train_loss},"{}/model.torch".format(self.config.session.full_path))
                             self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
                     
