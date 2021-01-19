@@ -947,7 +947,7 @@ class Metagraph():
             try:
                 # --- Make emission call ----
                 logger.debug('Emit -> {} {}', weight_uids, weight_vals)
-                await self.subtensor_client.emit(weight_uids, weight_vals, self.wallet, wait_for_inclusion = False)
+                await self.subtensor_client.emit(weight_uids, weight_vals, self.wallet.keypair, wait_for_inclusion = False)
                 break
 
             except Exception as e:
