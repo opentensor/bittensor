@@ -145,6 +145,76 @@ async def test_transfer_success():
     assert balance_alice_new < balance_alice
     assert balance_bob_new > balance_bob
 
+@pytest.mark.asyncio
+async def test_unstake_success():
+    coldkeypair = Keypair.create_from_uri("//Alice")
+    hotkeypair = generate_keypair()
+
+    hotkey_client = connect(hotkeypair)
+    await hotkey_client.is_connected()
+
+    # Subscribe a new neuron with the hotkey
+    await hotkey_client.subscribe("8.8.8.8", 6666, 0, coldkeypair.public_key)
+    await asyncio.sleep(10)
+
+    # Now switch the connection the use the coldkey
+
+    coldkey_client = connect(coldkeypair)
+    await coldkey_client.is_connected()
+
+    # Get the uid of the new neuron
+    uid = await coldkey_client.get_uid_for_pubkey(hotkeypair.public_key)
+    logger.error(uid)
+    assert uid is not None
+
+    # Get the amount of stake, should be 0
+    result = await coldkey_client.get_stake_for_uid(uid)
+    assert int(result) == int(Balance(0))
+
+    # Get the balance for the cold key, we use this for later comparison
+    balance = await coldkey_client.get_balance(coldkeypair.public_key)
+
+    # Add stake to new neuron
+    result = await coldkey_client.add_stake(Balance(4000), hotkeypair.public_key)
+    logger.info(result)
+
+    assert result is not None
+    assert 'extrinsic_hash' in result
+
+    # Wait for the extrinsic to complete
+    await asyncio.sleep(10)
+
+    # Get current balance, should be 4000 less than first balance
+    result = await coldkey_client.get_balance(coldkeypair.ss58_address)
+    assert int(result) == int(balance) - 4000
+
+    # Get the amount of stake, should be 4000
+    result = await coldkey_client.get_stake_for_uid(uid)
+    assert int(result) == int(Balance(4000))
+
+    # Now do the actual unstake
+
+    # Reconnect with coldkey account
+    coldkey_client =  connect(coldkeypair)
+    await coldkey_client.is_connected()
+
+    # Do unstake
+    result = await coldkey_client.unstake(Balance(4000), hotkeypair.public_key)
+    assert result is not None
+    assert 'extrinsic_hash' in result
+
+    await asyncio.sleep(10)
+
+    # Check if balance is the same as what we started with
+    new_balance = await coldkey_client.get_balance(coldkeypair.ss58_address)
+    assert int(new_balance) == int(balance)
+
+
+
+
+
+
+
 # @todo unstake()
 # @todo set_weights()
 # @todo emit() prolly kill

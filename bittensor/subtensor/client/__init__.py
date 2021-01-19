@@ -118,7 +118,8 @@ class WSClient:
         )
 
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
-        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        return result
 
     async def set_weights(self, destinations, values, keypair, wait_for_inclusion=False):
         call = await self.substrate.compose_call(
