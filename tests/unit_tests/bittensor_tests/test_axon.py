@@ -155,6 +155,52 @@ def test_backward_success():
     assert response.tensors[0].shape == [3, 3, bittensor.__network_dim__]
     assert serialization_utils.bittensor_dtype_to_torch_dtype(response.tensors[0].dtype) == torch.float32
 
+def test_set_priority():
+    axon = bittensor.axon.Axon()
+    n1 = bittensor.proto.Neuron(
+        version = bittensor.__version__,
+	    public_key = '12345',
+        address = '10DowningStree',
+	    port = 666,
+        ip_type = 4,
+        modality = 0,
+        uid = 120
+    )
+    axon.set_priority([n1], torch.tensor([1]))
+    assert axon.priority['12345'] == 1
+
+    # Now get priority
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version__,
+        public_key = '12345',
+    )
+    assert abs(axon.get_call_priority(request) - 1.0) < 0.0001
+
+
+def test_priority_never_matches():
+    axon = bittensor.axon.Axon()
+    n1 = bittensor.proto.Neuron(
+        version = bittensor.__version__,
+	    public_key = '12345',
+        address = '10DowningStree',
+	    port = 666,
+        ip_type = 4,
+        modality = 0,
+        uid = 120
+    )
+    axon.set_priority([n1], torch.tensor([1]))
+    assert axon.priority['12345'] == 1
+
+    # Now get priority
+    previously_seen = set()
+    for i in range(50000):
+        request = bittensor.proto.TensorMessage(
+            version=bittensor.__version__,
+            public_key = '12345',
+        )
+        priority = axon.get_call_priority(request)
+        assert priority not in previously_seen
+        previously_seen.add(priority)
 
 if __name__ == "__main__":    
-    test_backward_success()
+    test_priority_never_matches()
