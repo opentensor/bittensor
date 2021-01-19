@@ -9,10 +9,6 @@ from munch import Munch
 from typing import List, Tuple
 
 import bittensor 
-import bittensor.metagraph as bittensor_metagraph
-import bittensor.synapse as synapse
-import bittensor.nucleus as nucleus
-import bittensor.dendrite as dendrite
 import bittensor.config as config_utils
 import bittensor.utils.ptp as ptp
 
@@ -40,7 +36,7 @@ class Nucleus ():
         self.wallet = wallet
 
         if metagraph == None:
-            metagraph = bittensor_metagraph.Metagraph( config = self.config, wallet = self.wallet )
+            metagraph = bittensor.metagraph.Metagraph( config = self.config, wallet = self.wallet )
         self.metagraph = metagraph
 
         self._forward_pool = ptp.ThreadPoolExecutor(maxsize = self.config.nucleus.queue_maxsize, max_workers=self.config.nucleus.max_workers)
@@ -61,7 +57,7 @@ class Nucleus ():
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
                     parser argument to append args to.
         """
-        bittensor_metagraph.Metagraph.add_args( parser ) # Add wallet args from within metagraph.
+        bittensor.metagraph.Metagraph.add_args( parser ) # Add wallet args from within metagraph.
         try:
             # Can be called twice.
             parser.add_argument('--nucleus.max_workers', default=5, type=int, 
@@ -82,9 +78,9 @@ class Nucleus ():
                 config (:obj:`munch.Munch, `required`): 
                     config to check.
         """
-        bittensor_metagraph.Metagraph.check_config( config )
+        bittensor.metagraph.Metagraph.check_config( config )
 
-    def forward(self, synapse: synapse.Synapse, inputs: torch.Tensor, mode: bittensor.bittensor_pb2.Modality, priority: float) -> Tuple[torch.FloatTensor, str, int]:
+    def forward(self, synapse: 'bittensor.synapse.Synapse', inputs: torch.Tensor, mode: bittensor.pb2.Modality, priority: float) -> Tuple[torch.FloatTensor, str, int]:
         r""" Accepts a synapse object with inputs and priority, submits them to the forward work pool
             and waits for a response from the threading future. Processing errors or timeouts result in
             error codes which propagate back to the calling Axon.
@@ -94,7 +90,7 @@ class Nucleus ():
                     synapse to pass to the worker. Note: the synapse.call_forward must be thread safe. 
                 inputs (:obj:`torch.Tensor`, `required`): 
                     tensor inputs to be passed to synapse.call_forward
-                mode (:enum:`bittensor.bittensor_pb2.Modality`, `required`):
+                mode (:enum:`bittensor.pb2.Modality`, `required`):
                     input modality enum signaling between IMAGE, TEXT or TENSOR inputs.
                 priority (`float`, `required`):
                     processing priority, a unique number from amongst current calls and less than sys.maxsize.
@@ -105,7 +101,7 @@ class Nucleus ():
                     response from the synapse.call_forward call or None in the case of errors.
                 message: (str, `required`): 
                     message associated with forward call, potentially error, or 'success'.
-                code: (:obj:`bittensor.bittensor_pb2.ReturnCode, `required`)
+                code: (:obj:`bittensor.pb2.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.
         """
         # Build future request.
@@ -113,13 +109,13 @@ class Nucleus ():
         try:
             future = self._forward_pool.submit( fn = self._forward, call_params = call_params, priority = priority)
         except queue.Full:
-            code = bittensor.bittensor_pb2.ReturnCode.NucleusFull
+            code = bittensor.pb2.ReturnCode.NucleusFull
             message = 'processing queue is full. try Backoff.'
             return None, message, code
         except Exception as e:
             message = 'Unknown error on nucleus submit with error {}'.format(e)
             logger.error(message)
-            code = bittensor.bittensor_pb2.ReturnCode.UnknownException
+            code = bittensor.pb2.ReturnCode.UnknownException
             return None, message, code
 
         # Try to get response or error on timeout.
@@ -133,10 +129,10 @@ class Nucleus ():
         except Exception as e:
             tensor = None
             message = 'timeout with error {}'.format(e)
-            code = bittensor.bittensor_pb2.ReturnCode.NucleusTimeout
+            code = bittensor.pb2.ReturnCode.NucleusTimeout
         return tensor, message, code
 
-    def backward(self, synapse: synapse.Synapse, inputs_x: torch.Tensor, grads_dy: torch.FloatTensor, mode: bittensor.bittensor_pb2.Modality, priority: float) -> Tuple[torch.FloatTensor, str, int]:
+    def backward(self, synapse: 'bittensor.synapse.Synapse', inputs_x: torch.Tensor, grads_dy: torch.FloatTensor, mode: bittensor.pb2.Modality, priority: float) -> Tuple[torch.FloatTensor, str, int]:
         r""" Accepts a synapse object with tensor inputs, grad inputs, and priority. 
             Submits inputs to the backward work pool for processing and waits waits for a response.
             Processing errors or timeouts result in error codes which propagate back to the calling Axon.
@@ -148,7 +144,7 @@ class Nucleus ():
                     tensor inputs from a previous call to be passed to synapse.call_backward
                 grads_dy (:obj:`torch.Tensor`, `required`): 
                     gradients associated wiht inputs for backward call.
-                mode (:enum:`bittensor.bittensor_pb2.Modality`, `required`):
+                mode (:enum:`bittensor.pb2.Modality`, `required`):
                     input modality enum signaling between IMAGE, TEXT or TENSOR inputs.
                 priority (`float`, `required`):
                     processing priority, a unique number from amongst current calls and less than sys.maxsize.
@@ -159,7 +155,7 @@ class Nucleus ():
                     response from the synapse.call_backward call (i.e. inputs_dx) or None in the case of errors.
                 message: (str, `required`): 
                     message associated with forward call, potentially error, or 'success'.
-                code: (:obj:`bittensor.bittensor_pb2.ReturnCode, `required`)
+                code: (:obj:`bittensor.pb2.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.
         """
         # Build call params and submit the task to the pool.
@@ -176,21 +172,21 @@ class Nucleus ():
         except Exception as e:
             tensor = None
             message = 'timeout with error {}'.format(e)
-            code = bittensor.bittensor_pb2.ReturnCode.NucleusTimeout
+            code = bittensor.pb2.ReturnCode.NucleusTimeout
         return tensor, message, code
 
     def _forward(self, call_params: List) -> Tuple[torch.FloatTensor, str, int]:
         r""" Actual processing function for the forward call. The passed synapse.call_forward must be thread safe.
 
             Args:
-                call_params (:obj:`List[bittensor.synapse.synapse.Synapse, inputs, mode]`, `required`): 
+                call_params (:obj:`List[bittensor.synapse.Synapse, inputs, mode]`, `required`): 
                     call params containing the synapse to be called and inputs with modality.
             Returns:
                 outputs (:obj:`torch.FloatTensor`, `required`): 
                     response from the synapse.call_backward call (i.e. inputs_dx) or None in the case of errors.
                 message: (str, `required`): 
                     message associated with forward call, potentially error, or 'success'.
-                code: (:obj:`bittensor.bittensor_pb2.ReturnCode, `required`)
+                code: (:obj:`bittensor.pb2.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.
         """
         synapse = call_params[0]
@@ -199,17 +195,17 @@ class Nucleus ():
         try:
             tensor = synapse.call_forward(inputs, mode)
             message = 'success'
-            code = bittensor.bittensor_pb2.ReturnCode.Success
+            code = bittensor.pb2.ReturnCode.Success
                 
         except NotImplementedError:
             tensor = None
             message = 'modality not implemented'
-            code = bittensor.bittensor_pb2.ReturnCode.NotImplemented
+            code = bittensor.pb2.ReturnCode.NotImplemented
 
         except Exception as e:
             tensor = None
             message = 'Unknown error when calling synapse.Synapse forward with errr {}, {}'.format(e, traceback.format_exc())
-            code = bittensor.bittensor_pb2.ReturnCode.UnknownException
+            code = bittensor.pb2.ReturnCode.UnknownException
 
         return [tensor, message, code]
 
@@ -217,14 +213,14 @@ class Nucleus ():
         r""" Actual processing function for the backward call. The passed synapse.call_backward must be thread safe.
 
             Args:
-                call_params (:obj:`List[bittensor.synapse.synapse.Synapse, inputs_x, grads_dy]`, `required`): 
+                call_params (:obj:`List[bittensor.synapse.Synapse, inputs_x, grads_dy]`, `required`): 
                     call params containing the synapse to be called and inputs with grads.
             Returns:
                 outputs (:obj:`torch.FloatTensor`, `required`): 
                     response from the synapse.call_backward call (i.e. inputs_dx) or None in the case of errors.
                 message: (str, `required`): 
                     message associated with forward call, potentially error, or 'success'.
-                code: (:obj:`bittensor.bittensor_pb2.ReturnCode, `required`)
+                code: (:obj:`bittensor.pb2.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.
         """
        
@@ -235,11 +231,11 @@ class Nucleus ():
         try:
             tensor = synapse.grad(inputs_x, grads_dy, modality = mode)
             message = 'success'
-            code = bittensor.bittensor_pb2.ReturnCode.Success
+            code = bittensor.pb2.ReturnCode.Success
         except Exception as e:
             tensor = None
             message = 'Unknown error when calling synapse.Synapse backward with errr {}'.format(e)
-            code = bittensor.bittensor_pb2.ReturnCode.UnknownException
+            code = bittensor.pb2.ReturnCode.UnknownException
         return [tensor, message, code]
 
     def __del__(self):
