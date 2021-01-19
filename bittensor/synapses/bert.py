@@ -144,7 +144,7 @@ class BertSynapseBase (bittensor.synapse.Synapse):
         """Forward pass inputs and labels through the remote BERT networks.
 
         Args:
-            neuron (:obj: `bittensor.bittensor.Neuron`, `required`):
+            neuron (:obj: `bittensor.Neuron`, `required`):
                     Bittensor neuron, used for making queries to the remote network.
 
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 

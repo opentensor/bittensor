@@ -543,8 +543,9 @@ class Metagraph():
             neuron = await self.subtensor_client.get_neuron_for_uid ( uid )
             self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], modality = neuron['modality'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
         except Exception as e:
-            logger.error("Exception occurred: {}".format(e))
-            traceback.print_exc()
+            pass
+            #logger.error("Exception occurred: {}".format(e))
+            #traceback.print_exc()
 
     ConnectSuccess = 1
     ConnectUnknownError = 2
