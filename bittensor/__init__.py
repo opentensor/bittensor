@@ -1,7 +1,7 @@
 import sys
 from loguru import logger
 
-import bittensor.bittensor_pb2 as pb2
+import bittensor.bittensor_pb2 as proto
 import bittensor.bittensor_pb2_grpc as grpc
 
 import bittensor.axon

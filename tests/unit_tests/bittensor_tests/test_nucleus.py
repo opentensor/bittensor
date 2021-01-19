@@ -21,27 +21,27 @@ def test_not_implemented():
     nucleus = bittensor.nucleus.Nucleus()
     synapse = bittensor.synapse.Synapse()
     x = torch.tensor([])
-    mode = bittensor.pb2.Modality.TEXT
+    mode = bittensor.proto.Modality.TEXT
     outputs, _, code = nucleus.forward(synapse = synapse, inputs = x, mode = mode, priority = 1)
     assert outputs == None
-    assert code == bittensor.pb2.ReturnCode.NotImplemented
+    assert code == bittensor.proto.ReturnCode.NotImplemented
 
 def test_forward_success():
     nucleus = bittensor.nucleus.Nucleus()
     synapse = bittensor.synapse.Synapse()
     x = torch.rand(3, 3)
     synapse.call_forward = MagicMock(return_value = x)
-    mode = bittensor.pb2.Modality.TEXT
+    mode = bittensor.proto.Modality.TEXT
     outputs, _, code = nucleus.forward(synapse = synapse, inputs = x, mode = mode, priority = 1)
     assert list(outputs.shape) == [3, 3]
-    assert code == bittensor.pb2.ReturnCode.Success
+    assert code == bittensor.proto.ReturnCode.Success
 
 def test_multiple_forward_success():
     nucleus = bittensor.nucleus.Nucleus()
     synapse = bittensor.synapse.Synapse()
     x = torch.rand(3, 3, bittensor.__network_dim__)
     synapse.call_forward = MagicMock(return_value = x)
-    mode = bittensor.pb2.Modality.TEXT
+    mode = bittensor.proto.Modality.TEXT
     outputs1, _, code1 = nucleus.forward(synapse = synapse, inputs = x, mode = mode, priority = 1)
     outputs2, _, code2 = nucleus.forward(synapse = synapse, inputs = x, mode = mode, priority = 1)
     outputs3, _, code3 = nucleus.forward(synapse = synapse, inputs = x, mode = mode, priority = 1)
@@ -54,11 +54,11 @@ def test_multiple_forward_success():
     assert list(outputs4.shape) == [3, 3, bittensor.__network_dim__]
     assert list(outputs5.shape) == [3, 3, bittensor.__network_dim__]
 
-    assert code1 == bittensor.pb2.ReturnCode.Success
-    assert code2 == bittensor.pb2.ReturnCode.Success
-    assert code3 == bittensor.pb2.ReturnCode.Success
-    assert code4 == bittensor.pb2.ReturnCode.Success
-    assert code5 == bittensor.pb2.ReturnCode.Success
+    assert code1 == bittensor.proto.ReturnCode.Success
+    assert code2 == bittensor.proto.ReturnCode.Success
+    assert code3 == bittensor.proto.ReturnCode.Success
+    assert code4 == bittensor.proto.ReturnCode.Success
+    assert code5 == bittensor.proto.ReturnCode.Success
 
 class SlowSynapse(bittensor.synapse.Synapse):
     def call_forward(self, a, b):
@@ -70,7 +70,7 @@ def test_queue_full():
     nucleus = bittensor.nucleus.Nucleus( config )
     synapse = SlowSynapse()
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    mode = bittensor.pb2.Modality.TEXT
+    mode = bittensor.proto.Modality.TEXT
 
     def _call_nucleus_forward():
         _, _, code = nucleus.forward(synapse = synapse, inputs = x, mode = mode, priority = random.random())
@@ -85,7 +85,7 @@ def test_queue_full():
     # Check future codes, should get at least one queue full.
     for f in futures:
         code = f.result()
-        if code == bittensor.pb2.ReturnCode.NucleusFull:
+        if code == bittensor.proto.ReturnCode.NucleusFull:
             return
     
     # One should be a timeout.
@@ -99,7 +99,7 @@ def test_stress_test():
     nucleus.config.nucleus.queue_timeout = n_to_call
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    mode = bittensor.pb2.Modality.TEXT
+    mode = bittensor.proto.Modality.TEXT
 
     def _call_nucleus_forward():
         _, _, code = nucleus.forward(synapse = synapse, inputs = x, mode = mode, priority = random.random())
@@ -115,7 +115,7 @@ def test_stress_test():
     for f in futures:
         code = f.result()
         print (code)
-        if code != bittensor.pb2.ReturnCode.Success:
+        if code != bittensor.proto.ReturnCode.Success:
             assert False
 
     assert True
@@ -125,6 +125,6 @@ def test_backward_success():
     synapse = bittensor.synapse.Synapse(None)
     x = torch.rand(3, 3)
     synapse.call_backward = MagicMock(return_value = x)
-    mode = bittensor.pb2.Modality.TEXT
+    mode = bittensor.proto.Modality.TEXT
     nucleus.backward(synapse = synapse, inputs_x = x, grads_dy = x, mode = mode, priority = 1)
    

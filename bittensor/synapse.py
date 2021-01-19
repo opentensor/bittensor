@@ -51,26 +51,26 @@ class Synapse(nn.Module):
         synapse_copy.load_state_dict(self.state_dict())
         return synapse_copy
 
-    def call_forward(self, inputs: torch.Tensor, modality: bittensor.bittensor.pb2.Modality, no_grad=True) -> torch.FloatTensor:
+    def call_forward(self, inputs: torch.Tensor, modality: bittensor.proto.Modality, no_grad=True) -> torch.FloatTensor:
         """
         Apply forward pass to the bittensor.synapse given inputs and modality.
         """
         if no_grad:
             with torch.no_grad():
-                if modality == bittensor.bittensor.pb2.Modality.TEXT:
+                if modality == bittensor.proto.Modality.TEXT:
                     outputs = self.forward_text(inputs)
-                elif modality == bittensor.bittensor.pb2.Modality.IMAGE:
+                elif modality == bittensor.proto.Modality.IMAGE:
                     outputs = self.forward_image(inputs)
-                elif modality == bittensor.bittensor.pb2.Modality.TENSOR:
+                elif modality == bittensor.proto.Modality.TENSOR:
                     outputs = self.forward_tensor(inputs)
                 else:
                     raise NotImplementedError
         else:
-            if modality == bittensor.bittensor.pb2.Modality.TEXT:
+            if modality == bittensor.proto.Modality.TEXT:
                 outputs = self.forward_text(inputs)
-            elif modality == bittensor.bittensor.pb2.Modality.IMAGE:
+            elif modality == bittensor.proto.Modality.IMAGE:
                 outputs = self.forward_image(inputs)
-            elif modality == bittensor.bittensor.pb2.Modality.TENSOR:
+            elif modality == bittensor.proto.Modality.TENSOR:
                 outputs = self.forward_tensor(inputs)
             else:
                 raise NotImplementedError
@@ -118,7 +118,7 @@ class Synapse(nn.Module):
         raise NotImplementedError
 
 
-    def grad(self, inputs_x: torch.Tensor, grads_dy: torch.Tensor, modality: bittensor.bittensor.pb2.Modality) -> torch.Tensor:
+    def grad(self, inputs_x: torch.Tensor, grads_dy: torch.Tensor, modality: bittensor.proto.Modality) -> torch.Tensor:
         """
             Returns gradients for the inputs given inputs and output grads.
         """
@@ -134,7 +134,7 @@ class Synapse(nn.Module):
             )
         return grads_dx
 
-    def backward(self, inputs_x: torch.Tensor, grads_dy: torch.Tensor, modality: bittensor.bittensor.pb2.Modality):
+    def backward(self, inputs_x: torch.Tensor, grads_dy: torch.Tensor, modality: bittensor.proto.Modality):
         """
         Apply a backward pass to the nn.module given grads and inputs.
         """
