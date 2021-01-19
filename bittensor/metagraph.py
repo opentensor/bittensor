@@ -40,7 +40,7 @@ class ChainState():
 
     def add_or_update(self, pubkey:str, ip: int, port: int, uid: int, ip_type: int, modality: int, lastemit: int, stake: int, w_uids: List[str], w_vals: List[int]):
         address_str = net.int_to_ip(ip)
-        neuron = bittensor.pb2.Neuron(
+        neuron = bittensor.proto.Neuron(
             version = bittensor.__version__,
             public_key = pubkey,
             address = address_str,
@@ -98,7 +98,7 @@ class TorchChainState():
             W: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n, metagraph.n)`):
                 Full weight matrix on chain.
 
-            neurons: (List[bittensor.pb2.Neuron]) 
+            neurons: (List[bittensor.proto.Neuron]) 
                 List of endpoints on the network.
 
     """
@@ -369,10 +369,10 @@ class Metagraph():
         return self.state.W
 
     @property
-    def neurons(self) -> List[bittensor.pb2.Neuron]:
+    def neurons(self) -> List[bittensor.proto.Neuron]:
         r""" Return neuron endpoint information for each neuron.
         Returns
-            neurons: (:obj:`List[bittensor.pb2.Neuron]` of shape :obj:`(metagraph.n, metagraph.n)`):
+            neurons: (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(metagraph.n, metagraph.n)`):
                 endpoint information for each neuron.
         """
         return self.state.neurons
@@ -413,13 +413,13 @@ class Metagraph():
             raise ValueError('Passed uids are not a subset of class.uids, with passed: {} and class.uids: {}'.format(uids, self.state.uids))
         return indices
 
-    def uids_to_neurons(self, uids: torch.Tensor) -> List[bittensor.pb2.Neuron]:
+    def uids_to_neurons(self, uids: torch.Tensor) -> List[bittensor.proto.Neuron]:
         r""" Returns a list with neurons for each uid.
         Args:
             uids: (torch.LongTensor)
                 uids into neuron protos
         Returns:
-            neurons: (List[bittensor.pb2.Neuron]): 
+            neurons: (List[bittensor.proto.Neuron]): 
                 neuron info ordered by passed uids.
         """
         response = []
@@ -428,10 +428,10 @@ class Metagraph():
             response.append(self.state.neurons[idx])
         return response
 
-    def neurons_to_uids(self, neurons: List[bittensor.pb2.Neuron]) -> torch.LongTensor:
+    def neurons_to_uids(self, neurons: List[bittensor.proto.Neuron]) -> torch.LongTensor:
         r""" Returns uids associated with the passed neurons.
         Args:
-            neurons: (List[bittensor.pb2.Neuron]): 
+            neurons: (List[bittensor.proto.Neuron]): 
                 neuron info ordered by passed uids.
         Returns:
             uids: (torch.LongTensor)
@@ -720,7 +720,7 @@ class Metagraph():
 
             subscribe_start_time = time.time()
             try:
-                await self.subtensor_client.subscribe(self.config.axon.external_ip, self.config.axon.external_port, bittensor.pb2.Modality.TEXT, self.config.wallet.coldkey)
+                await self.subtensor_client.subscribe(self.config.axon.external_ip, self.config.axon.external_port, bittensor.proto.Modality.TEXT, self.config.wallet.coldkey)
 
             except Exception as e:
                 if (time.time() - subscribe_start_time) > 8:

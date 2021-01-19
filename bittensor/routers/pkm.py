@@ -66,7 +66,7 @@ class PKMRouter():
     def check_config(config):   
         return config
 
-    def _route(self, neuron: Neuron, inputs: torch.FloatTensor, query: torch.FloatTensor, modality: bittensor.pb2.Modality) -> SimpleNamespace:
+    def _route(self, neuron: Neuron, inputs: torch.FloatTensor, query: torch.FloatTensor, modality: bittensor.proto.Modality) -> SimpleNamespace:
         r""" Routes inputs using context and metagraph state.
 
             Args:
@@ -79,7 +79,7 @@ class PKMRouter():
                 query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
                     Context tensor used to select which neurons query for each example.
 
-                modality (:obj:`bittensor.pb2.Modality` of shape :obj:`(1)`, `required`):
+                modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
@@ -180,19 +180,19 @@ class PKMRouter():
         # requests.shape = n_uids * [-1, inputs.shape[1:]]
         requests = torch.split(inputs_expanded, request_sizes, dim=0)
         
-        # neurons: List[bittensor.pb2.Neuron]: endpoint information for filtered keys.
-        # neurons.shape = n_uids * [ bittensor.pb2.Neuron ]
+        # neurons: List[bittensor.proto.Neuron]: endpoint information for filtered keys.
+        # neurons.shape = n_uids * [ bittensor.proto.Neuron ]
         neurons = neuron.metagraph.uids_to_neurons(filtered_uids)
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
-        if modality == bittensor.pb2.Modality.TEXT:
+        if modality == bittensor.proto.Modality.TEXT:
             responses, retops = neuron.dendrite.forward_text(neurons, requests)
 
-        elif modality == bittensor.pb2.Modality.IMAGE:
+        elif modality == bittensor.proto.Modality.IMAGE:
             responses, retops = neuron.dendrite.forward_image(neurons, requests)
 
-        elif modality == bittensor.pb2.Modality.TENSOR:
+        elif modality == bittensor.proto.Modality.TENSOR:
             responses, retops = neuron.dendrite.forward_tensor(neurons, requests)
 
         else:
@@ -279,7 +279,7 @@ class PKMRouter():
                         dendrite call return codes.
                 }
         """
-        return self._route(neuron, images, query, bittensor.pb2.Modality.IMAGE)
+        return self._route(neuron, images, query, bittensor.proto.Modality.IMAGE)
 
     def forward_text(self, neuron: Neuron, text: torch.LongTensor, query: torch.FloatTensor) -> SimpleNamespace:
         r""" Forwards text to connected neurons using the passed context to learn connectivity.
@@ -310,7 +310,7 @@ class PKMRouter():
                 }
                 
         """
-        return self._route(neuron, text, query, bittensor.pb2.Modality.TEXT)
+        return self._route(neuron, text, query, bittensor.proto.Modality.TEXT)
 
 
     def forward_tensor(self, neuron: Neuron, tensors: torch.FloatTensor, query: torch.FloatTensor) -> SimpleNamespace:
@@ -341,4 +341,4 @@ class PKMRouter():
                         dendrite call return codes.
                 }
         """
-        return self._route(neuron, tensors, query, bittensor.pb2.Modality.IMAGE)
+        return self._route(neuron, tensors, query, bittensor.proto.Modality.IMAGE)

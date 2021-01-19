@@ -117,12 +117,12 @@ class Dendrite(nn.Module):
     def receptors(self):
         return self._receptors.values()
 
-    def forward_text(self, neurons: List[bittensor.pb2.Neuron],
+    def forward_text(self, neurons: List[bittensor.proto.Neuron],
                      x: List[torch.Tensor]) -> Tuple[List[torch.Tensor], torch.Tensor]:
         r""" Forward text inputs to neurons.
 
             Args:
-                neurons (:obj:`List[bittensor.pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
                     List of receptor neurons which match length of x. Tensors from x are sent forward to these neurons.
 
                 x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len])`, `required`):
@@ -145,14 +145,14 @@ class Dendrite(nn.Module):
         if len(x) < 1:
             error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
             raise ValueError(error_msg)
-        return self.forward(neurons, x, bittensor.pb2.Modality.TEXT)
+        return self.forward(neurons, x, bittensor.proto.Modality.TEXT)
 
-    def forward_image(self, neurons: List[bittensor.pb2.Neuron],
+    def forward_image(self, neurons: List[bittensor.proto.Neuron],
                       x: List[torch.Tensor]) -> Tuple[List[torch.Tensor], torch.Tensor]:
         r""" Forward image inputs to neurons.
 
             Args:
-                neurons (:obj:`List[bittensor.pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
                     List of receptor neurons which match length of x. Tensors from x are sent forward to these neurons.
 
                 x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, channels, rows, cols])`, `required`):
@@ -176,14 +176,14 @@ class Dendrite(nn.Module):
         if len(x) < 1:
             error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
             raise ValueError(error_msg)
-        return self.forward(neurons, x, bittensor.pb2.Modality.IMAGE)
+        return self.forward(neurons, x, bittensor.proto.Modality.IMAGE)
 
-    def forward_tensor(self, neurons: List[bittensor.pb2.Neuron],
+    def forward_tensor(self, neurons: List[bittensor.proto.Neuron],
                        x: List[torch.Tensor]) -> Tuple[List[torch.Tensor], torch.Tensor]:
         r""" Forward tensor inputs to neurons.
 
             Args:
-                neurons (:obj:`List[bittensor.pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
                     List of receptor neurons which match length of x. Tensors from x are sent forward to these neurons.
 
                 x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, bittensor.__network_dim__])`, `required`):
@@ -209,22 +209,22 @@ class Dendrite(nn.Module):
         if len(x) == 0:
             error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
             raise ValueError(error_msg)
-        return self.forward(neurons, x, bittensor.pb2.Modality.TENSOR)
+        return self.forward(neurons, x, bittensor.proto.Modality.TENSOR)
 
-    def forward(self, neurons: List[bittensor.pb2.Neuron],
+    def forward(self, neurons: List[bittensor.proto.Neuron],
                 x: List[torch.Tensor],
-                mode: bittensor.pb2.Modality) -> Tuple[List[torch.Tensor], torch.LongTensor]:
+                mode: bittensor.proto.Modality) -> Tuple[List[torch.Tensor], torch.LongTensor]:
         r""" Forward tensor inputs to neurons.
 
             Args:
-                neurons (:obj:`List[bittensor.pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
                     List of receptor neurons which match length of x. Tensors from x are sent forward to these neurons.
 
                 x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [shape])`, `required`):
                     List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and shape depending on the
                     modality.
 
-                mode (:obj:`bittensor.pb2.Modality` of shape :obj:`(1)`, `required`):
+                mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
@@ -265,10 +265,10 @@ class Dendrite(nn.Module):
                     List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and shape depending on the
                     modality.
 
-                neurons (:obj:`List[bittensor.pb2.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
                     List of receptor neurons which match length of x. Tensors from x are sent forward to these neurons.
 
-                mode (:obj:`bittensor.pb2.Modality` of shape :obj:`(1)`, `required`):
+                mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:

@@ -41,7 +41,7 @@ def test_client():
     channel = grpc.insecure_channel(address)
     stub = bittensor.grpc.BittensorStub(channel)
 
-    request = bittensor.pb2.TensorMessage()
+    request = bittensor.proto.TensorMessage()
     response = stub.Forward(request)
 
     request = ittensor.pb2.TensorMessage()

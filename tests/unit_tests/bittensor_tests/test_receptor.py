@@ -12,7 +12,7 @@ from munch import Munch
 
 config = bittensor.receptor.Receptor.build_config(); config.receptor.do_backoff = False
 wallet = bittensor.wallet.Wallet( config )
-neuron = bittensor.pb2.Neuron(
+neuron = bittensor.proto.Neuron(
     version = bittensor.__version__,
     public_key = wallet.keypair.public_key,
     address = '0.0.0.0',
@@ -26,85 +26,85 @@ stub = bittensor.grpc.BittensorStub(channel)
 
 def test_receptor_neuron_text():
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, ops = receptor.forward( x, bittensor.pb2.Modality.TEXT)
+    out, ops = receptor.forward( x, bittensor.proto.Modality.TEXT)
     print (out, ops)
-    assert ops.item() == bittensor.pb2.ReturnCode.Unavailable
+    assert ops.item() == bittensor.proto.ReturnCode.Unavailable
     assert list(out.shape) == [2, 4, bittensor.__network_dim__]
 
 def test_receptor_neuron_image():
     x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ])
-    out, ops = receptor.forward( x, bittensor.pb2.Modality.IMAGE)
-    assert ops.item() == bittensor.pb2.ReturnCode.Unavailable
+    out, ops = receptor.forward( x, bittensor.proto.Modality.IMAGE)
+    assert ops.item() == bittensor.proto.ReturnCode.Unavailable
     assert list(out.shape) == [1, 1, bittensor.__network_dim__]
 
 def test_receptor_neuron_tensor():
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = receptor.forward( x, bittensor.pb2.Modality.TENSOR)
-    assert ops.item() == bittensor.pb2.ReturnCode.Unavailable
+    out, ops = receptor.forward( x, bittensor.proto.Modality.TENSOR)
+    assert ops.item() == bittensor.proto.ReturnCode.Unavailable
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
 def test_receptor_neuron_request_empty():
     x = torch.tensor([])
-    out, ops = receptor.forward( x, bittensor.pb2.Modality.TEXT)
-    assert ops.item() == bittensor.pb2.ReturnCode.EmptyRequest
+    out, ops = receptor.forward( x, bittensor.proto.Modality.TEXT)
+    assert ops.item() == bittensor.proto.ReturnCode.EmptyRequest
     assert list(out.shape) == [0]
 
 def test_receptor_neuron_mock_server():
     y = torch.rand(3, 3, bittensor.__network_dim__)
     
-    serializer = serialization.get_serializer( serialzer_type = bittensor.pb2.Serializer.MSGPACK )
-    y_serialized = serializer.serialize(y, modality = bittensor.pb2.Modality.TENSOR, from_type = bittensor.pb2.TensorType.TORCH)
+    serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
             
-    mock_return_val = bittensor.pb2.TensorMessage(
+    mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version__,
             public_key = wallet.keypair.public_key,
-            return_code = bittensor.pb2.ReturnCode.Success,
+            return_code = bittensor.proto.ReturnCode.Success,
             tensors = [y_serialized])
 
     stub.Forward = MagicMock( return_value=mock_return_val )
     receptor.stub = stub
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = receptor.forward(x, bittensor.pb2.Modality.TENSOR)
-    assert ops.item() == bittensor.pb2.ReturnCode.Success
+    out, ops = receptor.forward(x, bittensor.proto.Modality.TENSOR)
+    assert ops.item() == bittensor.proto.ReturnCode.Success
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
 
 def test_receptor_neuron_mock_server_deserialization_error():
     y = dict() # bad response
-    mock_return_val = bittensor.pb2.TensorMessage(
+    mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version__,
             public_key = wallet.keypair.public_key,
-            return_code = bittensor.pb2.ReturnCode.Success,
+            return_code = bittensor.proto.ReturnCode.Success,
             tensors = [y])
 
     stub.Forward = MagicMock( return_value=mock_return_val )
     receptor.stub = stub
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = receptor.forward(x, bittensor.pb2.Modality.TENSOR)
-    assert ops.item() == bittensor.pb2.ReturnCode.ResponseDeserializationException
+    out, ops = receptor.forward(x, bittensor.proto.Modality.TENSOR)
+    assert ops.item() == bittensor.proto.ReturnCode.ResponseDeserializationException
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
 
 def test_receptor_neuron_mock_server_shape_error():
     y = torch.rand(1, 3, bittensor.__network_dim__)
 
-    serializer = serialization.get_serializer( serialzer_type = bittensor.pb2.Serializer.MSGPACK )
-    y_serialized = serializer.serialize(y, modality = bittensor.pb2.Modality.TENSOR, from_type = bittensor.pb2.TensorType.TORCH)
+    serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
    
-    mock_return_val = bittensor.pb2.TensorMessage(
+    mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version__,
             public_key = wallet.keypair.public_key,
-            return_code = bittensor.pb2.ReturnCode.Success,
+            return_code = bittensor.proto.ReturnCode.Success,
             tensors = [y_serialized])
 
     stub.Forward = MagicMock( return_value=mock_return_val )
     receptor.stub = stub
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = receptor.forward(x, bittensor.pb2.Modality.TENSOR)
-    assert ops.item() == bittensor.pb2.ReturnCode.ResponseShapeException
+    out, ops = receptor.forward(x, bittensor.proto.Modality.TENSOR)
+    assert ops.item() == bittensor.proto.ReturnCode.ResponseShapeException
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
 if __name__ == "__main__":
