@@ -1,47 +1,27 @@
 
-import bittensor.serialization as serialization
-import bittensor.utils.serialization_utils as serialization_utils
-from bittensor.config import Config
-from bittensor.subtensor.interface import Keypair
-from random import randrange
-
-from datasets import load_dataset
-from bittensor.synapses.gpt2 import nextbatch
-
-import bittensor.bittensor_pb2 as bittensor_pb2
 import torchvision.transforms as transforms
 import torch
 import unittest
-import bittensor
 import torchvision
 import pytest
+
+from datasets import load_dataset
 from munch import Munch
+from random import randrange
+
+import bittensor
+from bittensor.synapses.gpt2 import nextbatch
+import bittensor.bittensor_pb2 as bittensor_pb2
+import bittensor.serialization as serialization
+import bittensor.utils.serialization_utils as serialization_utils
+from bittensor.subtensor.interface import Keypair
+
 
 class TestSerialization(unittest.TestCase):
     config = None
 
-    def setUp(self):
-        config = {'session':
-                      {'datapath': 'data/', 'learning_rate': 0.01, 'momentum': 0.9, 'batch_size_train': 64,
-                       'batch_size_test': 64, 'log_interval': 10, 'sync_interval': 100, 'priority_interval': 100,
-                       'name': 'mnist', 'trial_id': '1608070667'},
-                  'synapse': {'target_dim': 10},
-                  'dendrite': {'key_dim': 100, 'topk': 10, 'stale_emit_filter': 10000, 'pass_gradients': True,
-                               'timeout': 0.5,
-                               'do_backoff': True, 'max_backoff': 100},
-                  'axon': {'local_port': 8091, 'external_ip': '191.97.53.53'},
-                  'nucleus': {'max_workers': 5, 'queue_timeout': 5, 'queue_maxsize': 1000},
-                  'metagraph': {'chain_endpoint': '206.189.254.5:12345', 'stale_emit_filter': 10000},
-                  'meta_logger': {'log_dir': 'data/'},
-                  'neuron': {'keyfile': None, 'keypair': None}
-                  }
-
-        config = Munch.fromDict(config)
-        mnemonic = Keypair.generate_mnemonic()
-        keypair = Keypair.create_from_mnemonic(mnemonic)
-        config.neuron.keypair = keypair
-
-        self.keypair = Keypair.create_from_mnemonic(mnemonic)
+    def setUp(self):        
+        config = bittensor.wallet.Wallet.config()
 
     def test_serialize(self):
         for _ in range(10):

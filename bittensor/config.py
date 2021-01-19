@@ -12,8 +12,6 @@ from munch import Munch
 
 from bittensor.crypto import KeyError
 from bittensor.crypto.keyfiles import KeyFileError
-from bittensor.nucleus import Nucleus
-from bittensor.neuron import KeyFileError
 
 class InvalidConfigFile(Exception):
     pass

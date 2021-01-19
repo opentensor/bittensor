@@ -1,9 +1,11 @@
 import argparse
 import torch
 import torch.nn as nn
+
 from torch.nn import functional as F
 from typing import Tuple
 from types import SimpleNamespace
+from munch import Munch
 
 import bittensor
 from bittensor.neuron import Neuron
@@ -35,20 +37,30 @@ class PKMKeys(nn.Module):
             self._n_keys = self._keys.shape[0]
         return self._keys[uids]
 
-class PKMDendrite():
-    def __init__(self, config, query_dim):
+class PKMRouter():
+    def __init__(self, config: Munch, query_dim = bittensor.__network_dim__):
+        if config == None:
+            config = PKMRouter.config()
         self.config = config
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # UIDs -> Keys.
-        self.keys = PKMKeys(self.config.dendrite.key_dim)
+        self.keys = PKMKeys(self.config.router.key_dim)
         # Query -> Keys
-        self.projection = nn.Linear(query_dim, self.config.dendrite.key_dim, bias=True).to(self.device)
+        self.projection = nn.Linear(query_dim, self.config.router.key_dim, bias=True).to(self.device)
+
+    @staticmethod   
+    def config() -> Munch:
+        parser = argparse.ArgumentParser()
+        PKMRouter.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        PKMRouter.check_config(config)
+        return config
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
-        parser.add_argument('--dendrite.key_dim', default=100, type=int, help='Product keys dimension.')
-        parser.add_argument('--dendrite.topk', default=10, type=int, help='Number of keys to select for each example.')
-        parser.add_argument('--dendrite.stale_emit_filter', default=10000, type=int, help='Number of blocks before a neuron is filtered without a recent emit')
+        parser.add_argument('--router.key_dim', default=100, type=int, help='Product keys dimension.')
+        parser.add_argument('--router.topk', default=10, type=int, help='Number of keys to select for each example.')
+        parser.add_argument('--router.stale_emit_filter', default=10000, type=int, help='Number of blocks before a neuron is filtered without a recent emit')
         return parser
 
     @staticmethod
@@ -100,7 +112,7 @@ class PKMDendrite():
         current_block = neuron.metagraph.block
         lastemit = neuron.metagraph.lastemit
         staleness = (current_block - lastemit)
-        filtered_uids = all_uids[torch.where(staleness < self.config.dendrite.stale_emit_filter)] 
+        filtered_uids = all_uids[torch.where(staleness < self.config.router.stale_emit_filter)] 
         n_uids = torch.numel(filtered_uids)
 
         # Return if there are no uids to query
@@ -114,11 +126,11 @@ class PKMDendrite():
             return output
 
         # keys: (torch.FloatTensor): unique trainable torch keys for each uid
-        # keys.shape = [n_uids, config.dendrite.key_dim]
+        # keys.shape = [n_uids, config.router.key_dim]
         keys = self.keys( filtered_uids ).to(self.device)
 
         # query: (torch.FloatTensor): projection of the query on to the key dimension.
-        # query.shape = [batch_size, config.dendrite.key_dim]
+        # query.shape = [batch_size, config.router.key_dim]
         # On Cuda if it's available.
         query = self.projection( query )
 
@@ -133,7 +145,7 @@ class PKMDendrite():
         # topk_scores.shape = [batch_size, real_topk]
         # topk_indices.shape = [batch_size, real_topk]
         # These are all on Cuda if it's available.
-        real_topk = min( n_uids, self.config.dendrite.topk )
+        real_topk = min( n_uids, self.config.router.topk )
         topk_scores, topk_indices = scores.topk(real_topk, dim=1) 
 
         # gates: (torch.FloatTensor): gated scores for uid per example. Zeros for non queried uids.

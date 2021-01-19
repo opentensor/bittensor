@@ -26,13 +26,15 @@ from bittensor.synapses.ffnn import FFNNSynapse
 class Session():
 
     def __init__(self, config: Munch):
+        if config == None:
+            config = Session.config()
         self.config = config
 
         # ---- Neuron ----
         self.neuron = Neuron(self.config)
     
         # ---- Model ----
-        self.model = FFNNSynapse( config ) # Feedforward neural network with PKMDendrite.
+        self.model = FFNNSynapse( config ) # Feedforward neural network with PKMRouter.
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to( self.device ) # Set model to device
         
@@ -49,6 +51,14 @@ class Session():
         # ---- Tensorboard ----
         self.global_step = 0
         self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
+
+    @staticmethod
+    def config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        Session.add_args(parser) 
+        config = Config.to_config(parser); 
+        Session.check_config(config)
+        return config
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
@@ -177,12 +187,8 @@ class Session():
 
         
 if __name__ == "__main__":
-    # ---- Load command line args ----
-    parser = argparse.ArgumentParser(); Session.add_args(parser) 
-    config = Config.to_config(parser); Session.check_config(config)
-    logger.info(Config.toString(config))
-
-    # --- Create + Run ----
+    # ---- Build and Run ----
+    config = Session.config(); logger.info(Config.toString(config))
     session = Session(config)
     session.run()
 

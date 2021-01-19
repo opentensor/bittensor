@@ -1,46 +1,21 @@
 
 
 import torch
-import bittensor
 import pytest
-
-from bittensor.metagraph import Metagraph
-from bittensor.config import Config
-from bittensor.subtensor.interface import Keypair
-from bittensor import bittensor_pb2
 import time
 from munch import Munch
+import bittensor
+from bittensor import bittensor_pb2
 
-config = {'session':
-              {'datapath': 'data/', 'learning_rate': 0.01, 'momentum': 0.9, 'batch_size_train': 64,
-               'batch_size_test': 64, 'log_interval': 10, 'sync_interval': 100, 'priority_interval': 100,
-               'name': 'mnist', 'trial_id': '1608070667'},
-          'synapse': {'target_dim': 10},
-          'dendrite': {'key_dim': 100, 'topk': 10, 'stale_emit_filter': 10000, 'pass_gradients': True, 'timeout': 0.5,
-                       'do_backoff': True, 'max_backoff': 100}, 'axon': {'local_port': 8091, 'external_ip': '191.97.53.53'},
-          'nucleus': {'max_workers': 5, 'queue_timeout': 5, 'queue_maxsize': 1000},
-          'metagraph': {'chain_endpoint': '206.189.254.5:12345', 'stale_emit_filter': 10000},
-          'meta_logger': {'log_dir': 'data/'},
-          'neuron': {'keyfile': None, 'keypair': None }
-          }
-
-config = Munch.fromDict(config)
-
-
-config.dendrite.do_backoff = False
-mnemonic = Keypair.generate_mnemonic()
-keypair = Keypair.create_from_mnemonic(mnemonic)
-
-config.neuron.keypair = keypair
-metagraph = bittensor.metagraph.Metagraph(config)
-dendrite = bittensor.dendrite.Dendrite(config, metagraph)
+config = bittensor.dendrite.Dendrite.config()
+config.receptor.do_backoff = False
+dendrite = bittensor.dendrite.Dendrite( config )
 neuron_pb2 = bittensor_pb2.Neuron(
     version = bittensor.__version__,
-    public_key = keypair.public_key,
+    public_key = config.wallet.keypair.public_key,
     address = '0.0.0.0',
     port = 12345,
 )
-
 
 def test_dendrite_forward_tensor_shape_error():
     x = torch.rand(3, 3, 3)
@@ -75,17 +50,14 @@ def test_dendrite_forward_tensor():
     assert ops[0].item() == bittensor_pb2.ReturnCode.Unavailable
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
 
-
 def test_dendrite_backoff():
-    _config = Munch.fromDict(config.copy())
-    _config.dendrite.do_backoff = True
-    _config.dendrite.max_backoff = 1
-    _mnemonic = Keypair.generate_mnemonic()
-    _keypair = Keypair.create_from_mnemonic(_mnemonic)
-    _dendrite = bittensor.dendrite.Dendrite(_config, metagraph)
+    _config = bittensor.dendrite.Dendrite.config()
+    _config.receptor.do_backoff = True
+    _config.receptor.max_backoff = 1
+    _dendrite = bittensor.dendrite.Dendrite(_config)
     _neuron_pb2 = bittensor_pb2.Neuron(
         version = bittensor.__version__,
-        public_key = _keypair.public_key,
+        public_key = config.wallet.keypair.public_key,
         address = '0.0.0.0',
         port = 12345,
     )

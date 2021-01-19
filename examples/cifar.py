@@ -26,14 +26,16 @@ from bittensor.synapses.dpn import DPNSynapse
 
 class Session():
 
-    def __init__(self, config: Munch):
+    def __init__(self, config: Munch = None):
+        if config == None:
+            config = Session.config(); logger.info(Config.toString(config))
         self.config = config
 
         # ---- Neuron ----
         self.neuron = Neuron(self.config)
     
         # ---- Model ----
-        self.model = DPNSynapse( config ) # Feedforward neural network with PKMDendrite.
+        self.model = DPNSynapse( config ) # Feedforward neural network with PKMRouter.
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to( self.device ) # Set model to device
         
@@ -59,6 +61,13 @@ class Session():
         if self.config.session.record_log:
             logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
 
+    @staticmethod
+    def config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        Session.add_args(parser) 
+        config = Config.to_config(parser); 
+        Session.check_config(config)
+        return config
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
@@ -192,12 +201,8 @@ class Session():
 
         
 if __name__ == "__main__":
-    # ---- Load command line args ----
-    parser = argparse.ArgumentParser(); Session.add_args(parser) 
-    config = Config.to_config(parser); Session.check_config(config)
-    logger.info(Config.toString(config))
-
-    # --- Create + Run ----
+    # ---- Build and Run ----
+    config = Session.config(); logger.info(Config.toString(config))
     session = Session(config)
     session.run()
 
