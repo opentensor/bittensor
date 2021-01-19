@@ -23,13 +23,9 @@ from bittensor.exceptions.handlers import rollbar
 class Dendrite(nn.Module):
     r"""
     Bittensor object used to make calls to the network. It can be called like a normal torch nn.Module and is differentiable. 
-    Messages passed through this module will be sent to neuron objects, either receptor
-    or local, and return responses as torch tensors. Gradients passing through this module on a .backward() call will trigger
-    the Backward rpc calls, passing gradients to the receptor neuron instances called during corresponding Forward operation.
-
-    Args:
-        config (:obj:`bittensor.Config`, `required`):
-            Bittensor config object.
+    Messages passed through this module will be sent to neuron objects, either remote or local, and return responses as torch tensors. 
+    Gradients passing through this module on a .backward() call will trigger a Backward rpc calls to the axon terminals of downstream neurons 
+    called during associated Forward operation.
     """
 
     def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, metagraph: 'bittensor.metagraph.Metagraph' = None):
@@ -123,7 +119,7 @@ class Dendrite(nn.Module):
 
             Args:
                 neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
-                    List of receptor neurons which match length of x. Tensors from x are sent forward to these neurons.
+                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
 
                 x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len])`, `required`):
                     List of tensors to send to corresponsing neurons. Tensors are text input_ids encoded using the
@@ -131,7 +127,7 @@ class Dendrite(nn.Module):
 
             Returns:
                 forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                    Output encodings of inputs produced by receptor neurons. Non-responses are zeroes of common shape.
+                    Output encodings of inputs produced by remote neurons. Non-responses are zeroes of common shape.
 
                 return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops.
@@ -153,7 +149,7 @@ class Dendrite(nn.Module):
 
             Args:
                 neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
-                    List of receptor neurons which match length of x. Tensors from x are sent forward to these neurons.
+                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
 
                 x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, channels, rows, cols])`, `required`):
                     List of image-tensors to send to corresponsing neurons. Tensors are images encoded using the
@@ -161,7 +157,7 @@ class Dendrite(nn.Module):
 
             Returns:
                 forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`):
-                    Output encodings of images produced by receptor neurons. Non-responses are zeroes of common shape.
+                    Output encodings of images produced by remote neurons. Non-responses are zeroes of common shape.
 
                 return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops.
@@ -184,7 +180,7 @@ class Dendrite(nn.Module):
 
             Args:
                 neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
-                    List of receptor neurons which match length of x. Tensors from x are sent forward to these neurons.
+                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
 
                 x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, bittensor.__network_dim__])`, `required`):
                     List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and
@@ -192,7 +188,7 @@ class Dendrite(nn.Module):
 
             Returns:
                 forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.__network_dim__)]`, `required`):
-                    Output encodings of tensors produced by receptor neurons. Non-responses are zeroes of common shape.
+                    Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
 
                 return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops.
@@ -218,7 +214,7 @@ class Dendrite(nn.Module):
 
             Args:
                 neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
-                    List of receptor neurons which match length of x. Tensors from x are sent forward to these neurons.
+                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
 
                 x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [shape])`, `required`):
                     List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and shape depending on the
@@ -229,7 +225,7 @@ class Dendrite(nn.Module):
 
             Returns:
                 forward_outputs (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
-                    Output encodings of tensors produced by receptor neurons. Non-responses are zeroes of common shape.
+                    Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
 
                 return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops.
@@ -266,7 +262,7 @@ class Dendrite(nn.Module):
                     modality.
 
                 neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
-                    List of receptor neurons which match length of x. Tensors from x are sent forward to these neurons.
+                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
 
                 mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]

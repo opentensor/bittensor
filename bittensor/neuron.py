@@ -149,14 +149,14 @@ class Neuron:
         # Stop background grpc threads for serving the synapse object.
         try:
             self.axon.start()
-            logger.info('Started axon.Axon server')
+            logger.info('Started Axon server')
         except Exception as e:
             logger.error('Neuron: Failed to start axon server with error: {}', e)
             raise FailedToEnterNeuron
 
         try:
             code, message = self.metagraph.connect(timeout=12)
-            if code != metagraph.Metagraph.ConnectSuccess:
+            if code != bittensor.metagraph.Metagraph.ConnectSuccess:
                 logger.error('Neuron: Timeout while subscribing to the chain endpoint with message {}', message)
                 logger.error('Check that your internet connection is working and the chain endpoint {} is available', self.config.metagraph.chain_endpoint)
                 failed_connect_msg_help = ''' The subtensor chain endpoint should likely be one of the following choices:
@@ -173,7 +173,7 @@ class Neuron:
 
         try:
             code, message = self.metagraph.subscribe(timeout=12)
-            if code != metagraph.Metagraph.SubscribeSuccess:
+            if code != bittensor.metagraph.Metagraph.SubscribeSuccess:
                 logger.error('Neuron: Error while subscribing to the chain endpoint with message: {}', message)
                 raise FailedToEnterNeuron
 
@@ -190,10 +190,10 @@ class Neuron:
 
     def stop(self):
 
-        logger.info('Shutting down the axon.Axon server ...')
+        logger.info('Shutting down the Axon server ...')
         try:
             self.axon.stop()
-            logger.info('axon.Axon server stopped')
+            logger.info('Axon server stopped')
         except Exception as e:
             logger.error('Neuron: Error while stopping axon server: {} ', e)
 
