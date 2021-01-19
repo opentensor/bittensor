@@ -185,7 +185,7 @@ class CommandExecutor:
         neurons = await self._associated_neurons()
         for neuron in neurons:
             neuron.stake = await self.__client.get_stake_for_uid(neuron.uid)
-            await self.__client.unstake(neuron.stake, wallet.hotkey)
+            await self.__client.unstake(neuron.stake, neuron.hotkey)
             print(colored("Unstaked: {} Tao from uid: {} to coldkey.pub: {}".format(neuron.stake, neuron.uid, self.__keypair.public_key), 'green'))
 
     async def unstake(self, uid, amount: Balance):
@@ -201,7 +201,7 @@ class CommandExecutor:
             print(colored("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format(uid, neuron.stake, amount), 'red'))
             quit()
 
-        await self.__client.unstake(amount, wallet.hotkey)
+        await self.__client.unstake(amount, neuron.hotkey)
         print(colored("Unstaked:{} from uid:{} to coldkey.pub:{}".format(amount.tao, uid, self.__keypair.public_key), 'green'))
 
 
@@ -218,7 +218,7 @@ class CommandExecutor:
             print(colored("Neuron with uid: {} is not associated with coldkey.pub: {}".format(uid, self.__keypair.public_key), 'red'))
             quit()
 
-        await self.__client.add_stake(amount, wallet.hotkey)
+        await self.__client.add_stake(amount, neuron.hotkey)
         print(colored("Staked: {} Tao to uid: {} from coldkey.pub: {}".format(amount.tao, uid, self.__keypair.public_key), 'green'))
 
     async def transfer(self, dest: str, amount: Balance):
