@@ -32,7 +32,7 @@ from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 class Session():
 
     def __init__(self, config: Munch = None):
-        if config = None:
+        if config == None:
             config = Session.build_config()
         self.config = config
 

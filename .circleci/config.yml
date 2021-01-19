@@ -21,6 +21,7 @@ jobs:
           command: pip install -e .
           name: setup
       - run: pip install miniupnpc
+      - run: echo "y\ny\ny" | bin/bittensor-cli new_wallet --no_password --name default
 
   "Run Unit Tests":
     executor: bittensor-executor
@@ -37,6 +38,7 @@ jobs:
       - run: pip install msgpack
       - run: pip install msgpack-numpy
       - run: pip install pytorch_transformers
+      - run: echo "y\ny\ny" | bin/bittensor-cli new_wallet --no_password --name default
       - run:
           name: "Run unit tests"
           command: pytest ./tests/unit_tests
@@ -55,6 +57,7 @@ jobs:
       - run: pip install msgpack
       - run: pip install msgpack-numpy
       - run: pip install pytorch_transformers
+      - run: echo "y\ny\ny" | bin/bittensor-cli new_wallet --no_password --name default
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
@@ -78,6 +81,7 @@ jobs:
       - run: pip install msgpack
       - run: pip install msgpack-numpy
       - run: pip install pytorch_transformers
+      - run: echo "y\ny\ny" | bin/bittensor-cli new_wallet --no_password --name default
       - run:
           command: pip install -e .
           name: setup
