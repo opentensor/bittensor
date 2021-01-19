@@ -1,5 +1,15 @@
 from loguru import logger
 import sys
+
+import bittensor.wallet
+import bittensor.metagraph
+import bittensor.axon
+import bittensor.nucleus
+import bittensor.dendrite
+import bittensor.synapse
+import bittensor.config 
+import bittensor.receptor
+
 # Bittensor code and protocol version.
 __version__ = '1.0.2'
 

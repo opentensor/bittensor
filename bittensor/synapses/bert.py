@@ -10,9 +10,7 @@ from transformers import BertModel, BertConfig
 from types import SimpleNamespace
 
 import bittensor
-from bittensor.dendrites.pkm import PKMDendrite
-from bittensor.synapse import Synapse
-from bittensor.neuron import Neuron
+from bittensor.routers.pkm import PKMRouter
 
 class BertPooler(nn.Module):
     def __init__(self, config):
@@ -28,7 +26,7 @@ class BertPooler(nn.Module):
         pooled_output = self.activation(pooled_output)
         return pooled_output
 
-class BertSynapseBase (Synapse):
+class BertSynapseBase (bittensor.synapse.Synapse):
     def __init__(self, config: Munch):
         r""" Init a new base-bert synapse.
 
@@ -36,6 +34,8 @@ class BertSynapseBase (Synapse):
                 config (:obj:`munch.Munch`, `required`): 
         """
         super(BertSynapseBase, self).__init__( config = config )
+        if config = None:
+            config = BertSynapseBase.config()
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
@@ -47,7 +47,7 @@ class BertSynapseBase (Synapse):
 
         # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite( config, query_dim = bittensor.__network_dim__ )
+        self.router = PKMRouter( config, query_dim = bittensor.__network_dim__ )
 
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -63,6 +63,14 @@ class BertSynapseBase (Synapse):
 
         self.to(self.device)
 
+    @staticmethod   
+    def config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        BertSynapseBase.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        BertSynapseBase.check_config(config)
+        return config
+
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):    
         r""" Add custom params to the parser.
@@ -72,7 +80,7 @@ class BertSynapseBase (Synapse):
         parser.add_argument('--synapse.num_attention_heads', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
         parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
-        PKMDendrite.add_args(parser)
+        PKMRouter.add_args(parser)
 
     @staticmethod
     def check_config( config: Munch ):    
@@ -132,11 +140,11 @@ class BertSynapseBase (Synapse):
 
         return output
 
-    def base_remote_forward(self, neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None):
+    def base_remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None):
         """Forward pass inputs and labels through the remote BERT networks.
 
         Args:
-            neuron (:obj: `bittensor.Neuron`, `required`):
+            neuron (:obj: `bittensor.bittensor.Neuron`, `required`):
                     Bittensor neuron, used for making queries to the remote network.
 
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
@@ -164,7 +172,7 @@ class BertSynapseBase (Synapse):
 
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.dendrite = self.dendrite.forward_text( neuron = neuron, text = inputs, query = output.local_pooled )
+        output.dendrite = self.router.forward_text( neuron = neuron, text = inputs, query = output.local_pooled )
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
@@ -184,9 +192,6 @@ class BertNSPSynapse (BertSynapseBase):
             Args:
                 config (:obj:`Munch`, `required`): 
                     BertNSP configuration class.
-
-                neuron (:obj:`bittensor.Neuron`, `required`): 
-                    bittensor neuron object. 
         """
         super(BertNSPSynapse, self).__init__(config = config)
 
@@ -259,11 +264,11 @@ class BertNSPSynapse (BertSynapseBase):
             output.local_target_loss = self.loss_fct( output.local_target.view(-1, 2), targets )            
         return output
 
-    def remote_forward(self, neuron: Neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None, targets: torch.Tensor = None):
+    def remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None, targets: torch.Tensor = None):
         r""" Forward pass inputs and labels through the NSP BERT module. (with queries to the network)
 
             Args:
-                neuron (:obj: `bittensor.Neuron`, `required`):
+                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
                     Bittensor neuron, used for making queries to the remote network.
 
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
@@ -313,8 +318,6 @@ class BertMLMSynapse (BertSynapseBase):
                 config (:obj:`Munch`, `required`): 
                     BertNSP configuration class.
 
-                neuron (:obj:`bittensor.Neuron`, `required`): 
-                    bittensor neuron object. 
         """
         super(BertMLMSynapse, self).__init__(config = config)
 
@@ -382,11 +385,11 @@ class BertMLMSynapse (BertSynapseBase):
         return output
 
 
-    def remote_forward(self, neuron: Neuron, inputs: torch.LongTensor, targets: torch.LongTensor = None):
+    def remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, targets: torch.LongTensor = None):
         r""" Forward pass inputs and labels through the MLM BERT module. (with queries to the network)
 
             Args:
-                neuron (:obj: `bittensor.Neuron`, `required`):
+                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
                     Bittensor neuron, used for making queries to the remote network.
 
                 inputs (:obj:`torch.LongTensor` of shape ``(batch_size, sequence_length)``, `required`):

@@ -9,7 +9,7 @@ from typing import Dict, List, Any
 
 import bittensor
 import bittensor.utils.serialization_utils as serialization_utils
-from bittensor import bittensor_pb2
+import bittensor.bittensor_pb2 as bittensor_pb2
 
 class SerializationException (Exception):
     """ Raised during serialization """

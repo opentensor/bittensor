@@ -17,6 +17,14 @@ from bittensor import bittensor_pb2
 from bittensor.subtensor.client import WSClient
 from typing import List, Tuple, List
 
+import bittensor
+import bittensor.wallet as wallet
+import bittensor.nucleus as nucleus
+import bittensor.metagraph as metagraph
+import bittensor.synapse as synapse
+import bittensor.nucleus as nucleus
+import bittensor.dendrite as dendrite
+import bittensor.config as config_utils
 import bittensor.utils.networking as net
 from bittensor.exceptions.handlers import rollbar
 
@@ -145,18 +153,21 @@ class TorchChainState():
 
 class Metagraph():
 
-    def __init__(self, config):
+    def __init__(self, config: 'Munch' = None, wallet: 'bittensor.wallet.Wallet' = None):
         r"""Initializes a new Metagraph subtensor interface.
         Args:
-            config (bittensor.Config):
-                An bittensor config object.
+            config (Munch): Metagraph config munch, use Metagraph.Config()
         """
-        # Protected vars
+        if config == None:
+            config = Metagraph.config()
         self._config = config
-        self.__keypair = config.neuron.keypair
+
+        if wallet == None:
+            wallet = bittensor.wallet.Wallet( self._config )
+        self.__wallet = wallet
 
         # Client for talking to chain.
-        self.subtensor_client = WSClient(self._config.metagraph.chain_endpoint, self.__keypair)
+        self.subtensor_client = WSClient(self._config.metagraph.chain_endpoint, keypair = self.__wallet.keypair)
 
         # This neurons metadata on chain, initially None, filled on subscribe.
         self.uid = None
@@ -168,24 +179,38 @@ class Metagraph():
         # Chain state as torch values.
         self.state = TorchChainState.from_cache(self.cache)
 
+    @staticmethod
+    def config() -> Munch:
+        # Parses and returns a config Munch for this object.
+        parser = argparse.ArgumentParser(); 
+        Metagraph.add_args(parser) 
+        config = config_utils.Config.to_config(parser); 
+        Metagraph.check_config(config)
+        return config
+
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         # TODO(const): check this endpoint in check_config.
-        parser.add_argument('--metagraph.chain_endpoint', default='localhost:9944', type=str, 
-                            help='''The subtensor chain endpoint. The likely choices are:
-                                    -- localhost:9944 -- (your locally running node)
-                                    -- feynman.akira.bittensor.com:9944 (testnet)
-                                    -- feynman.kusanagi.bittensor.com:12345 (mainnet)
-                                    If this value remains a default (localhost) you will need to 
-                                    run a subtensor node on your localbox in order to connect your neuron.
-                                    (See: docs/running_a_validator.md)''')
-        parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
-                            help='''The metagraph filters neurons with last emit beyond this many blocks.
-                                    Note, this is used to trim the graph size,
-                                    but may change your incentive mechanism view.''')
+        wallet.Wallet.add_args( parser )
+        try:
+            parser.add_argument('--metagraph.chain_endpoint', default='localhost:9944', type=str, 
+                                help='''The subtensor chain endpoint. The likely choices are:
+                                        -- localhost:9944 -- (your locally running node)
+                                        -- feynman.akira.bittensor.com:9944 (testnet)
+                                        -- feynman.kusanagi.bittensor.com:12345 (mainnet)
+                                        If this value remains a default (localhost) you will need to 
+                                        run a subtensor node on your localbox in order to connect your neuron.
+                                        (See: docs/running_a_validator.md)''')
+            parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
+                                help='''The metagraph filters neurons with last emit beyond this many blocks.
+                                        Note, this is used to trim the graph size,
+                                        but may change your incentive mechanism view.''')
+        except:
+            pass
+        
     @staticmethod   
     def check_config(config: Munch):
-        pass
+        wallet.Wallet.check_config( config )
 
     @property
     def n(self) -> int:
@@ -504,7 +529,7 @@ class Metagraph():
         current_block = await self.async_chain_block()
         active = dict( await self.subtensor_client.get_active() )
         last_emit = dict( await self.subtensor_client.get_last_emit_data() )
-        calls.append ( self._poll_uid ( self.__keypair.public_key, self.uid ) )        
+        calls.append ( self._poll_uid ( self.__wallet.keypair.public_key, self.uid ) )        
         for pubkey, uid in active.items():
             if uid in last_emit:
                 emit_block = last_emit[ uid ]
@@ -700,7 +725,7 @@ class Metagraph():
 
             subscribe_start_time = time.time()
             try:
-                await self.subtensor_client.subscribe(self._config.axon.external_ip, self._config.axon.external_port, bittensor_pb2.Modality.TEXT, self._config.neuron.coldkey)
+                await self.subtensor_client.subscribe(self._config.axon.external_ip, self._config.axon.external_port, bittensor_pb2.Modality.TEXT, self._config.wallet.coldkey)
 
             except Exception as e:
                 if (time.time() - subscribe_start_time) > 8:
@@ -718,7 +743,7 @@ class Metagraph():
             while True:
                 try:
                     # ---- Request info from chain ----
-                    self.uid = await self.subtensor_client.get_uid_for_pubkey(self.__keypair.public_key)
+                    self.uid = await self.subtensor_client.get_uid_for_pubkey(self.__wallet.keypair.public_key)
                 except Exception as e:
                     # ---- Catch errors in request ----
                     message = "Subscription threw an unknown exception {}".format(e)
@@ -927,7 +952,7 @@ class Metagraph():
             try:
                 # --- Make emission call ----
                 logger.debug('Emit -> {} {}', weight_uids, weight_vals)
-                await self.subtensor_client.emit(weight_uids, weight_vals, self.__keypair, wait_for_inclusion = False)
+                await self.subtensor_client.emit(weight_uids, weight_vals, self.__wallet, wait_for_inclusion = False)
                 break
 
             except Exception as e:

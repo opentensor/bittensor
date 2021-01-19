@@ -3,40 +3,31 @@
 
     Bittensor endpoint trained on PIL images to detect objects using DPN.
 """
-import bittensor
-from bittensor.dendrites.pkm import PKMDendrite
-from bittensor.synapse import Synapse
-from bittensor.synapse import SynapseOutput
-from bittensor.neuron import Neuron
-from bittensor.utils.batch_transforms import Normalize
-
 import argparse
 from munch import Munch
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class DPNSynapse(Synapse):
+import bittensor
+from bittensor.routers.pkm import PKMRouter
+from bittensor.utils.batch_transforms import Normalize
+
+class DPNSynapse(bittensor.synapse.Synapse):
     """ Bittensor endpoint trained on PIL images to detect objects using an DPN.
     """
 
-    def __init__(   self, 
-                    config: Munch,
-                    neuron: Neuron,
-                ):
+    def __init__( self, config: Munch = None):
         r""" Init a new DPN synapse module.
 
             Args:
                 config (:obj: `munch.Munch`, `required`)
                     munch namespace config item.
-
-                 neuron (:obj:`bittensor.Neuron`, `required`): 
-                    bittensor neuron object. 
         """
-        super(DPNSynapse, self).__init__(
-            config = config,
-            neuron = neuron)
-
+        super(DPNSynapse, self).__init__(config = config)
+        if config == None:
+            config = DPNSynapse.config()
+        
         in_planes, out_planes = config.synapse.in_planes, config.synapse.out_planes
         num_blocks, dense_depth = config.synapse.num_blocks, config.synapse.dense_depth
 
@@ -62,7 +53,7 @@ class DPNSynapse(Synapse):
         
         # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite(config, neuron, query_dim = self.transform_dim)
+        self.router = PKMRouter(config, query_dim = self.transform_dim)
 
         # Context layers.
         """
@@ -86,6 +77,14 @@ class DPNSynapse(Synapse):
 
         self.to(self.device)
 
+    @staticmethod   
+    def config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        DPNSynapse.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        DPNSynapse.check_config(config)
+        return config
+
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         r""" This function adds the configuration items for the DPN synapse.
@@ -108,7 +107,7 @@ class DPNSynapse(Synapse):
         parser.add_argument('--synapse.num_blocks', default='3, 6, 20, 3', action="append", type=to_list)
         parser.add_argument('--synapse.dense_depth', default='16, 32, 32, 128', action="append", type=to_list)
         parser.add_argument('--synapse.target_dim', default=10, type=int, help='Final logit layer dimension. i.e. 10 for CIFAR-10.')
-        parser = PKMDendrite.add_args(parser)
+        parser = PKMRouter.add_args(parser)
     
     @staticmethod
     def check_config(config: Munch):
@@ -319,7 +318,7 @@ class DPNSynapse(Synapse):
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         # make a remote call.
         images = torch.unsqueeze(images, 1)
-        remote_context, weights, sizes, return_codes = self.dendrite.forward_image(images, transform)
+        remote_context, weights, sizes, return_codes = self.router.forward_image(images, transform)
         remote_context = torch.squeeze(remote_context, 1)
         output.weights = weights
         output.request_sizes = sizes

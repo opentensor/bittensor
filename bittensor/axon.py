@@ -21,32 +21,43 @@ import bittensor
 import bittensor.utils.networking as net
 import bittensor.serialization as serialization
 import bittensor.utils.stats as stat_utils
-from bittensor.metagraph import Metagraph
-from bittensor.nucleus import Nucleus
-from bittensor.synapse import Synapse
 from bittensor import bittensor_pb2
 from bittensor import bittensor_pb2_grpc as bittensor_grpc
 
 
 class Axon(bittensor_grpc.BittensorServicer):
     r"""
-    A bittensor Axon serves a grpc endpoint which provides access to a single bittensor.synapse.Synapse 
+    A bittensor Axon serves a grpc endpoint which provides access to a single Synapse 
     It recieves Forward and Backward requests and process the corresponding Synapse.call_forward and Synapse.call_backward.
     
     """
-    def __init__(self, config: Munch, nucleus: Nucleus, metagraph: Metagraph):
+    def __init__(self, config: Munch = None, wallet: 'bittenosr.wallet.Wallet' = None, nucleus: 'bittensor.nucleus.Nucleus' = None, metagraph: 'bittensor.metagraph.Metagraph' = None):
         r""" Initializes a new Axon endpoint with passed config and keypair.
             Args:
-                config (:obj:`Munch`, `required`): 
-                    bittensor Munch config.
-                nucleus (:obj:`bittensor.nucleus.Nucleus`, `required`):
+                config (:obj:`Munch`, `optional`): 
+                    bittensor Axon config.
+                wallet (:obj:`bittensor.nucleus.Nucleus`, `optional`):
+                    bittensor wallet with hotkey and coldkeypub.
+                nucleus (:obj:`bittensor.nucleus.Nucleus`, `optional`):
                     backend processing nucleus.
-                metagraph (:obj:`bittensor.nucleus.Metagraph`, `required`):
+                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
                     bittensor network metagraph.
         """
+        # Deal with empty elements.
+        if config == None:
+            config = Axon.config()
         self._config = config
+
+        if wallet == None:
+            wallet = bittensor.wallet.Wallet( config = self._config )
+        self.__wallet = wallet
+        
+        if metagraph == None:
+            metagraph = bittensor.metagraph.Metagraph( config = self._config, wallet = self.__wallet )
         self._metagraph = metagraph
-        self.__keypair = config.neuron.keypair
+
+        if nucleus == None:
+            nucleus = bittensor.nucleus.Nucleus( config = self._config, wallet = self.__wallet, metagraph = self._metagraph )
         self._nucleus = nucleus
 
         # Init server objects.
@@ -101,32 +112,46 @@ class Axon(bittensor_grpc.BittensorServicer):
         return '\nAxon:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
 
     @staticmethod   
+    def config() -> Munch:
+        # Parses and returns a config Munch for this object.
+        parser = argparse.ArgumentParser(); 
+        Axon.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        Axon.check_config(config)
+        return config
+
+    @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         r""" Adds this axon's command line arguments to the passed parser.
             Args:
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
                     parser argument to append args to.
         """
-        parser.add_argument('--axon.local_port', default=8091, type=int, 
-            help='''The port this axon endpoint is served on. i.e. 8091''')
-        parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, 
-            help='''The local ip this axon binds to. ie. 0.0.0.0''')
-        parser.add_argument('--axon.use_upnpc', default=False, type=bool, 
-            help='''If true this axon will attempt to open a port on your router using upnpc.''')
-        parser.add_argument('--axon.external_ip', default=None, type=str, 
-            help='''The remote IP served to chain.
-                    This ip is subscribed to the chain on boot and is the endpoint other peers see.
-                    By default this field is None and is collected by querying a remote server during check_config. 
-                    i.e. 207.12.233.1''')
-        parser.add_argument('--axon.external_port', default=None, type=str, 
-            help='''The remote port to subscribe on chain. By default this port is the same as local_port.
-                    If use_upnpc is true this port is determined after the port mapping''')
-        parser.add_argument('--axon.max_workers', default=10, type=int, 
-            help='''The maximum number connection handler threads working simultaneously on this endpoint. 
-                    The grpc server distributes new worker threads to service requests up to this number.''')
-        parser.add_argument('--axon.max_gradients', default=100, type=int, 
-            help='''The max number of lingering gradients stored in the gradient queue.
-                    Gradients passed from other peers accumulate on this endpoint and queue in axon.gradients.''')
+        bittensor.nucleus.Nucleus.add_args(parser)
+        bittensor.metagraph.Metagraph.add_args(parser)
+        try:
+            parser.add_argument('--axon.local_port', default=8091, type=int, 
+                help='''The port this axon endpoint is served on. i.e. 8091''')
+            parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, 
+                help='''The local ip this axon binds to. ie. 0.0.0.0''')
+            parser.add_argument('--axon.use_upnpc', default=False, type=bool, 
+                help='''If true this axon will attempt to open a port on your router using upnpc.''')
+            parser.add_argument('--axon.external_ip', default=None, type=str, 
+                help='''The remote IP served to chain.
+                        This ip is subscribed to the chain on boot and is the endpoint other peers see.
+                        By default this field is None and is collected by querying a remote server during check_config. 
+                        i.e. 207.12.233.1''')
+            parser.add_argument('--axon.external_port', default=None, type=str, 
+                help='''The remote port to subscribe on chain. By default this port is the same as local_port.
+                        If use_upnpc is true this port is determined after the port mapping''')
+            parser.add_argument('--axon.max_workers', default=10, type=int, 
+                help='''The maximum number connection handler threads working simultaneously on this endpoint. 
+                        The grpc server distributes new worker threads to service requests up to this number.''')
+            parser.add_argument('--axon.max_gradients', default=100, type=int, 
+                help='''The max number of lingering gradients stored in the gradient queue.
+                        Gradients passed from other peers accumulate on this endpoint and queue in axon.gradients.''')
+        except:
+            pass
 
     @staticmethod   
     def check_config(config: Munch):
@@ -135,28 +160,32 @@ class Axon(bittensor_grpc.BittensorServicer):
                 config (:obj:`munch.Munch, `required`): 
                     config to check.
         """
+        bittensor.nucleus.Nucleus.check_config(config)
+        bittensor.metagraph.Metagraph.check_config(config)
         assert config.axon.local_port > 1024 and config.axon.local_port < 65535, 'config.axon.local_port must be in range [1024, 65535]'
 
         # Attain external ip.
-        try:
-            config.axon.external_ip = net.get_external_ip()
-        except net.ExternalIPNotFound as external_port_exception:
-            logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
-            raise external_port_exception
-
-        # Optionally: use upnpc to map your router to the local host.
-        if config.axon.use_upnpc:
-            # Open a port on your router
-            logger.info('UPNPC: ON')
+        if config.axon.external_ip == None:
             try:
-                config.axon.external_port = net.upnpc_create_port_map(local_port = config.axon.local_port)
-            except net.UPNPCException as upnpc_exception:
+                config.axon.external_ip = net.get_external_ip()
+            except net.ExternalIPNotFound as external_port_exception:
                 logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
-                raise upnpc_exception
-        # Falls back to using your provided local_port.
-        else:
-            logger.info('UPNPC: OFF')
-            config.axon.external_port = config.axon.local_port
+                raise external_port_exception
+
+        if config.axon.external_port == None:
+            # Optionally: use upnpc to map your router to the local host.
+            if config.axon.use_upnpc:
+                # Open a port on your router
+                logger.info('UPNPC: ON')
+                try:
+                    config.axon.external_port = net.upnpc_create_port_map(local_port = config.axon.local_port)
+                except net.UPNPCException as upnpc_exception:
+                    logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
+                    raise upnpc_exception
+            # Falls back to using your provided local_port.
+            else:
+                logger.info('UPNPC: OFF')
+                config.axon.external_port = config.axon.local_port
 
         logger.info('Using external endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
         logger.info('Using local endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
@@ -191,19 +220,20 @@ class Axon(bittensor_grpc.BittensorServicer):
             except net.UPNPCException:
                 # Catch but continue.
                 logger.error('Error while trying to destroy port map on your router.')
-        logger.info('Shutting down the Nucleus...')
-        self._nucleus.stop()
+        logger.info('Shutting down the nucleus.Nucleus...')
+        if self._nucleus != None:
+            self._nucleus.stop()
         if self._server != None:
             self._server.stop(0)
 
 
-    def serve(self, synapse: Synapse):
+    def serve(self, synapse: bittensor.synapse.Synapse):
         r""" Set the synapse being served on this axon endpoint. 
             This object's call_forward and call_backward will be 
             called on incoming Forward and Backward requests respectively.
 
             Args:
-                synapse (:obj:`bittensor.synapse.Synapse`, `required`): 
+                synapse (:obj:`bittensor.synapse.synapse.Synapse`, `required`): 
                     synpase object to serve.
         """
         self.synapse = synapse
@@ -260,7 +290,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         tensor, message, code = self._forward(request)
         response = bittensor_pb2.TensorMessage(
             version = bittensor.__version__, 
-            public_key = self.__keypair.public_key, 
+            public_key = self.__wallet.keypair.public_key, 
             return_code = code,
             message = message,
             tensors = [tensor] if tensor is not None else [],
@@ -289,7 +319,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         tensor, message, code = self._backward(request)
         response = bittensor_pb2.TensorMessage(
             version = bittensor.__version__, 
-            public_key = self.__keypair.public_key, 
+            public_key = self.__wallet.keypair.public_key, 
             return_code = code,
             message = message,
             tensors = [tensor] if tensor is not None else [],
@@ -369,7 +399,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         # --- Get call priority ----
         call_priority = self.get_call_priority(request)
 
-        # ---- Make Nucleus forward call. ----
+        # ---- Make nucleus.Nucleus forward call. ----
         try:
             outputs, message, code = self._nucleus.forward(
                 synapse = self.synapse.to(self.synapse.device), 
@@ -378,7 +408,7 @@ class Axon(bittensor_grpc.BittensorServicer):
                 priority = call_priority
             )
 
-            # ---- Catch Nucleus errors ----
+            # ---- Catch nucleus.Nucleus errors ----
             if code != bittensor_pb2.ReturnCode.Success:
                 return None, message, code
 
@@ -454,7 +484,7 @@ class Axon(bittensor_grpc.BittensorServicer):
         except queue.Full:
             logger.trace('gradient queue is full at size: {}', self.gradients.qsize())
 
-        # ---- Nucleus backward call ----
+        # ---- nucleus.Nucleus backward call ----
         try:
             outputs, message, code = self._nucleus.backward(
                     synapse = self.synapse, 
