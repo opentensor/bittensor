@@ -22,10 +22,11 @@ from bittensor.exceptions.handlers import rollbar
 
 class Dendrite(nn.Module):
     r"""
-    Bittensor object used to make calls to the network. It can be called like a normal torch nn.Module and is differentiable. 
-    Messages passed through this module will be sent to neuron objects, either remote or local, and return responses as torch tensors. 
-    Gradients passing through this module on a .backward() call will trigger a Backward rpc calls to the axon terminals of downstream neurons 
-    called during associated Forward operation.
+        Creates Forward and Backward calls to other neurons on the network. It behaves like a normal torch nn.Module and is differentiable. 
+    
+        Messages passed through this module will be sent to other neuron objects, either remote or local, and return responses as torch tensors. 
+        Gradients passing through this module on a .backward() call will trigger Backward rpc calls to the axon terminals of the downstream neurons 
+        called during associated Forward operation.
     """
 
     def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, metagraph: 'bittensor.metagraph.Metagraph' = None):

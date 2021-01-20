@@ -44,6 +44,6 @@ def test_client():
     request = bittensor.proto.TensorMessage()
     stub.Forward(request)
 
-    request = bittensor.pb2.TensorMessage()
+    request = bittensor.proto.TensorMessage()
     stub.Backward(request)
     server.stop(0)
