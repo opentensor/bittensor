@@ -44,8 +44,6 @@ def setup_chain():
         logger.error("make sure the NODE_SUBTENSOR_BIN env var is set and points to the node-subtensor binary")
         quit()
 
-    path = "/home/rawa/projects/subtensor/bin/release/node-subtensor"
-
     # Select a port
     port = select_port()
 
