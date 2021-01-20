@@ -40,40 +40,55 @@ class Axon(bittensor.grpc.BittensorServicer):
                 metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
                     bittensor network metagraph.
         """
-        # Deal with empty elements.
+        # Config: Holds all config items for this items and those that are recursively defined. For instance,
+        # config for the wallet, metagraph, and nucleus sub-objects.
         if config == None:
             config = Axon.build_config()
         self.config = config
 
+        # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
+        # and subscribe to the chain.
         if wallet == None:
             wallet = bittensor.wallet.Wallet( config = self.config )
         self.wallet = wallet
         
+        # Metagraph: Maintains a connection to the subtensor chain, and periodically updates with a sync()
+        # The metagraph can be queried for the latest information about stake and weight matrix state.
         if metagraph == None:
             metagraph = bittensor.metagraph.Metagraph( config = self.config, wallet = self.wallet )
         self.metagraph = metagraph
 
+        # Nucleus: Request processing object. The Axon servicer passes requests to this
+        # object to perform the actual computation. Can be ripped out and replaced with various
+        # computational objects.
         if nucleus == None:
             nucleus = bittensor.nucleus.Nucleus( config = self.config, wallet = self.wallet, metagraph = self.metagraph )
         self.nucleus = nucleus
 
-        # Init server objects.
+        # Server: by default the axon serves an RPC server in its own thread using GPRC.
+        # The servicer must implement Forward and Backward methods to properly communicate with
+        # the other peers in the network.
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=self.config.axon.max_workers))
         bittensor.grpc.add_BittensorServicer_to_server(self, self._server)
         self._server.add_insecure_port('[::]:' + str(self.config.axon.local_port))
 
-        # Local synapse to serve.
+        # Local Synapse: The synapse object that will be served to the network on this endpoint.
+        # Must be set by calling axon.server( synapse_object ). This object is not copied by default 
+        # and therefore should be threadsafe when run with any nucleus that alos runs in a separate thread 
+        # to the main training thread. 
         self.synapse = None
-        self.priority = {}
-        self._next_unknown_priority_increment = 0 
 
-        # Gradient queue
+        # A map between public key and processing priority.
+        self.priority = {}
+
+        # Gradient queue: A queue of (input, gradient) tuples.
         self.gradients = queue.PriorityQueue(maxsize = self.config.axon.max_gradients)
 
-        # Serving thread.
+        # Serving thread: A thread which runs the axon servicer passing items to the nucleus for
+        # further processing.
         self._thread = None
 
-        # Stats.
+        # Stats: Memory of network statistics, QPS and bytes in and out for instance.
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -83,194 +98,10 @@ class Axon(bittensor.grpc.BittensorServicer):
             qps_per_uid = {},
         )
 
-    def __str__(self):
-        total_in_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'red')
-        total_out_bytes_str = colored('\u290A {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'green')
-        qps_str = colored("{:.3f}".format(float(self.stats.qps.value)), 'blue')
-        return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
-    
-    def __to_tensorboard__(self, tensorboard, global_step):
-        total_in_bytes = (self.stats.total_in_bytes.value * 8)/1000
-        total_out_bytes = (self.stats.total_out_bytes.value * 8)/1000
-        tensorboard.add_scalar("Axon/total_in_bytes", total_in_bytes, global_step)
-        tensorboard.add_scalar("Axon/total_in_bytes", total_out_bytes, global_step)
-        tensorboard.add_scalar("Axon/Queries/Sec", self.stats.qps.value, global_step)
-
-    def __full_str__(self):
-        uids = list(self.stats.in_bytes_per_uid.keys())
-        bytes_in = [avg.value * (8/1000) for avg in self.stats.in_bytes_per_uid.values()]
-        bytes_out = [avg.value * (8/1000) for avg in self.stats.in_bytes_per_uid.values()]
-        qps = [qps.value for qps in self.stats.qps_per_uid.values()]
-        rows = [bytes_out, bytes_in, qps]
-        df = pd.DataFrame(rows, columns=uids)
-        df = df.rename(index={df.index[0]: colored('\u290A kB/s', 'green')})
-        df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
-        df = df.rename(index={df.index[2]: colored('Q/s', 'blue')})
-        return '\nAxon:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
-
-    @staticmethod   
-    def build_config() -> Munch:
-        # Parses and returns a config Munch for this object.
-        parser = argparse.ArgumentParser(); 
-        Axon.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        Axon.check_config(config)
-        return config
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        r""" Adds this axon's command line arguments to the passed parser.
-            Args:
-                parser (:obj:`argparse.ArgumentParser`, `required`): 
-                    parser argument to append args to.
-        """
-        bittensor.nucleus.Nucleus.add_args(parser)
-        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
-        try:
-            parser.add_argument('--axon.local_port', default=8091, type=int, 
-                help='''The port this axon endpoint is served on. i.e. 8091''')
-            parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, 
-                help='''The local ip this axon binds to. ie. 0.0.0.0''')
-            parser.add_argument('--axon.use_upnpc', default=False, type=bool, 
-                help='''If true this axon will attempt to open a port on your router using upnpc.''')
-            parser.add_argument('--axon.external_ip', default=None, type=str, 
-                help='''The remote IP served to chain.
-                        This ip is subscribed to the chain on boot and is the endpoint other peers see.
-                        By default this field is None and is collected by querying a remote server during check_config. 
-                        i.e. 207.12.233.1''')
-            parser.add_argument('--axon.external_port', default=None, type=str, 
-                help='''The remote port to subscribe on chain. By default this port is the same as local_port.
-                        If use_upnpc is true this port is determined after the port mapping''')
-            parser.add_argument('--axon.max_workers', default=10, type=int, 
-                help='''The maximum number connection handler threads working simultaneously on this endpoint. 
-                        The grpc server distributes new worker threads to service requests up to this number.''')
-            parser.add_argument('--axon.max_gradients', default=100, type=int, 
-                help='''The max number of lingering gradients stored in the gradient queue.
-                        Gradients passed from other peers accumulate on this endpoint and queue in axon.gradients.''')
-        except:
-            pass
-
-    @staticmethod   
-    def check_config(config: Munch):
-        r""" Checks the passed config items for validity and obtains the remote ip.
-            Args:
-                config (:obj:`munch.Munch, `required`): 
-                    config to check.
-        """
-        bittensor.nucleus.Nucleus.check_config(config)
-        bittensor.metagraph.Metagraph.check_config(config) # Also checks for wallet.
-        assert config.axon.local_port > 1024 and config.axon.local_port < 65535, 'config.axon.local_port must be in range [1024, 65535]'
-
-        # Attain external ip.
-        if config.axon.external_ip == None:
-            try:
-                config.axon.external_ip = net.get_external_ip()
-            except net.ExternalIPNotFound as external_port_exception:
-                logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
-                raise external_port_exception
-
-        if config.axon.external_port == None:
-            # Optionally: use upnpc to map your router to the local host.
-            if config.axon.use_upnpc:
-                # Open a port on your router
-                logger.info('UPNPC: ON')
-                try:
-                    config.axon.external_port = net.upnpc_create_port_map(local_port = config.axon.local_port)
-                except net.UPNPCException as upnpc_exception:
-                    logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
-                    raise upnpc_exception
-            # Falls back to using your provided local_port.
-            else:
-                logger.info('UPNPC: OFF')
-                config.axon.external_port = config.axon.local_port
-
-        logger.info('Using external endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
-        logger.info('Using local endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
-
-    def __del__(self):
-        r""" Called when this axon is deleted, ensures background threads shut down properly.
-        """
-        self.stop()
-
-    def start(self):
-        r""" Starts the standalone axon GRPC server thread.
-        """
-        # Serving thread.
-        self._thread = threading.Thread(target=self._serve, daemon=False)
-        self._thread.start()
-
-    def _serve(self):
-        try:
-            self._server.start()
-        except (KeyboardInterrupt, SystemExit):
-            self.stop()
-        except Exception as e:
-            logger.error(e)
-
-    def stop(self):
-        r""" Stop the axon grpc server.
-        """
-        # Delete port maps if required.
-        if self.config.axon.use_upnpc:
-            try:
-                net.upnpc_delete_port_map(self.config.axon.external_port)
-            except net.UPNPCException:
-                # Catch but continue.
-                logger.error('Error while trying to destroy port map on your router.')
-        logger.info('Shutting down the nucleus.Nucleus...')
-        if self.nucleus != None:
-            self.nucleus.stop()
-        if self._server != None:
-            self._server.stop(0)
-
-
-    def serve(self, synapse: 'bittensor.synapse.Synapse'):
-        r""" Set the synapse being served on this axon endpoint. 
-            This object's call_forward and call_backward will be 
-            called on incoming Forward and Backward requests respectively.
-
-            Args:
-                synapse (:obj:`bittensor.synapse.synapse.Synapse`, `required`): 
-                    synpase object to serve.
-        """
-        self.synapse = synapse
-
-    def set_priority(self, neurons: List[bittensor.proto.Neuron], priority: torch.FloatTensor):
-        r""" Set the serving priority for requests on the served synapse. 
-            Float values must are normalized to 1.
-            
-            Args:
-                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
-                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
-
-                priority (:obj:`torch.FloatTnsor` of shape :obj:`(num_neurons)`, `required`): 
-                    call priority for neurons on endpoint.
-        """
-        assert priority.shape[0] == len(neurons), 'priority for neurons must of the same length'
-        if torch.sum(priority) != 0:
-            priority = torch.true_divide(priority, torch.sum(priority))
-        priority_map = {}
-        for neuron, priority in list(zip(neurons, priority.tolist())):
-            priority_map[neuron.public_key] = priority
-        self.priority = priority_map
-
-    def get_call_priority(self, request: bittensor.proto.TensorMessage):
-        if request.public_key in self.priority:
-            call_priority = self.priority[request.public_key]
-        else:
-            try:
-                uid = self.metagraph.state.uid_for_pubkey[request.public_key]
-                idx = int(self.metagraph.uids_to_indices(torch.tensor([uid])).item())
-                call_priority = self.metagraph.incentive[idx]
-            except Exception as e:
-                call_priority = 0.0
-        call_priority += random.random() * 0.0001
-        return call_priority
-
     def Forward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
             Forward is equivalent to a 'forward' pass through a neural network.
-            After checking request validity, passes the request to the nucleus for processing.
+            After checking request validity, this function passes the request to the nucleus for processing.
             See bittensor.proto.ReturnCode for all possible return codes.
             Args:
                 request (:obj:`bittensor.proto`, `required`): 
@@ -506,6 +337,49 @@ class Axon(bittensor.grpc.BittensorServicer):
         # ---- Finaly return ----
         return outputs_serialized, message, code
 
+    def serve(self, synapse: 'bittensor.synapse.Synapse'):
+        r""" Set the synapse being served on this axon endpoint. 
+            This object's call_forward and call_backward will be 
+            called on incoming Forward and Backward requests respectively.
+
+            Args:
+                synapse (:obj:`bittensor.synapse.synapse.Synapse`, `required`): 
+                    synpase object to serve.
+        """
+        self.synapse = synapse
+
+    def set_priority(self, neurons: List[bittensor.proto.Neuron], priority: torch.FloatTensor):
+        r""" Set the serving priority for requests on the served synapse. 
+            Float values must are normalized to 1.
+            
+            Args:
+                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
+
+                priority (:obj:`torch.FloatTnsor` of shape :obj:`(num_neurons)`, `required`): 
+                    call priority for neurons on endpoint.
+        """
+        assert priority.shape[0] == len(neurons), 'priority for neurons must of the same length'
+        if torch.sum(priority) != 0:
+            priority = torch.true_divide(priority, torch.sum(priority))
+        priority_map = {}
+        for neuron, priority in list(zip(neurons, priority.tolist())):
+            priority_map[neuron.public_key] = priority
+        self.priority = priority_map
+
+    def get_call_priority(self, request: bittensor.proto.TensorMessage):
+        if request.public_key in self.priority:
+            call_priority = self.priority[request.public_key]
+        else:
+            try:
+                uid = self.metagraph.state.uid_for_pubkey[request.public_key]
+                idx = int(self.metagraph.uids_to_indices(torch.tensor([uid])).item())
+                call_priority = self.metagraph.incentive[idx]
+            except Exception as e:
+                call_priority = 0.0
+        call_priority += random.random() * 0.0001
+        return call_priority
+
 
     def update_stats_for_request(self, request, response):
         self.stats.qps.update(1)
@@ -525,6 +399,146 @@ class Axon(bittensor.grpc.BittensorServicer):
                 self.stats.out_bytes_per_uid[request_uid] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
                 self.stats.qps_per_uid[request_uid] = stat_utils.timed_rolling_avg(1, 0.01)
 
+
+    def __str__(self):
+        total_in_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'red')
+        total_out_bytes_str = colored('\u290A {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'green')
+        qps_str = colored("{:.3f}".format(float(self.stats.qps.value)), 'blue')
+        return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
+    
+    def __to_tensorboard__(self, tensorboard, global_step):
+        total_in_bytes = (self.stats.total_in_bytes.value * 8)/1000
+        total_out_bytes = (self.stats.total_out_bytes.value * 8)/1000
+        tensorboard.add_scalar("Axon/total_in_bytes", total_in_bytes, global_step)
+        tensorboard.add_scalar("Axon/total_in_bytes", total_out_bytes, global_step)
+        tensorboard.add_scalar("Axon/Queries/Sec", self.stats.qps.value, global_step)
+
+    def __full_str__(self):
+        uids = list(self.stats.in_bytes_per_uid.keys())
+        bytes_in = [avg.value * (8/1000) for avg in self.stats.in_bytes_per_uid.values()]
+        bytes_out = [avg.value * (8/1000) for avg in self.stats.in_bytes_per_uid.values()]
+        qps = [qps.value for qps in self.stats.qps_per_uid.values()]
+        rows = [bytes_out, bytes_in, qps]
+        df = pd.DataFrame(rows, columns=uids)
+        df = df.rename(index={df.index[0]: colored('\u290A kB/s', 'green')})
+        df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
+        df = df.rename(index={df.index[2]: colored('Q/s', 'blue')})
+        return '\nAxon:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
+
+    @staticmethod   
+    def build_config() -> Munch:
+        # Parses and returns a config Munch for this object.
+        parser = argparse.ArgumentParser(); 
+        Axon.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        Axon.check_config(config)
+        return config
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser):
+        r""" Adds this axon's command line arguments to the passed parser.
+            Args:
+                parser (:obj:`argparse.ArgumentParser`, `required`): 
+                    parser argument to append args to.
+        """
+        bittensor.nucleus.Nucleus.add_args(parser)
+        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
+        try:
+            parser.add_argument('--axon.local_port', default=8091, type=int, 
+                help='''The port this axon endpoint is served on. i.e. 8091''')
+            parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, 
+                help='''The local ip this axon binds to. ie. 0.0.0.0''')
+            parser.add_argument('--axon.use_upnpc', default=False, type=bool, 
+                help='''If true this axon will attempt to open a port on your router using upnpc.''')
+            parser.add_argument('--axon.external_ip', default=None, type=str, 
+                help='''The remote IP served to chain.
+                        This ip is subscribed to the chain on boot and is the endpoint other peers see.
+                        By default this field is None and is collected by querying a remote server during check_config. 
+                        i.e. 207.12.233.1''')
+            parser.add_argument('--axon.external_port', default=None, type=str, 
+                help='''The remote port to subscribe on chain. By default this port is the same as local_port.
+                        If use_upnpc is true this port is determined after the port mapping''')
+            parser.add_argument('--axon.max_workers', default=10, type=int, 
+                help='''The maximum number connection handler threads working simultaneously on this endpoint. 
+                        The grpc server distributes new worker threads to service requests up to this number.''')
+            parser.add_argument('--axon.max_gradients', default=100, type=int, 
+                help='''The max number of lingering gradients stored in the gradient queue.
+                        Gradients passed from other peers accumulate on this endpoint and queue in axon.gradients.''')
+        except:
+            pass
+
+    @staticmethod   
+    def check_config(config: Munch):
+        r""" Checks the passed config items for validity and obtains the remote ip.
+            Args:
+                config (:obj:`munch.Munch, `required`): 
+                    config to check.
+        """
+        bittensor.nucleus.Nucleus.check_config(config)
+        bittensor.metagraph.Metagraph.check_config(config) # Also checks for wallet.
+        assert config.axon.local_port > 1024 and config.axon.local_port < 65535, 'config.axon.local_port must be in range [1024, 65535]'
+
+        # Attain external ip.
+        if config.axon.external_ip == None:
+            try:
+                config.axon.external_ip = net.get_external_ip()
+            except net.ExternalIPNotFound as external_port_exception:
+                logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
+                raise external_port_exception
+
+        if config.axon.external_port == None:
+            # Optionally: use upnpc to map your router to the local host.
+            if config.axon.use_upnpc:
+                # Open a port on your router
+                logger.info('UPNPC: ON')
+                try:
+                    config.axon.external_port = net.upnpc_create_port_map(local_port = config.axon.local_port)
+                except net.UPNPCException as upnpc_exception:
+                    logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
+                    raise upnpc_exception
+            # Falls back to using your provided local_port.
+            else:
+                logger.info('UPNPC: OFF')
+                config.axon.external_port = config.axon.local_port
+
+        logger.info('Using external endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
+        logger.info('Using local endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
+
+    def __del__(self):
+        r""" Called when this axon is deleted, ensures background threads shut down properly.
+        """
+        self.stop()
+
+    def start(self):
+        r""" Starts the standalone axon GRPC server thread.
+        """
+        # Serving thread.
+        self._thread = threading.Thread(target=self._serve, daemon=False)
+        self._thread.start()
+
+    def _serve(self):
+        try:
+            self._server.start()
+        except (KeyboardInterrupt, SystemExit):
+            self.stop()
+        except Exception as e:
+            logger.error(e)
+
+    def stop(self):
+        r""" Stop the axon grpc server.
+        """
+        # Delete port maps if required.
+        if self.config.axon.use_upnpc:
+            try:
+                net.upnpc_delete_port_map(self.config.axon.external_port)
+            except net.UPNPCException:
+                # Catch but continue.
+                logger.error('Error while trying to destroy port map on your router.')
+        logger.info('Shutting down the nucleus.Nucleus...')
+        if self.nucleus != None:
+            self.nucleus.stop()
+        if self._server != None:
+            self._server.stop(0)
 
 
 
