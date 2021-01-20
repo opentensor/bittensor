@@ -27,6 +27,7 @@ py-ed25519-bindings==0.1.1
 py-bip39-bindings>=0.1.6
 pytest-asyncio
 pytest>=6.1.2
+pytest-xdist==2.2.0
 pytorch_transformers
 pyyaml
 rollbar
