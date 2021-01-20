@@ -107,6 +107,7 @@ class Session():
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
         parser.add_argument('--session.custom_datasets', default="./genesis_dataset/", type=str, help='Custom datasets to train on.')
+        parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         GPT2LMSynapse.add_args(parser)
         Neuron.add_args(parser)
 
