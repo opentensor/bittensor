@@ -1,4 +1,6 @@
 mkdir -p ~/.bittensor/wallets/default/hotkeys
+rm ~/.bittensor/wallets/default/coldkeypub.txt
+rm ~/.bittensor/wallets/default/hotkeys/default
 touch ~/.bittensor/wallets/default/coldkeypub.txt
 touch ~/.bittensor/wallets/default/hotkeys/default
 echo "0x74acaa8d7829336dfff7569f19225818cc593335b9aafcde3f69db23c3538561" >> ~/.bittensor/wallets/default/coldkeypub.txt
