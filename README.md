@@ -22,8 +22,8 @@ $ bittensor-cli new_wallet                                                      
 
 # Run
 ```
-$ python examples/gpt2-wiki.py   --session.trial_uid=test                           # Train gpt2 on wiki-text
-$ tensorboard --logdir=~/.bittensor/sessions/gpt2-wiki/test                          # Serve tensorboard
+$ python examples/TEXT/gpt2-wiki.py   --session.trial_uid=test                      # Train gpt2 on wiki-text
+$ tensorboard --logdir=~/.bittensor/sessions/gpt2-wiki/test                         # Serve tensorboard
 ```
 
 # Validate
@@ -36,7 +36,7 @@ $ ./bin/release/node-subtensor                                                  
 
 ### License
 The MIT License (MIT)
-Copyright © 2020 <copyright holders>
+Copyright © 2021 opentensor.ai
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
