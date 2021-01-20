@@ -259,7 +259,7 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    dendrite (:obj:`SimpleNamespace`, `required`): 
+                    router (:obj:`SimpleNamespace`, `required`): 
                         Outputs from the pkm dendrite.
             )
         """
@@ -273,8 +273,8 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.dendrite = self.router.forward_text(neuron, inputs.to(self.device), pooled)
-        remote_context = output.dendrite.response
+        output.router = self.router.forward_text(neuron, inputs.to(self.device), pooled)
+        remote_context = output.router.response
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]

@@ -24,12 +24,13 @@ Simple feed forward NN for images.
 """
 
 import argparse
-from types import SimpleNamespace
-from munch import Munch
-from loguru import logger
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from types import SimpleNamespace
+from munch import Munch
+from loguru import logger
 
 import bittensor
 from bittensor.routers.pkm import PKMRouter
@@ -212,7 +213,7 @@ class FFNNSynapse(bittensor.synapse.Synapse):
             Returns:
                 self.local_forward() + SimpleNamespace ( 
 
-                    dendrite (:obj:`SimpleNamespace`, `required`): 
+                    router (:obj:`SimpleNamespace`, `required`): 
                         Outputs from the pkm dendrite remote call.
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
@@ -236,8 +237,8 @@ class FFNNSynapse(bittensor.synapse.Synapse):
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         images = torch.unsqueeze(images, 1)
-        output.dendrite = self.router.forward_image( neuron, images, output.local_hidden )
-        remote_context = torch.squeeze( output.dendrite.response, 1 ).to(self.device)
+        output.router = self.router.forward_image( neuron, images, output.local_hidden )
+        remote_context = torch.squeeze( output.router.response, 1 ).to(self.device)
 
         # Distill the local context to match the remote context.
         # distillation_loss: distillation loss between local_context and remote_context
