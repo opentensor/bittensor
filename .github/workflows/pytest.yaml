@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   build:
-    runs-on: beast
+    runs-on: self-hosted
     strategy:
       matrix:
         python-version: [3.8]
