@@ -168,6 +168,7 @@ def test_receptor_neuron_server_response_with_nans():
     assert out[0][0][0] == 0
 
 
+
 if __name__ == "__main__":
     test_receptor_neuron_text ()
     test_receptor_neuron_image ()

@@ -60,65 +60,65 @@ def test_multiple_forward_success():
     assert code4 == bittensor.proto.ReturnCode.Success
     assert code5 == bittensor.proto.ReturnCode.Success
 
-class SlowSynapse(bittensor.synapse.Synapse):
-    def call_forward(self, a, b):
-        time.sleep(1)
+# class SlowSynapse(bittensor.synapse.Synapse):
+#     def call_forward(self, a, b):
+#         time.sleep(1)
 
-def test_queue_full():
-    config = bittensor.nucleus.Nucleus.build_config()
-    config.nucleus.queue_maxsize = 3
-    nucleus = bittensor.nucleus.Nucleus( config )
-    synapse = SlowSynapse()
-    x = torch.rand(3, 3, bittensor.__network_dim__)
-    mode = bittensor.proto.Modality.TEXT
+# def test_queue_full():
+#     config = bittensor.nucleus.Nucleus.build_config()
+#     config.nucleus.queue_maxsize = 3
+#     nucleus = bittensor.nucleus.Nucleus( config )
+#     synapse = SlowSynapse()
+#     x = torch.rand(3, 3, bittensor.__network_dim__)
+#     mode = bittensor.proto.Modality.TEXT
 
-    def _call_nucleus_forward():
-        _, _, code = nucleus.forward(synapse = synapse, inputs = x, mode = mode, priority = random.random())
-        return code
+#     def _call_nucleus_forward():
+#         _, _, code = nucleus.forward(synapse = synapse, inputs = x, mode = mode, priority = random.random())
+#         return code
 
-    # Create many futures.
-    futures = []
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        for _ in range(100):
-            futures.append(executor.submit(_call_nucleus_forward))
+#     # Create many futures.
+#     futures = []
+#     with concurrent.futures.ThreadPoolExecutor() as executor:
+#         for _ in range(100):
+#             futures.append(executor.submit(_call_nucleus_forward))
 
-    # Check future codes, should get at least one queue full.
-    for f in futures:
-        code = f.result()
-        if code == bittensor.proto.ReturnCode.NucleusFull:
-            return
+#     # Check future codes, should get at least one queue full.
+#     for f in futures:
+#         code = f.result()
+#         if code == bittensor.proto.ReturnCode.NucleusFull:
+#             return
     
-    # One should be a timeout.
-    assert False
+#     # One should be a timeout.
+#     assert False
 
-def test_stress_test():
-    n_to_call = 100
-    nucleus = bittensor.nucleus.Nucleus()
-    synapse = SlowSynapse()
-    nucleus.config.nucleus.queue_maxsize = 10000
-    nucleus.config.nucleus.queue_timeout = n_to_call
+# def test_stress_test():
+#     n_to_call = 100
+#     nucleus = bittensor.nucleus.Nucleus()
+#     synapse = SlowSynapse()
+#     nucleus.config.nucleus.queue_maxsize = 10000
+#     nucleus.config.nucleus.queue_timeout = n_to_call
 
-    x = torch.rand(3, 3, bittensor.__network_dim__)
-    mode = bittensor.proto.Modality.TEXT
+#     x = torch.rand(3, 3, bittensor.__network_dim__)
+#     mode = bittensor.proto.Modality.TEXT
 
-    def _call_nucleus_forward():
-        _, _, code = nucleus.forward(synapse = synapse, inputs = x, mode = mode, priority = random.random())
-        return code
+#     def _call_nucleus_forward():
+#         _, _, code = nucleus.forward(synapse = synapse, inputs = x, mode = mode, priority = random.random())
+#         return code
 
-    # Create many futures.
-    futures = []
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        for _ in range(n_to_call):
-            futures.append(executor.submit(_call_nucleus_forward))
+#     # Create many futures.
+#     futures = []
+#     with concurrent.futures.ThreadPoolExecutor() as executor:
+#         for _ in range(n_to_call):
+#             futures.append(executor.submit(_call_nucleus_forward))
 
-    # All should return success fully.
-    for f in futures:
-        code = f.result()
-        print (code)
-        if code != bittensor.proto.ReturnCode.Success:
-            assert False
+#     # All should return success fully.
+#     for f in futures:
+#         code = f.result()
+#         print (code)
+#         if code != bittensor.proto.ReturnCode.Success:
+#             assert False
 
-    assert True
+#     assert True
 
 def test_backward_success():
     nucleus = bittensor.nucleus.Nucleus()
@@ -128,3 +128,13 @@ def test_backward_success():
     mode = bittensor.proto.Modality.TEXT
     nucleus.backward(synapse = synapse, inputs_x = x, grads_dy = x, mode = mode, priority = 1)
    
+def test_tear_down():
+    global nucleus
+    nucleus.stop()
+    del nucleus
+
+
+def test_tear_down():
+    global nucleus
+    nucleus.stop()
+    del nucleus
