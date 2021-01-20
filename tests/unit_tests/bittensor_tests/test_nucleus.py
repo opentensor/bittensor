@@ -84,7 +84,7 @@ class SlowSynapse(bittensor.synapse.Synapse):
         time.sleep(1)
 
 def test_queue_full():
-    config.nucleus.queue_maxsize = 10
+    config.nucleus.queue_maxsize = 3
     nucleus = Nucleus(config, metagraph)
     synapse = SlowSynapse(None)
     x = torch.rand(3, 3, bittensor.__network_dim__)
