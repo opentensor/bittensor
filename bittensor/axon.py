@@ -247,8 +247,8 @@ class Axon(bittensor.grpc.BittensorServicer):
                     call priority for neurons on endpoint.
         """
         assert priority.shape[0] == len(neurons), 'priority for neurons must of the same length'
-        if torch.sum(priority) != 0 and torch.sum(priority) != 0:
-            priority = priority / torch.sum(priority)
+        if torch.sum(priority) != 0:
+            priority = torch.true_divide(priority, torch.sum(priority))
         priority_map = {}
         for neuron, priority in list(zip(neurons, priority.tolist())):
             priority_map[neuron.public_key] = priority
@@ -293,7 +293,6 @@ class Axon(bittensor.grpc.BittensorServicer):
             tensors = [tensor] if tensor is not None else [],
         )
 
-
         # ---- Update stats for this request.
         self.update_stats_for_request(request, response)
         return response
@@ -322,7 +321,6 @@ class Axon(bittensor.grpc.BittensorServicer):
             tensors = [tensor] if tensor is not None else [],
         )
 
-       
         self.update_stats_for_request(request, response)
         return response
             
