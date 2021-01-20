@@ -1,10 +1,9 @@
 <div align="center">
 
 # **Bittensor**
-[!Build status](https://github.com/opentensor/bittensor/workflows/pytest/badge.svg)
+[![Build status](https://circleci.com/gh/opentensor/bittensor.svg?style=shield)](https://circleci.com/gh/opentensor/bittensor)
 [![Documentation Status](https://readthedocs.org/projects/bittensor-docs/badge/?version=latest)](https://bittensor-docs.readthedocs.io/en/latest/?badge=latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 
 ### Incentivized Peer to Peer Neural Networks
 
