@@ -1,4 +1,6 @@
 import asyncio
+import random
+import subprocess
 from typing import List
 
 from bittensor.balance import Balance
@@ -6,19 +8,68 @@ from bittensor.subtensor.client import WSClient
 from bittensor.subtensor.interface import Keypair
 from loguru import logger
 import pytest
+import os
+import sys
 
 # logger.remove() # Shut up loguru
+from pytest import fixture
+import time
 
-def connect(keypair):
-    socket = "localhost:9944"
+@pytest.fixture(scope="session", autouse=True)
+def initialize_tests():
+    # Kill any running process before running tests
+    os.system("pkill node-subtensor")
+
+
+
+def select_port():
+    port = random.randrange(1000, 65536, 5)
+
+    # Check if port is in use
+    proc1 = subprocess.Popen(['ss', '-tulpn'], stdout=subprocess.PIPE)
+    proc2 = subprocess.Popen(['grep', str(port)], stdin=proc1.stdout,
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    output = proc2.stdout
+
+    if str(port) in output:
+        return select_port()
+    else:
+        return port
+
+
+@fixture(scope="function")
+def setup_chain():
+    path = os.getenv("NODE_SUBTENSOR_BIN", None)
+    if not path:
+        logger.error("make sure the NODE_SUBTENSOR_BIN env var is set and points to the node-subtensor binary")
+        quit()
+
+    path = "/home/rawa/projects/subtensor/bin/release/node-subtensor"
+
+    # Select a port
+    port = select_port()
+
+    proc = subprocess.Popen([path, '--dev', '--port', str(port+1), '--ws-port', str(port), '--rpc-port', str(port + 2), '--tmp'], close_fds=True, shell=False)
+
+    # Wait 2 seconds for the node to come up
+    time.sleep(2)
+
+    yield port
+
+    # Kill process
+    os.system("kill %i" % proc.pid)
+
+
+def connect(keypair, port):
+    socket = "localhost:%i" % port
     client = WSClient(socket, keypair)
 
     client.connect()
     return client
 
 
-async def add_stake(coldkeypair : Keypair, hotkeypair : Keypair, amount : Balance):
-    client = connect(coldkeypair)
+async def add_stake(port, coldkeypair : Keypair, hotkeypair : Keypair, amount : Balance):
+    client = connect(coldkeypair, port)
     await client.is_connected()
 
     # Get the uid of the new neuron
@@ -41,9 +92,10 @@ connect() tests
 '''
 
 @pytest.mark.asyncio
-async def test_connect_success():
+async def test_connect_success(setup_chain):
+    logger.error(setup_chain)
     hotkeypair = Keypair.create_from_uri("//Alice")
-    client = connect(hotkeypair)
+    client = connect(hotkeypair, setup_chain)
     result = await client.is_connected()
     assert result is True
 
@@ -53,9 +105,9 @@ subscribe() tests
 '''
 
 @pytest.mark.asyncio
-async def test_subscribe_success():
+async def test_subscribe_success(setup_chain):
     hotkeypair = generate_keypair()
-    client = connect(hotkeypair)
+    client = connect(hotkeypair, setup_chain)
     coldkeypair = Keypair.create_from_uri("//Alice")
 
     await client.is_connected()
@@ -71,19 +123,19 @@ get_balance() tests
 '''
 
 @pytest.mark.asyncio
-async def test_get_balance_success():
+async def test_get_balance_success(setup_chain):
     hotkeypair = Keypair.create_from_uri("//Alice")
-    client = connect(hotkeypair)
+    client = connect(hotkeypair, setup_chain)
 
     await client.is_connected()
 
     result = await client.get_balance(hotkeypair.ss58_address)
-    assert result == Balance(pow(10, 9))
+    assert int(result) == pow(10, 9)
 
 @pytest.mark.asyncio
-async def test_get_balance_no_balance():
+async def test_get_balance_no_balance(setup_chain):
     hotkeypair = generate_keypair()
-    client = connect(hotkeypair)
+    client = connect(hotkeypair,setup_chain)
 
     await client.is_connected()
 
@@ -94,11 +146,11 @@ async def test_get_balance_no_balance():
 get_stake() tests
 '''
 @pytest.mark.asyncio
-async def test_add_stake_success():
+async def test_add_stake_success(setup_chain):
     coldkeypair = Keypair.create_from_uri("//Alice")
     hotkeypair  = generate_keypair()
 
-    client = connect(hotkeypair)
+    client = connect(hotkeypair, setup_chain)
     await client.is_connected()
 
     # Subscribe a new neuron with the hotkey
@@ -107,7 +159,7 @@ async def test_add_stake_success():
 
     # Now switch the connection the use the coldkey
 
-    client = connect(coldkeypair)
+    client = connect(coldkeypair, setup_chain)
     await client.is_connected()
 
     # Get the uid of the new neuron
@@ -138,11 +190,11 @@ What is needed is logic that handles errors generated when handling the extrinsi
 '''
 
 @pytest.mark.asyncio
-async def test_transfer_success():
+async def test_transfer_success(setup_chain):
     coldkey_alice = Keypair.create_from_uri("//Alice")
     coldkey_bob = Keypair.create_from_uri("//Bob")
 
-    client = connect(coldkey_alice)
+    client = connect(coldkey_alice, setup_chain)
     await client.is_connected()
 
     balance_alice = await client.get_balance(coldkey_alice.ss58_address)
@@ -162,11 +214,11 @@ async def test_transfer_success():
     assert balance_bob_new > balance_bob
 
 @pytest.mark.asyncio
-async def test_unstake_success():
+async def test_unstake_success(setup_chain):
     coldkeypair = Keypair.create_from_uri("//Alice")
     hotkeypair = generate_keypair()
 
-    hotkey_client = connect(hotkeypair)
+    hotkey_client = connect(hotkeypair,setup_chain)
     await hotkey_client.is_connected()
 
     # Subscribe a new neuron with the hotkey
@@ -175,7 +227,7 @@ async def test_unstake_success():
 
     # Now switch the connection the use the coldkey
 
-    coldkey_client = connect(coldkeypair)
+    coldkey_client = connect(coldkeypair, setup_chain)
     await coldkey_client.is_connected()
 
     # Get the uid of the new neuron
@@ -211,7 +263,7 @@ async def test_unstake_success():
     # Now do the actual unstake
 
     # Reconnect with coldkey account
-    coldkey_client =  connect(coldkeypair)
+    coldkey_client =  connect(coldkeypair, setup_chain)
     await coldkey_client.is_connected()
 
     # Do unstake
@@ -226,14 +278,14 @@ async def test_unstake_success():
     assert int(new_balance) == int(balance)
 
 @pytest.mark.asyncio
-async def test_set_weights_success():
+async def test_set_weights_success(setup_chain):
     hotkeypair_alice = Keypair.create_from_uri("//Alice")
     hotkeypair_bob = Keypair.create_from_uri("//Bob")
 
     coldkeypair = generate_keypair()
 
-    client_alice = connect(hotkeypair_alice)
-    client_bob   = connect(hotkeypair_bob)
+    client_alice = connect(hotkeypair_alice,setup_chain)
+    client_bob   = connect(hotkeypair_bob,setup_chain)
     await client_alice.is_connected()
     await client_bob.is_connected()
 
@@ -261,18 +313,18 @@ async def test_set_weights_success():
     assert result == w_vals
 
 @pytest.mark.asyncio
-async def test_get_current_block():
+async def test_get_current_block(setup_chain):
     keypair = Keypair.create_from_uri("//Alice")
-    client = connect(keypair)
+    client = connect(keypair, setup_chain)
 
     await client.is_connected()
     result = await client.get_current_block()
-    assert result > 0
+    assert result >= 0
 
 @pytest.mark.asyncio
-async def test_get_active():
+async def test_get_active(setup_chain):
     keypair = Keypair.create_from_uri("//Alice")
-    client = connect(keypair)
+    client = connect(keypair,setup_chain)
 
     await client.is_connected()
 
@@ -292,9 +344,9 @@ async def test_get_active():
     assert isinstance(elem[1], int)
 
 @pytest.mark.asyncio
-async def test_get_uid_for_pubkey_succes():
+async def test_get_uid_for_pubkey_succes(setup_chain):
     keypair = generate_keypair()
-    client = connect(keypair)
+    client = connect(keypair,setup_chain)
     await client.is_connected()
 
     # subscribe first
@@ -302,17 +354,17 @@ async def test_get_uid_for_pubkey_succes():
     await asyncio.sleep(10)
 
     # Get the id
-    result = client.get_uid_for_pubkey(keypair.public_key)
+    result = await client.get_uid_for_pubkey(keypair.public_key)
     assert result is not None
 
 # @Todo write tests for non happy paths
 
 @pytest.mark.asyncio
-async def test_get_neuron_for_uid():
+async def test_get_neuron_for_uid(setup_chain):
     hotkey = generate_keypair()
     coldkey = generate_keypair()
 
-    client = connect(hotkey)
+    client = connect(hotkey,setup_chain)
     await client.is_connected()
 
     # subscribe first
@@ -340,14 +392,14 @@ async def test_get_neuron_for_uid():
 
 
 @pytest.mark.asyncio
-async def test_get_neurons():
+async def test_get_neurons(setup_chain):
     hotkey_1 = generate_keypair()
     hotkey_2 = generate_keypair()
 
     coldkey = generate_keypair()
 
-    client_1 = connect(hotkey_1)
-    client_2 = connect(hotkey_2)
+    client_1 = connect(hotkey_1,setup_chain)
+    client_2 = connect(hotkey_2,setup_chain)
 
     await client_1.is_connected()
     await client_2.is_connected()
@@ -386,11 +438,11 @@ get_stake_for_uid() tests
 '''
 
 @pytest.mark.asyncio
-async def test_get_stake_for_uid___has_stake():
+async def test_get_stake_for_uid___has_stake(setup_chain):
     hotkeyp = generate_keypair()
     coldkeyp = Keypair.create_from_uri("//Alice")
 
-    client = connect(hotkeyp)
+    client = connect(hotkeyp,setup_chain)
     await client.is_connected()
 
     await client.subscribe("8.8.8.8", 667, 0, coldkeyp.public_key)
@@ -398,7 +450,7 @@ async def test_get_stake_for_uid___has_stake():
 
     uid = await client.get_uid_for_pubkey(hotkeyp.public_key)
 
-    await add_stake(coldkeyp, hotkeyp, Balance(4000))
+    await add_stake(setup_chain, coldkeyp, hotkeyp, Balance(4000))
     await asyncio.sleep(10)
 
     result = await client.get_stake_for_uid(uid)
@@ -406,11 +458,11 @@ async def test_get_stake_for_uid___has_stake():
 
 
 @pytest.mark.asyncio
-async def test_get_stake_for_uid___has_no_stake():
+async def test_get_stake_for_uid___has_no_stake(setup_chain):
     hotkeyp = generate_keypair()
     coldkeyp = Keypair.create_from_uri("//Alice")
 
-    client = connect(hotkeyp)
+    client = connect(hotkeyp, setup_chain)
     await client.is_connected()
 
     await client.subscribe("8.8.8.8", 667, 0, coldkeyp.public_key)
@@ -424,10 +476,10 @@ async def test_get_stake_for_uid___has_no_stake():
 
 
 @pytest.mark.asyncio
-async def test_get_stake_for_uid___unknown_uid():
+async def test_get_stake_for_uid___unknown_uid(setup_chain):
     hotkeyp = generate_keypair()
 
-    client = connect(hotkeyp)
+    client = connect(hotkeyp, setup_chain)
     await client.is_connected()
 
     result = await client.get_stake_for_uid(999999999)
@@ -435,14 +487,14 @@ async def test_get_stake_for_uid___unknown_uid():
 
 
 @pytest.mark.asyncio
-async def test_weight_uids_for_uid__weight_vals_for_uid():
+async def test_weight_uids_for_uid__weight_vals_for_uid(setup_chain):
     hotkeypair_1 = generate_keypair()
     hotkeypair_2 = generate_keypair()
 
     coldkeypair = generate_keypair()
 
-    client_1 = connect(hotkeypair_1)
-    client_2   = connect(hotkeypair_2)
+    client_1 = connect(hotkeypair_1, setup_chain)
+    client_2   = connect(hotkeypair_2, setup_chain)
     await client_1.is_connected()
     await client_2.is_connected()
 
@@ -476,11 +528,11 @@ async def test_weight_uids_for_uid__weight_vals_for_uid():
     assert result[1] == uid_2
 
 @pytest.mark.asyncio
-async def test_get_last_emit_data_for_uid__success():
+async def test_get_last_emit_data_for_uid__success(setup_chain):
     hotkeypair_1 = generate_keypair()
     coldkeypair = generate_keypair()
 
-    client = connect(hotkeypair_1)
+    client = connect(hotkeypair_1, setup_chain)
     await client.is_connected()
 
     current_block = await client.get_current_block()
@@ -494,10 +546,10 @@ async def test_get_last_emit_data_for_uid__success():
 
 
 @pytest.mark.asyncio
-async def test_get_last_emit_data_for_uid__no_uid():
+async def test_get_last_emit_data_for_uid__no_uid(setup_chain):
     hotkey = generate_keypair()
 
-    client = connect(hotkey)
+    client = connect(hotkey, setup_chain)
     await client.is_connected()
 
     result = await client.get_last_emit_data_for_uid(99999)
@@ -506,14 +558,14 @@ async def test_get_last_emit_data_for_uid__no_uid():
 
 
 @pytest.mark.asyncio
-async def test_get_last_emit_data():
+async def test_get_last_emit_data(setup_chain):
     hotkey_1 = generate_keypair()
     hotkey_2 = generate_keypair()
 
     coldkey = generate_keypair()
 
-    client_1 = connect(hotkey_1)
-    client_2 = connect(hotkey_2)
+    client_1 = connect(hotkey_1, setup_chain)
+    client_2 = connect(hotkey_2, setup_chain)
 
     await client_1.is_connected()
     await client_2.is_connected()
