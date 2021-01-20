@@ -49,51 +49,31 @@ class Neuron:
                 dendrite (:obj:`bittensor.dendrite.Dendrite`, `optional`):
                     synapse connecting object. 
         """
+        # Config: Config items for all subobjects: wallet, metagraph, nucleus, axon, dendrite.
+        # This object can be instantiated by calling Neuron.build_config()
         if config == None:
             config = Neuron.build_config()
         self.config = config
+        # Wallet: Holds the hotkey keypair and coldkey pub which are user to sign messages 
+        # and subscribe to the chain.
         if wallet == None:
             wallet = bittensor.wallet.Wallet(self.config)
+        # Metagraph: Maintains a connection to the subtensor chain and hold chain state.
         if metagraph == None:
             metagraph = bittensor.metagraph.Metagraph(config = self.config, wallet = wallet)
         self.metagraph = metagraph
+        # Nucleus: Processes requests passed to this neuron on its axon endpoint.
         if nucleus == None:
             nucleus = bittensor.nucleus.Nucleus(config = self.config, wallet = wallet, metagraph = self.metagraph)
         self.nucleus = nucleus
+        # Axon: RPC server endpoint which serves your synapse. Responde to Forward and Backward requests.
         if axon == None:
             axon = bittensor.axon.Axon(config = self.config, wallet = wallet, nucleus = self.nucleus, metagraph = self.metagraph)
         self.axon = axon
+        # Dendrite: RPC client makes Forward and Backward requests to downstream peers.
         if dendrite == None:
             dendrite = bittensor.dendrite.Dendrite(config = self.config, wallet = wallet, metagraph = self.metagraph)
         self.dendrite = dendrite
-
-    @staticmethod   
-    def build_config() -> Munch:
-        # Parses and returns a config Munch for this object.
-        parser = argparse.ArgumentParser(); 
-        Neuron.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        Neuron.check_config(config)
-        return config
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        bittensor.wallet.Wallet.add_args( parser )
-        bittensor.metagraph.Metagraph.add_args( parser )
-        bittensor.nucleus.Nucleus.add_args( parser )
-        bittensor.axon.Axon.add_args(parser)
-        bittensor.dendrite.Dendrite.add_args( parser )
-
-    @staticmethod   
-    def check_config(config: Munch):
-        bittensor.wallet.Wallet.check_config( config )
-        bittensor.metagraph.Metagraph.check_config( config )
-        bittensor.nucleus.Nucleus.check_config( config )
-        bittensor.axon.Axon.check_config( config )
-        bittensor.dendrite.Dendrite.check_config( config )
-
-    def __del__(self):
-        self.stop()
 
     def serve(self, synapse: 'bittensor.synapse.Synapse'):
         r""" Serves a synapse.Synapse to the axon server replacing the previous synapse.Synapse if exists.
@@ -103,47 +83,6 @@ class Neuron:
                     synapse object to serve on the axon server.
         """
         self.axon.serve(synapse)
-
-    def __enter__(self):
-        bittensor.exceptions.handlers.rollbar.init() # If a bittensor.exceptions.handlers.rollbar token is present, this will enable error reporting to bittensor.exceptions.handlers.rollbar
-        logger.trace('Neuron enter')
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        """ Defines the exit protocol from asyncio task.
-
-        Args:
-            exc_type (Type): The type of the exception.
-            exc_value (RuntimeError): The value of the exception, typically RuntimeError. 
-            exc_traceback (traceback): The traceback that can be printed for this exception, detailing where error actually happend.
-
-        Returns:
-            Neuron: present instance of Neuron.
-        """        
-        self.stop()
-        if exc_value:
-
-            top_stack = StringIO()
-            tb.print_stack(file=top_stack)
-            top_lines = top_stack.getvalue().strip('\n').split('\n')[:-4]
-            top_stack.close()
-
-            full_stack = StringIO()
-            full_stack.write('Traceback (most recent call last):\n')
-            full_stack.write('\n'.join(top_lines))
-            full_stack.write('\n')
-            tb.print_tb(exc_traceback, file=full_stack)
-            full_stack.write('{}: {}'.format(exc_type.__name__, str(exc_value)))
-            sinfo = full_stack.getvalue()
-            full_stack.close()
-            # Log the combined stack
-            logger.error('Exception:{}'.format(sinfo))
-
-            if bittensor.exceptions.handlers.rollbar.is_enabled():
-                bittensor.exceptions.handlers.rollbar.send_exception()
-
-        return self
 
     def start(self):
         # Stop background grpc threads for serving the synapse object.
@@ -196,4 +135,73 @@ class Neuron:
             logger.info('Axon server stopped')
         except Exception as e:
             logger.error('Neuron: Error while stopping axon server: {} ', e)
+
+    def __enter__(self):
+        bittensor.exceptions.handlers.rollbar.init() # If a bittensor.exceptions.handlers.rollbar token is present, this will enable error reporting to bittensor.exceptions.handlers.rollbar
+        logger.trace('Neuron enter')
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        """ Defines the exit protocol from asyncio task.
+
+        Args:
+            exc_type (Type): The type of the exception.
+            exc_value (RuntimeError): The value of the exception, typically RuntimeError. 
+            exc_traceback (traceback): The traceback that can be printed for this exception, detailing where error actually happend.
+
+        Returns:
+            Neuron: present instance of Neuron.
+        """        
+        self.stop()
+        if exc_value:
+
+            top_stack = StringIO()
+            tb.print_stack(file=top_stack)
+            top_lines = top_stack.getvalue().strip('\n').split('\n')[:-4]
+            top_stack.close()
+
+            full_stack = StringIO()
+            full_stack.write('Traceback (most recent call last):\n')
+            full_stack.write('\n'.join(top_lines))
+            full_stack.write('\n')
+            tb.print_tb(exc_traceback, file=full_stack)
+            full_stack.write('{}: {}'.format(exc_type.__name__, str(exc_value)))
+            sinfo = full_stack.getvalue()
+            full_stack.close()
+            # Log the combined stack
+            logger.error('Exception:{}'.format(sinfo))
+
+            if bittensor.exceptions.handlers.rollbar.is_enabled():
+                bittensor.exceptions.handlers.rollbar.send_exception()
+
+        return self
+
+    @staticmethod   
+    def build_config() -> Munch:
+        # Parses and returns a config Munch for this object.
+        parser = argparse.ArgumentParser(); 
+        Neuron.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        Neuron.check_config(config)
+        return config
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser):
+        bittensor.wallet.Wallet.add_args( parser )
+        bittensor.metagraph.Metagraph.add_args( parser )
+        bittensor.nucleus.Nucleus.add_args( parser )
+        bittensor.axon.Axon.add_args(parser)
+        bittensor.dendrite.Dendrite.add_args( parser )
+
+    @staticmethod   
+    def check_config(config: Munch):
+        bittensor.wallet.Wallet.check_config( config )
+        bittensor.metagraph.Metagraph.check_config( config )
+        bittensor.nucleus.Nucleus.check_config( config )
+        bittensor.axon.Axon.check_config( config )
+        bittensor.dendrite.Dendrite.check_config( config )
+
+    def __del__(self):
+        self.stop()
 

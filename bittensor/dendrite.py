@@ -39,19 +39,28 @@ class Dendrite(nn.Module):
                     bittensor network metagraph.
         """
         super().__init__()
+        # Config: Holds all config items for this items and those that are recursively defined. Specifically
+        # config for you wallet and metagraph.
         if config == None:
             config = Dendrite.build_config()
         self.config = config
 
+        # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
+        # and subscribe to the chain.
         if wallet == None:
             wallet = bittensor.wallet.Wallet(self.config)
         self.wallet = wallet
 
+        # Metagraph: Maintains a connection to the subtensor chain and can be queried for the latest state.
         if metagraph == None:
             metagraph = bittensor.metagraph.Metagraph(self.config, self.wallet)
         self.metagraph = metagraph
 
+        # Receptors: Holds a set map of publickey -> receptor objects. Receptors encapsulate a TCP connection between
+        # this dendrite and an upstream neuron (i.e. a peer we call for representations)
         self._receptors = {}
+
+        # Stats: hold statistics for this dendrite.
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
         )
