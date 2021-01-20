@@ -188,7 +188,7 @@ class Session():
                     colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
                     self.neuron.axon,
                     self.neuron.dendrite)
-            logger.info('Codes: {}', output.route.return_codess.tolist())
+            logger.info('Codes: {}', output.router.reeturn_codess.tolist())
             
             self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
