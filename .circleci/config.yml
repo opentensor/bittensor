@@ -21,7 +21,7 @@ jobs:
           command: pip install -e .
           name: setup
       - run: pip install miniupnpc
-
+      - run: ./.circleci/create_default_wallet.sh
 
   "Run Unit Tests":
     executor: bittensor-executor
