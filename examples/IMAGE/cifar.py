@@ -19,8 +19,6 @@ from munch import Munch
 from loguru import logger
 
 import bittensor
-from bittensor.neuron import Neuron
-from bittensor.config import Config
 from bittensor.utils.logging import log_all
 from bittensor.synapses.dpn import DPNSynapse
 
@@ -32,7 +30,7 @@ class Session():
         self.config = config
 
         # ---- Neuron ----
-        self.neuron = Neuron(self.config)
+        self.neuron = bittensor.neuron.Neuron(self.config)
     
         # ---- Model ----
         self.model = DPNSynapse( config ) # Feedforward neural network with PKMRouter.
@@ -65,7 +63,7 @@ class Session():
     def build_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Session.add_args(parser) 
-        config = Config.to_config(parser); 
+        config = bittensor.config.Config.to_config(parser); 
         Session.check_config(config)
         return config
 
