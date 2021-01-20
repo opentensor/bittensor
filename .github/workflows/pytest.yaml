@@ -22,7 +22,7 @@ jobs:
         pip install -e .
     - name: Build Test Wallet
       run: |
-        ./.github/workflows/create_wallet.sh
+        ./scripts/create_wallet.sh
     - name: Test unit_tests
       run: |
         pytest ./tests/unit_tests/
