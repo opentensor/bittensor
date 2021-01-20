@@ -19,7 +19,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-
+        pip install -e .
     - name: Build Test Walelt
       run: |
         ./.github/workflows/create_wallet.sh
