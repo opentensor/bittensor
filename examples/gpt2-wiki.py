@@ -30,6 +30,10 @@ from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
 
 class Session():
+    """
+    Initializes, trains, and tests models created inside of 'bittensor/synapses'. 
+    During instantiation, this class takes a config as a [Munch](https://github.com/Infinidat/munch) object. 
+    """
 
     def __init__(self, config: Munch):
         self.config = config
@@ -69,6 +73,7 @@ class Session():
         parser.add_argument('--session.name', default='gpt-wiki', type=str, help='Trials for this session go in session.root / session.name')
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
+        parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         GPT2LMSynapse.add_args(parser)
         Neuron.add_args(parser)
 
@@ -91,7 +96,7 @@ class Session():
         with self.neuron:
 
             # ---- Weights ----
-            self.row = self.neuron.metagraph.row
+            self.row = self.neuron.metagraph.row.to(self.model.device)
 
             # --- Run state ---
             self.epoch = -1
@@ -115,7 +120,7 @@ class Session():
 
                     # ---- Sync metagraph ----
                     self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                    self.row = self.neuron.metagraph.row
+                    self.row = self.neuron.metagraph.row.to(self.model.device)
 
                     # --- Epoch logs ----
                     print(self.neuron.axon.__full_str__())
@@ -159,7 +164,7 @@ class Session():
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
             # ---- Train row weights ----
-            batch_weights = torch.mean(output.dendrite.weights, axis = 0) # Average over batch.
+            batch_weights = torch.mean(output.dendrite.weights, axis = 0).to(self.model.device) # Average over batch.
             self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
             self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
 
