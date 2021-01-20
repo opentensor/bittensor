@@ -199,10 +199,12 @@ class WSClient:
             params = [uid]
         )
 
-        if not stake:
+        result = stake['result']
+
+        if not result:
             return Balance(0)
 
-        return Balance(stake['result'])
+        return Balance(result)
 
     async def weight_uids_for_uid(self, uid):
         result = await self.substrate.get_runtime_state(
