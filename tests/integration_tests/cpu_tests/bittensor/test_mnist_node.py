@@ -146,7 +146,7 @@ class Session():
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation 
 
             # ---- Train weights ----
-            batch_weights = torch.mean(output.dendrite.weights, axis = 0) # Average over batch.
+            batch_weights = torch.mean(output.router.weights, axis = 0) # Average over batch.
             self.weights = (1 - 0.03) * self.weights + 0.03 * batch_weights # Moving avg update.
             self.weights = F.normalize(self.weights, p = 1, dim = 0) # Ensure normalization.
 

@@ -183,7 +183,7 @@ class BertSynapseBase (bittensor.synapse.Synapse):
                     remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
 
-                    dendrite (:obj:`SimpleNamespace`, `required`): 
+                    router (:obj:`SimpleNamespace`, `required`): 
                         Outputs from the pkm dendrite.
                 )
         """
@@ -191,15 +191,15 @@ class BertSynapseBase (bittensor.synapse.Synapse):
 
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.dendrite = self.router.forward_text( neuron = neuron, text = inputs, query = output.local_pooled )
+        output.router = self.router.forward_text( neuron = neuron, text = inputs, query = output.local_pooled )
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
-        output.distillation_loss = F.mse_loss( output.local_context, output.dendrite.response.detach() )
+        output.distillation_loss = F.mse_loss( output.local_context, output.router.response.detach() )
 
         # remote_hidden: hidden layer encoding using remote_context.
         # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.remote_hidden = self.hidden_layer( output.dendrite.response )
+        output.remote_hidden = self.hidden_layer( output.router.response )
         output.remote_pooled = self.pooler( output.remote_hidden )
 
         return output
