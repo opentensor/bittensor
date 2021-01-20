@@ -42,9 +42,6 @@ jobs:
       - run:
           name: "Run unit tests"
           command: pytest ./tests/unit_tests
-      - run:
-          name: "Code Coverage"
-          command: codecov
   
   MNIST:
     executor: bittensor-executor
