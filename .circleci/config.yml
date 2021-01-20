@@ -41,7 +41,7 @@ jobs:
       - run: ./scripts/create_wallet.sh
       - run:
           name: "Run unit tests"
-          command: pytest ./tests/unit_tests
+          command: pytest ./tests/unit_tests  --capture=no
   
   MNIST:
     executor: bittensor-executor

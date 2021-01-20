@@ -214,13 +214,11 @@ def test_W():
     for i in range(100):
         row = torch.zeros(100)
         row[i] = 1
-        print(row, metagraph.W[i])
         assert torch.all(metagraph.W[i, :].eq(row))
 
     for i in range(100):
         col = torch.zeros(100)
         col[i] = 1
-        print(col, metagraph.W[:, i])
         assert torch.all(metagraph.W[:, i].eq(col))
 
 def test_row():
@@ -228,7 +226,6 @@ def test_row():
         metagraph.uid = i
         row = torch.zeros(100)
         row[i] = 1
-        print(row, metagraph.row)
         assert torch.all(metagraph.row.eq(row))
 
 def test_col():
@@ -236,7 +233,6 @@ def test_col():
         metagraph.uid = i
         col = torch.zeros(100)
         col[i] = 1
-        print(col, metagraph.col)
         assert torch.all(metagraph.row.eq(col))
 
 
