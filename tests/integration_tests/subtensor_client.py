@@ -324,10 +324,49 @@ async def test_get_neuron_for_uid():
     assert result['uid'] == uid
 
 
+@pytest.mark.asyncio
+async def test_get_neurons():
+    hotkey_1 = generate_keypair()
+    hotkey_2 = generate_keypair()
+
+    coldkey = generate_keypair()
+
+    client_1 = connect(hotkey_1)
+    client_2 = connect(hotkey_2)
+
+    await client_1.is_connected()
+    await client_2.is_connected()
+
+    # subscribe 2 neurons
+    await client_1.subscribe("8.8.8.8", 6666, 0, coldkey.public_key)
+    await client_2.subscribe("8.8.8.8", 6666, 0, coldkey.public_key)
+    await asyncio.sleep(10)
+
+    result = await client_1.neurons()
+    assert isinstance(result, List)
+    assert len(result) >= 2
+
+    elem = result[0]
+    assert isinstance(elem, list)
+    assert isinstance(elem[0], int) # This is the uid, which is the first element of the list
+    assert isinstance(elem[1], dict) # The second element is a neuron dict
+
+    assert "coldkey" in elem[1]
+    assert "hotkey" in elem[1]
+    assert "ip_type" in elem[1]
+    assert "modality" in elem[1]
+    assert "port" in elem[1]
+    assert "uid" in elem[1]
+
+    assert isinstance(elem[1]['coldkey'], str)
+    assert isinstance(elem[1]['hotkey'], str)
+    assert isinstance(elem[1]['ip_type'], int)
+    assert isinstance(elem[1]['modality'], int)
+    assert isinstance(elem[1]['port'], int)
+    assert isinstance(elem[1]['uid'], int)
+    assert elem[1]['uid'] == elem[0]
 
 
-
-# @todo get_neuron_for_uid()
 # @todo neurons()
 # @todo get_stake_for_uid()
 # @todo weight_uids_for_uid()
