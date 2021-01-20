@@ -24,9 +24,7 @@ import bittensor.utils.stats as stat_utils
 
 class Axon(bittensor.grpc.BittensorServicer):
     r"""
-    A bittensor Axon serves a grpc endpoint which provides access to a single Synapse 
-    It recieves Forward and Backward requests and process the corresponding Synapse.call_forward and Synapse.call_backward.
-    
+        Services Forward and Backward requests from other neurons.
     """
     def __init__(self, config: Munch = None, wallet: 'bittenosr.wallet.Wallet' = None, nucleus: 'bittensor.nucleus.Nucleus' = None, metagraph: 'bittensor.metagraph.Metagraph' = None):
         r""" Initializes a new Axon tensor processing endpoint.
@@ -52,7 +50,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             wallet = bittensor.wallet.Wallet( config = self.config )
         self.wallet = wallet
         
-        # Metagraph: Maintains a connection to the subtensor chain, and periodically updates with a sync()
+        # Metagraph: Maintains a connection to the subtensor chain which updates with a sync() call.
         # The metagraph can be queried for the latest information about stake and weight matrix state.
         if metagraph == None:
             metagraph = bittensor.metagraph.Metagraph( config = self.config, wallet = self.wallet )
