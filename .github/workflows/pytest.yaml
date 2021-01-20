@@ -23,6 +23,6 @@ jobs:
     - name: Build Test Wallet
       run: |
         ./.github/workflows/create_wallet.sh
-    - name: Test with pytest
+    - name: Test unit_tests
       run: |
-        pytest
+        pytest ./tests/unit_tests/
