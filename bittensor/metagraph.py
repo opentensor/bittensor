@@ -26,11 +26,9 @@ class ChainState():
     def __init__(self):
         # Cached values.
         self.n = 0
-        self.next_uid = 0
         self.uids = []
         self.stake = []
         self.lastemit = []
-        self.neuron_weights = []
         self.weight_uids = []
         self.weight_vals = []
         self.neurons = []
@@ -38,7 +36,7 @@ class ChainState():
         self.index_for_pubkey = {}
         self.pubkey_for_index = {}
 
-    def add_or_update(self, pubkey:str, ip: int, port: int, uid: int, ip_type: int, modality: int, lastemit: int, stake: int, w_uids: List[str], w_vals: List[int]):
+    def add_or_update(self, pubkey:str, ip: int, port: int, uid: int, ip_type: int, modality: int, lastemit: int, stake: int, w_uids: List[int], w_vals: List[int]):
         address_str = net.int_to_ip(ip)
         neuron = bittensor.proto.Neuron(
             version = bittensor.__version__,
@@ -51,12 +49,15 @@ class ChainState():
         )
         if pubkey in self.index_for_pubkey:
             index = self.index_for_pubkey[pubkey]
-            self.neurons[index] = neuron
-            self.stake[index] = float(stake) / 1000000000 
-            self.lastemit[index] = int(lastemit)
-            self.weight_uids[index] = list(w_uids)
-            self.weight_vals[index] = list(w_vals)
-            self.uids[index] = int(uid)
+            if self.uids[index] == uid:
+                self.neurons[index] = neuron
+                self.stake[index] = float(stake) / 1000000000 
+                self.lastemit[index] = int(lastemit)
+                self.weight_uids[index] = list(w_uids)
+                self.weight_vals[index] = list(w_vals)
+                self.uids[index] = int(uid)
+            else:
+                raise ValueError('recieved inconsistent uid - pubey pairing with uid{}, pubkey{} and expected uid {}'.format(uid, pubkey, self.uids[index]))
         else:
             index = self.n
             self.n += 1
@@ -139,7 +140,10 @@ class TorchChainState():
             for uid, val in list(zip(uids, vals)):
                 if uid in cache.index_for_uid:
                     j = cache.index_for_uid[uid]
-                    weights_numpy[i, j] = float(val) / float(val_sum)
+                    if val_sum != 0:
+                        weights_numpy[i, j] = float(val) / float(val_sum)
+                    else:
+                        weights_numpy[i, j] = 0
         state.W = torch.tensor(weights_numpy, dtype=torch.float32)
         return state
 
@@ -399,7 +403,7 @@ class Metagraph():
             w_0 = self.state.W[0,:]
             return w_0
 
-    def uids_to_indices(self, uids: torch.Tensor):
+    def uids_to_indices(self, uids: torch.Tensor) -> torch.LongTensor:
         r"""Return the indices of passed uids
         Args:
             uids: (:obj:`torch.LongTensor` of shape :obj:`(-1)`):
