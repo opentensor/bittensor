@@ -17,6 +17,22 @@ def connect(keypair):
     return client
 
 
+async def add_stake(coldkeypair : Keypair, hotkeypair : Keypair, amount : Balance):
+    client = connect(coldkeypair)
+    await client.is_connected()
+
+    # Get the uid of the new neuron
+    uid = await client.get_uid_for_pubkey(hotkeypair.public_key)
+    assert uid is not None
+
+    # Get the amount of stake, should be 0
+    result = await client.get_stake_for_uid(uid)
+    assert int(result) == int(Balance(0))
+
+    # Add stake to new neuron
+    await client.add_stake(amount, hotkeypair.public_key)
+
+
 def generate_keypair():
     return Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
 
@@ -104,7 +120,6 @@ async def test_add_stake_success():
 
     # Add stake to new neuron
     result = await client.add_stake(Balance(4000), hotkeypair.public_key)
-    logger.info(result)
 
     assert result is not None
     assert 'extrinsic_hash' in result
@@ -366,10 +381,154 @@ async def test_get_neurons():
     assert isinstance(elem[1]['uid'], int)
     assert elem[1]['uid'] == elem[0]
 
+'''
+get_stake_for_uid() tests
+'''
 
-# @todo neurons()
-# @todo get_stake_for_uid()
-# @todo weight_uids_for_uid()
-# @todo weight_vals_for_uid
-# @todo get_last_emit_data_for_uid()
-# @todo get_last_emit_data()
+@pytest.mark.asyncio
+async def test_get_stake_for_uid___has_stake():
+    hotkeyp = generate_keypair()
+    coldkeyp = Keypair.create_from_uri("//Alice")
+
+    client = connect(hotkeyp)
+    await client.is_connected()
+
+    await client.subscribe("8.8.8.8", 667, 0, coldkeyp.public_key)
+    await asyncio.sleep(10)
+
+    uid = await client.get_uid_for_pubkey(hotkeyp.public_key)
+
+    await add_stake(coldkeyp, hotkeyp, Balance(4000))
+    await asyncio.sleep(10)
+
+    result = await client.get_stake_for_uid(uid)
+    assert int(result) == 4000
+
+
+@pytest.mark.asyncio
+async def test_get_stake_for_uid___has_no_stake():
+    hotkeyp = generate_keypair()
+    coldkeyp = Keypair.create_from_uri("//Alice")
+
+    client = connect(hotkeyp)
+    await client.is_connected()
+
+    await client.subscribe("8.8.8.8", 667, 0, coldkeyp.public_key)
+    await asyncio.sleep(10)
+
+    uid = await client.get_uid_for_pubkey(hotkeyp.public_key)
+
+    result = await client.get_stake_for_uid(uid)
+    assert int(result) == 0
+
+
+
+@pytest.mark.asyncio
+async def test_get_stake_for_uid___unknown_uid():
+    hotkeyp = generate_keypair()
+
+    client = connect(hotkeyp)
+    await client.is_connected()
+
+    result = await client.get_stake_for_uid(999999999)
+    assert int(result) == 0
+
+
+@pytest.mark.asyncio
+async def test_weight_uids_for_uid__weight_vals_for_uid():
+    hotkeypair_1 = generate_keypair()
+    hotkeypair_2 = generate_keypair()
+
+    coldkeypair = generate_keypair()
+
+    client_1 = connect(hotkeypair_1)
+    client_2   = connect(hotkeypair_2)
+    await client_1.is_connected()
+    await client_2.is_connected()
+
+    # Subscribe both alice and bob
+    await client_1.subscribe("8.8.8.8", 666, 0, coldkeypair.public_key)
+    await client_2.subscribe("8.8.8.8", 666, 0, coldkeypair.public_key)
+
+    await asyncio.sleep(10)
+    uid_1 = await client_1.get_uid_for_pubkey(hotkeypair_1.public_key)
+    uid_2 = await client_2.get_uid_for_pubkey(hotkeypair_2.public_key)
+
+    w_uids = [uid_1, uid_2]
+    w_vals = [pow(2, 31)-1, pow(2,31)-1] # 50/50 distro
+
+    await client_1.set_weights(w_uids, w_vals, wait_for_inclusion=False)
+    await asyncio.sleep(10)
+
+    result = await client_1.weight_vals_for_uid(uid_1)
+    assert isinstance(result, List)
+    assert len(result) == 2
+    assert isinstance(result[0], int)
+    assert isinstance(result[1], int)
+
+    result = await client_1.weight_uids_for_uid(uid_1)
+    assert isinstance(result, List)
+    assert len(result) == 2
+    assert isinstance(result[0], int)
+    assert isinstance(result[1], int)
+
+    assert result[0] == uid_1
+    assert result[1] == uid_2
+
+@pytest.mark.asyncio
+async def test_get_last_emit_data_for_uid__success():
+    hotkeypair_1 = generate_keypair()
+    coldkeypair = generate_keypair()
+
+    client = connect(hotkeypair_1)
+    await client.is_connected()
+
+    current_block = await client.get_current_block()
+    await client.subscribe("8.8.8.8", 666, 0, coldkeypair.public_key)
+    await asyncio.sleep(10)
+    uid = await client.get_uid_for_pubkey(hotkeypair_1.public_key)
+
+    result = await client.get_last_emit_data_for_uid(uid)
+
+    assert result in [current_block, current_block + 1, current_block + 2]
+
+
+@pytest.mark.asyncio
+async def test_get_last_emit_data_for_uid__no_uid():
+    hotkey = generate_keypair()
+
+    client = connect(hotkey)
+    await client.is_connected()
+
+    result = await client.get_last_emit_data_for_uid(99999)
+    assert result is None
+
+
+
+@pytest.mark.asyncio
+async def test_get_last_emit_data():
+    hotkey_1 = generate_keypair()
+    hotkey_2 = generate_keypair()
+
+    coldkey = generate_keypair()
+
+    client_1 = connect(hotkey_1)
+    client_2 = connect(hotkey_2)
+
+    await client_1.is_connected()
+    await client_2.is_connected()
+
+    # subscribe 2 neurons
+    await client_1.subscribe("8.8.8.8", 6666, 0, coldkey.public_key)
+    await client_2.subscribe("8.8.8.8", 6666, 0, coldkey.public_key)
+    await asyncio.sleep(10)
+
+
+    result = await client_1.get_last_emit_data()
+    assert isinstance(result, List)
+    assert len(result) >= 2
+    elem = result[0]
+    assert isinstance(elem, List)
+    assert isinstance(elem[0], int)
+    assert isinstance(elem[1], int)
+
