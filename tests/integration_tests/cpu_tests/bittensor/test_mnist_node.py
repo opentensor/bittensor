@@ -102,7 +102,7 @@ class Session():
                 self.epoch += 1
 
                 # ---- Emit ----
-                self.neuron.metagraph.emit( self.weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+                self.neuron.metagraph.set_weights(self.weights, wait_for_inclusion = True) # Sets my row-weights on the chain.
                         
                 # ---- Sync ----  
                 self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)

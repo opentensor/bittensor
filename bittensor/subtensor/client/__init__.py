@@ -92,7 +92,8 @@ class WSClient:
         )
 
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
-        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        return result
 
     async def transfer(self, dest:str, amount: Balance):
         logger.debug("Requesting transfer of {}, from {} to {}", amount.rao, self.__keypair.public_key, dest)
@@ -105,7 +106,8 @@ class WSClient:
             }
         )
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
-        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        return result
 
     async def unstake(self, amount : Balance, hotkey_id):
         logger.debug("Requesting unstake of {} rao for hotkey: {} to coldkey: {}", amount.rao, hotkey_id, self.__keypair.public_key)
@@ -116,32 +118,34 @@ class WSClient:
         )
 
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
-        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        return result
 
-    async def set_weights(self, destinations, values, keypair, wait_for_inclusion=False):
-        call = await self.substrate.compose_call(
-            call_module = 'SubtensorModule',
-            call_function = 'set_weights',
-            call_params = {'dests': destinations, 'weights': values}
-        )
+    # async def set_weights(self, destinations, values, keypair, wait_for_inclusion=False):
+    #     call = await self.substrate.compose_call(
+    #         call_module = 'SubtensorModule',
+    #         call_function = 'set_weights',
+    #         call_params = {'dests': destinations, 'weights': values}
+    #     )
+    #
+    #     extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
+    #     await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=wait_for_inclusion)
 
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
-        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=wait_for_inclusion)
 
-    async def emit(self, destinations, values, keypair, wait_for_inclusion=False):
+    async def set_weights(self, destinations, values, wait_for_inclusion=False):
         call = await self.substrate.compose_call(
             call_module='SubtensorModule',
             call_function='set_weights',
             call_params = {'dests': destinations, 'weights': values}
         )
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=keypair)
-        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=wait_for_inclusion)
+        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.__keypair)
+        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=wait_for_inclusion)
+        return result
 
     async def get_current_block(self):
         return await self.substrate.get_block_number(None)
 
     async def get_active(self) -> int:
-
         result = await self.substrate.iterate_map(
             module='SubtensorModule',
             storage_function='Active',
@@ -195,10 +199,12 @@ class WSClient:
             params = [uid]
         )
 
-        if not stake:
+        result = stake['result']
+
+        if not result:
             return Balance(0)
 
-        return Balance(stake['result'])
+        return Balance(result)
 
     async def weight_uids_for_uid(self, uid):
         result = await self.substrate.get_runtime_state(
