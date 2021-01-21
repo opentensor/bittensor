@@ -74,7 +74,7 @@ class Session():
         self.scheduler = WarmupCosineWithHardRestartsSchedule(self.optimizer, 50, 300)
 
         # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(self.config, BertMLMSynapse, torch.optim.SGD)
+        self.model_toolbox = ModelToolbox(BertMLMSynapse, torch.optim.SGD)
 
         # ---- Dataset ----
         # Dataset: 74 million sentences pulled from books.
@@ -174,6 +174,7 @@ class Session():
                         if self.training_loss < self.best_train_loss:
                             self.best_train_loss = self.training_loss # update best train loss
                             self.model_toolbox.save_model(
+                                self.config.session.full_path,
                                 {
                                     'epoch': self.epoch, 
                                     'model_state_dict': self.model.state_dict(), 

@@ -42,7 +42,7 @@ class Session():
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10.0, gamma=0.1)
 
         # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(self.config, FFNNSynapse, optim.SGD)
+        self.model_toolbox = ModelToolbox(FFNNSynapse, optim.SGD)
 
         # ---- Dataset ----
         self.train_data = torchvision.datasets.MNIST(root = self.config.session.root_dir + "datasets/", train=True, download=True, transform=transforms.ToTensor())
@@ -138,6 +138,7 @@ class Session():
                 if test_loss < self.best_test_loss:
                     self.best_test_loss = test_loss # Update best loss.
                     self.model_toolbox.save_model(
+                        self.config.session.full_path,
                         {
                             'epoch': self.epoch, 
                             'model_state_dict': self.model.state_dict(), 
