@@ -22,7 +22,6 @@ from datasets import load_dataset
 from torch.utils.tensorboard import SummaryWriter
 
 import bittensor
-from bittensor.neuron import Neuron
 from bittensor.config import Config
 from bittensor.synapses.ffnn import FFNNSynapse
 
@@ -30,12 +29,12 @@ class Session():
 
     def __init__(self, config: Munch = None):
         if config == None:
-            config = Session.build_config()
+            config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
 
         self.config = config
 
         # ---- Build Neuron ----
-        self.neuron = Neuron(config)
+        self.neuron = bittensor.neuron.Neuron(config)
 
         # ---- Build FFNN Model ----
         self.model = FFNNSynapse( self.config )
@@ -72,7 +71,7 @@ class Session():
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
         parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
-        Neuron.add_args(parser)
+        bittensor.neuron.Neuron.add_args(parser)
         FFNNSynapse.add_args(parser)
 
     @staticmethod
@@ -87,7 +86,7 @@ class Session():
         if not os.path.exists(config.session.full_path):
             os.makedirs(config.session.full_path)
         FFNNSynapse.check_config(config)
-        Neuron.check_config(config)
+        bittensor.neuron.Neuron.check_config(config)
 
     # ---- Main loop ----
     def run(self):
@@ -136,6 +135,6 @@ class Session():
    
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Session.build_config(); logger.info(Config.toString(config))
+    config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
     session = Session(config)
     session.run()
