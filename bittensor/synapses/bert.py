@@ -145,6 +145,7 @@ class BertSynapseBase (bittensor.synapse.Synapse):
                         Local hidden state pooled by returning the encoding of the first token.
                 }
         """        
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         # Return vars to be filled.
         output = SimpleNamespace()
    
@@ -187,6 +188,7 @@ class BertSynapseBase (bittensor.synapse.Synapse):
                         Outputs from the pkm dendrite.
                 )
         """
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         output = self.base_local_forward( inputs = inputs, attention_mask = attention_mask )
 
         # remote_context: joined responses from a bittensor.forward_text call.
@@ -273,6 +275,7 @@ class BertNSPSynapse (BertSynapseBase):
                         BERT NSP loss using local_context.
                 )
         """
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         # Call forward method from bert base.
         output = BertSynapseBase.base_local_forward( self, inputs = inputs, attention_mask = attention_mask ) 
         if targets is not None:
@@ -313,6 +316,7 @@ class BertNSPSynapse (BertSynapseBase):
                         BERT NSP loss using remote_target_loss.
                 )
         """
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         output = BertSynapseBase.base_remote_forward( self, neuron = neuron, attention_mask = attention_mask, inputs = inputs)
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
@@ -392,6 +396,7 @@ class BertMLMSynapse (BertSynapseBase):
                         BERT NSP loss using local_context.
             )
         """
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         # Call forward method from bert base.
         output = BertSynapseBase.base_local_forward( self, inputs = inputs ) 
 
@@ -429,6 +434,7 @@ class BertMLMSynapse (BertSynapseBase):
                         BERT NSP loss using local_context.
             )
         """
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         # Call forward method from bert base.
         output = BertSynapseBase.base_remote_forward( self, neuron = neuron, inputs = inputs ) 
 

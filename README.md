@@ -21,17 +21,18 @@ $ cd bittensor && pip install -r requirements && pip install -e .               
 $ bittensor-cli new_wallet                                                          # Generate default keys
 ```
 
-# Run
+# Run Subtensor
+```
+$ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
+$ ./bin/release/node-subtensor                                                      # Run a main net validator
+```
+
+# Run Bittensor
 ```
 $ python examples/text/gpt2-wiki.py   --session.trial_uid=test                      # Train gpt2 on wiki-text
 $ tensorboard --logdir=~/.bittensor/sessions/gpt2-wiki/test                         # Serve tensorboard
 ```
 
-# Validate
-```
-$ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
-$ ./bin/release/node-subtensor                                                      # Run a main net validator
-```
 
 ---
 
@@ -48,6 +49,3 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 ### Acknowledgments
 **learning-at-home/hivemind**
-
-
-1000 booyah
