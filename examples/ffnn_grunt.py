@@ -20,6 +20,7 @@ from loguru import logger
 from termcolor import colored
 from datasets import load_dataset
 from torch.utils.tensorboard import SummaryWriter
+from bittensor.utils.model_utils import ModelToolbox
 
 import bittensor
 from bittensor.neuron import Neuron
@@ -41,6 +42,9 @@ class Session():
 
         # ---- Optimizer ----
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.session.learning_rate, momentum=self.config.session.momentum)
+
+        # ---- Model Load/Save tools ----
+        self.model_toolbox = ModelToolbox(self.config, FFNNSynapse, torch.optim.SGD)
 
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
@@ -103,6 +107,11 @@ class Session():
                 self.optimizer.step() # Apply accumulated gradients.
                 self.optimizer.zero_grad() # Clear any lingering gradients
 
+                # If model has borked for some reason, we need to make sure it doesn't emit weights
+                # Instead, reload into previous version of model
+                if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
+                    self.model, self.optimizer = self.model_toolbox.load_model()
+
                 # ---- Serve latest model ----
                 self.neuron.axon.serve( self.model ) # Serve the newest model.
                 logger.info('Step: {} \t Key: {} \t sum(W[:,0])', step, public_key, torch.sum(self.neuron.metagraph.col).item())
@@ -119,9 +128,14 @@ class Session():
                     self.neuron.metagraph.sync() # Sync with the chain.
                     
                     # --- Save Model ----
-                    logger.info( 'Saving model: epoch: {}, sum(W[:,0]): {}, path: {}/{}/{}/model.torch', step, torch.sum(self.neuron.metagraph.col).item(), self.config.session.full_path)
-                    torch.save( {'epoch': step, 'model': self.model.state_dict(), 'loss': torch.sum(self.neuron.metagraph.col).item()},"{}//model.torch".format(self.config.session.full_path))                
-                
+                    self.model_toolbox.save_model(
+                        {
+                            'epoch': self.epoch, 
+                            'model_state_dict': self.model.state_dict(), 
+                            'loss': self.best_test_loss,
+                            'optimizer_state_dict': self.optimizer.state_dict(),
+                        }
+                    )                
 
    
 if __name__ == "__main__":
