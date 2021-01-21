@@ -206,6 +206,8 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
                         GPT MLM loss using local_context.
                 }
         """
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
+
         # Return vars to be filled.
         output = SimpleNamespace()
         
@@ -263,6 +265,8 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
                         Outputs from the pkm dendrite.
             )
         """
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
+
         # Run the local model.
         # output = SimpleNamespace
         output = self.local_forward(inputs, training)
