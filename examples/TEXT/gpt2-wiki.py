@@ -63,7 +63,7 @@ class Session():
     def build_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Session.add_args(parser) 
-        config = Config.to_config(parser); 
+        config = bittensor.config.Config.to_config(parser); 
         Session.check_config(config)
         return config
 
