@@ -44,7 +44,7 @@ class Session():
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.session.learning_rate, momentum=self.config.session.momentum)
 
         # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(self.config, FFNNSynapse, torch.optim.SGD)
+        self.model_toolbox = ModelToolbox(FFNNSynapse, torch.optim.SGD)
 
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
@@ -129,6 +129,7 @@ class Session():
                     
                     # --- Save Model ----
                     self.model_toolbox.save_model(
+                        self.config.session.full_path,
                         {
                             'epoch': self.epoch, 
                             'model_state_dict': self.model.state_dict(), 
