@@ -19,14 +19,13 @@ from munch import Munch
 from loguru import logger
 
 import bittensor
-from bittensor.utils.logging import log_all
 from bittensor.synapses.dpn import DPNSynapse
 
 class Session():
 
     def __init__(self, config: Munch = None):
         if config == None:
-            config = Session.build_config(); logger.info(Config.toString(config))
+            config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
         self.config = config
 
         # ---- Neuron ----
@@ -80,7 +79,7 @@ class Session():
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.trial_uid')
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
         parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
-        Neuron.add_args(parser)
+        bittensor.neuron.Neuron.add_args(parser)
         DPNSynapse.add_args(parser)
 
     @staticmethod
@@ -95,7 +94,7 @@ class Session():
         if not os.path.exists(config.session.full_path):
             os.makedirs(config.session.full_path)
         DPNSynapse.check_config(config)
-        Neuron.check_config(config)
+        bittensor.neuron.Neuron.check_config(config)
 
     # --- Main loop ----
     def run(self):
@@ -201,7 +200,7 @@ class Session():
         
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Session.build_config(); logger.info(Config.toString(config))
+    config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
     session = Session(config)
     session.run()
 

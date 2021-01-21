@@ -27,11 +27,11 @@ class Session():
 
     def __init__(self, config: Munch = None):
         if config == None:
-            config = Session.build_config()
+            config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
         self.config = config
 
         # ---- Neuron ----
-        self.neuron = Neuron(self.config)
+        self.neuron = bittensor.neuron.Neuron(self.config)
     
         # ---- Model ----
         self.model = FFNNSynapse( config ) # Feedforward neural network with PKMRouter.
@@ -75,7 +75,7 @@ class Session():
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
         parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
-        Neuron.add_args(parser)
+        bittensor.neuron.Neuron.add_args(parser)
         FFNNSynapse.add_args(parser)
 
     @staticmethod
@@ -90,7 +90,7 @@ class Session():
         if not os.path.exists(config.session.full_path):
             os.makedirs(config.session.full_path)
         FFNNSynapse.check_config(config)
-        Neuron.check_config(config)
+        bittensor.neuron.Neuron.check_config(config)
 
     # --- Main loop ----
     def run(self):

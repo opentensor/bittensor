@@ -24,8 +24,6 @@ from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
 
 import bittensor
-from bittensor.neuron import Neuron
-from bittensor.config import Config
 from bittensor.synapses.bert import BertNSPSynapse
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
@@ -68,11 +66,11 @@ class Session():
 
     def __init__(self, config: Munch = None):
         if config == None:
-            config = Session.build_config(); logger.info(Config.toString(config))
+            config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
         self.config = config
 
         # ---- Neuron ----
-        self.neuron = Neuron(self.config)
+        self.neuron = bittensor.neuron.Neuron(self.config)
 
         # ---- Model ----
         self.model = BertNSPSynapse( self.config )
@@ -115,7 +113,7 @@ class Session():
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
         parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         BertNSPSynapse.add_args(parser)
-        Neuron.add_args(parser)
+        bittensor.neuron.Neuron.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
@@ -127,7 +125,7 @@ class Session():
         if not os.path.exists(config.session.full_path):
             os.makedirs(config.session.full_path)
         BertNSPSynapse.check_config(config)
-        Neuron.check_config(config)
+        bittensor.neuron.Neuron.check_config(config)
 
     # --- Main loop ----
     def run (self):
@@ -221,7 +219,7 @@ class Session():
                     colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
                     self.neuron.axon,
                     self.neuron.dendrite)
-            logger.info('Codes: {}', output.router.reeturn_codess.tolist())
+            logger.info('Codes: {}', output.router.return_codes.tolist())
             
             self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
@@ -237,7 +235,7 @@ class Session():
 
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Session.build_config(); logger.info(Config.toString(config))
+    config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
     session = Session(config)
     session.run()
 
