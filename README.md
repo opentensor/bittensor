@@ -16,7 +16,7 @@
 
 ```
 $ git clone https://github.com/opentensor/bittensor.git                             # Clone the repository
-$ cd bittensor && pip install -r requirements && pip install -e .                   # Install bittensor
+$ cd bittensor && pip install -r requirements.txt && pip install -e .               # Install bittensor
 $ bittensor-cli new_wallet                                                          # Generate default keys
 ```
 
