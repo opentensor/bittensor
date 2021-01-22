@@ -43,7 +43,7 @@ jobs:
           name: "Run unit tests"
           command: pytest ./tests/unit_tests
 
-    "Run Exmaples":
+  "Run Exmaples":
     executor: bittensor-executor
     steps:
       - checkout
