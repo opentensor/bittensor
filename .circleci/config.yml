@@ -41,7 +41,27 @@ jobs:
       - run: ./scripts/create_wallet.sh
       - run:
           name: "Run unit tests"
-          command: pytest ./tests/unit_tests  --capture=no
+          command: pytest ./tests/unit_tests
+
+    "Run Exmaples":
+    executor: bittensor-executor
+    steps:
+      - checkout
+      - python/load-cache
+      - run: pip3 install -r requirements.txt
+      - run: ./scripts/build_protos.sh
+      - run:
+          command: pip install -e .
+          name: setup
+      - run: pip install pyyaml
+      - run: pip install miniupnpc
+      - run: pip install msgpack
+      - run: pip install msgpack-numpy
+      - run: pip install pytorch_transformers
+      - run: ./scripts/create_wallet.sh
+      - run:
+          name: "Run unit tests"
+          command: pytest ./tests/examples
   
   MNIST:
     executor: bittensor-executor
