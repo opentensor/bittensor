@@ -134,6 +134,9 @@ workflows:
       - "Run Unit Tests":
               requires:
                 - "Build Bittensor"
+       "Run Examples":
+              requires:
+                - "Build Bittensor"
       - "Run Integration Tests":
               requires:
                 - "Build Bittensor"
