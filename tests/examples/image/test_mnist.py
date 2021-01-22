@@ -1,6 +1,6 @@
 import os, sys, time
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append("examples/image/")
+sys.path.append("examples/IMAGE/")
 from mnist import Session
 def test_run_mnist():
     mnist_session_config = Session.build_config()

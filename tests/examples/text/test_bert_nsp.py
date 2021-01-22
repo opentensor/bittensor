@@ -1,6 +1,6 @@
 import os, sys, time
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append("examples/text/")
+sys.path.append("examples/TEXT/")
 from bert_nsp import Session
 def test_run_bert_nsp():
     bert_nsp_session_config = Session.build_config()
