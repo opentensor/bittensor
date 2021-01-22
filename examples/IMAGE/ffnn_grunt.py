@@ -23,17 +23,19 @@ from torch.utils.tensorboard import SummaryWriter
 from bittensor.utils.model_utils import ModelToolbox
 
 import bittensor
-from bittensor.neuron import Neuron
 from bittensor.config import Config
 from bittensor.synapses.ffnn import FFNNSynapse
 
 class Session():
 
-    def __init__(self, config: Munch):
+    def __init__(self, config: Munch = None):
+        if config == None:
+            config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
+
         self.config = config
 
         # ---- Build Neuron ----
-        self.neuron = Neuron(config)
+        self.neuron = bittensor.neuron.Neuron(config)
 
         # ---- Build FFNN Model ----
         self.model = FFNNSynapse( self.config )
@@ -50,8 +52,15 @@ class Session():
         self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
         if self.config.session.record_log:
             logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
+     
+    @staticmethod
+    def build_config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        Session.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        Session.check_config(config)
+        return config
 
-            
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
         parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
@@ -66,7 +75,7 @@ class Session():
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
         parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
-        Neuron.add_args(parser)
+        bittensor.neuron.Neuron.add_args(parser)
         FFNNSynapse.add_args(parser)
 
     @staticmethod
@@ -81,7 +90,7 @@ class Session():
         if not os.path.exists(config.session.full_path):
             os.makedirs(config.session.full_path)
         FFNNSynapse.check_config(config)
-        Neuron.check_config(config)
+        bittensor.neuron.Neuron.check_config(config)
 
     # ---- Main loop ----
     def run(self):
@@ -140,11 +149,7 @@ class Session():
 
    
 if __name__ == "__main__":
-    # ---- Load command line args ----
-    parser = argparse.ArgumentParser(); Session.add_args(parser) 
-    config = Config.to_config(parser); Session.check_config(config)
-    logger.info(Config.toString(config))
-
     # ---- Build and Run ----
+    config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
     session = Session(config)
     session.run()

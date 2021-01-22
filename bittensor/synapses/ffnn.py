@@ -1,3 +1,22 @@
+'''
+The MIT License (MIT)
+Copyright © 2021 Opentensor.ai
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+DEALINGS IN THE SOFTWARE.
+'''
+
 """Feed Forward NN Synapse
 
 Simple feed forward NN for images.
@@ -5,20 +24,19 @@ Simple feed forward NN for images.
 """
 
 import argparse
-from types import SimpleNamespace
-from munch import Munch
-from loguru import logger
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from types import SimpleNamespace
+from munch import Munch
+from loguru import logger
+
 import bittensor
-from bittensor.dendrites.pkm import PKMDendrite
-from bittensor.synapse import Synapse
-from bittensor.neuron import Neuron
+from bittensor.routers.pkm import PKMRouter
 from bittensor.utils.batch_transforms import Normalize
 
-class FFNNSynapse(Synapse):
+class FFNNSynapse(bittensor.synapse.Synapse):
     """ Simple feed forward NN for images.
     """
 
@@ -30,6 +48,8 @@ class FFNNSynapse(Synapse):
                     munch namespace config item.
         """
         super(FFNNSynapse, self).__init__(config = config)
+        if config == None:
+            config = FFNNSynapse.build_config()
             
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
@@ -52,7 +72,7 @@ class FFNNSynapse(Synapse):
 
         # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite(config, query_dim = bittensor.__network_dim__)
+        self.router = PKMRouter(config, query_dim = bittensor.__network_dim__)
 
         # target_layer: Maps from hidden layer to target dimension
         # [batch_size, bittensor.__network_dim__] -> [batch_size, self.target_dim]
@@ -61,16 +81,24 @@ class FFNNSynapse(Synapse):
 
         self.to(self.device)
 
+    @staticmethod   
+    def build_config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        FFNNSynapse.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        FFNNSynapse.check_config(config)
+        return config
+
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
         parser.add_argument('--synapse.target_dim', default=10, type=int, 
                             help='Final logit layer dimension. i.e. 10 for MNIST.')
-        parser = PKMDendrite.add_args(parser)
+        parser = PKMRouter.add_args(parser)
 
     @staticmethod   
     def check_config(config: Munch):
         assert config.synapse.target_dim > 0, "target dimension must be greater than 0."
-        config = PKMDendrite.check_config(config)
+        config = PKMRouter.check_config(config)
 
     def forward_image(self, images: torch.Tensor):
         r""" Forward image inputs through the FFNN synapse .
@@ -167,13 +195,13 @@ class FFNNSynapse(Synapse):
 
         return output
 
-    def remote_forward(self, neuron: Neuron, images: torch.Tensor, targets: torch.Tensor = None) -> SimpleNamespace:
+    def remote_forward(self, neuron: bittensor.neuron.Neuron, images: torch.Tensor, targets: torch.Tensor = None) -> SimpleNamespace:
         """
             Forward pass non-sequential image inputs and targets through the remote context of the synapse. The call
             makes RPC queries accross the network using the passed neuron's metagraph and dendrite.
             
             Args:
-                neuron (:obj: `bittensor.Neuron`, `required`):
+                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
                     Bittensor neuron, used for making queries to the remote network.
 
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
@@ -185,7 +213,7 @@ class FFNNSynapse(Synapse):
             Returns:
                 self.local_forward() + SimpleNamespace ( 
 
-                    dendrite (:obj:`SimpleNamespace`, `required`): 
+                    router (:obj:`SimpleNamespace`, `required`): 
                         Outputs from the pkm dendrite remote call.
 
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
@@ -205,12 +233,12 @@ class FFNNSynapse(Synapse):
         # output = bittensor.SynapseOutput
         output = self.local_forward( images, targets ) 
 
-        # Make remote queries using the PKMDendrite.
+        # Make remote queries using the PKMRouter.
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         images = torch.unsqueeze(images, 1)
-        output.dendrite = self.dendrite.forward_image( neuron, images, output.local_hidden )
-        remote_context = torch.squeeze( output.dendrite.response, 1 ).to(self.device)
+        output.router = self.router.forward_image( neuron, images, output.local_hidden )
+        remote_context = torch.squeeze( output.router.response, 1 ).to(self.device)
 
         # Distill the local context to match the remote context.
         # distillation_loss: distillation loss between local_context and remote_context
