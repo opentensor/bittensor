@@ -59,9 +59,11 @@ jobs:
       - run: pip install msgpack-numpy
       - run: pip install pytorch_transformers
       - run: ./scripts/create_wallet.sh
-      - run:
-          name: "Run Examples"
-          command: pytest ./tests/examples
+      - run: pytest ./tests/examples/text/test_gpt_wiki.py
+      - run: pytest ./tests/examples/text/test_gpt_genesis.py
+      - run: pytest ./tests/examples/text/test_bert_mlm.py
+      - run: pytest ./tests/examples/text/test_bert_nsp.py
+      - run: pytest ./tests/examples/image/test_mnist.py
   
   MNIST:
     executor: bittensor-executor
