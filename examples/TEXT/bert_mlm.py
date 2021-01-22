@@ -28,8 +28,6 @@ from bittensor.utils.model_utils import ModelToolbox
 
 
 import bittensor
-from bittensor.neuron import Neuron
-from bittensor.config import Config
 from bittensor.synapses.bert import BertMLMSynapse
 
 def mlm_batch(data, batch_size, tokenizer, collator):
@@ -60,11 +58,13 @@ def mlm_batch(data, batch_size, tokenizer, collator):
 
 class Session():
 
-    def __init__(self, config: Munch):
+    def __init__(self, config: Munch = None):
+        if config == None:
+            config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
         self.config = config
 
         # ---- Neuron ----
-        self.neuron = Neuron(self.config)
+        self.neuron = bittensor.neuron.Neuron(self.config)
 
         # ---- Model ----
         self.model = BertMLMSynapse( self.config )
@@ -91,22 +91,12 @@ class Session():
             logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
 
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
-        parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
-        parser.add_argument('--session.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
-        parser.add_argument('--session.epoch_length', default=10, type=int, help='Iterations of training per epoch')
-        parser.add_argument('--session.batch_size_train', default=1, type=int, help='Training batch size.')
-        parser.add_argument('--session.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
-        parser.add_argument('--session.log_interval', default=10, type=int, help='Batches before we log session info.')
-        parser.add_argument('--session.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
-        parser.add_argument('--session.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
-        parser.add_argument('--session.root_dir', default='~/.bittensor/sessions/', type=str,  help='Root path to load and save data associated with each session')
-        parser.add_argument('--session.name', default='bert-nsp', type=str, help='Trials for this session go in session.root / session.name')
-        parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
-        parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
-        parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
-        BertMLMSynapse.add_args(parser)
-        Neuron.add_args(parser)
+    def build_config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        Session.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        Session.check_config(config)
+        return config
 
     @staticmethod
     def check_config(config: Munch):
@@ -118,7 +108,25 @@ class Session():
         if not os.path.exists(config.session.full_path):
             os.makedirs(config.session.full_path)
         BertMLMSynapse.check_config(config)
-        Neuron.check_config(config)
+        bittensor.neuron.Neuron.check_config(config)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
+        parser.add_argument('--session.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--session.epoch_length', default=500, type=int, help='Iterations of training per epoch')
+        parser.add_argument('--session.batch_size_train', default=1, type=int, help='Training batch size.')
+        parser.add_argument('--session.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
+        parser.add_argument('--session.log_interval', default=10, type=int, help='Batches before we log session info.')
+        parser.add_argument('--session.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
+        parser.add_argument('--session.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
+        parser.add_argument('--session.root_dir', default='~/.bittensor/sessions/', type=str,  help='Root path to load and save data associated with each session')
+        parser.add_argument('--session.name', default='bert-nsp', type=str, help='Trials for this session go in session.root / session.name')
+        parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
+        parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
+        parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
+        BertMLMSynapse.add_args(parser)
+        bittensor.neuron.Neuron.add_args(parser)
 
     # --- Main loop ----
     def run (self):
@@ -153,7 +161,7 @@ class Session():
                         continue
 
                     # ---- Emitting weights ----
-                    self.neuron.metagraph.emit( self.row, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+                    self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
 
                     # ---- Sync metagraph ----
                     self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
@@ -210,7 +218,7 @@ class Session():
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
             # ---- Train row weights ----
-            batch_weights = torch.mean(output.dendrite.weights, axis = 0) # Average over batch.
+            batch_weights = torch.mean(output.router.weights, axis = 0) # Average over batch.
             self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
             self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
 
@@ -224,7 +232,7 @@ class Session():
                     colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
                     self.neuron.axon,
                     self.neuron.dendrite)
-            logger.info('Codes: {}', output.dendrite.return_codes.tolist())
+            logger.info('Codes: {}', output.router.return_codes.tolist())
             
             self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
@@ -239,12 +247,8 @@ class Session():
             del output
 
 if __name__ == "__main__":
-    # ---- Config ----
-    parser = argparse.ArgumentParser(); Session.add_args(parser) 
-    config = Config.to_config(parser); Session.check_config(config)
-    logger.info(Config.toString(config))
-   
-    # ---- Build + Run ----
+    # ---- Build and Run ----
+    config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
     session = Session(config)
     session.run()
 
