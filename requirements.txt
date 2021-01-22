@@ -20,6 +20,7 @@ pandas
 password_strength==0.0.3.post2
 pickle-mixin==1.0.2
 prettytable
+protobuf==3.13.0
 pycryptodome==3.9.8
 pycrypto==2.6.1
 py-sr25519-bindings==0.1.2
@@ -35,7 +36,7 @@ rollbar
 scalecodec==0.10.30
 termcolor
 tensorboard
-torch
+torch>=1.6.0
 torchvision
 transformers
 validators
