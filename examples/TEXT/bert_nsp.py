@@ -22,6 +22,7 @@ from munch import Munch
 from datasets import load_dataset
 from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
+from bittensor.utils.model_utils import ModelToolbox
 
 import bittensor
 from bittensor.synapses.bert import BertNSPSynapse
@@ -79,9 +80,12 @@ class Session():
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.session.learning_rate, momentum=self.config.session.momentum)
         self.scheduler = WarmupCosineWithHardRestartsSchedule(self.optimizer, 50, 300)
 
+        # ---- Model Load/Save tools ----
+        self.model_toolbox = ModelToolbox(BertNSPSynapse, torch.optim.SGD)
+
         # ---- Dataset ----
-        # Dataset: 74 million sentences pulled from books.
-        self.dataset = load_dataset('bookcorpus')
+        # Dataset: News headlines
+        self.dataset = load_dataset('ag_news')['train']
 
 
         # ---- Logging ----
@@ -153,6 +157,12 @@ class Session():
                     self.train()
                     self.scheduler.step()
 
+                    # If model has borked for some reason, we need to make sure it doesn't emit weights
+                    # Instead, reload into previous version of model
+                    if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
+                        self.model, self.optimizer = self.model_toolbox.load_model()     
+                        continue               
+
                     # ---- Emit row-weights ----
                     self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
 
@@ -174,8 +184,15 @@ class Session():
                     if self.training_loss and self.epoch % 10 == 0:
                         if self.training_loss < self.best_train_loss:
                             self.best_train_loss = self.training_loss # update best train loss
-                            logger.info( 'Saving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
-                            torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_train_loss},"{}/model.torch".format(self.config.session.full_path))
+                            self.model_toolbox.save_model(
+                                self.config.session.full_path,
+                                {
+                                    'epoch': self.epoch, 
+                                    'model_state_dict': self.model.state_dict(), 
+                                    'loss': self.best_train_loss,
+                                    'optimizer_state_dict': self.optimizer.state_dict(),
+                                }
+                            )
                             self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
                     
                 # --- Catch Errors ----
@@ -190,7 +207,7 @@ class Session():
         self.training_loss = 0.0
         for local_step in range(self.config.session.epoch_length):
             # ---- Forward pass ----
-            inputs, targets = nsp_batch(self.dataset['train'], self.config.session.batch_size_train, bittensor.__tokenizer__())
+            inputs, targets = nsp_batch(self.dataset, self.config.session.batch_size_train, bittensor.__tokenizer__())
             output = self.model.remote_forward (
                     self.neuron,
                     inputs = inputs['input_ids'].to(self.model.device), 

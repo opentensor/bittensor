@@ -14,6 +14,8 @@ import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
+from bittensor.utils.model_utils import ModelToolbox
+
 
 from munch import Munch
 from loguru import logger
@@ -39,6 +41,9 @@ class Session():
         # ---- Optimizer ---- 
         self.optimizer = optim.SGD(self.model.parameters(), lr=self.config.session.learning_rate, momentum=self.config.session.momentum)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10.0, gamma=0.1)
+
+        # ---- Model Load/Save tools ----
+        self.model_toolbox = ModelToolbox(DPNSynapse, torch.optim.SGD)
 
         # ---- Dataset ----
         self.train_data = torchvision.datasets.CIFAR10(
@@ -114,6 +119,11 @@ class Session():
                 # ---- Train ----
                 self.train()
                 self.scheduler.step()
+
+                # If model has borked for some reason, we need to make sure it doesn't emit weights
+                # Instead, reload into previous version of model
+                if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
+                    self.model, self.optimizer = self.model_toolbox.load_model()
                 
                 # ---- Test ----
                 test_loss, test_accuracy = self.test()
@@ -133,8 +143,15 @@ class Session():
                 # ---- Save ----
                 if test_loss < self.best_test_loss:
                     self.best_test_loss = test_loss # Update best loss.
-                    logger.info( 'Saving model: epoch: {}, accuracy: {}, loss: {}, path: {}/model.torch'.format(self.epoch, test_accuracy, self.best_test_loss, self.config.session.full_path))
-                    torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_test_loss},"{}/model.torch".format(self.config.session.full_path))
+                    self.model_toolbox.save_model(
+                        self.config.session.full_path,
+                        {
+                            'epoch': self.epoch, 
+                            'model_state_dict': self.model.state_dict(), 
+                            'loss': self.best_test_loss,
+                            'optimizer_state_dict': self.optimizer.state_dict(),
+                        }
+                    )
                     self.tensorboard.add_scalar('Test loss', test_loss, self.global_step)
 
     # ---- Train epoch ----
