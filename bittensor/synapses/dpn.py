@@ -235,7 +235,7 @@ class DPNSynapse(bittensor.synapse.Synapse):
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, target_dim]
             targets.to(self.device)
-            local_target = self.target_layer1(local_hidden)
+            local_target = self.target_layer1(output.local_hidden)
             local_target = self.target_layer2(local_target)
             output.local_target = F.log_softmax(local_target, dim=1)
 
@@ -309,7 +309,7 @@ class DPNSynapse(bittensor.synapse.Synapse):
         if targets is not None:
             # remote_target: projection of remote_hidden onto target dimension.
             # remote_target.shape = [batch_size, config.target_size]
-            remote_target = self.target_layer1(remote_hidden)
+            remote_target = self.target_layer1(output.remote_hidden)
             remote_target = self.target_layer2(remote_target)
             output.remote_target = F.log_softmax(remote_target, dim=1)
 
