@@ -22,7 +22,7 @@ with codecs.open(os.path.join(here, 'bittensor/__init__.py'), encoding='utf-8') 
 setup(
     name='bittensor',
     version=version_string,
-    description='BitTensor',
+    description='bittensor',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/bittensor/bittensor',

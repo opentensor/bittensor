@@ -15,6 +15,7 @@ import torch
 import torch.nn.functional as F
 import traceback
 import time
+import random
 
 from termcolor import colored
 from munch import Munch
@@ -23,23 +24,56 @@ from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
 
 import bittensor
-from bittensor.neuron import Neuron
-from bittensor.config import Config
 from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
+from os import listdir
+
+class AdamCorpus():
+
+    def __init__(self, directory: str):
+        file_names = listdir(directory)
+        files = []
+        for file_name in file_names:
+            file_thing = open(directory + file_name, 'r')
+            file_thing = file_thing.readlines()
+            files.append(file_thing)
+
+        self.lines = []
+        for file_thing in files:
+            for line in file_thing:
+                if len(line) > 10:
+                    self.lines.append(line.strip())
+
+
+    def nextbatch(self, batch_size, tokenizer):
+        """ Returns a random batch of sentences from text dataset.
+
+            Args:
+                data: (List[dict{'text': str}]): Dataset of text inputs.
+                batch_size: size of batch to create.
+
+            Returns:
+                batch_inputs torch.Tensor (batch_size, sequence_length): List of tokenized sentences.
+        """
+        batch_text = []
+        for _ in range(batch_size):
+
+            random_line = self.lines[ random.randint(0, len(self.lines)-1)]
+            batch_text.append( random_line )
+
+        batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True)['input_ids']
+        return batch_inputs
 
 
 class Session():
-    """
-    Initializes, trains, and tests models created inside of 'bittensor/synapses'. 
-    During instantiation, this class takes a config as a [Munch](https://github.com/Infinidat/munch) object. 
-    """
 
-    def __init__(self, config: Munch):
+    def __init__(self, config: Munch = None):
+        if config == None:
+            config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
         self.config = config
 
         # ---- Neuron ----
-        self.neuron = Neuron(self.config)
+        self.neuron = bittensor.neuron.Neuron(self.config)
 
         # ---- Model ----
         self.model = GPT2LMSynapse( self.config )
@@ -50,14 +84,21 @@ class Session():
 
         # ---- Dataset ----
         # Dataset: 74 million sentences pulled from books.
-        self.dataset = load_dataset('ag_news')['train']
-
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self.dataset = load_dataset('ag_news')['train']
+        self.dataset = AdamCorpus(self.config.session.custom_datasets)
 
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
         if self.config.session.record_log:
             logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
+
+    @staticmethod
+    def build_config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        Session.add_args(parser)
+        config = bittensor.config.Config.to_config(parser); 
+        Session.check_config(config)
+        return config
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -70,12 +111,13 @@ class Session():
         parser.add_argument('--session.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
         parser.add_argument('--session.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
         parser.add_argument('--session.root_dir', default='~/.bittensor/sessions/', type=str,  help='Root path to load and save data associated with each session')
-        parser.add_argument('--session.name', default='gpt-wiki', type=str, help='Trials for this session go in session.root / session.name')
+        parser.add_argument('--session.name', default='gpt2-genesis', type=str, help='Trials for this session go in session.root / session.name')
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
+        parser.add_argument('--session.custom_datasets', default="./genesis_dataset/", type=str, help='Custom datasets to train on.')
         parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         GPT2LMSynapse.add_args(parser)
-        Neuron.add_args(parser)
+        bittensor.neuron.Neuron.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
@@ -87,7 +129,7 @@ class Session():
         if not os.path.exists(config.session.full_path):
             os.makedirs(config.session.full_path)
         GPT2LMSynapse.check_config(config)
-        Neuron.check_config(config)
+        bittensor.neuron.Neuron.check_config(config)
 
     # --- Main loop ----
     def run (self):
@@ -96,7 +138,7 @@ class Session():
         with self.neuron:
 
             # ---- Weights ----
-            self.row = self.neuron.metagraph.row.to(self.model.device)
+            self.row = self.neuron.metagraph.row
 
             # --- Run state ---
             self.epoch = -1
@@ -105,52 +147,47 @@ class Session():
 
             # --- Loop forever ---
             while True:
-                try:
-                    self.epoch += 1
+                self.epoch += 1
 
-                    # ---- Serve ----
-                    self.neuron.axon.serve( self.model )
+                # ---- Serve ----
+                self.neuron.axon.serve( self.model )
 
-                    # ---- Train Model ----
-                    self.train()
-                    self.scheduler.step()
+                # ---- Train Model ----
+                self.train()
+                self.scheduler.step()
 
-                    # ---- Emitting weights ----
-                    self.neuron.metagraph.emit( self.row, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+                # ---- Emitting weights ----
+                self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
 
-                    # ---- Sync metagraph ----
-                    self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                    self.row = self.neuron.metagraph.row.to(self.model.device)
+                # ---- Sync metagraph ----
+                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                self.row = self.neuron.metagraph.row
 
-                    # --- Epoch logs ----
-                    print(self.neuron.axon.__full_str__())
-                    print(self.neuron.dendrite.__full_str__())
-                    print(self.neuron.metagraph)
+                # --- Epoch logs ----
+                print(self.neuron.axon.__full_str__())
+                print(self.neuron.dendrite.__full_str__())
+                print(self.neuron.metagraph)
 
+                # ---- Update Tensorboard ----
+                self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
 
-                    # ---- Update Tensorboard ----
-                    self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
-                    self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
-                    self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
-                
-                    # ---- Save best loss and model ----
-                    if self.training_loss and self.epoch % 10 == 0 and self.training_loss < self.best_train_loss:
+                # ---- Save best loss and model ----
+                if self.training_loss and self.epoch % 10 == 0:
+                    if self.training_loss < self.best_train_loss:
                         self.best_train_loss = self.training_loss # update best train loss
-                        logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
+                        logger.info( 'Saving model: epoch: {}, loss: {}, path: {}/model.torch'.format(self.epoch, self.best_train_loss, self.config.session.full_path))
                         torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_train_loss},"{}/model.torch".format(self.config.session.full_path))
                         self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
-                    
-                # --- Catch Errors ----
-                except Exception as e:
-                    logger.error('Exception in training script with error: {}, {}', e, traceback.format_exc())
-                    logger.info('Continuing to train.')
-    
+
     # ---- Train Epoch ----
     def train(self):
         self.training_loss = 0.0
         for local_step in range(self.config.session.epoch_length):
             # ---- Forward pass ----
-            inputs = nextbatch(self.dataset, self.config.session.batch_size_train, bittensor.__tokenizer__())
+            # inputs = nextbatch(self.dataset, self.config.session.batch_size_train, bittensor.__tokenizer__())
+            inputs = self.dataset.nextbatch( self.config.session.batch_size_train, bittensor.__tokenizer__() )
             output = self.model.remote_forward(
                 self.neuron,
                 inputs.to(self.model.device),
@@ -164,8 +201,9 @@ class Session():
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
             # ---- Train row weights ----
-            batch_weights = torch.mean(output.dendrite.weights, axis = 0).to(self.model.device) # Average over batch.
+            batch_weights = torch.mean(output.router.weights, axis = 0) # Average over batch.
             self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
+            self.row = torch.log( torch.abs( self.row ) + 1 )
             self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
 
             # ---- Step logs ----
@@ -178,8 +216,8 @@ class Session():
                     colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
                     self.neuron.axon,
                     self.neuron.dendrite)
-            logger.info('Codes: {}', output.dendrite.return_codes.tolist())
-            
+            logger.info('Codes: {}', output.router.return_codes.tolist())
+
             self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Neuron/Dloss', output.distillation_loss.item(), self.global_step)
@@ -193,11 +231,7 @@ class Session():
             del output
 
 if __name__ == "__main__":
-    # ---- Config ----
-    parser = argparse.ArgumentParser(); Session.add_args(parser) 
-    config = Config.to_config(parser); Session.check_config(config)
-    logger.info(Config.toString(config))
-   
-    # ---- Build + Run ----
+    # ---- Build and Run ----
+    config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
     session = Session(config)
     session.run()

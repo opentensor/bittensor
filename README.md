@@ -5,6 +5,7 @@
 [![Documentation Status](https://readthedocs.org/projects/bittensor-docs/badge/?version=latest)](https://bittensor-docs.readthedocs.io/en/latest/?badge=latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+---
 
 ### Incentivized Peer to Peer Neural Networks
 
@@ -20,23 +21,24 @@ $ cd bittensor && pip install -r requirements && pip install -e .               
 $ bittensor-cli new_wallet                                                          # Generate default keys
 ```
 
-# Run
-```
-$ python examples/gpt2-wiki.py   --session.trial_uid=test                           # Train gpt2 on wiki-text
-$ tensorboard --logdir=~/.bittensor/sessions/gpt2-wiki/test                          # Serve tensorboard
-```
-
-# Validate
+# Run Subtensor
 ```
 $ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
 $ ./bin/release/node-subtensor                                                      # Run a main net validator
 ```
 
+# Run Bittensor
+```
+$ python examples/text/gpt2-wiki.py   --session.trial_uid=test                      # Train gpt2 on wiki-text
+$ tensorboard --logdir=~/.bittensor/sessions/gpt2-wiki/test                         # Serve tensorboard
+```
+
+
 ---
 
 ### License
 The MIT License (MIT)
-Copyright © 2020 <copyright holders>
+Copyright © 2021 opentensor.ai
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -47,6 +49,3 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 ### Acknowledgments
 **learning-at-home/hivemind**
-
-
-1000 booyah

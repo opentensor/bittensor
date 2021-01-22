@@ -1,5 +1,19 @@
-from loguru import logger
 import sys
+from loguru import logger
+
+import bittensor.bittensor_pb2 as proto
+import bittensor.bittensor_pb2_grpc as grpc
+
+import bittensor.axon
+import bittensor.config 
+import bittensor.dendrite
+import bittensor.metagraph
+import bittensor.neuron
+import bittensor.nucleus
+import bittensor.receptor
+import bittensor.synapse
+import bittensor.wallet
+
 # Bittensor code and protocol version.
 __version__ = '1.0.2'
 
