@@ -214,14 +214,14 @@ class ThreadPoolExecutor(_base.Executor):
                     work_item.future.set_exception(BrokenThreadPool(self._broken))
 
     def shutdown(self, wait=True):
-        pass
-
-        # with self._shutdown_lock:
-        #     self._shutdown = True
-        #     self._work_queue.put(NULL_ENTRY)
+        with self._shutdown_lock:
+            self._shutdown = True
+            self._work_queue.put(NULL_ENTRY)
         
-        # logger.info('wait')
-        # if wait:
-        #     for t in self._threads:
-        #         t.join(timeout=1)
+        if wait:
+            for t in self._threads:
+                try:
+                    t.join(timeout=2)
+                except:
+                    pass
     shutdown.__doc__ = _base.Executor.shutdown.__doc__

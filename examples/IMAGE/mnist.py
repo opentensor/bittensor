@@ -14,6 +14,7 @@ import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
+from bittensor.utils.model_utils import ModelToolbox
 
 from munch import Munch
 from loguru import logger
@@ -25,20 +26,25 @@ from bittensor.synapses.ffnn import FFNNSynapse
 
 class Session():
 
-    def __init__(self, config: Munch):
+    def __init__(self, config: Munch = None):
+        if config == None:
+            config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
         self.config = config
 
         # ---- Neuron ----
-        self.neuron = Neuron(self.config)
+        self.neuron = bittensor.neuron.Neuron(self.config)
     
         # ---- Model ----
-        self.model = FFNNSynapse( config ) # Feedforward neural network with PKMDendrite.
+        self.model = FFNNSynapse( config ) # Feedforward neural network with PKMRouter.
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to( self.device ) # Set model to device
         
         # ---- Optimizer ---- 
         self.optimizer = optim.SGD(self.model.parameters(), lr=self.config.session.learning_rate, momentum=self.config.session.momentum)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10.0, gamma=0.1)
+
+        # ---- Model Load/Save tools ----
+        self.model_toolbox = ModelToolbox(FFNNSynapse, optim.SGD)
 
         # ---- Dataset ----
         self.train_data = torchvision.datasets.MNIST(root = self.config.session.root_dir + "datasets/", train=True, download=True, transform=transforms.ToTensor())
@@ -52,6 +58,13 @@ class Session():
         if self.config.session.record_log:
             logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
 
+    @staticmethod
+    def build_config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        Session.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        Session.check_config(config)
+        return config
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
@@ -66,7 +79,7 @@ class Session():
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
         parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
-        Neuron.add_args(parser)
+        bittensor.neuron.Neuron.add_args(parser)
         FFNNSynapse.add_args(parser)
 
     @staticmethod
@@ -81,7 +94,7 @@ class Session():
         if not os.path.exists(config.session.full_path):
             os.makedirs(config.session.full_path)
         FFNNSynapse.check_config(config)
-        Neuron.check_config(config)
+        bittensor.neuron.Neuron.check_config(config)
 
     # --- Main loop ----
     def run(self):
@@ -103,12 +116,18 @@ class Session():
                 # ---- Train ----
                 self.train()
                 self.scheduler.step()
+                                    
+                # If model has borked for some reason, we need to make sure it doesn't emit weights
+                # Instead, reload into previous version of model
+                if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
+                    self.model, self.optimizer = self.model_toolbox.load_model()
+                    continue
 
                 # ---- Test ----
                 test_loss, test_accuracy = self.test()
 
                 # ---- Emit ----
-                self.neuron.metagraph.emit( self.row, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+                self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
                         
                 # ---- Sync ----  
                 self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
@@ -127,8 +146,15 @@ class Session():
                 # ---- Save ----
                 if test_loss < self.best_test_loss:
                     self.best_test_loss = test_loss # Update best loss.
-                    logger.info( 'Saving/Serving model: epoch: {}, accuracy: {}, loss: {}, path: {}/model.torch'.format(self.epoch, test_accuracy, self.best_test_loss, self.config.session.full_path))
-                    torch.save( {'epoch': self.epoch, 'model': self.model.state_dict(), 'loss': self.best_test_loss},"{}/model.torch".format(self.config.session.full_path))
+                    self.model_toolbox.save_model(
+                        self.config.session.full_path,
+                        {
+                            'epoch': self.epoch, 
+                            'model_state_dict': self.model.state_dict(), 
+                            'loss': self.best_test_loss,
+                            'optimizer_state_dict': self.optimizer.state_dict(),
+                        }
+                    )
                     self.tensorboard.add_scalar('Test loss', test_loss, self.global_step)
 
     # ---- Train epoch ----
@@ -152,7 +178,7 @@ class Session():
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation 
 
             # ---- Train weights ----
-            batch_weights = torch.mean(output.dendrite.weights, axis = 0).to(self.model.device) # Average over batch.
+            batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
             self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
             self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
 
@@ -193,12 +219,8 @@ class Session():
 
         
 if __name__ == "__main__":
-    # ---- Load command line args ----
-    parser = argparse.ArgumentParser(); Session.add_args(parser) 
-    config = Config.to_config(parser); Session.check_config(config)
-    logger.info(Config.toString(config))
-
-    # --- Create + Run ----
+    # ---- Build and Run ----
+    config = Session.build_config(); logger.info(Config.toString(config))
     session = Session(config)
     session.run()
 

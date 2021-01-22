@@ -180,9 +180,9 @@ class cli_utils():
     @staticmethod
     def validate_password(password):
         policy = PasswordPolicy.from_names(
-            strength=0.66,
-            entropybits=30,
-            length=8,
+            strength=0.20,
+            entropybits=10,
+            length=6,
         )
         if not password:
             return False
