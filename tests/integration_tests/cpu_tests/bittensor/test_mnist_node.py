@@ -26,13 +26,15 @@ from bittensor.synapses.ffnn import FFNNSynapse
 class Session():
 
     def __init__(self, config: Munch):
+        if config == None:
+            config = Session.build_config()
         self.config = config
 
         # ---- Neuron ----
         self.neuron = Neuron(self.config)
     
         # ---- Model ----
-        self.model = FFNNSynapse( config ) # Feedforward neural network with PKMDendrite.
+        self.model = FFNNSynapse( config ) # Feedforward neural network with PKMRouter.
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to( self.device ) # Set model to device
         
@@ -49,6 +51,14 @@ class Session():
         # ---- Tensorboard ----
         self.global_step = 0
         self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
+
+    @staticmethod
+    def build_config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        Session.add_args(parser) 
+        config = Config.to_config(parser); 
+        Session.check_config(config)
+        return config
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
@@ -92,7 +102,7 @@ class Session():
                 self.epoch += 1
 
                 # ---- Emit ----
-                self.neuron.metagraph.emit( self.weights, wait_for_inclusion = True ) # Sets my row-weights on the chain.
+                self.neuron.metagraph.set_weights(self.weights, wait_for_inclusion = True) # Sets my row-weights on the chain.
                         
                 # ---- Sync ----  
                 self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
@@ -136,7 +146,7 @@ class Session():
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation 
 
             # ---- Train weights ----
-            batch_weights = torch.mean(output.dendrite.weights, axis = 0) # Average over batch.
+            batch_weights = torch.mean(output.router.weights, axis = 0) # Average over batch.
             self.weights = (1 - 0.03) * self.weights + 0.03 * batch_weights # Moving avg update.
             self.weights = F.normalize(self.weights, p = 1, dim = 0) # Ensure normalization.
 
@@ -177,12 +187,8 @@ class Session():
 
         
 if __name__ == "__main__":
-    # ---- Load command line args ----
-    parser = argparse.ArgumentParser(); Session.add_args(parser) 
-    config = Config.to_config(parser); Session.check_config(config)
-    logger.info(Config.toString(config))
-
-    # --- Create + Run ----
+    # ---- Build and Run ----
+    config = Session.config(); logger.info(Config.toString(config))
     session = Session(config)
     session.run()
 

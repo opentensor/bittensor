@@ -17,7 +17,6 @@ class Balance:
     def __str__(self):
         return "{unit:s} {balance:.9f}".format(unit=self.unit, balance=self.tao)
 
-
     def __eq__(self, other):
         return self.rao == other.rao
 

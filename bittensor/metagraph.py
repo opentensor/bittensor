@@ -1,4 +1,21 @@
+'''
+The MIT License (MIT)
+Copyright © 2021 Opentensor.ai
 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+DEALINGS IN THE SOFTWARE.
+'''
 import asyncio
 import copy
 import argparse
@@ -13,11 +30,12 @@ import traceback
 from munch import Munch
 from termcolor import colored
 from loguru import logger
-from bittensor import bittensor_pb2
-from bittensor.subtensor.client import WSClient
 from typing import List, Tuple, List
 
+import bittensor
+import bittensor.config as config_utils
 import bittensor.utils.networking as net
+from bittensor.subtensor.client import WSClient
 from bittensor.exceptions.handlers import rollbar
 
 MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
@@ -26,11 +44,9 @@ class ChainState():
     def __init__(self):
         # Cached values.
         self.n = 0
-        self.next_uid = 0
         self.uids = []
         self.stake = []
         self.lastemit = []
-        self.neuron_weights = []
         self.weight_uids = []
         self.weight_vals = []
         self.neurons = []
@@ -38,9 +54,9 @@ class ChainState():
         self.index_for_pubkey = {}
         self.pubkey_for_index = {}
 
-    def add_or_update(self, pubkey:str, ip: int, port: int, uid: int, ip_type: int, modality: int, lastemit: int, stake: int, w_uids: List[str], w_vals: List[int]):
+    def add_or_update(self, pubkey:str, ip: int, port: int, uid: int, ip_type: int, modality: int, lastemit: int, stake: int, w_uids: List[int], w_vals: List[int]):
         address_str = net.int_to_ip(ip)
-        neuron = bittensor_pb2.Neuron(
+        neuron = bittensor.proto.Neuron(
             version = bittensor.__version__,
             public_key = pubkey,
             address = address_str,
@@ -51,12 +67,15 @@ class ChainState():
         )
         if pubkey in self.index_for_pubkey:
             index = self.index_for_pubkey[pubkey]
-            self.neurons[index] = neuron
-            self.stake[index] = float(stake) / 1000000000 
-            self.lastemit[index] = int(lastemit)
-            self.weight_uids[index] = list(w_uids)
-            self.weight_vals[index] = list(w_vals)
-            self.uids[index] = int(uid)
+            if self.uids[index] == uid:
+                self.neurons[index] = neuron
+                self.stake[index] = float(stake) / 1000000000 
+                self.lastemit[index] = int(lastemit)
+                self.weight_uids[index] = list(w_uids)
+                self.weight_vals[index] = list(w_vals)
+                self.uids[index] = int(uid)
+            else:
+                raise ValueError('recieved inconsistent uid - pubey pairing with uid{}, pubkey{} and expected uid {}'.format(uid, pubkey, self.uids[index]))
         else:
             index = self.n
             self.n += 1
@@ -98,7 +117,7 @@ class TorchChainState():
             W: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n, metagraph.n)`):
                 Full weight matrix on chain.
 
-            neurons: (List[bittensor_pb2.Neuron]) 
+            neurons: (List[bittensor.proto.Neuron]) 
                 List of endpoints on the network.
 
     """
@@ -139,24 +158,33 @@ class TorchChainState():
             for uid, val in list(zip(uids, vals)):
                 if uid in cache.index_for_uid:
                     j = cache.index_for_uid[uid]
-                    weights_numpy[i, j] = float(val) / float(val_sum)
+                    if val_sum != 0:
+                        weights_numpy[i, j] = float(val) / float(val_sum)
+                    else:
+                        weights_numpy[i, j] = 0
         state.W = torch.tensor(weights_numpy, dtype=torch.float32)
         return state
 
 class Metagraph():
 
-    def __init__(self, config):
-        r"""Initializes a new Metagraph subtensor interface.
-        Args:
-            config (bittensor.Config):
-                An bittensor config object.
+    def __init__(self, config: 'Munch' = None, wallet: 'bittensor.wallet.Wallet' = None):
+        r""" Initializes a new Metagraph chain interface.
+            Args:
+                config (:obj:`Munch`, `optional`): 
+                    metagraph.Metagraph.config()
+                wallet (:obj:`bittensor.nucleus.Nucleus`, `optional`):
+                    bittensor wallet with hotkey and coldkeypub.
         """
-        # Protected vars
-        self._config = config
-        self.__keypair = config.neuron.keypair
+        if config == None:
+            config = Metagraph.build_config()
+        self.config = config
+
+        if wallet == None:
+            wallet = bittensor.wallet.Wallet( self.config )
+        self.wallet = wallet
 
         # Client for talking to chain.
-        self.subtensor_client = WSClient(self._config.metagraph.chain_endpoint, self.__keypair)
+        self.subtensor_client = WSClient(self.config.metagraph.chain_endpoint, keypair = self.wallet.keypair)
 
         # This neurons metadata on chain, initially None, filled on subscribe.
         self.uid = None
@@ -168,24 +196,38 @@ class Metagraph():
         # Chain state as torch values.
         self.state = TorchChainState.from_cache(self.cache)
 
+    @staticmethod
+    def build_config() -> Munch:
+        # Parses and returns a config Munch for this object.
+        parser = argparse.ArgumentParser(); 
+        Metagraph.add_args(parser) 
+        config = config_utils.Config.to_config(parser); 
+        Metagraph.check_config(config)
+        return config
+
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         # TODO(const): check this endpoint in check_config.
-        parser.add_argument('--metagraph.chain_endpoint', default='localhost:9944', type=str, 
-                            help='''The subtensor chain endpoint. The likely choices are:
-                                    -- localhost:9944 -- (your locally running node)
-                                    -- feynman.akira.bittensor.com:9944 (testnet)
-                                    -- feynman.kusanagi.bittensor.com:12345 (mainnet)
-                                    If this value remains a default (localhost) you will need to 
-                                    run a subtensor node on your localbox in order to connect your neuron.
-                                    (See: docs/running_a_validator.md)''')
-        parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
-                            help='''The metagraph filters neurons with last emit beyond this many blocks.
-                                    Note, this is used to trim the graph size,
-                                    but may change your incentive mechanism view.''')
+        bittensor.wallet.Wallet.add_args( parser )
+        try:
+            parser.add_argument('--metagraph.chain_endpoint', default='localhost:9944', type=str, 
+                                help='''The subtensor chain endpoint. The likely choices are:
+                                        -- localhost:9944 -- (your locally running node)
+                                        -- feynman.akira.bittensor.com:9944 (testnet)
+                                        -- feynman.kusanagi.bittensor.com:12345 (mainnet)
+                                        If this value remains a default (localhost) you will need to 
+                                        run a subtensor node on your localbox in order to connect your neuron.
+                                        (See: docs/running_a_validator.md)''')
+            parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
+                                help='''The metagraph filters neurons with last emit beyond this many blocks.
+                                        Note, this is used to trim the graph size,
+                                        but may change your incentive mechanism view.''')
+        except:
+            pass
+        
     @staticmethod   
     def check_config(config: Munch):
-        pass
+        bittensor.wallet.Wallet.check_config( config )
 
     @property
     def n(self) -> int:
@@ -349,10 +391,10 @@ class Metagraph():
         return self.state.W
 
     @property
-    def neurons(self) -> List[bittensor_pb2.Neuron]:
+    def neurons(self) -> List[bittensor.proto.Neuron]:
         r""" Return neuron endpoint information for each neuron.
         Returns
-            neurons: (:obj:`List[bittensor_pb2.Neuron]` of shape :obj:`(metagraph.n, metagraph.n)`):
+            neurons: (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(metagraph.n, metagraph.n)`):
                 endpoint information for each neuron.
         """
         return self.state.neurons
@@ -379,7 +421,7 @@ class Metagraph():
             w_0 = self.state.W[0,:]
             return w_0
 
-    def uids_to_indices(self, uids: torch.Tensor):
+    def uids_to_indices(self, uids: torch.Tensor) -> torch.LongTensor:
         r"""Return the indices of passed uids
         Args:
             uids: (:obj:`torch.LongTensor` of shape :obj:`(-1)`):
@@ -393,13 +435,13 @@ class Metagraph():
             raise ValueError('Passed uids are not a subset of class.uids, with passed: {} and class.uids: {}'.format(uids, self.state.uids))
         return indices
 
-    def uids_to_neurons(self, uids: torch.Tensor) -> List[bittensor_pb2.Neuron]:
+    def uids_to_neurons(self, uids: torch.Tensor) -> List[bittensor.proto.Neuron]:
         r""" Returns a list with neurons for each uid.
         Args:
             uids: (torch.LongTensor)
                 uids into neuron protos
         Returns:
-            neurons: (List[bittensor_pb2.Neuron]): 
+            neurons: (List[bittensor.proto.Neuron]): 
                 neuron info ordered by passed uids.
         """
         response = []
@@ -408,10 +450,10 @@ class Metagraph():
             response.append(self.state.neurons[idx])
         return response
 
-    def neurons_to_uids(self, neurons: List[bittensor_pb2.Neuron]) -> torch.LongTensor:
+    def neurons_to_uids(self, neurons: List[bittensor.proto.Neuron]) -> torch.LongTensor:
         r""" Returns uids associated with the passed neurons.
         Args:
-            neurons: (List[bittensor_pb2.Neuron]): 
+            neurons: (List[bittensor.proto.Neuron]): 
                 neuron info ordered by passed uids.
         Returns:
             uids: (torch.LongTensor)
@@ -504,11 +546,11 @@ class Metagraph():
         current_block = await self.async_chain_block()
         active = dict( await self.subtensor_client.get_active() )
         last_emit = dict( await self.subtensor_client.get_last_emit_data() )
-        calls.append ( self._poll_uid ( self.__keypair.public_key, self.uid ) )        
+        calls.append ( self._poll_uid ( self.wallet.keypair.public_key, self.uid ) )        
         for pubkey, uid in active.items():
             if uid in last_emit:
                 emit_block = last_emit[ uid ]
-                if (current_block - emit_block) < self._config.metagraph.stale_emit_filter:
+                if (current_block - emit_block) < self.config.metagraph.stale_emit_filter:
                         calls.append( self._poll_uid ( pubkey, uid ) )
         await asyncio.gather(*calls)
 
@@ -523,8 +565,9 @@ class Metagraph():
             neuron = await self.subtensor_client.get_neuron_for_uid ( uid )
             self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], modality = neuron['modality'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
         except Exception as e:
-            logger.error("Exception occurred: {}".format(e))
-            traceback.print_exc()
+            pass
+            #logger.error("Exception occurred: {}".format(e))
+            #traceback.print_exc()
 
     ConnectSuccess = 1
     ConnectUnknownError = 2
@@ -554,7 +597,7 @@ class Metagraph():
             code, message = await self._try_async_connect(timeout)
 
             if code == Metagraph.ConnectSuccess:
-                logger.info('Successfully connected to chain endpoint: {}', self._config.metagraph.chain_endpoint)
+                logger.info('Successfully connected to chain endpoint: {}', self.config.metagraph.chain_endpoint)
                 return code, message
 
             elif code == Metagraph.ConnectUnknownError:
@@ -700,7 +743,7 @@ class Metagraph():
 
             subscribe_start_time = time.time()
             try:
-                await self.subtensor_client.subscribe(self._config.axon.external_ip, self._config.axon.external_port, bittensor_pb2.Modality.TEXT, self._config.neuron.coldkey)
+                await self.subtensor_client.subscribe(self.config.axon.external_ip, self.config.axon.external_port, bittensor.proto.Modality.TEXT, self.wallet.coldkey)
 
             except Exception as e:
                 if (time.time() - subscribe_start_time) > 8:
@@ -718,7 +761,7 @@ class Metagraph():
             while True:
                 try:
                     # ---- Request info from chain ----
-                    self.uid = await self.subtensor_client.get_uid_for_pubkey(self.__keypair.public_key)
+                    self.uid = await self.subtensor_client.get_uid_for_pubkey(self.wallet.keypair.public_key)
                 except Exception as e:
                     # ---- Catch errors in request ----
                     message = "Subscription threw an unknown exception {}".format(e)
@@ -750,7 +793,7 @@ class Metagraph():
         return Metagraph.SubscribeUnknownError, 'Should not get here'
 
       
-    def emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12):
+    def set_weights(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12):
         r""" Emits the passed weights to the chain. Optionally Waits for inclusion. 
         Failures are logged but do not break the process. 
 
@@ -927,7 +970,7 @@ class Metagraph():
             try:
                 # --- Make emission call ----
                 logger.debug('Emit -> {} {}', weight_uids, weight_vals)
-                await self.subtensor_client.emit(weight_uids, weight_vals, self.__keypair, wait_for_inclusion = False)
+                await self.subtensor_client.set_weights(weight_uids, weight_vals)
                 break
 
             except Exception as e:

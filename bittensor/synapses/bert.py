@@ -1,3 +1,22 @@
+'''
+The MIT License (MIT)
+Copyright © 2021 Opentensor.ai
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+DEALINGS IN THE SOFTWARE.
+'''
+
 import argparse
 import random
 import torch
@@ -10,9 +29,7 @@ from transformers import BertModel, BertConfig
 from types import SimpleNamespace
 
 import bittensor
-from bittensor.dendrites.pkm import PKMDendrite
-from bittensor.synapse import Synapse
-from bittensor.neuron import Neuron
+from bittensor.routers.pkm import PKMRouter
 
 class BertPooler(nn.Module):
     def __init__(self, config):
@@ -28,7 +45,7 @@ class BertPooler(nn.Module):
         pooled_output = self.activation(pooled_output)
         return pooled_output
 
-class BertSynapseBase (Synapse):
+class BertSynapseBase (bittensor.synapse.Synapse):
     def __init__(self, config: Munch):
         r""" Init a new base-bert synapse.
 
@@ -36,6 +53,8 @@ class BertSynapseBase (Synapse):
                 config (:obj:`munch.Munch`, `required`): 
         """
         super(BertSynapseBase, self).__init__( config = config )
+        if config == None:
+            config = BertSynapseBase.build_config()
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
@@ -47,7 +66,7 @@ class BertSynapseBase (Synapse):
 
         # dendrite: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite( config, query_dim = bittensor.__network_dim__ )
+        self.router = PKMRouter( config, query_dim = bittensor.__network_dim__ )
 
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -63,6 +82,14 @@ class BertSynapseBase (Synapse):
 
         self.to(self.device)
 
+    @staticmethod   
+    def build_config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        BertSynapseBase.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        BertSynapseBase.check_config(config)
+        return config
+
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):    
         r""" Add custom params to the parser.
@@ -72,7 +99,7 @@ class BertSynapseBase (Synapse):
         parser.add_argument('--synapse.num_attention_heads', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
         parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
-        PKMDendrite.add_args(parser)
+        PKMRouter.add_args(parser)
 
     @staticmethod
     def check_config( config: Munch ):    
@@ -118,6 +145,7 @@ class BertSynapseBase (Synapse):
                         Local hidden state pooled by returning the encoding of the first token.
                 }
         """        
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         # Return vars to be filled.
         output = SimpleNamespace()
    
@@ -132,7 +160,7 @@ class BertSynapseBase (Synapse):
 
         return output
 
-    def base_remote_forward(self, neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None):
+    def base_remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None):
         """Forward pass inputs and labels through the remote BERT networks.
 
         Args:
@@ -156,23 +184,24 @@ class BertSynapseBase (Synapse):
                     remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
 
-                    dendrite (:obj:`SimpleNamespace`, `required`): 
+                    router (:obj:`SimpleNamespace`, `required`): 
                         Outputs from the pkm dendrite.
                 )
         """
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         output = self.base_local_forward( inputs = inputs, attention_mask = attention_mask )
 
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.dendrite = self.dendrite.forward_text( neuron = neuron, text = inputs, query = output.local_pooled )
+        output.router = self.router.forward_text( neuron = neuron, text = inputs, query = output.local_pooled )
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
-        output.distillation_loss = F.mse_loss( output.local_context, output.dendrite.response.detach() )
+        output.distillation_loss = F.mse_loss( output.local_context, output.router.response.detach() )
 
         # remote_hidden: hidden layer encoding using remote_context.
         # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.remote_hidden = self.hidden_layer( output.dendrite.response )
+        output.remote_hidden = self.hidden_layer( output.router.response )
         output.remote_pooled = self.pooler( output.remote_hidden )
 
         return output
@@ -184,9 +213,6 @@ class BertNSPSynapse (BertSynapseBase):
             Args:
                 config (:obj:`Munch`, `required`): 
                     BertNSP configuration class.
-
-                neuron (:obj:`bittensor.Neuron`, `required`): 
-                    bittensor neuron object. 
         """
         super(BertNSPSynapse, self).__init__(config = config)
 
@@ -249,6 +275,7 @@ class BertNSPSynapse (BertSynapseBase):
                         BERT NSP loss using local_context.
                 )
         """
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         # Call forward method from bert base.
         output = BertSynapseBase.base_local_forward( self, inputs = inputs, attention_mask = attention_mask ) 
         if targets is not None:
@@ -259,11 +286,11 @@ class BertNSPSynapse (BertSynapseBase):
             output.local_target_loss = self.loss_fct( output.local_target.view(-1, 2), targets )            
         return output
 
-    def remote_forward(self, neuron: Neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None, targets: torch.Tensor = None):
+    def remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None, targets: torch.Tensor = None):
         r""" Forward pass inputs and labels through the NSP BERT module. (with queries to the network)
 
             Args:
-                neuron (:obj: `bittensor.Neuron`, `required`):
+                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
                     Bittensor neuron, used for making queries to the remote network.
 
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
@@ -289,6 +316,7 @@ class BertNSPSynapse (BertSynapseBase):
                         BERT NSP loss using remote_target_loss.
                 )
         """
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         output = BertSynapseBase.base_remote_forward( self, neuron = neuron, attention_mask = attention_mask, inputs = inputs)
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
@@ -313,8 +341,6 @@ class BertMLMSynapse (BertSynapseBase):
                 config (:obj:`Munch`, `required`): 
                     BertNSP configuration class.
 
-                neuron (:obj:`bittensor.Neuron`, `required`): 
-                    bittensor neuron object. 
         """
         super(BertMLMSynapse, self).__init__(config = config)
 
@@ -370,6 +396,7 @@ class BertMLMSynapse (BertSynapseBase):
                         BERT NSP loss using local_context.
             )
         """
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         # Call forward method from bert base.
         output = BertSynapseBase.base_local_forward( self, inputs = inputs ) 
 
@@ -382,11 +409,11 @@ class BertMLMSynapse (BertSynapseBase):
         return output
 
 
-    def remote_forward(self, neuron: Neuron, inputs: torch.LongTensor, targets: torch.LongTensor = None):
+    def remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, targets: torch.LongTensor = None):
         r""" Forward pass inputs and labels through the MLM BERT module. (with queries to the network)
 
             Args:
-                neuron (:obj: `bittensor.Neuron`, `required`):
+                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
                     Bittensor neuron, used for making queries to the remote network.
 
                 inputs (:obj:`torch.LongTensor` of shape ``(batch_size, sequence_length)``, `required`):
@@ -407,6 +434,7 @@ class BertMLMSynapse (BertSynapseBase):
                         BERT NSP loss using local_context.
             )
         """
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         # Call forward method from bert base.
         output = BertSynapseBase.base_remote_forward( self, neuron = neuron, inputs = inputs ) 
 
