@@ -20,6 +20,7 @@ jobs:
       - run:
           command: pip install -e .
           name: setup
+      - run: ./scripts/create_wallet.sh
       - run: pip install miniupnpc
 
   "Run Unit Tests":
@@ -37,12 +38,10 @@ jobs:
       - run: pip install msgpack
       - run: pip install msgpack-numpy
       - run: pip install pytorch_transformers
+      - run: ./scripts/create_wallet.sh
       - run:
           name: "Run unit tests"
-          command: pytest ./tests/unit_tests
-      - run:
-          name: "Code Coverage"
-          command: codecov
+          command: pytest ./tests/unit_tests  --capture=no
   
   MNIST:
     executor: bittensor-executor
@@ -55,6 +54,7 @@ jobs:
       - run: pip install msgpack
       - run: pip install msgpack-numpy
       - run: pip install pytorch_transformers
+      - run: ./scripts/create_wallet.sh
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
@@ -64,7 +64,7 @@ jobs:
           command: unset https_proxy;unset http_proxy
       - run:
           name: Run MNIST node
-          command: python3 tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.5 --metagraph.chain_endpoint feynman.kusanagi.bittensor.com:9944
+          command: python3 tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.5 --metagraph.chain_endpoint feynman.akira.bittensor.com:9944
 
   "Run Integration Tests":
     executor: bittensor-executor
@@ -78,6 +78,7 @@ jobs:
       - run: pip install msgpack
       - run: pip install msgpack-numpy
       - run: pip install pytorch_transformers
+      - run: ./scripts/create_wallet.sh
       - run:
           command: pip install -e .
           name: setup

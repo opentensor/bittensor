@@ -1,13 +1,14 @@
 import argparse
 import torch
 import torch.nn as nn
+
 from torch.nn import functional as F
 from typing import Tuple
 from types import SimpleNamespace
+from munch import Munch
 
 import bittensor
 from bittensor.neuron import Neuron
-from bittensor import bittensor_pb2
 
 class PKMKeys(nn.Module):
 
@@ -35,27 +36,37 @@ class PKMKeys(nn.Module):
             self._n_keys = self._keys.shape[0]
         return self._keys[uids]
 
-class PKMDendrite():
-    def __init__(self, config, query_dim):
+class PKMRouter():
+    def __init__(self, config: Munch, query_dim = bittensor.__network_dim__):
+        if config == None:
+            config = PKMRouter.build_config()
         self.config = config
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # UIDs -> Keys.
-        self.keys = PKMKeys(self.config.dendrite.key_dim)
+        self.keys = PKMKeys(self.config.router.key_dim)
         # Query -> Keys
-        self.projection = nn.Linear(query_dim, self.config.dendrite.key_dim, bias=True).to(self.device)
+        self.projection = nn.Linear(query_dim, self.config.router.key_dim, bias=True).to(self.device)
+
+    @staticmethod   
+    def build_config() -> Munch:
+        parser = argparse.ArgumentParser()
+        PKMRouter.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        PKMRouter.check_config(config)
+        return config
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
-        parser.add_argument('--dendrite.key_dim', default=100, type=int, help='Product keys dimension.')
-        parser.add_argument('--dendrite.topk', default=10, type=int, help='Number of keys to select for each example.')
-        parser.add_argument('--dendrite.stale_emit_filter', default=10000, type=int, help='Number of blocks before a neuron is filtered without a recent emit')
+        parser.add_argument('--router.key_dim', default=100, type=int, help='Product keys dimension.')
+        parser.add_argument('--router.topk', default=10, type=int, help='Number of keys to select for each example.')
+        parser.add_argument('--router.stale_emit_filter', default=10000, type=int, help='Number of blocks before a neuron is filtered without a recent emit')
         return parser
 
     @staticmethod
     def check_config(config):   
         return config
 
-    def _route(self, neuron: Neuron, inputs: torch.FloatTensor, query: torch.FloatTensor, modality: bittensor_pb2.Modality) -> SimpleNamespace:
+    def _route(self, neuron: Neuron, inputs: torch.FloatTensor, query: torch.FloatTensor, modality: bittensor.proto.Modality) -> SimpleNamespace:
         r""" Routes inputs using context and metagraph state.
 
             Args:
@@ -68,7 +79,7 @@ class PKMDendrite():
                 query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
                     Context tensor used to select which neurons query for each example.
 
-                modality (:obj:`bittensor_pb2.Modality` of shape :obj:`(1)`, `required`):
+                modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
@@ -100,7 +111,7 @@ class PKMDendrite():
         current_block = neuron.metagraph.block
         lastemit = neuron.metagraph.lastemit
         staleness = (current_block - lastemit)
-        filtered_uids = all_uids[torch.where(staleness < self.config.dendrite.stale_emit_filter)] 
+        filtered_uids = all_uids[torch.where(staleness < self.config.router.stale_emit_filter)] 
         n_uids = torch.numel(filtered_uids)
 
         # Return if there are no uids to query
@@ -114,11 +125,11 @@ class PKMDendrite():
             return output
 
         # keys: (torch.FloatTensor): unique trainable torch keys for each uid
-        # keys.shape = [n_uids, config.dendrite.key_dim]
+        # keys.shape = [n_uids, config.router.key_dim]
         keys = self.keys( filtered_uids ).to(self.device)
 
         # query: (torch.FloatTensor): projection of the query on to the key dimension.
-        # query.shape = [batch_size, config.dendrite.key_dim]
+        # query.shape = [batch_size, config.router.key_dim]
         # On Cuda if it's available.
         query = self.projection( query )
 
@@ -133,7 +144,7 @@ class PKMDendrite():
         # topk_scores.shape = [batch_size, real_topk]
         # topk_indices.shape = [batch_size, real_topk]
         # These are all on Cuda if it's available.
-        real_topk = min( n_uids, self.config.dendrite.topk )
+        real_topk = min( n_uids, self.config.router.topk )
         topk_scores, topk_indices = scores.topk(real_topk, dim=1) 
 
         # gates: (torch.FloatTensor): gated scores for uid per example. Zeros for non queried uids.
@@ -169,19 +180,19 @@ class PKMDendrite():
         # requests.shape = n_uids * [-1, inputs.shape[1:]]
         requests = torch.split(inputs_expanded, request_sizes, dim=0)
         
-        # neurons: List[bittensor_pb2.Neuron]: endpoint information for filtered keys.
-        # neurons.shape = n_uids * [ bittensor_pb2.Neuron ]
+        # neurons: List[bittensor.proto.Neuron]: endpoint information for filtered keys.
+        # neurons.shape = n_uids * [ bittensor.proto.Neuron ]
         neurons = neuron.metagraph.uids_to_neurons(filtered_uids)
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
-        if modality == bittensor_pb2.Modality.TEXT:
+        if modality == bittensor.proto.Modality.TEXT:
             responses, retops = neuron.dendrite.forward_text(neurons, requests)
 
-        elif modality == bittensor_pb2.Modality.IMAGE:
+        elif modality == bittensor.proto.Modality.IMAGE:
             responses, retops = neuron.dendrite.forward_image(neurons, requests)
 
-        elif modality == bittensor_pb2.Modality.TENSOR:
+        elif modality == bittensor.proto.Modality.TENSOR:
             responses, retops = neuron.dendrite.forward_tensor(neurons, requests)
 
         else:
@@ -270,7 +281,7 @@ class PKMDendrite():
                         dendrite call return codes.
                 }
         """
-        return self._route(neuron, images, query, bittensor_pb2.Modality.IMAGE)
+        return self._route(neuron, images, query, bittensor.proto.Modality.IMAGE)
 
     def forward_text(self, neuron: Neuron, text: torch.LongTensor, query: torch.FloatTensor) -> SimpleNamespace:
         r""" Forwards text to connected neurons using the passed context to learn connectivity.
@@ -301,7 +312,7 @@ class PKMDendrite():
                 }
                 
         """
-        return self._route(neuron, text, query, bittensor_pb2.Modality.TEXT)
+        return self._route(neuron, text, query, bittensor.proto.Modality.TEXT)
 
 
     def forward_tensor(self, neuron: Neuron, tensors: torch.FloatTensor, query: torch.FloatTensor) -> SimpleNamespace:
@@ -332,4 +343,4 @@ class PKMDendrite():
                         dendrite call return codes.
                 }
         """
-        return self._route(neuron, tensors, query, bittensor_pb2.Modality.IMAGE)
+        return self._route(neuron, tensors, query, bittensor.proto.Modality.IMAGE)

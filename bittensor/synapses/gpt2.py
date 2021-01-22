@@ -1,16 +1,34 @@
+'''
+The MIT License (MIT)
+Copyright © 2021 Opentensor.ai
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+DEALINGS IN THE SOFTWARE.
+'''
+
 import argparse
-from munch import Munch
-from types import SimpleNamespace
 import random
 import torch
-from torch import nn
 import torch.nn.functional as F
+
 from transformers import GPT2Config, GPT2Model
+from torch import nn
+from munch import Munch
+from types import SimpleNamespace
 
 import bittensor
-from bittensor.dendrites.pkm import PKMDendrite
-from bittensor.synapse import Synapse
-from bittensor.neuron import Neuron
+from bittensor.routers.pkm import PKMRouter
 
 def nextbatch(data, batch_size, tokenizer):
     """ Returns a random batch of sentences from text dataset.
@@ -43,7 +61,7 @@ class GPT2Pooler(nn.Module):
         pooled_output = self.activation(pooled_output)
         return pooled_output
 
-class GPT2LMSynapse(Synapse):
+class GPT2LMSynapse(bittensor.synapse.Synapse):
     """ A Bittensor Synapse training GPT2 with Masked Language Modelling (MLM)
     """
     def __init__(self, config: Munch):
@@ -54,6 +72,8 @@ class GPT2LMSynapse(Synapse):
                     munched config class.
         """
         super(GPT2LMSynapse, self).__init__(config = config)
+        if config == None:
+            config = GPT2LMSynapse.build_config()
 
         # Build hugging face config.
         huggingface_config = GPT2Config(
@@ -83,9 +103,9 @@ class GPT2LMSynapse(Synapse):
         # [batch_size, bittensor.__network_dim__, sequence_len] -> [batch_size, bittensor.__network_dim__]
         self.pooler = GPT2Pooler(huggingface_config)
 
-        # dendrite: (PKM layer) queries network using pooled embeddings as context.
+        # router: (PKM layer) queries network using pooled embeddings as context.
         # [batch_size, bittensor.__network_dim__] -> topk * [batch_size, bittensor.__network_dim__]
-        self.dendrite = PKMDendrite(config, query_dim = bittensor.__network_dim__)
+        self.router = PKMRouter(config, query_dim = bittensor.__network_dim__)
 
         # hidden_layer: transforms context and encoding to network_dim hidden units.
         # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
@@ -100,6 +120,14 @@ class GPT2LMSynapse(Synapse):
         self.loss_fct = torch.nn.CrossEntropyLoss()
 
         self.to(self.device)
+
+    @staticmethod   
+    def build_config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        GPT2LMSynapse.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        GPT2LMSynapse.check_config(config)
+        return config
     
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
@@ -134,7 +162,7 @@ class GPT2LMSynapse(Synapse):
         parser.add_argument('--synapse.summary_first_dropout', default=0.1, type=float, 
                             help='The dropout ratio to be used after the projection and activation.')
         parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
-        PKMDendrite.add_args(parser)
+        PKMRouter.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
@@ -178,6 +206,8 @@ class GPT2LMSynapse(Synapse):
                         GPT MLM loss using local_context.
                 }
         """
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
+
         # Return vars to be filled.
         output = SimpleNamespace()
         
@@ -202,12 +232,12 @@ class GPT2LMSynapse(Synapse):
                    
         return output
 
-    def remote_forward(self, neuron, inputs, training) -> SimpleNamespace:
+    def remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, training: bool) -> SimpleNamespace:
         """ Forward pass inputs and labels through the GPT2 module.
 
 
         Args:
-            neuron (:obj: `bittensor.Neuron`, `required`):
+            neuron (:obj: `bittensor.neuron.Neuron`, `required`):
                     Bittensor neuron, used for making queries to the remote network.
 
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
@@ -231,10 +261,12 @@ class GPT2LMSynapse(Synapse):
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    dendrite (:obj:`SimpleNamespace`, `required`): 
+                    router (:obj:`SimpleNamespace`, `required`): 
                         Outputs from the pkm dendrite.
             )
         """
+        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
+
         # Run the local model.
         # output = SimpleNamespace
         output = self.local_forward(inputs, training)
@@ -245,8 +277,8 @@ class GPT2LMSynapse(Synapse):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.dendrite = self.dendrite.forward_text(neuron, inputs.to(self.device), pooled)
-        remote_context = output.dendrite.response
+        output.router = self.router.forward_text(neuron, inputs.to(self.device), pooled)
+        remote_context = output.router.response
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
