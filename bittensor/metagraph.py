@@ -793,7 +793,7 @@ class Metagraph():
         return Metagraph.SubscribeUnknownError, 'Should not get here'
 
       
-    def emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12):
+    def set_weights(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12):
         r""" Emits the passed weights to the chain. Optionally Waits for inclusion. 
         Failures are logged but do not break the process. 
 
