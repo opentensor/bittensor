@@ -43,7 +43,7 @@ jobs:
           name: "Run unit tests"
           command: pytest ./tests/unit_tests
 
-  "Run Exmaples":
+  "Run Examples":
     executor: bittensor-executor
     steps:
       - checkout
@@ -60,7 +60,7 @@ jobs:
       - run: pip install pytorch_transformers
       - run: ./scripts/create_wallet.sh
       - run:
-          name: "Run unit tests"
+          name: "Run Examples"
           command: pytest ./tests/examples
   
   MNIST:
