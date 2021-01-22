@@ -1,4 +1,4 @@
-'''
+"""
 The MIT License (MIT)
 Copyright © 2021 Opentensor.ai
 
@@ -15,7 +15,7 @@ THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRI
 THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 DEALINGS IN THE SOFTWARE.
-'''
+"""
 
 """Feed Forward NN Synapse
 
@@ -42,10 +42,9 @@ class FFNNSynapse(bittensor.synapse.Synapse):
 
     def __init__(self, config: Munch):
         r""" Init a new ffnn synapse module.
+                :param [config]: munch namespace config item.
+                :type [config]:  [:obj:`munch.Munch`](, `required`)
 
-            Args:
-                config (:obj:`munch.Munch`, `required`): 
-                    munch namespace config item.
         """
         super(FFNNSynapse, self).__init__(config = config)
         if config == None:
@@ -103,13 +102,13 @@ class FFNNSynapse(bittensor.synapse.Synapse):
     def forward_image(self, images: torch.Tensor):
         r""" Forward image inputs through the FFNN synapse .
 
-            Args:
-                inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
-                    Image tensors produced by calling PIL.toTensor() and with sequence dimension.
-            
-            Returns:
-                hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
-                    Hidden layer encoding produced by using local_context.
+                Args:
+                    inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
+                        Image tensors produced by calling PIL.toTensor() and with sequence dimension.
+                
+                Returns:
+                    hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                        Hidden layer encoding produced by using local_context.
         """
         # images: remove sequence dimension from images.
         # images.shape = [batch_size, channels, rows, cols] 
@@ -129,30 +128,29 @@ class FFNNSynapse(bittensor.synapse.Synapse):
         r""" Forward pass non-sequential image inputs and targets through the FFNN Synapse. The call does not make 
         remote queries to the network and returns only local hidden, target and losses.
 
-            Args:
-                images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
-                    PIL.toTensor() encoded images.
+        Args:
+            images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
+                PIL.toTensor() encoded images.
 
-                targets (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, target_dim)`, `optional`, defaults to None): 
-                    Image labels.
+            targets (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, target_dim)`, `optional`, defaults to None): 
+                Image labels.
 
-            Returns:
-                SimpleNamespace ( 
-                    local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
-                        Pre-Hidden layer context, trained to match the remote context.
+        Returns:
+            local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
+                Pre-Hidden layer context, trained to match the remote context.
 
-                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
-                        Hidden layer produced from the context.
+            local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
+                Hidden layer produced from the context.
 
-                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
-                        FFNN Target predictions using local_context. 
+            local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
+                FFNN Target predictions using local_context. 
 
-                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        FFNN Classification loss using local_context.
+            local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                FFNN Classification loss using local_context.
 
-                    local_accuracy (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        Accuracy of target predictions.
-                )
+            local_accuracy (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                Accuracy of target predictions.
+            
         """
 
         # Return vars to be filled.
@@ -227,7 +225,7 @@ class FFNNSynapse(bittensor.synapse.Synapse):
 
                     remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
                         FFNN Classification loss using the remote_context.
-                )
+            
         """
         # Call the local forward pass.
         # output = bittensor.SynapseOutput
