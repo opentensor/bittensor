@@ -236,6 +236,3 @@ class WSClient:
             storage_function='LastEmit'
         )
         return result
-
-
-
