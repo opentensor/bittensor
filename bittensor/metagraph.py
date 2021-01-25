@@ -1,21 +1,21 @@
-'''
-The MIT License (MIT)
-Copyright © 2021 Opentensor.ai
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
-and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+# The MIT License (MIT)
+# Copyright © 2021 Opentensor.ai
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
-the Software.
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
-DEALINGS IN THE SOFTWARE.
-'''
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+
 import asyncio
 import copy
 import argparse
@@ -92,32 +92,33 @@ class ChainState():
 # Static network state object.
 class TorchChainState():
     r""" Maintains the chain state as a torch object.
-        Params:
-            tau: (int): 
+
+        Args:
+            tau (:obj:`int`): 
                 current, per block, token inflation rate.
 
-            block: (int):
+            block (:obj:`int`):
                 state block number.
 
-            uids: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+            uids (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 UIDs for each neuron ordered by index.
             
-            indices: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+            indices (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 Index of neurons, range(metagraph.n)
 
-            stake: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+            stake (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 Stake balance for each neuron ordered by index.
                 
-            lastemit: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+            lastemit (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 Last emission call for each neuron ordered by index.
 
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+            weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                 This neuron's weights W[,:]
 
-            W: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n, metagraph.n)`):
+            W (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n, metagraph.n)`):
                 Full weight matrix on chain.
 
-            neurons: (List[bittensor.proto.Neuron]) 
+            neurons (List[bittensor.proto.Neuron]) 
                 List of endpoints on the network.
 
     """
@@ -232,81 +233,92 @@ class Metagraph():
     @property
     def n(self) -> int:
         r""" Return the number of known neurons on chain.
-        Returns
-            n: (int):
-                number of known neurons.
+            
+            Returns:
+                n (int):
+                    number of known neurons.
+
         """
         return self.state.n
 
     @property
     def block(self) -> int:
         r""" Return the block number when the chain state was updated.
-        Returns
-            block: (int):
-                local chain state block number.
+
+             Returns:
+                block (:obj:`int`):
+                    local chain state block number.
         """
         return self.state.block
 
     @property
     def lastemit(self) -> torch.LongTensor:
         r""" Returns the last emit time for each known neuron.
-        Returns
-            lastemit: (int):
-                last emit time.
+            
+            Returns:
+                lastemit (:obj:`int`):
+                    last emit time.
         """
         return self.state.lastemit
 
     @property
     def indices(self) -> torch.LongTensor:
         r""" Return the indices of each neuron in the chain state range(metagraph.n).
-        Returns
-            indices: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
-                returned indices for each neuron.
+            
+            Returns:
+                indices (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+                    returned indices for each neuron.
+
         """
         return self.state.indices
 
     @property
     def uids(self) -> torch.LongTensor:
         r""" Returns unique ids for each neuron in the chain state.
-        Returns
-            uids: (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
-                unique id for each neuron.
+            Returns:
+                uids (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+                    unique id for each neuron.
         """
         return self.state.uids
 
     @property
     def stake(self) -> torch.FloatTensor:
         r""" Returns the stake held by each known neuron.
-        Returns
-            stake: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                stake of each known neuron.
+            
+            Returns:
+                stake (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                    stake of each known neuron.
+
         """
         return self.state.stake
 
     @property
     def S(self) -> torch.FloatTensor:
         r""" Returns the stake held by each known neuron.
-        Returns
-            S: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                stake of each known neuron.
+             
+             Returns:
+                S (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                    stake of each known neuron.
         """
         return self.state.stake
 
     @property
     def tau(self) -> torch.FloatTensor:
         r""" tau: the chain per block inflation rate. i.e. 50
-        Returns
-            tau: (:obj:`torchFloatTensor` of shape :obj:`(1)`):
-                current chain inflation rate.
+            
+            Returns:
+                tau (:obj:`torchFloatTensor` of shape :obj:`(1)`):
+                    current chain inflation rate.
         """
         return self.state.tau
 
     @property
     def incentive(self) -> torch.FloatTensor:
         r""" Returns the incentive value from each known neuron to you.
-        Returns
-            incentive: (:obj:`torch.FLoatTensor` of shape :obj:`(metagraph.n)`):
-                inflation incentive from each known neuron.
+            
+            Returns:
+                incentive (:obj:`torch.FLoatTensor` of shape :obj:`(metagraph.n)`):
+                    inflation incentive from each known neuron.
         """
         incentive = self.tau * self.col * self.stake
         return incentive
@@ -314,9 +326,10 @@ class Metagraph():
     @property
     def I(self) -> torch.FloatTensor:
         r""" Returns the inflation incentive for each peer per block.
-        Returns
-            I: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                stake of each known neuron.
+        
+            Returns:
+                I (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                    stake of each known neuron.
         """
         I =  (self.tau * self.ranks) / torch.sum(self.ranks)
         I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
@@ -325,9 +338,11 @@ class Metagraph():
     @property
     def ranks(self) -> torch.FloatTensor:
         r""" Returns the ranks W^t * S
-        Returns
-            ranks: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                rank of each known neuron.
+           
+            Returns:
+                ranks (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                    rank of each known neuron.
+
         """
         if self.W.shape[0] == 0:
             return torch.tensor([])
@@ -343,18 +358,21 @@ class Metagraph():
     @property
     def R(self) -> torch.FloatTensor:
         r""" Returns ranks for each known neuron in the graph.
-        Returns
-            rank: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                rank of each known neuron.
+             
+             Returns:
+                rank (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                    rank of each known neuron.
         """
         return self.ranks
 
     @property
     def row(self) -> torch.FloatTensor:
         r""" Returns this neuron's row weights, i.e. weights to other neurons.
-        Returns
-            row: (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n)`):
-                w_{i,*}
+            
+            Returns:
+                row: (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n)`):
+                    `w_{i,*}`
+                
         """
         if self.uid == None:
             raise ValueError('Must be subscribed before you can return your row')
@@ -368,9 +386,10 @@ class Metagraph():
     @property
     def col(self) -> torch.FloatTensor:
         r""" Returns this neuron's col weights, i.e. weights from other neurons to us.
-        Returns
-            col: (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n)`):
-                w_{*,i}
+            
+             Returns:
+                col (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n)`):
+                    `w_{*,i}`
         """
         if self.uid == None:
             raise ValueError('Must be subscribed before you can return your col')
@@ -384,36 +403,41 @@ class Metagraph():
     @property
     def W(self) -> torch.FloatTensor:
         r""" Full chain weight matrix for each neuron.
-        Returns
-            W: (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
-                w_ij of each neuron.
+             
+             Returns:
+                W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
+                    w_ij of each neuron.
         """
         return self.state.W
 
     @property
     def neurons(self) -> List[bittensor.proto.Neuron]:
         r""" Return neuron endpoint information for each neuron.
-        Returns
-            neurons: (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(metagraph.n, metagraph.n)`):
-                endpoint information for each neuron.
+            
+            Returns:
+                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(metagraph.n, metagraph.n)`):
+                    endpoint information for each neuron.
+
         """
         return self.state.neurons
 
     @property
     def public_keys(self) -> List[str]:
         r""" Return the ordered public keys for state neurons.
-        Returns
-            public_keys: (:obj:`List[str]` of shape :obj:`(metagraph.n)`):
-                public keys of all graph neurons.
+        
+            Returns:
+                public_keys (:obj:`List[str]` of shape :obj:`(metagraph.n)`):
+                    public keys of all graph neurons.
+
         """
         return [n.public_key for n in self.state.neurons]
 
     @property
     def weights(self) -> torch.FloatTensor:
         r"""Return this neuron's weights. W[0,:]
-        Returns 
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                returned indices for passed uids.
+            Returns:
+                weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                    returned indices for passed uids.
         """
         if self.state.n == 0:
             return torch.Tensor([])
@@ -422,13 +446,15 @@ class Metagraph():
             return w_0
 
     def uids_to_indices(self, uids: torch.Tensor) -> torch.LongTensor:
-        r"""Return the indices of passed uids
-        Args:
-            uids: (:obj:`torch.LongTensor` of shape :obj:`(-1)`):
-                UIDs for indices
-        Returns 
-            indices: (:obj:`torch.LongTensor` of shape :obj:`(-1)`):
-                returned indices for passed uids.
+        r"""Return the indices of passed uids.
+
+            Args:
+                uids: (:obj:`torch.LongTensor` of shape :obj:`(-1)`):
+                    UIDs for indices
+            Returns:
+                indices (:obj:`torch.LongTensor` of shape :obj:`(-1)`):
+                    returned indices for passed uids.
+
         """
         indices = torch.nonzero(uids[..., None] == self.state.uids)[:,1]
         if torch.numel(uids) != torch.numel(indices):
@@ -437,12 +463,14 @@ class Metagraph():
 
     def uids_to_neurons(self, uids: torch.Tensor) -> List[bittensor.proto.Neuron]:
         r""" Returns a list with neurons for each uid.
-        Args:
-            uids: (torch.LongTensor)
-                uids into neuron protos
-        Returns:
-            neurons: (List[bittensor.proto.Neuron]): 
-                neuron info ordered by passed uids.
+            
+            Args:
+                uids (:obj:`torch.LongTensor`)
+                    uids into neuron protos
+            Returns:
+                neurons (:obj:`List[bittensor.proto.Neuron]`): 
+                    neuron info ordered by passed uids.
+                    
         """
         response = []
         indices = self.uids_to_indices(uids)
@@ -452,12 +480,12 @@ class Metagraph():
 
     def neurons_to_uids(self, neurons: List[bittensor.proto.Neuron]) -> torch.LongTensor:
         r""" Returns uids associated with the passed neurons.
-        Args:
-            neurons: (List[bittensor.proto.Neuron]): 
-                neuron info ordered by passed uids.
-        Returns:
-            uids: (torch.LongTensor)
-                uids associated with neurons.
+            Args:
+                neurons (:obj:`List[bittensor.proto.Neuron]`): 
+                    neuron info ordered by passed uids.
+            Returns:
+                uids (:obj:`torch.LongTensor`)
+                    uids associated with neurons.
         """
         uids = []
         for n in neurons:
@@ -466,18 +494,20 @@ class Metagraph():
 
     def chain_weights(self) -> torch.FloatTensor:
         r""" Returns your current weights from the chain.
-        Returns:
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(-1)`):
-                weights on chain as torch tensor.
+            
+            Returns:
+                weights: (:obj:`torch.FloatTensor` of shape :obj:`(-1)`):
+                    weights on chain as torch tensor.
         """
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(self.async_chain_weights())
 
     async def async_chain_weights(self) -> torch.FloatTensor:
         r""" Async: returns your current weights from the chain.
-        Returns:
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(-1)`):
-                weights on chain as torch tensor.
+             
+             Returns:
+                weights (:obj:`torch.FloatTensor` of shape :obj:`(-1)`):
+                    weights on chain as torch tensor.
         """
         # --- Get chain weights ----
         chain_uids = await self.subtensor_client.weight_uids(self.metadata['uid'])
@@ -870,39 +900,40 @@ class Metagraph():
 
     async def _try_async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> Tuple[int, str]:
         r""" Makes emit checks, emits to chain, and raises one of the following errors.
-        Args:
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                Weights to set on chain.
+            Args:
+                weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                    Weights to set on chain.
 
-            wait_for_inclusion: (bool):
-                If true, the call waits for block-inclusion before continuing or throws error after timeout.
+                wait_for_inclusion: (:obj:`bool`):
+                    If true, the call waits for block-inclusion before continuing or throws error after timeout.
 
-            timeout: (int, default = 12 sec):
-                Time to wait for inclusion before raising a caught error.
+                timeout: (:obj:`int`, default = 12 sec):
+                    Time to wait for inclusion before raising a caught error.
 
-        Returns:
-            code (ENUM) {
-                EmitSuccess (ENUM):
-                    Raised when try_async_emit emits weights successfully with known result.
+            Returns:
+                code (:obj:`ENUM`) {
+                    EmitSuccess (:obj:`ENUM`):
+                        Raised when try_async_emit emits weights successfully with known result.
 
-                EmitNoOp (ENUM):
-                    Raised when calling emit does not change weights on chain.
+                    EmitNoOp (:obj:`ENUM`):
+                        Raised when calling emit does not change weights on chain.
 
-                EmitUnknownError (ENUM):
-                    UnknownError during emit.
+                    EmitUnknownError (:obj:`ENUM`):
+                        UnknownError during emit.
 
-                EmitValueError (ENUM):
-                    Raised during emission when passed weights are not properly set.
+                    EmitValueError (:obj:`ENUM`):
+                        Raised during emission when passed weights are not properly set.
 
-                EmitTimeoutError (ENUM):
-                    Raised during emission during a timeout.
+                    EmitTimeoutError (:obj:`ENUM`):
+                        Raised during emission during a timeout.
 
-                EmitResultUnknown (ENUM):
-                    Called when an emit step end without a known result, for instance, 
-                    if the user has wait_for_inclusion = False.
-            }
-            message:
-                Message associated with code.
+                    EmitResultUnknown (:obj:`ENUM`):
+                        Called when an emit step end without a known result, for instance, 
+                        if the user has wait_for_inclusion = False.
+                }
+                message:
+                    Message associated with code.
+
         """
         # --- Check type ----
         if not isinstance(weights, torch.Tensor):
@@ -1044,11 +1075,13 @@ class Metagraph():
 
     def convert_weights_to_emit(self, weights: List[float]) -> Tuple[List[str], List[int]]:
         r""" Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
-        Returns:
-            keys: (List[str]):
-                List of pubkeys associated with each weight from vals.
-            vals: (List[int]):
+
+             Returns:
+                keys (:obj:`List[str]`):
+                    List of pubkeys associated with each weight from vals.
+                vals (:obj:`List[int]`):
                 List of u32 integer representations of floating point weights.
+
         """
         remainder = MAX_INT_WEIGHT
         weight_vals = []
