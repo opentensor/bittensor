@@ -14,7 +14,7 @@ def test_run_mnist():
     mnist_session_config = miner.build_config()
     mnist_session_config.miner.n_epochs = 1
     mnist_session_config.miner.epoch_length = 1
-    mnist_session = Session(FFNNSynapse)
+    mnist_session = Session(FFNNSynapse, mnist_session_config)
     mnist_session.neuron.metagraph.connect = MagicMock(return_value = (bittensor.metagraph.Metagraph.ConnectSuccess, ""))    
     mnist_session.neuron.metagraph.subscribe = MagicMock(return_value = (bittensor.metagraph.Metagraph.SubscribeSuccess, ""))   
     mnist_session.neuron.metagraph.set_weights = MagicMock()   
