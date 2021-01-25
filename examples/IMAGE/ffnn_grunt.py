@@ -10,6 +10,7 @@ Example:
 import argparse
 import math
 import os
+import sys
 import pathlib
 import time
 import torch
@@ -65,6 +66,7 @@ class Session():
     def add_args(parser: argparse.ArgumentParser):    
         parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--session.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--session.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
         parser.add_argument('--session.batch_size_train', default=64, type=int, help='Training batch size.')
         parser.add_argument('--session.batch_size_test', default=64, type=int, help='Testing batch size.')
         parser.add_argument('--session.log_interval', default=150, type=int, help='Batches until session prints log statements.')
@@ -98,11 +100,9 @@ class Session():
         # --- Subscribe / Update neuron ---
         with self.neuron:
 
-            # ---- Train forever ----
+            # ---- Loop for epochs ----
             self.model.train()
-            step = -1; 
-            while True:
-                step += 1
+            for self.epoch in range(self.config.session.n_epochs):
 
                 # ---- Poll until gradients ----
                 public_key, inputs_x, grads_dy, modality_x = self.neuron.axon.gradients.get(block = True)
@@ -123,10 +123,10 @@ class Session():
 
                 # ---- Serve latest model ----
                 self.neuron.axon.serve( self.model ) # Serve the newest model.
-                logger.info('Step: {} \t Key: {} \t sum(W[:,0])', step, public_key, torch.sum(self.neuron.metagraph.col).item())
+                logger.info('Step: {} \t Key: {} \t sum(W[:,0])', self.epoch, public_key, torch.sum(self.neuron.metagraph.col).item())
             
                 # ---- Sync State ----
-                if (step + 1) % self.config.session.sync_interval == 0:
+                if (self.epoch + 1) % self.config.session.sync_interval == 0:
 
                     # --- Display Epoch ----
                     print(self.neuron.axon.__full_str__())
@@ -142,7 +142,6 @@ class Session():
                         {
                             'epoch': self.epoch, 
                             'model_state_dict': self.model.state_dict(), 
-                            'loss': self.best_test_loss,
                             'optimizer_state_dict': self.optimizer.state_dict(),
                         }
                     )                
