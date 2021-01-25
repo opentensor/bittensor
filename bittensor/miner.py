@@ -2,6 +2,7 @@ import argparse
 import bittensor
 import torch
 import os
+import sys
 import time
 
 from bittensor.synapse import Synapse
@@ -150,13 +151,15 @@ class Miner:
     def add_args(self, parser: argparse.ArgumentParser):    
         parser.add_argument('--miner.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--miner.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--miner.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
+        parser.add_argument('--miner.epoch_length', default=int(sys.maxsize), type=int, help='Iterations of training per epoch (or dataset EOF)')
         parser.add_argument('--miner.batch_size_train', default=64, type=int, help='Training batch size.')
         parser.add_argument('--miner.batch_size_test', default=64, type=int, help='Testing batch size.')
         parser.add_argument('--miner.log_interval', default=150, type=int, help='Batches until session prints log statements.')
-        parser.add_argument('--miner.sync_interval', default=10, type=int, help='Batches before we we sync with chain and emit new weights.')
+        parser.add_argument('--miner.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
         parser.add_argument('--miner.root_dir', default='~/.bittensor/sessions/', type=str,  help='Root path to load and save data associated with each session')
-        parser.add_argument('--miner.name', default='mnist', type=str, help='Trials for this session go in session.root / session.name')
-        parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
+        parser.add_argument('--miner.name', default='cifar', type=str, help='Trials for this session go in miner.root / miner.name')
+        parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.trial_uid')
         parser.add_argument('--miner.record_log', default=True, help='Record all logs when running this session')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         bittensor.neuron.Neuron.add_args(parser)
