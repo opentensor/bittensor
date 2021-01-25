@@ -4,9 +4,10 @@ Example:
         $ python examples/mnist.py
 """
 import argparse
+from bittensor.synapse import Synapse
+from bittensor.miner import Miner
 import math
 import os
-import sys
 import time
 import torch
 from termcolor import colored
@@ -25,27 +26,15 @@ from bittensor.neuron import Neuron
 from bittensor.config import Config
 from bittensor.synapses.ffnn import FFNNSynapse
 
-class Session():
+class Session(Miner):
 
-    def __init__(self, config: Munch = None):
-        if config == None:
-            config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
-        self.config = config
+    def __init__(self, model_type: Synapse):
 
-        # ---- Neuron ----
-        self.neuron = bittensor.neuron.Neuron(self.config)
-    
-        # ---- Model ----
-        self.model = FFNNSynapse( config ) # Feedforward neural network with PKMRouter.
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model.to( self.device ) # Set model to device
+        super(Session, self).__init__(model_type = model_type)
         
         # ---- Optimizer ---- 
         self.optimizer = optim.SGD(self.model.parameters(), lr=self.config.session.learning_rate, momentum=self.config.session.momentum)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10.0, gamma=0.1)
-
-        # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(FFNNSynapse, optim.SGD)
 
         # ---- Dataset ----
         self.train_data = torchvision.datasets.MNIST(root = self.config.session.root_dir + "datasets/", train=True, download=True, transform=transforms.ToTensor())
@@ -71,8 +60,6 @@ class Session():
     def add_args(parser: argparse.ArgumentParser):    
         parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--session.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
-        parser.add_argument('--session.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
-        parser.add_argument('--session.epoch_length', default=int(sys.maxsize), type=int, help='Iterations of training per epoch (or dataset EOF)')
         parser.add_argument('--session.batch_size_train', default=64, type=int, help='Training batch size.')
         parser.add_argument('--session.batch_size_test', default=64, type=int, help='Testing batch size.')
         parser.add_argument('--session.log_interval', default=150, type=int, help='Batches until session prints log statements.')
@@ -106,11 +93,15 @@ class Session():
         with self.neuron:
 
             # ---- Weights ----
-            self.row = self.neuron.metagraph.row.to(self.model.device)
+            self.update_row_weights(self.neuron.metagraph.row)
 
-            # --- Loop for epochs ---
-            self.best_test_loss = math.inf; self.global_step = 0
-            for self.epoch in range(self.config.session.n_epochs):
+            # ---- Loop forever ----
+            self.epoch = -1; 
+            self.best_test_loss = math.inf; 
+            self.global_step = 0
+            while True:
+                self.epoch += 1
+
                 # ---- Serve ----
                 self.neuron.axon.serve( self.model )
 
@@ -127,28 +118,19 @@ class Session():
                 # ---- Test ----
                 test_loss, test_accuracy = self.test()
 
-                # ---- Emit ----
-                self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
-                        
-                # ---- Sync ----  
-                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.row = self.neuron.metagraph.row.to(self.device)
+                # ---- Emit and sync metagraph ----
+                self.set_metagraph_weights_and_sync()
 
                 # --- Display Epoch ----
-                print(self.neuron.axon.__full_str__())
-                print(self.neuron.dendrite.__full_str__())
-                print(self.neuron.metagraph)
+                self.display_epoch()
 
                 # ---- Update Tensorboard ----
-                self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
-                self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
-                self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.update_tensorboard()
 
                 # ---- Save ----
                 if test_loss < self.best_test_loss:
                     self.best_test_loss = test_loss # Update best loss.
-                    self.model_toolbox.save_model(
-                        self.config.session.full_path,
+                    self.save_model(
                         {
                             'epoch': self.epoch, 
                             'model_state_dict': self.model.state_dict(), 
@@ -162,9 +144,8 @@ class Session():
     def train(self):
         # ---- Init training state ----
         self.model.train() # Turn on dropout etc.
-        for batch_idx, (images, targets) in enumerate(self.trainloader): 
-            if batch_idx >= self.config.session.epoch_length:
-                break   
+        
+        for batch_idx, (images, targets) in enumerate(self.trainloader):    
             self.global_step += 1 
 
             # ---- Remote Forward pass ----
@@ -181,9 +162,7 @@ class Session():
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation 
 
             # ---- Train weights ----
-            batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
-            self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
-            self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
+            self.train_row_weights(output.router.weights)
 
             # ---- Step Logs + Tensorboard ----
             processed = ((batch_idx + 1) * self.config.session.batch_size_train)
@@ -198,9 +177,9 @@ class Session():
                     colored('{:.4f}'.format(output.local_accuracy.item()), 'green'),
                     self.neuron.axon,
                     self.neuron.dendrite)
-            self.tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), self.global_step)
-            self.tensorboard.add_scalar('Lloss', output.local_target_loss.item(), self.global_step)
-            self.tensorboard.add_scalar('Dloss', output.distillation_loss.item(), self.global_step)
+            
+            self.update_tensorboard(output.remote_target_loss.item(), output.local_target_loss.item(), output.distillation_loss.item())
+
 
 
     # --- Test epoch ----
@@ -223,8 +202,8 @@ class Session():
         
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Session.build_config(); logger.info(Config.toString(config))
-    session = Session(config)
+    session = Session(FFNNSynapse)
+    logger.info(bittensor.config.Config.toString(session.config))
     session.run()
 
 

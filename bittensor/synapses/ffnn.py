@@ -30,7 +30,6 @@ import torch.nn.functional as F
 
 from types import SimpleNamespace
 from munch import Munch
-from loguru import logger
 
 import bittensor
 from bittensor.routers.pkm import PKMRouter
