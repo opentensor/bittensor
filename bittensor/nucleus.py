@@ -1,21 +1,21 @@
-'''
-The MIT License (MIT)
-Copyright © 2021 Opentensor.ai
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
-and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+# The MIT License (MIT)
+# Copyright © 2021 Opentensor.ai
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
-the Software.
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
-DEALINGS IN THE SOFTWARE.
-'''
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+
 import argparse
 import sys
 import torch
@@ -71,9 +71,10 @@ class Nucleus ():
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         r""" Adds this nucleus's command line arguments to the passed parser.
-            Args:
-                parser (:obj:`argparse.ArgumentParser`, `required`): 
-                    parser argument to append args to.
+            
+                Args:
+                    parser (:obj:`argparse.ArgumentParser`, `required`): 
+                        parser argument to append args to.
         """
         bittensor.metagraph.Metagraph.add_args( parser ) # Add wallet args from within metagraph.
         try:
@@ -103,24 +104,25 @@ class Nucleus ():
             and waits for a response from the threading future. Processing errors or timeouts result in
             error codes which propagate back to the calling Axon.
 
-            Args:
-                synapse (:obj:`bittensor.synapse.synapse.Synapse`, `required`): 
-                    synapse to pass to the worker. Note: the synapse.call_forward must be thread safe. 
-                inputs (:obj:`torch.Tensor`, `required`): 
-                    tensor inputs to be passed to synapse.call_forward
-                mode (:enum:`bittensor.proto.Modality`, `required`):
-                    input modality enum signaling between IMAGE, TEXT or TENSOR inputs.
-                priority (`float`, `required`):
-                    processing priority, a unique number from amongst current calls and less than sys.maxsize.
-                    calls are processed in this order.
-                    NOTE: priority must be unique amongst current calls.
-            Returns:
-                outputs (:obj:`torch.FloatTensor`, `required`): 
-                    response from the synapse.call_forward call or None in the case of errors.
-                message: (str, `required`): 
-                    message associated with forward call, potentially error, or 'success'.
-                code: (:obj:`bittensor.proto.ReturnCode, `required`)
-                    return code associated with forward call i.e. Success of Timeout.
+                Args:
+                    synapse (:obj:`bittensor.synapse.synapse.Synapse`, `required`): 
+                        synapse to pass to the worker. Note: the synapse.call_forward must be thread safe. 
+                    inputs (:obj:`torch.Tensor`, `required`): 
+                        tensor inputs to be passed to synapse.call_forward
+                    mode (:obj:`bittensor.proto.Modality`, `required`):
+                        input modality enum signaling between IMAGE, TEXT or TENSOR inputs.
+                    priority (`float`, `required`):
+                        processing priority, a unique number from amongst current calls and less than sys.maxsize.
+                        calls are processed in this order.
+                        NOTE: priority must be unique amongst current calls.
+                Returns:
+                    outputs (:obj:`torch.FloatTensor`, `required`): 
+                        response from the synapse.call_forward call or None in the case of errors.
+                    message: (str, `required`): 
+                        message associated with forward call, potentially error, or 'success'.
+                    code: (:obj:`bittensor.proto.ReturnCode, `required`)
+                        return code associated with forward call i.e. Success of Timeout.
+
         """
         # Build future request.
         call_params = [synapse, inputs, mode]
@@ -155,26 +157,28 @@ class Nucleus ():
             Submits inputs to the backward work pool for processing and waits waits for a response.
             Processing errors or timeouts result in error codes which propagate back to the calling Axon.
 
-            Args:
-                synapse (:obj:`bittensor.synapse.synapse.Synapse`, `required`): 
-                    synapse to pass to the worker. Note: the synapse.call_backward must be thread safe. 
-                inputs_x (:obj:`torch.Tensor`, `required`): 
-                    tensor inputs from a previous call to be passed to synapse.call_backward
-                grads_dy (:obj:`torch.Tensor`, `required`): 
-                    gradients associated wiht inputs for backward call.
-                mode (:enum:`bittensor.proto.Modality`, `required`):
-                    input modality enum signaling between IMAGE, TEXT or TENSOR inputs.
-                priority (`float`, `required`):
-                    processing priority, a unique number from amongst current calls and less than sys.maxsize.
-                    calls are processed in this order.
-                    NOTE: priority must be unique amongst current calls.
-            Returns:
-                outputs (:obj:`torch.FloatTensor`, `required`): 
-                    response from the synapse.call_backward call (i.e. inputs_dx) or None in the case of errors.
-                message: (str, `required`): 
-                    message associated with forward call, potentially error, or 'success'.
-                code: (:obj:`bittensor.proto.ReturnCode, `required`)
-                    return code associated with forward call i.e. Success of Timeout.
+                Args:
+                    synapse (:obj:`bittensor.synapse.synapse.Synapse`, `required`): 
+                        synapse to pass to the worker. Note: the synapse.call_backward must be thread safe. 
+                    inputs_x (:obj:`torch.Tensor`, `required`): 
+                        tensor inputs from a previous call to be passed to synapse.call_backward
+                    grads_dy (:obj:`torch.Tensor`, `required`): 
+                        gradients associated wiht inputs for backward call.
+                    mode (:obj:`bittensor.proto.Modality`, `required`):
+                        input modality enum signaling between IMAGE, TEXT or TENSOR inputs.
+                    priority (`float`, `required`):
+                        processing priority, a unique number from amongst current calls and less than sys.maxsize.
+                        calls are processed in this order.
+                        NOTE: priority must be unique amongst current calls.
+                
+                Returns:
+                    outputs (:obj:`torch.FloatTensor`, `required`): 
+                        response from the synapse.call_backward call (i.e. inputs_dx) or None in the case of errors.
+                    message: (str, `required`): 
+                        message associated with forward call, potentially error, or 'success'.
+                    code: (:obj:`bittensor.proto.ReturnCode, `required`)
+                        return code associated with forward call i.e. Success of Timeout.
+
         """
         # Build call params and submit the task to the pool.
         call_params = [synapse, inputs_x, grads_dy, mode]
@@ -196,16 +200,17 @@ class Nucleus ():
     def _forward(self, call_params: List) -> Tuple[torch.FloatTensor, str, int]:
         r""" Actual processing function for the forward call. The passed synapse.call_forward must be thread safe.
 
-            Args:
-                call_params (:obj:`List[bittensor.synapse.Synapse, inputs, mode]`, `required`): 
-                    call params containing the synapse to be called and inputs with modality.
-            Returns:
-                outputs (:obj:`torch.FloatTensor`, `required`): 
-                    response from the synapse.call_backward call (i.e. inputs_dx) or None in the case of errors.
-                message: (str, `required`): 
-                    message associated with forward call, potentially error, or 'success'.
-                code: (:obj:`bittensor.proto.ReturnCode, `required`)
-                    return code associated with forward call i.e. Success of Timeout.
+                Args:
+                    call_params (:obj:`List[bittensor.synapse.Synapse, inputs, mode]`, `required`): 
+                        call params containing the synapse to be called and inputs with modality.
+                Returns:
+                    outputs (:obj:`torch.FloatTensor`, `required`): 
+                        response from the synapse.call_backward call (i.e. inputs_dx) or None in the case of errors.
+                    message: (str, `required`): 
+                        message associated with forward call, potentially error, or 'success'.
+                    code: (:obj:`bittensor.proto.ReturnCode, `required`)
+                        return code associated with forward call i.e. Success of Timeout.
+
         """
         synapse = call_params[0]
         inputs = call_params[1]
