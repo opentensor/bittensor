@@ -6,6 +6,7 @@ Example:
 import argparse
 import math
 import os
+import sys
 import time
 import torch
 from termcolor import colored
@@ -70,6 +71,8 @@ class Session():
     def add_args(parser: argparse.ArgumentParser):    
         parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--session.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--session.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
+        parser.add_argument('--session.epoch_length', default=int(sys.maxsize), type=int, help='Iterations of training per epoch (or dataset EOF)')
         parser.add_argument('--session.batch_size_train', default=64, type=int, help='Training batch size.')
         parser.add_argument('--session.batch_size_test', default=64, type=int, help='Testing batch size.')
         parser.add_argument('--session.log_interval', default=150, type=int, help='Batches until session prints log statements.')
@@ -105,11 +108,9 @@ class Session():
             # ---- Weights ----
             self.row = self.neuron.metagraph.row.to(self.model.device)
 
-            # ---- Loop forever ----
-            self.epoch = -1; self.best_test_loss = math.inf; self.global_step = 0
-            while True:
-                self.epoch += 1
-
+            # --- Loop for epochs ---
+            self.best_test_loss = math.inf; self.global_step = 0
+            for self.epoch in range(self.config.session.n_epochs):
                 # ---- Serve ----
                 self.neuron.axon.serve( self.model )
 
@@ -161,7 +162,9 @@ class Session():
     def train(self):
         # ---- Init training state ----
         self.model.train() # Turn on dropout etc.
-        for batch_idx, (images, targets) in enumerate(self.trainloader):    
+        for batch_idx, (images, targets) in enumerate(self.trainloader): 
+            if batch_idx >= self.config.session.epoch_length:
+                break   
             self.global_step += 1 
 
             # ---- Remote Forward pass ----

@@ -25,7 +25,7 @@ setup(
     description='bittensor',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/bittensor/bittensor',
+    url='https://github.com/opentensor/bittensor',
     author='bittensor.com',
     packages=find_packages(),
     include_package_data=True,
