@@ -3,21 +3,19 @@ This file demonstrates a training pipeline for an MNIST Neuron.
 Example:
         $ python examples/mnist.py
 """
-import argparse
-from bittensor.synapse import Synapse
-from bittensor.miner import Miner
+
 import math
+import bittensor
 import torch
-from termcolor import colored
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-from torch.utils.tensorboard import SummaryWriter
 
 from munch import Munch
 from loguru import logger
-
-import bittensor
+from termcolor import colored
+from bittensor.synapse import Synapse
+from bittensor.miner import Miner
 from bittensor.synapses.ffnn import FFNNSynapse
 
 class Session(Miner):
@@ -25,7 +23,7 @@ class Session(Miner):
     def __init__(self, model_type: Synapse, config: Munch = None):
 
         super(Session, self).__init__(model_type = model_type, config=config)
-        import pdb; pdb.set_trace()
+
         # ---- Optimizer ---- 
         self.optimizer = optim.SGD(self.model.parameters(), lr=self.config.miner.learning_rate, momentum=self.config.miner.momentum)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10.0, gamma=0.1)
