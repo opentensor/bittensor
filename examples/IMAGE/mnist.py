@@ -25,7 +25,7 @@ class Session(Miner):
     def __init__(self, model_type: Synapse, config: Munch = None):
 
         super(Session, self).__init__(model_type = model_type, config=config)
-        
+        import pdb; pdb.set_trace()
         # ---- Optimizer ---- 
         self.optimizer = optim.SGD(self.model.parameters(), lr=self.config.miner.learning_rate, momentum=self.config.miner.momentum)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10.0, gamma=0.1)
@@ -53,7 +53,7 @@ class Session(Miner):
             self.best_test_loss = math.inf; 
             self.global_step = 0
             
-            while True:
+            for self.epoch in range(self.config.miner.n_epochs):
                 self.epoch += 1
 
                 # ---- Serve ----
