@@ -22,8 +22,6 @@ from munch import Munch
 from loguru import logger
 
 import bittensor
-from bittensor.neuron import Neuron
-from bittensor.config import Config
 from bittensor.synapses.ffnn import FFNNSynapse
 
 class Session(Miner):
@@ -93,7 +91,7 @@ class Session(Miner):
         with self.neuron:
 
             # ---- Weights ----
-            self.update_row_weights(self.neuron.metagraph.row)
+            self.update_row_weights()
 
             # ---- Loop forever ----
             self.epoch = -1; 
@@ -112,7 +110,7 @@ class Session(Miner):
                 # If model has borked for some reason, we need to make sure it doesn't emit weights
                 # Instead, reload into previous version of model
                 if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
-                    self.model, self.optimizer = self.model_toolbox.load_model()
+                    self.model, self.optimizer = self.load_model()
                     continue
 
                 # ---- Test ----
