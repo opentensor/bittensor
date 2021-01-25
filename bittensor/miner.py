@@ -1,9 +1,10 @@
 import argparse
-from bittensor.synapse import Synapse
 import bittensor
 import torch
 import os
+import time
 
+from bittensor.synapse import Synapse
 from munch import Munch
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
@@ -16,7 +17,7 @@ class ModelInformationNotFoundException(Exception):
     pass
 
 class Miner:
-    def __init__(self, model_type: Synapse):
+    def __init__(self, model_type: Synapse, config: Munch = None):
         """ 
         Miner class that encapsulates model handling and blockchain interactions
         """
@@ -25,7 +26,9 @@ class Miner:
         self.model_type = model_type
         
         # Build config
-        self.config = self.build_config()
+        if not config:
+            config = self.build_config()
+        self.config = config
 
         # Instantiate model
         self.model = self.model_type( self.config )
@@ -39,9 +42,9 @@ class Miner:
         # ---- Neuron ----
         self.neuron = bittensor.neuron.Neuron(self.config)
 
-        self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
-        if self.config.session.record_log:
-            logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
+        self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
+        if self.config.miner.record_log:
+            logger.add(self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
         
         # Initialize row weights
         self.row = None
@@ -54,18 +57,18 @@ class Miner:
             optimizer (:obj:`torch.optim`) : Model optimizer that was saved with the model.
         """
         model = self.model_type( self.config )
-        optimizer = self.optimizer_class(model.parameters(), lr = self.config.session.learning_rate, momentum=self.config.session.momentum)
+        optimizer = self.optimizer_class(model.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum)
         
         try:
-            checkpoint = torch.load("{}/model.torch".format(self.config.session.full_path))
+            checkpoint = torch.load("{}/model.torch".format(self.config.miner.full_path))
             model.load_state_dict(checkpoint['model_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             epoch = checkpoint['epoch']
             loss = checkpoint['loss']
 
-            logger.info( 'Reloaded model: epoch: {}, loss: {}, path: {}/model.torch'.format(epoch, loss, self.config.session.full_path))
+            logger.info( 'Reloaded model: epoch: {}, loss: {}, path: {}/model.torch'.format(epoch, loss, self.config.miner.full_path))
         except Exception as e:
-            logger.warning ( 'Exception {}. Could not find model in path: {}/model.torch', e, self.config.session.full_path )
+            logger.warning ( 'Exception {}. Could not find model in path: {}/model.torch', e, self.config.miner.full_path )
 
         return model, optimizer
 
@@ -91,8 +94,8 @@ class Miner:
             if 'optimizer_state_dict' not in model_info.keys():
                 raise ModelInformationNotFoundException("Missing 'optimizer' in torch save dict")
             
-            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(model_info['epoch'], model_info['loss'], self.config.session.full_path))
-            torch.save(model_info,"{}/model.torch".format(self.config.session.full_path))
+            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(model_info['epoch'], model_info['loss'], self.config.miner.full_path))
+            torch.save(model_info,"{}/model.torch".format(self.config.miner.full_path))
 
         except ModelInformationNotFoundException as e:
             logger.error("Encountered exception trying to save model: {}", e)
@@ -168,13 +171,13 @@ class Miner:
 
     @staticmethod
     def check_config(config: Munch):
-        assert config.session.log_interval > 0, "log_interval dimension must be positive"
-        assert config.session.momentum > 0 and config.session.momentum < 1, "momentum must be a value between 0 and 1"
-        assert config.session.batch_size_train > 0, "batch_size_train must be a positive value"
-        assert config.session.batch_size_test > 0, "batch_size_test must be a positive value"
-        assert config.session.learning_rate > 0, "learning rate must be be a positive value."
-        full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.trial_uid)
-        config.session.full_path = os.path.expanduser(full_path)
-        if not os.path.exists(config.session.full_path):
-            os.makedirs(config.session.full_path)
+        assert config.miner.log_interval > 0, "log_interval dimension must be positive"
+        assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
+        assert config.miner.batch_size_train > 0, "batch_size_train must be a positive value"
+        assert config.miner.batch_size_test > 0, "batch_size_test must be a positive value"
+        assert config.miner.learning_rate > 0, "learning rate must be be a positive value."
+        full_path = '{}/{}/{}/'.format(config.miner.root_dir, config.miner.name, config.miner.trial_uid)
+        config.miner.full_path = os.path.expanduser(full_path)
+        if not os.path.exists(config.miner.full_path):
+            os.makedirs(config.miner.full_path)
         bittensor.neuron.Neuron.check_config(config)
