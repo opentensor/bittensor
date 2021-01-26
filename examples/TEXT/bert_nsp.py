@@ -159,7 +159,7 @@ class Session():
                     # If model has borked for some reason, we need to make sure it doesn't emit weights
                     # Instead, reload into previous version of model
                     if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
-                        self.model, self.optimizer = self.model_toolbox.load_model()     
+                        self.model, self.optimizer = self.model_toolbox.load_model(self.config)     
                         continue               
 
                     # ---- Emit row-weights ----
