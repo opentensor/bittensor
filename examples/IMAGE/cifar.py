@@ -124,13 +124,13 @@ class Session():
                 # If model has borked for some reason, we need to make sure it doesn't emit weights
                 # Instead, reload into previous version of model
                 if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
-                    self.model, self.optimizer = self.model_toolbox.load_model()
+                    self.model, self.optimizer = self.model_toolbox.load_model(self.config)
                 
                 # ---- Test ----
                 test_loss, test_accuracy = self.test()
 
                 # ---- Emit ----
-                self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = ) # Sets my row-weights on the chain.
+                self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
                         
                 # ---- Sync ----  
                 self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
