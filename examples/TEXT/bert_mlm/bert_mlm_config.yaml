@@ -16,14 +16,14 @@ metagraph:
   chain_endpoint: feynman.akira.bittensor.com:9944 # Test network
   stale_emit_filter: 10000
 session:
+  accumulation_interval: 5
+  apply_remote_gradients: true
+  batch_size_train: 1
   learning_rate: 0.001
-  momentum: 0.98
-  n_epochs: 1
-  batch_size_train: 8
-  sync_interval: 10
   log_interval: 10
-  accumulation_interval: 1
-  name: bert_nsp
+  n_epochs: 1
+  momentum: 0.98
+  sync_interval: 100
   record_log: true
 nucleus:
   max_workers: 5
@@ -31,7 +31,7 @@ nucleus:
   queue_timeout: 5
 neuron: # Make sure your coldkeyfile and hotkeyfile locations are correct!
   coldkeyfile: ~/.bittensor/wallets/default/coldkeypub.txt 
-  hotkeyfile: ~/.bittensor/wallets/default/hotkeys/default# nucleus:
+  hotkeyfile: ~/.bittensor/wallets/default/hotkeys/default
 synapse:
   num_hidden_layers: 2
   num_attention_heads: 2
