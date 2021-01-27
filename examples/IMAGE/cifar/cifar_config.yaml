@@ -1,0 +1,49 @@
+axon:
+  local_port: 8091
+  local_ip: 127.0.0.1
+  use_upnpc: False
+  max_workers: 10
+  max_gradients: 100
+receptor:
+  pass_gradients: true
+  timeout: 0.5
+  do_backoff: true
+  max_backoff: 100
+  key_dim: 100
+  stale_emit_filter: 10000
+  topk: 10
+metagraph:
+  chain_endpoint: feynman.akira.bittensor.com:9944 # Test network
+  stale_emit_filter: 10000
+session:
+  learning_rate: 0.001
+  momentum: 0.98
+  n_epochs: 1
+  batch_size_train: 8
+  batch_size_test: 64
+  log_interval: 10
+  sync_interval: 10
+  name: cifar
+  record_log: true
+nucleus:
+  max_workers: 5
+  queue_maxsize: 10000
+  queue_timeout: 5
+neuron: # Make sure your coldkeyfile and hotkeyfile locations are correct!
+  coldkeyfile: ~/.bittensor/wallets/default/coldkeypub.txt 
+  hotkeyfile: ~/.bittensor/wallets/default/hotkeys/default
+
+# synapse:
+#   n_layer: 36
+#   n_inner: null
+#   activation_function: gelu_new
+#   resid_pdrop: 0.1
+#   embd_pdrop: 0.1
+#   attn_pdrop: 0.1
+#   layer_norm_epsilon: 1.0e-05
+#   summary_type: cls_index
+#   initializer_range: 0.02
+#   summary_activation: null
+#   summary_proj_to_labels: true
+#   summary_first_dropout: 0.1
+#   summary_use_proj: true
