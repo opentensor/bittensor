@@ -30,13 +30,9 @@ nucleus:
   max_workers: 5
   queue_maxsize: 10000
   queue_timeout: 5
-
 # Make sure the path of your coldkeyfile and hotkeyfile match!
 neuron:
   coldkeyfile: ~/.bittensor/wallets/default/coldkeypub.txt
   hotkeyfile: ~/.bittensor/wallets/default/hotkeys/default
 synapse:
   target_dim: 10
-
-# Currently do not have any configs for the dendrite but could use in the future:
-# dendrite:
