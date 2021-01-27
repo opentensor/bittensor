@@ -18,7 +18,6 @@ metagraph:
 session:
   learning_rate: 0.001
   momentum: 0.98
-  n_epochs: 1
   batch_size_train: 1
   sync_interval: 100
   log_interval: 10
