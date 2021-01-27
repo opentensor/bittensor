@@ -21,7 +21,6 @@ session:
   batch_size_train: 1
   learning_rate: 0.001
   log_interval: 10
-  n_epochs: 1
   momentum: 0.98
   sync_interval: 100
   record_log: true
