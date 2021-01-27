@@ -46,31 +46,10 @@ class CommandExecutor:
         print("Encrypting key ... (this might take a few moments)")
         json_data = json.dumps(coldkey_keypair.toDict()).encode()
         coldkey_data = encrypt(json_data, password)
+        cli_utils.save_keys(coldkey_path, coldkey_data)
+        cli_utils.set_file_permissions(coldkey_path)
         del json_data
-        
-        cli_utils.save_keys(coldkey_path, coldkey_data)
-        cli_utils.set_file_permissions(coldkey_path)
-
-        cli_utils.save_keys(coldkey_path, coldkey_data)
-        cli_utils.set_file_permissions(coldkey_path)
-
-        # Create default hotkey.
-        hotkeys_dir_path = wallet_path + '/hotkeys/'
-        if not os.path.exists(hotkeys_dir_path):
-            os.makedirs(hotkeys_dir_path)
-            
-        cli_utils.create_hotkeys_dir_if_not_exists(wallet_path + "/hotkeys")
-        choice = input("Create 'default' hotkey ? (y/N) ")
-        if choice == "y":
-            hotkey_path = wallet_path + "/hotkeys/default"
-        else:
-            hotkey_name = input("Hotkey name: ")
-            hotkey_path = wallet_path + "/hotkeys/" + hotkey_name
-        hotkey_path = cli_utils.validate_create_path( hotkey_path )
-        hotkey_keypair = cli_utils.gen_new_key( 14 )
-        hotkey_data = json.dumps(hotkey_keypair.toDict()).encode()
-        cli_utils.save_keys(hotkey_path, hotkey_data)
-        cli_utils.set_file_permissions(hotkey_path)
+    
 
     async def new_wallet( self, n_words:int, wallet_path: str, wallet_name:str,  use_password: bool):
 
@@ -384,7 +363,7 @@ def main():
             ''')
 
     # Fill arguments for the regen command.
-    regen_wallet_parser = cmd_parsers.add_parser('regen_key')
+    regen_wallet_parser = cmd_parsers.add_parser('regen_wallet')
     regen_wallet_parser.add_argument("--mnemonic", required=True, nargs="+", 
         help='Mnemonic used to regen your key i.e. horse cart dog ...') 
     regen_wallet_parser.add_argument('--wallets_path',  dest="wallet_path", default='~/.bittensor/wallets/', type=str, 
