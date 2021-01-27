@@ -1,7 +1,13 @@
 """Training a CIFAR Neuron.
 This file demonstrates a training pipeline for an CIFAR Neuron.
+
 Example:
-        $ python examples/cifar.py
+        $ python examples/IMAGE/cifar/cifar.py
+
+Look at the yaml config file to tweak the parameters of the model. To run with those 
+default configurations, run:
+        $ cd examples/IMAGE
+        $ python cifar/cifar.py --session.config_file cifar/cifar_config.yaml
 """
 import argparse
 import math

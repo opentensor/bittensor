@@ -1,7 +1,13 @@
 """Training a MNIST Neuron.
 This file demonstrates a training pipeline for an MNIST Neuron.
+
 Example:
-        $ python examples/mnist.py
+        $ python examples/IMAGE/mnist/mnist.py
+
+Look at the yaml config file to tweak the parameters of the model. To run with those 
+default configurations, run:
+        $ cd examples/IMAGE
+        $ python mnist/mnist.py --session.config_file mnist/mnist_config.yaml
 """
 import argparse
 import math

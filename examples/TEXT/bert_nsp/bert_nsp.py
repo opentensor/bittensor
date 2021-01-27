@@ -4,7 +4,12 @@
 This file demonstrates training the BERT neuron with next sentence prediction.
 
 Example:
-        $ python neurons/bert_nsp.py
+        $ python examples/TEXT/bert_nsp/bert_nsp.py
+
+Look at the yaml config file to tweak the parameters of the model. To run with those 
+default configurations, run:
+        $ cd examples/TEXT
+        $ python bert_nsp/bert_nsp.py --session.config_file bert_nsp/bert_nsp_config.yaml
 
 """
 import argparse
