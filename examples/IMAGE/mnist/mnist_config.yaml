@@ -31,3 +31,5 @@ nucleus:
 neuron: # Make sure your coldkeyfile and hotkeyfile locations are correct!
   coldkeyfile: ~/.bittensor/wallets/default/coldkeypub.txt 
   hotkeyfile: ~/.bittensor/wallets/default/hotkeys/default
+synapse:
+  target_dim: 10 
