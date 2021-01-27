@@ -8,7 +8,7 @@
 
 ### Incentivized Peer to Peer Neural Networks
 
-[Docs](https://opentensor.github.io/index.html) • [Network](https://opentensor.github.io/visualizer/index.html) • [Research](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/5fa940aea6a95b870067cf09_bittensor.pdf) • [Code](https://github.com/opentensor/BitTensor)
+[Docs](https://opentensor.github.io/index.html) • [Network](https://www.bittensor.com/metagraph) • [Research](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/5fa940aea6a95b870067cf09_bittensor.pdf) • [Code](https://github.com/opentensor/BitTensor)
 
 </div>
 
