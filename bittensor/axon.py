@@ -1,21 +1,21 @@
-'''
-The MIT License (MIT)
-Copyright © 2021 Opentensor.ai
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
-and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+# The MIT License (MIT)
+# Copyright © 2021 Opentensor.ai
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
-the Software.
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
-DEALINGS IN THE SOFTWARE.
-'''
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+
 import argparse
 import grpc
 import pandas as pd
@@ -46,6 +46,7 @@ class Axon(bittensor.grpc.BittensorServicer):
     """
     def __init__(self, config: Munch = None, wallet: 'bittenosr.wallet.Wallet' = None, nucleus: 'bittensor.nucleus.Nucleus' = None, metagraph: 'bittensor.metagraph.Metagraph' = None):
         r""" Initializes a new Axon tensor processing endpoint.
+            
             Args:
                 config (:obj:`Munch`, `optional`): 
                     axon.Axon.config()
@@ -118,14 +119,16 @@ class Axon(bittensor.grpc.BittensorServicer):
         r""" The function called by remote GRPC Forward requests from other neurons.
             Forward is equivalent to a 'forward' pass through a neural network.
             After checking request validity, this function passes the request to the nucleus for processing.
-            See bittensor.proto.ReturnCode for all possible return codes.
+            See :obj:`bittensor.proto.ReturnCode` for all possible return codes.
+            
             Args:
                 request (:obj:`bittensor.proto`, `required`): 
                     Tensor request proto.
                 context (:obj:`grpc.ServicerContext`, `required`): 
                     grpc server context.
+            
             Returns:
-                response: (bittensor.proto.TensorMessage): 
+                response (bittensor.proto.TensorMessage): 
                     proto response carring the synapse forward output or None under failure.
         """
         # TODO(const): check signature
@@ -149,14 +152,16 @@ class Axon(bittensor.grpc.BittensorServicer):
         r""" The function called by remote GRPC Backward requests from other neurons.
             Backward is equivalent to a 'backward' gradient descent pass through a neural network.
             After checking request validity, passes the request to the nucleus for processing.
-            See bittensor.proto.ReturnCode for all possible return codes.
+            See :obj:`bittensor.proto.ReturnCode` for all possible return codes.
+            
             Args:
                 request (:obj:`bittensor.proto`, `required`): 
                     Tensor request proto.
                 context (:obj:`grpc.ServicerContext`, `required`): 
                     grpc server context.
+            
             Returns:
-                response: (bittensor.proto.TensorMessage): 
+                response (:obj:`bittensor.proto.TensorMessage`): 
                     proto response carring the synapse backward output or None under failure.
         """
         tensor, message, code = self._backward(request)
@@ -175,15 +180,17 @@ class Axon(bittensor.grpc.BittensorServicer):
     def _forward(self, request):
         r""" Performs validity checks on the grpc request before calling nucleus forward.
             Returns the output, message and code from the backend forward call.
+            
             Args:
                 request (:obj:`bittensor.proto`, `required`): 
                     Tensor request proto.
+            
             Returns:
-                response: (:obj:`bittensor.proto.Tensor, `required`): 
+                response (:obj:`bittensor.proto.Tensor, `required`): 
                     serialized tensor response from the nucleus call or None.
-                message: (str, `required`): 
+                message (str, `required`): 
                     message associated with forward call, potentially error, or 'success'.
-                code: (:obj:`bittensor.proto.ReturnCode, `required`)
+                code (:obj:`bittensor.proto.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.
         """
 
@@ -384,6 +391,16 @@ class Axon(bittensor.grpc.BittensorServicer):
         self.priority = priority_map
 
     def get_call_priority(self, request: bittensor.proto.TensorMessage):
+        """ Retrieves the priority of the calling neuron
+
+        Args:
+            request (:obj:`bittensor.proto`, `required`): 
+                Tensor request proto.
+
+        Returns:
+            call_priority (:obj:`dict`): 
+                A map between public key and processing priority.
+        """
         if request.public_key in self.priority:
             call_priority = self.priority[request.public_key]
         else:
