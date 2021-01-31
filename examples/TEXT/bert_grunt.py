@@ -1,10 +1,10 @@
-"""FFNN Grunt node
+"""BERT Grunt Miner
 
-This fil demonstrates how to train a FeedForward Neural network on the network
-without a training ste.
+This file contains an example BERT Grunt model, the model is grunt because if does not contain a dataset
+but rather uses the text passed from neighbors + their gradients, as the training signal.
 
 Example:
-        $ python examples/ffnn_grunt.py
+        $ python examples/TEXT/bert_grunt.py
 
 """
 import argparse
@@ -25,7 +25,7 @@ from bittensor.utils.model_utils import ModelToolbox
 
 import bittensor
 from bittensor.config import Config
-from bittensor.synapses.ffnn import FFNNSynapse
+from bittensor.synapses.bert import BertSynapseBase
 
 class Session():
 
@@ -39,7 +39,7 @@ class Session():
         self.neuron = bittensor.neuron.Neuron(config)
 
         # ---- Build FFNN Model ----
-        self.model = FFNNSynapse( self.config )
+        self.model = BertSynapseBase( self.config )
         self.model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         self.neuron.axon.serve( self.model )
 
@@ -47,7 +47,7 @@ class Session():
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.session.learning_rate, momentum=self.config.session.momentum)
 
         # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(FFNNSynapse, torch.optim.SGD)
+        self.model_toolbox = ModelToolbox(BertSynapseBase, torch.optim.SGD)
 
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
@@ -67,31 +67,24 @@ class Session():
         parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--session.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
         parser.add_argument('--session.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
-        parser.add_argument('--session.batch_size_train', default=64, type=int, help='Training batch size.')
-        parser.add_argument('--session.batch_size_test', default=64, type=int, help='Testing batch size.')
-        parser.add_argument('--session.log_interval', default=150, type=int, help='Batches until session prints log statements.')
         parser.add_argument('--session.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
-        parser.add_argument('--session.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
         parser.add_argument('--session.root_dir', default='~/.bittensor/sessions/', type=str,  help='Root path to load and save data associated with each session')
-        parser.add_argument('--session.name', default='ffnn-grunt', type=str, help='Trials for this session go in session.root / session.name')
+        parser.add_argument('--session.name', default='bert-grunt', type=str, help='Trials for this session go in session.root / session.name')
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
         parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         bittensor.neuron.Neuron.add_args(parser)
-        FFNNSynapse.add_args(parser)
+        BertSynapseBase.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
-        assert config.session.log_interval > 0, "log_interval dimension must be positive"
         assert config.session.momentum > 0 and config.session.momentum < 1, "momentum must be a value between 0 and 1"
-        assert config.session.batch_size_train > 0, "batch_size_train must be a positive value"
-        assert config.session.batch_size_test > 0, "batch_size_test must be a positive value"
         assert config.session.learning_rate > 0, "learning rate must be be a positive value."
         full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.trial_uid)
         config.session.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.session.full_path):
             os.makedirs(config.session.full_path)
-        FFNNSynapse.check_config(config)
+        BertSynapseBase.check_config(config)
         bittensor.neuron.Neuron.check_config(config)
 
     # ---- Main loop ----
@@ -105,6 +98,7 @@ class Session():
             for self.epoch in range(self.config.session.n_epochs):
 
                 # ---- Poll until gradients ----
+                logger.info('Waiting for gradients: ')
                 public_key, inputs_x, grads_dy, modality_x = self.neuron.axon.gradients.get(block = True)
 
                 # ---- Backward Gradients ----
@@ -149,6 +143,5 @@ class Session():
    
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
-    session = Session(config)
+    session = Session()
     session.run()
