@@ -17,7 +17,7 @@
 ```
 $ git clone https://github.com/opentensor/bittensor.git                             # Clone the repository
 $ cd bittensor && pip install -r requirements.txt && pip install -e .               # Install bittensor
-$ bittensor-cli new_wallet                                                          # Generate default keys
+$ bin/bittensor-cli new_wallet                                                      # Generate default keys
 ```
 
 # Run Subtensor
@@ -28,7 +28,7 @@ $ ./bin/release/node-subtensor                                                  
 
 # Run Bittensor
 ```
-$ python examples/text/gpt2-wiki.py   --session.trial_uid=test                      # Train gpt2 on wiki-text
+$ python examples/TEXT/gpt2_wiki.py   --session.trial_uid=test                      # Train gpt2 on wiki-text
 $ tensorboard --logdir=~/.bittensor/sessions/gpt2-wiki/test                         # Serve tensorboard
 ```
 
