@@ -168,17 +168,7 @@ class Session():
             self.global_step += 1 
 
             # ---- Remote Forward pass ----
-            output = self.model.remote_forward(  
-                neuron = self.neuron,
-                images = images.to(self.device), 
-                targets = torch.LongTensor(targets).to(self.device), 
-            ) 
-            
-            # ---- Remote Backward pass ----
-            loss = output.remote_target_loss + output.local_target_loss + output.distillation_loss
-            loss.backward() # Accumulates gradients on the model.
-            self.optimizer.step() # Applies accumulated gradients.
-            self.optimizer.zero_grad() # Zeros out gradients for next accummulation 
+            output = self.remote_forward_pass(images, targets)
 
             # ---- Train weights ----
             batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
