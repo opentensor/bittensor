@@ -1,0 +1,14 @@
+version: "3.2"
+
+services:
+  dev:
+    container_name: node-bittensor
+    image: "bittensor/bittensor:latest"
+    ports:
+      - "8091:8091"
+    
+    command: /bin/bash -c "
+      cd /bittensor 
+      && pip3 install -r requirements.txt
+      && pip3 install -e .
+      && python3 examples/IMAGE/mnist.py --metagraph.chain_endpoint localhost:9944"
