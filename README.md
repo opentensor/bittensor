@@ -9,7 +9,7 @@
 
 ### Incentivized Peer to Peer Neural Networks
 
-[Discord](https://discord.gg/3rUr6EcvbB)) • [Docs](https://opentensor.github.io/index.html) • [Network](https://www.bittensor.com/metagraph) • [Research](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/5fa940aea6a95b870067cf09_bittensor.pdf) • [Code](https://github.com/opentensor/BitTensor)
+[Discord](https://discord.gg/3rUr6EcvbB) • [Docs](https://opentensor.github.io/index.html) • [Network](https://www.bittensor.com/metagraph) • [Research](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/5fa940aea6a95b870067cf09_bittensor.pdf) • [Code](https://github.com/opentensor/BitTensor)
 
 </div>
 
