@@ -68,7 +68,7 @@ class AdamCorpus():
             random_line = self.lines[ random.randint(0, len(self.lines)-1)]
             batch_text.append( random_line )
 
-        batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True)['input_ids']
+        batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True, truncation=True)['input_ids']
         return batch_inputs
 
 
@@ -149,7 +149,7 @@ class Session():
         with self.neuron:
 
             # ---- Weights ----
-            self.row = self.neuron.metagraph.row
+            self.row = self.neuron.metagraph.row.to(self.model.device)
 
             # --- Run state ---
             self.global_step = 0
@@ -176,7 +176,7 @@ class Session():
 
                 # ---- Sync metagraph ----
                 self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.row = self.neuron.metagraph.row
+                self.row = self.neuron.metagraph.row.to(self.model.device)
 
                 # --- Epoch logs ----
                 print(self.neuron.axon.__full_str__())
@@ -223,7 +223,7 @@ class Session():
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
             # ---- Train row weights ----
-            batch_weights = torch.mean(output.router.weights, axis = 0) # Average over batch.
+            batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
             self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
             self.row = torch.log( torch.abs( self.row ) + 1 )
             self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
