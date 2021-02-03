@@ -3,12 +3,13 @@
 # **Bittensor**
 [![Build status](https://circleci.com/gh/opentensor/bittensor.svg?style=shield)](https://circleci.com/gh/opentensor/bittensor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/3rUr6EcvbB)
 
 ---
 
 ### Incentivized Peer to Peer Neural Networks
 
-[Docs](https://opentensor.github.io/index.html) • [Network](https://opentensor.github.io/visualizer/index.html) • [Research](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/5fa940aea6a95b870067cf09_bittensor.pdf) • [Code](https://github.com/opentensor/BitTensor)
+[Discord](https://discord.gg/3rUr6EcvbB) • [Docs](https://opentensor.github.io/index.html) • [Network](https://www.bittensor.com/metagraph) • [Research](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/5fa940aea6a95b870067cf09_bittensor.pdf) • [Code](https://github.com/opentensor/BitTensor)
 
 </div>
 
@@ -17,7 +18,7 @@
 ```
 $ git clone https://github.com/opentensor/bittensor.git                             # Clone the repository
 $ cd bittensor && pip install -r requirements.txt && pip install -e .               # Install bittensor
-$ bittensor-cli new_wallet                                                          # Generate default keys
+$ bin/bittensor-cli new_wallet                                                      # Generate default keys
 ```
 
 # Run Subtensor
@@ -28,7 +29,7 @@ $ ./bin/release/node-subtensor                                                  
 
 # Run Bittensor
 ```
-$ python examples/text/gpt2-wiki.py   --session.trial_uid=test                      # Train gpt2 on wiki-text
+$ python examples/TEXT/gpt2_wiki.py   --session.trial_uid=test                      # Train gpt2 on wiki-text
 $ tensorboard --logdir=~/.bittensor/sessions/gpt2-wiki/test                         # Serve tensorboard
 ```
 
