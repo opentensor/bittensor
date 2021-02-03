@@ -15,7 +15,9 @@ RUN apt-get install unzip
 RUN apt-get -y install python3
 RUN apt-get -y install python3-pip
 
-
 # add Bittensor code to docker image
 RUN mkdir /bittensor
 COPY . /bittensor
+
+EXPOSE 8091
+VOLUME ["/bittensor"]

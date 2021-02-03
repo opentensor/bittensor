@@ -4,6 +4,7 @@ base58==2.0.1
 certifi==2020.6.20
 cryptography==3.1.1
 datasets
+cython
 docker==4.3.1
 idna==2.10
 google-api-python-client
@@ -26,7 +27,6 @@ pycrypto==2.6.1
 py-sr25519-bindings==0.1.2
 py-ed25519-bindings==0.1.1
 py-bip39-bindings>=0.1.6
-pytest-asyncio
 pytest>=6.1.2
 pytest-xdist==2.2.0
 pytest-asyncio>=0.14.0
