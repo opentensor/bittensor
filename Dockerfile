@@ -10,7 +10,7 @@ LABEL bittensor.image.authors="bittensor.com" \
 	bittensor.image.documentation="https://opentensor.bittensor.io"
 
 #set up environment
-RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y curl
+RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y curl git 
 RUN apt-get install unzip
 RUN apt-get -y install python3
 RUN apt-get -y install python3-pip
@@ -18,6 +18,10 @@ RUN apt-get -y install python3-pip
 # add Bittensor code to docker image
 RUN mkdir /bittensor
 COPY . /bittensor
+
+WORKDIR /bittensor
+RUN pip3 install --upgrade cython
+RUN pip3 install -r requirements.txt
 
 EXPOSE 8091
 VOLUME ["/bittensor"]
