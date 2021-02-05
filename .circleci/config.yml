@@ -14,6 +14,7 @@ jobs:
     executor: bittensor-executor
     steps:
       - checkout
+      - run: pip3 install cython
       - run:
           command: pip3 install -e .
           name: setup
@@ -24,6 +25,7 @@ jobs:
     executor: bittensor-executor
     steps:
       - checkout
+      - run: pip3 install cython
       - run: pip3 install -r requirements.txt
       - run: ./scripts/build_protos.sh
       - run:
@@ -43,6 +45,7 @@ jobs:
     executor: bittensor-executor
     steps:
       - checkout
+      - run: pip3 install cython
       - run: pip3 install -r requirements.txt
       - run: ./scripts/build_protos.sh
       - run:
@@ -64,6 +67,7 @@ jobs:
     executor: bittensor-executor
     steps:
       - checkout
+      - run: pip3 install cython
       - run: pip3 install -r requirements.txt
       - run: pip3 install pyyaml
       - run: pip3 install miniupnpc
@@ -86,6 +90,7 @@ jobs:
     executor: bittensor-executor
     steps:
       - checkout
+      - run: pip3 install cython
       - run: pip3 install -r requirements.txt
       - run: ./scripts/build_protos.sh
       - run: pip3 install pyyaml
