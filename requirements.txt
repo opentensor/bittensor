@@ -16,8 +16,6 @@ msgpack-numpy==0.4.7.1
 miniupnpc
 munch
 netaddr==0.8.0
-numpy
-pandas
 password_strength==0.0.3.post2
 pickle-mixin==1.0.2
 prettytable
@@ -41,3 +39,6 @@ torchvision
 transformers
 validators
 xxhash==1.3.0
+pandas
+numpy
+wheel
