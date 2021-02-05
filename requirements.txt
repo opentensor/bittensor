@@ -42,3 +42,4 @@ xxhash==1.3.0
 pandas
 numpy
 wheel
+codecov
