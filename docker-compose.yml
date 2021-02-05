@@ -9,6 +9,4 @@ services:
     
     command: /bin/bash -c "
       cd /bittensor 
-      && pip3 install -r requirements.txt
-      && pip3 install -e .
-      && python3 examples/IMAGE/mnist.py --metagraph.chain_endpoint localhost:9944"
+      && python3.7 examples/IMAGE/mnist.py --metagraph.chain_endpoint 172.17.0.1:9944"
