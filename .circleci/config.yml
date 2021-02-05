@@ -31,11 +31,6 @@ jobs:
       - run:
           command: pip3 install -e .
           name: setup
-      - run: pip3 install pyyaml
-      - run: pip3 install miniupnpc
-      - run: pip3 install msgpack
-      - run: pip3 install msgpack-numpy
-      - run: pip3 install pytorch_transformers
       - run: ./scripts/create_wallet.sh
       - run:
           name: "Run unit tests"
@@ -51,11 +46,6 @@ jobs:
       - run:
           command: pip3 install -e .
           name: setup
-      - run: pip3 install pyyaml
-      - run: pip3 install miniupnpc
-      - run: pip3 install msgpack
-      - run: pip3 install msgpack-numpy
-      - run: pip3 install pytorch_transformers
       - run: ./scripts/create_wallet.sh
       - run: python3.7 tests/examples/text/test_gpt2_wiki.py
       - run: python3.7 tests/examples/text/test_gpt2_genesis.py
@@ -69,11 +59,6 @@ jobs:
       - checkout
       - run: pip3 install cython
       - run: pip3 install -r requirements.txt
-      - run: pip3 install pyyaml
-      - run: pip3 install miniupnpc
-      - run: pip3 install msgpack
-      - run: pip3 install msgpack-numpy
-      - run: pip3 install pytorch_transformers
       - run: ./scripts/create_wallet.sh
       - run: ./scripts/build_protos.sh
       - run:
