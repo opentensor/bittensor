@@ -93,11 +93,6 @@ jobs:
       - run: pip3 install cython
       - run: pip3 install -r requirements.txt
       - run: ./scripts/build_protos.sh
-      - run: pip3 install pyyaml
-      - run: pip3 install miniupnpc
-      - run: pip3 install msgpack
-      - run: pip3 install msgpack-numpy
-      - run: pip3 install pytorch_transformers
       - run: ./scripts/create_wallet.sh
       - run:
           command: pip3 install -e .
