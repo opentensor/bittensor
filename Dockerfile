@@ -17,18 +17,8 @@ RUN python3.7 -m pip install --upgrade pip
 RUN mkdir /bittensor
 COPY . /bittensor
 
-# Arrow installation prep
-RUN apt-get install -y -V ca-certificates lsb-release wget
-RUN wget https://apache.bintray.com/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-archive-keyring-latest-$(lsb_release --codename --short).deb
-RUN apt-get install -y -V ./apache-arrow-archive-keyring-latest-$(lsb_release --codename --short).deb
-RUN apt-get update
-RUN apt-get install -y -V libarrow-dev 
-RUN apt-get install -y -V libarrow-glib-dev 
-RUN apt-get install -y -V libarrow-dataset-dev 
-RUN apt-get install -y -V libarrow-flight-dev
-
 WORKDIR /bittensor
-RUN pip install --upgrade numpy pandas setuptools "tqdm>=4.27,<4.50.0"
+RUN pip install --upgrade numpy pandas setuptools "tqdm>=4.27,<4.50.0" wheel
 RUN pip install -r requirements.txt
 RUN pip install -e . 
 RUN ./scripts/create_wallet.sh
