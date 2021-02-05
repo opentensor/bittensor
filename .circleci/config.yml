@@ -19,7 +19,6 @@ jobs:
           command: pip3 install -e .
           name: setup
       - run: ./scripts/create_wallet.sh
-      - run: pip3 install miniupnpc
 
   "Run Unit Tests":
     executor: bittensor-executor
