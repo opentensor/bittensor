@@ -6,7 +6,7 @@ executors:
           - image: bittensor/bittensor:latest
 
 orbs:
-  python: circleci/python@0.2.1
+  python: circleci/python@1.3.2
   shellcheck: circleci/shellcheck@2.0.0
 
 jobs:
@@ -15,7 +15,6 @@ jobs:
     steps:
       - checkout
       - python/load-cache
-      - python/install-deps
       - python/save-cache
       - run:
           command: pip3 install -e .
@@ -31,7 +30,7 @@ jobs:
       - run: pip3 install -r requirements.txt
       - run: ./scripts/build_protos.sh
       - run:
-          command: pip install -e .
+          command: pip3 install -e .
           name: setup
       - run: pip3 install pyyaml
       - run: pip3 install miniupnpc
@@ -51,7 +50,7 @@ jobs:
       - run: pip3 install -r requirements.txt
       - run: ./scripts/build_protos.sh
       - run:
-          command: pip install -e .
+          command: pip3 install -e .
           name: setup
       - run: pip3 install pyyaml
       - run: pip3 install miniupnpc
@@ -102,7 +101,7 @@ jobs:
       - run: pip3 install pytorch_transformers
       - run: ./scripts/create_wallet.sh
       - run:
-          command: pip install -e .
+          command: pip3 install -e .
           name: setup
       - run:
           name: "Run Localized CPU Integration tests"
