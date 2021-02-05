@@ -14,8 +14,6 @@ jobs:
     executor: bittensor-executor
     steps:
       - checkout
-      - python/load-cache
-      - python/save-cache
       - run: pip3 install cython
       - run:
           command: pip3 install -e .
