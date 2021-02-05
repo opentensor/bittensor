@@ -15,7 +15,6 @@ jobs:
     steps:
       - checkout
       - python/load-cache
-      - python/install-deps
       - python/save-cache
       - run: pip3 install cython
       - run:
