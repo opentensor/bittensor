@@ -14,6 +14,9 @@ jobs:
     executor: bittensor-executor
     steps:
       - checkout
+      - python/load-cache
+      - python/install-deps
+      - python/save-cache
       - run: pip3 install cython
       - run:
           command: pip3 install -e .
@@ -25,6 +28,7 @@ jobs:
     executor: bittensor-executor
     steps:
       - checkout
+      - python/load-cache
       - run: pip3 install cython
       - run: pip3 install -r requirements.txt
       - run: ./scripts/build_protos.sh
@@ -40,6 +44,7 @@ jobs:
     executor: bittensor-executor
     steps:
       - checkout
+      - python/load-cache
       - run: pip3 install cython
       - run: pip3 install -r requirements.txt
       - run: ./scripts/build_protos.sh
@@ -57,6 +62,7 @@ jobs:
     executor: bittensor-executor
     steps:
       - checkout
+      - python/load-cache
       - run: pip3 install cython
       - run: pip3 install -r requirements.txt
       - run: ./scripts/create_wallet.sh
@@ -75,6 +81,7 @@ jobs:
     executor: bittensor-executor
     steps:
       - checkout
+      - python/load-cache
       - run: pip3 install cython
       - run: pip3 install -r requirements.txt
       - run: ./scripts/build_protos.sh
