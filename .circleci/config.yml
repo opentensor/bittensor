@@ -89,7 +89,7 @@ jobs:
           name: "Code Coverage"
           command: codecov
 
-  "Push Production candidate to DockerHub":
+  "Push image to DockerHub":
     docker:
       - image: circleci/python:3.8.1
         auth: 
@@ -105,6 +105,7 @@ jobs:
       - run:
           name: "Push production candidate"
           command: ./scripts/push_image.sh
+  
  
 workflows:
   main:
@@ -119,3 +120,15 @@ workflows:
       - "Run Integration Tests":
               requires:
                 - "Build Bittensor"
+      - "Push image to DockerHub":
+          requires:
+            - "Build Bittensor"
+            - "Run Unit Tests"
+            - "Run Examples"
+            - "Run Integration Tests"
+          filters:
+              branches:
+                only:
+                  - master
+
+
