@@ -11,4 +11,4 @@ services:
     
     command: /bin/bash -c "
       cd /bittensor
-      && python3.7 examples/TEXT/gpt2_wiki.py --metagraph.chain_endpoint 172.17.0.1:9944"
+      && python3.7 examples/TEXT/gpt2_genesis.py --metagraph.chain_endpoint 172.17.0.1:9944"
