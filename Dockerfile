@@ -15,13 +15,12 @@ RUN python3.7 -m pip install --upgrade pip
 
 # add Bittensor code to docker image
 RUN mkdir /bittensor
+RUN mkdir /home/.bittensor
 COPY . /bittensor
 
 WORKDIR /bittensor
 RUN pip install --upgrade numpy pandas setuptools "tqdm>=4.27,<4.50.0" wheel
 RUN pip install -r requirements.txt
 RUN pip install -e . 
-RUN ./scripts/create_wallet.sh
 
 EXPOSE 8091
-VOLUME ["/bittensor"]
