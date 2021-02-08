@@ -40,7 +40,10 @@ class Session():
 
         # ---- Build FFNN Model ----
         self.model = FFNNSynapse( self.config )
-        self.model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        if config.device and config.device == "cpu":
+            self.device = torch.device("cpu")
+        else:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.neuron.axon.serve( self.model )
 
         # ---- Optimizer ----

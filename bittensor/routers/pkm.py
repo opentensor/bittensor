@@ -41,7 +41,10 @@ class PKMRouter():
         if config == None:
             config = PKMRouter.build_config()
         self.config = config
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if config.device and config.device == "cpu":
+            self.device = torch.device("cpu")
+        else:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # UIDs -> Keys.
         self.keys = PKMKeys(self.config.router.key_dim)
         # Query -> Keys

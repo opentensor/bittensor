@@ -56,7 +56,10 @@ class Session():
         # Dataset: 74 million sentences pulled from books.
         self.dataset = load_dataset('ag_news')['train']
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if config.device and config.device == "cpu":
+            self.device = torch.device("cpu")
+        else:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
