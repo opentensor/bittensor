@@ -78,6 +78,11 @@ class Session():
 
         # ---- Model ----
         self.model = GPT2LMSynapse( self.config )
+        if config.device and config.device == "cpu":
+            self.device = torch.device("cpu")
+        else:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to( self.device ) # Set model to device
 
         # ---- Optimizer ----
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.session.learning_rate, momentum=self.config.session.momentum)
