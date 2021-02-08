@@ -21,6 +21,13 @@ You will need to have rust and gcc installed on your box before these installati
 
 # Installation and Wallet
 
+If you wish to run bittensor through a docker container, simply create a new wallet, and run docker-compose:
+```
+$ bin/bittensor-cli new_wallet                                                      # Generate default keys
+$ docker-compose up
+```
+
+If you wish to install it natively on your machine:
 ```
 $ git clone https://github.com/opentensor/bittensor.git                             # Clone the repository
 $ cd bittensor && pip3 install -r requirements.txt && pip3 install -e .               # Install bittensor
