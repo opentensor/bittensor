@@ -35,6 +35,14 @@ $ bin/bittensor-cli new_wallet                                                  
 ```
 
 # Running the chain locally
+
+Similarly to bittensor, you can run the subtensor chain on a Docker container directly:
+```
+$ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
+$ docker-compose up
+```
+
+If you have a Linux machine, you can also install and run the chain locally as follows:
 ```
 $ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
 $ ./bin/release/node-subtensor                                                      # Run a main net validator
