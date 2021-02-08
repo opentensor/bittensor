@@ -21,6 +21,13 @@ You will need to have rust and gcc installed on your box before these installati
 
 # Installation and Wallet
 
+If you wish to run bittensor through a docker container, simply create a new wallet, and run docker-compose:
+```
+$ bin/bittensor-cli new_wallet                                                      # Generate default keys
+$ docker-compose up
+```
+
+If you wish to install it natively on your machine:
 ```
 $ git clone https://github.com/opentensor/bittensor.git                             # Clone the repository
 $ cd bittensor && pip3 install -r requirements.txt && pip3 install -e .               # Install bittensor
@@ -28,6 +35,14 @@ $ bin/bittensor-cli new_wallet                                                  
 ```
 
 # Running the chain locally
+
+Similarly to bittensor, you can run the subtensor chain on a Docker container directly:
+```
+$ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
+$ docker-compose up
+```
+
+If you have a Linux machine, you can also install and run the chain locally as follows:
 ```
 $ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
 $ ./bin/release/node-subtensor                                                      # Run a main net validator
