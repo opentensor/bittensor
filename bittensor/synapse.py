@@ -43,7 +43,7 @@ class Synapse(nn.Module):
         if config == None:
             config = Synapse.build_config()
         self.config = config
-        if config.device and config.device == "cpu":
+        if self.config.session.force_cpu:
             self.device = torch.device("cpu")
         else:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

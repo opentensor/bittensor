@@ -35,7 +35,7 @@ class Session():
     
         # ---- Model ----
         self.model = FFNNSynapse( config ) # Feedforward neural network with PKMRouter.
-        if config.device and config.device == "cpu":
+        if self.config.session.force_cpu:
             self.device = torch.device("cpu")
         else:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -78,7 +78,7 @@ class Session():
 
         # ---- Model ----
         self.model = GPT2LMSynapse( self.config )
-        if config.device and config.device == "cpu":
+        if self.config.session.force_cpu:
             self.device = torch.device("cpu")
         else:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -126,6 +126,7 @@ class Session():
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
         parser.add_argument('--session.custom_datasets', default="./genesis_dataset/", type=str, help='Custom datasets to train on.')
         parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
+        parser.add_argument('--session.force_cpu', default=False, type=bool, help='Force models to run on CPU in a machine with GPU by setting this to True')
         GPT2LMSynapse.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 

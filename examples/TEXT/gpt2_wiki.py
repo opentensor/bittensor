@@ -56,7 +56,7 @@ class Session():
         # Dataset: 74 million sentences pulled from books.
         self.dataset = load_dataset('ag_news')['train']
 
-        if config.device and config.device == "cpu":
+        if self.config.session.force_cpu:
             self.device = torch.device("cpu")
         else:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

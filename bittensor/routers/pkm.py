@@ -41,7 +41,7 @@ class PKMRouter():
         if config == None:
             config = PKMRouter.build_config()
         self.config = config
-        if config.device and config.device == "cpu":
+        if self.config.session.force_cpu:
             self.device = torch.device("cpu")
         else:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -133,7 +133,7 @@ class PKMRouter():
 
         # query: (torch.FloatTensor): projection of the query on to the key dimension.
         # query.shape = [batch_size, config.router.key_dim]
-        # On Cuda if it's available.
+        # On Cuda if it's available. 
         query = self.projection( query )
 
         # scores: (torch.FloatTensor): cartesian product between keys and projection.
