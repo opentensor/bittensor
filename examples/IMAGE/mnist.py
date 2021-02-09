@@ -85,6 +85,7 @@ class Session():
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
         parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
+        parser.add_argument('--session.force_cpu', default=False, type=bool, help='Force models to run on CPU in a machine with GPU by setting this to True')
         bittensor.neuron.Neuron.add_args(parser)
         FFNNSynapse.add_args(parser)
 
