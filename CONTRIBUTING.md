@@ -73,11 +73,11 @@ Provide more context by answering these questions:
 
 Include details about your configuration and environment:
 
-* **Which version of Bittensor are you using?** You can get the exact version by checking for `__version__` in `[bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/master/bittensor/__init__.py#L18).
+* **Which version of Bittensor are you using?** You can get the exact version by checking for `__version__` in `[bittensor/bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/master/bittensor/__init__.py#L18).
 * **What's the name and version of the OS you're using**?
 * **Are you running Bittensor in a virtual machine?** If so, which VM software are you using and which operating systems and versions are used for the host and the guest?
 * **Are you running Bittensor in a dockerized container?** If so, have you made sure that your docker container contains your latest changes and is up to date with Master branch?
-* **Are you using [local configuration files](https://opentensor.github.io/getting-started/configuration.html)** `config.json` to customize your Bittensor experiment? If so, provide the contents of that config file, preferably in a [code block](https://help.github.com/articles/markdown-basics/#multiple-lines) or with a link to a [gist](https://gist.github.com/).
+* **Are you using [local configuration files](https://opentensor.github.io/getting-started/configuration.html)** `config.yaml` to customize your Bittensor experiment? If so, provide the contents of that config file, preferably in a [code block](https://help.github.com/articles/markdown-basics/#multiple-lines) or with a link to a [gist](https://gist.github.com/).
 
 ### Suggesting Enhancements
 
@@ -101,7 +101,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://guides.github.com
 * **Include screenshots and animated GIFs** which help you demonstrate the steps or point out the part of Bittensor which the suggestion is related to. You can use [this tool](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and [this tool](https://github.com/colinkeenan/silentcast) or [this tool](https://github.com/GNOME/byzanz) on Linux.
 * **Explain why this enhancement would be useful** to most Bittensor users.
 * **List some other text editors or applications where this enhancement exists.**
-* **Specify which version of Bittensor are you using?** You can get the exact version by checking for `__version__` in `[bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/master/bittensor/__init__.py#L18).
+* **Specify which version of Bittensor are you using?** You can get the exact version by checking for `__version__` in `[bittensor/bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/master/bittensor/__init__.py#L18).
 * **Specify the name and version of the OS you're using.**
 
 ### Your First Code Contribution
