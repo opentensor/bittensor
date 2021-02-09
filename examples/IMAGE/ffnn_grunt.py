@@ -65,6 +65,7 @@ class Session():
     def add_args(parser: argparse.ArgumentParser):    
         parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--session.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--session.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
         parser.add_argument('--session.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
         parser.add_argument('--session.root_dir', default='~/.bittensor/sessions/', type=str,  help='Root path to load and save data associated with each session')
         parser.add_argument('--session.name', default='ffnn-grunt', type=str, help='Trials for this session go in session.root / session.name')
@@ -76,10 +77,7 @@ class Session():
 
     @staticmethod
     def check_config(config: Munch):
-        assert config.session.log_interval > 0, "log_interval dimension must be positive"
         assert config.session.momentum > 0 and config.session.momentum < 1, "momentum must be a value between 0 and 1"
-        assert config.session.batch_size_train > 0, "batch_size_train must be a positive value"
-        assert config.session.batch_size_test > 0, "batch_size_test must be a positive value"
         assert config.session.learning_rate > 0, "learning rate must be be a positive value."
         full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.trial_uid)
         config.session.full_path = os.path.expanduser(full_path)
