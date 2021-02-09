@@ -6,6 +6,7 @@ Example:
 import argparse
 import math
 import os
+import sys
 import time
 import torch
 from termcolor import colored
@@ -75,6 +76,8 @@ class Session():
     def add_args(parser: argparse.ArgumentParser):    
         parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--session.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--session.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
+        parser.add_argument('--session.epoch_length', default=int(sys.maxsize), type=int, help='Iterations of training per epoch (or dataset EOF)')
         parser.add_argument('--session.batch_size_train', default=64, type=int, help='Training batch size.')
         parser.add_argument('--session.batch_size_test', default=64, type=int, help='Testing batch size.')
         parser.add_argument('--session.log_interval', default=150, type=int, help='Batches until session prints log statements.')
@@ -107,12 +110,10 @@ class Session():
         # ---- Subscribe neuron ---- 
         with self.neuron:
 
-            # ---- Loop forever ----
+            # ---- Loop for epochs ----
             self.epoch = -1; self.best_test_loss = math.inf; self.global_step = 0
             self.row = self.neuron.metagraph.row # Trained weights.
-            while True:
-                self.epoch += 1
-
+            for self.epoch in range(self.config.session.n_epochs):
                 # ---- Serve ----
                 self.neuron.axon.serve( self.model )
          
@@ -123,7 +124,7 @@ class Session():
                 # If model has borked for some reason, we need to make sure it doesn't emit weights
                 # Instead, reload into previous version of model
                 if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
-                    self.model, self.optimizer = self.model_toolbox.load_model()
+                    self.model, self.optimizer = self.model_toolbox.load_model(self.config)
                 
                 # ---- Test ----
                 test_loss, test_accuracy = self.test()
@@ -159,6 +160,8 @@ class Session():
         # ---- Init training state ----
         self.model.train() # Turn on dropout etc.
         for batch_idx, (images, targets) in enumerate(self.trainloader):    
+            if batch_idx >= self.config.session.epoch_length:
+                break
             self.global_step += 1 
 
             # ---- Remote Forward pass ----

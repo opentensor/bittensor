@@ -226,7 +226,7 @@ class BertNSPSynapse (BertSynapseBase):
         
         # target_layer: maps from hidden layer to vocab dimension for each token. Used by MLM loss.
         # [batch_size, sequence_len, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__vocab_size__]
-        self.target_layer = transformers.modeling_bert.BertOnlyNSPHead( huggingface_config )
+        self.target_layer = transformers.models.bert.modeling_bert.BertOnlyNSPHead( huggingface_config )
 
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
@@ -354,7 +354,7 @@ class BertMLMSynapse (BertSynapseBase):
       
         # target_layer: maps from hidden layer to vocab dimension for each token. Used by MLM loss.
         # [batch_size, sequence_len, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__vocab_size__]
-        self.target_layer = transformers.modeling_bert.BertLMPredictionHead( huggingface_config )
+        self.target_layer = transformers.models.bert.modeling_bert.BertLMPredictionHead( huggingface_config )
 
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]

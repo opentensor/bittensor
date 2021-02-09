@@ -6,7 +6,7 @@ executors:
           - image: bittensor/bittensor:latest
 
 orbs:
-  python: circleci/python@0.2.1
+  python: circleci/python@1.3.2
   shellcheck: circleci/shellcheck@2.0.0
 
 jobs:
@@ -14,73 +14,72 @@ jobs:
     executor: bittensor-executor
     steps:
       - checkout
-      - python/load-cache
-      - python/install-deps
-      - python/save-cache
+      - run: pip3 install cython
       - run:
-          command: pip install -e .
+          command: pip3 install -e .
           name: setup
       - run: ./scripts/create_wallet.sh
-      - run: pip install miniupnpc
 
   "Run Unit Tests":
     executor: bittensor-executor
     steps:
       - checkout
-      - python/load-cache
+      - run: pip3 install cython
       - run: pip3 install -r requirements.txt
       - run: ./scripts/build_protos.sh
       - run:
-          command: pip install -e .
+          command: pip3 install -e .
           name: setup
-      - run: pip install pyyaml
-      - run: pip install miniupnpc
-      - run: pip install msgpack
-      - run: pip install msgpack-numpy
-      - run: pip install pytorch_transformers
       - run: ./scripts/create_wallet.sh
       - run:
           name: "Run unit tests"
-          command: pytest ./tests/unit_tests  --capture=no
+          command: pytest ./tests/unit_tests
+
+  "Run Examples":
+    executor: bittensor-executor
+    steps:
+      - checkout
+      - run: pip3 install cython
+      - run: pip3 install -r requirements.txt
+      - run: ./scripts/build_protos.sh
+      - run:
+          command: pip3 install -e .
+          name: setup
+      - run: ./scripts/create_wallet.sh
+      - run: python3.7 tests/examples/text/test_gpt2_wiki.py
+      - run: python3.7 tests/examples/text/test_gpt2_genesis.py
+      - run: python3.7 tests/examples/text/test_bert_mlm.py
+      - run: python3.7 tests/examples/text/test_bert_nsp.py
+      - run: python3.7 tests/examples/image/test_mnist.py
   
   MNIST:
     executor: bittensor-executor
     steps:
       - checkout
-      - python/load-cache
-      - run: pip install -r requirements.txt
-      - run: pip install pyyaml
-      - run: pip install miniupnpc
-      - run: pip install msgpack
-      - run: pip install msgpack-numpy
-      - run: pip install pytorch_transformers
+      - run: pip3 install cython
+      - run: pip3 install -r requirements.txt
       - run: ./scripts/create_wallet.sh
       - run: ./scripts/build_protos.sh
       - run:
           name: setup
-          command: pip install -e .
+          command: pip3 install -e .
       - run:
           name: Unset HTTP Proxy
           command: unset https_proxy;unset http_proxy
       - run:
           name: Run MNIST node
-          command: python3 tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.5 --metagraph.chain_endpoint feynman.akira.bittensor.com:9944
+          command: python3.7 tests/integration_tests/cpu_tests/bittensor/test_mnist_node.py --dendrite.timeout=0.5 --metagraph.chain_endpoint feynman.akira.bittensor.com:9944
 
   "Run Integration Tests":
     executor: bittensor-executor
     steps:
       - checkout
-      - python/load-cache
+      - run: pip3 install cython
       - run: pip3 install -r requirements.txt
       - run: ./scripts/build_protos.sh
-      - run: pip install pyyaml
-      - run: pip install miniupnpc
-      - run: pip install msgpack
-      - run: pip install msgpack-numpy
-      - run: pip install pytorch_transformers
       - run: ./scripts/create_wallet.sh
       - run:
-          command: pip install -e .
+          command: pip3 install -e .
           name: setup
       - run:
           name: "Run Localized CPU Integration tests"
@@ -89,7 +88,7 @@ jobs:
           name: "Code Coverage"
           command: codecov
 
-  "Push Production candidate to DockerHub":
+  "Push image to DockerHub":
     docker:
       - image: circleci/python:3.8.1
         auth: 
@@ -97,7 +96,6 @@ jobs:
            password: $DOCKERPASS
     steps:
       - checkout
-      - python/load-cache
       - setup_remote_docker:
              version: 19.03.13
       - run:
@@ -106,6 +104,7 @@ jobs:
       - run:
           name: "Push production candidate"
           command: ./scripts/push_image.sh
+  
  
 workflows:
   main:
@@ -114,6 +113,21 @@ workflows:
       - "Run Unit Tests":
               requires:
                 - "Build Bittensor"
+      - "Run Examples":
+              requires:
+                - "Build Bittensor"
       - "Run Integration Tests":
               requires:
                 - "Build Bittensor"
+      - "Push image to DockerHub":
+          requires:
+            - "Build Bittensor"
+            - "Run Unit Tests"
+            - "Run Examples"
+            - "Run Integration Tests"
+          filters:
+              branches:
+                only:
+                  - master
+
+

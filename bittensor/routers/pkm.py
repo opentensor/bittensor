@@ -242,8 +242,8 @@ class PKMRouter():
 
         # filled_sizes: (torch.LongTensor): number of examples queried to each uid.
         # filled_sizes.shape = [metagraph.n]
-        filled_request_sizes = torch.zeros(neuron.metagraph.n, dtype=torch.long)
-        filled_request_sizes.scatter_(0, indices, torch.tensor(request_sizes))
+        filled_request_sizes = torch.zeros(neuron.metagraph.n, dtype=torch.long).to(self.device)
+        filled_request_sizes.scatter_(0, indices, torch.tensor(request_sizes).to(self.device))
 
         # Return.
         output.response = combined
