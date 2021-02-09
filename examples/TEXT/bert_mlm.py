@@ -10,6 +10,7 @@ Example:
 import argparse
 import math
 import os
+import sys
 import random
 import time
 import torch
@@ -114,6 +115,7 @@ class Session():
     def add_args(parser: argparse.ArgumentParser):
         parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--session.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--session.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
         parser.add_argument('--session.epoch_length', default=500, type=int, help='Iterations of training per epoch')
         parser.add_argument('--session.batch_size_train', default=1, type=int, help='Training batch size.')
         parser.add_argument('--session.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
@@ -138,15 +140,12 @@ class Session():
             self.row = self.neuron.metagraph.row
 
             # --- Run state ---
-            self.epoch = -1
             self.global_step = 0
             self.best_train_loss = math.inf
 
-            # --- Loop forever ---
-            while True:
+            # --- Loop for epochs ---
+            for self.epoch in range(self.config.session.n_epochs):
                 try:
-                    self.epoch += 1
-
                     # ---- Serve ----
                     self.neuron.axon.serve( self.model )
 
@@ -157,7 +156,7 @@ class Session():
                     # If model has borked for some reason, we need to make sure it doesn't emit weights
                     # Instead, reload into previous version of model
                     if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
-                        self.model, self.optimizer = self.model_toolbox.load_model()    
+                        self.model, self.optimizer = self.model_toolbox.load_model(self.config)    
                         continue
 
                     # ---- Emitting weights ----

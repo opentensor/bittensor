@@ -15,7 +15,7 @@ import bittensor.synapse
 import bittensor.wallet
 
 # Bittensor code and protocol version.
-__version__ = '1.0.2'
+__version__ = '1.0.3'
 
 # Tensor dimension.
 # NOTE (const): if/when this increases peers must be responsible for trimming or expanding output to this size.

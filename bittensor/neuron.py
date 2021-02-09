@@ -79,6 +79,7 @@ class Neuron:
         # and subscribe to the chain.
         if wallet == None:
             wallet = bittensor.wallet.Wallet(self.config)
+        self.wallet = wallet
         # Metagraph: Maintains a connection to the subtensor chain and hold chain state.
         if metagraph == None:
             metagraph = bittensor.metagraph.Metagraph(config = self.config, wallet = wallet)

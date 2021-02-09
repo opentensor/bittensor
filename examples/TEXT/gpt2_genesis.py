@@ -10,6 +10,7 @@ Example:
 import argparse
 import math
 import os
+import sys
 import time
 import torch
 import torch.nn.functional as F
@@ -19,7 +20,6 @@ import random
 
 from termcolor import colored
 from munch import Munch
-from datasets import load_dataset
 from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
 from bittensor.utils.model_utils import ModelToolbox
@@ -62,7 +62,7 @@ class AdamCorpus():
             random_line = self.lines[ random.randint(0, len(self.lines)-1)]
             batch_text.append( random_line )
 
-        batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True)['input_ids']
+        batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True, truncation=True)['input_ids']
         return batch_inputs
 
 
@@ -108,6 +108,7 @@ class Session():
     def add_args(parser: argparse.ArgumentParser):
         parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--session.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--session.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
         parser.add_argument('--session.epoch_length', default=10, type=int, help='Iterations of training per epoch')
         parser.add_argument('--session.batch_size_train', default=1, type=int, help='Training batch size.')
         parser.add_argument('--session.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
@@ -142,16 +143,14 @@ class Session():
         with self.neuron:
 
             # ---- Weights ----
-            self.row = self.neuron.metagraph.row
+            self.row = self.neuron.metagraph.row.to(self.model.device)
 
             # --- Run state ---
-            self.epoch = -1
             self.global_step = 0
             self.best_train_loss = math.inf
 
-            # --- Loop forever ---
-            while True:
-                self.epoch += 1
+            # --- Loop for epochs ---
+            for self.epoch in range(self.config.session.n_epochs):
 
                 # ---- Serve ----
                 self.neuron.axon.serve( self.model )
@@ -163,7 +162,7 @@ class Session():
                 # If model has borked for some reason, we need to make sure it doesn't emit weights
                 # Instead, reload into previous version of model
                 if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
-                    self.model, self.optimizer = self.model_toolbox.load_model()
+                    self.model, self.optimizer = self.model_toolbox.load_model(self.config)
                     continue
 
                 # ---- Emitting weights ----
@@ -171,7 +170,7 @@ class Session():
 
                 # ---- Sync metagraph ----
                 self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.row = self.neuron.metagraph.row
+                self.row = self.neuron.metagraph.row.to(self.model.device)
 
                 # --- Epoch logs ----
                 print(self.neuron.axon.__full_str__())
@@ -218,7 +217,7 @@ class Session():
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
             # ---- Train row weights ----
-            batch_weights = torch.mean(output.router.weights, axis = 0) # Average over batch.
+            batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
             self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
             self.row = torch.log( torch.abs( self.row ) + 1 )
             self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
