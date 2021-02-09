@@ -32,7 +32,6 @@ class Session():
     def __init__(self, config: Munch = None):
         if config == None:
             config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
-
         self.config = config
 
         # ---- Build Neuron ----
@@ -66,12 +65,7 @@ class Session():
     def add_args(parser: argparse.ArgumentParser):    
         parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--session.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
-        parser.add_argument('--session.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
-        parser.add_argument('--session.batch_size_train', default=64, type=int, help='Training batch size.')
-        parser.add_argument('--session.batch_size_test', default=64, type=int, help='Testing batch size.')
-        parser.add_argument('--session.log_interval', default=150, type=int, help='Batches until session prints log statements.')
         parser.add_argument('--session.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
-        parser.add_argument('--neuron.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
         parser.add_argument('--session.root_dir', default='~/.bittensor/sessions/', type=str,  help='Root path to load and save data associated with each session')
         parser.add_argument('--session.name', default='ffnn-grunt', type=str, help='Trials for this session go in session.root / session.name')
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
@@ -117,7 +111,7 @@ class Session():
                 self.optimizer.zero_grad() # Clear any lingering gradients
 
                 # If model has borked for some reason, we need to make sure it doesn't emit weights
-                # Instead, reload into previous version of model
+                # Instead, reload into previous version of the model
                 if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
                     self.model, self.optimizer = self.model_toolbox.load_model(self.config)
 
@@ -149,6 +143,5 @@ class Session():
    
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
-    session = Session(config)
+    session = Session()
     session.run()
