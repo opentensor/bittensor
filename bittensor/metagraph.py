@@ -41,6 +41,9 @@ from bittensor.exceptions.handlers import rollbar
 MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
 
 class ChainState():
+    """
+    Describes and maintains the current state of the subtensor blockchain. 
+    """
     def __init__(self):
         # Cached values.
         self.n = 0
@@ -75,7 +78,7 @@ class ChainState():
                 self.weight_vals[index] = list(w_vals)
                 self.uids[index] = int(uid)
             else:
-                raise ValueError('recieved inconsistent uid - pubey pairing with uid{}, pubkey{} and expected uid {}'.format(uid, pubkey, self.uids[index]))
+                raise ValueError('received inconsistent uid - pubey pairing with uid{}, pubkey{} and expected uid {}'.format(uid, pubkey, self.uids[index]))
         else:
             index = self.n
             self.n += 1
@@ -91,7 +94,7 @@ class ChainState():
 
 # Static network state object.
 class TorchChainState():
-    r""" Maintains the chain state as a torch object.
+    """ Maintains the chain state as a torch object.
 
         Args:
             tau (:obj:`int`): 
@@ -167,7 +170,13 @@ class TorchChainState():
         return state
 
 class Metagraph():
+    """
+    Handles all chain related tasks. 
+    
+    This class facilitates the connection between Bittensor and the Subtensor blockchain including 
+    emissions, setting node weights, asynchronous synchronization with the chain, and chain subscriptions. 
 
+    """
     def __init__(self, config: 'Munch' = None, wallet: 'bittensor.wallet.Wallet' = None):
         r""" Initializes a new Metagraph chain interface.
             Args:
