@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
 import asyncio
@@ -155,9 +155,12 @@ class CommandExecutor:
         print("--===[[ STAKES ]]===--")
         t = PrettyTable(["UID", "IP", "STAKE"])
         t.align = 'l'
+        total_stake = 0.0
         for neuron in neurons:
             t.add_row([neuron.uid, neuron.ip, neuron.stake])
+            total_stake += neuron.stake.__float__()
         print(t.get_string())
+        print("Total stake: ", total_stake)
 
     async def unstake_all(self):
         await self.connect()
