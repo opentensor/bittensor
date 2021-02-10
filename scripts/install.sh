@@ -120,15 +120,8 @@ mac_install_python() {
 }
 
 install_bittensor() {
-    mkdir tmp
-    cd tmp
-    ohai "Cloning bittensor"
-    git clone https://github.com/opentensor/bittensor.git
-    cd bittensor
     ohai "Installing bittensor"
-    python3.7 -m pip install -e .
-    cd ../..
-    rm -rf tmp
+    python3.7 -m pip install bittensor
 }
 
 # Do install.
