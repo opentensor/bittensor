@@ -27,7 +27,6 @@ from loguru import logger
 from typing import Dict, List, Any
 
 import bittensor
-import bittensor.utils.serialization_utils as serialization_utils
 
 class SerializationException (Exception):
     """ Raised during serialization """
