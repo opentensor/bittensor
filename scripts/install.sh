@@ -61,12 +61,13 @@ linux_install_python() {
     which -s python3.7
     if [[ $? != 0 ]] ; then
         ohai "Installing python3.7"
-        sudo apt-get install --no-install-recommends --no-install-suggests -y python3.7        
+        sudo apt-get install --no-install-recommends --no-install-suggests -y python3.7 python-pip python3-dev   
     else
         ohai "Updating python3.7"
         sudo apt-get update python3.7
     fi
-    ohai "Installing python3.7 pip"
+    ohai "Installing bittensor deps"
+    python3.7 -m pip install python-dev
     python3.7 -m pip install --upgrade pip
 }
 
@@ -110,6 +111,7 @@ mac_install_python() {
         brew upgrade python@3.7
     fi
     ohai "Installing python3.7 pip"
+    python3.7 -m pip install python-dev
     python3.7 -m pip install --upgrade pip
 }
 
