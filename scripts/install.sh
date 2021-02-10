@@ -110,7 +110,7 @@ mac_install_python() {
         ohai "Updating python3.7"
         brew upgrade python@3.7
     fi
-    ohai "Installing python3.7 pip"
+    ohai "Installing bittensor deps"
     python3.7 -m pip install python-dev
     python3.7 -m pip install --upgrade pip
 }
