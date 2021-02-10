@@ -65,14 +65,19 @@ linux_install_python() {
     which -s python3.7
     if [[ $? != 0 ]] ; then
         ohai "Installing python3.7"
-        sudo apt-get install --no-install-recommends --no-install-suggests -y python3.7 python-pip python3-dev   
+        sudo apt-get install --no-install-recommends --no-install-suggests -y python3.8 python3-pip python3-dev   
     else
         ohai "Updating python3.7"
-        sudo apt-get update python3.7
+        sudo apt-get update python3.8
     fi
     ohai "Installing bittensor deps"
-    python3.7 -m pip install python-dev
-    python3.7 -m pip install --upgrade pip
+    python3.8 -m pip install --upgrade pip
+}
+
+
+linux_install_bittensor() {
+    ohai "Installing bittensor"
+    python3.8 -m pip install bittensor
 }
 
 mac_install_xcode() {
@@ -119,7 +124,7 @@ mac_install_python() {
     python3.7 -m pip install --upgrade pip
 }
 
-install_bittensor() {
+mac_install_bittensor() {
     ohai "Installing bittensor"
     python3.7 -m pip install bittensor
 }
