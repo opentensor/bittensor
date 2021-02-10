@@ -52,6 +52,10 @@ ohai() {
   printf "${tty_blue}==>${tty_bold} %s${tty_reset}\n" "$(shell_join "$@")"
 }
 
+# Things can fail later if `pwd` doesn't exist.
+# Also sudo prints a warning message for no good reason
+cd "/usr" || exit 1
+
 linux_install_pre() {
     sudo apt-get update 
     sudo apt-get install --no-install-recommends --no-install-suggests -y apt-utils curl git cmake build-essential unzip 
