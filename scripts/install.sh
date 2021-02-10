@@ -132,6 +132,12 @@ mac_install_bittensor() {
 # Do install.
 OS="$(uname)"
 if [[ "$OS" == "Linux" ]]; then
+
+    which -s apt
+    if [[ $? == 0 ]] ; then
+        abort "This linux based install requires apt. To run with other distros (centos, arch, etc), you will need to manually install the requirements"
+    fi
+
     ohai "This script will install:"
     echo "git"
     echo "curl"
@@ -165,8 +171,7 @@ elif [[ "$OS" == "Darwin" ]]; then
     
 
 else
-  abort "Bittensor is only supported on macOS and Linux."
-
+  abort "Bittensor is only supported on macOS and Linux"
 fi
 
 # Use the shell's audible bell.
