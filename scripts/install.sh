@@ -180,7 +180,6 @@ if [[ "$OS" == "Linux" ]]; then
     linux_activate_installed_python
     linux_install_bittensor
     deactivate
-    ohai "Installation successful!"
 
 elif [[ "$OS" == "Darwin" ]]; then
     ohai "This script will install:"
@@ -199,8 +198,6 @@ elif [[ "$OS" == "Darwin" ]]; then
     mac_activate_installed_python
     mac_install_bittensor
     deactivate
-    ohai "Installation successful!"
-
 else
   abort "Bittensor is only supported on macOS and Linux"
 fi
@@ -209,11 +206,12 @@ fi
 if [[ -t 1 ]]; then
 printf "\a"
 fi
-
+ohai "Installation successful!"
+echo ""
 ohai "Next steps:"
 echo ""
 echo "- 1) Activate the installed python "
-echo "     source ~/.bittensor/env/bin/activate"
+echo "    source ~/.bittensor/env/bin/activate"
 echo ""
 echo "- 2) Create a new default wallet: "
 echo "    python ~/.bittensor/bittensor/bin/bittensor-cli new_wallet"
@@ -222,13 +220,22 @@ echo "- 3) Choose a network: "
 echo "    export MAINNET=feynman.kusanagi.bittensor.com:9944"
 echo "    export TESTNET=feynman.akira.bittensor.com:9944"
 echo ""
-echo "- 4) Run a miner: "
+echo "- 4) (Optional) Open a port on your NAT"
+echo "    See Docs: ${tty_underline}https://opentensor.github.io/index.html${tty_reset})"
+echo ""
+echo "- 5) Run a miner: "
 echo "    i.e. python ~/.bittensor/bittensor/examples/TEXT/gpt2_wiki.py --metagraph.chain_endpoint <network_url> "        
+echo ""
+ohai "Extras:"
 echo ""
 echo "- Read the docs: "
 echo "    ${tty_underline}https://opentensor.github.io/index.html${tty_reset}"
+echo ""
 echo "- Visit our website: "
 echo "    ${tty_underline}https://www.bittensor.com${tty_reset}"
+echo ""
 echo "- Join the discussion: "
 echo "    ${tty_underline}https://discord.gg/3rUr6EcvbB${tty_reset}"
+echo ""
+
     
