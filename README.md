@@ -22,9 +22,10 @@ Paste the below command in a MacOS Terminal or Ubuntu shell prompt and follow th
 $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/opentensor/bittensor/master/scripts/install.sh)"
 ```
 If you wish to run bittensor through a docker container, create a new wallet, and run docker-compose:
-
-$ bin/bittensor-cli new_wallet                                                      # Generate default keys
+```
+$ bin/bittensor-cli new_wallet                                                      # Generate default keys	
 $ docker-compose up
+```
 
 # Running the chain
 
@@ -35,9 +36,10 @@ $ git clone https://github.com/opentensor/subtensor                             
 $ ./bin/release/node-subtensor                                                      # Start the binary
 ```
 You can also run the subtensor chain through a docker container:
-
+```
 $ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
 $ docker-compose up
+```
 ---
 
 ### License
