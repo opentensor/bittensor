@@ -76,8 +76,11 @@ linux_install_python() {
 
 
 linux_install_bittensor() {
+    ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
+    mkdir -p ~/.bittensor/bittensor
+    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
     ohai "Installing bittensor"
-    python3.8 -m pip install bittensor
+    python3.8 -m pip install -e ~/.bittensor/bittensor/
 }
 
 mac_install_xcode() {
