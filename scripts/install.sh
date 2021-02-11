@@ -76,11 +76,10 @@ linux_activate_installed_python() {
     ohai "Creating python virtualenv"
     mkdir -p ~/.bittensor/bittensor
     cd ~/.bittensor/
-    PYTHONPATH=$(which python)
-    $PYTHONPATH -m venv env
+    python3.8-m venv env
     ohai "Entering bittensor-environment"
     source env/bin/activate
-    ohai "You are using python@ $PYTHONPATH$"
+    ohai "You are using python@3.8$"
     ohai "Installing python tools"
     python -m pip install --upgrade pip
     python -m pip install python-dev
