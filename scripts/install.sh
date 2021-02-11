@@ -129,11 +129,9 @@ mac_install_bittensor() {
     cwd=$(pwd)
     mkdir -p ~/.bittensor/
     cd ~/.bittensor/
-    git clone https://github.com/opentensor/bittensor.git
-    cd bittensor
-    git pull origin master
+    git clone https://github.com/opentensor/bittensor.git 2> /dev/null || (cd bittensor ; git pull --ff-only)
     ohai "Installing bittensor"
-    python3.7 -m pip install -e .
+    python3.7 -m pip install -e bittensor/
     cd $cwd
 }
 
