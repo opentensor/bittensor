@@ -62,26 +62,38 @@ linux_install_pre() {
 }
 
 linux_install_python() {
-    which -s python3.7
+    which -s python3.8
     if [[ $? != 0 ]] ; then
-        ohai "Installing python3.7"
+        ohai "Installing python3.8"
         sudo apt-get install --no-install-recommends --no-install-suggests -y python3.8 python3-pip python3-dev   
     else
-        ohai "Updating python3.7"
+        ohai "Updating python3.8"
         sudo apt-get update python3.8
     fi
-    ohai "Installing bittensor deps"
-    python3.8 -m pip install --upgrade pip
 }
 
+linux_activate_installed_python() {
+    ohai "Creating python virtualenv"
+    mkdir -p ~/.bittensor/bittensor
+    cd ~/.bittensor/
+    PYTHONPATH=$(which python)
+    $PYTHONPATH -m venv env
+    ohai "Entering bittensor-environment"
+    source env/bin/activate
+    ohai "You are using python@ $PYTHONPATH$"
+    ohai "Installing python tools"
+    python -m pip install --upgrade pip
+    python -m pip install python-dev
+}
 
 linux_install_bittensor() {
     ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
     mkdir -p ~/.bittensor/bittensor
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
     ohai "Installing bittensor"
-    python3.8 -m pip install -e ~/.bittensor/bittensor/
+    python -m pip install -e ~/.bittensor/bittensor/
 }
+
 
 mac_install_xcode() {
     which -s xcode-select
@@ -98,7 +110,7 @@ mac_install_brew() {
         ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
     else
         ohai "Updating brew:"
-        brew update
+        brew update --verbose
     fi
 }
 
@@ -119,17 +131,27 @@ mac_install_python() {
     brew list python@3.7 &>/dev/null || brew install python@3.7;
     ohai "Updating python3.7"
     brew upgrade python@3.7
-    ohai "Installing python3.7 tools"
-    python3.7 -m pip install python-dev
-    python3.7 -m pip install --upgrade pip
+}
+
+mac_activate_installed_python() {
+    ohai "Creating python virtualenv"
+    mkdir -p ~/.bittensor/bittensor
+    cd ~/.bittensor/
+    /usr/local/opt/python@3.7/bin/python3 -m venv env
+    ohai "Entering python3.7 environment"
+    source env/bin/activate
+    PYTHONPATH=$(which python)
+    ohai "You are using python@ $PYTHONPATH$"
+    ohai "Installing python tools"
+    python -m pip install --upgrade pip
+    python -m pip install python-dev
 }
 
 mac_install_bittensor() {
     ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
-    mkdir -p ~/.bittensor/bittensor
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
     ohai "Installing bittensor"
-    python3.7 -m pip install -e ~/.bittensor/bittensor/
+    python -m pip install -e ~/.bittensor/bittensor/
 }
 
 # Do install.
@@ -154,22 +176,10 @@ if [[ "$OS" == "Linux" ]]; then
     wait_for_user
     linux_install_pre
     linux_install_python
+    linux_activate_installed_python
     linux_install_bittensor
+    deactivate
     ohai "Installation successful!"
-
-    # Use the shell's audible bell.
-    if [[ -t 1 ]]; then
-    printf "\a"
-    fi
-    ohai "Next steps:"
-    echo ""
-    echo "- 1) Create a new default wallet: "
-    echo "    \`bittensor-cli new_wallet\`"
-    echo ""
-    echo "- 2) Run a miner: "
-    echo "    \`python3.7 ~/.bittensor/bittensor/examples/TEXT/gpt2_wiki.py --metagraph.chain_endpoint <network_url>\` "
-    echo ""
-
 
 elif [[ "$OS" == "Darwin" ]]; then
     ohai "This script will install:"
@@ -185,27 +195,31 @@ elif [[ "$OS" == "Darwin" ]]; then
     mac_install_brew
     mac_install_cmake
     mac_install_python
+    mac_activate_installed_python
     mac_install_bittensor
+    deactivate
     ohai "Installation successful!"
-
-    # Use the shell's audible bell.
-    if [[ -t 1 ]]; then
-    printf "\a"
-    fi
-    ohai "Next steps:"
-    echo ""
-    echo "- 1) Create a new default wallet: "
-    echo "    \`bittensor-cli new_wallet\`"
-    echo ""
-    echo "- 2) Run a miner: "
-    echo "    \`python3.7 ~/.bittensor/bittensor/examples/TEXT/gpt2_wiki.py --metagraph.chain_endpoint <network_url>\` "        
-    echo ""
-
 
 else
   abort "Bittensor is only supported on macOS and Linux"
 fi
 
+# Use the shell's audible bell.
+if [[ -t 1 ]]; then
+printf "\a"
+fi
+
+ohai "Next steps:"
+echo ""
+echo "- 1) Activate the installed python "
+echo "     source ~/.bittensor/env/bin/activate"
+echo ""
+echo "- 2) Create a new default wallet: "
+echo "    \`python ~/.bittensor/bittensor/bin/bittensor-cli new_wallet\`"
+echo ""
+echo "- 3) Run a miner: "
+echo "    \`python ~/.bittensor/bittensor/examples/TEXT/gpt2_wiki.py --metagraph.chain_endpoint <network_url>\` "        
+echo ""
 echo "- Read the docs: "
 echo "    ${tty_underline}https://opentensor.github.io/index.html${tty_reset}"
 echo "- Visit our website: "
