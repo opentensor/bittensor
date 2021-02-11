@@ -13,15 +13,31 @@
 
 </div>
 
-Bittensor is a p2p-market which rewards the production of machine intelligence (from amongst the computers which run it) with a digital token called Tao. Peers train models by mining unsupervised datasets to produce knowledge that they share with others. Consumers access the network and distill what they learn into production models. The network is collectively-run, open-source, open-access, decentralized, and incentivized to produce state-of-the-art intelligence. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
+Bittensor is a p2p-market which rewards the production of machine intelligence with a digital token called Tao. Peers in the system train models by mining knowledge from unsupervised datasets to share with others. Consumers access the network and distill what they learn into production models. The network is collectively-run, open-source, open-access, decentralized, and incentivized to produce state-of-the-art intelligence. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
 
 # Running a miner
 
-Paste the below command in a MacOS Terminal or Ubuntu shell prompt. The script explains what it will do and then pauses before it does it. 
+Paste the below command in a MacOS Terminal or Ubuntu shell prompt and follow the instructions. The script will install necessary dependencies and then install Bittensor.
 ```
 $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/opentensor/bittensor/master/scripts/install.sh)"
 ```
+If you wish to run bittensor through a docker container, create a new wallet, and run docker-compose:
 
+$ bin/bittensor-cli new_wallet                                                      # Generate default keys
+$ docker-compose up
+
+# Running the chain
+
+Execute the following commands to install and run the mainnet chain locally. You can then connect your miners to this local node.
+
+```
+$ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
+$ ./bin/release/node-subtensor                                                      # Start the binary
+```
+You can also run the subtensor chain through a docker container:
+
+$ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
+$ docker-compose up
 ---
 
 ### License
