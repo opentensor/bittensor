@@ -125,8 +125,16 @@ mac_install_python() {
 }
 
 mac_install_bittensor() {
+    ohai "Cloning bittensor into ~/.bittensor"
+    cwd=$(pwd)
+    mkdir -p ~/.bittensor/
+    cd ~/.bittensor/
+    git clone https://github.com/opentensor/bittensor.git
+    cd bittensor
+    git pull origin master
     ohai "Installing bittensor"
-    python3.7 -m pip install bittensor
+    python3.7 -m pip install -e .
+    cd $cwd
 }
 
 # Do install.
@@ -144,13 +152,14 @@ if [[ "$OS" == "Linux" ]]; then
     echo "git"
     echo "cmake"
     echo "build-essential"
-    echo "python3.7"
-    echo "python3.7-pip"
+    echo "python3.8"
+    echo "python3.8-pip"
+    echo "bittensor"
 
     wait_for_user
     linux_install_pre
     linux_install_python
-    install_bittensor
+    linux_install_bittensor
     ohai "Installation successful!"
 
 elif [[ "$OS" == "Darwin" ]]; then
@@ -161,12 +170,13 @@ elif [[ "$OS" == "Darwin" ]]; then
     echo "cmake"
     echo "python3.7"
     echo "python3.7-pip"
+    echo "bittensor"
 
     wait_for_user
-    mac_install_brew
-    mac_install_cmake
-    mac_install_python
-    install_bittensor
+    # mac_install_brew
+    # mac_install_cmake
+    # mac_install_python
+    mac_install_bittensor
     ohai "Installation successful!"
     
 
@@ -188,7 +198,3 @@ echo "- Visit our website: "
 echo "    ${tty_underline}https://www.bittensor.com${tty_reset}"
 echo "- Join the discussion: "
 echo "    ${tty_underline}https://discord.gg/3rUr6EcvbB${tty_reset}"
-
-
-
-
