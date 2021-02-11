@@ -76,7 +76,7 @@ linux_activate_installed_python() {
     ohai "Creating python virtualenv"
     mkdir -p ~/.bittensor/bittensor
     cd ~/.bittensor/
-    python3.8-m venv env
+    python3.8 -m venv env
     ohai "Entering bittensor-environment"
     source env/bin/activate
     ohai "You are using python@3.8$"
