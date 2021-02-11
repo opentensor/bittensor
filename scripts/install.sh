@@ -65,13 +65,13 @@ linux_install_python() {
     which -s python3.8
     if [[ $? != 0 ]] ; then
         ohai "Installing python3.8"
-        sudo apt-get install --no-install-recommends --no-install-suggests -y python3.8 python3-pip python3-dev python3-venv
+        sudo apt-get install --no-install-recommends --no-install-suggests -y python3.8
     else
         ohai "Updating python3.8"
         sudo apt-get update python3.8
     fi
     ohai "Installing python tools"
-    sudo apt-get install --no-install-recommends --no-install-suggests -y python3-pip python3-dev python3-venv
+    sudo apt-get install --no-install-recommends --no-install-suggests -y python3-pip python3.8-dev python3.8-venv
 }
 
 linux_activate_installed_python() {
