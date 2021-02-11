@@ -29,9 +29,9 @@ $ docker-compose up
 
 If you wish to install it natively on your machine:
 ```
-$ git clone https://github.com/opentensor/bittensor.git                             # Clone the repository
-$ cd bittensor && pip3 install -r requirements.txt && pip3 install -e .             # Install bittensor
-$ bin/bittensor-cli new_wallet                                                      # Generate default keys
+$ git clone https://github.com/opentensor/bittensor.git && cd bittensor                                                     # Clone the repository
+$ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/opentensor/bittensor/master/scripts/install.sh)"             # Install bittensor
+$ bin/bittensor-cli new_wallet                                                                                              # Generate default keys
 ```
 
 # Running the chain locally
