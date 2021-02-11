@@ -157,6 +157,20 @@ if [[ "$OS" == "Linux" ]]; then
     linux_install_bittensor
     ohai "Installation successful!"
 
+    # Use the shell's audible bell.
+    if [[ -t 1 ]]; then
+    printf "\a"
+    fi
+    ohai "Next steps:"
+    echo ""
+    echo "- 1) Create a new default wallet: "
+    echo "    \`bittensor-cli new_wallet\`"
+    echo ""
+    echo "- 2) Run a miner: "
+    echo "    \`python3.7 ~/.bittensor/bittensor/examples/TEXT/gpt2_wiki.py --metagraph.chain_endpoint <network_url>\` "
+    echo ""
+
+
 elif [[ "$OS" == "Darwin" ]]; then
     ohai "This script will install:"
     echo "xcode"
@@ -173,19 +187,24 @@ elif [[ "$OS" == "Darwin" ]]; then
     mac_install_python
     mac_install_bittensor
     ohai "Installation successful!"
-    
+
+    # Use the shell's audible bell.
+    if [[ -t 1 ]]; then
+    printf "\a"
+    fi
+    ohai "Next steps:"
+    echo ""
+    echo "- 1) Create a new default wallet: "
+    echo "    \`bittensor-cli new_wallet\`"
+    echo ""
+    echo "- 2) Run a miner: "
+    echo "    \`python3.7 ~/.bittensor/bittensor/examples/TEXT/gpt2_wiki.py --metagraph.chain_endpoint <network_url>\` "        
+    echo ""
+
 
 else
   abort "Bittensor is only supported on macOS and Linux"
 fi
-
-# Use the shell's audible bell.
-if [[ -t 1 ]]; then
-  printf "\a"
-fi
-ohai "Next steps:"
-echo "- First \`bittensor-cli new_wallet\` to create a new wallet "
-echo "- Second \`python7 bittensor/examples/...\` to run a miner "
 
 echo "- Read the docs: "
 echo "    ${tty_underline}https://opentensor.github.io/index.html${tty_reset}"
@@ -193,3 +212,4 @@ echo "- Visit our website: "
 echo "    ${tty_underline}https://www.bittensor.com${tty_reset}"
 echo "- Join the discussion: "
 echo "    ${tty_underline}https://discord.gg/3rUr6EcvbB${tty_reset}"
+    
