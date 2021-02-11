@@ -13,47 +13,31 @@
 
 </div>
 
-Bittensor is a peer-to-peer machine intelligence market which rewards miners in a digital token called Tao. Computers who compete in this market train machine learning models and share their learned representations with each other. Consumers can access this knowledge by making network queries and distilling what they learn into production models. To begin, network 1 focuses on unsupervised language understanding however, at a later date, the network will be expanded into the multi-model landscape. 
-
-# Setting up
-
-You will need to have rust and gcc installed on your box before these installation instructions work. Preferably you run your own local chain (see: running Subtensor) but you can connect to the main network through our entry peers. Each example in /examples/ demonstrates how to run a unique miner (dataset, training mechanism, and model) on the network. If you wish to have other nodes in the network access your model be sure to open a hole in your router or use the --use_upnpc flag (works for some routers). Note, tokens will be mined into the hotkey account associated with your miner but you will need to unstake them into your coldkey account before they can be moved.
-
-# Installation and Wallet
-
-If you wish to run bittensor through a docker container, simply create a new wallet, and run docker-compose:
-```
-$ bin/bittensor-cli new_wallet                                                      # Generate default keys
-$ docker-compose up
-```
-
-If you wish to install it natively on your machine:
-```
-$ git clone https://github.com/opentensor/bittensor.git                             # Clone the repository
-$ cd bittensor && pip3 install -r requirements.txt && pip3 install -e .             # Install bittensor
-$ bin/bittensor-cli new_wallet                                                      # Generate default keys
-```
-
-# Running the chain locally
-
-Similarly to bittensor, you can run the subtensor chain on a Docker container directly:
-```
-$ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
-$ docker-compose up
-```
-
-If you have a Linux machine, you can also install and run the chain locally as follows:
-```
-$ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
-$ ./bin/release/node-subtensor                                                      # Run a main net validator
-```
+Bittensor is a p2p-market which rewards the production of machine intelligence with a digital token called Tao. Peers in the system train models by mining knowledge from unsupervised datasets to share with others. Consumers access the network and distill what they learn into production models. The network is collectively-run, open-source, open-access, decentralized, and incentivized to produce state-of-the-art intelligence. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
 
 # Running a miner
-```
-$ python3 examples/TEXT/gpt2_wiki.py   --session.trial_uid=test                      # Train gpt2 on wiki-text
-$ tensorboard --logdir=~/.bittensor/sessions/gpt2-wiki/test                         # Serve tensorboard
-```
 
+Paste the below command in a MacOS Terminal or Ubuntu shell prompt and follow the instructions. The script will install necessary dependencies and then install Bittensor.
+```
+$ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/opentensor/bittensor/master/scripts/install.sh)"
+```
+If you wish to run bittensor through a docker container, create a new wallet, and run docker-compose:
+
+$ bin/bittensor-cli new_wallet                                                      # Generate default keys
+$ docker-compose up
+
+# Running the chain
+
+Execute the following commands to install and run the mainnet chain locally. You can then connect your miners to this local node.
+
+```
+$ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
+$ ./bin/release/node-subtensor                                                      # Start the binary
+```
+You can also run the subtensor chain through a docker container:
+
+$ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
+$ docker-compose up
 ---
 
 ### License
