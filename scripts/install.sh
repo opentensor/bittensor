@@ -112,27 +112,21 @@ mac_install_cmake() {
 
 mac_install_python() {
     which -s python3.7
-    if [[ $? != 0 ]] ; then
-        ohai "Installing python3.7"
-        brew install python@3.7
-    else
-        ohai "Updating python3.7"
-        brew upgrade python@3.7
-    fi
-    ohai "Installing bittensor deps"
+    ohai "Installing python3.7"
+    brew list python@3.7 &>/dev/null || brew install python@3.7;
+    ohai "Updating python3.7"
+    brew upgrade python@3.7
+    ohai "Installing python3.7 tools"
     python3.7 -m pip install python-dev
     python3.7 -m pip install --upgrade pip
 }
 
 mac_install_bittensor() {
-    ohai "Cloning bittensor into ~/.bittensor"
-    cwd=$(pwd)
-    mkdir -p ~/.bittensor/
-    cd ~/.bittensor/
-    git clone https://github.com/opentensor/bittensor.git 2> /dev/null || (cd bittensor ; git pull --ff-only)
+    ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
+    mkdir -p ~/.bittensor/bittensor
+    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
     ohai "Installing bittensor"
-    python3.7 -m pip install -e bittensor/
-    cd $cwd
+    python3.7 -m pip install -e ~/.bittensor/bittensor/
 }
 
 # Do install.
@@ -171,9 +165,9 @@ elif [[ "$OS" == "Darwin" ]]; then
     echo "bittensor"
 
     wait_for_user
-    # mac_install_brew
-    # mac_install_cmake
-    # mac_install_python
+    mac_install_brew
+    mac_install_cmake
+    mac_install_python
     mac_install_bittensor
     ohai "Installation successful!"
     
