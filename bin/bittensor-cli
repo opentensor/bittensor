@@ -97,6 +97,41 @@ class CommandExecutor:
         cli_utils.save_keys(hotkey_path, hotkey_data)
         cli_utils.set_file_permissions(hotkey_path)
 
+    async def new_default( self, n_words:int, wallet_path: str, use_password: bool):
+        wallet_name = 'default'
+        
+        # expand wallet path.
+        wallet_path = os.path.expanduser(wallet_path + '/' + wallet_name)
+        if not os.path.exists(wallet_path):
+            os.makedirs(wallet_path)
+            os.makedirs(wallet_path + '/hotkeys/')
+
+        # Create default coldkey.
+        coldkey_path = wallet_path + "/coldkey"
+        coldkey_path = cli_utils.validate_create_path( coldkey_path )
+        coldkey_keypair = cli_utils.gen_new_key( n_words )
+        cli_utils.display_mnemonic_msg( coldkey_keypair )
+        cli_utils.write_pubkey_to_text_file(coldkey_path, coldkey_keypair.public_key )
+        if use_password:
+            password = cli_utils.input_password()
+            print("Encrypting coldkey ... (this might take a few moments)")
+            coldkey_json_data = json.dumps(coldkey_keypair.toDict()).encode()
+            coldkey_data = encrypt(coldkey_json_data, password)
+            del coldkey_json_data
+        else:
+            coldkey_data = json.dumps(coldkey_keypair.toDict()).encode()
+        cli_utils.save_keys(coldkey_path, coldkey_data)
+        cli_utils.set_file_permissions(coldkey_path)
+
+        # Create default hotkey.
+        cli_utils.create_hotkeys_dir_if_not_exists(wallet_path + "/hotkeys")
+        hotkey_path = wallet_path + "/hotkeys/default"
+        hotkey_path = cli_utils.validate_create_path( hotkey_path )
+        hotkey_keypair = cli_utils.gen_new_key( n_words )
+        hotkey_data = json.dumps(hotkey_keypair.toDict()).encode()
+        cli_utils.save_keys(hotkey_path, hotkey_data)
+        cli_utils.set_file_permissions(hotkey_path)
+
     async def new_hotkey( self, n_words:int, wallet_path: str, wallet_name: str, hotkey_name: str):
 
         if wallet_name == None:
@@ -234,6 +269,12 @@ def run(args):
         # ---- Run command new hotkey.
         loop.run_until_complete( executor.new_wallet( n_words = args.n_words, wallet_path = args.wallet_path, wallet_name = args.wallet_name, use_password = args.use_password) )
 
+    # --- New wallet command
+    elif args.command == "new_default":
+        executor = CommandExecutor(None, None)
+        # ---- Run command new hotkey.
+        loop.run_until_complete( executor.new_default( n_words = args.n_words, wallet_path = args.wallet_path, use_password = args.use_password) )
+
     # --- New hotkey command
     elif args.command == "new_hotkey":
         executor = CommandExecutor(None, None)
@@ -357,6 +398,10 @@ def main():
         help='''Regenerates a wallet from a passed mnemonic''')
     wallet_parser = cmd_parsers.add_parser('new_wallet', 
         help='''Creates a new wallet containing your coldkey (for containing balance)
+            and a hotkey (for running your node).
+            ''')
+    default_parser = cmd_parsers.add_parser('new_default', 
+        help='''Creates a new default wallet containing a coldkey (for containing balance)
             and a default hotkey (for running your node). The default wallet is stored 
             in ~/.bittensor/wallets/default/. 
             ''')
@@ -396,6 +441,15 @@ def main():
         help='''Path to your wallets directory (default: ~/.bittensor/wallets/)''')
     wallet_parser.add_argument('--name',  dest="wallet_name", default=None, type=str, 
         help='''The name of the wallet, (default: 'default' and stores in ~/.bittensor/wallets/default)''')
+
+    # Fill arguments for default wallet command
+    default_parser.add_argument('--n_words', type=int, choices=[12,15,18,21,24], default=12, 
+        help='''The number of words representing the mnemonic. i.e. horse cart dog ... x 24''')
+    default_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
+    default_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
+    default_parser.set_defaults(use_password=True)
+    default_parser.add_argument('--wallets_path',  dest="wallet_path", default='~/.bittensor/wallets/', type=str, 
+        help='''Path to your wallets directory (default: ~/.bittensor/wallets/)''')
 
     # Fill arguments for unstake command. 
     unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
