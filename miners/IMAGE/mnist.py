@@ -1,7 +1,7 @@
-"""Training a CIFAR Neuron.
-This file demonstrates a training pipeline for an CIFAR Neuron.
+"""Training a MNIST Neuron.
+This file demonstrates a training pipeline for an MNIST Neuron.
 Example:
-        $ python examples/cifar.py
+        $ python miners/IMAGE/mnist.py
 """
 import argparse
 import math
@@ -9,99 +9,92 @@ import os
 import sys
 import time
 import torch
-from termcolor import colored
+import bittensor
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
+
+from termcolor import colored
 from torch.utils.tensorboard import SummaryWriter
 from bittensor.utils.model_utils import ModelToolbox
-
-
 from munch import Munch
 from loguru import logger
+from bittensor.config import Config
+from synapses.ffnn import FFNNSynapse
 
-import bittensor
-from bittensor.synapses.dpn import DPNSynapse
-
-class Session():
+class Miner():
 
     def __init__(self, config: Munch = None):
         if config == None:
-            config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
+            config = Miner.build_config(); logger.info(bittensor.config.Config.toString(config))
         self.config = config
 
         # ---- Neuron ----
         self.neuron = bittensor.neuron.Neuron(self.config)
     
         # ---- Model ----
-        self.model = DPNSynapse( config ) # Feedforward neural network with PKMRouter.
+        self.model = FFNNSynapse( config ) # Feedforward neural network with PKMRouter.
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to( self.device ) # Set model to device
         
         # ---- Optimizer ---- 
-        self.optimizer = optim.SGD(self.model.parameters(), lr=self.config.session.learning_rate, momentum=self.config.session.momentum)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=self.config.miner.learning_rate, momentum=self.config.miner.momentum)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10.0, gamma=0.1)
 
         # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(DPNSynapse, torch.optim.SGD)
+        self.model_toolbox = ModelToolbox(FFNNSynapse, optim.SGD)
 
         # ---- Dataset ----
-        self.train_data = torchvision.datasets.CIFAR10(
-            root=self.config.session.root_dir + "datasets/", train=True, download=True, transform=transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-        ]))
-        self.trainloader = torch.utils.data.DataLoader(self.train_data, batch_size = self.config.session.batch_size_train, shuffle=True, num_workers=2)
-        self.test_data = torchvision.datasets.CIFAR10(root = self.config.session.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
-        self.testloader = torch.utils.data.DataLoader(self.test_data, batch_size = self.config.session.batch_size_test, shuffle=False, num_workers=2)
-        self.test_data = torchvision.datasets.CIFAR10(root = self.config.session.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
+        self.train_data = torchvision.datasets.MNIST(root = self.config.miner.root_dir + "datasets/", train=True, download=True, transform=transforms.ToTensor())
+        self.trainloader = torch.utils.data.DataLoader(self.train_data, batch_size = self.config.miner.batch_size_train, shuffle=True, num_workers=2)
+        self.test_data = torchvision.datasets.MNIST(root = self.config.miner.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
+        self.testloader = torch.utils.data.DataLoader(self.test_data, batch_size = self.config.miner.batch_size_test, shuffle=False, num_workers=2)
 
         # ---- Tensorboard ----
         self.global_step = 0
-        self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
-        if self.config.session.record_log:
-            logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
+        self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
+        if self.config.miner.record_log:
+            logger.add(self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
 
     @staticmethod
     def build_config() -> Munch:
         parser = argparse.ArgumentParser(); 
-        Session.add_args(parser) 
+        Miner.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        Session.check_config(config)
+        Miner.check_config(config)
         return config
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
-        parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
-        parser.add_argument('--session.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
-        parser.add_argument('--session.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
-        parser.add_argument('--session.epoch_length', default=int(sys.maxsize), type=int, help='Iterations of training per epoch (or dataset EOF)')
-        parser.add_argument('--session.batch_size_train', default=64, type=int, help='Training batch size.')
-        parser.add_argument('--session.batch_size_test', default=64, type=int, help='Testing batch size.')
-        parser.add_argument('--session.log_interval', default=150, type=int, help='Batches until session prints log statements.')
-        parser.add_argument('--session.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
-        parser.add_argument('--session.root_dir', default='~/.bittensor/sessions/', type=str,  help='Root path to load and save data associated with each session')
-        parser.add_argument('--session.name', default='cifar', type=str, help='Trials for this session go in session.root / session.name')
-        parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.trial_uid')
-        parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
-        parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
+        parser.add_argument('--miner.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
+        parser.add_argument('--miner.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--miner.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
+        parser.add_argument('--miner.epoch_length', default=int(sys.maxsize), type=int, help='Iterations of training per epoch (or dataset EOF)')
+        parser.add_argument('--miner.batch_size_train', default=64, type=int, help='Training batch size.')
+        parser.add_argument('--miner.batch_size_test', default=64, type=int, help='Testing batch size.')
+        parser.add_argument('--miner.log_interval', default=150, type=int, help='Batches until miner prints log statements.')
+        parser.add_argument('--miner.sync_interval', default=10, type=int, help='Batches before we we sync with chain and emit new weights.')
+        parser.add_argument('--miner.root_dir', default='~/.bittensor/miners/', type=str,  help='Root path to load and save data associated with each miner')
+        parser.add_argument('--miner.name', default='mnist', type=str, help='Trials for this miner go in miner.root / miner.name')
+        parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
+        parser.add_argument('--miner.record_log', default=True, help='Record all logs when running this miner')
+        parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         bittensor.neuron.Neuron.add_args(parser)
-        DPNSynapse.add_args(parser)
+        FFNNSynapse.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
-        assert config.session.log_interval > 0, "log_interval dimension must be positive"
-        assert config.session.momentum > 0 and config.session.momentum < 1, "momentum must be a value between 0 and 1"
-        assert config.session.batch_size_train > 0, "batch_size_train must be a positive value"
-        assert config.session.batch_size_test > 0, "batch_size_test must be a positive value"
-        assert config.session.learning_rate > 0, "learning rate must be be a positive value."
-        full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.trial_uid)
-        config.session.full_path = os.path.expanduser(full_path)
-        if not os.path.exists(config.session.full_path):
-            os.makedirs(config.session.full_path)
-        DPNSynapse.check_config(config)
+        assert config.miner.log_interval > 0, "log_interval dimension must be positive"
+        assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
+        assert config.miner.batch_size_train > 0, "batch_size_train must be a positive value"
+        assert config.miner.batch_size_test > 0, "batch_size_test must be a positive value"
+        assert config.miner.learning_rate > 0, "learning rate must be be a positive value."
+        full_path = '{}/{}/{}/'.format(config.miner.root_dir, config.miner.name, config.miner.trial_uid)
+        config.miner.full_path = os.path.expanduser(full_path)
+        if not os.path.exists(config.miner.full_path):
+            os.makedirs(config.miner.full_path)
+        FFNNSynapse.check_config(config)
         bittensor.neuron.Neuron.check_config(config)
 
     # --- Main loop ----
@@ -110,22 +103,25 @@ class Session():
         # ---- Subscribe neuron ---- 
         with self.neuron:
 
-            # ---- Loop for epochs ----
-            self.epoch = -1; self.best_test_loss = math.inf; self.global_step = 0
-            self.row = self.neuron.metagraph.row # Trained weights.
-            for self.epoch in range(self.config.session.n_epochs):
+            # ---- Weights ----
+            self.row = self.neuron.metagraph.row.to(self.model.device)
+
+            # --- Loop for epochs ---
+            self.best_test_loss = math.inf; self.global_step = 0
+            for self.epoch in range(self.config.miner.n_epochs):
                 # ---- Serve ----
                 self.neuron.axon.serve( self.model )
-         
+
                 # ---- Train ----
                 self.train()
                 self.scheduler.step()
-
+                                    
                 # If model has borked for some reason, we need to make sure it doesn't emit weights
                 # Instead, reload into previous version of model
                 if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
                     self.model, self.optimizer = self.model_toolbox.load_model(self.config)
-                
+                    continue
+
                 # ---- Test ----
                 test_loss, test_accuracy = self.test()
 
@@ -134,18 +130,23 @@ class Session():
                         
                 # ---- Sync ----  
                 self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.weights = self.neuron.metagraph.row.to(self.device)
+                self.row = self.neuron.metagraph.row.to(self.device)
 
                 # --- Display Epoch ----
                 print(self.neuron.axon.__full_str__())
                 print(self.neuron.dendrite.__full_str__())
                 print(self.neuron.metagraph)
 
+                # ---- Update Tensorboard ----
+                self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
+
                 # ---- Save ----
                 if test_loss < self.best_test_loss:
                     self.best_test_loss = test_loss # Update best loss.
                     self.model_toolbox.save_model(
-                        self.config.session.full_path,
+                        self.config.miner.full_path,
                         {
                             'epoch': self.epoch, 
                             'model_state_dict': self.model.state_dict(), 
@@ -159,9 +160,9 @@ class Session():
     def train(self):
         # ---- Init training state ----
         self.model.train() # Turn on dropout etc.
-        for batch_idx, (images, targets) in enumerate(self.trainloader):    
-            if batch_idx >= self.config.session.epoch_length:
-                break
+        for batch_idx, (images, targets) in enumerate(self.trainloader): 
+            if batch_idx >= self.config.miner.epoch_length:
+                break   
             self.global_step += 1 
 
             # ---- Remote Forward pass ----
@@ -178,14 +179,14 @@ class Session():
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation 
 
             # ---- Train weights ----
-            batch_weights = torch.mean(output.router.weights, axis = 0) # Average over batch.
+            batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
             self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
-            self.row = F.normalize( self.row, p = 1, dim = 0) # Ensure normalization.
+            self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
 
             # ---- Step Logs + Tensorboard ----
-            processed = ((batch_idx + 1) * self.config.session.batch_size_train)
+            processed = ((batch_idx + 1) * self.config.miner.batch_size_train)
             progress = (100. * processed) / len(self.train_data)
-            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\tLoss: {}\tAcc: {}\tAxon: {}\tDendrite: {}\t', 
+            logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\tLoss: {}\tAcc: {}\tAxon: {}\tDendrite: {}', 
                     colored('{}'.format(self.global_step), 'blue'), 
                     colored('{}'.format(self.epoch), 'blue'), 
                     colored('{}'.format(processed), 'green'), 
@@ -220,11 +221,9 @@ class Session():
         
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
-    session = Session(config)
-    session.run()
-
-
+    config = Miner.build_config(); logger.info(Config.toString(config))
+    miner = Miner(config)
+    miner.run()
 
 
 

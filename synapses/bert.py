@@ -29,7 +29,7 @@ from transformers import BertModel, BertConfig
 from types import SimpleNamespace
 
 import bittensor
-from bittensor.routers.pkm import PKMRouter
+from routers.pkm import PKMRouter
 
 class BertPooler(nn.Module):
     def __init__(self, config):
