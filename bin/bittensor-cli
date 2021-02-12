@@ -269,7 +269,7 @@ def run(args):
         # ---- Run command new hotkey.
         loop.run_until_complete( executor.new_wallet( n_words = args.n_words, wallet_path = args.wallet_path, wallet_name = args.wallet_name, use_password = args.use_password) )
 
-    # --- New wallet command
+    # --- New default command
     elif args.command == "new_default":
         executor = CommandExecutor(None, None)
         # ---- Run command new hotkey.
