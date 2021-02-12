@@ -31,7 +31,7 @@ from munch import Munch
 from loguru import logger
 
 import bittensor
-from bittensor.routers.pkm import PKMRouter
+from routers.pkm import PKMRouter
 from bittensor.utils.batch_transforms import Normalize
 
 class FFNNSynapse(bittensor.synapse.Synapse):
