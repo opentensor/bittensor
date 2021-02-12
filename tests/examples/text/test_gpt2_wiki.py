@@ -5,13 +5,15 @@ sys.path.append("examples/TEXT/")
 import bittensor
 import torch
 import numpy
-from gpt2_wiki import Session
+from gpt2_wiki import Miner
+
+
 def test_run_gpt2():
-    gpt2_session_config = Session.build_config()
+    gpt2_session_config = Miner.build_config()
     gpt2_session_config.metagraph.chain_endpoint = 'feynman.akira.bittensor.com:9944'
     gpt2_session_config.session.n_epochs = 1
     gpt2_session_config.session.epoch_length = 1
-    gpt2_session = Session(gpt2_session_config)
+    gpt2_session = Miner(gpt2_session_config)
     gpt2_session.neuron.metagraph.connect = MagicMock(return_value = (bittensor.metagraph.Metagraph.ConnectSuccess, ""))    
     gpt2_session.neuron.metagraph.subscribe = MagicMock(return_value = (bittensor.metagraph.Metagraph.SubscribeSuccess, ""))   
     gpt2_session.neuron.metagraph.set_weights = MagicMock()   
