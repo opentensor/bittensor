@@ -47,9 +47,9 @@ def nextbatch(data, batch_size, tokenizer):
 
 class XLMPooler(nn.Module):
     
-    def __init__(self,config):
+    def __init__(self, xlm_config):
         super().__init__()
-        self.dense = nn.Linear(config.n_embd, config.n_embd)
+        self.dense = nn.Linear(xlm_config.emb_dim, xlm_config.emb_dim)
         self.activation = nn.Tanh()
     
     def forward(self, hidden_states):
@@ -90,8 +90,8 @@ class XLMSynapse(bittensor.synapse.Synapse):
         xlm_config = XLMConfig(
             vocab_size=bittensor.__vocab_size__, 
             emb_dim=bittensor.__network_dim__,
-            n_layers=config.synapse.n_layer,
-            n_heads=config.synapse.n_head, 
+            n_layers=config.synapse.n_layers,
+            n_heads=config.synapse.n_heads, 
             # More needed
         )
 
@@ -124,7 +124,7 @@ class XLMSynapse(bittensor.synapse.Synapse):
         return config
     
     @staticmethod
-    def add_args(parser: argparse.AgumentParser):
+    def add_args(parser: argparse.ArgumentParser):
         """ Add custom params to the Synapse
 
         Args:
@@ -191,6 +191,8 @@ class XLMSynapse(bittensor.synapse.Synapse):
                                 help='Model agnostic parameter to identify masked tokens when generating text in an MLM context.')
         parser.add_argument('--synapse.lang_id', default=1, type=int,
                                 help='The ID of the language used by the model. This parameter is used when generating text in a given language.')
+        PKMRouter.add_args(parser)
+        
     @staticmethod
     def check_config(config: Munch):
         assert config.synapse.n_layers > 0, "Number of hidden layers in the Transformer encoder must be > 0"
