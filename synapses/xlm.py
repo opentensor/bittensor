@@ -25,7 +25,7 @@ import torch.nn.functional as F
 
 from transformers import XLMConfig, XLMModel
 from munch import Munch
-from bittensor.routers.pkm import PKMRouter
+from routers.pkm import PKMRouter
 from torch import nn
 
 def nextbatch(data, batch_size, tokenizer):

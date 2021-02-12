@@ -8,30 +8,23 @@ Example:
 
 """
 import argparse
-import math
 import os
 import sys
-import pathlib
 import time
 import torch
-import torch.nn.functional as F
+import bittensor
 
 from munch import Munch
 from loguru import logger
-from termcolor import colored
-from datasets import load_dataset
 from torch.utils.tensorboard import SummaryWriter
 from bittensor.utils.model_utils import ModelToolbox
+from synapses.ffnn import FFNNSynapse
 
-import bittensor
-from bittensor.config import Config
-from bittensor.synapses.ffnn import FFNNSynapse
-
-class Session():
+class Miner():
 
     def __init__(self, config: Munch = None):
         if config == None:
-            config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
+            config = Miner.build_config(); logger.info(bittensor.config.Config.toString(config))
         self.config = config
 
         # ---- Build Neuron ----
@@ -43,46 +36,46 @@ class Session():
         self.neuron.axon.serve( self.model )
 
         # ---- Optimizer ----
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.session.learning_rate, momentum=self.config.session.momentum)
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum)
 
         # ---- Model Load/Save tools ----
         self.model_toolbox = ModelToolbox(FFNNSynapse, torch.optim.SGD)
 
         # ---- Logging ----
-        self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
-        if self.config.session.record_log:
-            logger.add(self.config.session.full_path + "/{}_{}.log".format(self.config.session.name, self.config.session.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
+        self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
+        if self.config.miner.record_log:
+            logger.add(self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
      
     @staticmethod
     def build_config() -> Munch:
         parser = argparse.ArgumentParser(); 
-        Session.add_args(parser) 
+        Miner.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        Session.check_config(config)
+        Miner.check_config(config)
         return config
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
-        parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
-        parser.add_argument('--session.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
-        parser.add_argument('--session.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
-        parser.add_argument('--session.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
-        parser.add_argument('--session.root_dir', default='~/.bittensor/sessions/', type=str,  help='Root path to load and save data associated with each session')
-        parser.add_argument('--session.name', default='ffnn-grunt', type=str, help='Trials for this session go in session.root / session.name')
-        parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
-        parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
-        parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
+        parser.add_argument('--miner.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
+        parser.add_argument('--miner.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--miner.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
+        parser.add_argument('--miner.sync_interval', default=150, type=int, help='Batches before we we sync with chain and emit new weights.')
+        parser.add_argument('--miner.root_dir', default='~/.bittensor/miners/', type=str,  help='Root path to load and save data associated with each miner')
+        parser.add_argument('--miner.name', default='ffnn-grunt', type=str, help='Trials for this miner go in miner.root / miner.name')
+        parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
+        parser.add_argument('--miner.record_log', default=True, help='Record all logs when running this miner')
+        parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         bittensor.neuron.Neuron.add_args(parser)
         FFNNSynapse.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
-        assert config.session.momentum > 0 and config.session.momentum < 1, "momentum must be a value between 0 and 1"
-        assert config.session.learning_rate > 0, "learning rate must be be a positive value."
-        full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.trial_uid)
-        config.session.full_path = os.path.expanduser(full_path)
-        if not os.path.exists(config.session.full_path):
-            os.makedirs(config.session.full_path)
+        assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
+        assert config.miner.learning_rate > 0, "learning rate must be be a positive value."
+        full_path = '{}/{}/{}/'.format(config.miner.root_dir, config.miner.name, config.miner.trial_uid)
+        config.miner.full_path = os.path.expanduser(full_path)
+        if not os.path.exists(config.miner.full_path):
+            os.makedirs(config.miner.full_path)
         FFNNSynapse.check_config(config)
         bittensor.neuron.Neuron.check_config(config)
 
@@ -94,7 +87,7 @@ class Session():
 
             # ---- Loop for epochs ----
             self.model.train()
-            for self.epoch in range(self.config.session.n_epochs):
+            for self.epoch in range(self.config.miner.n_epochs):
 
                 # ---- Poll until gradients ----
                 public_key, inputs_x, grads_dy, modality_x = self.neuron.axon.gradients.get(block = True)
@@ -118,7 +111,7 @@ class Session():
                 logger.info('Step: {} \t Key: {} \t sum(W[:,0])', self.epoch, public_key, torch.sum(self.neuron.metagraph.col).item())
             
                 # ---- Sync State ----
-                if (self.epoch + 1) % self.config.session.sync_interval == 0:
+                if (self.epoch + 1) % self.config.miner.sync_interval == 0:
 
                     # --- Display Epoch ----
                     print(self.neuron.axon.__full_str__())
@@ -130,7 +123,7 @@ class Session():
                     
                     # --- Save Model ----
                     self.model_toolbox.save_model(
-                        self.config.session.full_path,
+                        self.config.miner.full_path,
                         {
                             'epoch': self.epoch, 
                             'model_state_dict': self.model.state_dict(), 
@@ -141,5 +134,5 @@ class Session():
    
 if __name__ == "__main__":
     # ---- Build and Run ----
-    session = Session()
-    session.run()
+    miner = Miner()
+    miner.run()
