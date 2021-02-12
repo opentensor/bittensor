@@ -1,11 +1,11 @@
 import os, sys, time
 from unittest.mock import MagicMock
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append("examples/TEXT/")
+sys.path.append("miners/TEXT/")
 import bittensor
 import torch
 import numpy
-from xlm import Miner
+from xlm_wiki import Miner
 
 class AsyncMock(MagicMock):
     async def __call__(self, *args, **kwargs):
@@ -14,8 +14,8 @@ class AsyncMock(MagicMock):
 def test_run_xlm_clm():
     xlm_clm_session_config = Miner.build_config()
     xlm_clm_session_config.metagraph.chain_endpoint = 'feynman.akira.bittensor.com:9944'
-    xlm_clm_session_config.session.n_epochs = 1
-    xlm_clm_session_config.session.epoch_length = 1
+    xlm_clm_session_config.miner.n_epochs = 1
+    xlm_clm_session_config.miner.epoch_length = 1
     xlm_clm_session_config.synapse.causal = True
     xlm_clm_session = Miner(xlm_clm_session_config)
 

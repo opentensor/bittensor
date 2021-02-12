@@ -1,7 +1,7 @@
 import os, sys, time
 from unittest.mock import MagicMock
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append("examples/TEXT/")
+sys.path.append("miners/TEXT/")
 import bittensor
 import torch
 import numpy
@@ -11,8 +11,8 @@ from gpt2_genesis import Miner
 def test_run_gpt2_genesis():
     gpt2_genesis_session_config = Miner.build_config()
     gpt2_genesis_session_config.metagraph.chain_endpoint = 'feynman.akira.bittensor.com:9944'
-    gpt2_genesis_session_config.session.n_epochs = 1
-    gpt2_genesis_session_config.session.epoch_length = 1
+    gpt2_genesis_session_config.miner.n_epochs = 1
+    gpt2_genesis_session_config.miner.epoch_length = 1
     gpt2_genesis_session = Miner(gpt2_genesis_session_config)
     gpt2_genesis_session.neuron.metagraph.connect = MagicMock(return_value = (bittensor.metagraph.Metagraph.ConnectSuccess, ""))    
     gpt2_genesis_session.neuron.metagraph.subscribe = MagicMock(return_value = (bittensor.metagraph.Metagraph.SubscribeSuccess, ""))   
