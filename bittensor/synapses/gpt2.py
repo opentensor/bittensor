@@ -62,10 +62,10 @@ class GPT2Pooler(nn.Module):
         return pooled_output
 
 class GPT2LMSynapse(bittensor.synapse.Synapse):
-    """ A Bittensor Synapse training GPT2 with Masked Language Modelling (MLM)
+    """ A Bittensor Synapse training GPT2 with Causal Language Modelling (CLM)
     """
     def __init__(self, config: Munch):
-        r""" Init a new ffnn synapse module.
+        r""" Init a new GPT2 synapse module.
 
             Args:
                 config (:obj:`munch.Munch`, `required`): 
@@ -109,7 +109,7 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
 
         # hidden_layer: transforms context and encoding to network_dim hidden units.
         # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
-        self.hidden_layer = torch.nn.Linear( bittensor.__network_dim__, bittensor.__network_dim__ )
+        self.hidden_layer = nn.Linear( bittensor.__network_dim__, bittensor.__network_dim__ )
 
         # target_layer: maps from hidden layer to vocab dimension for each token. Used by MLM loss.
         # [batch_size, sequence_len, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__vocab_size__]
@@ -117,7 +117,7 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
         
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
-        self.loss_fct = torch.nn.CrossEntropyLoss()
+        self.loss_fct = nn.CrossEntropyLoss()
 
         self.to(self.device)
 
