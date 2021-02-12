@@ -113,7 +113,7 @@ workflows:
       - "Run Unit Tests":
               requires:
                 - "Build Bittensor"
-      - "Run Examples":
+      - "Run Miners":
               requires:
                 - "Build Bittensor"
       - "Run Integration Tests":
@@ -123,7 +123,7 @@ workflows:
           requires:
             - "Build Bittensor"
             - "Run Unit Tests"
-            - "Run Examples"
+            - "Run Miners"
             - "Run Integration Tests"
           filters:
               branches:
