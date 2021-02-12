@@ -5,13 +5,15 @@ sys.path.append("examples/TEXT/")
 import bittensor
 import torch
 import numpy
-from bert_nsp import Session
+from bert_nsp import Miner
+
+
 def test_run_bert_nsp():
-    bert_nsp_session_config = Session.build_config()
+    bert_nsp_session_config = Miner.build_config()
     bert_nsp_session_config.metagraph.chain_endpoint = 'feynman.akira.bittensor.com:9944'
     bert_nsp_session_config.session.n_epochs = 1
     bert_nsp_session_config.session.epoch_length = 1
-    bert_nsp_session = Session(bert_nsp_session_config)
+    bert_nsp_session = Miner(bert_nsp_session_config)
     bert_nsp_session.neuron.metagraph.connect = MagicMock(return_value = (bittensor.metagraph.Metagraph.ConnectSuccess, ""))    
     bert_nsp_session.neuron.metagraph.subscribe = MagicMock(return_value = (bittensor.metagraph.Metagraph.SubscribeSuccess, ""))   
     bert_nsp_session.neuron.metagraph.set_weights = MagicMock()   

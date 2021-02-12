@@ -5,17 +5,18 @@ sys.path.append("examples/TEXT/")
 import bittensor
 import torch
 import numpy
-from bert_mlm import Session
+from bert_mlm import Miner
 
 class AsyncMock(MagicMock):
     async def __call__(self, *args, **kwargs):
         return super(AsyncMock, self).__call__(*args, **kwargs)
+        
 def test_run_bert_mlm():
-    bert_mlm_session_config = Session.build_config()
+    bert_mlm_session_config = Miner.build_config()
     bert_mlm_session_config.metagraph.chain_endpoint = 'feynman.akira.bittensor.com:9944'
     bert_mlm_session_config.session.n_epochs = 1
     bert_mlm_session_config.session.epoch_length = 1
-    bert_mlm_session = Session(bert_mlm_session_config)
+    bert_mlm_session = Miner(bert_mlm_session_config)
     bert_mlm_session.neuron.metagraph.connect = MagicMock(return_value = (bittensor.metagraph.Metagraph.ConnectSuccess, ""))    
     bert_mlm_session.neuron.metagraph.subscribe = MagicMock(return_value = (bittensor.metagraph.Metagraph.SubscribeSuccess, ""))   
     bert_mlm_session.neuron.metagraph.set_weights = MagicMock()   
