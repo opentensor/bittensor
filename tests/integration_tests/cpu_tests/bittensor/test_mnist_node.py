@@ -21,7 +21,7 @@ from loguru import logger
 import bittensor
 from bittensor.neuron import Neuron
 from bittensor.config import Config
-from bittensor.synapses.ffnn import FFNNSynapse
+from synapses.ffnn import FFNNSynapse
 
 class Session():
 

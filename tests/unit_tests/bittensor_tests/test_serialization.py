@@ -10,7 +10,7 @@ from munch import Munch
 from random import randrange
 
 import bittensor
-from bittensor.synapses.gpt2 import nextbatch
+from synapses.gpt2 import nextbatch
 import bittensor.serialization as serialization
 from bittensor.subtensor.interface import Keypair
 
