@@ -35,7 +35,7 @@ jobs:
           name: "Run unit tests"
           command: pytest ./tests/unit_tests
 
-  "Run Examples":
+  "Run Miners":
     executor: bittensor-executor
     steps:
       - checkout
@@ -46,11 +46,11 @@ jobs:
           command: pip3 install -e .
           name: setup
       - run: ./scripts/create_wallet.sh
-      - run: python3.7 tests/examples/text/test_gpt2_wiki.py
-      - run: python3.7 tests/examples/text/test_gpt2_genesis.py
-      - run: python3.7 tests/examples/text/test_bert_mlm.py
-      - run: python3.7 tests/examples/text/test_bert_nsp.py
-      - run: python3.7 tests/examples/image/test_mnist.py
+      - run: python3.7 tests/miners/text/test_gpt2_wiki.py
+      - run: python3.7 tests/miners/text/test_gpt2_genesis.py
+      - run: python3.7 tests/miners/text/test_bert_mlm.py
+      - run: python3.7 tests/miners/text/test_bert_nsp.py
+      - run: python3.7 tests/miners/image/test_mnist.py
   
   MNIST:
     executor: bittensor-executor

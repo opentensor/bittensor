@@ -4,7 +4,7 @@ This fil demonstrates how to train a FeedForward Neural network on the network
 without a training ste.
 
 Example:
-        $ python examples/ffnn_grunt.py
+        $ python miners/IMAGE/ffnn_grunt.py
 
 """
 import argparse
