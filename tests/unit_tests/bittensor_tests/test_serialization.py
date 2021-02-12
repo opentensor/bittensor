@@ -4,15 +4,10 @@ import torch
 import unittest
 import torchvision
 import pytest
-
-from datasets import load_dataset
-from munch import Munch
-from random import randrange
-
 import bittensor
-from synapses.gpt2 import nextbatch
 import bittensor.serialization as serialization
-from bittensor.subtensor.interface import Keypair
+
+from random import randrange
 
 
 class TestSerialization(unittest.TestCase):

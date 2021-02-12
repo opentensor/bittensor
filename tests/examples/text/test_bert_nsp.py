@@ -1,7 +1,7 @@
 import os, sys, time
 from unittest.mock import MagicMock
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append("examples/TEXT/")
+sys.path.append("miners/TEXT/")
 import bittensor
 import torch
 import numpy
@@ -11,8 +11,8 @@ from bert_nsp import Miner
 def test_run_bert_nsp():
     bert_nsp_session_config = Miner.build_config()
     bert_nsp_session_config.metagraph.chain_endpoint = 'feynman.akira.bittensor.com:9944'
-    bert_nsp_session_config.session.n_epochs = 1
-    bert_nsp_session_config.session.epoch_length = 1
+    bert_nsp_session_config.miner.n_epochs = 1
+    bert_nsp_session_config.miner.epoch_length = 1
     bert_nsp_session = Miner(bert_nsp_session_config)
     bert_nsp_session.neuron.metagraph.connect = MagicMock(return_value = (bittensor.metagraph.Metagraph.ConnectSuccess, ""))    
     bert_nsp_session.neuron.metagraph.subscribe = MagicMock(return_value = (bittensor.metagraph.Metagraph.SubscribeSuccess, ""))   

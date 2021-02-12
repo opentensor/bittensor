@@ -1,7 +1,7 @@
 import os, sys, time
 from unittest.mock import MagicMock
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append("examples/TEXT/")
+sys.path.append("miners/TEXT/")
 import bittensor
 import torch
 import numpy
@@ -10,12 +10,12 @@ from bert_mlm import Miner
 class AsyncMock(MagicMock):
     async def __call__(self, *args, **kwargs):
         return super(AsyncMock, self).__call__(*args, **kwargs)
-        
+
 def test_run_bert_mlm():
     bert_mlm_session_config = Miner.build_config()
     bert_mlm_session_config.metagraph.chain_endpoint = 'feynman.akira.bittensor.com:9944'
-    bert_mlm_session_config.session.n_epochs = 1
-    bert_mlm_session_config.session.epoch_length = 1
+    bert_mlm_session_config.miner.n_epochs = 1
+    bert_mlm_session_config.miner.epoch_length = 1
     bert_mlm_session = Miner(bert_mlm_session_config)
     bert_mlm_session.neuron.metagraph.connect = MagicMock(return_value = (bittensor.metagraph.Metagraph.ConnectSuccess, ""))    
     bert_mlm_session.neuron.metagraph.subscribe = MagicMock(return_value = (bittensor.metagraph.Metagraph.SubscribeSuccess, ""))   
