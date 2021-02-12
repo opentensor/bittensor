@@ -28,7 +28,7 @@ from munch import Munch
 from types import SimpleNamespace
 
 import bittensor
-from bittensor.routers.pkm import PKMRouter
+from routers.pkm import PKMRouter
 
 def nextbatch(data, batch_size, tokenizer):
     """ Returns a random batch of sentences from text dataset.
