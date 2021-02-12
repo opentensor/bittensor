@@ -7,7 +7,6 @@ from unittest.mock import MagicMock
 
 import bittensor
 import bittensor.serialization as serialization
-import bittensor.utils.serialization_utils as serialization_utils
 
 axon = bittensor.axon.Axon()
 synapse = bittensor.synapse.Synapse()
@@ -85,7 +84,7 @@ def test_forward_success():
     assert response.return_code == bittensor.proto.ReturnCode.Success
     assert len(response.tensors) == 1
     assert response.tensors[0].shape == [3, 3, bittensor.__network_dim__]
-    assert serialization_utils.bittensor_dtype_to_torch_dtype(response.tensors[0].dtype) == torch.float32
+    assert serialization.bittensor_dtype_to_torch_dtype(response.tensors[0].dtype) == torch.float32
 
 
 def test_backward_not_serving():
@@ -153,7 +152,7 @@ def test_backward_success():
     assert response.return_code == bittensor.proto.ReturnCode.Success
     assert len(response.tensors) == 1
     assert response.tensors[0].shape == [3, 3, bittensor.__network_dim__]
-    assert serialization_utils.bittensor_dtype_to_torch_dtype(response.tensors[0].dtype) == torch.float32
+    assert serialization.bittensor_dtype_to_torch_dtype(response.tensors[0].dtype) == torch.float32
 
 def test_set_priority():
     axon = bittensor.axon.Axon()
