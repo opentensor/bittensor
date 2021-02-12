@@ -1,10 +1,10 @@
-#!/bin/python3
-"""GPT2 Language Modelling miner
+#!/bin/python3.7
+"""XLM Language Modelling miner
 
-This file demonstrates training the GPT2 neuron with language modelling.
+This file demonstrates training the XLM neuron with language modelling.
 
 Example:
-        $ python examples/gpt2-wiki.py
+        $ python examples/xlm_genesis.py
 
 """
 import argparse
@@ -19,13 +19,14 @@ import time
 import bittensor
 
 from termcolor import colored
-from munch import Munch
-from datasets import load_dataset
-from loguru import logger
-from torch.utils.tensorboard import SummaryWriter
+from bittensor.synapses.xlm import XLMSynapse
 from bittensor.utils.model_utils import ModelToolbox
-from bittensor.synapses.gpt2 import GPT2LMSynapse, nextbatch
+from munch import Munch
+from loguru import logger
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
+from datasets import load_dataset
+from torch.utils.tensorboard import SummaryWriter
+
 
 class Session():
     """
@@ -35,21 +36,22 @@ class Session():
 
     def __init__(self, config: Munch = None):
         if config == None:
-            config = Session.build_config(); logger.info(bittensor.config.Config.toString(config))
+            config = Session.build_config(); 
+            logger.info(bittensor.config.Config.toString(config))
         self.config = config
 
         # ---- Neuron ----
         self.neuron = bittensor.neuron.Neuron(self.config)
 
         # ---- Model ----
-        self.model = GPT2LMSynapse( self.config )
+        self.model = XLMSynapse( self.config )
 
         # ---- Optimizer ----
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.session.learning_rate, momentum=self.config.session.momentum)
         self.scheduler = WarmupCosineWithHardRestartsSchedule(self.optimizer, 50, 300)
 
         # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(GPT2LMSynapse, torch.optim.SGD)
+        self.model_toolbox = ModelToolbox(XLMSynapse, torch.optim.SGD)
 
         # ---- Dataset ----
         # Dataset: 74 million sentences pulled from books.
@@ -69,7 +71,7 @@ class Session():
         config = bittensor.config.Config.to_config(parser); 
         Session.check_config(config)
         return config
-
+    
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         parser.add_argument('--session.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
@@ -86,7 +88,7 @@ class Session():
         parser.add_argument('--session.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
         parser.add_argument('--session.record_log', default=True, help='Record all logs when running this session')
         parser.add_argument('--session.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
-        GPT2LMSynapse.add_args(parser)
+        XLMSynapse.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 
     @staticmethod
@@ -98,9 +100,9 @@ class Session():
         config.session.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.session.full_path):
             os.makedirs(config.session.full_path)
-        GPT2LMSynapse.check_config(config)
+        XLMSynapse.check_config(config)
         bittensor.neuron.Neuron.check_config(config)
-
+    
     # --- Main loop ----
     def run (self):
 
