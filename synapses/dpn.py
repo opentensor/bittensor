@@ -31,7 +31,7 @@ from types import SimpleNamespace
 from munch import Munch
 
 import bittensor
-from bittensor.routers.pkm import PKMRouter
+from routers.pkm import PKMRouter
 from bittensor.utils.batch_transforms import Normalize
 
 class DPNSynapse(bittensor.synapse.Synapse):
