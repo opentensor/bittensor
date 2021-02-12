@@ -156,7 +156,7 @@ mac_install_bittensor() {
     deactivate
 }
 
-pull_subtensor() {
+install_subtensor() {
     ohai "Cloning subtensor@master into ~/.bittensor/subtensor"
     mkdir -p ~/.bittensor/subtensor/
     git clone --single-branch --branch mac_release https://github.com/opentensor/subtensor.git ~/.bittensor/subtensor/ 2> /dev/null || (cd ~/.bittensor/subtensor/ ; git fetch origin mac_release ; git pull --ff-only origin mac_release)
