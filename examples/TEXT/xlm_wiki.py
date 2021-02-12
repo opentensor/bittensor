@@ -19,7 +19,7 @@ import time
 import bittensor
 
 from termcolor import colored
-from bittensor.synapses.xlm import XLMSynapse
+from bittensor.synapses.xlm import XLMSynapse, nextbatch
 from bittensor.utils.model_utils import ModelToolbox
 from munch import Munch
 from loguru import logger
