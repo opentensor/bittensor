@@ -4,7 +4,7 @@
 This file demonstrates training the XLM neuron with language modelling.
 
 Example:
-        $ python examples/xlm_wiki.py
+        $ python miners/TEXT/xlm_wiki.py
 
 """
 import argparse

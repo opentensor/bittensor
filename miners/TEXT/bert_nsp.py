@@ -4,7 +4,7 @@
 This file demonstrates training the BERT neuron with next sentence prediction.
 
 Example:
-        $ python neurons/bert_nsp.py
+        $ python miners/TEXT/bert_nsp.py
 
 """
 import argparse
