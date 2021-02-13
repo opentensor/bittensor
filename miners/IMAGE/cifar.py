@@ -1,7 +1,7 @@
 """Training a CIFAR Neuron.
 This file demonstrates a training pipeline for an CIFAR Neuron.
 Example:
-        $ python examples/cifar.py
+        $ python miners/IMAGE/cifar.py
 """
 import argparse
 import math
