@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import json
 import os
+import random
 import sys
 
 from argparse import ArgumentParser
@@ -11,6 +12,7 @@ from loguru import logger
 from termcolor import colored
 from prettytable import PrettyTable
 
+import bittensor
 from bittensor.balance import Balance
 from bittensor.crypto import encrypt, is_encrypted, decrypt_data, KeyError
 from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError
@@ -256,21 +258,21 @@ def check_endpoint(args):
         assert args.network in all_networks, 'metagraph.network == {} not one of {}'.format(args.network, all_networks)
         if args.network == "akira":
             args.chainendpoint = random.choice(bittensor.__akira_entrypoints__)
-        elif cargs.network == "boltzmann":
+        elif args.network == "boltzmann":
             args.chainendpoint = random.choice(bittensor.__boltzmann_entrypoints__)
         elif args.network == "kusanagi":
             args.chainendpoint = random.choice(bittensor.__kusanagi_entrypoints__)
         else:
             raise ValueError('args.network == {} not one of {}'.format(args.network, all_networks))
-        print(colored('Using endpoint:{} for network:{}'.format(args.chainendpoint, args.network), 'red'))
+        print(colored('Using endpoint: {} for network: {}'.format(args.chainendpoint, args.network), 'green'))
 
-        # The chain endpoint it set.
-        elif args.chainendpoint != None:
-            pass
+    # The chain endpoint it set.
+    elif args.chainendpoint != None:
+        pass
 
-        # Neither are set.
-        else:
-            print(colored('One of --chain-endpoint or --network must be set', 'red'))
+    # Neither are set.
+    else:
+        print(colored('One of --chain-endpoint or --network must be set', 'red'))
 
 
 '''
@@ -496,7 +498,7 @@ def main():
     stake_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
         help="The endpoint to the subtensor chain <hostname/ip>:<port>")
     stake_parser.add_argument("--network", dest="network", default="kusanagi", required=False, 
-        help="The bittensor network name i.e [kusanagi (mainnet), akira (testnet)] (NOTE: will override --chain-endpoint)"")
+        help="The bittensor network name i.e [kusanagi (mainnet), akira (testnet)] (NOTE: will override --chain-endpoint)")
     stake_parser.add_argument('--wallets_path',  dest="wallet_path", default='~/.bittensor/wallets/', type=str, 
         help='''Path to your wallets directory (default: ~/.bittensor/wallets/)''')
     stake_parser.add_argument("--wallet", dest="wallet_name", default='default', required=False,
@@ -506,7 +508,7 @@ def main():
     overview_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
         help="The endpoint to the subtensor chain <hostname/ip>:<port>")
     overview_parser.add_argument("--network", dest="network", default="kusanagi", required=False, 
-        help="The bittensor network name i.e [kusanagi (mainnet), akira (testnet)] (NOTE: will override --chain-endpoint)"")
+        help="The bittensor network name i.e [kusanagi (mainnet), akira (testnet)] (NOTE: will override --chain-endpoint)")
     overview_parser.add_argument('--wallets_path', dest="wallet_path", default='~/.bittensor/wallets/', type=str, 
         help='''Path to your wallets directory (default: ~/.bittensor/wallets/)''')
     overview_parser.add_argument("--wallet", dest="wallet_name", default='default', required=False,
@@ -518,7 +520,7 @@ def main():
     transfer_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
         help="The endpoint to the subtensor chain <hostname/ip>:<port>")
     transfer_parser.add_argument("--network", dest="network", default="kusanagi", required=False, 
-        help="The bittensor network name i.e [kusanagi (mainnet), akira (testnet)] (NOTE: will override --chain-endpoint)"")
+        help="The bittensor network name i.e [kusanagi (mainnet), akira (testnet)] (NOTE: will override --chain-endpoint)")
     transfer_parser.add_argument('--wallets_path', dest="wallet_path", default='~/.bittensor/wallets/', type=str, 
         help='''Path to your wallets directory (default: ~/.bittensor/wallets/)''')
     transfer_parser.add_argument("--wallet", dest="wallet_name", default='default', required=False,
