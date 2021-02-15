@@ -47,7 +47,7 @@ def setup_chain():
     # Select a port
     port = select_port()
 
-    proc = subprocess.Popen([path, '--dev', '--port', str(port+1), '--ws-port', str(port), '--rpc-port', str(port + 2), '--tmp'], close_fds=True, shell=False)
+    proc = subprocess.Popen([path,'--light','--dev', '--port', str(port+1), '--ws-port', str(port), '--rpc-port', str(port + 2), '--tmp'], close_fds=True, shell=False)
 
     # Wait 2 seconds for the node to come up
     time.sleep(2)
@@ -250,9 +250,9 @@ async def test_unstake_success(setup_chain):
     # Wait for the extrinsic to complete
     await asyncio.sleep(10)
 
-    # Get current balance, should be 4000 less than first balance
+    # Get current balance, should be 4000 + transaction fee less than first balance
     result = await coldkey_client.get_balance(coldkeypair.ss58_address)
-    assert int(result) == int(balance) - 4000
+    assert int(result) == int(balance) - 4000 - 14500  # Transaction length == 145 bytes
 
     # Get the amount of stake, should be 4000
     result = await coldkey_client.get_stake_for_uid(uid)
@@ -271,9 +271,9 @@ async def test_unstake_success(setup_chain):
 
     await asyncio.sleep(10)
 
-    # Check if balance is the same as what we started with
+    # Check if balance is the same as what we started with, minus transaction fee
     new_balance = await coldkey_client.get_balance(coldkeypair.ss58_address)
-    assert int(new_balance) == int(balance)
+    assert int(new_balance) == int(balance) - 29000
 
 @pytest.mark.asyncio
 async def test_set_weights_success(setup_chain):
