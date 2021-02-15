@@ -12,6 +12,27 @@ def test_create( ):
     metagraph = bittensor.metagraph.Metagraph()
     assert True
 
+def test_check_config_network_not_existend( ):
+    config = bittensor.metagraph.Metagraph.build_config()
+    config.metagraph.network = None
+    config.metagraph.chain_endpoint = None
+    print (config)
+    with pytest.raises(ValueError):
+        bittensor.metagraph.Metagraph.check_config(config)
+
+
+def test_check_config_network_to_endpoint():
+    config = bittensor.metagraph.Metagraph.build_config()
+    config.metagraph.network = 'akira'
+    bittensor.metagraph.Metagraph.check_config(config)
+    assert config.metagraph.chain_endpoint in bittensor.__akira_entrypoints__
+    config.metagraph.network = 'boltzmann'
+    bittensor.metagraph.Metagraph.check_config(config)
+    assert config.metagraph.chain_endpoint in bittensor.__boltzmann_entrypoints__
+    config.metagraph.network = 'kusanagi'
+    bittensor.metagraph.Metagraph.check_config(config)
+    assert config.metagraph.chain_endpoint in bittensor.__kusanagi_entrypoints__
+
 def test_convert_weight_order_should_work_last( ):
     MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
     metagraph.state.uids = torch.tensor([1,2,3,4])
