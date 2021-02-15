@@ -226,12 +226,14 @@ class Metagraph():
                                         -- localhost:9944 -- (your locally running node)
                                         -- feynman.akira.bittensor.com:9944 (testnet)
                                         -- feynman.kusanagi.bittensor.com:12345 (mainnet)
+                                    If metagraph.network is set it is overloaded by metagraph.network.
                                     ''')
-            parser.add_argument('--metagraph.network', default=None, type=str, 
+            parser.add_argument('--metagraph.network', default='akira', type=str, 
                                 help='''The subtensor network flag. The likely choices are:
-                                        -- boltzmann (staging network)
                                         -- akira (testing network)
                                         -- kusanagi (main network)
+                                    If this option is set it overloads metagraph.chain_endpoint with 
+                                    an entry point node from that network.
                                     ''')
             parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
                                 help='''The metagraph filters neurons with last emit beyond this many blocks.
@@ -243,17 +245,17 @@ class Metagraph():
     @staticmethod   
     def check_config(config: Munch):
         bittensor.wallet.Wallet.check_config( config )
-        
+
         # Switch based on network config item. 
         if config.metagraph.network != None:
             all_networks = ['akira', 'boltzmann', 'kusanagi']
             assert config.metagraph.network in all_networks, 'metagraph.network == {} not one of {}'.format(config.metagraph.network, all_networks)
             if config.metagraph.network == "akira":
-                config.metagraph.chain_endpoint == random.choice(bittensor.__akira_entrypoints__)
+                config.metagraph.chain_endpoint = random.choice(bittensor.__akira_entrypoints__)
             elif config.metagraph.network == "boltzmann":
-                config.metagraph.chain_endpoint == random.choice(bittensor.__boltzmann_entrypoints__)
+                config.metagraph.chain_endpoint = random.choice(bittensor.__boltzmann_entrypoints__)
             elif config.metagraph.network == "kusanagi":
-                config.metagraph.chain_endpoint == random.choice(bittensor.__kusanagi_entrypoints__)
+                config.metagraph.chain_endpoint = random.choice(bittensor.__kusanagi_entrypoints__)
             else:
                 raise ValueError('metagraph.network == {} not one of {}'.format(config.metagraph.network, all_networks))
 
@@ -261,11 +263,11 @@ class Metagraph():
         elif config.metagraph.chain_endpoint != None:
             all_entrypoints = bittensor.__akira_entrypoints__ + bittensor.__boltzmann_entrypoints__ + bittensor.__kusanagi_entrypoints__
             if not config.metagraph.chain_endpoint in all_entrypoints:
-                logger.info(config.metagraph.chain_endpoint in all_entrypoints, 'metagraph.chain_endpoint == {}, NOTE: not one of {}'.format(config.metagraph.chain_endpoint, all_entrypoints))
+                logger.info('metagraph.chain_endpoint == {}, NOTE: not one of {}', config.metagraph.chain_endpoint, all_entrypoints)
         
         # Neither are set.
         else:
-            assert ValueError('One of config.metagraph.chain_endpoint or config.metagraph.network must be set. Got {} and {}'.format(config.metagraph.chain_endpoint, config.metagraph.network))
+            raise ValueError('One of config.metagraph.chain_endpoint or config.metagraph.network must be set. Got {} and {}'.format(config.metagraph.chain_endpoint, config.metagraph.network))
 
 
     @property

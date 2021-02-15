@@ -249,6 +249,29 @@ class CommandExecutor:
         print(colored("Transfered: {} Tao to dest: {} from coldkey.pub: {}".format(amount.tao, dest, self.__keypair.public_key), 'green'))
 
 
+def check_endpoint(args):
+    # Switch based on network config item. 
+    if args.network != None:
+        all_networks = ['akira', 'boltzmann', 'kusanagi']
+        assert args.network in all_networks, 'metagraph.network == {} not one of {}'.format(args.network, all_networks)
+        if args.network == "akira":
+            args.chainendpoint = random.choice(bittensor.__akira_entrypoints__)
+        elif cargs.network == "boltzmann":
+            args.chainendpoint = random.choice(bittensor.__boltzmann_entrypoints__)
+        elif args.network == "kusanagi":
+            args.chainendpoint = random.choice(bittensor.__kusanagi_entrypoints__)
+        else:
+            raise ValueError('args.network == {} not one of {}'.format(args.network, all_networks))
+        print(colored('Using endpoint:{} for network:{}'.format(args.chainendpoint, args.network), 'red'))
+
+        # The chain endpoint it set.
+        elif args.chainendpoint != None:
+            pass
+
+        # Neither are set.
+        else:
+            print(colored('One of --chain-endpoint or --network must be set', 'red'))
+
 
 '''
 Functions :
@@ -289,9 +312,10 @@ def run(args):
 
     # --- Transfer command
     elif args.command == "transfer":
-        if not args.chainendpoint:
-            print(colored("The --chain-endpoint argument is required for this command", 'red'))
-            quit()
+
+        # Checks and sets network endpoint based on the args.
+        check_endpoint(args)
+
         if not args.dest:
             print(colored("The --dest argument is required for this command", 'red'))
             quit()
@@ -309,9 +333,10 @@ def run(args):
 
     # --- Overview command
     elif args.command == "overview":
-        if not args.chainendpoint:
-            print(colored("The --chain-endpoint argument is required for this command", 'red'))
-            quit()
+
+        # Checks and sets network endpoint based on the args.
+        check_endpoint(args)
+
         # ---- Get Executor for coldkey and endpoint.
         wallet_name = cli_utils.validate_wallet_name(args.wallet_name)
         coldkey_path = args.wallet_path + "/" + wallet_name + '/coldkey'
@@ -326,10 +351,10 @@ def run(args):
 
     # --- Unstake command
     elif args.command == "unstake":
-        if not args.chainendpoint:
-            print(colored("The --chain-endpoint argument is required for this command", 'red'))
-            quit()
 
+        # Checks and sets network endpoint based on the args.
+        check_endpoint(args)
+      
         # ---- Get Executor for coldkey and endpoint.
         wallet_name = cli_utils.validate_wallet_name(args.wallet_name)
         coldkey_path = args.wallet_path + "/" + wallet_name + '/coldkey'
@@ -361,9 +386,10 @@ def run(args):
         if args.amount is None:
             print(colored("The --amount argument is required for this command", 'red'))
             quit()
-        if not args.chainendpoint:
-            print(colored("The --chain-endpoint argument is required for this command", 'red'))
-            quit()
+
+        # Checks and sets network endpoint based on the args.
+        check_endpoint(args)
+
         # ---- Get Executor for coldkey and endpoint.
         wallet_name = cli_utils.validate_wallet_name(args.wallet_name)
         coldkey_path = args.wallet_path + "/" + wallet_name + '/coldkey'
@@ -455,8 +481,10 @@ def main():
     unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
     unstake_parser.add_argument('--uid', dest="uid", type=int, required=False)
     unstake_parser.add_argument('--amount', dest="amount", type=float, required=False)
-    unstake_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.akira.bittensor.com:9944", required=False, 
+    unstake_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
         help="The endpoint to the subtensor chain <hostname/ip>:<port>")
+    unstake_parser.add_argument("--network", dest="network", default="kusanagi", required=False, 
+        help="The bittensor network name i.e [kusanagi (mainnet), akira (testnet)] (NOTE: will override --chain-endpoint)")
     unstake_parser.add_argument('--wallets_path',  dest="wallet_path", default='~/.bittensor/wallets/', type=str, 
         help='''Path to your wallets directory (default: ~/.bittensor/wallets/)''')
     unstake_parser.add_argument("--wallet", dest="wallet_name", default='default', required=False,
@@ -465,16 +493,20 @@ def main():
     # Fill arguments for stake command.
     stake_parser.add_argument('--uid', dest="uid", type=int, required=False)
     stake_parser.add_argument('--amount', dest="amount", type=float, required=False)
-    stake_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.akira.bittensor.com:9944", required=False, 
+    stake_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
         help="The endpoint to the subtensor chain <hostname/ip>:<port>")
+    stake_parser.add_argument("--network", dest="network", default="kusanagi", required=False, 
+        help="The bittensor network name i.e [kusanagi (mainnet), akira (testnet)] (NOTE: will override --chain-endpoint)"")
     stake_parser.add_argument('--wallets_path',  dest="wallet_path", default='~/.bittensor/wallets/', type=str, 
         help='''Path to your wallets directory (default: ~/.bittensor/wallets/)''')
     stake_parser.add_argument("--wallet", dest="wallet_name", default='default', required=False,
         help="Path to the wallet which holds the hotkey-account you are staking to.")
 
     # Fill arguments for overview command.
-    overview_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.akira.bittensor.com:9944", required=False, 
+    overview_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
         help="The endpoint to the subtensor chain <hostname/ip>:<port>")
+    overview_parser.add_argument("--network", dest="network", default="kusanagi", required=False, 
+        help="The bittensor network name i.e [kusanagi (mainnet), akira (testnet)] (NOTE: will override --chain-endpoint)"")
     overview_parser.add_argument('--wallets_path', dest="wallet_path", default='~/.bittensor/wallets/', type=str, 
         help='''Path to your wallets directory (default: ~/.bittensor/wallets/)''')
     overview_parser.add_argument("--wallet", dest="wallet_name", default='default', required=False,
@@ -483,8 +515,10 @@ def main():
      # Fill arguments for transfer
     transfer_parser.add_argument('--dest', dest="dest", type=str, required=True)
     transfer_parser.add_argument('--amount', dest="amount", type=float, required=True)
-    transfer_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.akira.bittensor.com:9944", required=False, 
+    transfer_parser.add_argument("--chain-endpoint", dest="chainendpoint", default="feynman.kusanagi.bittensor.com:9944", required=False, 
         help="The endpoint to the subtensor chain <hostname/ip>:<port>")
+    transfer_parser.add_argument("--network", dest="network", default="kusanagi", required=False, 
+        help="The bittensor network name i.e [kusanagi (mainnet), akira (testnet)] (NOTE: will override --chain-endpoint)"")
     transfer_parser.add_argument('--wallets_path', dest="wallet_path", default='~/.bittensor/wallets/', type=str, 
         help='''Path to your wallets directory (default: ~/.bittensor/wallets/)''')
     transfer_parser.add_argument("--wallet", dest="wallet_name", default='default', required=False,
