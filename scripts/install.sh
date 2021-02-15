@@ -150,10 +150,9 @@ mac_activate_installed_python() {
 
 mac_install_bittensor() {
     ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
-    git clone https://github.com/opentensor/bittensor.git --branch network_config ~/.bittensor/bittensor/ #2> /dev/null  || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
-    ohai "Installing bittensor requirements"
-    cd ~/.bittensor/bittensor
-    python -m pip install -r requirements.txt
+    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
+    ohai "Installing bittensor"
+    python -m pip install -e ~/.bittensor/bittensor/
     deactivate
 }
 
@@ -211,7 +210,7 @@ ohai "Installation successful!"
 echo ""
 ohai "Next steps:"
 echo ""
-echo "- 1) Choose your network"
+echo "- 1) Choose your network: "
 echo "    $ export NETWORK=akira      # Test network (suggested)" 
 echo "    $ export NETWORK=kusanagi   # Main network (production)"
 echo ""
@@ -219,7 +218,7 @@ echo "- 2) Activate the installed python: "
 echo "    $ source ~/.bittensor/env/bin/activate"
 echo ""
 echo "- 3) Create a default wallet: "
-echo "    $ python ~/.bittensor/bittensor/bin/bittensor-cli new_default"
+echo "    $ bittensor-cli new_default"
 echo ""
 echo "- 4) (Optional) Open a port on your NAT: "
 echo "    See Docs: ${tty_underline}https://opentensor.github.io/index.html${tty_reset})"
