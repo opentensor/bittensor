@@ -150,9 +150,10 @@ mac_activate_installed_python() {
 
 mac_install_bittensor() {
     ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
-    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
-    ohai "Installing bittensor"
-    python -m pip install -e ~/.bittensor/bittensor/
+    git clone https://github.com/opentensor/bittensor.git --branch network_config ~/.bittensor/bittensor/ #2> /dev/null  || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
+    ohai "Installing bittensor requirements"
+    cd ~/.bittensor/bittensor
+    python -m pip install -r requirements.txt
     deactivate
 }
 
