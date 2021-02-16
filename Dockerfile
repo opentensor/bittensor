@@ -10,7 +10,7 @@ LABEL bittensor.image.authors="bittensor.com" \
 	bittensor.image.documentation="https://opentensor.bittensor.io"
 
 #set up environment
-RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y apt-utils curl git cmake build-essential unzip python3.7 python3-pip python3.7-dev wget
+RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y apt-utils curl git cmake build-essential unzip python3.7 python3-pip python3.7-dev wget iproute2
 RUN python3.7 -m pip install --upgrade pip
 
 # add Bittensor code to docker image
