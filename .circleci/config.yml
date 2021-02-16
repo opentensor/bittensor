@@ -90,21 +90,18 @@ jobs:
 
   "Run subtensor integration tests":
     executor: bittensor-executor
-      steps:
-        - checkout
-        - run: pip3 install cython
-        - run: pip3 install -r requirements.txt
-        - run: ./scripts/build_protos.sh
-        - run: ./scripts/create_wallet.sh
-        - run:
-            command: pip3 install -e .
-            name: setup
-        - run:
-            name: "Run integration tests for subtensor v1.0.1"
-            command: "export NODE_SUBTENSOR_BIN=/subtensor/subtensor-v1.0.1/bin/release/node-subtensor; pytest -n auto ./tests/integration_tests/subtensor/v1.0.1"
-#        - run:
-#            name: "Run integration tests for subtensor v1.0.2"
-#            command:
+    steps:
+      - checkout
+      - run: pip3 install cython
+      - run: pip3 install -r requirements.txt
+      - run: ./scripts/build_protos.sh
+      - run: ./scripts/create_wallet.sh
+      - run:
+          command: pip3 install -e .
+          name: setup
+      - run:
+          name: "Run integration tests for subtensor v1.0.1"
+          command: "export NODE_SUBTENSOR_BIN=/subtensor/v1.0.1/node-subtensor; pytest -n auto ./tests/integration_tests/subtensor/v1.0.1"
 #        - run:
 #            name: "Run integration tests for subtensor v1.1.0"
 #            command:
@@ -140,6 +137,9 @@ workflows:
               requires:
                 - "Build Bittensor"
       - "Run Integration Tests":
+              requires:
+                - "Build Bittensor"
+      - "Run subtensor integration tests":
               requires:
                 - "Build Bittensor"
       - "Push image to DockerHub":
