@@ -16,7 +16,8 @@ RUN python3.7 -m pip install --upgrade pip
 # add Bittensor code to docker image
 RUN mkdir /bittensor
 RUN mkdir /home/.bittensor
-RUN mkdir -p /subtensor/
+RUN mkdir -p /subtensor/v1.0.1
+RUN mkdir -p /subtensor/v1.1.0
 COPY . /bittensor
 
 WORKDIR /bittensor
@@ -24,7 +25,8 @@ RUN pip install --upgrade numpy pandas setuptools "tqdm>=4.27,<4.50.0" wheel
 RUN pip install -r requirements.txt
 RUN pip install -e .
 
-WORKDIR /subtensor/
-RUN wget https://github.com/opentensor/subtensor/archive/v1.0.1.zip
+WORKDIR /subtensor/v1.0.1
+RUN wget https://github.com/opentensor/subtensor/releases/download/v1.0.1/subtensor-v1.0.1-linux-unknown-gnu-x86_64.tar.gz
+RUN tar -xzf subtensor-v1.0.1-linux-unknown-gnu-x86_64.tar.gz
 
 EXPOSE 8091
