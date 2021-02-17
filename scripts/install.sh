@@ -153,7 +153,43 @@ mac_install_bittensor() {
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
     ohai "Installing bittensor"
     python -m pip install -e ~/.bittensor/bittensor/
+    deactivate
 }
+
+install_subtensor() {
+    ohai "Cloning subtensor@master into ~/.bittensor/subtensor"
+    mkdir -p ~/.bittensor/subtensor/
+    git clone --single-branch --branch mac_release https://github.com/opentensor/subtensor.git ~/.bittensor/subtensor/ 2> /dev/null || (cd ~/.bittensor/subtensor/ ; git fetch origin mac_release ; git pull --ff-only origin mac_release)
+    
+    ohai "Copying ~/.bittensor/subtensor/bin/release/subtensor to /usr/local/bin/subtensor"
+    OS="$(uname)"
+    if [[ "$OS" == "Linux" ]]; then
+        BINARY="linux-node-subtensor"
+    elif [[ "$OS" == "Darwin" ]]; then
+        BINARY="mac-node-subtensor"
+    fi 
+    cp ~/.bittensor/subtensor/bin/release/$BINARY /usr/local/bin/subtensor
+
+    ohai "Loading genesis blocks"
+    mkdir -p ~/.bittensor/subtensor_data/
+
+    echo "akira_genesis_light -> ~/.bittensor/subtensor_data/akira/light"
+    mkdir -p ~/.bittensor/subtensor_data/akira/light
+    tar -xf ~/.bittensor/subtensor/bin/release/akira_genesis_light.tar -C ~/.bittensor/subtensor_data/akira/light
+    
+    echo "akira_genesis_full -> ~/.bittensor/subtensor_data/akira/full"
+    mkdir -p ~/.bittensor/subtensor_data/akira/full
+    tar -xf ~/.bittensor/subtensor/bin/release/akira_genesis_full.tar -C ~/.bittensor/subtensor_data/akira/full
+    
+    echo "kusanagi_genesis_light -> ~/.bittensor/subtensor_data/kusanagi/light"
+    mkdir -p ~/.bittensor/subtensor_data/kusanagi/light
+    tar -xf ~/.bittensor/subtensor/bin/release/kusanagi_genesis_light.tar -C ~/.bittensor/subtensor_data/kusanagi/light
+    
+    echo "kusanagi_genesis_full -> ~/.bittensor/subtensor_data/kusanagi/full"
+    mkdir -p ~/.bittensor/subtensor_data/kusanagi/full
+    tar -xf ~/.bittensor/subtensor/bin/release/kusanagi_genesis_full.tar -C ~/.bittensor/subtensor_data/kusanagi/full
+}
+
 
 # Do install.
 OS="$(uname)"
@@ -173,13 +209,14 @@ if [[ "$OS" == "Linux" ]]; then
     echo "python3.8"
     echo "python3.8-pip"
     echo "bittensor"
+    echo "subtensor"
 
     wait_for_user
     linux_install_pre
     linux_install_python
     linux_activate_installed_python
     linux_install_bittensor
-    deactivate
+    install_subtensor
 
 elif [[ "$OS" == "Darwin" ]]; then
     ohai "This script will install:"
@@ -190,6 +227,7 @@ elif [[ "$OS" == "Darwin" ]]; then
     echo "python3.7"
     echo "python3.7-pip"
     echo "bittensor"
+    echo "subtensor"
 
     wait_for_user
     mac_install_brew
@@ -197,7 +235,8 @@ elif [[ "$OS" == "Darwin" ]]; then
     mac_install_python
     mac_activate_installed_python
     mac_install_bittensor
-    deactivate
+    install_subtensor
+
 else
   abort "Bittensor is only supported on macOS and Linux"
 fi
@@ -210,21 +249,24 @@ ohai "Installation successful!"
 echo ""
 ohai "Next steps:"
 echo ""
-echo "- 1) Activate the installed python "
+echo "- 1) Sync your chain: (this will take sometime)"
+echo "    Testnet: "
+echo "    subtensor --base-path ~/.bittensor/subtensor_data/akira/light/ --light --chain akira"
+echo ""
+echo "    Mainnet: "
+echo "    subtensor --base-path ~/.bittensor/subtensor_data/kusanagi/light/ --light"
+echo ""
+echo "- 2) Activate the installed python: "
 echo "    source ~/.bittensor/env/bin/activate"
 echo ""
-echo "- 2) Create a new default wallet: "
-echo "    python ~/.bittensor/bittensor/bin/bittensor-cli new_wallet"
+echo "- 3) Create a default wallet: "
+echo "    python ~/.bittensor/bittensor/bin/bittensor-cli new_default"
 echo ""
-echo "- 3) Choose a network: "
-echo "    export MAINNET=feynman.kusanagi.bittensor.com:9944"
-echo "    export TESTNET=feynman.akira.bittensor.com:9944"
-echo ""
-echo "- 4) (Optional) Open a port on your NAT"
+echo "- 4) (Optional) Open a port on your NAT: "
 echo "    See Docs: ${tty_underline}https://opentensor.github.io/index.html${tty_reset})"
 echo ""
 echo "- 5) Run a miner: "
-echo "    i.e. python ~/.bittensor/bittensor/examples/TEXT/gpt2_wiki.py --metagraph.chain_endpoint <network_url> "        
+echo "    i.e. python ~/.bittensor/bittensor/miners/TEXT/gpt2_wiki.py "        
 echo ""
 ohai "Extras:"
 echo ""
