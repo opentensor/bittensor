@@ -26,6 +26,7 @@ from torch.utils.tensorboard import SummaryWriter
 from bittensor.utils.model_utils import ModelToolbox
 from synapses.gpt2 import GPT2LMSynapse, nextbatch
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
+from transformers import GPT2Tokenizer
 
 class Miner():
     """
@@ -172,7 +173,7 @@ class Miner():
         self.training_loss = 0.0
         for local_step in range(self.config.miner.epoch_length):
             # ---- Forward pass ----
-            inputs = nextbatch(self.dataset, self.config.miner.batch_size_train, bittensor.__tokenizer__())
+            inputs = nextbatch(self.dataset, self.config.miner.batch_size_train, bittensor.__tokenizer__(pretrained_model="gpt2"))
             output = self.model.remote_forward(
                 self.neuron,
                 inputs.to(self.model.device),
