@@ -86,6 +86,7 @@ class Miner():
         parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
         parser.add_argument('--miner.record_log', default=True, help='Record all logs when running this miner')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
+        parser.add_argument('--miner.wallet', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         GPT2LMSynapse.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 
