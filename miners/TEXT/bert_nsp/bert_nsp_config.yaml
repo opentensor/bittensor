@@ -13,7 +13,7 @@ receptor:
   stale_emit_filter: 10000
   topk: 10
 metagraph:
-  chain_endpoint: feynman.akira.bittensor.com:9944 # Test network
+  network: akira # Test network
   stale_emit_filter: 10000
 miner:
   accumulation_interval: 5
