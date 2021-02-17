@@ -7,7 +7,7 @@
 
 ---
 
-### Incentivized Peer to Peer Neural Networks
+### Internet scale Neural Networks
 
 [Discord](https://discord.gg/3rUr6EcvbB) • [Docs](https://opentensor.github.io/index.html) • [Network](https://www.bittensor.com/metagraph) • [Research](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/5fa940aea6a95b870067cf09_bittensor.pdf) • [Code](https://github.com/opentensor/BitTensor)
 
@@ -23,28 +23,15 @@ $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/opentensor/bitten
 ```
 If you wish to run bittensor through a docker container, create a new wallet, and run docker-compose:
 ```
-$ bin/bittensor-cli new_wallet                                                      # Generate default keys	
+$ bin/bittensor-cli new_default                                                     # Generate default keys	
 $ docker-compose up
 ```
 
-# Running the chain
-
-Execute the following commands to install and run the mainnet chain locally. You can then connect your miners to this local node.
-
-```
-$ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
-$ ./bin/release/node-subtensor                                                      # Start the binary
-```
-You can also run the subtensor chain through a docker container:
-```
-$ git clone https://github.com/opentensor/subtensor                                 # Clone subtensor
-$ docker-compose up
-```
 ---
 
 ### License
 The MIT License (MIT)
-Copyright © 2021 opentensor.ai
+Copyright © 2021 Yuma Rao
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
