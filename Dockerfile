@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.2-base
+FROM nvidia/cuda:11.2.1-base
 
 LABEL bittensor.image.authors="bittensor.com" \
 	bittensor.image.vendor="Bittensor" \
@@ -9,8 +9,12 @@ LABEL bittensor.image.authors="bittensor.com" \
 	bittensor.image.created="${BUILD_DATE}" \
 	bittensor.image.documentation="https://opentensor.bittensor.io"
 
-#set up environment
-RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y apt-utils curl git cmake build-essential unzip python3.7 python3-pip python3.7-dev wget iproute2
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y apt-utils curl git cmake build-essential unzip python3-pip  wget iproute2 software-properties-common
+
+RUN add-apt-repository ppa:deadsnakes/ppa
+RUN apt-get update
+RUN apt-get install python3.7 python3.7-dev -y
 RUN python3.7 -m pip install --upgrade pip
 
 # add Bittensor code to docker image
