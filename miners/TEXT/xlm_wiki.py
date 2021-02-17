@@ -26,7 +26,6 @@ from loguru import logger
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 from datasets import load_dataset
 from torch.utils.tensorboard import SummaryWriter
-from transformers import XLMTokenizer
 
 
 
