@@ -228,7 +228,7 @@ class Metagraph():
                                         -- feynman.kusanagi.bittensor.com:12345 (mainnet)
                                     If metagraph.network is set it is overloaded by metagraph.network.
                                     ''')
-            parser.add_argument('--metagraph.network', default='akira', type=str, 
+            parser.add_argument('--metagraph.network', default=None, type=str, 
                                 help='''The subtensor network flag. The likely choices are:
                                         -- akira (testing network)
                                         -- kusanagi (main network)
@@ -245,6 +245,11 @@ class Metagraph():
     @staticmethod   
     def check_config(config: Munch):
         bittensor.wallet.Wallet.check_config( config )
+
+        # Neither are set, default to akira.
+        if config.metagraph.network == None and config.metagraph.chain_endpoint == None:
+            logger.info('Defaulting to network: akira')
+            config.metagraph.network = 'akira'
 
         # Switch based on network config item. 
         if config.metagraph.network != None:
@@ -264,11 +269,6 @@ class Metagraph():
             all_entrypoints = bittensor.__akira_entrypoints__ + bittensor.__boltzmann_entrypoints__ + bittensor.__kusanagi_entrypoints__
             if not config.metagraph.chain_endpoint in all_entrypoints:
                 logger.info('metagraph.chain_endpoint == {}, NOTE: not one of {}', config.metagraph.chain_endpoint, all_entrypoints)
-        
-        # Neither are set.
-        else:
-            raise ValueError('One of config.metagraph.chain_endpoint or config.metagraph.network must be set. Got {} and {}'.format(config.metagraph.chain_endpoint, config.metagraph.network))
-
 
     @property
     def n(self) -> int:
