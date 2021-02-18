@@ -5,7 +5,7 @@ sys.path.append("miners/TEXT/")
 import bittensor
 import torch
 import numpy
-from gpt2_genesis import Miner
+from gpt2_genesis.gpt2_genesis import Miner
 
 
 def test_run_gpt2_genesis():
