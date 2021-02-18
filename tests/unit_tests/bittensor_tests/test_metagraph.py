@@ -3,7 +3,7 @@ import unittest
 import pytest
 from munch import Munch
 import bittensor
-from bittensor.substrate import Keypair
+from bittensor.substrate.base import Keypair
 
 metagraph = None
 

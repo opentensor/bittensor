@@ -3,7 +3,7 @@ from loguru import logger
 from munch import Munch
 
 import bittensor
-from bittensor.substrate import Keypair
+from bittensor.substrate.base import Keypair
 
 def test_create_neuron():
     neuron = bittensor.neuron.Neuron()

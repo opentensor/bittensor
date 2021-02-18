@@ -48,13 +48,13 @@ class Wallet():
         self._coldkeypub = None
 
     @property
-    def hotkey(self) -> bittensor.substrate.Keypair:
+    def hotkey(self) -> bittensor.substrate.base.Keypair:
         if self._hotkey == None:
             self._load_hotkey()
         return self._hotkey
 
     @property
-    def coldkey(self) -> bittensor.substrate.Keypair:
+    def coldkey(self) -> bittensor.substrate.base.Keypair:
         if self._coldkey == None:
             self._load_coldkey( )
         return self._coldkey
@@ -105,7 +105,7 @@ class Wallet():
             logger.info("Loaded hotkey: {}", self._hotkey.public_key)
 
     def _load_coldkeypub(self):
-        keyfile = os.path.expanduser( self.config.wallet.coldkeypubfile )
+        keyfile = os.path.expanduser( self.coldkeypubfile )
         keyfile = os.path.expanduser(keyfile)
 
         if not os.path.isfile(keyfile):
@@ -186,8 +186,8 @@ class Wallet():
         return st.st_mode & stat.S_IROTH
 
     @staticmethod
-    def __create_keypair() -> bittensor.substrate.Keypair:
-        return bittensor.substrate.Keypair.create_from_mnemonic(bittensor.substrate.Keypair.generate_mnemonic())
+    def __create_keypair() -> bittensor.substrate.base.Keypair:
+        return bittensor.substrate.base.Keypair.create_from_mnemonic(bittensor.substrate.base.Keypair.generate_mnemonic())
 
     @staticmethod
     def __save_keypair(keypair : bittensor.substrate.Keypair, path : str):
