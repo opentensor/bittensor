@@ -3,7 +3,7 @@ import unittest
 import pytest
 from munch import Munch
 import bittensor
-from bittensor.subtensor.interface import Keypair
+from bittensor.substrate import Keypair
 
 metagraph = None
 
@@ -14,23 +14,23 @@ def test_create( ):
 
 def test_check_config_network_not_exists_defaults_akira( ):
     config = bittensor.metagraph.Metagraph.build_config()
-    config.metagraph.network = None
-    config.metagraph.chain_endpoint = None
+    config.subtensor.network = None
+    config.subtensor.chain_endpoint = None
     bittensor.metagraph.Metagraph.check_config(config)
-    assert config.metagraph.network == 'akira'
-    assert config.metagraph.chain_endpoint in bittensor.__akira_entrypoints__
+    assert config.subtensor.network == 'akira'
+    assert config.subtensor.chain_endpoint in bittensor.__akira_entrypoints__
 
 def test_check_config_network_to_endpoint():
     config = bittensor.metagraph.Metagraph.build_config()
-    config.metagraph.network = 'akira'
+    config.subtensor.network = 'akira'
     bittensor.metagraph.Metagraph.check_config(config)
-    assert config.metagraph.chain_endpoint in bittensor.__akira_entrypoints__
-    config.metagraph.network = 'boltzmann'
+    assert config.subtensor.chain_endpoint in bittensor.__akira_entrypoints__
+    config.subtensor.network = 'boltzmann'
     bittensor.metagraph.Metagraph.check_config(config)
-    assert config.metagraph.chain_endpoint in bittensor.__boltzmann_entrypoints__
-    config.metagraph.network = 'kusanagi'
+    assert config.subtensor.chain_endpoint in bittensor.__boltzmann_entrypoints__
+    config.subtensor.network = 'kusanagi'
     bittensor.metagraph.Metagraph.check_config(config)
-    assert config.metagraph.chain_endpoint in bittensor.__kusanagi_entrypoints__
+    assert config.subtensor.chain_endpoint in bittensor.__kusanagi_entrypoints__
 
 def test_convert_weight_order_should_work_last( ):
     MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.

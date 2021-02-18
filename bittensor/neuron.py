@@ -48,6 +48,7 @@ class Neuron:
     def __init__(self, 
                 config: Munch = None, 
                 wallet: 'bittensor.wallet.Wallet' = None, 
+                subtensor: 'bittensor.subtensor.Subtensor' = None,
                 metagraph: 'bittensor.metagraph.Metagraph' = None,
                 nucleus: 'bittensor.nucleus.Nucleus' = None,
                 axon: 'bittensor.axon.Axon' = None,
@@ -60,6 +61,8 @@ class Neuron:
                     neuron.Neuron.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
+                subtensor (:obj:`bittensor.subtensor.Subtensor`, `optional`):
+                    subtensor interface utility.
                 metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
                     bittensor network metagraph.
                 nucleus (:obj:`bittensor.nucleus.Nucleus`, `optional`):
@@ -80,21 +83,25 @@ class Neuron:
         if wallet == None:
             wallet = bittensor.wallet.Wallet(self.config)
         self.wallet = wallet
+        # Subtensor: provides an interface to the subtensor chain given a wallet.
+        if subtensor == None:
+            subtensor = bittensor.subtensor.Subtensor( self.config, self.wallet )
+        self.subtensor = subtensor
         # Metagraph: Maintains a connection to the subtensor chain and hold chain state.
         if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph(config = self.config, wallet = wallet)
+            metagraph = bittensor.metagraph.Metagraph(config = self.config, wallet = self.wallet, subtensor = self.subtensor)
         self.metagraph = metagraph
         # Nucleus: Processes requests passed to this neuron on its axon endpoint.
         if nucleus == None:
-            nucleus = bittensor.nucleus.Nucleus(config = self.config, wallet = wallet, metagraph = self.metagraph)
+            nucleus = bittensor.nucleus.Nucleus(config = self.config, wallet = self.wallet, metagraph = self.metagraph)
         self.nucleus = nucleus
         # Axon: RPC server endpoint which serves your synapse. Responde to Forward and Backward requests.
         if axon == None:
-            axon = bittensor.axon.Axon(config = self.config, wallet = wallet, nucleus = self.nucleus, metagraph = self.metagraph)
+            axon = bittensor.axon.Axon(config = self.config, wallet = self.wallet, nucleus = self.nucleus, metagraph = self.metagraph)
         self.axon = axon
         # Dendrite: RPC client makes Forward and Backward requests to downstream peers.
         if dendrite == None:
-            dendrite = bittensor.dendrite.Dendrite(config = self.config, wallet = wallet, metagraph = self.metagraph)
+            dendrite = bittensor.dendrite.Dendrite(config = self.config, wallet = self.wallet, metagraph = self.metagraph)
         self.dendrite = dendrite
 
     def serve(self, synapse: 'bittensor.synapse.Synapse'):
@@ -119,7 +126,7 @@ class Neuron:
             code, message = self.metagraph.connect(timeout=12)
             if code != bittensor.metagraph.Metagraph.ConnectSuccess:
                 logger.error('Neuron: Timeout while subscribing to the chain endpoint with message {}', message)
-                logger.error('Check that your internet connection is working and the chain endpoint {} is available', self.config.metagraph.chain_endpoint)
+                logger.error('Check that your internet connection is working and the chain endpoint {} is available', self.config.subtensor.chain_endpoint)
                 failed_connect_msg_help = ''' The subtensor chain endpoint should likely be one of the following choices:
                                         -- localhost:9944 -- (your locally running node)
                                         -- feynman.akira.bittensor.com:9944 (testnet)

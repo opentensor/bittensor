@@ -6,11 +6,13 @@ import bittensor.bittensor_pb2_grpc as grpc
 
 import bittensor.axon
 import bittensor.config 
+import bittensor.executor
 import bittensor.dendrite
 import bittensor.metagraph
 import bittensor.neuron
 import bittensor.nucleus
 import bittensor.receptor
+import bittensor.subtensor
 import bittensor.synapse
 import bittensor.wallet
 

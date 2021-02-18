@@ -137,7 +137,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         tensor, message, code = self._forward(request)
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version__, 
-            public_key = self.wallet.keypair.public_key, 
+            public_key = self.wallet.hotkey.public_key, 
             return_code = code,
             message = message,
             tensors = [tensor] if tensor is not None else [],
@@ -167,7 +167,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         tensor, message, code = self._backward(request)
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version__, 
-            public_key = self.wallet.keypair.public_key, 
+            public_key = self.wallet.hotkey.public_key, 
             return_code = code,
             message = message,
             tensors = [tensor] if tensor is not None else [],

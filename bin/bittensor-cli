@@ -171,122 +171,10 @@ class CommandExecutor:
         self.__client.connect()
         await self.__client.is_connected()
 
-    async def _associated_neurons(self) -> Neurons:
-        pubkey = self.__keypair.public_key
-        print(colored("Retrieving all nodes associated with cold key : {}".format(pubkey), 'white'))
-        neurons = await self.__client.neurons(decorator=True)
-        result = filter(lambda x : x.coldkey == pubkey, neurons )# These are the neurons associated with the provided cold key
-        associated_neurons = Neurons(result)
-        # Load stakes
-        for neuron in associated_neurons:
-            neuron.stake = await self.__client.get_stake_for_uid(neuron.uid)
-        return associated_neurons
 
-    async def overview(self):
-        await self.connect()
-        balance = await self.__client.get_balance(self.__keypair.ss58_address)
-        neurons = await self._associated_neurons()
-
-        print("BALANCE: %s : [%s]" % (self.__keypair.ss58_address, balance))
-        print()
-        print("--===[[ STAKES ]]===--")
-        t = PrettyTable(["UID", "IP", "STAKE"])
-        t.align = 'l'
-        total_stake = 0.0
-        for neuron in neurons:
-            t.add_row([neuron.uid, neuron.ip, neuron.stake])
-            total_stake += neuron.stake.__float__()
-        print(t.get_string())
-        print("Total stake: ", total_stake)
-
-    async def unstake_all(self):
-        await self.connect()
-        neurons = await self._associated_neurons()
-        for neuron in neurons:
-            neuron.stake = await self.__client.get_stake_for_uid(neuron.uid)
-            await self.__client.unstake(neuron.stake, neuron.hotkey)
-            print(colored("Unstaked: {} Tao from uid: {} to coldkey.pub: {}".format(neuron.stake, neuron.uid, self.__keypair.public_key), 'green'))
-
-    async def unstake(self, uid, amount: Balance):
-        await self.connect()
-        neurons = await self._associated_neurons()
-        neuron = neurons.get_by_uid(uid)
-        if not neuron:
-            print(colored("Neuron with uid: {} is not associated with coldkey.pub: {}".format(uid, self.__keypair.public_key), 'red'))
-            quit()
-
-        neuron.stake = await self.__client.get_stake_for_uid(uid)
-        if amount > neuron.stake:
-            print(colored("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format(uid, neuron.stake, amount), 'red'))
-            quit()
-
-        await self.__client.unstake(amount, neuron.hotkey)
-        print(colored("Unstaked:{} from uid:{} to coldkey.pub:{}".format(amount.tao, uid, self.__keypair.public_key), 'green'))
-
-
-    async def stake(self, uid, amount: Balance):
-        await self.connect()
-        balance = await self.__client.get_balance(self.__keypair.ss58_address)
-        if balance < amount:
-            print(colored("Not enough balance ({}) to stake {}".format(balance, amount), 'red'))
-            quit()
-
-        neurons = await self._associated_neurons()
-        neuron = neurons.get_by_uid(uid)
-        if not neuron:
-            print(colored("Neuron with uid: {} is not associated with coldkey.pub: {}".format(uid, self.__keypair.public_key), 'red'))
-            quit()
-
-        await self.__client.add_stake(amount, neuron.hotkey)
-        print(colored("Staked: {} Tao to uid: {} from coldkey.pub: {}".format(amount.tao, uid, self.__keypair.public_key), 'green'))
-
-    async def transfer(self, dest: str, amount: Balance):
-        await self.connect()
-        balance = await self.__client.get_balance(self.__keypair.ss58_address)
-        if balance < amount:
-            print(colored("Not enough balance ({}) to transfer {}".format(balance, amount), 'red'))
-            quit()
-
-        await self.__client.transfer(dest, amount)
-        print(colored("Transfered: {} Tao to dest: {} from coldkey.pub: {}".format(amount.tao, dest, self.__keypair.public_key), 'green'))
-
-
-def check_endpoint(args):
-    # Switch based on network config item. 
-    if args.network != None:
-        all_networks = ['akira', 'boltzmann', 'kusanagi']
-        assert args.network in all_networks, 'metagraph.network == {} not one of {}'.format(args.network, all_networks)
-        if args.network == "akira":
-            args.chainendpoint = random.choice(bittensor.__akira_entrypoints__)
-        elif args.network == "boltzmann":
-            args.chainendpoint = random.choice(bittensor.__boltzmann_entrypoints__)
-        elif args.network == "kusanagi":
-            args.chainendpoint = random.choice(bittensor.__kusanagi_entrypoints__)
-        else:
-            raise ValueError('args.network == {} not one of {}'.format(args.network, all_networks))
-        print(colored('Using endpoint: {} for network: {}'.format(args.chainendpoint, args.network), 'green'))
-
-    # The chain endpoint it set.
-    elif args.chainendpoint != None:
-        pass
-
-    # Neither are set.
-    else:
-        print(colored('One of --chain-endpoint or --network must be set', 'red'))
-
-
-'''
-Functions :
-- Generate cold key
-- View balance
-- View hotkeys associated with the supplied cold key
-- Stake funds into hotkey ( one by one / amount devided equally over keys)
-- Unstake funds into coldkey (one by one / withdraw all)
-'''
 def run(args):
     cli_utils.enable_debug(args.debug)
     cli_utils.create_dirs()
-    loop = asyncio.get_event_loop()
 
     # --- New wallet command
     if args.command == "new_wallet":
@@ -388,17 +276,6 @@ def run(args):
         if args.amount is None:
             print(colored("The --amount argument is required for this command", 'red'))
             quit()
-
-        # Checks and sets network endpoint based on the args.
-        check_endpoint(args)
-
-        # ---- Get Executor for coldkey and endpoint.
-        wallet_name = cli_utils.validate_wallet_name(args.wallet_name)
-        coldkey_path = args.wallet_path + "/" + wallet_name + '/coldkey'
-        cli_utils.validate_path(coldkey_path)
-        keypair = cli_utils.load_key(coldkey_path)
-        client = cli_utils.get_client(args.chainendpoint, keypair)
-        executor = CommandExecutor(keypair, client)
 
         # ---- Run command stake.
         amount = Balance.from_float(args.amount)

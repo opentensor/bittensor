@@ -13,7 +13,7 @@ class AsyncMock(MagicMock):
         
 def test_run_xlm_clm():
     xlm_clm_session_config = Miner.build_config()
-    xlm_clm_session_config.metagraph.chain_endpoint = 'feynman.akira.bittensor.com:9944'
+    xlm_clm_session_config.subtensor.chain_endpoint = 'feynman.akira.bittensor.com:9944'
     xlm_clm_session_config.miner.n_epochs = 1
     xlm_clm_session_config.miner.epoch_length = 1
     xlm_clm_session_config.synapse.causal = True
@@ -25,7 +25,7 @@ def test_run_xlm_clm():
     xlm_clm_session.neuron.metagraph.sync = MagicMock()  
     neuron = bittensor.proto.Neuron(
         version = bittensor.__version__,
-        public_key = xlm_clm_session.neuron.wallet.keypair.public_key,
+        public_key = xlm_clm_session.neuron.wallet.hotkey.public_key,
         address = xlm_clm_session_config.axon.external_ip,
         port = xlm_clm_session_config.axon.external_port,
         uid = 0,
@@ -38,7 +38,7 @@ def test_run_xlm_clm():
     xlm_clm_session.neuron.metagraph.state.uids = torch.tensor([0], dtype=torch.int64)
     xlm_clm_session.neuron.metagraph.state.lastemit = torch.tensor([0], dtype=torch.int64)
     xlm_clm_session.neuron.metagraph.state.stake = torch.tensor([0], dtype=torch.float32)
-    xlm_clm_session.neuron.metagraph.state.uid_for_pubkey[xlm_clm_session.neuron.wallet.keypair.public_key] = 0
+    xlm_clm_session.neuron.metagraph.state.uid_for_pubkey[xlm_clm_session.neuron.wallet.hotkey.public_key] = 0
     xlm_clm_session.neuron.metagraph.state.index_for_uid[0] = 0
     xlm_clm_session.neuron.metagraph.state.W = torch.tensor( numpy.ones( (1, 1) ), dtype=torch.float32)
     xlm_clm_session.run()
