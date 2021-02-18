@@ -228,7 +228,7 @@ class Metagraph():
                                         -- feynman.kusanagi.bittensor.com:12345 (mainnet)
                                     If metagraph.network is set it is overloaded by metagraph.network.
                                     ''')
-            parser.add_argument('--metagraph.network', default='akira', type=str, 
+            parser.add_argument('--metagraph.network', default=None, type=str, 
                                 help='''The subtensor network flag. The likely choices are:
                                         -- akira (testing network)
                                         -- kusanagi (main network)

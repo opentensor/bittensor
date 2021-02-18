@@ -20,7 +20,6 @@ def test_check_config_network_not_exists_defaults_akira( ):
     assert config.metagraph.network == 'akira'
     assert config.metagraph.chain_endpoint in bittensor.__akira_entrypoints__
 
-
 def test_check_config_network_to_endpoint():
     config = bittensor.metagraph.Metagraph.build_config()
     config.metagraph.network = 'akira'
