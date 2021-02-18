@@ -24,7 +24,7 @@ import pytest
 
 from scalecodec.base import RuntimeConfiguration, ScaleType
 
-from bittensor.subtensor.interface import SubstrateWSInterface, Keypair, SubstrateRequestException
+from bittensor.substrate import SubstrateWSInterface, Keypair, SubstrateRequestException
 from .settings import *
 
 

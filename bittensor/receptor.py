@@ -289,7 +289,7 @@ class _ReceptorCall(torch.autograd.Function):
             # ---- Build request ----
             request = bittensor.proto.TensorMessage(
                 version = bittensor.__version__,
-                public_key = ctx.caller.wallet.keypair.public_key,
+                public_key = ctx.caller.wallet.hotkey.public_key,
                 nounce = ctx.caller.nounce,
                 signature = ctx.caller.signature,
                 tensors = [serialized_inputs])
@@ -427,7 +427,7 @@ class _ReceptorCall(torch.autograd.Function):
                 # ---- Build request for backward ----
                 request = bittensor.proto.TensorMessage(
                     version = bittensor.__version__,
-                    public_key = ctx.caller.wallet.keypair.public_key,
+                    public_key = ctx.caller.wallet.hotkey.public_key,
                     nounce = ctx.caller.nounce,
                     signature = ctx.caller.signature,
                     tensors = [serialized_inputs, serialized_grads])

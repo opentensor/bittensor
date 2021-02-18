@@ -36,7 +36,7 @@ from typing import List, Tuple, List
 import bittensor
 import bittensor.config as config_utils
 import bittensor.utils.networking as net
-from bittensor.subtensor.client import WSClient
+from bittensor.subtensor import Subtensor
 from bittensor.exceptions.handlers import rollbar
 
 MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
@@ -178,7 +178,12 @@ class Metagraph():
     emissions, setting node weights, asynchronous synchronization with the chain, and chain subscriptions. 
 
     """
-    def __init__(self, config: 'Munch' = None, wallet: 'bittensor.wallet.Wallet' = None):
+    def __init__(   
+            self, 
+            config: 'Munch' = None, 
+            wallet: 'bittensor.wallet.Wallet' = None,
+            subtensor: 'bittensor.subtensor.Subtensor' = None
+        ):
         r""" Initializes a new Metagraph chain interface.
             Args:
                 config (:obj:`Munch`, `optional`): 
@@ -194,8 +199,9 @@ class Metagraph():
             wallet = bittensor.wallet.Wallet( self.config )
         self.wallet = wallet
 
-        # Client for talking to chain.
-        self.subtensor_client = WSClient(self.config.metagraph.chain_endpoint, keypair = self.wallet.keypair)
+        if subtensor == None:
+            subtensor = bittensor.subtensor.Subtensor( self.config, self.wallet )
+        self.subtensor = subtensor
 
         # This neurons metadata on chain, initially None, filled on subscribe.
         self.uid = None
@@ -220,21 +226,8 @@ class Metagraph():
     def add_args(parser: argparse.ArgumentParser):
         # TODO(const): check this endpoint in check_config.
         bittensor.wallet.Wallet.add_args( parser )
+        bittensor.subtensor.Subtensor.add_args( parser )
         try:
-            parser.add_argument('--metagraph.chain_endpoint', default=None, type=str, 
-                                help='''The subtensor chain endpoint. The likely choices are:
-                                        -- localhost:9944 -- (your locally running node)
-                                        -- feynman.akira.bittensor.com:9944 (testnet)
-                                        -- feynman.kusanagi.bittensor.com:12345 (mainnet)
-                                    If metagraph.network is set it is overloaded by metagraph.network.
-                                    ''')
-            parser.add_argument('--metagraph.network', default=None, type=str, 
-                                help='''The subtensor network flag. The likely choices are:
-                                        -- akira (testing network)
-                                        -- kusanagi (main network)
-                                    If this option is set it overloads metagraph.chain_endpoint with 
-                                    an entry point node from that network.
-                                    ''')
             parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
                                 help='''The metagraph filters neurons with last emit beyond this many blocks.
                                         Note, this is used to trim the graph size,
@@ -245,30 +238,7 @@ class Metagraph():
     @staticmethod   
     def check_config(config: Munch):
         bittensor.wallet.Wallet.check_config( config )
-
-        # Neither are set, default to akira.
-        if config.metagraph.network == None and config.metagraph.chain_endpoint == None:
-            logger.info('Defaulting to network: akira')
-            config.metagraph.network = 'akira'
-
-        # Switch based on network config item. 
-        if config.metagraph.network != None:
-            all_networks = ['akira', 'boltzmann', 'kusanagi']
-            assert config.metagraph.network in all_networks, 'metagraph.network == {} not one of {}'.format(config.metagraph.network, all_networks)
-            if config.metagraph.network == "akira":
-                config.metagraph.chain_endpoint = random.choice(bittensor.__akira_entrypoints__)
-            elif config.metagraph.network == "boltzmann":
-                config.metagraph.chain_endpoint = random.choice(bittensor.__boltzmann_entrypoints__)
-            elif config.metagraph.network == "kusanagi":
-                config.metagraph.chain_endpoint = random.choice(bittensor.__kusanagi_entrypoints__)
-            else:
-                raise ValueError('metagraph.network == {} not one of {}'.format(config.metagraph.network, all_networks))
-
-        # The chain endpoint it set.
-        elif config.metagraph.chain_endpoint != None:
-            all_entrypoints = bittensor.__akira_entrypoints__ + bittensor.__boltzmann_entrypoints__ + bittensor.__kusanagi_entrypoints__
-            if not config.metagraph.chain_endpoint in all_entrypoints:
-                logger.info('metagraph.chain_endpoint == {}, NOTE: not one of {}', config.metagraph.chain_endpoint, all_entrypoints)
+        bittensor.subtensor.Subtensor.check_config( config )
 
     @property
     def n(self) -> int:
@@ -550,8 +520,8 @@ class Metagraph():
                     weights on chain as torch tensor.
         """
         # --- Get chain weights ----
-        chain_uids = await self.subtensor_client.weight_uids(self.metadata['uid'])
-        chain_weights = await self.subtensor_client.weight_vals(self.metadata['uid'])
+        chain_uids = await self.subtensor.weight_uids(self.metadata['uid'])
+        chain_weights = await self.subtensor.weight_vals(self.metadata['uid'])
         if chain_weights == None or len(chain_weights) == 0:
             return torch.tensor([])
 
@@ -591,7 +561,7 @@ class Metagraph():
         Returns:
             block: (int) block number on chain.
         """
-        return await self.subtensor_client.get_current_block()
+        return await self.subtensor.get_current_block()
 
     def sync(self):
         r""" Synchronizes the local self.state with the chain state.
@@ -614,9 +584,9 @@ class Metagraph():
         # Make asyncronous calls to chain filling local state cache.
         calls = []
         current_block = await self.async_chain_block()
-        active = dict( await self.subtensor_client.get_active() )
-        last_emit = dict( await self.subtensor_client.get_last_emit_data() )
-        calls.append ( self._poll_uid ( self.wallet.keypair.public_key, self.uid ) )        
+        active = dict( await self.subtensor.get_active() )
+        last_emit = dict( await self.subtensor.get_last_emit_data() )
+        calls.append ( self._poll_uid ( self.wallet.hotkey.public_key, self.uid ) )        
         for pubkey, uid in active.items():
             if uid in last_emit:
                 emit_block = last_emit[ uid ]
@@ -628,11 +598,11 @@ class Metagraph():
         r""" Polls info info for a specfic public key.
         """
         try:
-            stake = await self.subtensor_client.get_stake_for_uid( uid )
-            lastemit = await self.subtensor_client.get_last_emit_data_for_uid( uid )
-            w_uids = await self.subtensor_client.weight_uids_for_uid( uid )
-            w_vals = await self.subtensor_client.weight_vals_for_uid( uid )
-            neuron = await self.subtensor_client.get_neuron_for_uid ( uid )
+            stake = await self.subtensor.get_stake_for_uid( uid )
+            lastemit = await self.subtensor.get_last_emit_data_for_uid( uid )
+            w_uids = await self.subtensor.weight_uids_for_uid( uid )
+            w_vals = await self.subtensor.weight_vals_for_uid( uid )
+            neuron = await self.subtensor.get_neuron_for_uid ( uid )
             self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], modality = neuron['modality'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
         except Exception as e:
             pass
@@ -667,7 +637,7 @@ class Metagraph():
             code, message = await self._try_async_connect(timeout)
 
             if code == Metagraph.ConnectSuccess:
-                logger.info('Successfully connected to chain endpoint: {}', self.config.metagraph.chain_endpoint)
+                logger.info('Successfully connected to chain endpoint: {}', self.config.subtensor.chain_endpoint)
                 return code, message
 
             elif code == Metagraph.ConnectUnknownError:
@@ -707,12 +677,12 @@ class Metagraph():
         while True:
             # ---- Make connection call.
             try:
-                self.subtensor_client.connect()
+                self.subtensor.connect()
             except Exception as e:
                 return Metagraph.ConnectUnknownError, e
             
             # ---- Wait for connection future to reture, or timeout.
-            is_connected = self.subtensor_client.is_connected()
+            is_connected = self.subtensor.is_connected()
             try:
                 await asyncio.wait_for(is_connected, timeout=timeout)
             except asyncio.TimeoutError:
@@ -798,7 +768,7 @@ class Metagraph():
                 Message associated with code. 
         """
         # --- Check that we are already connected to the chain.
-        is_connected = self.subtensor_client.is_connected()
+        is_connected = self.subtensor.is_connected()
         try:
             await asyncio.wait_for(is_connected, timeout = 10)
         except asyncio.TimeoutError:
@@ -813,7 +783,7 @@ class Metagraph():
 
             subscribe_start_time = time.time()
             try:
-                await self.subtensor_client.subscribe(self.config.axon.external_ip, self.config.axon.external_port, bittensor.proto.Modality.TEXT, self.wallet.coldkey)
+                await self.subtensor.subscribe(self.config.axon.external_ip, self.config.axon.external_port, bittensor.proto.Modality.TEXT, self.wallet.coldkey)
 
             except Exception as e:
                 if (time.time() - subscribe_start_time) > 8:
@@ -831,7 +801,7 @@ class Metagraph():
             while True:
                 try:
                     # ---- Request info from chain ----
-                    self.uid = await self.subtensor_client.get_uid_for_pubkey(self.wallet.keypair.public_key)
+                    self.uid = await self.subtensor.get_uid_for_pubkey(self.wallet.hotkey.public_key)
                 except Exception as e:
                     # ---- Catch errors in request ----
                     message = "Subscription threw an unknown exception {}".format(e)
@@ -839,7 +809,7 @@ class Metagraph():
 
                 if self.uid != None:
                     # ---- Request info from chain ----
-                    self.metadata = await self.subtensor_client.neurons(self.uid)
+                    self.metadata = await self.subtensor.neurons(self.uid)
                     if not self.metadata:
                         return Metagraph.SubscribeUnknownError, "Critical error: There no metadata returned"
 
@@ -1041,7 +1011,7 @@ class Metagraph():
             try:
                 # --- Make emission call ----
                 logger.debug('Emit -> {} {}', weight_uids, weight_vals)
-                await self.subtensor_client.set_weights(weight_uids, weight_vals)
+                await self.subtensor.set_weights(weight_uids, weight_vals)
                 break
 
             except Exception as e:
@@ -1095,8 +1065,8 @@ class Metagraph():
         r""" Returns true if the passed key and vals are set on chain.
         """
         cmap = {}
-        chain_uids = await self.subtensor_client.weight_uids_for_uid(self.uid)
-        chain_vals = await self.subtensor_client.weight_vals_for_uid(self.uid)
+        chain_uids = await self.subtensor.weight_uids_for_uid(self.uid)
+        chain_vals = await self.subtensor.weight_vals_for_uid(self.uid)
         if chain_uids != None and chain_vals != None:
             n_same = 0
             for uid, val in list(zip(chain_uids, chain_vals)):

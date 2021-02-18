@@ -13,7 +13,6 @@ class AsyncMock(MagicMock):
 
 def test_run_bert_mlm():
     bert_mlm_session_config = Miner.build_config()
-    bert_mlm_session_config.metagraph.chain_endpoint = 'feynman.akira.bittensor.com:9944'
     bert_mlm_session_config.miner.n_epochs = 1
     bert_mlm_session_config.miner.epoch_length = 1
     bert_mlm_session = Miner(bert_mlm_session_config)
@@ -23,7 +22,7 @@ def test_run_bert_mlm():
     bert_mlm_session.neuron.metagraph.sync = MagicMock()  
     neuron = bittensor.proto.Neuron(
         version = bittensor.__version__,
-        public_key = bert_mlm_session.neuron.wallet.keypair.public_key,
+        public_key = bert_mlm_session.neuron.wallet.hotkey.public_key,
         address = bert_mlm_session_config.axon.external_ip,
         port = bert_mlm_session_config.axon.external_port,
         uid = 0,
@@ -36,7 +35,7 @@ def test_run_bert_mlm():
     bert_mlm_session.neuron.metagraph.state.uids = torch.tensor([0], dtype=torch.int64)
     bert_mlm_session.neuron.metagraph.state.lastemit = torch.tensor([0], dtype=torch.int64)
     bert_mlm_session.neuron.metagraph.state.stake = torch.tensor([0], dtype=torch.float32)
-    bert_mlm_session.neuron.metagraph.state.uid_for_pubkey[bert_mlm_session.neuron.wallet.keypair.public_key] = 0
+    bert_mlm_session.neuron.metagraph.state.uid_for_pubkey[bert_mlm_session.neuron.wallet.hotkey.public_key] = 0
     bert_mlm_session.neuron.metagraph.state.index_for_uid[0] = 0
     bert_mlm_session.neuron.metagraph.state.W = torch.tensor( numpy.ones( (1, 1) ), dtype=torch.float32)
     bert_mlm_session.run()
