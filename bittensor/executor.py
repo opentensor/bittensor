@@ -90,7 +90,7 @@ class Executor:
         new_hotkey_parser = cmd_parsers.add_parser('new_hotkey', 
             help='''Creates a new coldkey (for containing balance) under the specified path. ''')
             
-        # Fill arguments for the regen command.
+        # Fill arguments for the regen coldkey command.
         regen_coldkey_parser.add_argument("--mnemonic", required=True, nargs="+", 
             help='Mnemonic used to regen your key i.e. horse cart dog ...') 
         regen_coldkey_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
@@ -99,12 +99,13 @@ class Executor:
         bittensor.wallet.Wallet.add_args( regen_coldkey_parser )
         bittensor.subtensor.Subtensor.add_args( regen_coldkey_parser )
 
+        # Fill arguments for the regen hotkey command.
         regen_hotkey_parser.add_argument("--mnemonic", required=True, nargs="+", 
             help='Mnemonic used to regen your key i.e. horse cart dog ...') 
         bittensor.wallet.Wallet.add_args( regen_hotkey_parser )
         bittensor.subtensor.Subtensor.add_args( regen_hotkey_parser )
 
-        # Fill arguments for the regen command.
+        # Fill arguments for the new coldkey command.
         new_coldkey_parser.add_argument('--n_words', type=int, choices=[12,15,18,21,24], default=12, 
             help='''The number of words representing the mnemonic. i.e. horse cart dog ... x 24''')
         new_coldkey_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
@@ -113,11 +114,15 @@ class Executor:
         bittensor.wallet.Wallet.add_args( new_coldkey_parser )
         bittensor.subtensor.Subtensor.add_args( new_coldkey_parser )
 
-         # Fill arguments for the regen command.
+        # Fill arguments for the new hotkey command.
         new_hotkey_parser.add_argument('--n_words', type=int, choices=[12,15,18,21,24], default=12, 
             help='''The number of words representing the mnemonic. i.e. horse cart dog ... x 24''')
         bittensor.wallet.Wallet.add_args( new_hotkey_parser )
         bittensor.subtensor.Subtensor.add_args( new_hotkey_parser )
+
+        # Fill arguments for the overview command
+        bittensor.wallet.Wallet.add_args( overview_parser )
+        bittensor.subtensor.Subtensor.add_args( overview_parser )
 
         # Fill arguments for unstake command. 
         unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
@@ -155,12 +160,13 @@ class Executor:
                 print(colored("The --amount argument is required for this command", 'red'))
                 quit()
         elif config.command == "unstake":
-            if config.uid is None:
-                print(colored("The --uid argument is required for this command", 'red'))
-                quit()
-            if not config.amount:
-                print(colored("The --amount argument is required for this command", 'red'))
-                quit()
+            if not config.unstake_all:
+                if config.uid is None:
+                    print(colored("The --uid argument is required for this command", 'red'))
+                    quit()
+                if not config.amount:
+                    print(colored("The --amount argument is required for this command", 'red'))
+                    quit()
         elif config.command == "stake":
             if config.uid is None:
                 print(colored("The --uid argument is required for this command", 'red'))
@@ -173,7 +179,10 @@ class Executor:
         if self.config.command == "transfer":
             self.transfer()
         elif self.config.command == "unstake":
-            self.unstake()
+            if self.config.unstake_all:
+                self.unstake_all()
+            else:
+                self.unstake()
         elif self.config.command == "stake":
             self.stake()
         elif self.config.command == "overview":
@@ -205,7 +214,7 @@ class Executor:
     def _associated_neurons( self ) -> Neurons:
         print(colored("Retrieving all nodes associated with cold key : {}".format( self.wallet.coldkeypub ), 'white'))
         neurons = self.subtensor.neurons( decorator=True )
-        result = filter(lambda x : x.coldkey )# These are the neurons associated with the provided cold key
+        result = filter(lambda x : x.coldkey == self.wallet.coldkey.public_key, neurons )# These are the neurons associated with the provided cold key
         associated_neurons = Neurons(result)
         # Load stakes
         for neuron in associated_neurons:
@@ -254,7 +263,7 @@ class Executor:
         self.subtensor.unstake(amount, neuron.hotkey)
         print(colored("Unstaked:{} from uid:{} to coldkey.pub:{}".format(amount.tao, uid, self.wallet.coldkey.public_key), 'green'))
 
-    def stake(self, uid, amount: Balance):
+    def stake( self ):
         self.subtensor.connect()
         amount = Balance.from_float( self.config.amount )
         balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
@@ -271,7 +280,7 @@ class Executor:
         self.subtensor.add_stake( amount, neuron.hotkey )
         print(colored("Staked: {} Tao to uid: {} from coldkey.pub: {}".format(amount.tao, self.config.uid, self.wallet.coldkey.public_key), 'green'))
 
-    def transfer(self, dest: str, amount: Balance):
+    def transfer( self ):
         self.subtensor.connect()
         amount = Balance.from_float( self.config.amount )
         balance = self.subtensor.get_balance(self.wallet.coldkey.ss58_address)
@@ -280,7 +289,7 @@ class Executor:
             quit()
 
         self.subtensor.transfer(dest, amount)
-        print(colored("Transfered: {} Tao to dest: {} from coldkey.pub: {}".format(amount.tao, dest, self.wallet.coldkey.public_key), 'green'))
+        print(colored("Transfered: {} Tao to dest: {} from coldkey.pub: {}".format(amount.tao, self.config.dest, self.wallet.coldkey.public_key), 'green'))
  
 
 if __name__ == "__main__":

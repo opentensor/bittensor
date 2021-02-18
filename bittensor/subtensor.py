@@ -22,7 +22,7 @@ from loguru import logger
 
 import bittensor
 import bittensor.utils.networking as net
-from bittensor.substrate import SubstrateWSInterface, Keypair
+from bittensor.substrate.base import SubstrateInterface, Keypair
 from bittensor.utils.neurons import Neuron, Neurons
 from bittensor.utils.balance import Balance
 
@@ -53,10 +53,8 @@ class Subtensor:
             wallet = bittensor.wallet.Wallet( self.config )
         self.wallet = wallet
 
-        host, port = self.config.subtensor.chain_endpoint.split(":")
-        self.substrate = SubstrateWSInterface(
-            host=host,
-            port=int(port),
+        self.substrate = SubstrateInterface(
+            url = self.config.subtensor.chain_endpoint,
             address_type = 42,
             type_registry_preset='substrate-node-template',
             type_registry=self.custom_type_registry,
@@ -127,7 +125,7 @@ class Subtensor:
     def is_connected(self):
         return self.substrate.is_connected()
 
-    async def subscribe(self, ip: str, port: int, modality: int, coldkey: str):
+    def subscribe(self, ip: str, port: int, modality: int, coldkey: str):
         ip_as_int  = net.ip_to_int(ip)
         params = {
             'ip': ip_as_int,
@@ -137,23 +135,24 @@ class Subtensor:
             'coldkey': coldkey
         }
 
-        call = await self.substrate.compose_call(
+        call = self.substrate.compose_call(
             call_module='SubtensorModule',
             call_function='subscribe',
             call_params=params
         )
 
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.hotkey.public_key)
-        await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)  # Waiting for inclusion and other does not work
+        extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.hotkey.public_key)
+        self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)  # Waiting for inclusion and other does not work
 
-    async def get_balance(self, address):
+    def get_balance(self, address):
         logger.debug("Getting balance for: {}", address)
-        result  = await self.substrate.get_runtime_state(
+        result = self.substrate.get_runtime_state(
             module='System',
             storage_function='Account',
             params=[address],
             block_hash=None
         )
+        print (result)
 
         balance_info = result.get('result')
         if not balance_info:
@@ -164,9 +163,9 @@ class Subtensor:
         logger.debug("{} has {} rao", address, balance)
         return Balance(balance)
 
-    async def add_stake(self, amount : Balance, hotkey_id):
+    def add_stake(self, amount : Balance, hotkey_id):
         logger.info("Adding stake of {} rao from coldkey {} to hotkey {}", amount.rao, self.wallet.coldkey.public_key, hotkey_id)
-        call = await self.substrate.compose_call(
+        call = self.substrate.compose_call(
             call_module='SubtensorModule',
             call_function='add_stake',
             call_params={
@@ -174,14 +173,13 @@ class Subtensor:
                 'ammount_staked': amount.rao
             }
         )
-
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.coldkey)
-        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.coldkey)
+        result = self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
         return result
 
-    async def transfer(self, dest:str, amount: Balance):
+    def transfer(self, dest:str, amount: Balance):
         logger.debug("Requesting transfer of {}, from coldkey: {} to dest: {}", amount.rao, self.wallet.coldkey.public_key, dest)
-        call = await self.substrate.compose_call(
+        call = self.substrate.compose_call(
             call_module='Balances',
             call_function='transfer',
             call_params={
@@ -189,44 +187,44 @@ class Subtensor:
                 'value': amount.rao
             }
         )
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair = self.wallet.coldkey)
-        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair = self.wallet.coldkey)
+        result = self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
         return result
 
-    async def unstake(self, amount : Balance, hotkey_id):
+    def unstake(self, amount : Balance, hotkey_id):
         logger.debug("Requesting unstake of {} rao for hotkey: {} to coldkey: {}", amount.rao, hotkey_id, self.wallet.coldkey.public_key)
-        call = await self.substrate.compose_call(
+        call = self.substrate.compose_call(
             call_module='SubtensorModule',
             call_function='remove_stake',
             call_params={'ammount_unstaked': amount.rao, 'hotkey': hotkey_id}
         )
 
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.coldkey)
-        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
+        extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.coldkey)
+        result = self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
         return result
 
-    async def set_weights(self, destinations, values, wait_for_inclusion=False):
-        call = await self.substrate.compose_call(
+    def set_weights(self, destinations, values, wait_for_inclusion=False):
+        call = self.substrate.compose_call(
             call_module='SubtensorModule',
             call_function='set_weights',
             call_params = {'dests': destinations, 'weights': values}
         )
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair = self.wallet.hotkey)
-        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=wait_for_inclusion)
+        extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair = self.wallet.hotkey)
+        result = self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=wait_for_inclusion)
         return result
 
-    async def get_current_block(self):
-        return await self.substrate.get_block_number(None)
+    def get_current_block(self):
+        return self.substrate.get_block_number(None)
 
-    async def get_active(self) -> int:
-        result = await self.substrate.iterate_map(
+    def get_active(self) -> int:
+        result =self.substrate.iterate_map(
             module='SubtensorModule',
             storage_function='Active',
         )
         return result
 
-    async def get_uid_for_pubkey(self, pubkey = str) -> int:
-        result = await self.substrate.get_runtime_state(
+    def get_uid_for_pubkey(self, pubkey = str) -> int:
+        result = self.substrate.get_runtime_state(
             module='SubtensorModule',
             storage_function='Active',
             params=[pubkey]
@@ -235,19 +233,19 @@ class Subtensor:
             return None
         return int(result['result'])
 
-    async def get_neuron_for_uid(self, uid:int):
-        result = await self.substrate.get_runtime_state(
+    def get_neuron_for_uid(self, uid:int):
+        result = self.substrate.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='Neurons',
                 params=[uid]
         )
         return result['result']
     
-    async def neurons(self, uid=None, decorator=False):
+    def neurons(self, uid=None, decorator=False):
 
         # Todo (parall4x, 23-12-2020) Get rid of this decorator flag. This should be refactored into something that returns Neuron objects only
         if uid:
-            result = await self.substrate.get_runtime_state(
+            result = self.substrate.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='Neurons',
                 params=[uid]
@@ -255,14 +253,14 @@ class Subtensor:
             return Neurons.from_list(result['result']) if decorator else result['result']
 
         else:
-            neurons = await self.substrate.iterate_map(
+            neurons = self.substrate.iterate_map(
                 module='SubtensorModule',
                 storage_function='Neurons'
             )
             return Neurons.from_list(neurons) if decorator else neurons
 
-    async def get_stake_for_uid(self, uid) -> Balance:
-        stake = await self.substrate.get_runtime_state(
+    def get_stake_for_uid(self, uid) -> Balance:
+        stake = self.substrate.get_runtime_state(
             module='SubtensorModule',
             storage_function='Stake',
             params = [uid]
@@ -272,32 +270,32 @@ class Subtensor:
             return Balance(0)
         return Balance(result)
 
-    async def weight_uids_for_uid(self, uid):
-        result = await self.substrate.get_runtime_state(
+    def weight_uids_for_uid(self, uid):
+        result = self.substrate.get_runtime_state(
             module='SubtensorModule',
             storage_function='WeightUids',
             params = [uid]
         )
         return result['result']
 
-    async def weight_vals_for_uid(self, uid):
-        result = await self.substrate.get_runtime_state(
+    def weight_vals_for_uid(self, uid):
+        result = self.substrate.get_runtime_state(
             module='SubtensorModule',
             storage_function='WeightVals',
             params = [uid]
         )
         return result['result']
 
-    async def get_last_emit_data_for_uid(self, uid):
-        result = await self.substrate.get_runtime_state(
+    def get_last_emit_data_for_uid(self, uid):
+        result = self.substrate.get_runtime_state(
             module='SubtensorModule',
             storage_function='LastEmit',
             params = [uid]
         )
         return result['result']
 
-    async def get_last_emit_data(self):
-        result = await self.substrate.iterate_map(
+    def get_last_emit_data(self):
+        result = self.substrate.iterate_map(
             module='SubtensorModule',
             storage_function='LastEmit'
         )
