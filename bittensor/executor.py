@@ -200,18 +200,28 @@ class Executor:
             quit()
             
     def regenerate_coldkey ( self ):
+        r""" Regenerates a colkey under this wallet.
+        """
         self.wallet.regenerate_coldkey( self.config.mnemonic, self.config.use_password )
 
     def regenerate_hotkey ( self ):
+        r""" Regenerates a hotkey under this wallet.
+        """
         self.wallet.regenerate_hotkey( self.config.mnemonic )
 
     def create_new_coldkey ( self ):
+        r""" Creates a new coldkey under this wallet.
+        """
         self.wallet.create_new_coldkey( self.config.n_words, self.config.use_password )   
 
     def create_new_hotkey ( self ):  
+        r""" Creates a new hotkey under this wallet.
+        """
         self.wallet.create_new_hotkey( self.config.n_words)  
 
     def _associated_neurons( self ) -> Neurons:
+        r""" Returns a list of neurons associate with this wallet's coldkey.
+        """
         print(colored("Retrieving all nodes associated with cold key : {}".format( self.wallet.coldkeypub ), 'white'))
         neurons = self.subtensor.neurons( decorator=True )
         result = filter(lambda x : x.coldkey == self.wallet.coldkey.public_key, neurons )# These are the neurons associated with the provided cold key
@@ -222,6 +232,8 @@ class Executor:
         return associated_neurons
 
     def overview ( self ): 
+        r""" Prints an overview for the wallet's colkey.
+        """
         self.subtensor.connect()
         balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
         neurons = self._associated_neurons()
@@ -239,6 +251,8 @@ class Executor:
         print("Total stake: ", total_stake)
 
     def unstake_all ( self ):
+        r""" Unstaked from all hotkeys associated with this wallet's coldkey.
+        """
         self.subtensor.connect()
         neurons = self._associated_neurons()
         for neuron in neurons:
@@ -247,6 +261,8 @@ class Executor:
             print(colored("Unstaked: {} Tao from uid: {} to coldkey.pub: {}".format( neuron.stake, neuron.uid, self.wallet.coldkey.public_key ) , 'green'))
 
     def unstake( self ):
+        r""" Unstaked token of amount to from uid.
+        """
         self.subtensor.connect()
         amount = Balance.from_float( self.config.amount )
         neurons = self._associated_neurons()
@@ -264,6 +280,8 @@ class Executor:
         print(colored("Unstaked:{} from uid:{} to coldkey.pub:{}".format(amount.tao, uid, self.wallet.coldkey.public_key), 'green'))
 
     def stake( self ):
+        r""" Stakes token of amount to hotkey uid.
+        """
         self.subtensor.connect()
         amount = Balance.from_float( self.config.amount )
         balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
@@ -281,6 +299,9 @@ class Executor:
         print(colored("Staked: {} Tao to uid: {} from coldkey.pub: {}".format(amount.tao, self.config.uid, self.wallet.coldkey.public_key), 'green'))
 
     def transfer( self ):
+        r""" Transfers token of amount to dest.
+            
+        """
         self.subtensor.connect()
         amount = Balance.from_float( self.config.amount )
         balance = self.subtensor.get_balance(self.wallet.coldkey.ss58_address)
@@ -288,7 +309,7 @@ class Executor:
             print(colored("Not enough balance ({}) to transfer {}".format(balance, amount), 'red'))
             quit()
 
-        self.subtensor.transfer(dest, amount)
+        self.subtensor.transfer(self.config.dest, amount)
         print(colored("Transfered: {} Tao to dest: {} from coldkey.pub: {}".format(amount.tao, self.config.dest, self.wallet.coldkey.public_key), 'green'))
  
 
