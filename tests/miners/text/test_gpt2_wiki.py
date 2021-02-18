@@ -5,7 +5,7 @@ sys.path.append("miners/TEXT/")
 import bittensor
 import torch
 import numpy
-from gpt2_wiki import Miner
+from gpt2_wiki.gpt2_wiki import Miner
 
 
 def test_run_gpt2():
