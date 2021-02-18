@@ -30,9 +30,10 @@ __blocktime__ = 6
 # neurons must be aware that versions will increase and be ready to convert between tokenizers.
 # TODO (const): Add functionality to allow tokenizer conversion. i.e. for input token conversion.
 __vocab_size__ = (50278 + 100)  # Must match the __tokenizer__() vocab size.
-def __tokenizer__( pretrained_model="gpt2", version = __version__ ):
-
-    tokenizer = AutoTokenizer.from_pretrained(pretrained_model, local_files_only=False)
+def __tokenizer__(  version = __version__ ):
+    from transformers import GPT2Tokenizer
+    
+    tokenizer = GPT2Tokenizer.from_pretrained("gpt2", local_files_only=False)
     tokenizer.padding_side = "left"
     tokenizer.add_prefix_space = False
     tokenizer.add_special_tokens({'bos_token': "[BOS]"}) # A special token representing the beginning of a sentence.
