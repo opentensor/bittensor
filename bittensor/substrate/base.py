@@ -466,6 +466,9 @@ class SubstrateInterface:
                 write_limit=2 ** 32,
             )
 
+    def is_connected (self) -> bool:
+        return self.websocket.connected
+
     def debug_message(self, message):
         logger.debug(message)
 

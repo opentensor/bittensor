@@ -218,6 +218,7 @@ class Neuron:
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         bittensor.wallet.Wallet.add_args( parser )
+        bittensor.subtensor.Subtensor.add_args( parser )
         bittensor.metagraph.Metagraph.add_args( parser )
         bittensor.nucleus.Nucleus.add_args( parser )
         bittensor.axon.Axon.add_args(parser)
@@ -226,6 +227,7 @@ class Neuron:
     @staticmethod   
     def check_config(config: Munch):
         bittensor.wallet.Wallet.check_config( config )
+        bittensor.subtensor.Subtensor.check_config( config )
         bittensor.metagraph.Metagraph.check_config( config )
         bittensor.nucleus.Nucleus.check_config( config )
         bittensor.axon.Axon.check_config( config )
