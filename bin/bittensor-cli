@@ -6,4 +6,3 @@ if __name__ == '__main__':
     print(bittensor.config.Config.toString(config))
     executor = bittensor.executor.Executor( config )
     executor.run_command()
-

@@ -507,6 +507,12 @@ class SubstrateInterface:
                     json_body = None
                     while not json_body:
                         result = json.loads(self.websocket.recv())
+                        if 'id' not in result:
+                            continue
+                        if result['id'] != self.request_id:
+                            continue
+                        else:
+                            break
                         self.debug_message("Websocket result [{}] Received from node: {}".format(event_number, result))
 
                         # Check if response has error
@@ -519,8 +525,14 @@ class SubstrateInterface:
 
                         event_number += 1
                 else:
-
-                    json_body = json.loads(self.websocket.recv())
+                    while True:
+                        json_body = json.loads(self.websocket.recv())
+                        if 'id' not in json_body:
+                            continue
+                        if json_body['id'] != self.request_id:
+                            continue
+                        else:
+                            break
 
             except WebSocketConnectionClosedException:
                 if self.url:
@@ -534,7 +546,6 @@ class SubstrateInterface:
                     raise
 
         else:
-
             if result_handler:
                 raise ConfigurationError("Result handlers only available for websockets (ws://) connections")
 

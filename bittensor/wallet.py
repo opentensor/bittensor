@@ -24,6 +24,7 @@ import stat
 
 from munch import Munch
 from loguru import logger
+from termcolor import colored
 
 import bittensor
 from bittensor.utils.cli_utils import cli_utils
@@ -80,80 +81,101 @@ class Wallet():
         full_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name)
         return full_path + "/hotkeys/" + self.config.wallet.hotkey
 
-    def _load_hotkey(self):
-        keyfile = os.path.expanduser( self.hotkeyfile )
-        keyfile = os.path.expanduser(keyfile)
-
-        if not os.path.isfile(keyfile):
-            logger.error("--wallet.hotkeyfile  {} does not exist", keyfile)
-            raise KeyFileError
-
-        if not os.path.isfile(keyfile):
-            logger.error("--wallet.hotkeyfile  {} is not a file", keyfile)
-            raise KeyFileError
-
-        if not os.access(keyfile, os.R_OK):
-            logger.error("--wallet.hotkeyfile  {} is not readable", keyfile)
-            raise KeyFileError
-
-        with open(keyfile, 'rb') as file:
-            data = file.read()
-            if is_encrypted(data):
-                password = bittensor.utils.Cli.ask_password()
-                data = decrypt_data(password, data)
-            self._hotkey = load_keypair_from_data(data)
-            logger.info("Loaded hotkey: {}", self._hotkey.public_key)
 
     def _load_coldkeypub(self):
         keyfile = os.path.expanduser( self.coldkeypubfile )
         keyfile = os.path.expanduser(keyfile)
 
         if not os.path.isfile(keyfile):
-            logger.error("--wallet.coldkeypubfile  {} does not exist", keyfile)
+            print(colored("coldkeypubfile  {} does not exist".format(keyfile), 'red'))
             raise KeyFileError
 
         if not os.path.isfile(keyfile):
-            logger.error("--wallet.coldkeypubfile  {} is not a file", keyfile)
+            print(colored("coldkeypubfile  {} is not a file".format(keyfile), 'red'))
             raise KeyFileError
 
         if not os.access(keyfile, os.R_OK):
-            logger.error("--wallet.coldkeypubfile  {} is not readable", keyfile)
+            print(colored("coldkeypubfile  {} is not readable".format(keyfile), 'red'))
             raise KeyFileError
 
         with open(keyfile, "r") as file:
             key = file.readline().strip()
             if not re.match("^0x[a-z0-9]{64}$", key):
                 logger.error("Cold key pub file is corrupt")
-                raise KeyFileError
+                raise KeyFileError("Cold key pub file is corrupt")
 
         with open(keyfile, "r") as file:
             self._coldkeypub = file.readline().strip()
 
-        logger.info("Loaded coldkey.pub: {}", self._coldkeypub)
+        print(colored("Loaded coldkey.pub: {}".format(self._coldkeypub), 'green'))
+
+    def _load_hotkey(self):
+        keyfile = os.path.expanduser( self.hotkeyfile )
+        keyfile = os.path.expanduser(keyfile)
+
+        if not os.path.isfile(keyfile):
+            print(colored("hotkeyfile  {} does not exist".format(keyfile), 'red'))
+            raise KeyFileError
+
+        if not os.path.isfile(keyfile):
+            print(colored("hotkeyfile  {} is not a file".format(keyfile), 'red'))
+            raise KeyFileError
+
+        if not os.access(keyfile, os.R_OK):
+            print(colored("hotkeyfile  {} is not readable".format(keyfile), 'red'))
+            raise KeyFileError
+
+        try:
+            with open(keyfile, 'rb') as file:
+                data = file.read()
+                if is_encrypted(data):
+                    password = bittensor.utils.Cli.ask_password()
+                    print("decrypting key... (this may take a few moments)")
+                    data = decrypt_data(password, data)
+                self._hotkey = load_keypair_from_data(data)
+                print(colored("Loaded hotkey: {}".format(self._hotkey.public_key), 'green'))
+
+        except KeyError:
+            print(colored("Invalid password", 'red'))
+            raise KeyError("Invalid password")
+
+        except KeyFileError as e:
+            print(colored("Keyfile corrupt", 'red'))
+            raise KeyFileError("Keyfile corrupt")
 
     def _load_coldkey(self):
         keyfile = os.path.expanduser( self.coldkeyfile )
         keyfile = os.path.expanduser(keyfile)
 
         if not os.path.isfile(keyfile):
-            logger.error("--wallet.coldkeyfile  {} does not exist", keyfile)
+            print(colored("coldkeyfile  {} does not exist".format(keyfile), 'red'))
             raise KeyFileError
 
         if not os.path.isfile(keyfile):
-            logger.error("--wallet.coldkeyfile  {} is not a file", keyfile)
+            print(colored("coldkeyfile  {} is not a file".format(keyfile), 'red'))
             raise KeyFileError
 
         if not os.access(keyfile, os.R_OK):
-            logger.error("--wallet.coldkeyfile  {} is not readable", keyfile)
+            print(colored("coldkeyfile  {} is not readable".format(keyfile), 'red'))
             raise KeyFileError
 
-        with open(keyfile, 'rb') as file:
-            data = file.read()
-            if is_encrypted(data):
-                password = bittensor.utils.Cli.ask_password()
-                data = decrypt_data(password, data)
-            self._coldkey = load_keypair_from_data(data)
-            logger.info("Loaded coldkey: {}", self._coldkey.public_key)
+        try:
+            with open(keyfile, 'rb') as file:
+                data = file.read()
+                if is_encrypted(data):
+                    password = bittensor.utils.Cli.ask_password()
+                    print("decrypting key... (this may take a few moments)")
+                    data = decrypt_data(password, data)
+                self._coldkey = load_keypair_from_data(data)
+                print(colored("Loaded coldkey: {}".format(self._coldkey.public_key), 'green'))
+
+        except KeyError:
+            print(colored("Invalid password", 'red'))
+            raise KeyError("Invalid password")
+
+        except KeyFileError as e:
+            print(colored("Keyfile corrupt", 'red'))
+            raise KeyFileError("Keyfile corrupt")
         
     @staticmethod   
     def build_config() -> Munch:

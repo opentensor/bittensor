@@ -9,7 +9,6 @@ def test_regen_hotkey( ):
     config.debug = False
     config.mnemonic = ["cabin", "thing", "arch", "canvas", "game", "park", "motion", "snack", "advice", "arch", "parade", "climb"]
     config.subtensor = Munch()
-    config.subtensor.chain_endpoint = "feynman.akira.bittensor.com:9944"
     config.subtensor.network = "akira"
     config.wallet = Munch()
     config.wallet.hotkey = "pytest_hotkey"
@@ -29,7 +28,6 @@ def test_create_hotkey( ):
     config.debug = False
     config.n_words = 12
     config.subtensor = Munch()
-    config.subtensor.chain_endpoint = "feynman.akira.bittensor.com:9944"
     config.subtensor.network = "akira"
     config.wallet = Munch()
     config.wallet.hotkey = "pytest_hotkey"
@@ -50,7 +48,6 @@ def test_regen_coldkey( ):
     config.use_password = False
     config.mnemonic = ["cabin", "thing", "arch", "canvas", "game", "park", "motion", "snack", "advice", "arch", "parade", "climb"]
     config.subtensor = Munch()
-    config.subtensor.chain_endpoint = "feynman.akira.bittensor.com:9944"
     config.subtensor.network = "akira"
     config.wallet = Munch()
     config.wallet.name = "test_wallet"
@@ -72,7 +69,6 @@ def test_create_coldkey( ):
     config.n_words = 12
     config.use_password = False
     config.subtensor = Munch()
-    config.subtensor.chain_endpoint = "feynman.akira.bittensor.com:9944"
     config.subtensor.network = "akira"
     config.wallet = Munch()
     config.wallet.hotkey = "pytest_hotkey"

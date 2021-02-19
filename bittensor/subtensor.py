@@ -21,10 +21,12 @@ import time
 from munch import Munch
 from loguru import logger
 from typing import List, Tuple
+from termcolor import colored
 
 import bittensor
 import bittensor.utils.networking as net
 from bittensor.substrate.base import SubstrateInterface, Keypair
+from bittensor.substrate.exceptions import SubstrateRequestException
 from bittensor.utils.neurons import Neuron, Neurons
 from bittensor.utils.balance import Balance
 
@@ -59,7 +61,6 @@ class Subtensor:
         self.wallet = wallet
 
         self.substrate = SubstrateInterface(
-            url = self.config.subtensor.chain_endpoint,
             address_type = 42,
             type_registry_preset='substrate-node-template',
             type_registry=self.custom_type_registry,
@@ -95,26 +96,53 @@ class Subtensor:
     def check_config(config: Munch):
         bittensor.wallet.Wallet.check_config( config )
 
-    def endpoint_for_network( self, not_these) -> str:
+    def endpoint_for_network( self, blacklist: List[str] = [] ) -> str:
+        r""" Returns a chain endpoint based on config with black list. 
+            Returns None if there are no available endpoints.
+        Raises:
+            endpoint (str):
+                Websocket endpoint or None if there are none available.
+        """
+
         # Chain endpoint overrides the --network flag.
         if self.config.subtensor.chain_endpoint != None:
-            if self.config.subtensor.chain_endpoint in not_these:
-            return self.config.subtensor.chain_endpoint
+            if self.config.subtensor.chain_endpoint in blacklist:
+                return None
+            else:
+                return self.config.subtensor.chain_endpoint
 
         # Else defaults to networks.
         # TODO(const): this should probably make a DNS lookup.
         all_networks = ['akira', 'boltzmann', 'kusanagi', 'local']
         if self.config.subtensor.network == "akira":
-            return random.choice( bittensor.__akira_entrypoints__ )
+            akira_available = [item for item in bittensor.__akira_entrypoints__ if item not in blacklist ]
+            if len(akira_available) == 0:
+                return None
+            return random.choice( akira_available )
+
         elif self.config.subtensor.network == "boltzmann":
-            return random.choice(bittensor.__boltzmann_entrypoints__)
+            boltzmann_available = [item for item in bittensor.__boltzmann_entrypoints__ if item not in blacklist ]
+            if len(boltzmann_available) == 0:
+                return None
+            return random.choice( boltzmann_available )
+
         elif self.config.subtensor.network == "kusanagi":
-            return random.choice(bittensor.__kusanagi_entrypoints__)
+            kusanagi_available = [item for item in bittensor.__kusanagi_entrypoints__ if item not in blacklist ]
+            if len(kusanagi_available) == 0:
+                return None
+            return random.choice( kusanagi_available )
+
         elif self.config.subtensor.network == "local":
-            return random.choice(bittensor.__local_entrypoints__)
+            local_available = [item for item in bittensor.__local_entrypoints__ if item not in blacklist ]
+            if len(local_available) == 0:
+                return None
+            return random.choice( local_available )
+            
         else:
-            # Defaulting to Akira
-            return random.choice( bittensor.__akira_entrypoints__ )
+            akira_available = [item for item in bittensor.__akira_entrypoints__ if item not in blacklist ]
+            if len(akira_available) == 0:
+                return None
+            return random.choice( akira_available )
 
     def is_connected(self):
         r""" Returns the connection state as a boolean.
@@ -139,21 +167,7 @@ class Subtensor:
         start_time = time.time()
         attempted_endpoints = []
         while True:
-
-            # --- Attempt connection ---
-            ws_chain_endpoint = self.endpoint_for_network( not_these = attempted_endpoints )
-            attempted_endpoints.append(ws_chain_endpoint)
-            logger.info('Attempting connection to endpoint: {}', ws_chain_endpoint)
-            self.substrate.connect( ws_chain_endpoint )
-
-            # ---- Success ----
-            if self.substrate.is_connected():
-                logger.success('Successfully connected to endpoint {}', ws_chain_endpoint)
-                return True
-
-            # ---- Timeout ----
-            elif (time.time() - start_time) > timeout:
-                logger.error('Timeout while subscribing to the chain endpoint')
+            def connection_error_message():
                 logger.error('Check that your internet connection is working and the chain endpoints are available: {} ', attempted_endpoints)
                 logger.error( '''   The subtensor chain endpoint should likely be one of the following choices:
                                         -- local -- (your locally running node)
@@ -161,7 +175,31 @@ class Subtensor:
                                         -- kusanagi (mainnet)
                                     Or you may set the endpoint manually using the --subtensor.chain_endpoint flag 
                                     To connect run a local node (See: docs/running_a_validator.md)
-                                ''')
+                              ''')
+
+            # ---- Get next endpoint ----
+            ws_chain_endpoint = self.endpoint_for_network( blacklist = attempted_endpoints )
+            if ws_chain_endpoint == None:
+                logger.error('No more available endpoint for connection with subtensor.network: {} attempted: {}', self.config.subtensor.network, attempted_endpoints)
+                connection_error_message()
+                if failure:
+                    raise RuntimeError('Unable to connect to network {}. Make sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
+                else:
+                    return False
+            attempted_endpoints.append(ws_chain_endpoint)
+
+            # --- Attempt connection ----
+            self.substrate.connect( ws_chain_endpoint )
+
+            # ---- Success ----
+            if self.substrate.is_connected():
+                print(colored("Successfully connected to endpoint: {}".format(ws_chain_endpoint), 'green'))
+                return True
+
+            # ---- Timeout ----
+            elif (time.time() - start_time) > timeout:
+                print(colored("Error while subscribing to the chain endpoint {}".format(ws_chain_endpoint), 'red'))
+                connection_error_message()
                 if failure:
                     raise RuntimeError('Unable to connect to network {}. Make sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
                 else:
@@ -176,11 +214,28 @@ class Subtensor:
             return self.connect()
         return True
 
-    def subscribe(self, ip: str, port: int, modality: int, coldkey: str, wait_for_finalization=True) -> bool:
+    def is_subscribed(self, ip: str, port: int, modality: int, coldkey: str):
+        uid = self.get_uid_for_pubkey(self.wallet.hotkey.public_key)
+        if uid != None:
+            neuron = self.get_neuron_for_uid( uid )
+            if neuron['ip'] == net.ip_to_int(ip) and neuron['port'] == port:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+
+
+    def subscribe(self, ip: str, port: int, modality: int, coldkeypub: str, wait_for_finalization=True) -> bool:
         r""" Subscribes the passed metadata to the substensor chain.
         """
         if not self._check_connection():
             return False
+
+        if self.is_subscribed( ip, port, modality, coldkeypub ):
+            print(colored('Subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub), 'green'))
+            return True
 
         ip_as_int  = net.ip_to_int(ip)
         params = {
@@ -188,7 +243,7 @@ class Subtensor:
             'port': port, 
             'ip_type': 4,
             'modality': modality,
-            'coldkey': coldkey,
+            'coldkey': coldkeypub,
         }
         call = self.substrate.compose_call(
             call_module='SubtensorModule',
@@ -199,17 +254,17 @@ class Subtensor:
         extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.hotkey)
         if wait_for_finalization:
             try:
-                receipt = self.substrate.submit_extrinsic(extrinsic, wait_for_finalization=wait_for_finalization) # Waiting for inclusion and other does not work
+                receipt = self.substrate.submit_extrinsic( extrinsic, wait_for_finalization = wait_for_finalization ) # Waiting for inclusion and other does not work
                 
                 if receipt.is_success:
-                    logger.success('Subscription success with: weight {} and fee: {}', receipt.weight, receipt.total_fee_amount)
+                    print(colored('Subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub), 'green'))
                     return True
                 else:
-                    logger.info('Subscription failure with: error {}', receipt.error_message)
+                    print(colored('Subscription failure with: error {}'.format(receipt.error_message), 'red'))
                     return False
 
             except SubstrateRequestException as e:
-                logger.error("Failed to send subscribe extrinsic with error: {}".format(e))
+                print(colored("Failed to send subscribe extrinsic with error: {}".format(e), 'red'))
         else:
             return True
 
@@ -433,6 +488,7 @@ class Subtensor:
                 Weight uids for passed uid.
         """
         self._check_connection()
+        logger.info('uid {}', uid)
         result = self.substrate.get_runtime_state(
             module='SubtensorModule',
             storage_function='WeightUids',
