@@ -13,7 +13,6 @@ import bittensor.nucleus
 import bittensor.receptor
 import bittensor.synapse
 import bittensor.wallet
-from transformers import AutoTokenizer
 
 # Bittensor code and protocol version.
 __version__ = '1.0.3'
@@ -32,7 +31,7 @@ __blocktime__ = 6
 __vocab_size__ = (50278 + 100)  # Must match the __tokenizer__() vocab size.
 def __tokenizer__(  version = __version__ ):
     from transformers import GPT2Tokenizer
-    
+
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2", local_files_only=False)
     tokenizer.padding_side = "left"
     tokenizer.add_prefix_space = False
