@@ -12,6 +12,13 @@ def test_create( ):
     metagraph = bittensor.metagraph.Metagraph()
     assert True
 
+def test_convert_weight_order_with_zeros( ):
+    MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
+    metagraph.state.uids = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+    metagraph.uid = 12
+    weights = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    uids, vals = metagraph.convert_weights_to_emit(weights)
+
 def test_convert_weight_order_should_work_last( ):
     MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
     metagraph.state.uids = torch.tensor([1,2,3,4])

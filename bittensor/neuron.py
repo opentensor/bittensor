@@ -26,6 +26,7 @@ import traceback as tb
 
 from io import StringIO
 from munch import Munch
+from termcolor import colored
 from loguru import logger
 from cryptography.exceptions import InvalidSignature, InvalidKey
 from cryptography.fernet import InvalidToken
@@ -138,8 +139,39 @@ class Neuron:
         assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
 
     def start(self):
+        print(colored('\nStarting Neuron: \n', 'white'))
+
+        # ---- Check hotkey ----
+        print(colored('Loading wallet with path: {} name: {} hotkey: {}'.format(self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey), 'white'))
+        try:
+            self.wallet.hotkey # Check loaded hotkey
+        except:
+            logger.info('Failed to load hotkey under path:{} wallet name:{} hotkey:{}', self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey)
+            choice = input("Would you like to create a new hotkey ? (y/N) ")
+            if choice == "y":
+                self.wallet.create_new_hotkey()
+            else:
+                raise RuntimeError('The neuron requires a loaded hotkey')
+
+        # ---- Check coldkeypub ----
+        try:
+            self.wallet.coldkeypub
+        except:
+            logger.info('Failed to load coldkeypub under path:{} wallet name:{}', self.config.wallet.path, self.config.wallet.name)
+            choice = input("Would you like to create a new coldkey ? (y/N) ")
+            if choice == "y":
+                self.wallet.create_new_coldkey()
+            else:
+                raise RuntimeError('The neuron requires a loaded coldkeypub')
+
+        # ---- Start the axon ----
         self.axon.start()
+
+        # ---- Subscribe to chain ----
+        print(colored('\nConnecting to network: {}'.format(self.config.subtensor.network), 'white'))
         self.subtensor.connect()
+
+        print(colored('\nSubscribing:', 'white'))
         subscribe_success = self.subtensor.subscribe(
                 self.config.axon.external_ip, 
                 self.config.axon.external_port,
@@ -150,7 +182,11 @@ class Neuron:
         if not subscribe_success:
             self.stop()
             raise RuntimeError('Failed to subscribe neuron.')
+        
+        # ---- Sync graph ----
+        print(colored('\nSyncing graph:', 'white'))
         self.metagraph.sync()
+        print(self.metagraph)
 
     def stop(self):
 

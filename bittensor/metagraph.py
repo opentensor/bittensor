@@ -523,21 +523,23 @@ class Metagraph():
         # however, it makes it difficult for the user if the state changes in
         # the background.
         current_block = self.subtensor.get_current_block()
-        if (self.last_sync - current_block) > 20: # > Every 2 minutes.
-
-            # Update global state.
+        if (current_block - self.last_sync) > 20: # > Every 2 minutes.
+            # ---- Update cache ----
             self.last_sync = current_block
+            # loop = asyncio.new_event_loop()
+            # results = loop.run_until_complete(self._sync_cache( loop ))
+            # loop.stop()
             self._sync_cache()
+
+            # --- Update torch state
             self.state = TorchChainState.from_cache(self.cache)
             self.state.block = current_block
-
-            # Update self state.
-            if self.wallet.hotkey.public_key in self.uid_for_pubkey():
+            if self.wallet.hotkey.public_key in self.state.uid_for_pubkey:
                 self.uid = self.uid_for_pubkey( self.wallet.hotkey.public_key )
                 self.metadata = self.neuron_for_uid( self.uid )
 
     def _sync_cache(self):
-        r""" Async: Makes calls to chain updating local chain cache with newest info.
+        r""" Makes calls to chain updating local chain cache with newest info.
         """
         # Make a full chain state grab.
         # last_emit: List[int]
@@ -552,14 +554,14 @@ class Metagraph():
         # chain state.
         for index, uid in enumerate(last_emit):
             self.cache.add_or_update(
-                pubkey = pubkey, 
-                ip = neuron[index][1]['ip'], 
-                port = neuron[index][1]['port'], 
-                uid = neuron[index][1]['uid'], 
-                ip_type = neuron[index][1]['ip_type'], 
-                modality = neuron[index][1]['modality'], 
-                lastemit = last_emit[ index ], 
-                stake = stake[ index ], 
+                pubkey = active[index][0], 
+                ip = neurons[index][1]['ip'], 
+                port = neurons[index][1]['port'], 
+                uid = neurons[index][1]['uid'], 
+                ip_type = neurons[index][1]['ip_type'], 
+                modality = neurons[index][1]['modality'], 
+                lastemit = last_emit[ index ][1], 
+                stake = stake[ index ][1], 
                 w_uids = weight_uids[ index ][1], 
                 w_vals = weight_vals[ index ][1],
             )
@@ -713,10 +715,10 @@ class Metagraph():
 
         except Exception as e:
             logger.trace('Emit error {}', e)
-            return Metagraph.EmitUnknownError, message
+            return Metagraph.EmitUnknownError, str(e)
 
         message = "Successful emission"
-        return Metagraph.Success, message
+        return Metagraph.EmitSuccess, message
 
     def _are_set_on_chain(self, weight_uids, weight_vals) -> bool:
         r""" Returns true if the passed key and vals are set on chain.
@@ -751,6 +753,7 @@ class Metagraph():
         weight_vals = []
         weight_uids = []
         pos_self_uid = -1
+        length = 0
         for i, val in enumerate(weights):
             int_val = int(float(val) * int(MAX_INT_WEIGHT)) # convert to int representation.
             remainder -= int_val
@@ -769,9 +772,10 @@ class Metagraph():
             if int_val != 0:
                 weight_vals.append( int_val ) # int weights sum to MAX_INT_WEIGHT.
                 weight_uids.append( uid_i ) # Gets the uid at this index
+                length += 1
 
             if uid_i == self.uid:
-                pos_self_uid = i
+                pos_self_uid = (length - 1)
 
         # Places the self weight in the first position if it exists
         if pos_self_uid != -1 and len(weight_uids) > 1:
@@ -794,8 +798,7 @@ class Metagraph():
         for i in range(self.n):
             df = df.rename(index={df.index[i + 6]: uids[i]})
         df.rename_axis(colored('[uid]', 'red'), axis=1)
-        self_uid = self.uid_for_pubkey( self.wallet.hotkey )
-        return '\nMetagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self_uid, self.tau.item(), self.block, self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
+        return '\nMetagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.uid, self.tau.item(), self.block, self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
 
     def __to_tensorboard__(self, tensorboard, global_step):
         tensorboard.add_scalar('Metagraph/neurons', self.n, global_step)
