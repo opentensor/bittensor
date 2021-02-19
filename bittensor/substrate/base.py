@@ -402,10 +402,6 @@ class SubstrateInterface:
         cache_region: a Dogpile cache region as a central store for the metadata cache
         use_remote_preset: When True preset is downloaded from Github master, otherwise use files from local installed scalecodec package
         """
-
-        if (not url and not websocket) or (url and websocket):
-            raise ValueError("Either 'url' or 'websocket' must be provided")
-
         if address_type is not None:
             warnings.warn("Keyword 'address_type' will be replaced by 'ss58_format'", DeprecationWarning)
             ss58_format = address_type
@@ -456,7 +452,9 @@ class SubstrateInterface:
 
         self.reload_type_registry(use_remote_preset=use_remote_preset)
 
-    def connect (self):
+    def connect (self, url: str):
+        # Websocket url.
+        self.url = url
         if self.url and (self.url[0:6] == 'wss://' or self.url[0:5] == 'ws://'):
             self.debug_message("Connecting to {} ...".format(self.url))
             self.websocket = create_connection(
@@ -467,7 +465,10 @@ class SubstrateInterface:
             )
 
     def is_connected (self) -> bool:
-        return self.websocket.connected
+        if self.websocket == None:
+            return False
+        else:
+            return self.websocket.connected
 
     def debug_message(self, message):
         logger.debug(message)

@@ -1,4 +1,5 @@
 import sys
+import random
 from loguru import logger
 
 import bittensor.bittensor_pb2 as proto
@@ -23,8 +24,19 @@ __version__ = '1.0.3'
 # NOTE (const): if/when this increases peers must be responsible for trimming or expanding output to this size.
 __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __sequence_dim__, __network_dim__ ]
 
-# Substrate chain block time.
+# Substrate chain block time (seconds).
 __blocktime__ = 6
+
+# Default logger
+logger_config = {
+    "handlers": [{
+        "sink":
+            sys.stdout,
+        "format":
+            "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+    }]
+}
+logger.configure(**logger_config)
 
 # Tokenizer
 # NOTE (const): tokenizers are guaranteed to improve and expand as time progresses. We version the tokenizer here.
@@ -79,14 +91,6 @@ __boltzmann_entrypoints__ = [
 __kusanagi_entrypoints__ = [
     'ws://feynman.kusanagi.bittensor.com:9944'
 ]
-
-# Default logger
-logger_config = {
-    "handlers": [{
-        "sink":
-            sys.stdout,
-        "format":
-            "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-    }]
-}
-logger.configure(**logger_config)
+__local_entrypoints__ = [
+    'ws://127.0.0.1:9944'
+]
