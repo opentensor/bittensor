@@ -28,7 +28,6 @@ from datasets import load_dataset
 from torch.utils.tensorboard import SummaryWriter
 
 
-
 class Miner():
     """
     Initializes, trains, and tests models created inside of 'bittensor/synapses'. 
