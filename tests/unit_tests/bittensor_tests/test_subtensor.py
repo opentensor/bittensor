@@ -1,35 +1,45 @@
 import bittensor
+import pytest
 from munch import Munch
 
 def test_create():
     subtensor = bittensor.subtensor.Subtensor()
 
-def test_check_config_network_not_exists_defaults_akira( ):
-    config = bittensor.metagraph.Subtensor.build_config()
-    config.subtensor.network = None
-    config.subtensor.chain_endpoint = None
-    bittensor.metagraph.Subtensor.check_config(config)
-    assert config.subtensor.network == 'akira'
-    assert config.subtensor.chain_endpoint in bittensor.__akira_entrypoints__
+def test_defaults_to_akira( ):
+    subtensor = bittensor.subtensor.Subtensor()
+    assert subtensor.endpoint_for_network() in bittensor.__akira_entrypoints__
 
-def test_check_config_network_to_endpoint():
-    config = bittensor.metagraph.Subtensor.build_config()
-    config.subtensor.network = 'akira'
-    bittensor.metagraph.Subtensor.check_config(config)
-    assert config.subtensor.chain_endpoint in bittensor.__akira_entrypoints__
-    config.subtensor.network = 'boltzmann'
-    bittensor.metagraph.Subtensor.check_config(config)
-    assert config.subtensor.chain_endpoint in bittensor.__boltzmann_entrypoints__
-    config.subtensor.network = 'kusanagi'
-    bittensor.metagraph.Subtensor.check_config(config)
-    assert config.subtensor.chain_endpoint in bittensor.__kusanagi_entrypoints__
+def test_endpoint_overides():
+    subtensor = bittensor.subtensor.Subtensor()
+    subtensor.config.subtensor.chain_endpoint = "this is the endpoint"
+    assert subtensor.endpoint_for_network() == "this is the endpoint"
 
-config = bittensor.metagraph.Subtensor.build_config()
-config.chain_endpoint = 'feynman.boltzmann.bittensor.com:9944'
+def test_networks():
+    subtensor = bittensor.subtensor.Subtensor()
+    subtensor.config.subtensor.network = 'akira'
+    assert subtensor.endpoint_for_network()  in bittensor.__akira_entrypoints__
+    subtensor.config.subtensor.network = 'boltzmann'
+    assert subtensor.endpoint_for_network()  in bittensor.__boltzmann_entrypoints__
+    subtensor.config.subtensor.network = 'kusanagi'
+    assert subtensor.endpoint_for_network() in bittensor.__kusanagi_entrypoints__
+
+def test_connect_failure( ):
+    subtensor = bittensor.subtensor.Subtensor()
+    subtensor.config.subtensor.chain_endpoint = "this is the endpoint"
+    with pytest.raises(RuntimeError):
+        subtensor.connect(timeout = 1)
+
+def test_connect_no_failure( ):
+    subtensor = bittensor.subtensor.Subtensor()
+    subtensor.config.subtensor.chain_endpoint = "this is the endpoint"
+    subtensor.connect(timeout = 1, failure=False)
+
+config = bittensor.subtensor.Subtensor.build_config()
+config.network = 'boltzmann'
 subtensor = bittensor.subtensor.Subtensor( config )
 
-def test_connect( ):
-    assert subtensor.connect() == True
+def test_connect_success( ):
+    subtensor.connect()
 
 def test_neurons( ):
     neurons = subtensor.neurons()

@@ -104,57 +104,53 @@ class Neuron:
             dendrite = bittensor.dendrite.Dendrite(config = self.config, wallet = self.wallet, metagraph = self.metagraph)
         self.dendrite = dendrite
 
-    def serve(self, synapse: 'bittensor.synapse.Synapse'):
-        r""" Serves a synapse.Synapse to the axon server replacing the previous synapse.Synapse if exists.
+    @staticmethod   
+    def build_config() -> Munch:
+        # Parses and returns a config Munch for this object.
+        parser = argparse.ArgumentParser(); 
+        Neuron.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        Neuron.check_config(config)
+        return config
 
-            Args:
-                synapse (:obj:`bittensor.synapse.Synapse`, `required`): 
-                    synapse object to serve on the axon server.
-        """
-        self.axon.serve(synapse)
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser):
+        bittensor.wallet.Wallet.add_args( parser )
+        bittensor.subtensor.Subtensor.add_args( parser )
+        bittensor.metagraph.Metagraph.add_args( parser )
+        bittensor.nucleus.Nucleus.add_args( parser )
+        bittensor.axon.Axon.add_args(parser)
+        bittensor.dendrite.Dendrite.add_args( parser )
+        try:
+            parser.add_argument('--neuron.modality', default=0, type=int, 
+                                help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
+        except:
+            pass
+
+    @staticmethod   
+    def check_config(config: Munch):
+        bittensor.wallet.Wallet.check_config( config )
+        bittensor.subtensor.Subtensor.check_config( config )
+        bittensor.metagraph.Metagraph.check_config( config )
+        bittensor.nucleus.Nucleus.check_config( config )
+        bittensor.axon.Axon.check_config( config )
+        bittensor.dendrite.Dendrite.check_config( config )
+        assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
 
     def start(self):
-        # Stop background grpc threads for serving the synapse object.
-        try:
-            self.axon.start()
-            logger.info('Started Axon server')
-        except Exception as e:
-            logger.error('Neuron: Failed to start axon server with error: {}', e)
-            raise FailedToEnterNeuron
-
-        try:
-            code, message = self.metagraph.connect(timeout=12)
-            if code != bittensor.metagraph.Metagraph.ConnectSuccess:
-                logger.error('Neuron: Timeout while subscribing to the chain endpoint with message {}', message)
-                logger.error('Check that your internet connection is working and the chain endpoint {} is available', self.config.subtensor.chain_endpoint)
-                failed_connect_msg_help = ''' The subtensor chain endpoint should likely be one of the following choices:
-                                        -- localhost:9944 -- (your locally running node)
-                                        -- feynman.akira.bittensor.com:9944 (testnet)
-                                        -- feynman.kusanagi.bittensor.com:9944 (mainnet)
-                                    To connect to your local node you will need to run the subtensor locally: (See: docs/running_a_validator.md)
-                                '''
-                logger.error(failed_connect_msg_help)
-                raise FailedConnectToChain
-        except Exception as e:
-            logger.error('Neuron: Error while connecting to the chain endpoint: {}', e)
-            raise FailedToEnterNeuron
-
-        try:
-            code, message = self.metagraph.subscribe(timeout=12)
-            if code != bittensor.metagraph.Metagraph.SubscribeSuccess:
-                logger.error('Neuron: Error while subscribing to the chain endpoint with message: {}', message)
-                raise FailedToEnterNeuron
-
-        except Exception as e:
-            logger.error('Neuron: Error while subscribing to the chain endpoint: {}', e)
-            raise FailedToEnterNeuron
-
-        try:
-            self.metagraph.sync()
-            logger.info(self.metagraph)
-        except Exception as e:
-            logger.error('Neuron: Error while syncing chain state with error {}', e)
-            raise FailedToEnterNeuron
+        self.axon.start()
+        self.subtensor.connect()
+        subscribe_success = self.subtensor.subscribe(
+                self.config.axon.external_ip, 
+                self.config.axon.external_port,
+                self.config.neuron.modality,
+                self.wallet.coldkeypub,
+                wait_for_finalization = True,
+        )
+        if not subscribe_success:
+            self.stop()
+            raise RuntimeError('Failed to subscribe neuron.')
+        self.metagraph.sync()
 
     def stop(self):
 
@@ -205,33 +201,6 @@ class Neuron:
                 bittensor.exceptions.handlers.rollbar.send_exception()
 
         return self
-
-    @staticmethod   
-    def build_config() -> Munch:
-        # Parses and returns a config Munch for this object.
-        parser = argparse.ArgumentParser(); 
-        Neuron.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        Neuron.check_config(config)
-        return config
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        bittensor.wallet.Wallet.add_args( parser )
-        bittensor.subtensor.Subtensor.add_args( parser )
-        bittensor.metagraph.Metagraph.add_args( parser )
-        bittensor.nucleus.Nucleus.add_args( parser )
-        bittensor.axon.Axon.add_args(parser)
-        bittensor.dendrite.Dendrite.add_args( parser )
-
-    @staticmethod   
-    def check_config(config: Munch):
-        bittensor.wallet.Wallet.check_config( config )
-        bittensor.subtensor.Subtensor.check_config( config )
-        bittensor.metagraph.Metagraph.check_config( config )
-        bittensor.nucleus.Nucleus.check_config( config )
-        bittensor.axon.Axon.check_config( config )
-        bittensor.dendrite.Dendrite.check_config( config )
 
     def __del__(self):
         self.stop()

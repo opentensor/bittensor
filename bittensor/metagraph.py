@@ -1,4 +1,3 @@
-
 # The MIT License (MIT)
 # Copyright © 2021 Opentensor.ai
 
@@ -32,7 +31,10 @@ from typing import List, Tuple, List
 
 import bittensor
 import bittensor.config as config_utils
+import bittensor.utils.networking as net
 from bittensor.subtensor import Subtensor
+
+MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
 
 class ChainState():
     """
@@ -196,6 +198,8 @@ class Metagraph():
 
         # Chain state as cache and torch object.
         self.last_sync = 0
+        self.uid = None
+        self.metadata = None
         self.cache = ChainState()
         self.state = TorchChainState.from_cache(self.cache)
 
@@ -266,15 +270,6 @@ class Metagraph():
 
         """
         return self.state.indices
-
-    @property
-    def uids(self) -> torch.LongTensor:
-        r""" Returns unique ids for each neuron in the chain state.
-            Returns:
-                uids (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
-                    unique id for each neuron.
-        """
-        return self.state.uids
 
     @property
     def uids(self) -> torch.LongTensor:
@@ -375,14 +370,13 @@ class Metagraph():
                     `w_{i,*}`
                 
         """
-        self_uid = self.uid_for_pubkey( self.wallet.hotkey.public_key )
-        if self_uid == -1:
+        if self.uid == None:
             return torch.tensor([])
         try:
-            self_idx = self.state.index_for_uid[ self_uid ] 
+            self_idx = self.state.index_for_uid[ self.uid ] 
             return self.state.W[self_idx, :]
         except:
-            logger.error('your uid is not in self.state with state.uids {} and uid {}'.format(self.state.uids, self_uid))
+            logger.error('your uid is not in self.state with state.uids {} and uid {}'.format(self.state.uids, self.uid))
             return torch.tensor([])
 
     @property
@@ -393,14 +387,13 @@ class Metagraph():
                 col (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n)`):
                     `w_{*,i}`
         """
-        self_uid = self.uid_for_pubkey( self.wallet.hotkey.public_key )
-        if self_uid == -1:
+        if self.uid == -1:
             return torch.tensor([])
         try:
-            self_idx = self.state.index_for_uid[ self_uid ] 
+            self_idx = self.state.index_for_uid[ self.uid ] 
             return self.state.W[:, self_idx]
         except:
-            logger.error('your uid is not in self.state with state.uids {} and uid {}'.format( self.state.uids, self_uid ))
+            logger.error('your uid is not in self.state with state.uids {} and uid {}'.format( self.state.uids, self.uid ))
             return torch.tensor([])
 
     @property
@@ -509,15 +502,39 @@ class Metagraph():
         else:
             return -1
 
+    def neuron_for_uid( self, uid: int ) -> bittensor.proto.Neuron:
+        r""" Returns the metadata associated with the passed uid, or None if the uid does not exist.
+            Args:
+                uid (:obj:`int`): 
+                    uid to query for neuron metadata.
+            Returns:
+                neuron_metadata (:obj:`int`)
+                    metadata of neuron associated with this uid, or None.
+        """
+        if uid in self.state.index_for_uid:
+            return self.state.neurons[ self.state.index_for_uid[ uid ] ]
+        else:
+            return None
+
     def sync(self):
         r""" Synchronizes the local self.state with the chain state.
         """
+        # TODO (const) this should probably be a background process
+        # however, it makes it difficult for the user if the state changes in
+        # the background.
         current_block = self.subtensor.get_current_block()
-        if (self.last_sync - current_block) > 10:
+        if (self.last_sync - current_block) > 20: # > Every 2 minutes.
+
+            # Update global state.
             self.last_sync = current_block
             self._sync_cache()
             self.state = TorchChainState.from_cache(self.cache)
             self.state.block = current_block
+
+            # Update self state.
+            if self.wallet.hotkey.public_key in self.uid_for_pubkey():
+                self.uid = self.uid_for_pubkey( self.wallet.hotkey.public_key )
+                self.metadata = self.neuron_for_uid( self.uid )
 
     def _sync_cache(self):
         r""" Async: Makes calls to chain updating local chain cache with newest info.
@@ -546,6 +563,221 @@ class Metagraph():
                 w_uids = weight_uids[ index ][1], 
                 w_vals = weight_vals[ index ][1],
             )
+
+
+    EmitSuccess = 1
+    EmitValueError = 2
+    EmitUnknownError = 3
+    EmitTimeoutError = 4
+    EmitTimeoutError = 5
+    EmitResultUnknown = 6
+    EmitNoOp = 7
+    def set_weights(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12):
+        r""" Emits the passed weights to the chain. Optionally Waits for inclusion. 
+        Failures are logged but do not break the process. 
+        Args:
+            Weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                weights to set on chain of length self.state.n
+            Wait_for_inclusion: (bool, default: False):
+                if true, the call waits for inclusion in the block before continuing.
+            Timeout: (int, default = 12 sec):
+                time to wait for inclusion before raising a caught error.
+        """
+        # --- Try emit, optionally wait ----
+        try:
+            code, message = self._try_emit(weights, wait_for_inclusion, timeout)
+            if code == Metagraph.EmitSuccess:
+                # ---- Emit was a success. ----
+                logger.info("Successful emission.")
+
+            elif code == Metagraph.EmitValueError:
+                # ---- Passed weights were incorrect ----
+                logger.info("Value error during emission: {}", message)
+
+            elif code == Metagraph.EmitUnknownError:
+                # ---- Unknown error ----
+                logger.error("Unknown error during emission: {}", message)
+
+            elif code == Metagraph.EmitTimeoutError:
+                # ---- Timeout while waiting for inclusion ----
+                logger.info("Emission timeout after {} seconds with error {}", timeout, message)
+
+            elif code == Metagraph.EmitResultUnknown:
+                # ---- Did not wait, result unknown ----
+                logger.info("Emit results unknown.")
+
+            elif code == Metagraph.EmitNoOp:
+                # ---- Emit is a NoOp ----
+                logger.info("When trying to set weights on chain. Weights are unchanged, nothing to emit.")
+
+        except Exception as e:
+            # ---- Unknown error, raises error again. Should never get here ----
+            logger.error("Unknown Error during emission {}", e)
+            raise e
+
+        return code, message
+
+    def _try_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> Tuple[int, str]:
+        r""" Makes emit checks, emits to chain, and raises one of the following errors.
+            Args:
+                weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                    Weights to set on chain.
+                wait_for_inclusion: (:obj:`bool`):
+                    If true, the call waits for block-inclusion before continuing or throws error after timeout.
+                timeout: (:obj:`int`, default = 12 sec):
+                    Time to wait for inclusion before raising a caught error.
+            Returns:
+                code (:obj:`ENUM`) {
+                    EmitSuccess (:obj:`ENUM`):
+                        Raised when try_async_emit emits weights successfully with known result.
+                    EmitNoOp (:obj:`ENUM`):
+                        Raised when calling emit does not change weights on chain.
+                    EmitUnknownError (:obj:`ENUM`):
+                        UnknownError during emit.
+                    EmitValueError (:obj:`ENUM`):
+                        Raised during emission when passed weights are not properly set.
+                    EmitTimeoutError (:obj:`ENUM`):
+                        Raised during emission during a timeout.
+                    EmitResultUnknown (:obj:`ENUM`):
+                        Called when an emit step end without a known result, for instance, 
+                        if the user has wait_for_inclusion = False.
+                }
+                message:
+                    Message associated with code.
+        """
+        # --- Check type ----
+        if not isinstance(weights, torch.Tensor):
+            message = "Error trying to set weights on chain. Got weights type {}, but weights must be of type {}".format(type(weights), torch.Tensor)
+            return Metagraph.EmitValueError, message
+        
+        # --- Check nan ---
+        if torch.any(weights.isnan()).item():
+            message = "Error trying to set weight on chain. Got nan values {}".format(weights)
+            return Metagraph.EmitValueError, message
+
+        # ---- Convert weights to list ----
+        weights = [float(w) for w in weights.tolist()]
+
+        # ---- Check length > 0 ----
+        if len(weights) == 0:
+            message = "Error tyring to set weight on china. Got a length 0 set of values, must be at least length 1."
+            return Metagraph.EmitValueError, message
+
+        # ---- Check length ----
+        if len(weights) != self.state.n:
+            message = "Error trying to set weights on chain. Got length {}, but the length must match the number of neurons in metagraph.neurons {}".format(len(weights), self.state.n)
+            return Metagraph.EmitValueError, message
+
+        # ---- Check approximate sum ----
+        sum_weights = sum(weights)
+        epsilon = 0.001
+        if abs(1.0 - sum_weights) > epsilon:
+            message = "Error trying to set weights on chain. Got {} for sum, but passed weights must sum to 1 ".format(len(sum_weights), self.state.n)
+            return Metagraph.EmitValueError, message
+
+        # ---- Check min ----
+        min_weights = min(weights)
+        if min_weights < 0.0:
+            message = "Error trying to set weights on chain. Got min value {} but values must be in range [0,1]".format(min_weights)
+            return Metagraph.EmitValueError, message
+
+        # ---- Check max ----
+        max_weights = max(weights)
+        if max_weights > 1.0:
+            message = "Error trying to set weights on chain. Got max value {} but values must be in range [0,1]".format(max_weights)
+            return Metagraph.EmitValueError, message
+
+        # ---- Convert Weights to int-vals and pubkeys ----
+        try:
+            weight_uids, weight_vals = self.convert_weights_to_emit(weights)
+        except Exception as e:
+            message = "Unknown error when converting weights to ints with weights {} and error {}".format(weights, e)
+            return Metagraph.EmitUnknownError, message
+
+        # ---- Check sum ----
+        weight_sum = sum(weight_vals)
+        if weight_sum != MAX_INT_WEIGHT:
+            message = "Error trying to set weights on chain. Converted weights do not sum to {} with weights_vals {}".format(MAX_INT_WEIGHT, weight_vals)
+            return Metagraph.EmitValueError, message
+
+        # ---- Check NO-OP ----
+        if self._are_set_on_chain(weight_vals, weight_uids):
+            message = "When trying to set weights on chain. Weights are unchanged, nothing to emit."
+            return Metagraph.EmitNoOp, message
+
+        # ---- Emit ----
+        try:
+            # --- Make emission call ----
+            logger.debug('Emit -> {} {}', weight_uids, weight_vals)
+            self.subtensor.set_weights(weight_uids, weight_vals, wait_for_inclusion)
+
+        except Exception as e:
+            logger.trace('Emit error {}', e)
+            return Metagraph.EmitUnknownError, message
+
+        message = "Successful emission"
+        return Metagraph.Success, message
+
+    def _are_set_on_chain(self, weight_uids, weight_vals) -> bool:
+        r""" Returns true if the passed key and vals are set on chain.
+        """
+        cmap = {}
+        chain_uids = self.subtensor.weight_uids_for_uid(self.uid)
+        chain_vals = self.subtensor.weight_vals_for_uid(self.uid)
+        if chain_uids != None and chain_vals != None:
+            n_same = 0
+            for uid, val in list(zip(chain_uids, chain_vals)):
+                cmap[uid] = val
+            for uid, val in list(zip(weight_uids, weight_vals)):
+                if uid in cmap:
+                    if cmap[uid] == val:
+                        n_same += 1
+            if n_same == len(weight_vals):
+                return True
+            else:
+                return False
+        else:
+            return False 
+
+    def convert_weights_to_emit(self, weights: List[float]) -> Tuple[List[str], List[int]]:
+        r""" Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
+             Returns:
+                keys (:obj:`List[str]`):
+                    List of pubkeys associated with each weight from vals.
+                vals (:obj:`List[int]`):
+                List of u32 integer representations of floating point weights.
+        """
+        remainder = MAX_INT_WEIGHT
+        weight_vals = []
+        weight_uids = []
+        pos_self_uid = -1
+        for i, val in enumerate(weights):
+            int_val = int(float(val) * int(MAX_INT_WEIGHT)) # convert to int representation.
+            remainder -= int_val
+            uid_i = self.state.uids.tolist()[i]
+
+            # ---- Fix remainders and overflows ----
+            if remainder < 0:
+                int_val = int_val + remainder
+                remainder = 0
+
+            if i == (len(weights) -1) and remainder > 0: # last item.
+                int_val += remainder
+                remainder = 0
+
+            # Do not add zero values. 
+            if int_val != 0:
+                weight_vals.append( int_val ) # int weights sum to MAX_INT_WEIGHT.
+                weight_uids.append( uid_i ) # Gets the uid at this index
+
+            if uid_i == self.uid:
+                pos_self_uid = i
+
+        # Places the self weight in the first position if it exists
+        if pos_self_uid != -1 and len(weight_uids) > 1:
+            weight_uids.insert(0, weight_uids.pop(pos_self_uid))
+            weight_vals.insert(0, weight_vals.pop(pos_self_uid))
+        return weight_uids, weight_vals
 
     def __str__(self):
         uids = self.state.uids.tolist()

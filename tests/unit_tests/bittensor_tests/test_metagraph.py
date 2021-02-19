@@ -12,26 +12,6 @@ def test_create( ):
     metagraph = bittensor.metagraph.Metagraph()
     assert True
 
-def test_check_config_network_not_exists_defaults_akira( ):
-    config = bittensor.metagraph.Metagraph.build_config()
-    config.subtensor.network = None
-    config.subtensor.chain_endpoint = None
-    bittensor.metagraph.Metagraph.check_config(config)
-    assert config.subtensor.network == 'akira'
-    assert config.subtensor.chain_endpoint in bittensor.__akira_entrypoints__
-
-def test_check_config_network_to_endpoint():
-    config = bittensor.metagraph.Metagraph.build_config()
-    config.subtensor.network = 'akira'
-    bittensor.metagraph.Metagraph.check_config(config)
-    assert config.subtensor.chain_endpoint in bittensor.__akira_entrypoints__
-    config.subtensor.network = 'boltzmann'
-    bittensor.metagraph.Metagraph.check_config(config)
-    assert config.subtensor.chain_endpoint in bittensor.__boltzmann_entrypoints__
-    config.subtensor.network = 'kusanagi'
-    bittensor.metagraph.Metagraph.check_config(config)
-    assert config.subtensor.chain_endpoint in bittensor.__kusanagi_entrypoints__
-
 def test_convert_weight_order_should_work_last( ):
     MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
     metagraph.state.uids = torch.tensor([1,2,3,4])
@@ -120,7 +100,6 @@ def test_convert_weight_zeros_adds_remainder_to_last_member( ):
     print (uids, vals)
     assert uids == [1]
     assert sum( vals ) == MAX_INT_WEIGHT
-
 
 chain_state = None
 def test_chain_state( ):
