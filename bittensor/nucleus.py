@@ -40,7 +40,7 @@ class Nucleus ():
             Args:
                 config (:obj:`Munch`, `optional`): 
                     nucleus.Nucleus.config()
-                wallet (:obj:`bittensor.nucleus.Nucleus`, `optional`):
+                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
                     bittensor network metagraph.

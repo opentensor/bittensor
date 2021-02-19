@@ -183,7 +183,7 @@ class Metagraph():
             Args:
                 config (:obj:`Munch`, `optional`): 
                     metagraph.Metagraph.config()
-                wallet (:obj:`bittensor.nucleus.Nucleus`, `optional`):
+                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
         """
         if config == None:
