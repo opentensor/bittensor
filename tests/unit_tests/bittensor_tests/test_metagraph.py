@@ -12,14 +12,13 @@ def test_create( ):
     metagraph = bittensor.metagraph.Metagraph()
     assert True
 
-def test_check_config_network_not_existend( ):
+def test_check_config_network_not_exists_defaults_akira( ):
     config = bittensor.metagraph.Metagraph.build_config()
     config.metagraph.network = None
     config.metagraph.chain_endpoint = None
-    print (config)
-    with pytest.raises(ValueError):
-        bittensor.metagraph.Metagraph.check_config(config)
-
+    bittensor.metagraph.Metagraph.check_config(config)
+    assert config.metagraph.network == 'akira'
+    assert config.metagraph.chain_endpoint in bittensor.__akira_entrypoints__
 
 def test_check_config_network_to_endpoint():
     config = bittensor.metagraph.Metagraph.build_config()

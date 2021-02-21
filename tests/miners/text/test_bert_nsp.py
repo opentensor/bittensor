@@ -5,7 +5,7 @@ sys.path.append("miners/TEXT/")
 import bittensor
 import torch
 import numpy
-from bert_nsp import Miner
+from bert_nsp.bert_nsp import Miner
 
 
 def test_run_bert_nsp():
