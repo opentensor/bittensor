@@ -4,7 +4,13 @@
 This file demonstrates training the GPT2 neuron with language modelling.
 
 Example:
-        $ python miners/TEXT/gpt2-wiki.py
+        $ python miners/TEXT/gpt2_genesis/gpt2_genesis.py
+
+Look at the yaml config file to tweak the parameters of the model. To run with those 
+default configurations, run:
+        $ cd miners/TEXT
+        $ python gpt2_genesis/gpt2_genesis.py --session.config_file gpt2_genesis/gpt2_genesis_config.yaml
+
 
 """
 import argparse
