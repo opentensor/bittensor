@@ -40,8 +40,8 @@ def nextbatch(data, batch_size, tokenizer):
     """
     batch_text = []
     for _ in range(batch_size):
-        batch_text.append(data[random.randint(0, len(data))]['text'])
-    batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True, truncation=True)['input_ids']
+        batch_text.append(data[random.randint(0, len(data))]['review_body'])
+    batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True, truncation=True, max_length=bittensor.__network_dim__)['input_ids']
     return batch_inputs
 
 
