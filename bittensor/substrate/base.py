@@ -21,12 +21,13 @@ import binascii
 import json
 import logging
 import re
+import threading
 
 import requests
 from typing import Optional
 
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
-from websocket import create_connection, WebSocketConnectionClosedException
+import websocket
 
 from scalecodec import ScaleBytes, GenericCall
 from scalecodec.base import ScaleDecoder, RuntimeConfigurationObject, ScaleType
@@ -386,6 +387,153 @@ class Keypair:
         }
 
 
+import websocket
+import _thread
+import time
+
+class SubstrateHandler:
+    """
+        Websocket Handler: Maintains message and socket state for websocket connection to a substrate chain.
+    """
+
+    def __init__(self):
+        r""" Initializes the handler state.
+        """
+        self._responses = {}
+        self._events = {}
+        self._handlers = {}     
+        self._is_subscription = {}
+        self._id_for_subscription = {}
+        self.is_connected = False   
+
+    def on_open( self, websocket ):
+        r""" Call back for the websocket on connection.
+        """
+        self._responses = {}
+        self._events = {}    
+        self._handlers = {}    
+        self._is_subscription = {}
+        self._id_for_subscription = {}
+        self.is_connected = True
+
+    def on_close( self, websocket ):
+        r""" Call back for the websocket on connection close.
+        """
+        del self._responses
+        del self._events   
+        del self._handlers  
+        del self._id_for_subscription
+        del self._is_subscription
+        self.is_connected = False        
+
+    def on_message( self, websocket, message ):
+        r""" Call back for the websocket on message recieved.
+
+            There are two code paths: regular and subscription. A regular call has a message id and we return the result.
+            Subscriptions dont have a message id and we need to remember the subscription key returned by the first call.
+            The subscription field is set on further subscriptio messages and we pass these messages to the handler. 
+            Handlers that return non-none results signify that the subscription is over and we set the result.
+
+        """
+        # 1. Load json message.
+        json_data = json.loads(message)
+
+        # Message id is passed back for normal messages
+        message_id = None
+        # A subscription key can be retrieved if the message has no id but contains a ['params']['subscription'] field.
+        is_subscription = False
+
+        # 2. Get message id if it exists.
+        if 'id' in json_data:
+            message_id = int(json_data['id']) 
+
+        # 3. Fall back to check if the message is a subscription.
+        # Checks for the ['params']['subscription'] field.
+        elif 'params' in json_data:
+            if 'subscription' in json_data['params']:
+                subscription = json_data['params']['subscription']
+                if subscription in self._id_for_subscription:
+                    message_id = self._id_for_subscription[ subscription ]     
+                    is_subscription = True 
+
+        # 4. Messages without and id are returned without processing.
+        # Note that on subscription we attain the message_id from the self._id_for_subscription mem.
+        if message_id == None:
+            return
+
+        # 5. The first message of a subscription contains the subscription key.
+        # We check the self._is_subscrtiption to see if we are watching this stream.
+        if message_id in self._is_subscription and not is_subscription:
+            if self._is_subscription [ message_id ] == True:
+                if 'result' in json_data:
+                    subscription_id = json_data[ 'result' ]
+                    self._id_for_subscription[ subscription_id ] = message_id
+            
+        # 6. Handle the message with the passed handler. By default the handler is none
+        # and we simply pass through the message. If a handler is present it must return a 
+        # non null result.
+        result_handler = self._handlers[ message_id ]
+        if result_handler == None:
+            handler_result = json_data
+        else:
+            handler_result = result_handler( json_data )
+
+        # 7. Check handler has result is non-none. The non-none result specifies the end of the 
+        # subscription.
+        if handler_result == None:
+            return 
+
+        # 8. Sanity check.
+        if message_id not in self._events:
+            return
+        
+        # 9. Set result and event.
+        self._responses[ message_id ] = handler_result
+        self._events[ message_id ].set()
+
+    def make_request( self, websocket, message_id:int, json_body, handler = None, is_subscription = False, timeout = 2 ):
+        r""" Creates a websocket message call and waits until the response is recieved.
+            Maintains memory about the sent request and only returns when the passed handler produces a
+            non-null response or a timeout occurs. The call is blocking.
+            Args:
+                websocket (websocket):
+                    The websocket to send the message on.
+                message_id (int):
+                    The unique message identifier.
+                json_body (str):
+                    string encoded json as produced by json.dumps()
+                handler (function):
+                    optional callback which returns a value when the message is complete. Or none otherwise.
+                is_subscription (bool):
+                    if true the messsage is a subscription. We link all messages with the same subscription key.
+                timeout (int):
+                    How long this call waits until a successful response is logged.
+        Returns:
+            response (dict):
+                Json data as a python dictionary or None if the call reaches a timeout. 
+        """
+        # Send message.
+        websocket.send( json_body )
+
+        # Set events.
+        self._events[ message_id ] = threading.Event()
+        self._handlers[ message_id ] = handler
+        self._is_subscription [ message_id ] = is_subscription
+
+        # Wait for events.
+        response = None
+        if self._events[ message_id ].wait( timeout = timeout):
+            response = self._responses[ message_id ]
+            del self._responses[ message_id ]
+        
+        # Delete lingering memory
+        del self._events[ message_id ]
+        del self._handlers[ message_id ]
+        del self._is_subscription [ message_id ]
+        if message_id in self._id_for_subscription:
+            del self._id_for_subscription [ message_id ]
+        return response
+
 class SubstrateInterface:
 
     def __init__(self, url=None, websocket=None, ss58_format=None, type_registry=None, type_registry_preset=None,
@@ -423,8 +571,9 @@ class SubstrateInterface:
         self.type_registry = type_registry
 
         self.request_id = 1
-        self.url = url
-        self.websocket = None
+        self._websocket = None
+        self._websocket_handler = SubstrateHandler()
+        self._websocket_thread = None
 
         self.mock_extrinsics = None
         self.default_headers = {
@@ -452,28 +601,50 @@ class SubstrateInterface:
 
         self.reload_type_registry(use_remote_preset=use_remote_preset)
 
+    def _teardown_websocket(self):
+        if self._websocket_thread != None and self._websocket != None:
+            self._websocket.close()
+            self._websocket_thread.join()
+        del self._websocket
+        del self._websocket_thread
+        del self._websocket_handler 
+            
+    def __del__(self):
+        self._teardown_websocket()
+
     def connect (self, url: str):
-        # Websocket url.
-        self.url = url
-        if self.url and (self.url[0:6] == 'wss://' or self.url[0:5] == 'ws://'):
-            self.debug_message("Connecting to {} ...".format(self.url))
-            self.websocket = create_connection(
-                self.url,
-                max_size=2 ** 32,
-                read_limit=2 ** 32,
-                write_limit=2 ** 32,
-            )
+        # Remove previous connection.
+        self._teardown_websocket()
+
+        # Create websocket and assign handlers
+        self._websocket_handler = SubstrateHandler()
+        self._websocket = websocket.WebSocketApp(url)
+        def on_message( websocket, message):
+            self._websocket_handler.on_message( websocket, message )
+        def on_error( websocket, error):
+            self._websocket_handler.on_error( websocket, error)
+        def on_close( websocket):
+            self._websocket_handler.on_close( websocket )            
+        def on_open( websocket ):
+            self._websocket_handler.on_open( websocket ) 
+        self._websocket.on_open = on_open
+        self._websocket.on_close = on_close
+        self._websocket.on_error = on_error
+        self._websocket.on_message = on_message
+
+        # Create websocket background thread as deamon.
+        self._websocket_thread = threading.Thread(target = self._websocket.run_forever)
+        self._websocket_thread.start()
 
     def is_connected (self) -> bool:
-        if self.websocket == None:
+        if self._websocket_handler == None:
             return False
-        else:
-            return self.websocket.connected
+        return self._websocket_handler.is_connected 
 
     def debug_message(self, message):
         logger.debug(message)
 
-    def rpc_request(self, method, params, result_handler=None):
+    def rpc_request(self, method, params, result_handler=None, is_subscription = False, timeout: int = 2):
         """
         Method that handles the actual RPC request to the Substrate node. The other implemented functions eventually
         use this method to perform the request.
@@ -494,70 +665,93 @@ class SubstrateInterface:
             "params": params,
             "id": self.request_id
         }
+        # Sends the websocket message and blocks until a response with this id is recieved.
+        # The call returns a None type if the message is not recieved or if the handler returns None.
+        response = self._websocket_handler.make_request (
+            websocket = self._websocket, # websocket to make request on.
+            message_id = self.request_id, # unique message id
+            json_body = json.dumps(payload), # json encoded message
+            handler = result_handler, # response handler function.
+            is_subscription = is_subscription, # true if the message creates a subscription feed which we need to watch.
+            timeout = timeout # blocks for this length of time if a response is not recieved.
+        )
+        self.request_id += 1
+        return response
 
-        self.debug_message('RPC request #{}: "{}"'.format(self.request_id, method))
+    def submit_extrinsic(self, extrinsic, wait_for_inclusion=False, wait_for_finalization=False, timeout: int = 2) -> "ExtrinsicReceipt":
+        """
 
-        if self.websocket:
-            try:
-                self.websocket.send(json.dumps(payload))
+        Parameters
+        ----------
+        extrinsic: ExtrinsicsDecoder The extinsic to be send to the network
+        wait_for_inclusion: wait until extrinsic is included in a block (only works for websocket connections)
+        wait_for_finalization: wait until extrinsic is finalized (only works for websocket connections)
 
-                if callable(result_handler):
-                    # If result handler is set, pass result through and loop until handler return not None
-                    event_number = 0
-                    json_body = None
-                    while not json_body:
-                        result = json.loads(self.websocket.recv())
-                        if 'id' not in result:
-                            continue
-                        if result['id'] != self.request_id:
-                            continue
-                        else:
-                            break
-                        self.debug_message("Websocket result [{}] Received from node: {}".format(event_number, result))
+        Returns
+        -------
+        The hash of the extrinsic submitted to the network
 
-                        # Check if response has error
-                        if 'error' in result:
-                            raise SubstrateRequestException(result['error'])
+        """
 
-                        callback_result = result_handler(result)
-                        if callback_result:
-                            json_body = callback_result
+        # Check requirements
+        if extrinsic.__class__.__name__ != 'ExtrinsicsDecoder':
+            raise TypeError("'extrinsic' must be of type ExtrinsicsDecoder")
 
-                        event_number += 1
+        def result_handler(result):
+            # Check if extrinsic is included and finalized
+            if 'params' in result and type(result['params']['result']) is dict:
+                if 'finalized' in result['params']['result'] and wait_for_finalization:
+                    return {
+                        'block_hash': result['params']['result']['finalized'],
+                        'extrinsic_hash': '0x{}'.format(extrinsic.extrinsic_hash),
+                        'finalized': True
+                    }
+                elif 'inBlock' in result['params']['result'] and wait_for_inclusion and not wait_for_finalization:
+                    return {
+                        'block_hash': result['params']['result']['inBlock'],
+                        'extrinsic_hash': '0x{}'.format(extrinsic.extrinsic_hash),
+                        'finalized': False
+                    }
                 else:
-                    while True:
-                        json_body = json.loads(self.websocket.recv())
-                        if 'id' not in json_body:
-                            continue
-                        if json_body['id'] != self.request_id:
-                            continue
-                        else:
-                            break
+                    return None
+            else:
+                return None
 
-            except WebSocketConnectionClosedException:
-                if self.url:
-                    # Try to reconnect websocket and retry rpc_request
-                    self.debug_message("Connection Closed; Trying to reconnecting...")
-                    self.connect_websocket()
-
-                    return self.rpc_request(method=method, params=params, result_handler=result_handler)
-                else:
-                    # websocket connection is externally created, re-raise exception
-                    raise
+        if wait_for_inclusion or wait_for_finalization:
+            response = self.rpc_request(
+                "author_submitAndWatchExtrinsic",
+                [str(extrinsic.data)],
+                result_handler=result_handler,
+                is_subscription = True,
+                timeout = timeout,
+            )
+            if response != None:
+                result = ExtrinsicReceipt(
+                    substrate=self,
+                    extrinsic_hash=response['extrinsic_hash'],
+                    block_hash=response['block_hash'],
+                    finalized=response['finalized']
+                )
+            else:
+                result = ExtrinsicReceipt(
+                    substrate=self,
+                    extrinsic_hash=None,
+                    block_hash=None,
+                    finalized=False
+                )
 
         else:
-            if result_handler:
-                raise ConfigurationError("Result handlers only available for websockets (ws://) connections")
+            response = self.rpc_request("author_submitExtrinsic", [str(extrinsic.data)], timeout = timeout )
+            if 'result' not in response:
+                raise SubstrateRequestException(response.get('error'))
 
-            response = requests.request("POST", self.url, data=json.dumps(payload), headers=self.default_headers)
+            result = ExtrinsicReceipt(
+                substrate=self,
+                extrinsic_hash=response['result']
+            )
 
-            if response.status_code != 200:
-                raise SubstrateRequestException("RPC request failed with HTTP status code {}".format(response.status_code))
+        return result
 
-            json_body = response.json()
-
-        self.request_id += 1
-        return json_body
 
     @property
     def name(self):
@@ -1533,69 +1727,6 @@ class SubstrateInterface:
         })
 
         return extrinsic
-
-    def submit_extrinsic(self, extrinsic, wait_for_inclusion=False, wait_for_finalization=False) -> "ExtrinsicReceipt":
-        """
-
-        Parameters
-        ----------
-        extrinsic: ExtrinsicsDecoder The extinsic to be send to the network
-        wait_for_inclusion: wait until extrinsic is included in a block (only works for websocket connections)
-        wait_for_finalization: wait until extrinsic is finalized (only works for websocket connections)
-
-        Returns
-        -------
-        The hash of the extrinsic submitted to the network
-
-        """
-
-        # Check requirements
-        if extrinsic.__class__.__name__ != 'ExtrinsicsDecoder':
-            raise TypeError("'extrinsic' must be of type ExtrinsicsDecoder")
-
-        def result_handler(result):
-            # Check if extrinsic is included and finalized
-            if 'params' in result and type(result['params']['result']) is dict:
-                if 'finalized' in result['params']['result'] and wait_for_finalization:
-                    return {
-                        'block_hash': result['params']['result']['finalized'],
-                        'extrinsic_hash': '0x{}'.format(extrinsic.extrinsic_hash),
-                        'finalized': True
-                    }
-                elif 'inBlock' in result['params']['result'] and wait_for_inclusion and not wait_for_finalization:
-                    return {
-                        'block_hash': result['params']['result']['inBlock'],
-                        'extrinsic_hash': '0x{}'.format(extrinsic.extrinsic_hash),
-                        'finalized': False
-                    }
-
-        if wait_for_inclusion or wait_for_finalization:
-            response = self.rpc_request(
-                "author_submitAndWatchExtrinsic",
-                [str(extrinsic.data)],
-                result_handler=result_handler
-            )
-
-            result = ExtrinsicReceipt(
-                substrate=self,
-                extrinsic_hash=response['extrinsic_hash'],
-                block_hash=response['block_hash'],
-                finalized=response['finalized']
-            )
-
-        else:
-
-            response = self.rpc_request("author_submitExtrinsic", [str(extrinsic.data)])
-
-            if 'result' not in response:
-                raise SubstrateRequestException(response.get('error'))
-
-            result = ExtrinsicReceipt(
-                substrate=self,
-                extrinsic_hash=response['result']
-            )
-
-        return result
 
     def get_payment_info(self, call, keypair):
         """

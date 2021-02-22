@@ -522,6 +522,7 @@ class Metagraph():
         # TODO (const) this should probably be a background process
         # however, it makes it difficult for the user if the state changes in
         # the background.
+        print(colored('\nSyncing graph:', 'white'))
         current_block = self.subtensor.get_current_block()
         if (current_block - self.last_sync) > 20: # > Every 2 minutes.
             # ---- Update cache ----
@@ -586,36 +587,30 @@ class Metagraph():
                 time to wait for inclusion before raising a caught error.
         """
         # --- Try emit, optionally wait ----
-        try:
-            code, message = self._try_emit(weights, wait_for_inclusion, timeout)
-            if code == Metagraph.EmitSuccess:
-                # ---- Emit was a success. ----
-                logger.info("Successful emission.")
+        code, message = self._try_emit(weights, wait_for_inclusion, timeout)
+        if code == Metagraph.EmitSuccess:
+            # ---- Emit was a success. ----
+            logger.info("Successful emission.")
 
-            elif code == Metagraph.EmitValueError:
-                # ---- Passed weights were incorrect ----
-                logger.info("Value error during emission: {}", message)
+        elif code == Metagraph.EmitValueError:
+            # ---- Passed weights were incorrect ----
+            logger.info("Value error during emission: {}", message)
 
-            elif code == Metagraph.EmitUnknownError:
-                # ---- Unknown error ----
-                logger.error("Unknown error during emission: {}", message)
+        elif code == Metagraph.EmitUnknownError:
+            # ---- Unknown error ----
+            logger.error("Unknown error during emission: {}", message)
 
-            elif code == Metagraph.EmitTimeoutError:
-                # ---- Timeout while waiting for inclusion ----
-                logger.info("Emission timeout after {} seconds with error {}", timeout, message)
+        elif code == Metagraph.EmitTimeoutError:
+            # ---- Timeout while waiting for inclusion ----
+            logger.info("Emission timeout after {} seconds with error {}", timeout, message)
 
-            elif code == Metagraph.EmitResultUnknown:
-                # ---- Did not wait, result unknown ----
-                logger.info("Emit results unknown.")
+        elif code == Metagraph.EmitResultUnknown:
+            # ---- Did not wait, result unknown ----
+            logger.info("Emit results unknown.")
 
-            elif code == Metagraph.EmitNoOp:
-                # ---- Emit is a NoOp ----
-                logger.info("When trying to set weights on chain. Weights are unchanged, nothing to emit.")
-
-        except Exception as e:
-            # ---- Unknown error, raises error again. Should never get here ----
-            logger.error("Unknown Error during emission {}", e)
-            raise e
+        elif code == Metagraph.EmitNoOp:
+            # ---- Emit is a NoOp ----
+            logger.info("When trying to set weights on chain. Weights are unchanged, nothing to emit.")
 
         return code, message
 
@@ -708,14 +703,8 @@ class Metagraph():
             return Metagraph.EmitNoOp, message
 
         # ---- Emit ----
-        try:
-            # --- Make emission call ----
-            logger.debug('Emit -> {} {}', weight_uids, weight_vals)
-            self.subtensor.set_weights(weight_uids, weight_vals, wait_for_inclusion)
-
-        except Exception as e:
-            logger.trace('Emit error {}', e)
-            return Metagraph.EmitUnknownError, str(e)
+        logger.info('Emitting weights -> {}', list(zip(weight_uids, weight_vals)))
+        self.subtensor.set_weights(weight_uids, weight_vals, wait_for_inclusion=True)
 
         message = "Successful emission"
         return Metagraph.EmitSuccess, message
