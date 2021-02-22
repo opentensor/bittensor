@@ -39,7 +39,6 @@ torch>=1.6.0
 torchvision
 transformers
 validators
-websocket-client==0.57.0
 xxhash>=2.0.0
 pandas
 numpy

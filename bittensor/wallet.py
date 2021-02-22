@@ -47,6 +47,31 @@ class Wallet():
         self._hotkey = None
         self._coldkey = None
         self._coldkeypub = None
+        
+    @staticmethod   
+    def build_config() -> Munch:
+        # Parses and returns a config Munch for this object.
+        parser = argparse.ArgumentParser(); 
+        Wallet.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        Wallet.check_config(config)
+        return config
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser):
+        try:
+            parser.add_argument('--wallet.name', required=False, default='default', 
+                                    help='''The name of the wallet to unlock for running bittensor''')
+            parser.add_argument('--wallet.hotkey', required=False, default='default', 
+                                    help='''The name of hotkey used to running the miner.''')
+            parser.add_argument('--wallet.path', required=False, default='~/.bittensor/wallets/', 
+                                    help='''The path to your bittensor wallets''')
+        except:
+            pass
+
+    @staticmethod   
+    def check_config(config: Munch):
+        pass
 
     @property
     def hotkey(self) -> bittensor.substrate.base.Keypair:
@@ -176,31 +201,6 @@ class Wallet():
         except KeyFileError as e:
             print(colored("Keyfile corrupt", 'red'))
             raise KeyFileError("Keyfile corrupt")
-        
-    @staticmethod   
-    def build_config() -> Munch:
-        # Parses and returns a config Munch for this object.
-        parser = argparse.ArgumentParser(); 
-        Wallet.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        Wallet.check_config(config)
-        return config
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        try:
-            parser.add_argument('--wallet.name', required=False, default='default', 
-                                    help='''The name of the wallet to unlock for running bittensor''')
-            parser.add_argument('--wallet.hotkey', required=False, default='default', 
-                                    help='''The name of hotkey used to running the miner.''')
-            parser.add_argument('--wallet.path', required=False, default='~/.bittensor/wallets/', 
-                                    help='''The path to your bittensor wallets''')
-        except:
-            pass
-
-    @staticmethod   
-    def check_config(config: Munch):
-        pass
 
     @staticmethod
     def __is_world_readable(path):
@@ -224,7 +224,7 @@ class Wallet():
         path = os.path.expanduser(path)
         return os.path.exists(path)
 
-    def create_new_coldkey( self, n_words:int, use_password: bool ):      
+    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True ):      
         # Create directory 
         dir_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name )
         if not os.path.exists( dir_path ):
@@ -249,7 +249,7 @@ class Wallet():
         cli_utils.save_keys( self.coldkeyfile, coldkey_data )
         cli_utils.set_file_permissions( self.coldkeyfile )
 
-    def create_new_hotkey( self, n_words:int ):  
+    def create_new_hotkey( self, n_words:int = 12):  
         # Create directory 
         dir_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name + "/hotkeys/" )
         if not os.path.exists( dir_path ):

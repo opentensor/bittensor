@@ -139,8 +139,7 @@ class Neuron:
         assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
 
     def start(self):
-        print(colored('\nStarting Neuron: \n', 'white'))
-
+        print(colored('\n', 'white'))
         # ---- Check hotkey ----
         print(colored('Loading wallet with path: {} name: {} hotkey: {}'.format(self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey), 'white'))
         try:
@@ -184,7 +183,6 @@ class Neuron:
             raise RuntimeError('Failed to subscribe neuron.')
         
         # ---- Sync graph ----
-        print(colored('\nSyncing graph:', 'white'))
         self.metagraph.sync()
         print(self.metagraph)
 

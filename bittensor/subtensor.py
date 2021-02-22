@@ -79,7 +79,7 @@ class Subtensor:
     def add_args(parser: argparse.ArgumentParser):
         bittensor.wallet.Wallet.add_args( parser )
         try:
-            parser.add_argument('--subtensor.network', default='akira', type=str, 
+            parser.add_argument('--subtensor.network', default='boltzmann', type=str, 
                                 help='''The subtensor network flag. The likely choices are:
                                         -- akira (testing network)
                                         -- kusanagi (main network)
@@ -168,19 +168,20 @@ class Subtensor:
         attempted_endpoints = []
         while True:
             def connection_error_message():
-                logger.error('Check that your internet connection is working and the chain endpoints are available: {} ', attempted_endpoints)
-                logger.error( '''   The subtensor chain endpoint should likely be one of the following choices:
+                logger.error( '''   
+                                    Check that your internet connection is working and the chain endpoints are available: {}
+                                    The subtensor.network should likely be one of the following choices:
                                         -- local -- (your locally running node)
                                         -- akira (testnet)
                                         -- kusanagi (mainnet)
                                     Or you may set the endpoint manually using the --subtensor.chain_endpoint flag 
                                     To connect run a local node (See: docs/running_a_validator.md)
-                              ''')
+                              ''', attempted_endpoints)
 
             # ---- Get next endpoint ----
             ws_chain_endpoint = self.endpoint_for_network( blacklist = attempted_endpoints )
             if ws_chain_endpoint == None:
-                logger.error('No more available endpoint for connection with subtensor.network: {} attempted: {}', self.config.subtensor.network, attempted_endpoints)
+                logger.error('No more available endpoints for connection with subtensor.network: {} attempted: {}', self.config.subtensor.network, attempted_endpoints)
                 connection_error_message()
                 if failure:
                     raise RuntimeError('Unable to connect to network {}. Make sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
@@ -190,6 +191,7 @@ class Subtensor:
 
             # --- Attempt connection ----
             self.substrate.connect( ws_chain_endpoint )
+            time.sleep(1) # Give it a second to connect.
 
             # ---- Success ----
             if self.substrate.is_connected():
@@ -198,7 +200,7 @@ class Subtensor:
 
             # ---- Timeout ----
             elif (time.time() - start_time) > timeout:
-                print(colored("Error while subscribing to the chain endpoint {}".format(ws_chain_endpoint), 'red'))
+                print(colored("Error while connecting to the chain endpoint {}".format(ws_chain_endpoint), 'red'))
                 connection_error_message()
                 if failure:
                     raise RuntimeError('Unable to connect to network {}. Make sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
@@ -225,16 +227,14 @@ class Subtensor:
         else:
             return False
 
-
-
-    def subscribe(self, ip: str, port: int, modality: int, coldkeypub: str, wait_for_finalization=True) -> bool:
+    def subscribe(self, ip: str, port: int, modality: int, coldkeypub: str, wait_for_finalization = True) -> bool:
         r""" Subscribes the passed metadata to the substensor chain.
         """
         if not self._check_connection():
             return False
 
         if self.is_subscribed( ip, port, modality, coldkeypub ):
-            print(colored('Subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub), 'green'))
+            print(colored('Already subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub), 'green'))
             return True
 
         ip_as_int  = net.ip_to_int(ip)
@@ -254,8 +254,9 @@ class Subtensor:
         extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.hotkey)
         if wait_for_finalization:
             try:
-                receipt = self.substrate.submit_extrinsic( extrinsic, wait_for_finalization = wait_for_finalization ) # Waiting for inclusion and other does not work
-                
+                print ('wait for finalization')
+                receipt = self.substrate.submit_extrinsic( extrinsic, wait_for_finalization = wait_for_finalization, timeout = bittensor.__blocktime__ * 5) # Waiting for block to finalized. 
+                print ('receipt', receipt)
                 if receipt.is_success:
                     print(colored('Subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub), 'green'))
                     return True
@@ -380,10 +381,10 @@ class Subtensor:
         self._check_connection()
         return self.substrate.get_block_number(None)
 
-    def get_active(self) -> List[int]:
-        r""" Returns a list of uids one for each active peer on chain.
+    def get_active(self) -> List[Tuple[str, int]]:
+        r""" Returns a list of (public key, uid) pairs one for each active peer on chain.
         Returns:
-            active (List[int}):
+            active (List[Tuple[str, int]]):
                 List of active peers.
         """
         self._check_connection()
@@ -392,6 +393,87 @@ class Subtensor:
             storage_function='Active',
         )
         return result
+
+    def get_stake(self) -> List[Tuple[int, int]]:
+        r""" Returns a list of (uid, stake) pairs one for each active peer on chain.
+        Returns:
+            stake (List[Tuple[int, int]]):
+                List of stake values.
+        """
+        self._check_connection()
+        result =self.substrate.iterate_map(
+            module='SubtensorModule',
+            storage_function='Stake',
+        )
+        return result
+
+    def get_last_emit(self) -> List[Tuple[int, int]]:
+        r""" Returns a list of (uid, last emit) pairs for each active peer on chain.
+        Returns:
+            last_emit (List[Tuple[int, int]]):
+                List of last emit values.
+        """
+        self._check_connection()
+        result = self.substrate.iterate_map(
+            module='SubtensorModule',
+            storage_function='LastEmit'
+        )
+        return result
+
+    def get_weight_vals(self) -> List[Tuple[int, List[int]]]:
+        r""" Returns a list of (uid, weight vals) pairs for each active peer on chain.
+        Returns:
+            weight_vals (List[Tuple[int, List[int]]]):
+                List of weight val pairs.
+        """
+        self._check_connection()
+        result = self.substrate.iterate_map(
+            module='SubtensorModule',
+            storage_function='WeightVals'
+        )
+        return result
+
+    def get_weight_uids(self) -> List[Tuple[int, int]]:
+        r""" Returns a list of (uid, weight uids) pairs for each active peer on chain.
+        Returns:
+            weight_uids (List[Tuple[int, int]]):
+                List of weight uid pairs
+        """
+        self._check_connection()
+        result = self.substrate.iterate_map(
+            module='SubtensorModule',
+            storage_function='WeightUids'
+        )
+        return result
+
+    def neurons(self, uid=None, decorator=False):
+        r""" Returns a list of neuron from the chain. 
+            Returns neuron objects if decorator is set to true.
+        Args:
+            uid (int):
+                Uid to query for metadata.
+            decorator(bool):
+                specifiying if the returned data should be as neuron objects.
+        Returns:
+            neuron (List[Tuple[int, Dict]]):
+                List of neuron objects.
+        """
+        self._check_connection()
+        # Todo (parall4x, 23-12-2020) Get rid of this decorator flag. This should be refactored into something that returns Neuron objects only
+        if uid:
+            result = self.substrate.get_runtime_state(
+                module='SubtensorModule',
+                storage_function='Neurons',
+                params=[uid]
+            )
+            return Neurons.from_list(result['result']) if decorator else result['result']
+
+        else:
+            neurons = self.substrate.iterate_map(
+                module='SubtensorModule',
+                storage_function='Neurons'
+            )
+            return Neurons.from_list(neurons) if decorator else neurons
 
     def get_uid_for_pubkey(self, pubkey = str) -> int:
         r""" Returns the uid of the peer given passed public key string.
@@ -428,35 +510,7 @@ class Subtensor:
                 params=[uid]
         )
         return result['result']
-    
-    def neurons(self, uid=None, decorator=False):
-        r""" Returns a list of neuron from the chain. 
-            Returns neuron objects if decorator is set to true.
-        Args:
-            uid (int):
-                Uid to query for metadata.
-            decorator(bool):
-                specifiying if the returned data should be as neuron objects.
-        Returns:
-            neuron (List[Tuple[int, Dict]]):
-                List of neuron objects.
-        """
-        self._check_connection()
-        # Todo (parall4x, 23-12-2020) Get rid of this decorator flag. This should be refactored into something that returns Neuron objects only
-        if uid:
-            result = self.substrate.get_runtime_state(
-                module='SubtensorModule',
-                storage_function='Neurons',
-                params=[uid]
-            )
-            return Neurons.from_list(result['result']) if decorator else result['result']
 
-        else:
-            neurons = self.substrate.iterate_map(
-                module='SubtensorModule',
-                storage_function='Neurons'
-            )
-            return Neurons.from_list(neurons) if decorator else neurons
 
     def get_stake_for_uid(self, uid) -> Balance:
         r""" Returns the staked token amount of the peer with the passed uid.
@@ -488,7 +542,6 @@ class Subtensor:
                 Weight uids for passed uid.
         """
         self._check_connection()
-        logger.info('uid {}', uid)
         result = self.substrate.get_runtime_state(
             module='SubtensorModule',
             storage_function='WeightUids',
@@ -530,18 +583,6 @@ class Subtensor:
         )
         return result['result']
 
-    def get_last_emit_data(self):
-        r""" Returns the last emit for all active peers.
-        Returns:
-            last_emits (List[int]):
-                Last emit for peers on the chain.
-        """
-        self._check_connection()
-        result = self.substrate.iterate_map(
-            module='SubtensorModule',
-            storage_function='LastEmit'
-        )
-        return result
 
     def get_full_state(self) -> Tuple[List[int], List[Tuple[int, dict]], List[int], List[Tuple[int, List[int]]],  List[Tuple[int, List[int]]], List[Tuple[int, str]]]:
         self._check_connection()
