@@ -206,7 +206,6 @@ class Miner():
         self.training_loss = 0.0
         for local_step in range(self.config.miner.epoch_length):
             # ---- Forward pass ----
-            # inputs = nextbatch(self.dataset, self.config.miner.batch_size_train, bittensor.__tokenizer__())
             inputs = self.dataset.nextbatch( self.config.miner.batch_size_train, bittensor.__tokenizer__() )
             output = self.model.remote_forward(
                 self.neuron,
