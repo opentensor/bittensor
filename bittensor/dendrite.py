@@ -51,7 +51,7 @@ class Dendrite(nn.Module):
             Args:
                 config (:obj:`Munch`, `optional`): 
                     dendrite.Dendrite.config()
-                wallet (:obj:`bittensor.nucleus.Nucleus`, `optional`):
+                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
                     bittensor network metagraph.
