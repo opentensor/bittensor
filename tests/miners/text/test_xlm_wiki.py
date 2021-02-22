@@ -5,7 +5,7 @@ sys.path.append("miners/TEXT/")
 import bittensor
 import torch
 import numpy
-from xlm_wiki import Miner
+from xlm_wiki.xlm_wiki import Miner
 
 class AsyncMock(MagicMock):
     async def __call__(self, *args, **kwargs):

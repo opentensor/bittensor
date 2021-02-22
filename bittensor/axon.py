@@ -50,7 +50,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             Args:
                 config (:obj:`Munch`, `optional`): 
                     axon.Axon.config()
-                wallet (:obj:`bittensor.nucleus.Nucleus`, `optional`):
+                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 nucleus (:obj:`bittensor.nucleus.Nucleus`, `optional`):
                     backend processing nucleus.
