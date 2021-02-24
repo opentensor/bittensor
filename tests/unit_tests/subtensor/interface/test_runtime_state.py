@@ -21,7 +21,7 @@ from unittest.mock import MagicMock
 from scalecodec import ScaleBytes
 from scalecodec.metadata import MetadataDecoder
 
-from bittensor.substrate.base import SubstrateInterface
+from bittensor.substrate import SubstrateWSInterface
 from .fixtures import metadata_v12_hex
 
 
@@ -30,7 +30,7 @@ class TestRuntimeState(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
 
-        cls.substrate = SubstrateInterface(host='dummy', port=666, address_type=42, type_registry_preset='kusama')
+        cls.substrate = SubstrateWSInterface(address_type=42, type_registry_preset='kusama')
 
     @pytest.mark.asyncio
     async def test_plaintype_call(self):

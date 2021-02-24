@@ -24,7 +24,7 @@ import pytest
 
 from scalecodec.base import RuntimeConfiguration, ScaleType
 
-from bittensor.substrate.base import SubstrateInterface, Keypair, SubstrateRequestException
+from bittensor.substrate import SubstrateWSInterface, Keypair, SubstrateRequestException
 from .settings import *
 
 
@@ -32,9 +32,7 @@ class KusamaTypeRegistryTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.substrate = SubstrateInterface(
-            host="dummy",
-            port=666,
+        cls.substrate = SubstrateWSInterface(
             address_type=2,
             type_registry_preset='kusama'
         )
@@ -52,9 +50,7 @@ class PolkadotTypeRegistryTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.substrate = SubstrateInterface(
-            host='dummy',
-            port=666,
+        cls.substrate = SubstrateWSInterface(
             address_type=0,
             type_registry_preset='polkadot'
         )

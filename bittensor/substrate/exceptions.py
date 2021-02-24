@@ -25,32 +25,3 @@ class StorageFunctionNotFound(ValueError):
 
 class ConfigurationError(Exception):
     pass
-
-
-class ExtrinsicFailedException(Exception):
-    pass
-
-
-class DeployContractFailedException(Exception):
-    pass
-
-
-class ContractMetadataParseException(ValueError):
-    pass
-
-
-class ContractReadFailedException(Exception):
-    pass
-
-
-class ContractExecFailedException(Exception):
-    pass
-
-
-class BlockHashNotFound(Exception):
-    pass
-
-
-class ExtrinsicNotFound(Exception):
-    pass
-

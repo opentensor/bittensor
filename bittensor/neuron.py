@@ -139,7 +139,7 @@ class Neuron:
         assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
 
     def start(self):
-        print(colored('\n', 'white'))
+        print(colored('', 'white'))
         # ---- Check hotkey ----
         print(colored('Loading wallet with path: {} name: {} hotkey: {}'.format(self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey), 'white'))
         try:

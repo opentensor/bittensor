@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import asyncio
 import copy
 import pandas as pd
 import math
@@ -54,6 +55,7 @@ class ChainState():
         self.pubkey_for_index = {}
 
     def add_or_update(self, pubkey:str, ip: int, port: int, uid: int, ip_type: int, modality: int, lastemit: int, stake: int, w_uids: List[int], w_vals: List[int]):
+        logger.info('add or update.')
         address_str = net.int_to_ip(ip)
         neuron = bittensor.proto.Neuron(
             version = bittensor.__version__,
@@ -65,6 +67,7 @@ class ChainState():
             uid = int(uid),
         )
         if pubkey in self.index_for_pubkey:
+            logger.info('update')
             index = self.index_for_pubkey[pubkey]
             if self.uids[index] == uid:
                 self.neurons[index] = neuron
@@ -76,6 +79,7 @@ class ChainState():
             else:
                 raise ValueError('received inconsistent uid - pubey pairing with uid{}, pubkey{} and expected uid {}'.format(uid, pubkey, self.uids[index]))
         else:
+            logger.info('new')
             index = self.n
             self.n += 1
             self.index_for_pubkey[pubkey] = index
@@ -522,7 +526,7 @@ class Metagraph():
         # TODO (const) this should probably be a background process
         # however, it makes it difficult for the user if the state changes in
         # the background.
-        print(colored('\nSyncing graph:', 'white'))
+        print(colored('\nSyncing metagraph:', 'white'))
         current_block = self.subtensor.get_current_block()
         if (current_block - self.last_sync) > 20: # > Every 2 minutes.
             # ---- Update cache ----
@@ -540,32 +544,44 @@ class Metagraph():
                 self.metadata = self.neuron_for_uid( self.uid )
 
     def _sync_cache(self):
-        r""" Makes calls to chain updating local chain cache with newest info.
+        r""" Synchronizes the local self.state with the chain state.
         """
-        # Make a full chain state grab.
-        # last_emit: List[int]
-        # neurons: List[Tuple[int, dict]]
-        # stake: List[int]
-        # weight_vals: List[Tuple[int, List[int]]]
-        # weight_uids: List[Tuple[int, List[int]]]
-        # active: List[Tuple[int, str]]
-        last_emit, neurons, stake, weight_vals, weight_uids, active = self.subtensor.get_full_state()
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        loop.run_until_complete(self._async_sync_cache())
 
-        # Sinks the chain state into our cache for later conversion to the torch
-        # chain state.
-        for index, uid in enumerate(last_emit):
-            self.cache.add_or_update(
-                pubkey = active[index][0], 
-                ip = neurons[index][1]['ip'], 
-                port = neurons[index][1]['port'], 
-                uid = neurons[index][1]['uid'], 
-                ip_type = neurons[index][1]['ip_type'], 
-                modality = neurons[index][1]['modality'], 
-                lastemit = last_emit[ index ][1], 
-                stake = stake[ index ][1], 
-                w_uids = weight_uids[ index ][1], 
-                w_vals = weight_vals[ index ][1],
-            )
+    async def _async_sync_cache(self):
+        r""" Async: Makes calls to chain updating local chain cache with newest info.
+        """
+        # Make asyncronous calls to chain filling local state cache.
+        calls = []
+        current_block = await self.subtensor.async_get_current_block()
+        active = dict( await self.subtensor.async_get_active() )
+        last_emit = dict( await self.subtensor.async_get_last_emit() )
+        self_uid = await self.subtensor.async_get_uid_for_pubkey( self.wallet.hotkey.public_key )
+        if self_uid != None:
+            calls.append ( self._poll_uid ( self.wallet.hotkey.public_key, self.uid ) )        
+        for pubkey, uid in active.items():
+            if uid in last_emit:
+                emit_block = last_emit[ uid ]
+                if (current_block - emit_block) < self.config.metagraph.stale_emit_filter:
+                        calls.append( self._poll_uid ( pubkey, uid ) )
+        await asyncio.gather(*calls)
+
+    async def _poll_uid(self, pubkey: str, uid:int):
+        r""" Polls info info for a specfic public key.
+        """
+        try:
+            stake = await self.subtensor.async_get_stake_for_uid( uid )
+            lastemit = await self.subtensor.async_get_last_emit_data_for_uid( uid )
+            w_uids = await self.subtensor.async_weight_uids_for_uid( uid )
+            w_vals = await self.subtensor.async_weight_vals_for_uid( uid )
+            neuron = await self.subtensor.async_get_neuron_for_uid ( uid )
+            self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], modality = neuron['modality'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
+        except Exception as e:
+            pass
+            #logger.error("Exception occurred: {}".format(e))
+            #traceback.print_exc()
 
 
     EmitSuccess = 1
