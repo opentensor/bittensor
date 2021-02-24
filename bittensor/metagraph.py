@@ -567,17 +567,17 @@ class Metagraph():
     async def _poll_uid(self, pubkey: str, uid:int):
         r""" Polls info info for a specfic public key.
         """
-        #try:
-        print ('poll ', pubkey, uid)
-        stake = await self.subtensor.async_get_stake_for_uid( uid )
-        lastemit = await self.subtensor.async_get_last_emit_data_for_uid( uid )
-        w_uids = await self.subtensor.async_weight_uids_for_uid( uid )
-        w_vals = await self.subtensor.async_weight_vals_for_uid( uid )
-        neuron = await self.subtensor.async_get_neuron_for_uid ( uid )
-        print (stake, lastemit , w_uids, w_vals, neuron)
-        self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], modality = neuron['modality'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
-        #except Exception as e:
-        # print ('error', e)
+        try:
+            print ('poll: ', pubkey)
+            stake = await self.subtensor.async_get_stake_for_uid( uid )
+            lastemit = await self.subtensor.async_get_last_emit_data_for_uid( uid )
+            w_uids = await self.subtensor.async_weight_uids_for_uid( uid )
+            w_vals = await self.subtensor.async_weight_vals_for_uid( uid )
+            neuron = await self.subtensor.async_get_neuron_for_uid ( uid )
+            print ('-> Stake: ', stake, 'Lastemit: ', lastemit , 'WUids: ', w_uids, 'WVals: ', w_vals, 'Metadata: ', neuron)
+            self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], modality = neuron['modality'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
+        except Exception as e:
+            print ('error', e)
             #logger.error("Exception occurred: {}".format(e))
             #traceback.print_exc()
 
