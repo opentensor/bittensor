@@ -21,6 +21,7 @@ import json
 import os
 import re
 import stat
+import sys
 
 from munch import Munch
 from loguru import logger
@@ -153,11 +154,20 @@ class Wallet():
         try:
             with open(keyfile, 'rb') as file:
                 data = file.read()
-                if is_encrypted(data):
-                    password = bittensor.utils.Cli.ask_password()
-                    print("decrypting key... (this may take a few moments)")
-                    data = decrypt_data(password, data)
-                self._hotkey = load_keypair_from_data(data)
+                try:
+                    # Try hotkey load.
+                    if is_encrypted(data):
+                        password = bittensor.utils.Cli.ask_password()
+                        print("decrypting key... (this may take a few moments)")
+                        data = decrypt_data(password, data)
+                    self._hotkey = load_keypair_from_data(data)
+                except KeyError:
+                    print(colored("Invalid password", 'red'))
+                    sys.exit(1)
+                except KeyFileError as e:
+                    print(colored("Keyfile corrupt", 'red'))
+                    sys.exit(1)
+
                 print(colored("Loaded hotkey: {}".format(self._hotkey.public_key), 'green'))
 
         except KeyError:
@@ -184,23 +194,24 @@ class Wallet():
             print(colored("coldkeyfile  {} is not readable".format(keyfile), 'red'))
             raise KeyFileError
 
-        try:
-            with open(keyfile, 'rb') as file:
-                data = file.read()
+        with open(keyfile, 'rb') as file:
+            data = file.read()
+            try:
+                # Try key load.
                 if is_encrypted(data):
                     password = bittensor.utils.Cli.ask_password()
                     print("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
                 self._coldkey = load_keypair_from_data(data)
-                print(colored("Loaded coldkey: {}".format(self._coldkey.public_key), 'green'))
 
-        except KeyError:
-            print(colored("Invalid password", 'red'))
-            raise KeyError("Invalid password")
+            except KeyError:
+                print(colored("Invalid password", 'red'))
+                sys.exit(1)
+            except KeyFileError as e:
+                print(colored("Keyfile corrupt", 'red'))
+                sys.exit(1)
 
-        except KeyFileError as e:
-            print(colored("Keyfile corrupt", 'red'))
-            raise KeyFileError("Keyfile corrupt")
+            print(colored("Loaded coldkey: {}".format(self._coldkey.public_key), 'green'))
 
     @staticmethod
     def __is_world_readable(path):
