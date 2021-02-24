@@ -25,7 +25,6 @@ import re
 
 from autobahn.asyncio.websocket import WebSocketClientProtocol, WebSocketClientFactory
 
-
 from scalecodec import ScaleBytes, GenericCall
 from scalecodec.base import ScaleDecoder, RuntimeConfiguration
 from scalecodec.block import ExtrinsicsDecoder, EventsDecoder, LogDigest
@@ -259,19 +258,19 @@ def KeypairRepresenter(dumper, data):
     return dumper.represent_scalar('Keypair', serializedData)
 yaml.add_representer(Keypair, KeypairRepresenter)
 
-
-# from autobahn.twisted.websocket import WebSocketClientProtocol, WebSocketClientFactory
-
 class SubtensorClientProtocol(WebSocketClientProtocol):
 
     def __init__(self):
         WebSocketClientProtocol.__init__(self)
+
+        # Create message state memory.
         self._next_message_id = 0
         self._futures = {}
         self._handlers = {}     
         self._is_subscription = {}
         self._id_for_subscription = {}
 
+        # Create connectio future.
         loop = asyncio.get_event_loop()
         self.is_connected = loop.create_future()
 
@@ -290,11 +289,18 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
         self.is_connected.set_result( False )
 
     def onMessage(self, payload, isBinary):
+        r""" Recieves and handles the substrate response.
+            Args:
+                payload (str):
+                    the encoded message.
+                isBinary (bool):
+                    true if the message is in binary formate (always false.)              
+        """
         # 1. Load json message.
         json_data = json.loads(payload)
         logger.trace(json_data)
 
-        # Message id is passed back for normal messages
+        # Message id is passed by initial responses.
         message_id = None
         # A subscription key can be retrieved if the message has no id but contains a ['params']['subscription'] field.
         is_subscription = False
@@ -312,12 +318,11 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
                     message_id = self._id_for_subscription[ subscription ]     
                     is_subscription = True 
 
-        # 4. Messages without and id are returned without processing.
+        # 4. Messages without an id are returned without processing.
         # Note that on subscription we attain the message_id from the self._id_for_subscription mem.
         if message_id == None:
-            logger.trace('no message id')
             return
-        logger.trace('message id {}', message_id)
+        logger.trace('recieved message with id {}', message_id)
 
         # 5. The first message of a subscription contains the subscription key.
         # We check the self._is_subscrtiption to see if we are watching this stream.
@@ -326,8 +331,6 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
                 if 'result' in json_data:
                     subscription_id = json_data[ 'result' ]
                     self._id_for_subscription[ subscription_id ] = message_id
-
-        logger.trace('call handler')
             
         # 6. Handle the message with the passed handler. By default the handler is none
         # and we simply pass through the message. If a handler is present it must return a 
@@ -341,24 +344,23 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
         # 7. Check handler has result is non-none. The non-none result specifies the end of the 
         # subscription.
         if handler_result == None:
-            logger.trace('not result')
+            logger.trace('handler produced non-result')
             return 
 
         # 8. Sanity check.
         if message_id not in self._futures:
-            logger.trace('not future')
+            logger.trace('no future for message')
             return
         
         # 9. Set result and event.
-        logger.trace('set future')
         self._futures[ message_id ].set_result( handler_result )
 
     def sendMessage(self, payload, isBinary=False, fragmentSize=None, sync=False, doNotCompress=False):
         logger.trace("Sending message {}", payload)
         super().sendMessage(payload, isBinary, fragmentSize, sync, doNotCompress)
 
-    async def async_rpc_request( self, method, params, result_handler = None, is_subscription = False, timeout = 2 ):
-        r""" Creates a websocket message call and waits until the response is recieved.
+    async def async_rpc_request( self, method, params, result_handler = None, is_subscription = False, timeout = 2 ) -> dict:
+        r""" Creates a websocket message and waits until the response is recieved.
             Maintains memory about the sent request and only returns when the passed handler produces a
             non-null response or a timeout occurs. The call is blocking.
             Args:
@@ -459,16 +461,27 @@ class SubstrateWSInterface:
         self.nonce = {} # Map from pubkey to nonce
 
     async def async_connect(self, url: str, timeout: int = 3) -> bool:
+        r""" Connects the protocol to the passed url waits of a connection future.
+        Args:
+            url (str):
+                endpoint url port i.e. 192.122.31.4:9944 (must be formatted like this.)
+            timeout (int):
+                time to wait for connection future.
+        """
+        # Parse url.
         host, port = url.split(":")
         try:
             host, port = url.split(":")
         except:
             raise ValueError ('Unable to parse chain endpoint {}. Check that your URL is formatted correctly: (host:port) i.e. localhost:9944'.format(url))
-
+        
+        # Create protocol from factory.
         self.factory = WebSocketClientFactory( "ws://%s:%s" % (host, port) )
         self.factory.protocol = SubtensorClientProtocol
         loop = asyncio.get_event_loop()
         _, self.protocol = await loop.create_connection(self.factory, host, port)
+        
+        # Wait for connection future to be set onOpen.
         try:
             return await asyncio.wait_for( self.protocol.is_connected, timeout = timeout )
         except asyncio.TimeoutError:

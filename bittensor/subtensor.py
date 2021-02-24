@@ -98,7 +98,7 @@ class Subtensor:
         bittensor.wallet.Wallet.check_config( config )
 
     def endpoint_for_network( self, blacklist: List[str] = [] ) -> str:
-        r""" Returns a chain endpoint based on config with black list. 
+        r""" Returns a chain endpoint based on config.subtensor.network.
             Returns None if there are no available endpoints.
         Raises:
             endpoint (str):
@@ -146,6 +146,11 @@ class Subtensor:
             return random.choice( akira_available )
 
     def is_connected(self) -> bool:
+        r""" Returns true if the connection state as a boolean.
+        Raises:
+            success (bool):
+                True is the websocket is connected to the chain endpoint.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_is_connected())
@@ -159,16 +164,31 @@ class Subtensor:
         return await self.substrate.async_is_connected()
 
     def check_connection(self) -> bool:
+        r""" Checks if substrate websocket backend is connected, connects if it is not. 
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_check_connection())
 
     async def async_check_connection(self) -> bool:
+        r""" Checks if substrate websocket backend is connected, connects if it is not. 
+        """
         if not await self.async_is_connected():
             return await self.async_connect()
         return True
 
     def connect(self, timeout: int = 10, failure = True ) -> bool:
+        r""" Attempts to connect the substrate interface backend. 
+        If the connection fails, attemps another endpoint until a timeout.
+        Args:
+            timeout (int):
+                Time to wait before subscription times out.
+            failure (bool):
+                This connection attempt raises an error an a failed attempt.
+        Returns:
+            success (bool):
+                True on success. 
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_connect(timeout, failure))
@@ -225,11 +245,33 @@ To run a local node (See: docs/running_a_validator.md) \n
                     return False
 
     def is_subscribed(self, ip: str, port: int, modality: int, coldkey: str) -> bool:
+        r""" Returns true if the bittensor endpoint is already subscribed.
+        Args:
+            ip (str):
+                endpoint host port i.e. 192.122.31.4
+            port (int):
+                endpoint port number i.e. 9221
+            modality (int):
+                int encoded endpoint modality i.e 0 for TEXT
+            coldkeypub (str):
+                string encoded coldekey pub.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_is_subscribed( ip, port, modality, coldkey))
 
     async def async_is_subscribed(self, ip: str, port: int, modality: int, coldkey: str) -> bool:
+        r""" Returns true if the bittensor endpoint is already subscribed.
+        Args:
+            ip (str):
+                endpoint host port i.e. 192.122.31.4
+            port (int):
+                endpoint port number i.e. 9221
+            modality (int):
+                int encoded endpoint modality i.e 0 for TEXT
+            coldkeypub (str):
+                string encoded coldekey pub.
+        """
         uid = await self.async_get_uid_for_pubkey(self.wallet.hotkey.public_key)
         if uid != None:
             neuron = await self.async_get_neuron_for_uid( uid )
@@ -241,12 +283,38 @@ To run a local node (See: docs/running_a_validator.md) \n
             return False
 
     def subscribe(self, ip: str, port: int, modality: int, coldkeypub: str, wait_for_finalization = True) -> bool:
+        r""" Subscribes an bittensor endpoint to the substensor chain.
+        Args:
+            ip (str):
+                endpoint host port i.e. 192.122.31.4
+            port (int):
+                endpoint port number i.e. 9221
+            modality (int):
+                int encoded endpoint modality i.e 0 for TEXT
+            coldkeypub (str):
+                string encoded coldekey pub.
+            wait_for_finalization (bool):
+                set ot true if this call blocks until the subscription is finalized.
+
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_subscribe( ip, port, modality, coldkeypub, wait_for_finalization))
 
     async def async_subscribe(self, ip: str, port: int, modality: int, coldkeypub: str, wait_for_finalization = True) -> bool:
-        r""" Subscribes the passed metadata to the substensor chain.
+        r""" Subscribes an bittensor endpoint to the substensor chain.
+        Args:
+            ip (str):
+                endpoint host port i.e. 192.122.31.4
+            port (int):
+                endpoint port number i.e. 9221
+            modality (int):
+                int encoded endpoint modality i.e 0 for TEXT
+            coldkeypub (str):
+                string encoded coldekey pub.
+            wait_for_finalization (bool):
+                set ot true if this call blocks until the subscription is finalized.
+
         """
         if not await self.async_check_connection():
             return False
@@ -290,6 +358,14 @@ To run a local node (See: docs/running_a_validator.md) \n
             return True
 
     def get_balance(self, address) -> Balance:
+        r""" Returns the token balance for the passed ss58_address address
+        Args:
+            address (Substrate address format, default = 42):
+                ss58 chain address.
+        Return:
+            balance (bittensor.utils.balance.Balance):
+                account balance
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_get_balance(address))
@@ -320,6 +396,13 @@ To run a local node (See: docs/running_a_validator.md) \n
         return Balance(balance)
 
     def add_stake(self, amount : Balance, hotkey_id: int):
+        r""" Adds the specified amount of stake to passed hotkey uid.
+        Args:
+            amount (bittensor.utils.balance.Balance):
+                amount to stake as bittensor balance
+            hotkey_id (int):
+                uid of hotkey to stake into.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         loop.run_until_complete(self.async_add_stake(amount, hotkey_id))
@@ -347,6 +430,13 @@ To run a local node (See: docs/running_a_validator.md) \n
         return result
 
     def transfer(self, dest:str, amount: Balance):
+        r""" Transfers funds from this wallet to the destination public key address
+        Args:
+            dest (str):
+                destination public key address of reciever. 
+            amount (bittensor.utils.balance.Balance):
+                amount to stake as bittensor balance
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         loop.run_until_complete(self.async_transfer(dest, amount))
@@ -374,6 +464,13 @@ To run a local node (See: docs/running_a_validator.md) \n
         return result
 
     def unstake(self, amount : Balance, hotkey_id: int):
+        r""" Removes stake into the wallet coldket from the specified hotkey uid.
+        Args:
+            amount (bittensor.utils.balance.Balance):
+                amount to stake as bittensor balance
+            hotkey_id (int):
+                uid of hotkey to unstake from.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         loop.run_until_complete(self.async_unstake(amount, hotkey_id))
@@ -398,6 +495,13 @@ To run a local node (See: docs/running_a_validator.md) \n
         return result
 
     def set_weights(self, destinations, values, wait_for_inclusion=False):
+        r""" Sets the given weights and values on chain for wallet hotkey account.
+        Args:
+            destinations (List[int]):
+                uint64 uids of destination neurons.
+            values (List[int]):
+                u32 max encoded floating point weights.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         loop.run_until_complete(self.async_set_weights(destinations, values, wait_for_inclusion))
@@ -421,12 +525,17 @@ To run a local node (See: docs/running_a_validator.md) \n
         return result
 
     def get_current_block(self) -> int:
+        r""" Returns the current block number on the chain.
+        Returns:
+            block_number (int):
+                Current chain blocknumber.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_get_current_block())
 
     async def async_get_current_block(self) -> int:
-        r""" Returns the block number from the chain.
+        r""" Returns the current block number on the chain.
         Returns:
             block_number (int):
                 Current chain blocknumber.
@@ -435,6 +544,11 @@ To run a local node (See: docs/running_a_validator.md) \n
         return await self.substrate.async_get_block_number(None)
 
     def get_active(self) -> List[Tuple[str, int]]:
+        r""" Returns a list of (public key, uid) pairs one for each active peer on chain.
+        Returns:
+            active (List[Tuple[str, int]]):
+                List of active peers.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_get_active())
@@ -453,6 +567,11 @@ To run a local node (See: docs/running_a_validator.md) \n
         return result
 
     def get_stake(self) -> List[Tuple[int, int]]:
+        r""" Returns a list of (uid, stake) pairs one for each active peer on chain.
+        Returns:
+            stake (List[Tuple[int, int]]):
+                List of stake values.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_get_stake())
@@ -471,6 +590,11 @@ To run a local node (See: docs/running_a_validator.md) \n
         return result
 
     def get_last_emit(self) -> List[Tuple[int, int]]:
+        r""" Returns a list of (uid, last emit) pairs for each active peer on chain.
+        Returns:
+            last_emit (List[Tuple[int, int]]):
+                List of last emit values.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_get_last_emit())
@@ -489,6 +613,11 @@ To run a local node (See: docs/running_a_validator.md) \n
         return result
 
     def get_weight_vals(self) -> List[Tuple[int, List[int]]]:
+        r""" Returns a list of (uid, weight vals) pairs for each active peer on chain.
+        Returns:
+            weight_vals (List[Tuple[int, List[int]]]):
+                List of weight val pairs.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_get_weight_vals())
@@ -507,6 +636,11 @@ To run a local node (See: docs/running_a_validator.md) \n
         return result
 
     def get_weight_uids(self) -> List[Tuple[int, int]]:
+        r""" Returns a list of (uid, weight uids) pairs for each active peer on chain.
+        Returns:
+            weight_uids (List[Tuple[int, int]]):
+                List of weight uid pairs
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_get_weight_uids())
@@ -525,6 +659,17 @@ To run a local node (See: docs/running_a_validator.md) \n
         return result
 
     def neurons(self, uid=None, decorator=False) -> List[Tuple[int, dict]]: 
+        r""" Returns a list of neuron from the chain. 
+            Returns neuron objects if decorator is set to true.
+        Args:
+            uid (int):
+                Uid to query for metadata.
+            decorator(bool):
+                specifiying if the returned data should be as neuron objects.
+        Returns:
+            neuron (List[Tuple[int, dict]]):
+                List of neuron objects.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_neurons( uid, decorator ))
@@ -559,6 +704,14 @@ To run a local node (See: docs/running_a_validator.md) \n
             return Neurons.from_list(neurons) if decorator else neurons
 
     def get_uid_for_pubkey(self, pubkey = str) -> int: 
+        r""" Returns the uid of the peer given passed public key string.
+        Args:
+            pubkey (str):
+                String encoded public key.
+        Returns:
+            uid (int):
+                uid of peer with hotkey equal to passed public key.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_get_uid_for_pubkey( pubkey ))
@@ -583,6 +736,14 @@ To run a local node (See: docs/running_a_validator.md) \n
         return int(result['result'])
 
     def get_neuron_for_uid(self, uid) -> dict:
+        r""" Returns the neuron metadata of the peer with the passed uid.
+        Args:
+            uid (int):
+                Uid to query for metadata.
+        Returns:
+            metadata (Dict):
+                Dict in list form containing metadata of associated uid.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_get_neuron_for_uid( uid ))
@@ -605,6 +766,14 @@ To run a local node (See: docs/running_a_validator.md) \n
         return result['result']
 
     def get_stake_for_uid(self, uid) -> Balance:
+        r""" Returns the staked token amount of the peer with the passed uid.
+        Args:
+            uid (int):
+                Uid to query for metadata.
+        Returns:
+            stake (int):
+                Amount of staked token.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_get_stake_for_uid( uid ))
@@ -630,6 +799,14 @@ To run a local node (See: docs/running_a_validator.md) \n
         return Balance(result)
 
     def weight_uids_for_uid(self, uid) -> List[int]:
+        r""" Returns the weight uids of the peer with the passed uid.
+        Args:
+            uid (int):
+                Uid to query for metadata.
+        Returns:
+            weight_uids (List[int]):
+                Weight uids for passed uid.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_weight_uids_for_uid( uid ))
@@ -652,6 +829,14 @@ To run a local node (See: docs/running_a_validator.md) \n
         return result['result']
 
     def weight_vals_for_uid(self, uid) -> List[int]:
+        r""" Returns the weight vals of the peer with the passed uid.
+        Args:
+            uid (int):
+                Uid to query for metadata.
+        Returns:
+            weight_vals (List[int]):
+                Weight vals for passed uid.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_weight_vals_for_uid( uid ))
@@ -674,6 +859,14 @@ To run a local node (See: docs/running_a_validator.md) \n
         return result['result']
 
     def get_last_emit_data_for_uid(self, uid) -> int:
+        r""" Returns the last emit of the peer with the passed uid.
+        Args:
+            uid (int):
+                Uid to query for metadata.
+        Returns:
+            last_emit (int):
+                Last emit block numebr
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_get_last_emit_data_for_uid( uid ))
