@@ -83,14 +83,14 @@ def __tokenizer__( version = __version__ ):
 # Hardcoded entry point nodes. 
 # TODO(const): make these curl based.
 __akira_entrypoints__ = [
-    'ws://feynman.akira.bittensor.com:9944'
+    'feynman.akira.bittensor.com:9944'
 ]
 __boltzmann_entrypoints__ = [
-    'ws://feynman.boltzmann.bittensor.com:9944'
+    'feynman.boltzmann.bittensor.com:9944'
 ]
 __kusanagi_entrypoints__ = [
-    'ws://feynman.kusanagi.bittensor.com:9944'
+    'feynman.kusanagi.bittensor.com:9944'
 ]
 __local_entrypoints__ = [
-    'ws://127.0.0.1:9944'
+    '127.0.0.1:9944'
 ]

@@ -26,16 +26,16 @@ def test_networks():
 def test_connect_failure( ):
     subtensor = bittensor.subtensor.Subtensor()
     subtensor.config.subtensor.chain_endpoint = "this is the endpoint"
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ValueError):
         subtensor.connect(timeout = 1)
 
 def test_connect_no_failure( ):
     subtensor = bittensor.subtensor.Subtensor()
-    subtensor.config.subtensor.chain_endpoint = "this is the endpoint"
+    subtensor.config.subtensor.network = "this is the network"
     subtensor.connect(timeout = 1, failure=False)
 
 config = bittensor.subtensor.Subtensor.build_config()
-config.network = 'boltzmann'
+config.network = 'local'
 subtensor = bittensor.subtensor.Subtensor( config )
 
 def test_connect_success( ):
