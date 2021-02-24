@@ -335,6 +335,8 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
         # 6. Handle the message with the passed handler. By default the handler is none
         # and we simply pass through the message. If a handler is present it must return a 
         # non null result.
+        if message_id not in self._handlers:
+            return
         result_handler = self._handlers[ message_id ]
         if result_handler == None:
             handler_result = json_data
@@ -378,24 +380,27 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
             response (dict):
                 Json data as a python dictionary or None if the call reaches a timeout. 
         """
-        # Send message.
+        # Get and update the message id.
+        this_message_id = self._next_message_id 
         self._next_message_id += 1
+
+        # Send the message.
         payload = {
             "jsonrpc": "2.0",
             "method": method,
             "params": params,
-            "id": self._next_message_id
+            "id": this_message_id
         }
         self.sendMessage( json.dumps(payload).encode('utf8') )
 
         # Create future
         loop = asyncio.get_event_loop()
         message_future = loop.create_future()
-        self._futures[ self._next_message_id ] = message_future
+        self._futures[ this_message_id ] = message_future
 
         # Set handlers and subscriptions.
-        self._handlers[ self._next_message_id  ] = result_handler
-        self._is_subscription [ self._next_message_id  ] = is_subscription
+        self._handlers[ this_message_id  ] = result_handler
+        self._is_subscription [ this_message_id  ] = is_subscription
 
         # Wait for events.
         response = None
@@ -409,11 +414,11 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
             pass
         
         # Delete lingering memory
-        del self._futures[ self._next_message_id  ]
-        del self._handlers[ self._next_message_id  ]
-        del self._is_subscription [ self._next_message_id  ]
-        if self._next_message_id in self._id_for_subscription:
-            del self._id_for_subscription [ self._next_message_id  ]
+        del self._futures[ this_message_id  ]
+        del self._handlers[ this_message_id  ]
+        del self._is_subscription [ this_message_id  ]
+        if this_message_id in self._id_for_subscription:
+            del self._id_for_subscription [ this_message_id  ]
         return response
 
 class SubstrateWSInterface:
@@ -489,7 +494,10 @@ class SubstrateWSInterface:
 
     async def async_is_connected(self, timeout: int = 1) -> bool:
         try:
-            return await asyncio.wait_for( self.protocol.is_connected, timeout = timeout )
+            if self.protocol == None:
+                return False
+            else:
+                return await asyncio.wait_for( self.protocol.is_connected, timeout = timeout )
         except asyncio.TimeoutError:
             return False 
 

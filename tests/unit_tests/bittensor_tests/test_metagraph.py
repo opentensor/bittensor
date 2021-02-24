@@ -12,6 +12,17 @@ def test_create( ):
     metagraph = bittensor.metagraph.Metagraph()
     assert True
 
+def test_print_empty():
+    metagraph = bittensor.metagraph.Metagraph()
+    print (metagraph)
+
+def test_sync( ):
+    metagraph = bittensor.metagraph.Metagraph()
+    metagraph.config.subtensor.network = 'akira'
+    metagraph.config.metagraph.stale_emit_filter = 1000000000000
+    metagraph.sync()
+    print (metagraph)
+
 def test_convert_weight_order_with_zeros( ):
     MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
     metagraph.state.uids = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
