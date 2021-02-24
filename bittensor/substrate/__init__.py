@@ -270,31 +270,58 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
         self._is_subscription = {}
         self._id_for_subscription = {}
 
-        # Create connectio future.
+        # Create connection future.
         loop = asyncio.get_event_loop()
         self.is_connected = loop.create_future()
 
     def onConnecting(self, transport_details):
+        r""" This method is called when we’ve connected, but before the handshake is done.
+            transport_details (autobahn.websocket.types.TransportDetails):
+                 information about the transport.
+        """
         logger.trace("Connecting to websocket server {}", transport_details)
 
     def onConnect(self, response):
+        r""" Callback fired during WebSocket opening handshake when a client connects 
+        (to a server with request from client) or when server connection established 
+        (by a client with response from server). This method may run asynchronous code.
+
+            Args:
+                response ( autobahn.websocket.types.ConnectionRequest):
+                    Connection response from server.
+
+        """
         logger.trace("Connected. {}", response)
 
     def onOpen(self):
+        r""" Callback fired when the initial WebSocket opening handshake was completed. 
+            You now can send and receive WebSocket messages.
+        """
         logger.trace("Connection open to websocket established")
         self.is_connected.set_result( True )
 
     def onClose(self, wasClean, code, reason):
+        r""" Callback fired when the WebSocket connection has been closed (
+            WebSocket closing handshake has been finished or the connection was closed uncleanly).
+            Args:
+                wasClean (bool)
+                    True iff the WebSocket connection was closed cleanly
+                code (int or None):
+                    Close status code as sent by the WebSocket peer.
+                reason (str or None):
+                    Close reason as sent by the WebSocket peer.
+        """
+
         logger.trace("Connection closed.")
         self.is_connected.set_result( False )
 
     def onMessage(self, payload, isBinary):
-        r""" Recieves and handles the substrate response.
+        r""" Callback fired when a complete WebSocket message was received.
             Args:
                 payload (str):
-                    the encoded message.
+                    The WebSocket message received.
                 isBinary (bool):
-                    true if the message is in binary formate (always false.)              
+                    Flag indicating whether payload is binary or UTF-8 encoded text.             
         """
         # 1. Load json message.
         json_data = json.loads(payload)
@@ -358,7 +385,14 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
         self._futures[ message_id ].set_result( handler_result )
 
     def sendMessage(self, payload, isBinary=False, fragmentSize=None, sync=False, doNotCompress=False):
-        logger.trace("Sending message {}", payload)
+        r""" Send a WebSocket message over the connection to the peer.
+            Args:
+                payload (str or binary):
+                    encoded payload.            
+                isBinary (bool):
+                    Flag indicating whether payload is binary or UTF-8 encoded text.
+        """
+        logger.trace("Sending message: {}", payload)
         super().sendMessage(payload, isBinary, fragmentSize, sync, doNotCompress)
 
     async def async_rpc_request( self, method, params, result_handler = None, is_subscription = False, timeout = 2 ) -> dict:
@@ -381,7 +415,7 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
                 Json data as a python dictionary or None if the call reaches a timeout. 
         """
         # Get and update the message id.
-        this_message_id = self._next_message_id 
+        current_message_id = self._next_message_id 
         self._next_message_id += 1
 
         # Send the message.
@@ -389,36 +423,31 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
             "jsonrpc": "2.0",
             "method": method,
             "params": params,
-            "id": this_message_id
+            "id": current_message_id
         }
         self.sendMessage( json.dumps(payload).encode('utf8') )
 
         # Create future
         loop = asyncio.get_event_loop()
         message_future = loop.create_future()
-        self._futures[ this_message_id ] = message_future
+        self._futures[ current_message_id ] = message_future
 
         # Set handlers and subscriptions.
-        self._handlers[ this_message_id  ] = result_handler
-        self._is_subscription [ this_message_id  ] = is_subscription
+        self._handlers[ current_message_id  ] = result_handler
+        self._is_subscription [ current_message_id  ] = is_subscription
 
         # Wait for events.
-        response = None
         try:
-            logger.trace("await future.")
             response = await asyncio.wait_for( message_future, timeout = timeout )
-            logger.trace("got result")
-
         except asyncio.TimeoutError:
-            logger.trace("await failed")
-            pass
+            response = None
         
         # Delete lingering memory
-        del self._futures[ this_message_id  ]
-        del self._handlers[ this_message_id  ]
-        del self._is_subscription [ this_message_id  ]
-        if this_message_id in self._id_for_subscription:
-            del self._id_for_subscription [ this_message_id  ]
+        del self._futures[ current_message_id  ]
+        del self._handlers[ current_message_id  ]
+        del self._is_subscription [ current_message_id  ]
+        if current_message_id in self._id_for_subscription:
+            del self._id_for_subscription [ current_message_id  ]
         return response
 
 class SubstrateWSInterface:

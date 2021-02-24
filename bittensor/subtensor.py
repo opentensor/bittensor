@@ -212,9 +212,9 @@ class Subtensor:
                 print('''
 Check that your internet connection is working and the chain endpoints are available: {}
 The subtensor.network should likely be one of the following choices:
-    -- local -- (your locally running node)
-    -- akira (testnet)
-    -- kusanagi (mainnet)
+    -- local - (your locally running node)
+    -- akira - (testnet)
+    -- kusanagi - (mainnet)
 Or you may set the endpoint manually using the --subtensor.chain_endpoint flag 
 To run a local node (See: docs/running_a_validator.md) \n
                               '''.format( attempted_endpoints) )
@@ -222,7 +222,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             # ---- Get next endpoint ----
             ws_chain_endpoint = self.endpoint_for_network( blacklist = attempted_endpoints )
             if ws_chain_endpoint == None:
-                print(colored("No more available endpoints for connection with subtensor.network: {} attempted: {}".format(self.config.subtensor.network, attempted_endpoints), 'red'))
+                print(colored("No more endpoints available for subtensor.network: {}, attempted: {}".format(self.config.subtensor.network, attempted_endpoints), 'red'))
                 connection_error_message()
                 if failure:
                     raise RuntimeError('Unable to connect to network {}. Make sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
