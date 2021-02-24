@@ -320,7 +320,11 @@ class Metagraph():
                 incentive (:obj:`torch.FLoatTensor` of shape :obj:`(metagraph.n)`):
                     inflation incentive from each known neuron.
         """
-        incentive = self.tau * self.col * self.stake
+        self_col = self.col
+        if len(self.col.tolist()) == 0:
+            return torch.zeros(self.state.n)
+        else:
+            incentive = self.tau * self.col * self.stake
         return incentive
 
     @property
