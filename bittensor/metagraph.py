@@ -55,7 +55,6 @@ class ChainState():
         self.pubkey_for_index = {}
 
     def add_or_update(self, pubkey:str, ip: int, port: int, uid: int, ip_type: int, modality: int, lastemit: int, stake: int, w_uids: List[int], w_vals: List[int]):
-        logger.info('add or update.')
         address_str = net.int_to_ip(ip)
         neuron = bittensor.proto.Neuron(
             version = bittensor.__version__,
@@ -67,7 +66,6 @@ class ChainState():
             uid = int(uid),
         )
         if pubkey in self.index_for_pubkey:
-            logger.info('update')
             index = self.index_for_pubkey[pubkey]
             if self.uids[index] == uid:
                 self.neurons[index] = neuron
@@ -79,7 +77,6 @@ class ChainState():
             else:
                 raise ValueError('received inconsistent uid - pubey pairing with uid{}, pubkey{} and expected uid {}'.format(uid, pubkey, self.uids[index]))
         else:
-            logger.info('new')
             index = self.n
             self.n += 1
             self.index_for_pubkey[pubkey] = index
@@ -391,7 +388,7 @@ class Metagraph():
                 col (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n)`):
                     `w_{*,i}`
         """
-        if self.uid == -1:
+        if self.uid == None:
             return torch.tensor([])
         try:
             self_idx = self.state.index_for_uid[ self.uid ] 
@@ -493,18 +490,18 @@ class Metagraph():
         return torch.tensor(uids)
 
     def uid_for_pubkey( self, public_key: str ) -> int:
-        r""" Returns uids associated with the passed public key.
+        r""" Returns the uid associated with the passed public key.
             Args:
                 public_key (:obj:`str`): 
                     public key of neuron.
             Returns:
                 uids (:obj:`int`)
-                    uid associated with this public key, or -1 if non existent.
+                    uid associated with this public key, or None if non existent.
         """
         if public_key in self.state.uid_for_pubkey:
             return self.state.uid_for_pubkey[ public_key ]
         else:
-            return -1
+            return None
 
     def neuron_for_uid( self, uid: int ) -> bittensor.proto.Neuron:
         r""" Returns the metadata associated with the passed uid, or None if the uid does not exist.
@@ -531,9 +528,6 @@ class Metagraph():
         if (current_block - self.last_sync) > 20: # > Every 2 minutes.
             # ---- Update cache ----
             self.last_sync = current_block
-            # loop = asyncio.new_event_loop()
-            # results = loop.run_until_complete(self._sync_cache( loop ))
-            # loop.stop()
             self._sync_cache()
 
             # --- Update torch state
@@ -542,6 +536,8 @@ class Metagraph():
             if self.wallet.hotkey.public_key in self.state.uid_for_pubkey:
                 self.uid = self.uid_for_pubkey( self.wallet.hotkey.public_key )
                 self.metadata = self.neuron_for_uid( self.uid )
+            else:
+                self.uid = None
 
     def _sync_cache(self):
         r""" Synchronizes the local self.state with the chain state.
