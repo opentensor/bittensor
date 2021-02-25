@@ -271,13 +271,13 @@ class Executor:
             print(colored("Neuron with uid: {} is not associated with coldkey.pub: {}".format( self.config.uid, self.wallet.coldkey.public_key), 'red'))
             quit()
 
-        neuron.stake = self.subtensor.get_stake_for_uid(uid)
+        neuron.stake = self.subtensor.get_stake_for_uid(neuron.uid)
         if amount > neuron.stake:
             print(colored("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format( self.config.uid, neuron.stake, amount), 'red'))
             quit()
 
         self.subtensor.unstake(amount, neuron.hotkey)
-        print(colored("Unstaked:{} from uid:{} to coldkey.pub:{}".format(amount.tao, uid, self.wallet.coldkey.public_key), 'green'))
+        print(colored("Unstaked:{} from uid:{} to coldkey.pub:{}".format(amount.tao, neuron.uid, self.wallet.coldkey.public_key), 'green'))
 
     def stake( self ):
         r""" Stakes token of amount to hotkey uid.
