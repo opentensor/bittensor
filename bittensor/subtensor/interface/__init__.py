@@ -893,13 +893,17 @@ class SubstrateWSInterface:
         pairs = response.get('result')
 
         # convert keys to the portion that needs to be decoded.
-        pairs = map(lambda kp: ["0x" + kp[0][prefix_len + concat_hash_len:], kp[1]], pairs)
+        if pairs != None:
+            pairs = map(lambda kp: ["0x" + kp[0][prefix_len + concat_hash_len:], kp[1]], pairs)
 
-        # decode both of them
-        pairs = map(
-            lambda kp: [self.decode_scale(key_type, kp[0]), self.decode_scale(value_type, kp[1])],
-            list(pairs)
-        )
+            # decode both of them
+            pairs = map(
+                lambda kp: [self.decode_scale(key_type, kp[0]), self.decode_scale(value_type, kp[1])],
+                list(pairs)
+            )
+        else:
+            # occurs if pairs returns a Nonetype.
+            pairs = []
 
         return list(pairs)
 
