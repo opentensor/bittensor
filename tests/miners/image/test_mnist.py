@@ -5,7 +5,7 @@ sys.path.append("miners/IMAGE/")
 import bittensor
 import torch
 import numpy
-from mnist import Miner
+from mnist.mnist import Miner
 
 def test_run_mnist():
     mnist_miner_config = Miner.build_config()
