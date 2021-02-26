@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 import bittensor.serialization as serialization
 from munch import Munch
 
-config = bittensor.receptor.Receptor.build_config(); config.receptor.do_backoff = False
+config = bittensor.receptor.Receptor.default_config()
 wallet = bittensor.wallet.Wallet( config )
 neuron = bittensor.proto.Neuron(
     version = bittensor.__version__,
@@ -18,7 +18,12 @@ neuron = bittensor.proto.Neuron(
     address = '0.0.0.0',
     port = 22424,
 )
-receptor = bittensor.receptor.Receptor( neuron, config=config, wallet=wallet )
+receptor = bittensor.receptor.Receptor( 
+    neuron = neuron, 
+    config = config, 
+    wallet = wallet,
+    do_backoff = False
+)
 channel = grpc.insecure_channel('localhost',
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])          

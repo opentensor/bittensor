@@ -45,16 +45,26 @@ class Subtensor:
         }
     }
 
-    def __init__(self, config: 'Munch' = None, wallet: 'bittensor.wallet.Wallet' = None):
+    def __init__(self, config: 'Munch' = None, wallet: 'bittensor.wallet.Wallet' = None, **kwargs):
         r""" Initializes a subtensor chain interface.
             Args:
                 config (:obj:`Munch`, `optional`): 
                     metagraph.Metagraph.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
+                network (default='akira', type=str)
+                    The subtensor network flag. The likely choices are:
+                            -- akira (testing network)
+                            -- kusanagi (main network)
+                    If this option is set it overloads subtensor.chain_endpoint with 
+                    an entry point node from that network.
+                chain_endpoint (default=None, type=str)
+                    The subtensor endpoint flag. If set, overrides the --network flag.
         """
         if config == None:
-            config = Subtensor.build_config()
+            config = Subtensor.default_config()
+        bittensor.config.Config.update_with_kwargs(config.subtensor, kwargs) 
+        Subtensor.check_config(config)
         self.config = config
 
         if wallet == None:
@@ -68,14 +78,13 @@ class Subtensor:
         )
 
     @staticmethod
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Subtensor.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        Subtensor.check_config(config)
         return config
-
+    
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         bittensor.wallet.Wallet.add_args( parser )
@@ -95,7 +104,7 @@ class Subtensor:
         
     @staticmethod   
     def check_config(config: Munch):
-        bittensor.wallet.Wallet.check_config( config )
+        pass
 
     def endpoint_for_network( self, blacklist: List[str] = [] ) -> str:
         r""" Returns a chain endpoint based on config.subtensor.network.

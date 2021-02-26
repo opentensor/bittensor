@@ -51,7 +51,7 @@ class Receptor(nn.Module):
     """ Encapsulates a grpc connection to an axon endpoint as a standard auto-grad torch.nn.Module.
     """
 
-    def __init__(self, neuron: bittensor.proto.Neuron, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None):
+    def __init__(self, neuron: bittensor.proto.Neuron, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, **kwargs):
         r""" Initializes a receptor grpc connection.
             Args:
                 neuron (:obj:`bittensor.proto.Neuron`, `required`):
@@ -60,13 +60,27 @@ class Receptor(nn.Module):
                     receptor.Receptor.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
+                pass_gradients (default=True, type=bool)
+                    Switch to true if the neuron passes gradients to downstream peers.
+                        By default the backward call i.e. loss.backward() triggers passing gradients on the wire.
+                timeout (default=0.5, type=float):
+                    The per request RPC timeout. a.k.a the maximum request time.
+                do_backoff (default=True, type=bool)
+                    Neurons who return non successful return codes are
+                        periodically not called with a multiplicative backoff.
+                        The backoff doubles until max_backoff and then halves on ever sequential successful request.
+                max_backoff (default=100, type=int)
+                    The backoff doubles until this saturation point.
         """
         super().__init__()
         if config == None:
-            config = Receptor.build_config()
+            config = Receptor.default_config()
+        bittensor.config.Config.update_with_kwargs(config.receptor, kwargs) 
+        Receptor.check_config( config )
         self.config = config # Configuration information.
+
         if wallet == None:
-            wallet = bittensor.wallet.Wallet()
+            wallet = bittensor.wallet.Wallet( self.config )
         self.wallet = wallet # Keypair information
         self.neuron = neuron # Endpoint information.
         self.signature = None # Call signature.
@@ -130,16 +144,14 @@ class Receptor(nn.Module):
         self.stub = bittensor.grpc.BittensorStub(self.channel)
 
     @staticmethod   
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         parser = argparse.ArgumentParser()
         Receptor.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        Receptor.check_config(config)
         return config
 
     @staticmethod   
     def check_config(config: Munch):
-        bittensor.wallet.Wallet.check_config( config )
         assert config.receptor.timeout >= 0, 'timeout must be positive value, got {}'.format(config.receptor.timeout)
 
     @staticmethod   

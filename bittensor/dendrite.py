@@ -46,7 +46,7 @@ class Dendrite(nn.Module):
         called during associated Forward operation.
     """
 
-    def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, metagraph: 'bittensor.metagraph.Metagraph' = None):
+    def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, metagraph: 'bittensor.metagraph.Metagraph' = None, **kwargs):
         r""" Initializes a new Dendrite entry point.
             Args:
                 config (:obj:`Munch`, `optional`): 
@@ -60,7 +60,8 @@ class Dendrite(nn.Module):
         # Config: Holds all config items for this items and those that are recursively defined. Specifically
         # config for you wallet and metagraph.
         if config == None:
-            config = Dendrite.build_config()
+            config = Dendrite.default_config()
+        Dendrite.check_config( config )
         self.config = config
 
         # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
@@ -82,6 +83,23 @@ class Dendrite(nn.Module):
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
         )
+
+    @staticmethod   
+    def default_config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        Dendrite.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        return config
+
+    @staticmethod   
+    def check_config(config: Munch):
+        pass
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser):
+        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
+        bittensor.receptor.Receptor.add_args(parser)
+        return parser
 
     def forward_text(self, neurons: List[bittensor.proto.Neuron],
                      x: List[torch.Tensor]) -> Tuple[List[torch.Tensor], torch.Tensor]:
@@ -257,26 +275,6 @@ class Dendrite(nn.Module):
         # ---- Gather results and return ---- 
         results = await asyncio.gather(*calls)
         return results
-
-
-    @staticmethod   
-    def build_config() -> Munch:
-        parser = argparse.ArgumentParser(); 
-        Dendrite.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        Dendrite.check_config(config)
-        return config
-
-    @staticmethod   
-    def check_config(config: Munch):
-        bittensor.metagraph.Metagraph.check_config(config) # Also checks wallet
-        bittensor.receptor.Receptor.check_config(config)
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
-        bittensor.receptor.Receptor.add_args(parser)
-        return parser
 
     def __str__(self):
         total_bytes_out = 0

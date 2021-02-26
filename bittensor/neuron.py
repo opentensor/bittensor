@@ -54,12 +54,13 @@ class Neuron:
                 nucleus: 'bittensor.nucleus.Nucleus' = None,
                 axon: 'bittensor.axon.Axon' = None,
                 dendrite: 'bittensor.dendrite.Dendrite' = None,
+                **kwargs,
             ):
         r""" Initializes a new full Neuron object.
             
             Args:
                 config (:obj:`Munch`, `optional`): 
-                    neuron.Neuron.config()
+                    neuron.Neuron.default_config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 subtensor (:obj:`bittensor.subtensor.Subtensor`, `optional`):
@@ -72,17 +73,20 @@ class Neuron:
                     synapse serving endpoint.
                 dendrite (:obj:`bittensor.dendrite.Dendrite`, `optional`):
                     synapse connecting object. 
-                    
+                modality (default=0, type=int)
+                    Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT
         """
         # Config: Config items for all subobjects: wallet, metagraph, nucleus, axon, dendrite.
-        # This object can be instantiated by calling Neuron.build_config()
+        # This object can be instantiated by calling Neuron.default_config()
         if config == None:
-            config = Neuron.build_config()
+            config = Neuron.default_config()
+        bittensor.config.Config.update_with_kwargs(config.neuron, kwargs) 
+        Neuron.check_config(config)
         self.config = config
         # Wallet: Holds the hotkey keypair and coldkey pub which are user to sign messages 
         # and subscribe to the chain.
         if wallet == None:
-            wallet = bittensor.wallet.Wallet(self.config)
+            wallet = bittensor.wallet.Wallet (self.config )
         self.wallet = wallet
         # Subtensor: provides an interface to the subtensor chain given a wallet.
         if subtensor == None:
@@ -96,7 +100,7 @@ class Neuron:
         if nucleus == None:
             nucleus = bittensor.nucleus.Nucleus(config = self.config, wallet = self.wallet, metagraph = self.metagraph)
         self.nucleus = nucleus
-        # Axon: RPC server endpoint which serves your synapse. Responde to Forward and Backward requests.
+        # Axon: RPC server endpoint which serves your synapse. Responds to Forward and Backward requests.
         if axon == None:
             axon = bittensor.axon.Axon(config = self.config, wallet = self.wallet, nucleus = self.nucleus, metagraph = self.metagraph)
         self.axon = axon
@@ -106,12 +110,11 @@ class Neuron:
         self.dendrite = dendrite
 
     @staticmethod   
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Neuron.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        Neuron.check_config(config)
         return config
 
     @staticmethod   
@@ -130,12 +133,6 @@ class Neuron:
 
     @staticmethod   
     def check_config(config: Munch):
-        bittensor.wallet.Wallet.check_config( config )
-        bittensor.subtensor.Subtensor.check_config( config )
-        bittensor.metagraph.Metagraph.check_config( config )
-        bittensor.nucleus.Nucleus.check_config( config )
-        bittensor.axon.Axon.check_config( config )
-        bittensor.dendrite.Dendrite.check_config( config )
         assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
 
     def start(self):

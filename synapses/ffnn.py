@@ -38,15 +38,18 @@ class FFNNSynapse(bittensor.synapse.Synapse):
     """ Simple feed forward NN for images.
     """
 
-    def __init__(self, config: Munch):
+    def __init__(self, config: Munch, **kwargs):
         r""" Init a new ffnn synapse module.
                 :param [config]: munch namespace config item.
                 :type [config]:  [:obj:`munch.Munch`](, `required`)
 
         """
-        super(FFNNSynapse, self).__init__(config = config)
+        super(FFNNSynapse, self).__init__(config = config, **kwargs)
         if config == None:
-            config = FFNNSynapse.build_config()
+            config = FFNNSynapse.default_config()
+        bittensor.config.Config.update_with_kwargs(config.synapse, kwargs) 
+        FFNNSynapse.check_config(config)
+        self.config = config
             
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
@@ -79,11 +82,10 @@ class FFNNSynapse(bittensor.synapse.Synapse):
         self.to(self.device)
 
     @staticmethod   
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         FFNNSynapse.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        FFNNSynapse.check_config(config)
         return config
 
     @staticmethod

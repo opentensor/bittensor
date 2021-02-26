@@ -35,7 +35,7 @@ class Synapse(nn.Module):
         in the model synapse subclass. This class also implements the gradient calculation and backward pass for any extending synapse subclass. 
     """
 
-    def __init__(self, config: Munch = None):
+    def __init__(self, config: Munch = None, **kwargs):
         r""" Init synapse module.
 
             Args:
@@ -44,12 +44,13 @@ class Synapse(nn.Module):
         """
         super().__init__()
         if config == None:
-            config = Synapse.build_config()
+            config = Synapse.default_config()
+        Synapse.check_config(config)
         self.config = config
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     @staticmethod   
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         return Munch()
 
     @staticmethod   

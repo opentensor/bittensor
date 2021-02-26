@@ -32,7 +32,8 @@ class Executor:
             self, 
             config: 'Munch' = None, 
             wallet: 'bittensor.wallet.Wallet' = None,
-            subtensor: 'bittensor.subtensor.Subtensor' = None
+            subtensor: 'bittensor.subtensor.Subtensor' = None,
+            **kwargs,
         ):
         r""" Initializes a new Metagraph chain interface.
             Args:
@@ -44,7 +45,8 @@ class Executor:
                     subtensor interface utility.
         """
         if config == None:
-            config = Executor.build_config()
+            config = Executor.default_config()
+        Executor.check_config(config)
         self.config = config
 
         if wallet == None:
@@ -56,14 +58,13 @@ class Executor:
         self.subtensor = subtensor
 
     @staticmethod
-    def build_config () -> Munch:
+    def default_config () -> Munch:
          # Build top level parser.
         parser = argparse.ArgumentParser(description="Bittensor cli", usage="bittensor-cli <command> <command args>", add_help=True)
         parser._positionals.title = "commands"
         parser.add_argument("--debug", default=False, help="Turn on debugging information", action="store_true")
         Executor.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        Executor.check_config(config)
         return config
 
     @staticmethod   
@@ -150,8 +151,6 @@ class Executor:
         
     @staticmethod   
     def check_config (config: Munch):
-        bittensor.wallet.Wallet.check_config( config )
-        bittensor.subtensor.Subtensor.check_config( config )
         if config.command == "transfer":
             if not config.dest:
                 print(colored("The --dest argument is required for this command", 'red'))
@@ -334,7 +333,7 @@ class Executor:
 
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Executor.build_config(); 
+    config = Executor.default_config(); 
     logger.info(bittensor.config.Config.toString(config))
     executor = Executor( config )
     executor.run_command()
