@@ -16,8 +16,8 @@ def test_run_bert_mlm():
     bert_mlm_session_config.miner.n_epochs = 1
     bert_mlm_session_config.miner.epoch_length = 1
     bert_mlm_session = Miner(bert_mlm_session_config)
-    bert_mlm_session.neuron.metagraph.connect = MagicMock(return_value = (bittensor.metagraph.Metagraph.ConnectSuccess, ""))    
-    bert_mlm_session.neuron.metagraph.subscribe = MagicMock(return_value = (bittensor.metagraph.Metagraph.SubscribeSuccess, ""))   
+    bert_mlm_session.neuron.subtensor.connect = MagicMock(return_value = True)    
+    bert_mlm_session.neuron.subtensor.subscribe = MagicMock(return_value = True) 
     bert_mlm_session.neuron.metagraph.set_weights = MagicMock()   
     bert_mlm_session.neuron.metagraph.sync = MagicMock()  
     neuron = bittensor.proto.Neuron(

@@ -10,12 +10,11 @@ from bert_nsp import Miner
 
 def test_run_bert_nsp():
     bert_nsp_session_config = Miner.build_config()
-    bert_nsp_session_config.subtensor.chain_endpoint = 'feynman.akira.bittensor.com:9944'
     bert_nsp_session_config.miner.n_epochs = 1
     bert_nsp_session_config.miner.epoch_length = 1
     bert_nsp_session = Miner(bert_nsp_session_config)
-    bert_nsp_session.neuron.metagraph.connect = MagicMock(return_value = (bittensor.metagraph.Metagraph.ConnectSuccess, ""))    
-    bert_nsp_session.neuron.metagraph.subscribe = MagicMock(return_value = (bittensor.metagraph.Metagraph.SubscribeSuccess, ""))   
+    bert_nsp_session.neuron.subtensor.connect = MagicMock(return_value = True)    
+    bert_nsp_session.neuron.subtensor.subscribe = MagicMock(return_value = True)   
     bert_nsp_session.neuron.metagraph.set_weights = MagicMock()   
     bert_nsp_session.neuron.metagraph.sync = MagicMock()  
     neuron = bittensor.proto.Neuron(

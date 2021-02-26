@@ -4,25 +4,19 @@ from munch import Munch
 
 import bittensor
 import pytest
+from unittest.mock import MagicMock
 
 def test_create_neuron():
     neuron = bittensor.neuron.Neuron()
 
-# Commented out until boltzmann is up again.
-# def test_boltzmann_subscribe_success():
-#     neuron = bittensor.neuron.Neuron()
-#     neuron.config.subtensor.network = 'akira'
-#     with neuron:
-#         logger.success("Success")
+def test_boltzmann_subscribe_success():
+    neuron = bittensor.neuron.Neuron()
+    neuron.subtensor.connect = MagicMock(return_value = True)    
+    neuron.subtensor.subscribe = MagicMock(return_value = True) 
+    neuron.metagraph.set_weights = MagicMock()   
+    neuron.metagraph.sync = MagicMock()  
+    with neuron:
+        assert True
 
-# def test_boltzmann_subscribe_failure():
-#     neuron = bittensor.neuron.Neuron()
-#     neuron.config.subtensor.chain_endpoint = 'not an endpoint'
-#     with pytest.raises(ValueError):
-#         with neuron:
-#             logger.success("Success")
-    
 if __name__ == "__main__":
-    pass
-    #test_boltzmann_subscribe_success()
-    # test_boltzmann_subscribe_failure()
+    test_boltzmann_subscribe_success()

@@ -859,17 +859,17 @@ To run a local node (See: docs/running_a_validator.md) \n
     def get_weight_uids(self) -> List[Tuple[int, int]]:
         r""" Returns a list of (uid, weight uids) pairs for each active peer on chain.
         Returns:
-            weight_uids (List[Tuple[int, int]]):
+            weight_uids (List[Tuple[int, List[int]]]):
                 List of weight uid pairs
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_get_weight_uids())
 
-    async def async_get_weight_uids(self) -> List[Tuple[int, int]]:
+    async def async_get_weight_uids(self) -> List[Tuple[int, List[int]]]:
         r""" Returns a list of (uid, weight uids) pairs for each active peer on chain.
         Returns:
-            weight_uids (List[Tuple[int, int]]):
+            weight_uids (List[Tuple[int, List[int]]]):
                 List of weight uid pairs
         """
         await self.async_check_connection()
@@ -879,50 +879,28 @@ To run a local node (See: docs/running_a_validator.md) \n
         )
         return result
 
-    def neurons(self, uid=None, decorator=False) -> List[Tuple[int, dict]]: 
+    def neurons(self) -> List[Tuple[int, dict]]: 
         r""" Returns a list of neuron from the chain. 
-            Returns neuron objects if decorator is set to true.
-        Args:
-            uid (int):
-                Uid to query for metadata.
-            decorator(bool):
-                specifiying if the returned data should be as neuron objects.
         Returns:
             neuron (List[Tuple[int, dict]]):
                 List of neuron objects.
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_neurons( uid, decorator ))
+        return loop.run_until_complete(self.async_neurons( ))
 
-    async def async_neurons(self, uid=None, decorator=False) -> List[Tuple[int, dict]]:
+    async def async_neurons(self) -> List[Tuple[int, dict]]:
         r""" Returns a list of neuron from the chain. 
-            Returns neuron objects if decorator is set to true.
-        Args:
-            uid (int):
-                Uid to query for metadata.
-            decorator(bool):
-                specifiying if the returned data should be as neuron objects.
         Returns:
             neuron (List[Tuple[int, dict]]):
                 List of neuron objects.
         """
         await self.async_check_connection()
-        # Todo (parall4x, 23-12-2020) Get rid of this decorator flag. This should be refactored into something that returns Neuron objects only
-        if uid:
-            result = await self.substrate.get_runtime_state(
-                module='SubtensorModule',
-                storage_function='Neurons',
-                params=[uid]
-            )
-            return Neurons.from_list(result['result']) if decorator else result['result']
-
-        else:
-            neurons = await self.substrate.iterate_map(
-                module='SubtensorModule',
-                storage_function='Neurons'
-            )
-            return Neurons.from_list(neurons) if decorator else neurons
+        neurons = await self.substrate.iterate_map(
+            module='SubtensorModule',
+            storage_function='Neurons'
+        )
+        return neurons
 
     def get_uid_for_pubkey(self, pubkey = str) -> int: 
         r""" Returns the uid of the peer given passed public key string.

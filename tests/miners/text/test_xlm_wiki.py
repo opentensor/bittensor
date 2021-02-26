@@ -13,14 +13,12 @@ class AsyncMock(MagicMock):
         
 def test_run_xlm_clm():
     xlm_clm_session_config = Miner.build_config()
-    xlm_clm_session_config.subtensor.chain_endpoint = 'feynman.akira.bittensor.com:9944'
     xlm_clm_session_config.miner.n_epochs = 1
     xlm_clm_session_config.miner.epoch_length = 1
     xlm_clm_session_config.synapse.causal = True
     xlm_clm_session = Miner(xlm_clm_session_config)
-
-    xlm_clm_session.neuron.metagraph.connect = MagicMock(return_value = (bittensor.metagraph.Metagraph.ConnectSuccess, ""))    
-    xlm_clm_session.neuron.metagraph.subscribe = MagicMock(return_value = (bittensor.metagraph.Metagraph.SubscribeSuccess, ""))   
+    xlm_clm_session.neuron.subtensor.connect = MagicMock(return_value = True)    
+    xlm_clm_session.neuron.metagraph.subtensor.subscribe = MagicMock(return_value = True)   
     xlm_clm_session.neuron.metagraph.set_weights = MagicMock()   
     xlm_clm_session.neuron.metagraph.sync = MagicMock()  
     neuron = bittensor.proto.Neuron(

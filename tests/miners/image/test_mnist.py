@@ -9,12 +9,11 @@ from mnist import Miner
 
 def test_run_mnist():
     mnist_miner_config = Miner.build_config()
-    mnist_miner_config.subtensor.chain_endpoint = 'feynman.akira.bittensor.com:9944'
     mnist_miner_config.miner.n_epochs = 1
     mnist_miner_config.miner.epoch_length = 1
     mnist_miner = Miner(mnist_miner_config)
-    mnist_miner.neuron.metagraph.connect = MagicMock(return_value = (bittensor.metagraph.Metagraph.ConnectSuccess, ""))    
-    mnist_miner.neuron.metagraph.subscribe = MagicMock(return_value = (bittensor.metagraph.Metagraph.SubscribeSuccess, ""))   
+    mnist_miner.neuron.subtensor.connect = MagicMock(return_value = True)    
+    mnist_miner.neuron.subtensor.subscribe = MagicMock(return_value = True) 
     mnist_miner.neuron.metagraph.set_weights = MagicMock()   
     mnist_miner.neuron.metagraph.sync = MagicMock()  
     neuron = bittensor.proto.Neuron(
