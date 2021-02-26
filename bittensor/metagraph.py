@@ -590,7 +590,8 @@ class Metagraph():
     EmitTimeoutError = 4
     EmitTimeoutError = 5
     EmitResultUnknown = 6
-    EmitNoOp = 7
+    EmitNotInBlock = 7
+    EmitNoOp = 8
     def set_weights(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12):
         r""" Emits the passed weights to the chain. Optionally Waits for inclusion. 
         Failures are logged but do not break the process. 
@@ -606,7 +607,7 @@ class Metagraph():
         code, message = self._try_emit(weights, wait_for_inclusion, timeout)
         if code == Metagraph.EmitSuccess:
             # ---- Emit was a success. ----
-            logger.info("Successful emission.")
+            logger.info("Emission was successful and entered the block.")
 
         elif code == Metagraph.EmitValueError:
             # ---- Passed weights were incorrect ----
@@ -623,6 +624,10 @@ class Metagraph():
         elif code == Metagraph.EmitResultUnknown:
             # ---- Did not wait, result unknown ----
             logger.info("Emit results unknown.")
+
+        elif code == Metagraph.EmitNotInBlock:
+            # ---- Emit was success but did not enter the block ----
+            logger.info('Emit did not enter block')
 
         elif code == Metagraph.EmitNoOp:
             # ---- Emit is a NoOp ----
@@ -720,10 +725,14 @@ class Metagraph():
 
         # ---- Emit ----
         logger.info('Emitting weights -> {}', list(zip(weight_uids, weight_vals)))
-        self.subtensor.set_weights(weight_uids, weight_vals, wait_for_inclusion=True)
+        result = self.subtensor.set_weights(weight_uids, weight_vals, wait_for_inclusion=True, timeout = bittensor.__blocktime__ * 3)
+        if result:
+            message = "Successful emission"
+            return Metagraph.EmitSuccess, message
+        else:
+            message = "Emission did not enter block."
+            return Metagraph.EmitNotInBlock, message
 
-        message = "Successful emission"
-        return Metagraph.EmitSuccess, message
 
     def _are_set_on_chain(self, weight_uids, weight_vals) -> bool:
         r""" Returns true if the passed key and vals are set on chain.
