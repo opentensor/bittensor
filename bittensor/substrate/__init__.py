@@ -26,8 +26,8 @@ import re
 from autobahn.asyncio.websocket import WebSocketClientProtocol, WebSocketClientFactory
 
 from scalecodec import ScaleBytes, GenericCall
-from scalecodec.base import ScaleDecoder, RuntimeConfiguration
-from scalecodec.block import ExtrinsicsDecoder, EventsDecoder, LogDigest
+from scalecodec.base import ScaleDecoder, RuntimeConfiguration, RuntimeConfigurationObject
+from scalecodec.block import ExtrinsicsDecoder, EventsDecoder, LogDigest, Extrinsic
 from scalecodec.metadata import MetadataDecoder
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.updater import update_type_registries
@@ -395,7 +395,7 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
         logger.trace("Sending message: {}", payload)
         super().sendMessage(payload, isBinary, fragmentSize, sync, doNotCompress)
 
-    async def async_rpc_request( self, method, params, result_handler = None, is_subscription = False, timeout = 2 ) -> dict:
+    async def async_rpc_request( self, method, params, result_handler = None, is_subscription = False, timeout = 10 ) -> dict:
         r""" Creates a websocket message and waits until the response is recieved.
             Maintains memory about the sent request and only returns when the passed handler produces a
             non-null response or a timeout occurs. The call is blocking.
@@ -485,6 +485,7 @@ class SubstrateWSInterface:
         }
         self.metadata_decoder = None
         self.runtime_version = None
+        self.runtime_config = RuntimeConfigurationObject()
         self.transaction_version = None
         self.block_hash = None
         self.block_id = None
@@ -513,8 +514,12 @@ class SubstrateWSInterface:
         self.factory = WebSocketClientFactory( "ws://%s:%s" % (host, port) )
         self.factory.protocol = SubtensorClientProtocol
         loop = asyncio.get_event_loop()
-        _, self.protocol = await loop.create_connection(self.factory, host, port)
-        
+
+        try:
+            _, self.protocol = await loop.create_connection(self.factory, host, port)
+        except:
+            return False
+
         # Wait for connection future to be set onOpen.
         try:
             return await asyncio.wait_for( self.protocol.is_connected, timeout = timeout )
@@ -625,10 +630,47 @@ class SubstrateWSInterface:
         response = await self.protocol.async_rpc_request("chain_getHeader", [block_hash])
         return response.get('result')
 
-
     async def async_get_block_number(self, block_hash):
         response = await self.protocol.async_rpc_request("chain_getHeader", [block_hash])
         return int(response['result']['number'], 16)
+    
+    async def async_get_block_extrinsics(self, block_hash: str = None, block_id: int = None, ignore_decoding_errors=False) -> list:
+        """
+        Retrieves a list of `Extrinsic` objects for given block_hash or block_id
+        Parameters
+        ----------
+        block_hash
+        block_id
+        ignore_decoding_errors: When True no exception will be raised if decoding of extrinsics failes and add as `None` instead
+        Returns
+        -------
+        list
+        """
+        await self.init_runtime(block_hash=block_hash, block_id=block_id)
+
+        response = await self.protocol.async_rpc_request("chain_getBlock", [self.block_hash])
+
+        if 'error' in response:
+            raise SubstrateRequestException(response['error']['message'])
+
+        if response.get('result') is None:
+            raise Exception(f"{block_hash} not found")
+
+        extrinsics = []
+        for extrinsic_data in response['result']['block']['extrinsics']:
+            extrinsic = Extrinsic(
+                data=ScaleBytes(extrinsic_data),
+                metadata=self.metadata_decoder,
+                runtime_config=self.runtime_config
+            )
+            try:
+                extrinsic.decode()
+            except:
+                if not ignore_decoding_errors:
+                    raise
+                extrinsic = None
+            extrinsics.append(extrinsic)
+        return extrinsics
 
     async def async_get_block_metadata(self, block_hash=None, decode=True):
         """
@@ -1309,7 +1351,7 @@ class SubstrateWSInterface:
 
         return extrinsic
 
-    async def submit_extrinsic(self, extrinsic, wait_for_inclusion=False, wait_for_finalization=False, timeout: int = 2) -> "ExtrinsicReceipt":
+    async def submit_extrinsic(self, extrinsic, wait_for_inclusion=False, wait_for_finalization=False, timeout: int = 2) -> dict:
         """
 
         Parameters
@@ -1331,19 +1373,23 @@ class SubstrateWSInterface:
         def result_handler(result):
             # Check if extrinsic is included and finalized
             if 'error' in result and type(result['error']) is dict:
-                return result
+                return {
+                    'error': result['error']
+                }
 
             if 'params' in result and type(result['params']['result']) is dict:
                 if 'finalized' in result['params']['result'] and wait_for_finalization:
                     return {
                         'block_hash': result['params']['result']['finalized'],
                         'extrinsic_hash': '0x{}'.format(extrinsic.extrinsic_hash),
+                        'inBlock': True,
                         'finalized': True
                     }
                 elif 'inBlock' in result['params']['result'] and wait_for_inclusion and not wait_for_finalization:
                     return {
                         'block_hash': result['params']['result']['inBlock'],
                         'extrinsic_hash': '0x{}'.format(extrinsic.extrinsic_hash),
+                        'inBlock': True,
                         'finalized': False
                     }
                 else:
@@ -1359,34 +1405,16 @@ class SubstrateWSInterface:
                 is_subscription = True,
                 timeout = timeout,
             )
-            if response != None and 'error' not in response:
-                result = ExtrinsicReceipt(
-                    substrate=self,
-                    extrinsic_hash=response['extrinsic_hash'],
-                    block_hash=response['block_hash'],
-                    finalized=response['finalized']
-                )
-            else:
-                if 'error' in response:
-                    logger.error('Error for submitted extrinsic: {}', response['error'])
-                result = ExtrinsicReceipt(
-                    substrate=self,
-                    extrinsic_hash=None,
-                    block_hash=None,
-                    finalized=False
-                )
+            return response
 
         else:
             response = await self.protocol.async_rpc_request(method="author_submitExtrinsic", params=[str(extrinsic.data)], timeout = timeout )
             if 'result' not in response:
-                raise SubstrateRequestException(response.get('error'))
-
-            result = ExtrinsicReceipt(
-                substrate=self,
-                extrinsic_hash=response['result']
-            )
-
-        return result
+                return {
+                    'error': response.get('error')
+                }
+            else:
+                return response
 
 
     async def get_payment_info(self, call, keypair):
@@ -2171,246 +2199,4 @@ class SubstrateWSInterface:
     def debug_message(self, message):
         logger.trace(message)
 
-
-
-class ExtrinsicReceipt:
-
-    def __init__(self, substrate: SubstrateWSInterface, extrinsic_hash: str, block_hash: str = None, finalized=None):
-        """
-        Object containing information of submitted extrinsic. Block hash where extrinsic is included is required
-        when retrieving triggered events or determine if extrinsic was succesfull
-
-        Parameters
-        ----------
-        substrate
-        extrinsic_hash
-        block_hash
-        finalized
-        """
-        self.substrate = substrate
-        self.extrinsic_hash = extrinsic_hash
-        self.block_hash = block_hash
-        self.finalized = finalized
-
-        self.__extrinsic_idx = None
-        self.__extrinsic = None
-
-        self.__triggered_events = None
-        self.__is_success = None
-        self.__error_message = None
-        self.__weight = None
-        self.__total_fee_amount = None
-
-    def retrieve_extrinsic(self):
-        if not self.block_hash:
-            raise ValueError("ExtrinsicReceipt can't retrieve events because it's unknown which block_hash it is "
-                             "included, manually set block_hash or use `wait_for_inclusion` when sending extrinsic")
-        # Determine extrinsic idx
-
-        extrinsics = self.substrate.get_block_extrinsics(block_hash=self.block_hash)
-
-        if len(extrinsics) > 0:
-            self.__extrinsic_idx = self.__get_extrinsic_index(
-                block_extrinsics=extrinsics,
-                extrinsic_hash=self.extrinsic_hash
-            )
-
-            self.__extrinsic = extrinsics[self.__extrinsic_idx]
-
-    @property
-    def extrinsic_idx(self) -> int:
-        """
-        Retrieves the index of this extrinsic in containing block
-
-        Returns
-        -------
-        int
-        """
-        if self.__extrinsic_idx is None:
-            self.retrieve_extrinsic()
-        return self.__extrinsic_idx
-
-    @property
-    def extrinsic(self):
-        """
-        Retrieves the `Extrinsic` subject of this receipt
-
-        Returns
-        -------
-        Extrinsic
-        """
-        if self.__extrinsic is None:
-            self.retrieve_extrinsic()
-        return self.__extrinsic
-
-    @property
-    def triggered_events(self) -> list:
-        """
-        Gets triggered events for submitted extrinsic. block_hash where extrinsic is included is required, manually
-        set block_hash or use `wait_for_inclusion` when submitting extrinsic
-
-        Returns
-        -------
-        list
-        """
-        if self.__triggered_events is None:
-            if not self.block_hash:
-                raise ValueError("ExtrinsicReceipt can't retrieve events because it's unknown which block_hash it is "
-                                 "included, manually set block_hash or use `wait_for_inclusion` when sending extrinsic")
-
-            if self.extrinsic_idx is None:
-                self.retrieve_extrinsic()
-
-            self.__triggered_events = []
-
-            for event in self.substrate.get_events(block_hash=self.block_hash):
-                if event.extrinsic_idx == self.extrinsic_idx:
-                    self.__triggered_events.append(event)
-
-        return self.__triggered_events
-
-    def process_events(self):
-        if self.triggered_events:
-
-            self.__total_fee_amount = 0
-
-            for event in self.triggered_events:
-                # Check events
-                if event.event_module.name == 'System' and event.event.name == 'ExtrinsicSuccess':
-                    self.__is_success = True
-                    self.__error_message = None
-
-                    for param in event.params:
-                        if param['type'] == 'DispatchInfo':
-                            self.__weight = param['value']['weight']
-
-                elif event.event_module.name == 'System' and event.event.name == 'ExtrinsicFailed':
-                    self.__is_success = False
-
-                    for param in event.params:
-                        if param['type'] == 'DispatchError':
-                            if 'Module' in param['value']:
-                                module_error = self.substrate.metadata_decoder.get_module_error(
-                                    module_index=param['value']['Module']['index'],
-                                    error_index=param['value']['Module']['error']
-                                )
-                                self.__error_message = {
-                                    'type': 'Module',
-                                    'name': module_error.name,
-                                    'docs': module_error.docs
-                                }
-                            elif 'BadOrigin' in param['value']:
-                                self.__error_message = {
-                                    'type': 'System',
-                                    'name': 'BadOrigin',
-                                    'docs': 'Bad origin'
-                                }
-                            elif 'CannotLookup' in param['value']:
-                                self.__error_message = {
-                                    'type': 'System',
-                                    'name': 'CannotLookup',
-                                    'docs': 'Cannot lookup'
-                                }
-                            elif 'Other' in param['value']:
-                                self.__error_message = {
-                                    'type': 'System',
-                                    'name': 'Other',
-                                    'docs': 'Unspecified error occurred'
-                                }
-
-                        if param['type'] == 'DispatchInfo':
-                            self.__weight = param['value']['weight']
-
-                elif event.event_module.name == 'Treasury' and event.event.name == 'Deposit':
-                    self.__total_fee_amount += event.params[0]['value']
-
-                elif event.event_module.name == 'Balances' and event.event.name == 'Deposit':
-                    self.__total_fee_amount += event.params[1]['value']
-
-    @property
-    def is_success(self) -> bool:
-        """
-        Returns `True` if `ExtrinsicSuccess` event is triggered, `False` in case of `ExtrinsicFailed`
-        In case of False `error_message` will contain more details about the error
-
-
-        Returns
-        -------
-        bool
-        """
-        if self.__is_success is None:
-            self.process_events()
-
-        return self.__is_success
-
-    @property
-    def error_message(self) -> Optional[dict]:
-        """
-        Returns the error message if the extrinsic failed in format e.g.:
-
-        `{'type': 'System', 'name': 'BadOrigin', 'docs': 'Bad origin'}`
-
-        Returns
-        -------
-        dict
-        """
-        if self.__error_message is None:
-            if self.is_success:
-                return None
-            self.process_events()
-        return self.__error_message
-
-    @property
-    def weight(self) -> int:
-        """
-        Contains the actual weight when executing this extrinsic
-
-        Returns
-        -------
-        int
-        """
-        if self.__weight is None:
-            self.process_events()
-        return self.__weight
-
-    @property
-    def total_fee_amount(self) -> int:
-        """
-        Contains the total fee costs deducted when executing this extrinsic. This includes fee for the validator (
-        (`Balances.Deposit` event) and the fee deposited for the treasury (`Treasury.Deposit` event)
-
-        Returns
-        -------
-        int
-        """
-        if self.__total_fee_amount is None:
-            self.process_events()
-        return self.__total_fee_amount
-
-    # Helper functions
-    @staticmethod
-    def __get_extrinsic_index(block_extrinsics: list, extrinsic_hash: str) -> int:
-        """
-        Returns the index of a provided extrinsic
-        """
-        for idx, extrinsic in enumerate(block_extrinsics):
-            if extrinsic.extrinsic_hash == extrinsic_hash.replace('0x', ''):
-                return idx
-        raise ExtrinsicNotFound()
-
-    # Backwards compatibility methods
-    def __getitem__(self, item):
-        return getattr(self, item)
-
-    def __iter__(self):
-        for item in self.__dict__.items():
-            yield item
-
-    def get(self, name):
-        return self[name]
-
-
-class SubstrateRPCInterface:
-    # Todo
-    None
 

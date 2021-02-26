@@ -5,6 +5,17 @@ from loguru import logger
 import bittensor.bittensor_pb2 as proto
 import bittensor.bittensor_pb2_grpc as grpc
 
+# Bittensor code and protocol version.
+__version__ = '1.0.3'
+
+# Tensor dimension.
+# NOTE (const): if/when this increases peers must be responsible for trimming or expanding output to this size.
+__network_dim__ = 512 # All network responses have shape = [ __batch_size__, __sequence_dim__, __network_dim__ ]
+
+# Substrate chain block time (seconds).
+__blocktime__ = 6
+
+# Load components.
 import bittensor.axon
 import bittensor.config 
 import bittensor.executor
@@ -16,16 +27,6 @@ import bittensor.receptor
 import bittensor.subtensor
 import bittensor.synapse
 import bittensor.wallet
-
-# Bittensor code and protocol version.
-__version__ = '1.0.3'
-
-# Tensor dimension.
-# NOTE (const): if/when this increases peers must be responsible for trimming or expanding output to this size.
-__network_dim__ = 512 # All network responses have shape = [ __batch_size__, __sequence_dim__, __network_dim__ ]
-
-# Substrate chain block time (seconds).
-__blocktime__ = 6
 
 # Default logger
 logger_config = {
