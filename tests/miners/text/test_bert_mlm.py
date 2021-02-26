@@ -5,7 +5,7 @@ sys.path.append("miners/TEXT/")
 import bittensor
 import torch
 import numpy
-from bert_mlm import Miner
+from bert_mlm.bert_mlm import Miner
 
 class AsyncMock(MagicMock):
     async def __call__(self, *args, **kwargs):

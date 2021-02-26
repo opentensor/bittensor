@@ -44,9 +44,9 @@ logger.configure(**logger_config)
 # neurons must be aware that versions will increase and be ready to convert between tokenizers.
 # TODO (const): Add functionality to allow tokenizer conversion. i.e. for input token conversion.
 __vocab_size__ = (50278 + 100)  # Must match the __tokenizer__() vocab size.
-def __tokenizer__( version = __version__ ):
+def __tokenizer__(  version = __version__ ):
     from transformers import GPT2Tokenizer
-    
+
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2", local_files_only=False)
     tokenizer.padding_side = "left"
     tokenizer.add_prefix_space = False
@@ -73,11 +73,11 @@ def __tokenizer__( version = __version__ ):
         "<special6>", # Used by XLM
         "<special7>", # Used by XLM
         "<special8>", # Used by XLM
-        "<special9>" # Used by XLM
+        "<special9>", # Used by XLM
     ]
     tokenizer.additional_special_tokens = additional_special_tokens
     global __vocab_size__
-    __vocab_size__ = len(tokenizer) + len(additional_special_tokens) + 100 # Plus 100 for eventual toke size increase.
+    __vocab_size__ = len(tokenizer) + len(additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
 
     return tokenizer
 
