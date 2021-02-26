@@ -260,6 +260,60 @@ To run a local node (See: docs/running_a_validator.md) \n
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_is_subscribed( ip, port, modality, coldkey))
 
+    async def _submit_and_check_extrinsic(
+            self, 
+            extrinsic, 
+            wait_for_inclusion:bool = False, 
+            wait_for_finalization: bool = False, 
+            timeout: int = bittensor.__blocktime__ * 3
+        ) -> bool:
+        r""" Makes an extrinsic call to the chain, returns true if the extrinsic send was a success.
+        If wait_for_inclusion or wait_for_finalization are true, the call will return true iff the 
+        extrinsic enters or finalizes in a block.
+        Args:
+            extrinsic (substrate extrinsic):
+                Extrinsic to send to the chain.
+            wait_for_inclusion (bool):
+                If set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.   
+            wait_for_finalization (bool):
+                If set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            timeout (int):
+                Time that this call waits for either finalization of inclusion.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
+        """
+        # Send extrinsic
+        try:
+            response = await self.substrate.submit_extrinsic( 
+                                    extrinsic, 
+                                    wait_for_inclusion = wait_for_inclusion,
+                                    wait_for_finalization = wait_for_finalization, 
+                                    timeout = timeout
+                            )
+        except SubstrateRequestException as e:
+            logger.error('Extrinsic exception with error {}', e)
+            return False
+        except Exception as e:
+            logger.error('Error submitting extrinsic with error {}', e)
+            return False
+
+        # Check result.
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True
+        else:
+            if 'error' in response:
+                logger.error('Error in extrinsic: {}', response['error'])
+            elif 'finalized' in response and response['finalized'] == True:
+                return True
+            elif 'inBlock' in response and response['inBlock'] == True:
+                return True
+            else:
+                return False
+            
     async def async_is_subscribed(self, ip: str, port: int, modality: int, coldkey: str) -> bool:
         r""" Returns true if the bittensor endpoint is already subscribed.
         Args:
@@ -282,7 +336,16 @@ To run a local node (See: docs/running_a_validator.md) \n
         else:
             return False
 
-    def subscribe(self, ip: str, port: int, modality: int, coldkeypub: str, wait_for_finalization = True) -> bool:
+    def subscribe(
+            self, 
+            ip: str, 
+            port: int, 
+            modality: int, 
+            coldkeypub: str, 
+            wait_for_inclusion: bool = False,
+            wait_for_finalization = True,
+            timeout: int = 3 * bittensor.__blocktime__,
+        ) -> bool:
         r""" Subscribes an bittensor endpoint to the substensor chain.
         Args:
             ip (str):
@@ -293,15 +356,33 @@ To run a local node (See: docs/running_a_validator.md) \n
                 int encoded endpoint modality i.e 0 for TEXT
             coldkeypub (str):
                 string encoded coldekey pub.
+            wait_for_inclusion (bool):
+                if set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.   
             wait_for_finalization (bool):
-                set ot true if this call blocks until the subscription is finalized.
-
+                if set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            timeout (int):
+                time that this call waits for either finalization of inclusion.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_subscribe( ip, port, modality, coldkeypub, wait_for_finalization))
+        return loop.run_until_complete(self.async_subscribe(ip, port, modality, coldkeypub, wait_for_inclusion, wait_for_finalization, timeout))
 
-    async def async_subscribe(self, ip: str, port: int, modality: int, coldkeypub: str, wait_for_finalization = True) -> bool:
+    async def async_subscribe(
+            self, 
+            ip: str, 
+            port: int, 
+            modality: int, 
+            coldkeypub: str, 
+            wait_for_inclusion: bool = False,
+            wait_for_finalization:bool = True,
+            timeout: int = 3 * bittensor.__blocktime__,
+        ) -> bool:
         r""" Subscribes an bittensor endpoint to the substensor chain.
         Args:
             ip (str):
@@ -312,9 +393,18 @@ To run a local node (See: docs/running_a_validator.md) \n
                 int encoded endpoint modality i.e 0 for TEXT
             coldkeypub (str):
                 string encoded coldekey pub.
+            wait_for_inclusion (bool):
+                if set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.   
             wait_for_finalization (bool):
-                set ot true if this call blocks until the subscription is finalized.
-
+                if set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            timeout (int):
+                time that this call waits for either finalization of inclusion.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
         """
         if not await self.async_check_connection():
             return False
@@ -336,26 +426,289 @@ To run a local node (See: docs/running_a_validator.md) \n
             call_function='subscribe',
             call_params=params
         )
-
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.hotkey)
-        if wait_for_finalization:
-            try:
-                print ('waiting for finalization...')
-                receipt = await self.substrate.submit_extrinsic( extrinsic, wait_for_finalization = wait_for_finalization, timeout = bittensor.__blocktime__ * 5) # Waiting for block to finalized. 
-                try:
-                    if receipt.is_success:
-                        print(colored('Subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub), 'green'))
-                        return True
-                    else:
-                        print(colored('Subscription failure with: error {}'.format(receipt.error_message), 'red'))
-                        return False
-                except:
-                    False
-
-            except SubstrateRequestException as e:
-                print(colored("Failed to send subscribe extrinsic with error: {}".format(e), 'red'))
+        result = await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
+        if result:
+            print(colored('Successfully subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub), 'green'))
         else:
-            return True
+            print(colored('Failed to subscribe', 'red'))
+        return result
+            
+
+       
+    def add_stake(
+            self, 
+            amount: Balance, 
+            hotkey_id: int, 
+            wait_for_inclusion: bool = False,
+            wait_for_finalization: bool = False,
+            timeout: int = 3 * bittensor.__blocktime__,
+        ) -> bool:
+        r""" Adds the specified amount of stake to passed hotkey uid.
+        Args:
+            amount (bittensor.utils.balance.Balance):
+                amount to stake as bittensor balance
+            hotkey_id (int):
+                uid of hotkey to stake into.
+            wait_for_inclusion (bool):
+                if set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.   
+            wait_for_finalization (bool):
+                if set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            timeout (int):
+                time that this call waits for either finalization of inclusion.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
+        """
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        return loop.run_until_complete(self.async_add_stake(amount, hotkey_id, wait_for_inclusion, wait_for_finalization, timeout))
+
+    async def async_add_stake(
+            self, 
+            amount: Balance, 
+            hotkey_id: int, 
+            wait_for_inclusion: bool = False,
+            wait_for_finalization: bool = False,
+            timeout: int = 3 * bittensor.__blocktime__,
+        ) -> bool:
+        r""" Adds the specified amount of stake to passed hotkey uid.
+        Args:
+            amount (bittensor.utils.balance.Balance):
+                amount to stake as bittensor balance
+            hotkey_id (int):
+                uid of hotkey to stake into.
+            wait_for_inclusion (bool):
+                if set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.   
+            wait_for_finalization (bool):
+                if set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            timeout (int):
+                time that this call waits for either finalization of inclusion.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
+        """
+        await self.async_check_connection()
+        call = await self.substrate.compose_call(
+            call_module='SubtensorModule',
+            call_function='add_stake',
+            call_params={
+                'hotkey': hotkey_id,
+                'ammount_staked': amount.rao
+            }
+        )
+        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.coldkey)
+        return await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
+
+    def transfer(
+            self, 
+            dest:str, 
+            amount: Balance, 
+            wait_for_inclusion: bool = False,
+            wait_for_finalization: bool = False,
+            timeout: int = 3 * bittensor.__blocktime__,
+        ) -> bool:
+        r""" Transfers funds from this wallet to the destination public key address
+        Args:
+            dest (str):
+                destination public key address of reciever. 
+            amount (bittensor.utils.balance.Balance):
+                amount to stake as bittensor balance
+            wait_for_inclusion (bool):
+                if set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.   
+            wait_for_finalization (bool):
+                if set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            timeout (int):
+                time that this call waits for either finalization of inclusion.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
+        """
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        return loop.run_until_complete(self.async_transfer(dest, amount, wait_for_inclusion, wait_for_finalization, timeout))
+
+    async def async_transfer(
+            self, 
+            dest:str, 
+            amount: Balance, 
+            wait_for_inclusion: bool = False,
+            wait_for_finalization: bool = False,
+            timeout: int = 3 * bittensor.__blocktime__,
+        ) -> bool:
+        r""" Transfers funds from this wallet to the destination public key address
+        Args:
+            dest (str):
+                destination public key address of reciever. 
+            amount (bittensor.utils.balance.Balance):
+                amount to stake as bittensor balance
+            wait_for_inclusion (bool):
+                if set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.   
+            wait_for_finalization (bool):
+                if set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            timeout (int):
+                time that this call waits for either finalization of inclusion.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
+        """
+        await self.async_check_connection()
+        call = await self.substrate.compose_call(
+            call_module='Balances',
+            call_function='transfer',
+            call_params={
+                'dest': dest, 
+                'value': amount.rao
+            }
+        )
+        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair = self.wallet.coldkey)
+        return await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
+
+    def unstake(
+            self, 
+            amount: Balance, 
+            hotkey_id: int, 
+            wait_for_inclusion:bool = False, 
+            wait_for_finalization:bool = False,
+            timeout: int = 3 * bittensor.__blocktime__,
+        ) -> bool:
+        r""" Removes stake into the wallet coldkey from the specified hotkey uid.
+        Args:
+            amount (bittensor.utils.balance.Balance):
+                amount to stake as bittensor balance
+            hotkey_id (int):
+                uid of hotkey to unstake from.
+            wait_for_inclusion (bool):
+                if set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.   
+            wait_for_finalization (bool):
+                if set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            timeout (int):
+                time that this call waits for either finalization of inclusion.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
+        """
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        return loop.run_until_complete(self.async_unstake(amount, hotkey_id, wait_for_inclusion, wait_for_finalization, timeout))
+
+    async def async_unstake(
+            self, 
+            amount: Balance, 
+            hotkey_id: int, 
+            wait_for_inclusion:bool = False, 
+            wait_for_finalization:bool = False,
+            timeout: int = 3 * bittensor.__blocktime__
+        ) -> bool:
+        r""" Removes stake into the wallet coldkey from the specified hotkey uid.
+        Args:
+            amount (bittensor.utils.balance.Balance):
+                amount to stake as bittensor balance
+            hotkey_id (int):
+                uid of hotkey to unstake from.
+            wait_for_inclusion (bool):
+                if set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.   
+            wait_for_finalization (bool):
+                if set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            timeout (int):
+                time that this call waits for either finalization of inclusion.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
+        """
+        await self.async_check_connection()
+        call = await self.substrate.compose_call(
+            call_module='SubtensorModule',
+            call_function='remove_stake',
+            call_params={'ammount_unstaked': amount.rao, 'hotkey': hotkey_id}
+        )
+        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.coldkey)
+        return await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
+
+    def set_weights(
+            self, 
+            destinations, 
+            values, 
+            wait_for_inclusion:bool = False, 
+            wait_for_finalization:bool = False,
+            timeout: int = 3 * bittensor.__blocktime__
+        ) -> bool:
+        r""" Sets the given weights and values on chain for wallet hotkey account.
+        Args:
+            destinations (List[int]):
+                uint64 uids of destination neurons.
+            values (List[int]):
+                u32 max encoded floating point weights.
+            wait_for_inclusion (bool):
+                if set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.
+            wait_for_finalization (bool):
+                if set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            timeout (int):
+                time that this call waits for either finalization of inclusion.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
+        """
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        return loop.run_until_complete(self.async_set_weights(destinations, values, wait_for_inclusion, wait_for_finalization, timeout))
+
+    async def async_set_weights(
+            self, 
+            destinations, 
+            values, 
+            wait_for_inclusion:bool = False, 
+            wait_for_finalization:bool = False,
+            timeout: int = 3 * bittensor.__blocktime__
+        ) -> bool:
+        r""" Sets the given weights and values on chain for wallet hotkey account.
+        Args:
+            destinations (List[int]):
+                uint64 uids of destination neurons.
+            values (List[int]):
+                u32 max encoded floating point weights.
+            wait_for_inclusion (bool):
+                if set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.
+            wait_for_finalization (bool):
+                if set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            timeout (int):
+                time that this call waits for either finalization of inclusion.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
+        """
+        await self.async_check_connection()
+        call = await self.substrate.compose_call(
+            call_module='SubtensorModule',
+            call_function='set_weights',
+            call_params = {'dests': destinations, 'weights': values}
+        )
+        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair = self.wallet.hotkey)
+        return await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
 
     def get_balance(self, address) -> Balance:
         r""" Returns the token balance for the passed ss58_address address
@@ -380,7 +733,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 account balance
         """
         await self.async_check_connection()
-        logger.debug("Getting balance for: {}", address)
         result = await self.substrate.get_runtime_state(
             module='System',
             storage_function='Account',
@@ -389,140 +741,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         )
         balance_info = result.get('result')
         if not balance_info:
-            logger.debug("{} has no balance", address)
             return Balance(0)
         balance = balance_info['data']['free']
-        logger.debug("{} has {} rao", address, balance)
         return Balance(balance)
-
-    def add_stake(self, amount : Balance, hotkey_id: int):
-        r""" Adds the specified amount of stake to passed hotkey uid.
-        Args:
-            amount (bittensor.utils.balance.Balance):
-                amount to stake as bittensor balance
-            hotkey_id (int):
-                uid of hotkey to stake into.
-        """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        loop.run_until_complete(self.async_add_stake(amount, hotkey_id))
-
-    async def async_add_stake(self, amount : Balance, hotkey_id: int):
-        r""" Adds the specified amount of stake to passed hotkey uid.
-        Args:
-            amount (bittensor.utils.balance.Balance):
-                amount to stake as bittensor balance
-            hotkey_id (int):
-                uid of hotkey to stake into.
-        """
-        await self.async_check_connection()
-        logger.info("Adding stake of {} rao from coldkey {} to hotkey {}", amount.rao, self.wallet.coldkey.public_key, hotkey_id)
-        call = await self.substrate.compose_call(
-            call_module='SubtensorModule',
-            call_function='add_stake',
-            call_params={
-                'hotkey': hotkey_id,
-                'ammount_staked': amount.rao
-            }
-        )
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.coldkey)
-        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
-        return result
-
-    def transfer(self, dest:str, amount: Balance):
-        r""" Transfers funds from this wallet to the destination public key address
-        Args:
-            dest (str):
-                destination public key address of reciever. 
-            amount (bittensor.utils.balance.Balance):
-                amount to stake as bittensor balance
-        """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        loop.run_until_complete(self.async_transfer(dest, amount))
-
-    async def async_transfer(self, dest:str, amount: Balance):
-        r""" Transfers funds from this wallet to the destination public key address
-        Args:
-            dest (str):
-                destination public key address of reciever. 
-            amount (bittensor.utils.balance.Balance):
-                amount to stake as bittensor balance
-        """
-        await self.async_check_connection()
-        logger.debug("Requesting transfer of {}, from coldkey: {} to dest: {}", amount.rao, self.wallet.coldkey.public_key, dest)
-        call = await self.substrate.compose_call(
-            call_module='Balances',
-            call_function='transfer',
-            call_params={
-                'dest': dest, 
-                'value': amount.rao
-            }
-        )
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair = self.wallet.coldkey)
-        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
-        return result
-
-    def unstake(self, amount : Balance, hotkey_id: int):
-        r""" Removes stake into the wallet coldket from the specified hotkey uid.
-        Args:
-            amount (bittensor.utils.balance.Balance):
-                amount to stake as bittensor balance
-            hotkey_id (int):
-                uid of hotkey to unstake from.
-        """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        loop.run_until_complete(self.async_unstake(amount, hotkey_id))
-
-    async def async_unstake(self, amount : Balance, hotkey_id: int):
-        r""" Removes stake into the wallet coldket from the specified hotkey uid.
-        Args:
-            amount (bittensor.utils.balance.Balance):
-                amount to stake as bittensor balance
-            hotkey_id (int):
-                uid of hotkey to unstake from.
-        """
-        await self.async_check_connection()
-        logger.debug("Requesting unstake of {} rao for hotkey: {} to coldkey: {}", amount.rao, hotkey_id, self.wallet.coldkey.public_key)
-        call = await self.substrate.compose_call(
-            call_module='SubtensorModule',
-            call_function='remove_stake',
-            call_params={'ammount_unstaked': amount.rao, 'hotkey': hotkey_id}
-        )
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.coldkey)
-        result = await self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=False)
-        return result
-
-    def set_weights(self, destinations, values, wait_for_inclusion=False):
-        r""" Sets the given weights and values on chain for wallet hotkey account.
-        Args:
-            destinations (List[int]):
-                uint64 uids of destination neurons.
-            values (List[int]):
-                u32 max encoded floating point weights.
-        """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        loop.run_until_complete(self.async_set_weights(destinations, values, wait_for_inclusion))
-
-    async def async_set_weights(self, destinations, values, wait_for_inclusion=False):
-        r""" Sets the given weights and values on chain for wallet hotkey account.
-        Args:
-            destinations (List[int]):
-                uint64 uids of destination neurons.
-            values (List[int]):
-                u32 max encoded floating point weights.
-        """
-        await self.async_check_connection()
-        call = await self.substrate.compose_call(
-            call_module='SubtensorModule',
-            call_function='set_weights',
-            call_params = {'dests': destinations, 'weights': values}
-        )
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair = self.wallet.hotkey)
-        result = await elf.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=wait_for_inclusion)
-        return result
 
     def get_current_block(self) -> int:
         r""" Returns the current block number on the chain.

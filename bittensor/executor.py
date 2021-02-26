@@ -257,8 +257,11 @@ class Executor:
         neurons = self._associated_neurons()
         for neuron in neurons:
             neuron.stake = self.subtensor.get_stake_for_uid( neuron.uid )
-            self.subtensor.unstake( neuron.stake, neuron.hotkey )
-            print(colored("Unstaked: {} Tao from uid: {} to coldkey.pub: {}".format( neuron.stake, neuron.uid, self.wallet.coldkey.public_key ) , 'green'))
+            result = self.subtensor.unstake( neuron.stake, neuron.hotkey, wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
+            if result:
+                print(colored("Unstaked: {} Tao from uid: {} to coldkey.pub: {}".format( neuron.stake, neuron.uid, self.wallet.coldkey.public_key ) , 'green'))
+            else:
+                print(colored("Unstaking transaction failed", 'red'))
 
     def unstake( self ):
         r""" Unstaked token of amount to from uid.
@@ -276,8 +279,13 @@ class Executor:
             print(colored("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format( self.config.uid, neuron.stake, amount), 'red'))
             quit()
 
-        self.subtensor.unstake(amount, neuron.hotkey)
-        print(colored("Unstaked:{} from uid:{} to coldkey.pub:{}".format(amount.tao, neuron.uid, self.wallet.coldkey.public_key), 'green'))
+        print(colored("Requesting unstake of {} rao for hotkey: {} to coldkey: {}".format(amount.rao, neuron.hotkey, self.wallet.coldkey.public_key), 'blue'))
+        print(colored("Waiting for finalization...", 'white'))
+        result = self.subtensor.unstake(amount, neuron.hotkey, wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
+        if result:
+            print(colored("Unstaked:{} from uid:{} to coldkey.pub:{}".format(amount.tao, neuron.uid, self.wallet.coldkey.public_key), 'green'))
+        else:
+            print(colored("Unstaking transaction failed", 'red'))
 
     def stake( self ):
         r""" Stakes token of amount to hotkey uid.
@@ -295,8 +303,13 @@ class Executor:
             print(colored("Neuron with uid: {} is not associated with coldkey.pub: {}".format(self.config.uid, self.wallet.coldkey.public_key), 'red'))
             quit()
 
-        self.subtensor.add_stake( amount, neuron.hotkey )
-        print(colored("Staked: {} Tao to uid: {} from coldkey.pub: {}".format(amount.tao, self.config.uid, self.wallet.coldkey.public_key), 'green'))
+        print(colored("Adding stake of {} rao from coldkey {} to hotkey {}".format(amount.rao, self.wallet.coldkey.public_key, neuron.hotkey), 'blue'))
+        print(colored("Waiting for finalization...", 'white'))
+        result = self.subtensor.add_stake( amount, neuron.hotkey, wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
+        if result:
+            print(colored("Staked: {} Tao to uid: {} from coldkey.pub: {}".format(amount.tao, self.config.uid, self.wallet.coldkey.public_key), 'green'))
+        else:
+            print(colored("Stake transaction failed", 'red'))
 
     def transfer( self ):
         r""" Transfers token of amount to dest.
@@ -309,8 +322,13 @@ class Executor:
             print(colored("Not enough balance ({}) to transfer {}".format(balance, amount), 'red'))
             quit()
 
-        self.subtensor.transfer(self.config.dest, amount)
-        print(colored("Transfered: {} Tao to dest: {} from coldkey.pub: {}".format(amount.tao, self.config.dest, self.wallet.coldkey.public_key), 'green'))
+        print(colored("Requesting transfer of {}, from coldkey: {} to dest: {}".format(amount.rao, self.wallet.coldkey.public_key, dest), 'blue'))
+        print(colored("Waiting for finalization...", 'white'))
+        result = self.subtensor.transfer(self.config.dest, amount,  wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
+        if result:
+            print(colored("Transfer finalized with amount: {} Tao to dest: {} from coldkey.pub: {}".format(amount.tao, self.config.dest, self.wallet.coldkey.public_key), 'green'))
+        else:
+            print(colored("Transfer failed", 'red'))
  
 
 if __name__ == "__main__":
