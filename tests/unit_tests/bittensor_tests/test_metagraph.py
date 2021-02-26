@@ -18,7 +18,7 @@ def test_print_empty():
 
 def test_sync( ):
     metagraph = bittensor.metagraph.Metagraph()
-    metagraph.config.subtensor.network = 'akira'
+    metagraph.config.subtensor.network = 'kusanagi'
     metagraph.config.metagraph.stale_emit_filter = 1000000000000
     metagraph.sync()
     print (metagraph)
