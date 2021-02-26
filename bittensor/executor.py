@@ -223,7 +223,8 @@ class Executor:
         r""" Returns a list of neurons associate with this wallet's coldkey.
         """
         print(colored("Retrieving all nodes associated with cold key : {}".format( self.wallet.coldkeypub ), 'white'))
-        neurons = self.subtensor.neurons( decorator=True )
+        neurons = self.subtensor.neurons()
+        neurons = Neuron.from_list( neurons )
         result = filter(lambda x : x.coldkey == self.wallet.coldkey.public_key, neurons )# These are the neurons associated with the provided cold key
         associated_neurons = Neurons(result)
         # Load stakes

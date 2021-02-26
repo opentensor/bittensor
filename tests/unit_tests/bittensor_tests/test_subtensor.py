@@ -31,11 +31,11 @@ def test_connect_failure( ):
 
 def test_connect_no_failure( ):
     subtensor = bittensor.subtensor.Subtensor()
-    subtensor.config.subtensor.network = "this is the network"
+    subtensor.config.subtensor.network = "kusanagi"
     subtensor.connect(timeout = 1, failure=False)
 
 config = bittensor.subtensor.Subtensor.build_config()
-config.network = 'local'
+config.subtensor.network = 'kusanagi'
 subtensor = bittensor.subtensor.Subtensor( config )
 
 def test_connect_success( ):
@@ -62,9 +62,6 @@ def test_neurons( ):
     assert neurons[0][1]['hotkey'] == neuron['hotkey']
     assert neurons[0][1]['coldkey'] == neuron['coldkey']
 
-def test_uid_for_public_key( ):
-    assert subtensor.get_uid_for_pubkey("0x2ebbc6812171f4cff93927319ccda80cc3101fb5dbc283821d1ff9cede03893d") == 0
-
 def test_stake( ):
     assert(type(subtensor.get_stake_for_uid(0)) == bittensor.utils.balance.Balance)
 
@@ -81,3 +78,39 @@ def test_weight_vals( ):
 def test_last_emit( ):
     last_emit = subtensor.get_last_emit_data_for_uid(0)
     assert(type(last_emit) == int)
+
+def test_get_current_block():
+    block = subtensor.get_current_block()
+    assert (type(block) == int)
+
+def test_get_active():
+    active = subtensor.get_active()
+    assert (type(active) == list)
+    assert (type(active[0][0]) == str)
+    assert (type(active[0][1]) == int)
+
+def test_get_stake():
+    stake = subtensor.get_stake()
+    assert (type(stake) == list)
+    assert (type(stake[0][0]) == int)
+    assert (type(stake[0][1]) == int)
+
+def test_get_last_emit():
+    last_emit = subtensor.get_stake()
+    assert (type(last_emit) == list)
+    assert (type(last_emit[0][0]) == int)
+    assert (type(last_emit[0][1]) == int)
+
+def test_get_weight_vals():
+    weight_vals = subtensor.get_weight_vals()
+    assert (type(weight_vals) == list)
+    assert (type(weight_vals[0][0]) == int)
+    assert (type(weight_vals[0][1]) == list)
+    assert (type(weight_vals[0][1][0]) == int)
+
+def test_get_weight_uids(): 
+    weight_uids = subtensor.get_weight_vals()
+    assert (type(weight_uids) == list)
+    assert (type(weight_uids[0][0]) == int)
+    assert (type(weight_uids[0][1]) == list)
+    assert (type(weight_uids[0][1][0]) == int)
