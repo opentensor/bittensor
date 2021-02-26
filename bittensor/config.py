@@ -54,6 +54,11 @@ class Config:
         return "\n" + yaml.dump(items.toDict())
 
     @staticmethod
+    def update_with_kwargs(config:Munch, kwargs ):
+        for key,val in kwargs.items():
+            config[key] = val
+            
+    @staticmethod
     def to_config(parser: argparse.ArgumentParser) -> Munch:
     
         params = parser.parse_known_args()[0]

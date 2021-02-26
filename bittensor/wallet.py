@@ -41,21 +41,33 @@ class Wallet():
     The coldkey must be used to stake and unstake funds from a running node. The hotkey, on the other hand, is only used
     for suscribing and setting weights from running code. Hotkeys are linked to coldkeys through the metagraph. 
     """
-    def __init__(self, config: Munch = None):
+    def __init__(self, config: Munch = None, **kwargs):
+        r""" Init bittensor wallet object containing a hot and coldkey.
+
+            Args:
+                config (:obj:`Munch`, `optional`): 
+                name (required=False, default='default):
+                    The name of the wallet to unlock for running bittensor
+                hotkey (required=False, default='default):
+                    The name of hotkey used to running the miner.
+                path (required=False, default='~/.bittensor/wallets/'):
+                    The path to your bittensor wallets
+        """
         if config == None:
-            config = Wallet.build_config()
+            config = Wallet.default_config()
+        bittensor.config.Config.update_with_kwargs(config.wallet, kwargs) 
+        Wallet.check_config(config)
         self.config = config
         self._hotkey = None
         self._coldkey = None
         self._coldkeypub = None
         
     @staticmethod   
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Wallet.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        Wallet.check_config(config)
         return config
 
     @staticmethod   

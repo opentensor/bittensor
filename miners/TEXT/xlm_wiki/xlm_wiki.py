@@ -34,10 +34,11 @@ class Miner():
     During instantiation, this class takes a config as a [Munch](https://github.com/Infinidat/munch) object. 
     """
 
-    def __init__(self, config: Munch = None):
+    def __init__(self, config: Munch = None, **kwargs):
         if config == None:
-            config = Miner.build_config(); 
-            logger.info(bittensor.config.Config.toString(config))
+            config = Miner.default_config();       
+        bittensor.config.Config.update_with_kwargs(config.miner, kwargs) 
+        Miner.check_config(config)
         self.config = config
 
         # ---- Neuron ----
@@ -55,7 +56,7 @@ class Miner():
 
         # ---- Dataset ----
         # Dataset: 74 million sentences pulled from books.
-        self.dataset = load_dataset('amazon_reviews_multi')['train']
+        self.dataset = load_dataset('amazon_reviews_multi', 'en')['train']
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -65,11 +66,10 @@ class Miner():
             logger.add(self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
     
     @staticmethod
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Miner.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        Miner.check_config(config)
         return config
     
     @staticmethod
@@ -94,14 +94,12 @@ class Miner():
     @staticmethod
     def check_config(config: Munch):
         assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
-        assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
+        assert config.miner.batch_size_train > 0, "batch_size_train must be a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         full_path = '{}/{}/{}'.format(config.miner.root_dir, config.miner.name, config.miner.trial_uid)
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
-        XLMSynapse.check_config(config)
-        bittensor.neuron.Neuron.check_config(config)
     
     # --- Main loop ----
     def run (self):
@@ -217,6 +215,6 @@ class Miner():
 
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Miner.build_config(); logger.info(bittensor.config.Config.toString(config))
-    miner = Miner(config)
+    miner = Miner()
+    logger.info(bittensor.config.Config.toString(miner.config))
     miner.run()

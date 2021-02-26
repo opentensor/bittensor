@@ -7,7 +7,7 @@ def test_create_wallet():
     the_wallet = bittensor.wallet.Wallet() 
 
 def test_wallet_config():
-    config = bittensor.wallet.Wallet.build_config()
+    config = bittensor.wallet.Wallet.default_config()
     config.wallet.name
     config.wallet.path
     config.wallet.hotkey

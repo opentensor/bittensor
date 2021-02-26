@@ -174,7 +174,8 @@ class Metagraph():
             self, 
             config: 'Munch' = None, 
             wallet: 'bittensor.wallet.Wallet' = None,
-            subtensor: 'bittensor.subtensor.Subtensor' = None
+            subtensor: 'bittensor.subtensor.Subtensor' = None,
+            **kwargs,
         ):
         r""" Initializes a new Metagraph chain interface.
             Args:
@@ -184,9 +185,14 @@ class Metagraph():
                     bittensor wallet with hotkey and coldkeypub.
                 subtensor (:obj:`bittensor.subtensor.Subtensor`, `optional`):
                     subtensor interface utility.
+                stale_emit_filter', default=10000, type=int, 
+                    The metagraph filters neurons with last emit beyond this many blocks.
+                    Note, this is used to trim the graph size,but may change your incentive mechanism view.
         """
         if config == None:
-            config = Metagraph.build_config()
+            config = Metagraph.default_config()
+        bittensor.config.Config.update_with_kwargs(config.metagraph, kwargs) 
+        Metagraph.check_config(config)
         self.config = config
 
         if wallet == None:
@@ -205,12 +211,11 @@ class Metagraph():
         self.state = TorchChainState.from_cache(self.cache)
 
     @staticmethod
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Metagraph.add_args(parser) 
         config = config_utils.Config.to_config(parser); 
-        Metagraph.check_config(config)
         return config
 
     @staticmethod   
@@ -227,8 +232,7 @@ class Metagraph():
         
     @staticmethod   
     def check_config(config: Munch):
-        bittensor.wallet.Wallet.check_config( config )
-        bittensor.subtensor.Subtensor.check_config( config )
+        pass
 
     @property
     def n(self) -> int:

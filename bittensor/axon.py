@@ -44,7 +44,14 @@ class Axon(bittensor.grpc.BittensorServicer):
     r"""
         Services Forward and Backward requests from other neurons.
     """
-    def __init__(self, config: Munch = None, wallet: 'bittenosr.wallet.Wallet' = None, nucleus: 'bittensor.nucleus.Nucleus' = None, metagraph: 'bittensor.metagraph.Metagraph' = None):
+    def __init__(
+            self, 
+            config: Munch = None, 
+            wallet: 'bittensor.wallet.Wallet' = None,
+            nucleus: 'bittensor.nucleus.Nucleus' = None,
+            metagraph: 'bittensor.metagraph.Metagraph' = None,
+            **kwargs
+        ):
         r""" Initializes a new Axon tensor processing endpoint.
             
             Args:
@@ -56,11 +63,33 @@ class Axon(bittensor.grpc.BittensorServicer):
                     backend processing nucleus.
                 metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
                     bittensor network metagraph.
+                local_port (default=8091, type=int): 
+                    The port this axon endpoint is served on. i.e. 8091
+                local_ip (default='127.0.0.1', type=str): 
+                    The local ip this axon binds to. ie. 0.0.0.0
+                use_upnpc (default=False, type=bool):
+                    If true this axon will attempt to open a port on your router using upnpc.
+                external_ip (default=None, type=str):
+                    The remote IP served to chain.
+                        This ip is subscribed to the chain on boot and is the endpoint other peers see.
+                        By default this field is None and is collected by querying a remote server during check_config. 
+                        i.e. 207.12.233.1
+                external_port (default=None, type=str):
+                    The remote port to subscribe on chain. By default this port is the same as local_port.
+                        If use_upnpc is true this port is determined after the port mapping
+                max_workers (default=10, type=int): 
+                    The maximum number connection handler threads working simultaneously on this endpoint. 
+                        The grpc server distributes new worker threads to service requests up to this number.
+                max_gradients (default=100, type=int):
+                    The max number of lingering gradients stored in the gradient queue.
+                        Gradients passed from other peers accumulate on this endpoint and queue in axon.gradients.
         """
         # Config: Holds all config items for this items and those that are recursively defined. For instance,
         # config for the wallet, metagraph, and nucleus sub-objects.
         if config == None:
-            config = Axon.build_config()
+            config = Axon.default_config()
+        bittensor.config.Config.update_with_kwargs(config.axon, kwargs) 
+        Axon.check_config( config )
         self.config = config
 
         # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
@@ -114,6 +143,82 @@ class Axon(bittensor.grpc.BittensorServicer):
             out_bytes_per_uid = {},
             qps_per_uid = {},
         )
+
+    @staticmethod   
+    def default_config() -> Munch:
+        # Parses and returns a config Munch for this object.
+        parser = argparse.ArgumentParser(); 
+        Axon.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        return config
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser):
+        r""" Adds this axon's command line arguments to the passed parser.
+            Args:
+                parser (:obj:`argparse.ArgumentParser`, `required`): 
+                    parser argument to append args to.
+        """
+        bittensor.nucleus.Nucleus.add_args(parser)
+        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
+        try:
+            parser.add_argument('--axon.local_port', default=8091, type=int, 
+                help='''The port this axon endpoint is served on. i.e. 8091''')
+            parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, 
+                help='''The local ip this axon binds to. ie. 0.0.0.0''')
+            parser.add_argument('--axon.use_upnpc', default=False, type=bool, 
+                help='''If true this axon will attempt to open a port on your router using upnpc.''')
+            parser.add_argument('--axon.external_ip', default=None, type=str, 
+                help='''The remote IP served to chain.
+                        This ip is subscribed to the chain on boot and is the endpoint other peers see.
+                        By default this field is None and is collected by querying a remote server during check_config. 
+                        i.e. 207.12.233.1''')
+            parser.add_argument('--axon.external_port', default=None, type=str, 
+                help='''The remote port to subscribe on chain. By default this port is the same as local_port.
+                        If use_upnpc is true this port is determined after the port mapping''')
+            parser.add_argument('--axon.max_workers', default=10, type=int, 
+                help='''The maximum number connection handler threads working simultaneously on this endpoint. 
+                        The grpc server distributes new worker threads to service requests up to this number.''')
+            parser.add_argument('--axon.max_gradients', default=100, type=int, 
+                help='''The max number of lingering gradients stored in the gradient queue.
+                        Gradients passed from other peers accumulate on this endpoint and queue in axon.gradients.''')
+        except:
+            pass
+
+    @staticmethod   
+    def check_config(config: Munch):
+        r""" Checks the passed config items for validity and obtains the remote ip.
+            Args:
+                config (:obj:`munch.Munch, `required`): 
+                    config to check.
+        """
+        assert config.axon.local_port > 1024 and config.axon.local_port < 65535, 'config.axon.local_port must be in range [1024, 65535]'
+        # Attain external ip.
+        if config.axon.external_ip == None:
+            try:
+                config.axon.external_ip = net.get_external_ip()
+            except net.ExternalIPNotFound as external_port_exception:
+                logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
+                raise external_port_exception
+
+        if config.axon.external_port == None:
+            # Optionally: use upnpc to map your router to the local host.
+            if config.axon.use_upnpc:
+                # Open a port on your router
+                logger.info('UPNPC: ON')
+                try:
+                    config.axon.external_port = net.upnpc_create_port_map(local_port = config.axon.local_port)
+                except net.UPNPCException as upnpc_exception:
+                    logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
+                    raise upnpc_exception
+            # Falls back to using your provided local_port.
+            else:
+                logger.info('UPNPC: OFF')
+                config.axon.external_port = config.axon.local_port
+
+        logger.info('Using external endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
+        logger.info('Using local endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
+
 
     def Forward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
@@ -457,85 +562,6 @@ class Axon(bittensor.grpc.BittensorServicer):
         df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
         df = df.rename(index={df.index[2]: colored('Q/s', 'blue')})
         return '\nAxon:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
-
-    @staticmethod   
-    def build_config() -> Munch:
-        # Parses and returns a config Munch for this object.
-        parser = argparse.ArgumentParser(); 
-        Axon.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        Axon.check_config(config)
-        return config
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        r""" Adds this axon's command line arguments to the passed parser.
-            Args:
-                parser (:obj:`argparse.ArgumentParser`, `required`): 
-                    parser argument to append args to.
-        """
-        bittensor.nucleus.Nucleus.add_args(parser)
-        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
-        try:
-            parser.add_argument('--axon.local_port', default=8091, type=int, 
-                help='''The port this axon endpoint is served on. i.e. 8091''')
-            parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, 
-                help='''The local ip this axon binds to. ie. 0.0.0.0''')
-            parser.add_argument('--axon.use_upnpc', default=False, type=bool, 
-                help='''If true this axon will attempt to open a port on your router using upnpc.''')
-            parser.add_argument('--axon.external_ip', default=None, type=str, 
-                help='''The remote IP served to chain.
-                        This ip is subscribed to the chain on boot and is the endpoint other peers see.
-                        By default this field is None and is collected by querying a remote server during check_config. 
-                        i.e. 207.12.233.1''')
-            parser.add_argument('--axon.external_port', default=None, type=str, 
-                help='''The remote port to subscribe on chain. By default this port is the same as local_port.
-                        If use_upnpc is true this port is determined after the port mapping''')
-            parser.add_argument('--axon.max_workers', default=10, type=int, 
-                help='''The maximum number connection handler threads working simultaneously on this endpoint. 
-                        The grpc server distributes new worker threads to service requests up to this number.''')
-            parser.add_argument('--axon.max_gradients', default=100, type=int, 
-                help='''The max number of lingering gradients stored in the gradient queue.
-                        Gradients passed from other peers accumulate on this endpoint and queue in axon.gradients.''')
-        except:
-            pass
-
-    @staticmethod   
-    def check_config(config: Munch):
-        r""" Checks the passed config items for validity and obtains the remote ip.
-            Args:
-                config (:obj:`munch.Munch, `required`): 
-                    config to check.
-        """
-        bittensor.nucleus.Nucleus.check_config(config)
-        bittensor.metagraph.Metagraph.check_config(config) # Also checks for wallet.
-        assert config.axon.local_port > 1024 and config.axon.local_port < 65535, 'config.axon.local_port must be in range [1024, 65535]'
-
-        # Attain external ip.
-        if config.axon.external_ip == None:
-            try:
-                config.axon.external_ip = net.get_external_ip()
-            except net.ExternalIPNotFound as external_port_exception:
-                logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
-                raise external_port_exception
-
-        if config.axon.external_port == None:
-            # Optionally: use upnpc to map your router to the local host.
-            if config.axon.use_upnpc:
-                # Open a port on your router
-                logger.info('UPNPC: ON')
-                try:
-                    config.axon.external_port = net.upnpc_create_port_map(local_port = config.axon.local_port)
-                except net.UPNPCException as upnpc_exception:
-                    logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
-                    raise upnpc_exception
-            # Falls back to using your provided local_port.
-            else:
-                logger.info('UPNPC: OFF')
-                config.axon.external_port = config.axon.local_port
-
-        logger.info('Using external endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
-        logger.info('Using local endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
 
     def __del__(self):
         r""" Called when this axon is deleted, ensures background threads shut down properly.

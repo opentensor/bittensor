@@ -34,7 +34,7 @@ class Nucleus ():
         The nucleus uses a prioritized thread pool to process requests according in priority. Priority is set by the Axon.
     """
 
-    def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, metagraph: 'metagraph.Metagraph' = None):
+    def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, metagraph: 'metagraph.Metagraph' = None, **kwargs):
         r""" Initializes a new tensor processing backend
             Args:
                 config (:obj:`Munch`, `optional`): 
@@ -43,9 +43,19 @@ class Nucleus ():
                     bittensor wallet with hotkey and coldkeypub.
                 metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
                     bittensor network metagraph.
+                max_workers (default=5, type=int):
+                    The maximum number of outstanding nucleuss priority queue workers.
+                    Adding additional work to the work queue past this point does not trigger additional thread creation.
+                queue_timeout (default=5, type=int):
+                    Nucleus future timeout. Work futures timout after 5 second and return a null response.
+                queue_maxsize (default=1000, type=int):
+                    The maximum number of pending tasks allowed in the threading priority queue. 
+                    Adding additional work to the work queue blocks until space becomes available.
         """
         if config == None:
-            config = Nucleus.build_config()
+            config = Nucleus.default_config()
+        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
+        Nucleus.check_config(config)
         self.config = config
 
         if wallet == None:
@@ -60,13 +70,12 @@ class Nucleus ():
         self._backward_pool = ptp.ThreadPoolExecutor(maxsize = self.config.nucleus.queue_maxsize, max_workers=self.config.nucleus.max_workers)
 
     @staticmethod   
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Nucleus.add_args(parser) 
         config = config_utils.Config.to_config(parser); 
-        Nucleus.check_config(config)
         return config
-
+    
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         r""" Adds this nucleus's command line arguments to the passed parser.
@@ -96,7 +105,7 @@ class Nucleus ():
                 config (:obj:`munch.Munch, `required`): 
                     config to check.
         """
-        bittensor.metagraph.Metagraph.check_config( config )
+        pass
 
     def forward(self, synapse: 'bittensor.synapse.Synapse', inputs: torch.Tensor, mode: bittensor.proto.Modality, priority: float) -> Tuple[torch.FloatTensor, str, int]:
         r""" Accepts a synapse object with inputs and priority, submits them to the forward work pool
