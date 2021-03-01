@@ -65,7 +65,7 @@ def test_multiple_forward_success():
 #         time.sleep(1)
 
 # def test_queue_full():
-#     config = bittensor.nucleus.Nucleus.build_config()
+#     config = bittensor.nucleus.Nucleus.default_config()
 #     config.nucleus.queue_maxsize = 3
 #     nucleus = bittensor.nucleus.Nucleus( config )
 #     synapse = SlowSynapse()

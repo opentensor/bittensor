@@ -1,18 +1,9 @@
 import sys
+import random
 from loguru import logger
 
 import bittensor.bittensor_pb2 as proto
 import bittensor.bittensor_pb2_grpc as grpc
-
-import bittensor.axon
-import bittensor.config 
-import bittensor.dendrite
-import bittensor.metagraph
-import bittensor.neuron
-import bittensor.nucleus
-import bittensor.receptor
-import bittensor.synapse
-import bittensor.wallet
 
 # Bittensor code and protocol version.
 __version__ = '1.0.3'
@@ -21,17 +12,41 @@ __version__ = '1.0.3'
 # NOTE (const): if/when this increases peers must be responsible for trimming or expanding output to this size.
 __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __sequence_dim__, __network_dim__ ]
 
-# Substrate chain block time.
+# Substrate chain block time (seconds).
 __blocktime__ = 6
+
+# Load components.
+import bittensor.axon
+import bittensor.config 
+import bittensor.executor
+import bittensor.dendrite
+import bittensor.metagraph
+import bittensor.neuron
+import bittensor.nucleus
+import bittensor.receptor
+import bittensor.subtensor
+import bittensor.synapse
+import bittensor.wallet
+
+# Default logger
+logger_config = {
+    "handlers": [{
+        "sink":
+            sys.stdout,
+        "format":
+            "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+    }]
+}
+logger.configure(**logger_config)
 
 # Tokenizer
 # NOTE (const): tokenizers are guaranteed to improve and expand as time progresses. We version the tokenizer here.
 # neurons must be aware that versions will increase and be ready to convert between tokenizers.
 # TODO (const): Add functionality to allow tokenizer conversion. i.e. for input token conversion.
 __vocab_size__ = (50278 + 100)  # Must match the __tokenizer__() vocab size.
-def __tokenizer__( version = __version__ ):
+def __tokenizer__(  version = __version__ ):
     from transformers import GPT2Tokenizer
-    
+
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2", local_files_only=False)
     tokenizer.padding_side = "left"
     tokenizer.add_prefix_space = False
@@ -58,11 +73,11 @@ def __tokenizer__( version = __version__ ):
         "<special6>", # Used by XLM
         "<special7>", # Used by XLM
         "<special8>", # Used by XLM
-        "<special9>" # Used by XLM
+        "<special9>", # Used by XLM
     ]
     tokenizer.additional_special_tokens = additional_special_tokens
     global __vocab_size__
-    __vocab_size__ = len(tokenizer) + len(additional_special_tokens) + 100 # Plus 100 for eventual toke size increase.
+    __vocab_size__ = len(tokenizer) + len(additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
 
     return tokenizer
 
@@ -77,14 +92,6 @@ __boltzmann_entrypoints__ = [
 __kusanagi_entrypoints__ = [
     'feynman.kusanagi.bittensor.com:9944'
 ]
-
-# Default logger
-logger_config = {
-    "handlers": [{
-        "sink":
-            sys.stdout,
-        "format":
-            "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-    }]
-}
-logger.configure(**logger_config)
+__local_entrypoints__ = [
+    '127.0.0.1:9944'
+]

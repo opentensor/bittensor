@@ -1,6 +1,6 @@
 
 # The MIT License (MIT)
-# Copyright © 2021 Opentensor.ai
+# Copyright © 2021 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -35,7 +35,7 @@ class Synapse(nn.Module):
         in the model synapse subclass. This class also implements the gradient calculation and backward pass for any extending synapse subclass. 
     """
 
-    def __init__(self, config: Munch = None):
+    def __init__(self, config: Munch = None, **kwargs):
         r""" Init synapse module.
 
             Args:
@@ -44,12 +44,13 @@ class Synapse(nn.Module):
         """
         super().__init__()
         if config == None:
-            config = Synapse.build_config()
+            config = Synapse.default_config()
+        Synapse.check_config(config)
         self.config = config
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     @staticmethod   
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         return Munch()
 
     @staticmethod   

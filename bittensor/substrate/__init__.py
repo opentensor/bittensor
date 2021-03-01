@@ -19,15 +19,15 @@ import asyncio
 from hashlib import blake2b
 import binascii
 import json, yaml
+from typing import List, Optional, Tuple
 from loguru import logger
 import re
 
 from autobahn.asyncio.websocket import WebSocketClientProtocol, WebSocketClientFactory
 
-
 from scalecodec import ScaleBytes, GenericCall
-from scalecodec.base import ScaleDecoder, RuntimeConfiguration
-from scalecodec.block import ExtrinsicsDecoder, EventsDecoder, LogDigest
+from scalecodec.base import ScaleDecoder, RuntimeConfiguration, RuntimeConfigurationObject
+from scalecodec.block import ExtrinsicsDecoder, EventsDecoder, LogDigest, Extrinsic
 from scalecodec.metadata import MetadataDecoder
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.updater import update_type_registries
@@ -43,17 +43,9 @@ from bip39 import bip39_to_mini_secret, bip39_generate
 import sr25519
 import ed25519
 
-
-
-
 class KeypairType:
     ED25519 = 0
     SR25519 = 1
-
-
-
-
-
 
 class Keypair:
 
@@ -264,103 +256,202 @@ class Keypair:
 def KeypairRepresenter(dumper, data):
     serializedData = data.__repr__()
     return dumper.represent_scalar('Keypair', serializedData)
-
 yaml.add_representer(Keypair, KeypairRepresenter)
-
-
-
-
-
-
-
 
 class SubtensorClientProtocol(WebSocketClientProtocol):
 
     def __init__(self):
-        self.futures = dict()
-        self.msg_id = 0
         WebSocketClientProtocol.__init__(self)
 
-    def get_future(self, id):
-        if not id in self.futures:
-            return None
+        # Create message state memory.
+        self._next_message_id = 0
+        self._futures = {}
+        self._handlers = {}     
+        self._is_subscription = {}
+        self._id_for_subscription = {}
 
-        return self.futures[id]
+        # Create connection future.
+        loop = asyncio.get_event_loop()
+        self.is_connected = loop.create_future()
 
     def onConnecting(self, transport_details):
+        r""" This method is called when we’ve connected, but before the handshake is done.
+            transport_details (autobahn.websocket.types.TransportDetails):
+                 information about the transport.
+        """
         logger.trace("Connecting to websocket server {}", transport_details)
-        self.factory.connection = self
 
     def onConnect(self, response):
+        r""" Callback fired during WebSocket opening handshake when a client connects 
+        (to a server with request from client) or when server connection established 
+        (by a client with response from server). This method may run asynchronous code.
+
+            Args:
+                response ( autobahn.websocket.types.ConnectionRequest):
+                    Connection response from server.
+
+        """
         logger.trace("Connected. {}", response)
 
     def onOpen(self):
+        r""" Callback fired when the initial WebSocket opening handshake was completed. 
+            You now can send and receive WebSocket messages.
+        """
         logger.trace("Connection open to websocket established")
-        self.factory.connected.set_result(True)
-
-    def onMessage(self, payload, isBinary):
-        logger.trace("Message received: {}", payload)
-
-        str_payload = json.loads(payload)
-        id = str_payload['id']
-        if id in self.futures:
-            self.futures[id].set_result(str_payload)
-            del self.futures[id]
-        else:
-            logger.debug("Deferred with id {} not in list", id)
+        self.is_connected.set_result( True )
 
     def onClose(self, wasClean, code, reason):
+        r""" Callback fired when the WebSocket connection has been closed (
+            WebSocket closing handshake has been finished or the connection was closed uncleanly).
+            Args:
+                wasClean (bool)
+                    True iff the WebSocket connection was closed cleanly
+                code (int or None):
+                    Close status code as sent by the WebSocket peer.
+                reason (str or None):
+                    Close reason as sent by the WebSocket peer.
+        """
+
         logger.trace("Connection closed.")
-        #Todo implement
+        self.is_connected.set_result( False )
+
+    def onMessage(self, payload, isBinary):
+        r""" Callback fired when a complete WebSocket message was received.
+            Args:
+                payload (str):
+                    The WebSocket message received.
+                isBinary (bool):
+                    Flag indicating whether payload is binary or UTF-8 encoded text.             
+        """
+        # 1. Load json message.
+        json_data = json.loads(payload)
+        logger.trace(json_data)
+
+        # Message id is passed by initial responses.
+        message_id = None
+        # A subscription key can be retrieved if the message has no id but contains a ['params']['subscription'] field.
+        is_subscription = False
+
+        # 2. Get message id if it exists.
+        if 'id' in json_data:
+            message_id = int(json_data['id']) 
+
+        # 3. Fall back to check if the message is a subscription.
+        # Checks for the ['params']['subscription'] field.
+        elif 'params' in json_data:
+            if 'subscription' in json_data['params']:
+                subscription = json_data['params']['subscription']
+                if subscription in self._id_for_subscription:
+                    message_id = self._id_for_subscription[ subscription ]     
+                    is_subscription = True 
+
+        # 4. Messages without an id are returned without processing.
+        # Note that on subscription we attain the message_id from the self._id_for_subscription mem.
+        if message_id == None:
+            return
+        logger.trace('recieved message with id {}', message_id)
+
+        # 5. The first message of a subscription contains the subscription key.
+        # We check the self._is_subscrtiption to see if we are watching this stream.
+        if message_id in self._is_subscription and not is_subscription:
+            if self._is_subscription [ message_id ] == True:
+                if 'result' in json_data:
+                    subscription_id = json_data[ 'result' ]
+                    self._id_for_subscription[ subscription_id ] = message_id
+            
+        # 6. Handle the message with the passed handler. By default the handler is none
+        # and we simply pass through the message. If a handler is present it must return a 
+        # non null result.
+        if message_id not in self._handlers:
+            return
+        result_handler = self._handlers[ message_id ]
+        if result_handler == None:
+            handler_result = json_data
+        else:
+            handler_result = result_handler( json_data )
+
+        # 7. Check handler has result is non-none. The non-none result specifies the end of the 
+        # subscription.
+        if handler_result == None:
+            logger.trace('handler produced non-result')
+            return 
+
+        # 8. Sanity check.
+        if message_id not in self._futures:
+            logger.trace('no future for message')
+            return
+        
+        # 9. Set result and event.
+        self._futures[ message_id ].set_result( handler_result )
 
     def sendMessage(self, payload, isBinary=False, fragmentSize=None, sync=False, doNotCompress=False):
-        logger.trace("Sending message {}", payload)
-
+        r""" Send a WebSocket message over the connection to the peer.
+            Args:
+                payload (str or binary):
+                    encoded payload.            
+                isBinary (bool):
+                    Flag indicating whether payload is binary or UTF-8 encoded text.
+        """
+        logger.trace("Sending message: {}", payload)
         super().sendMessage(payload, isBinary, fragmentSize, sync, doNotCompress)
 
-    def asyncSendMessage(self, payload):
-        self.sendMessage(payload)
-        loop = asyncio.get_event_loop()
-        future = loop.create_future()
+    async def async_rpc_request( self, method, params, result_handler = None, is_subscription = False, timeout = 10 ) -> dict:
+        r""" Creates a websocket message and waits until the response is recieved.
+            Maintains memory about the sent request and only returns when the passed handler produces a
+            non-null response or a timeout occurs. The call is blocking.
+            Args:
+                method (str):
+                    method of the JSONRPC request
+                params (str):
+                    a list containing the parameters of the JSONRPC request                
+                result_handler (function):
+                    optional callback which returns a value when the message is complete. Or none otherwise.
+                is_subscription (bool):
+                    if true the messsage is a subscription. We link all messages with the same subscription key.
+                timeout (int):
+                    How long this call waits until a successful response is logged.
+        Returns:
+            response (dict):
+                Json data as a python dictionary or None if the call reaches a timeout. 
+        """
+        # Get and update the message id.
+        current_message_id = self._next_message_id 
+        self._next_message_id += 1
 
-        self.futures[self.msg_id] = future
-
-        return future
-
-    def async_rpc_request(self, method, params):
-        self.msg_id += 1
+        # Send the message.
         payload = {
             "jsonrpc": "2.0",
             "method": method,
             "params": params,
-            "id": self.msg_id
+            "id": current_message_id
         }
+        self.sendMessage( json.dumps(payload).encode('utf8') )
 
-        return self.asyncSendMessage(json.dumps(payload).encode('utf8'))
-
-
-
-
-
-class SubTensorWebSocketClientFactory(WebSocketClientFactory):
-    def __init__(self, url):
-        self.protocol = SubtensorClientProtocol
-        self.connection = None
-
-        WebSocketClientFactory.__init__(self, url)
-
+        # Create future
         loop = asyncio.get_event_loop()
-        self.connected = loop.create_future()
+        message_future = loop.create_future()
+        self._futures[ current_message_id ] = message_future
 
-    def is_connected(self):
-        return self.connected
+        # Set handlers and subscriptions.
+        self._handlers[ current_message_id  ] = result_handler
+        self._is_subscription [ current_message_id  ] = is_subscription
 
-
-
-
+        # Wait for events.
+        try:
+            response = await asyncio.wait_for( message_future, timeout = timeout )
+        except asyncio.TimeoutError:
+            response = None
+        
+        # Delete lingering memory
+        del self._futures[ current_message_id  ]
+        del self._handlers[ current_message_id  ]
+        del self._is_subscription [ current_message_id  ]
+        if current_message_id in self._id_for_subscription:
+            del self._id_for_subscription [ current_message_id  ]
+        return response
 
 class SubstrateWSInterface:
-    def __init__(self, host, port, address_type=None, type_registry=None, type_registry_preset="default", cache_region=None, sub_key: Subkey = None):
+    def __init__(self, address_type=None, type_registry=None, type_registry_preset="default", cache_region=None, sub_key: Subkey = None):
         """
          A specialized class in interfacing with a Substrate node.
 
@@ -372,74 +463,77 @@ class SubstrateWSInterface:
          type_registry_preset: The name of the predefined type registry shipped with the SCALE-codec, e.g. kusama
          cache_region: a Dogpile cache region as a central store for the metadata cache
          """
-
-        self.host = host
-        self.port = port
         self.factory = None
-
+        self.protocol = None
         self.cache_region = cache_region
 
         if type_registry_preset:
             # Load type registries in runtime configuration
             RuntimeConfiguration().update_type_registry(load_type_registry_preset("default"))
-
             if type_registry != "default":
                 RuntimeConfiguration().update_type_registry(load_type_registry_preset(type_registry_preset))
-
         if type_registry:
             # Load type registries in runtime configuration
             RuntimeConfiguration().update_type_registry(type_registry)
 
         self.address_type = address_type
-
         self.mock_extrinsics = None
         self._version = None
         self.default_headers = {
             'content-type': "application/json",
             'cache-control': "no-cache"
         }
-
         self.metadata_decoder = None
-
         self.runtime_version = None
+        self.runtime_config = RuntimeConfigurationObject()
         self.transaction_version = None
-
         self.block_hash = None
         self.block_id = None
-
         self.metadata_cache = {}
         self.type_registry_cache = {}
-
         self.sub_key = sub_key
-
         self.debug = False
+        self.nonce = {} # Map from pubkey to nonce
 
-        # Map from pubkey to nonce
-        self.nonce = {}
-
-    def connect(self):
-        self.factory = SubTensorWebSocketClientFactory("ws://%s:%i" % (self.host, self.port))
-
+    async def async_connect(self, url: str, timeout: int = 3) -> bool:
+        r""" Connects the protocol to the passed url waits of a connection future.
+        Args:
+            url (str):
+                endpoint url port i.e. 192.122.31.4:9944 (must be formatted like this.)
+            timeout (int):
+                time to wait for connection future.
+        """
+        # Parse url.
+        host, port = url.split(":")
+        try:
+            host, port = url.split(":")
+        except:
+            raise ValueError ('Unable to parse chain endpoint {}. Check that your URL is formatted correctly: (host:port) i.e. localhost:9944'.format(url))
+        
+        # Create protocol from factory.
+        self.factory = WebSocketClientFactory( "ws://%s:%s" % (host, port) )
+        self.factory.protocol = SubtensorClientProtocol
         loop = asyncio.get_event_loop()
-        coro = loop.create_connection(self.factory, self.host, self.port)
-        loop.create_task(coro)
 
-    def is_connected(self):
-        if not self.factory:
-            raise Exception("connect() call not issued")
+        try:
+            _, self.protocol = await loop.create_connection(self.factory, host, port)
+        except:
+            return False
 
-        return self.factory.is_connected()
+        # Wait for connection future to be set onOpen.
+        try:
+            return await asyncio.wait_for( self.protocol.is_connected, timeout = timeout )
+        except asyncio.TimeoutError:
+            return False        
 
-    def send_message(self, message):
-        return self.factory.connection.sendMessage(message)
-
-    def send_message_future(self, message):
-        return self.factory.connection.sendMessageWithFuture(message)
-
-
-    # *************
-    # ASYNC METHODS
-    # *************
+    async def async_is_connected(self, timeout: int = 1) -> bool:
+        try:
+            if self.protocol == None:
+                return False
+            else:
+                return await asyncio.wait_for( self.protocol.is_connected, timeout = timeout )
+        except asyncio.TimeoutError:
+            return False 
 
     async def get_system_name(self):
         """
@@ -449,10 +543,15 @@ class SubstrateWSInterface:
         -------
 
         """
-        response = await self.factory.connection.async_rpc_request("system_name", [])
+        response = await self.protocol.async_rpc_request("system_name", [])
         return response.get('result')
 
-    async def get_version(self):
+    def get_version(self):
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        return loop.run_until_complete(self.async_get_version())
+
+    async def async_get_version(self):
         """
         A pass-though to existing JSONRPC method `system_version`
 
@@ -461,11 +560,16 @@ class SubstrateWSInterface:
 
         """
         if not self._version:
-            response = await self.factory.connection.async_rpc_request("system_version", [])
+            response = await self.protocol.async_rpc_request("system_version", [])
             self._version = response.get('result')
         return self._version
 
-    async def get_chain_head(self):
+    def get_chain_block(self):
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        return loop.run_until_complete(self.async_get_chain_head())
+
+    async def async_get_chain_head(self):
         """
         A pass-though to existing JSONRPC method `chain_getHead`
 
@@ -473,9 +577,9 @@ class SubstrateWSInterface:
         -------
 
         """
-        return await self.factory.connection.async_rpc_request("chain_getHead", [])
+        return await self.protocol.async_rpc_request("chain_getHead", [])
 
-    async def get_chain_finalised_head(self):
+    async def async_get_chain_finalised_head(self):
         """
         A pass-though to existing JSONRPC method `chain_getFinalisedHead`
 
@@ -483,15 +587,15 @@ class SubstrateWSInterface:
         -------
 
         """
-        response = await self.factory.connection.async_rpc_request("chain_getFinalisedHead", [])
+        response = await self.protocol.async_rpc_request("chain_getFinalisedHead", [])
         return response.get('result')
 
 
-    async def get_chain_block(self, block_hash=None, block_id=None, metadata_decoder=None):
+    async def async_get_chain_block(self, block_hash=None, block_id=None, metadata_decoder=None):
         if block_id:
-            block_hash = self.get_block_hash(block_id)
+            block_hash = await self.async_get_block_hash(block_id)
 
-        response = await self.factory.connection.async_rpc_request("chain_getBlock", [block_hash]).get('result')
+        response = await self.protocol.async_rpc_request("chain_getBlock", [block_hash]).get('result')
 
         if self.mock_extrinsics:
             # Extend extrinsics with mock_extrinsics for e.g. performance tests
@@ -518,20 +622,57 @@ class SubstrateWSInterface:
         return response
 
 
-    async def get_block_hash(self, block_id):
-        response =  await self.factory.connection.async_rpc_request("chain_getBlockHash", [block_id])
+    async def async_get_block_hash(self, block_id):
+        response =  await self.protocol.async_rpc_request("chain_getBlockHash", [block_id])
         return response.get('result')
 
-    async def get_block_header(self, block_hash):
-        response = await self.factory.connection.async_rpc_request("chain_getHeader", [block_hash])
+    async def async_get_block_header(self, block_hash):
+        response = await self.protocol.async_rpc_request("chain_getHeader", [block_hash])
         return response.get('result')
 
-
-    async def get_block_number(self, block_hash):
-        response = await self.factory.connection.async_rpc_request("chain_getHeader", [block_hash])
+    async def async_get_block_number(self, block_hash):
+        response = await self.protocol.async_rpc_request("chain_getHeader", [block_hash])
         return int(response['result']['number'], 16)
+    
+    async def async_get_block_extrinsics(self, block_hash: str = None, block_id: int = None, ignore_decoding_errors=False) -> list:
+        """
+        Retrieves a list of `Extrinsic` objects for given block_hash or block_id
+        Parameters
+        ----------
+        block_hash
+        block_id
+        ignore_decoding_errors: When True no exception will be raised if decoding of extrinsics failes and add as `None` instead
+        Returns
+        -------
+        list
+        """
+        await self.init_runtime(block_hash=block_hash, block_id=block_id)
 
-    async def get_block_metadata(self, block_hash=None, decode=True):
+        response = await self.protocol.async_rpc_request("chain_getBlock", [self.block_hash])
+
+        if 'error' in response:
+            raise SubstrateRequestException(response['error']['message'])
+
+        if response.get('result') is None:
+            raise Exception(f"{block_hash} not found")
+
+        extrinsics = []
+        for extrinsic_data in response['result']['block']['extrinsics']:
+            extrinsic = Extrinsic(
+                data=ScaleBytes(extrinsic_data),
+                metadata=self.metadata_decoder,
+                runtime_config=self.runtime_config
+            )
+            try:
+                extrinsic.decode()
+            except:
+                if not ignore_decoding_errors:
+                    raise
+                extrinsic = None
+            extrinsics.append(extrinsic)
+        return extrinsics
+
+    async def async_get_block_metadata(self, block_hash=None, decode=True):
         """
         A pass-though to existing JSONRPC method `state_getMetadata`. For a decoded version see `get_runtime_metadata()`
 
@@ -547,7 +688,7 @@ class SubstrateWSInterface:
         params = None
         if block_hash:
             params = [block_hash]
-        response = await self.factory.connection.async_rpc_request("state_getMetadata", params)
+        response = await self.protocol.async_rpc_request("state_getMetadata", params)
 
         if decode:
             metadata_decoder = MetadataDecoder(ScaleBytes(response.get('result')))
@@ -562,7 +703,7 @@ class SubstrateWSInterface:
         Retrieves the peers connected to the node
         """
 
-        return await self.factory.connection.async_rpc_request("system_peers", [])
+        return await self.protocol.async_rpc_request("system_peers", [])
 
     async def get_storage(self, block_hash, module, function, params=None, return_scale_type=None, hasher=None,
                     spec_version_id='default', metadata=None, metadata_version=None):
@@ -594,7 +735,7 @@ class SubstrateWSInterface:
             hasher=hasher,
             metadata_version=metadata_version
         )
-        response = await self.factory.connection.async_rpc_request("state_getStorageAt", [storage_hash, block_hash])
+        response = await self.protocol.async_rpc_request("state_getStorageAt", [storage_hash, block_hash])
 
         if 'result' in response:
 
@@ -625,7 +766,7 @@ class SubstrateWSInterface:
 
         """
 
-        response = await self.factory.connection.async_rpc_request("state_getStorageAt", [storage_key, block_hash])
+        response = await self.protocol.async_rpc_request("state_getStorageAt", [storage_key, block_hash])
         if 'result' in response:
             return response.get('result')
         else:
@@ -650,7 +791,7 @@ class SubstrateWSInterface:
         else:
             storage_hash = STORAGE_HASH_SYSTEM_EVENTS
 
-        response = await self.factory.connection.async_rpc_request("state_getStorageAt", [storage_hash, block_hash])
+        response = await self.protocol.async_rpc_request("state_getStorageAt", [storage_hash, block_hash])
 
         if response.get('result'):
 
@@ -680,7 +821,7 @@ class SubstrateWSInterface:
         -------
 
         """
-        response = await self.factory.connection.async_rpc_request("chain_getRuntimeVersion", [block_hash])
+        response = await self.protocol.async_rpc_request("chain_getRuntimeVersion", [block_hash])
         return response.get('result')
 
     def generate_storage_hash(self, storage_module, storage_function, params=None, hasher=None, key2_hasher=None,
@@ -807,7 +948,7 @@ class SubstrateWSInterface:
             return
 
         if block_id is not None:
-            block_hash = self.get_block_hash(block_id)
+            block_hash = await self.async_get_block_hash(block_id)
 
         self.block_hash = block_hash
         self.block_id = block_id
@@ -836,7 +977,7 @@ class SubstrateWSInterface:
             self.debug_message('Retrieved metadata for {} from memory'.format(self.runtime_version))
             self.metadata_decoder = self.metadata_cache[self.runtime_version]
         else:
-            self.metadata_decoder = await self.get_block_metadata(block_hash=self.block_hash, decode=True)
+            self.metadata_decoder = await self.async_get_block_metadata(block_hash=self.block_hash, decode=True)
             self.debug_message('Retrieved metadata for {} from Substrate node'.format(self.runtime_version))
 
             # Update metadata cache
@@ -889,17 +1030,21 @@ class SubstrateWSInterface:
 
         prefix = self.generate_storage_hash(module, storage_function)
         prefix_len = len(prefix)
-        response = await self.factory.connection.async_rpc_request(method="state_getPairs", params=[prefix, block_hash])
+        response = await self.protocol.async_rpc_request(method="state_getPairs", params=[prefix, block_hash])
         pairs = response.get('result')
 
         # convert keys to the portion that needs to be decoded.
-        pairs = map(lambda kp: ["0x" + kp[0][prefix_len + concat_hash_len:], kp[1]], pairs)
+        if pairs != None:
+            pairs = map(lambda kp: ["0x" + kp[0][prefix_len + concat_hash_len:], kp[1]], pairs)
 
-        # decode both of them
-        pairs = map(
-            lambda kp: [self.decode_scale(key_type, kp[0]), self.decode_scale(value_type, kp[1])],
-            list(pairs)
-        )
+            # decode both of them
+            pairs = map(
+                lambda kp: [self.decode_scale(key_type, kp[0]), self.decode_scale(value_type, kp[1])],
+                list(pairs)
+            )
+        else:
+            # occurs if pairs returns a Nonetype.
+            pairs = []
 
         return list(pairs)
 
@@ -982,7 +1127,7 @@ class SubstrateWSInterface:
                                 metadata_version=self.metadata_decoder.version.index
                             )
 
-                            response = await self.factory.connection.async_rpc_request("state_getStorageAt", [storage_hash, block_hash])
+                            response = await self.protocol.async_rpc_request("state_getStorageAt", [storage_hash, block_hash])
 
                             if 'result' in response:
 
@@ -1031,7 +1176,7 @@ class SubstrateWSInterface:
         params = None
         if block_hash:
             params = [block_hash]
-        response = await self.factory.connection.async_rpc_request("state_getMetadata", params)
+        response = await self.protocol.async_rpc_request("state_getMetadata", params)
 
         if 'result' in response:
             metadata_decoder = MetadataDecoder(ScaleBytes(response.get('result')))
@@ -1080,7 +1225,7 @@ class SubstrateWSInterface:
     async def generate_signature_payload(self, call, era=None, nonce=0, tip=0, include_call_length=False):
 
         # Retrieve genesis hash
-        genesis_hash = await self.get_block_hash(0)
+        genesis_hash = await self.async_get_block_hash(0)
 
         if not era:
             era = '00'
@@ -1090,7 +1235,7 @@ class SubstrateWSInterface:
         else:
             era_obj = ScaleDecoder.get_decoder_class('Era')
             era_obj.encode(era)
-            block_hash = await self.get_block_hash(block_id=era_obj.birth(era.get('current')))
+            block_hash = await self.async_get_block_hash(block_id=era_obj.birth(era.get('current')))
 
         # Create signature payload
         signature_payload = ScaleDecoder.get_decoder_class('ExtrinsicPayloadValue')
@@ -1155,7 +1300,7 @@ class SubstrateWSInterface:
         else:
             if isinstance(era, dict) and 'current' not in era and 'phase' not in era:
                 # Retrieve current block id
-                era['current'] = await self.get_block_number(await self.get_chain_finalised_head())
+                era['current'] = await self.async_get_block_number(await self.get_chain_finalised_head())
 
         if signature is not None:
 
@@ -1210,14 +1355,14 @@ class SubstrateWSInterface:
 
         return extrinsic
 
-    async def submit_extrinsic(self, extrinsic, wait_for_inclusion=False, wait_for_finalization=False):
+    async def submit_extrinsic(self, extrinsic, wait_for_inclusion=False, wait_for_finalization=False, timeout: int = 2) -> dict:
         """
 
         Parameters
         ----------
         extrinsic: ExtrinsicsDecoder The extinsic to be send to the network
-        wait_for_inclusion: wait until extrinsic is included in a block (only works on websocket connections)
-        wait_for_finalization: wait until extrinsic is finalized (only works on websocket connections)
+        wait_for_inclusion: wait until extrinsic is included in a block (only works for websocket connections)
+        wait_for_finalization: wait until extrinsic is finalized (only works for websocket connections)
 
         Returns
         -------
@@ -1231,39 +1376,50 @@ class SubstrateWSInterface:
 
         def result_handler(result):
             # Check if extrinsic is included and finalized
+            if 'error' in result and type(result['error']) is dict:
+                return {
+                    'error': result['error']
+                }
+
             if 'params' in result and type(result['params']['result']) is dict:
                 if 'finalized' in result['params']['result'] and wait_for_finalization:
                     return {
                         'block_hash': result['params']['result']['finalized'],
                         'extrinsic_hash': '0x{}'.format(extrinsic.extrinsic_hash),
+                        'inBlock': True,
                         'finalized': True
                     }
                 elif 'inBlock' in result['params']['result'] and wait_for_inclusion and not wait_for_finalization:
                     return {
                         'block_hash': result['params']['result']['inBlock'],
                         'extrinsic_hash': '0x{}'.format(extrinsic.extrinsic_hash),
+                        'inBlock': True,
                         'finalized': False
                     }
+                else:
+                    return None
+            else:
+                return None
 
         if wait_for_inclusion or wait_for_finalization:
-            response = await self.factory.connection.async_rpc_request(
-                "author_submitAndWatchExtrinsic",
-                [str(extrinsic.data)],
+            response = await self.protocol.async_rpc_request(
+                method = "author_submitAndWatchExtrinsic",
+                params = [str(extrinsic.data)],
+                result_handler = result_handler,
+                is_subscription = True,
+                timeout = timeout,
             )
-            return result_handler(response)
+            return response
+
         else:
-            response = await self.factory.connection.async_rpc_request("author_submitExtrinsic", [str(extrinsic.data)])
-
+            response = await self.protocol.async_rpc_request(method="author_submitExtrinsic", params=[str(extrinsic.data)], timeout = timeout )
             if 'result' not in response:
-                raise SubstrateRequestException(response.get('error'))
+                return {
+                    'error': response.get('error')
+                }
+            else:
+                return response
 
-            response = {
-                'extrinsic_hash': response['result'],
-                'block_hash': None,
-                'finalized': None
-            }
-
-        return response
 
     async def get_payment_info(self, call, keypair):
         """
@@ -1299,7 +1455,7 @@ class SubstrateWSInterface:
             signature=signature
         )
 
-        payment_info = await self.factory.connection.async_rpc_request('payment_queryInfo', [str(extrinsic.data)])
+        payment_info = await self.protocol.async_rpc_request('payment_queryInfo', [str(extrinsic.data)])
 
         # convert partialFee to int
         if 'result' in payment_info:
@@ -1797,7 +1953,7 @@ class SubstrateWSInterface:
         """
         await self.init_runtime(block_hash=block_hash, block_id=block_id)
 
-        response = await self.factory.connection.async_rpc_request("chain_getBlock", [self.block_hash]).get('result')
+        response = await self.protocol.async_rpc_request("chain_getBlock", [self.block_hash]).get('result')
 
         response['block']['header']['number'] = int(response['block']['header']['number'], 16)
 
@@ -2047,9 +2203,4 @@ class SubstrateWSInterface:
     def debug_message(self, message):
         logger.trace(message)
 
-
-
-class SubstrateRPCInterface:
-    # Todo
-    None
 
