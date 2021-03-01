@@ -93,9 +93,9 @@ class Miner():
         self.model_toolbox = ModelToolbox(GPT2LMSynapse, torch.optim.SGD)
 
         # ---- Dataset ----
-        # Dataset: 74 million sentences pulled from books.
-        # self.dataset = load_dataset('ag_news')['train']
-        self.dataset = AdamCorpus(self.config.miner.custom_datasets)
+        # The Genesis Dataset:
+        # The dataset used to train Adam and his first 100 children.
+        self.dataset = AdamCorpus(self.config.miner.custom_dataset)
 
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
