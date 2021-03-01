@@ -1,18 +1,9 @@
 import sys
+import random
 from loguru import logger
 
 import bittensor.bittensor_pb2 as proto
 import bittensor.bittensor_pb2_grpc as grpc
-
-import bittensor.axon
-import bittensor.config 
-import bittensor.dendrite
-import bittensor.metagraph
-import bittensor.neuron
-import bittensor.nucleus
-import bittensor.receptor
-import bittensor.synapse
-import bittensor.wallet
 
 # Bittensor code and protocol version.
 __version__ = '1.0.3'
@@ -21,8 +12,32 @@ __version__ = '1.0.3'
 # NOTE (const): if/when this increases peers must be responsible for trimming or expanding output to this size.
 __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __sequence_dim__, __network_dim__ ]
 
-# Substrate chain block time.
+# Substrate chain block time (seconds).
 __blocktime__ = 6
+
+# Load components.
+import bittensor.axon
+import bittensor.config 
+import bittensor.executor
+import bittensor.dendrite
+import bittensor.metagraph
+import bittensor.neuron
+import bittensor.nucleus
+import bittensor.receptor
+import bittensor.subtensor
+import bittensor.synapse
+import bittensor.wallet
+
+# Default logger
+logger_config = {
+    "handlers": [{
+        "sink":
+            sys.stdout,
+        "format":
+            "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+    }]
+}
+logger.configure(**logger_config)
 
 # Tokenizer
 # NOTE (const): tokenizers are guaranteed to improve and expand as time progresses. We version the tokenizer here.
@@ -77,14 +92,6 @@ __boltzmann_entrypoints__ = [
 __kusanagi_entrypoints__ = [
     'feynman.kusanagi.bittensor.com:9944'
 ]
-
-# Default logger
-logger_config = {
-    "handlers": [{
-        "sink":
-            sys.stdout,
-        "format":
-            "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-    }]
-}
-logger.configure(**logger_config)
+__local_entrypoints__ = [
+    '127.0.0.1:9944'
+]

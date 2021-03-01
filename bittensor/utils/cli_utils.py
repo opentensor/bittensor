@@ -8,11 +8,10 @@ import getpass
 
 from loguru import logger
 
-from bittensor.subtensor.interface import Keypair
+from bittensor.substrate import Keypair
 from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError
 from termcolor import colored
 from bittensor.crypto import encrypt, is_encrypted, decrypt_data, KeyError
-from bittensor.subtensor.client import WSClient
 from bittensor.utils import Cli
 
 class cli_utils():
@@ -38,7 +37,7 @@ class cli_utils():
             raise e
 
     @staticmethod
-    def get_client(endpoint, keypair):
+    def get_client( endpoint, keypair ):
         return WSClient(socket=endpoint, keypair=keypair)
 
     @staticmethod

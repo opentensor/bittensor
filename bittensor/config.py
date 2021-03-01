@@ -1,6 +1,6 @@
 
 # The MIT License (MIT)
-# Copyright © 2021 Opentensor.ai
+# Copyright © 2021 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -53,6 +53,11 @@ class Config:
     def toString(items) -> str:
         return "\n" + yaml.dump(items.toDict())
 
+    @staticmethod
+    def update_with_kwargs(config:Munch, kwargs ):
+        for key,val in kwargs.items():
+            config[key] = val
+            
     @staticmethod
     def to_config(parser: argparse.ArgumentParser) -> Munch:
     

@@ -64,16 +64,19 @@ class GPT2Pooler(nn.Module):
 class GPT2LMSynapse(bittensor.synapse.Synapse):
     """ A Bittensor Synapse training GPT2 with Causal Language Modelling (CLM)
     """
-    def __init__(self, config: Munch):
+    def __init__(self, config: Munch = None, **kwargs):
         r""" Init a new GPT2 synapse module.
 
             Args:
                 config (:obj:`munch.Munch`, `required`): 
                     munched config class.
         """
-        super(GPT2LMSynapse, self).__init__(config = config)
+        super(GPT2LMSynapse, self).__init__(config = config, **kwargs)
         if config == None:
-            config = GPT2LMSynapse.build_config()
+            config = GPT2LMSynapse.default_config()
+        bittensor.config.Config.update_with_kwargs(config.synapse, kwargs) 
+        GPT2LMSynapse.check_config(config)
+        self.config = config
 
         # Build hugging face config.
         huggingface_config = GPT2Config(
@@ -122,13 +125,12 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
         self.to(self.device)
 
     @staticmethod   
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         GPT2LMSynapse.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        GPT2LMSynapse.check_config(config)
         return config
-    
+
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
         r""" Add custom params to the parser.
