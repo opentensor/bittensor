@@ -247,16 +247,18 @@ class Wallet():
         path = os.path.expanduser(path)
         return os.path.exists(path)
 
-    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True ):      
+    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True ):    
         # Create directory 
         dir_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name )
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
+        expanded_coldkeyfile_path = dir_path + '/coldkey'
 
         # Create Key
+        cli_utils.validate_create_path( expanded_coldkeyfile_path )
         self._coldkey = cli_utils.gen_new_key( n_words )
         cli_utils.display_mnemonic_msg( self._coldkey  )
-        cli_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
+        cli_utils.write_pubkey_to_text_file( expanded_coldkeyfile_path, self._coldkey.public_key )
 
         # Encrypt
         if use_password:
@@ -269,34 +271,36 @@ class Wallet():
             coldkey_data = json.dumps(self._coldkey.toDict()).encode()
 
         # Save
-        cli_utils.save_keys( self.coldkeyfile, coldkey_data )
-        cli_utils.set_file_permissions( self.coldkeyfile )
+        cli_utils.save_keys( expanded_coldkeyfile_path, coldkey_data )
+        cli_utils.set_file_permissions( expanded_coldkeyfile_path )
 
     def create_new_hotkey( self, n_words:int = 12):  
         # Create directory 
         dir_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name + "/hotkeys/" )
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
+        expanded_hotkeyfile_path = dir_path + self.config.wallet.hotkey
 
         # Create
-        hotkey_path = cli_utils.validate_create_path( self.hotkeyfile )
+        cli_utils.validate_create_path( expanded_hotkeyfile_path )
         self._hotkey = cli_utils.gen_new_key( n_words )
         cli_utils.display_mnemonic_msg( self._hotkey )
         hotkey_data = json.dumps(self._hotkey.toDict()).encode()
 
         # Save
-        cli_utils.save_keys( self.hotkeyfile, hotkey_data )
-        cli_utils.set_file_permissions( self.hotkeyfile )
+        cli_utils.save_keys( expanded_hotkeyfile_path, hotkey_data )
+        cli_utils.set_file_permissions( expanded_hotkeyfile_path )
 
     def regenerate_coldkey( self, mnemonic: str, use_password: bool):
         # Create directory 
         dir_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name )
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
+        expanded_coldkeyfile_path = dir_path + '/coldkey'
 
         # Regenerate
         self._coldkey = cli_utils.validate_generate_mnemonic( mnemonic )
-        cli_utils.write_pubkey_to_text_file(self.coldkeyfile, self._coldkey.public_key )
+        cli_utils.write_pubkey_to_text_file(expanded_coldkeyfile_path, self._coldkey.public_key )
         
         # Encrypt
         if use_password:
@@ -309,19 +313,21 @@ class Wallet():
             coldkey_data = json.dumps(self._coldkey.toDict()).encode()
 
         # Save
-        cli_utils.save_keys( self.coldkeyfile, coldkey_data ) 
-        cli_utils.set_file_permissions( self.coldkeyfile )
+        cli_utils.save_keys( expanded_coldkeyfile_path, coldkey_data ) 
+        cli_utils.set_file_permissions( expanded_coldkeyfile_path )
 
     def regenerate_hotkey( self, mnemonic: str ):
         # Create directory 
         dir_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name + "/hotkeys/" )
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
+        expanded_hotkeyfile_path = dir_path + self.config.wallet.hotkey
 
         # Regenerate
+        cli_utils.validate_create_path( expanded_hotkeyfile_path )
         self._hotkey = cli_utils.validate_generate_mnemonic( mnemonic )
         
         # Save
         hotkey_data = json.dumps(self._hotkey.toDict()).encode()
-        cli_utils.save_keys( self.hotkeyfile, hotkey_data )
-        cli_utils.set_file_permissions( self.hotkeyfile )
+        cli_utils.save_keys( expanded_hotkeyfile_path, hotkey_data )
+        cli_utils.set_file_permissions( expanded_hotkeyfile_path )
