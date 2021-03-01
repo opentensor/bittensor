@@ -11,7 +11,8 @@ from gpt2_genesis.gpt2_genesis import Miner
 def test_run_gpt2_genesis():
     miner = Miner(
         epoch_length = 1,
-        n_epochs = 1
+        n_epochs = 1,
+        custom_dataset = './miners/TEXT/gpt2_genesis/genesis_dataset/'
     )
     miner.neuron.subtensor.connect = MagicMock(return_value = True)    
     miner.neuron.subtensor.subscribe = MagicMock(return_value = True)   
