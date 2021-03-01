@@ -53,9 +53,11 @@ class Executor:
             wallet = bittensor.wallet.Wallet( self.config )
         self.wallet = wallet
 
-        if subtensor == None:
-            subtensor = bittensor.subtensor.Subtensor( self.config, self.wallet )
-        self.subtensor = subtensor
+        # Only load subtensor if we need it.
+        if self.config.command in ["transfer", "unstake", "stake", "overview"]:
+            if subtensor == None:
+                subtensor = bittensor.subtensor.Subtensor( self.config, self.wallet )
+            self.subtensor = subtensor
 
     @staticmethod
     def default_config () -> Munch:
@@ -98,13 +100,11 @@ class Executor:
         regen_coldkey_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
         regen_coldkey_parser.set_defaults(use_password=True)
         bittensor.wallet.Wallet.add_args( regen_coldkey_parser )
-        bittensor.subtensor.Subtensor.add_args( regen_coldkey_parser )
 
         # Fill arguments for the regen hotkey command.
         regen_hotkey_parser.add_argument("--mnemonic", required=True, nargs="+", 
             help='Mnemonic used to regen your key i.e. horse cart dog ...') 
         bittensor.wallet.Wallet.add_args( regen_hotkey_parser )
-        bittensor.subtensor.Subtensor.add_args( regen_hotkey_parser )
 
         # Fill arguments for the new coldkey command.
         new_coldkey_parser.add_argument('--n_words', type=int, choices=[12,15,18,21,24], default=12, 
@@ -113,13 +113,11 @@ class Executor:
         new_coldkey_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
         new_coldkey_parser.set_defaults(use_password=True)
         bittensor.wallet.Wallet.add_args( new_coldkey_parser )
-        bittensor.subtensor.Subtensor.add_args( new_coldkey_parser )
 
         # Fill arguments for the new hotkey command.
         new_hotkey_parser.add_argument('--n_words', type=int, choices=[12,15,18,21,24], default=12, 
             help='''The number of words representing the mnemonic. i.e. horse cart dog ... x 24''')
         bittensor.wallet.Wallet.add_args( new_hotkey_parser )
-        bittensor.subtensor.Subtensor.add_args( new_hotkey_parser )
 
         # Fill arguments for the overview command
         bittensor.wallet.Wallet.add_args( overview_parser )
@@ -223,7 +221,7 @@ class Executor:
         """
         print(colored("Retrieving all nodes associated with cold key : {}".format( self.wallet.coldkeypub ), 'white'))
         neurons = self.subtensor.neurons()
-        neurons = Neuron.from_list( neurons )
+        neurons = Neurons.from_list( neurons )
         result = filter(lambda x : x.coldkey == self.wallet.coldkey.public_key, neurons )# These are the neurons associated with the provided cold key
         associated_neurons = Neurons(result)
         # Load stakes
