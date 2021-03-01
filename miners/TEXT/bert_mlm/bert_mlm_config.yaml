@@ -14,7 +14,7 @@ miner:
   log_interval: 10
   momentum: 0.98
   n_epochs: 9223372036854775807
-  record_log: true
+  record_log: false
   sync_interval: 100
 neuron:
   modality: 0

@@ -15,7 +15,7 @@ miner:
   momentum: 0.98
   n_epochs: 9223372036854775807
   name: bert-nsp
-  record_log: true
+  record_log: false
   root_dir: ~/.bittensor/miners/
   sync_interval: 100
 neuron:
