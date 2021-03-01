@@ -59,6 +59,10 @@ class Executor:
                 subtensor = bittensor.subtensor.Subtensor( self.config, self.wallet )
             self.subtensor = subtensor
 
+        if self.config.command in ["overview"]:
+            self.metagraph = bittensor.metagraph.Metagraph( self.config, self.wallet, self.subtensor )
+            
+
     @staticmethod
     def default_config () -> Munch:
          # Build top level parser.
@@ -122,6 +126,7 @@ class Executor:
         # Fill arguments for the overview command
         bittensor.wallet.Wallet.add_args( overview_parser )
         bittensor.subtensor.Subtensor.add_args( overview_parser )
+        bittensor.metagraph.Metagraph.add_args( overview_parser )
 
         # Fill arguments for unstake command. 
         unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
@@ -233,17 +238,22 @@ class Executor:
         r""" Prints an overview for the wallet's colkey.
         """
         self.subtensor.connect()
+        self.metagraph.sync()
         balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
         neurons = self._associated_neurons()
 
         print("BALANCE: %s : [%s]" % ( self.wallet.coldkey.ss58_address, balance ))
         print()
         print("--===[[ STAKES ]]===--")
-        t = PrettyTable(["UID", "IP", "STAKE"])
+        t = PrettyTable(["UID", "IP", "STAKE", "RANK", "INCENTIVE"])
         t.align = 'l'
         total_stake = 0.0
         for neuron in neurons:
-            t.add_row([neuron.uid, neuron.ip, neuron.stake])
+            index = self.metagraph.state.index_for_uid[ neuron.uid ]
+            stake = float(self.metagraph.S[index])
+            rank = float(self.metagraph.R[index])
+            incentive = float(self.metagraph.I[index])
+            t.add_row([neuron.uid, neuron.ip, stake, rank, incentive])
             total_stake += neuron.stake.__float__()
         print(t.get_string())
         print("Total stake: ", total_stake)

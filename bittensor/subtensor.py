@@ -123,7 +123,6 @@ class Subtensor:
 
         # Else defaults to networks.
         # TODO(const): this should probably make a DNS lookup.
-        all_networks = ['akira', 'boltzmann', 'kusanagi', 'local']
         if self.config.subtensor.network == "akira":
             akira_available = [item for item in bittensor.__akira_entrypoints__ if item not in blacklist ]
             if len(akira_available) == 0:
@@ -240,7 +239,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             attempted_endpoints.append(ws_chain_endpoint)
 
             # --- Attempt connection ----
-            if await self.substrate.async_connect( ws_chain_endpoint, timeout = 3 ):
+            if await self.substrate.async_connect( ws_chain_endpoint, timeout = 5 ):
                 print(colored("Successfully connected to endpoint: {}".format(ws_chain_endpoint), 'green'))
                 return True
             
