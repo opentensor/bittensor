@@ -86,7 +86,7 @@ class Miner():
         parser.add_argument('--miner.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
         parser.add_argument('--miner.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
         parser.add_argument('--miner.root_dir', default='~/.bittensor/miners/', type=str,  help='Root path to load and save data associated with each miner')
-        parser.add_argument('--miner.name', default='gpt-wiki', type=str, help='Trials for this miner go in miner.root / miner.name')
+        parser.add_argument('--miner.name', default='gpt2-wiki', type=str, help='Trials for this miner go in miner.root / miner.name')
         parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
         parser.add_argument('--miner.record_log', default=True, help='Record all logs when running this miner')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
