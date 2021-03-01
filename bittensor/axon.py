@@ -209,7 +209,7 @@ class Axon(bittensor.grpc.BittensorServicer):
                 try:
                     config.axon.external_port = net.upnpc_create_port_map(local_port = config.axon.local_port)
                 except net.UPNPCException as upnpc_exception:
-                    logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
+                    logger.error('Axon failed to hole-punch with upnpc')
                     raise upnpc_exception
             # Falls back to using your provided local_port.
             else:
