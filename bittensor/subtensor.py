@@ -310,6 +310,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             logger.error('Error submitting extrinsic with error {}', e)
             return False
 
+        # Check timeout.
+        if response == None:
+            logger.error('Error in extrinsic: No response within timeout')
+            return False
+
         # Check result.
         if not wait_for_inclusion and not wait_for_finalization:
             return True
