@@ -40,8 +40,8 @@ def nextbatch(data, batch_size, tokenizer):
     """
     batch_text = []
     for _ in range(batch_size):
-        batch_text.append(data[random.randint(0, len(data))]['text'])
-    batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True, truncation=True)['input_ids']
+        batch_text.append(data[random.randint(0, len(data))]['review_body'])
+    batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True, truncation=True, max_length=bittensor.__network_dim__)['input_ids']
     return batch_inputs
 
 
@@ -75,16 +75,19 @@ class XLMSynapse(bittensor.synapse.Synapse):
 
     """
 
-    def __init__(self, config: Munch):
+    def __init__(self, config: Munch = None, **kwargs):
         """ Initialize a new XLM synapse module.
 
         Args:
             config (:obj:`munch.Munch`, `required`): 
                     munched config class.
         """
-        super(XLMSynapse, self).__init__(config = config)
+        super(XLMSynapse, self).__init__(config = config, **kwargs)
         if config == None:
-            config = XLMSynapse.build_config()
+            config = XLMSynapse.default_config()
+        bittensor.config.Config.update_with_kwargs(config.synapse, kwargs) 
+        XLMSynapse.check_config(config)
+        self.config = config
         
         # Build config.
         xlm_config = XLMConfig(
@@ -116,11 +119,10 @@ class XLMSynapse(bittensor.synapse.Synapse):
         self.to(self.device)
     
     @staticmethod
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         parser = argparse.ArgumentParser()
         XLMSynapse.add_args(parser)
         config = bittensor.config.Config.to_config(parser)
-        XLMSynapse.check_config(config)
         return config
     
     @staticmethod
@@ -197,7 +199,6 @@ class XLMSynapse(bittensor.synapse.Synapse):
     def check_config(config: Munch):
         assert config.synapse.n_layers > 0, "Number of hidden layers in the Transformer encoder must be > 0"
         assert config.synapse.n_heads > 0, "Number of attention heads for each attention layer in the Transformer encoder must be > 0"
-        config = PKMRouter.check_config(config)
     
     def forward_text (self, inputs: torch.LongTensor):
         """ Local forward inputs through the XLM Synapse.

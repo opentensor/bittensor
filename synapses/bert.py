@@ -46,15 +46,18 @@ class BertPooler(nn.Module):
         return pooled_output
 
 class BertSynapseBase (bittensor.synapse.Synapse):
-    def __init__(self, config: Munch):
+    def __init__(self, config: Munch, **kwargs):
         r""" Init a new base-bert synapse.
 
             Args:
                 config (:obj:`munch.Munch`, `required`): 
         """
-        super(BertSynapseBase, self).__init__( config = config )
+        super(BertSynapseBase, self).__init__( config = config, **kwargs )
         if config == None:
-            config = BertSynapseBase.build_config()
+            config = BertSynapseBase.default_config()
+        bittensor.config.Config.update_with_kwargs(config.synapse, kwargs) 
+        BertSynapseBase.check_config(config)
+        self.config = config
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
@@ -83,11 +86,10 @@ class BertSynapseBase (bittensor.synapse.Synapse):
         self.to(self.device)
 
     @staticmethod   
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         BertSynapseBase.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        BertSynapseBase.check_config(config)
         return config
 
     @staticmethod
@@ -207,14 +209,14 @@ class BertSynapseBase (bittensor.synapse.Synapse):
         return output
 
 class BertNSPSynapse (BertSynapseBase):
-    def __init__( self, config: Munch ):
+    def __init__( self, config: Munch, **kwargs):
         r""" Init a new bert nsp synapse module.
 
             Args:
                 config (:obj:`Munch`, `required`): 
                     BertNSP configuration class.
         """
-        super(BertNSPSynapse, self).__init__(config = config)
+        super(BertNSPSynapse, self).__init__(config = config, **kwargs)
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
@@ -334,7 +336,7 @@ class BertNSPSynapse (BertSynapseBase):
 
         
 class BertMLMSynapse (BertSynapseBase):
-    def __init__(self, config: Munch):
+    def __init__(self, config: Munch, **kwargs):
         r""" Bert synapse for MLM training
 
             Args:
@@ -342,7 +344,7 @@ class BertMLMSynapse (BertSynapseBase):
                     BertNSP configuration class.
 
         """
-        super(BertMLMSynapse, self).__init__(config = config)
+        super(BertMLMSynapse, self).__init__(config = config, **kwargs)
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 

@@ -5,7 +5,7 @@ from typing import List
 
 from bittensor.balance import Balance
 from bittensor.subtensor.client import WSClient
-from bittensor.subtensor.interface import Keypair
+from bittensor.substrate.base import Keypair
 from loguru import logger
 import pytest
 import os

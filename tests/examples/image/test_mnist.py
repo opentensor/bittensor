@@ -7,7 +7,7 @@ import torch
 import numpy
 from mnist import Session
 def test_run_mnist():
-    mnist_session_config = Session.build_config()
+    mnist_session_config = Session.default_config()
     mnist_session_config.metagraph.chain_endpoint = 'feynman.akira.bittensor.com:9944'
     mnist_session_config.session.n_epochs = 1
     mnist_session_config.session.epoch_length = 1

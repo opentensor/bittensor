@@ -1,6 +1,5 @@
-
 # The MIT License (MIT)
-# Copyright © 2021 Opentensor.ai
+# Copyright © 2021 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -16,17 +15,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import argparse
 import asyncio
 import copy
-import argparse
-import bittensor
 import pandas as pd
 import math
 import numpy
 import random
 import time
 import torch
-import traceback
 
 from munch import Munch
 from termcolor import colored
@@ -36,8 +33,7 @@ from typing import List, Tuple, List
 import bittensor
 import bittensor.config as config_utils
 import bittensor.utils.networking as net
-from bittensor.subtensor.client import WSClient
-from bittensor.exceptions.handlers import rollbar
+from bittensor.subtensor import Subtensor
 
 MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
 
@@ -172,69 +168,61 @@ class TorchChainState():
 
 class Metagraph():
     """
-    Handles all chain related tasks. 
-    
-    This class facilitates the connection between Bittensor and the Subtensor blockchain including 
-    emissions, setting node weights, asynchronous synchronization with the chain, and chain subscriptions. 
-
+    Maintains the chain state as a torch object.
     """
-    def __init__(self, config: 'Munch' = None, wallet: 'bittensor.wallet.Wallet' = None):
+    def __init__(   
+            self, 
+            config: 'Munch' = None, 
+            wallet: 'bittensor.wallet.Wallet' = None,
+            subtensor: 'bittensor.subtensor.Subtensor' = None,
+            **kwargs,
+        ):
         r""" Initializes a new Metagraph chain interface.
             Args:
                 config (:obj:`Munch`, `optional`): 
                     metagraph.Metagraph.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
+                subtensor (:obj:`bittensor.subtensor.Subtensor`, `optional`):
+                    subtensor interface utility.
+                stale_emit_filter', default=10000, type=int, 
+                    The metagraph filters neurons with last emit beyond this many blocks.
+                    Note, this is used to trim the graph size,but may change your incentive mechanism view.
         """
         if config == None:
-            config = Metagraph.build_config()
+            config = Metagraph.default_config()
+        bittensor.config.Config.update_with_kwargs(config.metagraph, kwargs) 
+        Metagraph.check_config(config)
         self.config = config
 
         if wallet == None:
             wallet = bittensor.wallet.Wallet( self.config )
         self.wallet = wallet
 
-        # Client for talking to chain.
-        self.subtensor_client = WSClient(self.config.metagraph.chain_endpoint, keypair = self.wallet.keypair)
+        if subtensor == None:
+            subtensor = bittensor.subtensor.Subtensor( self.config, self.wallet )
+        self.subtensor = subtensor
 
-        # This neurons metadata on chain, initially None, filled on subscribe.
+        # Chain state as cache and torch object.
+        self.last_sync = 0
         self.uid = None
         self.metadata = None
-
-        # Chain state cached before converted into the torch state.
         self.cache = ChainState()
-
-        # Chain state as torch values.
         self.state = TorchChainState.from_cache(self.cache)
 
     @staticmethod
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Metagraph.add_args(parser) 
         config = config_utils.Config.to_config(parser); 
-        Metagraph.check_config(config)
         return config
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
-        # TODO(const): check this endpoint in check_config.
         bittensor.wallet.Wallet.add_args( parser )
+        bittensor.subtensor.Subtensor.add_args( parser )
         try:
-            parser.add_argument('--metagraph.chain_endpoint', default=None, type=str, 
-                                help='''The subtensor chain endpoint. The likely choices are:
-                                        -- localhost:9944 -- (your locally running node)
-                                        -- feynman.akira.bittensor.com:9944 (testnet)
-                                        -- feynman.kusanagi.bittensor.com:12345 (mainnet)
-                                    If metagraph.network is set it is overloaded by metagraph.network.
-                                    ''')
-            parser.add_argument('--metagraph.network', default=None, type=str, 
-                                help='''The subtensor network flag. The likely choices are:
-                                        -- akira (testing network)
-                                        -- kusanagi (main network)
-                                    If this option is set it overloads metagraph.chain_endpoint with 
-                                    an entry point node from that network.
-                                    ''')
             parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
                                 help='''The metagraph filters neurons with last emit beyond this many blocks.
                                         Note, this is used to trim the graph size,
@@ -244,31 +232,7 @@ class Metagraph():
         
     @staticmethod   
     def check_config(config: Munch):
-        bittensor.wallet.Wallet.check_config( config )
-
-        # Neither are set, default to akira.
-        if config.metagraph.network == None and config.metagraph.chain_endpoint == None:
-            logger.info('Defaulting to network: akira')
-            config.metagraph.network = 'akira'
-
-        # Switch based on network config item. 
-        if config.metagraph.network != None:
-            all_networks = ['akira', 'boltzmann', 'kusanagi']
-            assert config.metagraph.network in all_networks, 'metagraph.network == {} not one of {}'.format(config.metagraph.network, all_networks)
-            if config.metagraph.network == "akira":
-                config.metagraph.chain_endpoint = random.choice(bittensor.__akira_entrypoints__)
-            elif config.metagraph.network == "boltzmann":
-                config.metagraph.chain_endpoint = random.choice(bittensor.__boltzmann_entrypoints__)
-            elif config.metagraph.network == "kusanagi":
-                config.metagraph.chain_endpoint = random.choice(bittensor.__kusanagi_entrypoints__)
-            else:
-                raise ValueError('metagraph.network == {} not one of {}'.format(config.metagraph.network, all_networks))
-
-        # The chain endpoint it set.
-        elif config.metagraph.chain_endpoint != None:
-            all_entrypoints = bittensor.__akira_entrypoints__ + bittensor.__boltzmann_entrypoints__ + bittensor.__kusanagi_entrypoints__
-            if not config.metagraph.chain_endpoint in all_entrypoints:
-                logger.info('metagraph.chain_endpoint == {}, NOTE: not one of {}', config.metagraph.chain_endpoint, all_entrypoints)
+        pass
 
     @property
     def n(self) -> int:
@@ -360,7 +324,11 @@ class Metagraph():
                 incentive (:obj:`torch.FLoatTensor` of shape :obj:`(metagraph.n)`):
                     inflation incentive from each known neuron.
         """
-        incentive = self.tau * self.col * self.stake
+        self_col = self.col
+        if len(self.col.tolist()) == 0:
+            return torch.zeros(self.state.n)
+        else:
+            incentive = self.tau * self.col * self.stake
         return incentive
 
     @property
@@ -387,9 +355,6 @@ class Metagraph():
         if self.W.shape[0] == 0:
             return torch.tensor([])
         else:
-            # S.shape = [self.state.n]
-            # W.shape = [self.state.n, self.state.n]
-            # R.shape = [self.state.n]
             S = self.S.view(self.state.n, 1)
             W = torch.transpose(self.W.view(self.state.n, self.state.n), 0, 1)
             R = torch.matmul(W, S).view(self.state.n)
@@ -415,7 +380,7 @@ class Metagraph():
                 
         """
         if self.uid == None:
-            raise ValueError('Must be subscribed before you can return your row')
+            return torch.tensor([])
         try:
             self_idx = self.state.index_for_uid[ self.uid ] 
             return self.state.W[self_idx, :]
@@ -432,12 +397,12 @@ class Metagraph():
                     `w_{*,i}`
         """
         if self.uid == None:
-            raise ValueError('Must be subscribed before you can return your col')
+            return torch.tensor([])
         try:
             self_idx = self.state.index_for_uid[ self.uid ] 
             return self.state.W[:, self_idx]
         except:
-            logger.error('your uid is not in self.state with state.uids {} and uid {}'.format(self.state.uids, self.uid))
+            logger.error('your uid is not in self.state with state.uids {} and uid {}'.format( self.state.uids, self.uid ))
             return torch.tensor([])
 
     @property
@@ -532,91 +497,74 @@ class Metagraph():
             uids.append(self.state.uid_for_pubkey[n.public_key])
         return torch.tensor(uids)
 
-    def chain_weights(self) -> torch.FloatTensor:
-        r""" Returns your current weights from the chain.
-            
+    def uid_for_pubkey( self, public_key: str ) -> int:
+        r""" Returns the uid associated with the passed public key.
+            Args:
+                public_key (:obj:`str`): 
+                    public key of neuron.
             Returns:
-                weights: (:obj:`torch.FloatTensor` of shape :obj:`(-1)`):
-                    weights on chain as torch tensor.
+                uids (:obj:`int`)
+                    uid associated with this public key, or None if non existent.
         """
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(self.async_chain_weights())
-
-    async def async_chain_weights(self) -> torch.FloatTensor:
-        r""" Async: returns your current weights from the chain.
-             
-             Returns:
-                weights (:obj:`torch.FloatTensor` of shape :obj:`(-1)`):
-                    weights on chain as torch tensor.
-        """
-        # --- Get chain weights ----
-        chain_uids = await self.subtensor_client.weight_uids(self.metadata['uid'])
-        chain_weights = await self.subtensor_client.weight_vals(self.metadata['uid'])
-        if chain_weights == None or len(chain_weights) == 0:
-            return torch.tensor([])
-
+        if public_key in self.state.uid_for_pubkey:
+            return self.state.uid_for_pubkey[ public_key ]
         else:
-            # ---- To be filled ----
-            return_val = torch.zeros(self.state.n)
+            return None
 
-            weight_sum = sum(chain_weights)
-            if weight_sum != MAX_INT_WEIGHT:
-                logger.error('Chain weights do not sum to {} with vals {}', MAX_INT_WEIGHT, chain_weights)
-
-            # ---- Fill torch tensor ----
-            for uid, weight in list(zip(chain_uids, chain_weights)):
-                if uid not in self.state.index_for_uid:
-                    logger.critical('uid {} on chain not in state.index', uid)
-                    continue
-                else:
-                    idx = self.state.index_for_uid[ uid ]
-                    if idx >= self.state.n:
-                        logger.critical('idx {} in state.index > state.n', idx)
-                        continue
-                    else:
-                        return_val[idx] = float(weight) / float(weight_sum)
-            return return_val
-
-    def chain_block(self):
-        r""" Returns the current block on the chain.
-        Returns:
-            block: (int) block number on chain.
+    def neuron_for_uid( self, uid: int ) -> bittensor.proto.Neuron:
+        r""" Returns the metadata associated with the passed uid, or None if the uid does not exist.
+            Args:
+                uid (:obj:`int`): 
+                    uid to query for neuron metadata.
+            Returns:
+                neuron_metadata (:obj:`int`)
+                    metadata of neuron associated with this uid, or None.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_chain_block())
-
-    async def async_chain_block(self) -> int:
-        r""" Async returns the current block on the chain.
-        Returns:
-            block: (int) block number on chain.
-        """
-        return await self.subtensor_client.get_current_block()
+        if uid in self.state.index_for_uid:
+            return self.state.neurons[ self.state.index_for_uid[ uid ] ]
+        else:
+            return None
 
     def sync(self):
         r""" Synchronizes the local self.state with the chain state.
         """
+        # TODO (const) this should probably be a background process
+        # however, it makes it difficult for the user if the state changes in
+        # the background.
+        print(colored('\nSyncing metagraph:', 'white'))
+        current_block = self.subtensor.get_current_block()
+        if (current_block - self.last_sync) > 20: # > Every 2 minutes.
+            # ---- Update cache ----
+            self.last_sync = current_block
+            self._sync_cache()
+
+            # --- Update torch state
+            self.state = TorchChainState.from_cache(self.cache)
+            self.state.block = current_block
+            if self.wallet.hotkey.public_key in self.state.uid_for_pubkey:
+                self.uid = self.uid_for_pubkey( self.wallet.hotkey.public_key )
+                self.metadata = self.neuron_for_uid( self.uid )
+            else:
+                self.uid = None
+
+    def _sync_cache(self):
+        r""" Synchronizes the local self.state with the chain state.
+        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        loop.run_until_complete(self.async_sync())
+        loop.run_until_complete(self._async_sync_cache())
 
-    async def async_sync(self):
-        r""" Async: Synchronizes the local self.state with the chain state by polling the chain.
-        """
-        await self._sync_cache()
-        last_sync = await self.async_chain_block()
-        self.state = TorchChainState.from_cache(self.cache)
-        self.state.block = last_sync
-
-    async def _sync_cache(self):
+    async def _async_sync_cache(self):
         r""" Async: Makes calls to chain updating local chain cache with newest info.
         """
         # Make asyncronous calls to chain filling local state cache.
         calls = []
-        current_block = await self.async_chain_block()
-        active = dict( await self.subtensor_client.get_active() )
-        last_emit = dict( await self.subtensor_client.get_last_emit_data() )
-        calls.append ( self._poll_uid ( self.wallet.keypair.public_key, self.uid ) )        
+        current_block = await self.subtensor.async_get_current_block()
+        active = dict( await self.subtensor.async_get_active() )
+        last_emit = dict( await self.subtensor.async_get_last_emit() )
+        self_uid = await self.subtensor.async_get_uid_for_pubkey( self.wallet.hotkey.public_key )
+        if self_uid != None:
+            calls.append ( self._poll_uid ( self.wallet.hotkey.public_key, self_uid ) )        
         for pubkey, uid in active.items():
             if uid in last_emit:
                 emit_block = last_emit[ uid ]
@@ -628,258 +576,16 @@ class Metagraph():
         r""" Polls info info for a specfic public key.
         """
         try:
-            stake = await self.subtensor_client.get_stake_for_uid( uid )
-            lastemit = await self.subtensor_client.get_last_emit_data_for_uid( uid )
-            w_uids = await self.subtensor_client.weight_uids_for_uid( uid )
-            w_vals = await self.subtensor_client.weight_vals_for_uid( uid )
-            neuron = await self.subtensor_client.get_neuron_for_uid ( uid )
+            stake = await self.subtensor.async_get_stake_for_uid( uid )
+            lastemit = await self.subtensor.async_get_last_emit_data_for_uid( uid )
+            w_uids = await self.subtensor.async_weight_uids_for_uid( uid )
+            w_vals = await self.subtensor.async_weight_vals_for_uid( uid )
+            neuron = await self.subtensor.async_get_neuron_for_uid ( uid )
             self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], modality = neuron['modality'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
         except Exception as e:
-            pass
+            print ('error', e)
             #logger.error("Exception occurred: {}".format(e))
             #traceback.print_exc()
-
-    ConnectSuccess = 1
-    ConnectUnknownError = 2
-    ConnectTimeout = 3
-    def connect(self, timeout:int) -> Tuple[int, str]:
-        r""" Synchronous: Connects to the chain.
-        Args:
-            timeout (int):
-                Time to wait before connecting times out.
-        Returns:
-            see: _try_async_connect
-        """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_connect(timeout))
-
-    async def async_connect(self, timeout: int) -> Tuple[int, str]:
-        r""" Async: Makes and awaits for a connection to the chain.
-        Args:
-            timeout (int):
-                Time to wait before connecting times out.
-        Returns:
-            see: _try_async_connect
-        """
-        # ---- Try Connection ----
-        try:
-            code, message = await self._try_async_connect(timeout)
-
-            if code == Metagraph.ConnectSuccess:
-                logger.info('Successfully connected to chain endpoint: {}', self.config.metagraph.chain_endpoint)
-                return code, message
-
-            elif code == Metagraph.ConnectUnknownError:
-                logger.error('Connection threw an unknown error: {}', message)
-                return code, message
-
-            elif code == Metagraph.ConnectTimeout:
-                logger.error('Connection timeout {}', message)
-                return code, message
-
-        except Exception as e:
-            logger.error('Connection threw an uncaught error {}', e)
-            return Metagraph.ConnectUnknownError, e
-
-    async def _try_async_connect(self, timeout: int) -> Tuple[int, str]:
-        r""" Makes connection attempts to the chain, continuing to attempt until timeout.
-
-        Args:
-            timeout (int):
-                Time to wait before connecting times out.
-        Raises:
-            code (ENUM) {}
-                ConnectSuccess:
-                    Raised when the connection is a success before the timeout
-
-                ConnectUnknownError:
-                    UnknownError during connecting to chain.
-
-                Connectimeout:
-                    Raised when the attempted connection fails after timeout.
-            }
-            message:
-                Message associated with code. 
-        """
-        # ---- Make Chain connection attempt  ----
-        start_time = time.time()
-        while True:
-            # ---- Make connection call.
-            try:
-                self.subtensor_client.connect()
-            except Exception as e:
-                return Metagraph.ConnectUnknownError, e
-            
-            # ---- Wait for connection future to reture, or timeout.
-            is_connected = self.subtensor_client.is_connected()
-            try:
-                await asyncio.wait_for(is_connected, timeout=timeout)
-            except asyncio.TimeoutError:
-                return Metagraph.ConnectTimeout, "Timeout"
-
-            # ---- Return on success.
-            if is_connected:
-                return Metagraph.ConnectSuccess, "Success"
-
-            # ---- Retry or timeout.
-            elif (time.time() - start_time) > timeout:
-                return Metagraph.ConnectTimeout, "Timeout"
-            else:
-                await asyncio.sleep(1)
-                continue
-
-    SubscribeSuccess = 1
-    SubscribeUnknownError = 2
-    SubscribeTimeout = 3
-    SubscribeNotConnected = 4
-    def subscribe(self, timeout) -> Tuple[int, str]:
-        r""" Syncronous: Makes a subscribe request to the chain. Waits for subscription inclusion or returns False
-        Returns:
-            see: _try_async_subscribe
-        """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_subscribe(timeout))
-
-    async def async_subscribe (self, timeout) -> Tuple[int, str]:
-        r""" Async: Makes a subscribe request to the chain. Waits for subscription inclusion or returns False
-        Returns:
-            see: _try_async_subscribe
-        """
-
-        # ---- Try Subscription ----
-        try:
-            code, message = await self._try_async_subscribe(timeout)
-
-            if code == Metagraph.SubscribeSuccess:
-                logger.info('Successfully subcribed with: {}', self.metadata)
-                return code, message
-
-            elif code == Metagraph.SubscribeNotConnected:
-                logger.error('Subscription failed because you are not connected to a chain endpoint, call metagraph.connect() first')
-                return code, message
-
-            elif code == Metagraph.SubscribeUnknownError:
-                logger.error('Subscription threw an unknown error: {}', message)
-                return code, message
-
-            elif code == Metagraph.SubscribeTimeout:
-                logger.error('Subscription timeout {}', message)
-                return code, message
-
-        except Exception as e:
-            logger.error('Subscription threw an uncaught error {}', e)
-            return Metagraph.SubscribeUnknownError, e
-        
-    async def _try_async_subscribe(self, timeout: int):
-        r""" Makes subscription attempts to the chain, continuing to attempt until timeout and finally waiting for inclusion.
-
-        Args:
-            timeout (int):
-                Time to wait before subscription times out.
-
-        Raises:
-            code (ENUM) {}
-                SubscribeSuccess:
-                    Raised when the subscription is a success before the timeout
-
-                SubscribeUnknownError:
-                    UnknownError during subscription.
-
-                SubscribeTimeout:
-                    Raised when the attempted subscription fails after timeout.
-
-                SubscribeNotConnected:
-                    Raised if a subscription is attempted while before metagraph.connect is called.
-                    Mush call metagraph.connect() before metagraph.subscribe()
-            }
-            message:
-                Message associated with code. 
-        """
-        # --- Check that we are already connected to the chain.
-        is_connected = self.subtensor_client.is_connected()
-        try:
-            await asyncio.wait_for(is_connected, timeout = 10)
-        except asyncio.TimeoutError:
-            return Metagraph.SubscribeNotConnected, "Not connected"
-        if not is_connected:
-            return Metagraph.SubscribeNotConnected, "Not connected"
-
-        # ---- Make Subscription transaction ----
-        logger.info("Subscribing to subtensor")
-        main_start_time = time.time()
-        while True:
-
-            subscribe_start_time = time.time()
-            try:
-                await self.subtensor_client.subscribe(self.config.axon.external_ip, self.config.axon.external_port, bittensor.proto.Modality.TEXT, self.wallet.coldkey)
-
-            except Exception as e:
-                if (time.time() - subscribe_start_time) > 8:
-                    # --- Timeout during emit call ----
-                    message = "Timed-out with Unknown Error while trying to make the subscription call. With last exception {}".format(e)
-                    return Metagraph.SubscribeUnknownError, message
-
-                else:
-                    # --- Wait for inclusion, no error.
-                    logger.trace('Error while attempting subscription {}', e)
-                    continue
-
-            # ---- Wait for inclusion ----
-            check_start_time = time.time()
-            while True:
-                try:
-                    # ---- Request info from chain ----
-                    self.uid = await self.subtensor_client.get_uid_for_pubkey(self.wallet.keypair.public_key)
-                except Exception as e:
-                    # ---- Catch errors in request ----
-                    message = "Subscription threw an unknown exception {}".format(e)
-                    return Metagraph.SubscribeUnknownError, message
-
-                if self.uid != None:
-                    # ---- Request info from chain ----
-                    self.metadata = await self.subtensor_client.neurons(self.uid)
-                    if not self.metadata:
-                        return Metagraph.SubscribeUnknownError, "Critical error: There no metadata returned"
-
-                    # ---- Subscription was a success ----
-                    return Metagraph.SubscribeSuccess, "Subscription success"
-
-                elif time.time() - check_start_time > 8:
-                    break
-
-                else:
-                    # ---- wait -----
-                    await asyncio.sleep(1)
-            
-            if time.time() - main_start_time > 90:
-                return Metagraph.SubscribeTimeout, "Timeout occured while trying to subscribe to the chain, potentially the chain is recieving too many subsribe requests at this time."
-
-                 
-
-        # ---- ?! WaT ?! ----
-        logger.critical('Should not get here')
-        return Metagraph.SubscribeUnknownError, 'Should not get here'
-
-      
-    def set_weights(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12):
-        r""" Emits the passed weights to the chain. Optionally Waits for inclusion. 
-        Failures are logged but do not break the process. 
-
-        Args:
-            Weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                weights to set on chain of length self.state.n
-
-            Wait_for_inclusion: (bool, default: False):
-                if true, the call waits for inclusion in the block before continuing.
-
-            Timeout: (int, default = 12 sec):
-                time to wait for inclusion before raising a caught error.
-        """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        loop.run_until_complete(self.async_emit(weights, wait_for_inclusion, timeout))
 
 
     EmitSuccess = 1
@@ -888,92 +594,78 @@ class Metagraph():
     EmitTimeoutError = 4
     EmitTimeoutError = 5
     EmitResultUnknown = 6
-    EmitNoOp = 7
-    async def async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> Tuple[int, str]:
-        r""" Calls _try_async_emit, logs and returns results based on code. Only fails on an uncaught Exception.
-        
+    EmitNotInBlock = 7
+    EmitNoOp = 8
+    def set_weights(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12):
+        r""" Emits the passed weights to the chain. Optionally Waits for inclusion. 
+        Failures are logged but do not break the process. 
         Args:
-            weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                Weights to set on chain.
-            wait_for_inclusion: (bool):
-                If true, the call waits for block-inclusion before continuing or throws error after timeout.
-            timeout: (int, default = 12 sec):
-                Time to wait for inclusion before raising a caught error.
-
-        Returns:
-            see: _try_async_emit
+            Weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                weights to set on chain of length self.state.n
+            Wait_for_inclusion: (bool, default: False):
+                if true, the call waits for inclusion in the block before continuing.
+            Timeout: (int, default = 12 sec):
+                time to wait for inclusion before raising a caught error.
         """
         # --- Try emit, optionally wait ----
-        try:
-            code, message= await self._try_async_emit(weights, wait_for_inclusion, timeout)
-            if code == Metagraph.EmitSuccess:
-                # ---- Emit was a success. ----
-                logger.info("Successful emission.")
+        code, message = self._try_emit(weights, wait_for_inclusion, timeout)
+        if code == Metagraph.EmitSuccess:
+            # ---- Emit was a success. ----
+            logger.info("Emission was successful and entered the block.")
 
-            elif code == Metagraph.EmitValueError:
-                # ---- Passed weights were incorrect ----
-                logger.warning("Value error during emission: {}", message)
+        elif code == Metagraph.EmitValueError:
+            # ---- Passed weights were incorrect ----
+            logger.info("Value error during emission: {}", message)
 
-            elif code == Metagraph.EmitUnknownError:
-                # ---- Unknown error ----
-                logger.error("Unknown error during emission: {}", message)
+        elif code == Metagraph.EmitUnknownError:
+            # ---- Unknown error ----
+            logger.error("Unknown error during emission: {}", message)
 
-            elif code == Metagraph.EmitTimeoutError:
-                # ---- Timeout while waiting for inclusion ----
-                logger.warning("Emission timeout after {} seconds with error {}", timeout, message)
+        elif code == Metagraph.EmitTimeoutError:
+            # ---- Timeout while waiting for inclusion ----
+            logger.info("Emission timeout after {} seconds with error {}", timeout, message)
 
-            elif code == Metagraph.EmitResultUnknown:
-                # ---- Did not wait, result unknown ----
-                logger.trace("Emit results unknown.")
+        elif code == Metagraph.EmitResultUnknown:
+            # ---- Did not wait, result unknown ----
+            logger.info("Emit results unknown.")
 
-            elif code == Metagraph.EmitNoOp:
-                # ---- Emit is a NoOp ----
-                logger.info("When trying to set weights on chain. Weights are unchanged, nothing to emit.")
+        elif code == Metagraph.EmitNotInBlock:
+            # ---- Emit was success but did not enter the block ----
+            logger.info('Emit did not enter block')
 
-        except Exception as e:
-            # ---- Unknown error, raises error again. Should never get here ----
-            logger.error("Unknown Error during emission {}", e)
-            raise e
+        elif code == Metagraph.EmitNoOp:
+            # ---- Emit is a NoOp ----
+            logger.info("When trying to set weights on chain. Weights are unchanged, nothing to emit.")
 
         return code, message
 
-
-    async def _try_async_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> Tuple[int, str]:
+    def _try_emit(self, weights: torch.FloatTensor, wait_for_inclusion = False, timeout = 12) -> Tuple[int, str]:
         r""" Makes emit checks, emits to chain, and raises one of the following errors.
             Args:
                 weights: (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     Weights to set on chain.
-
                 wait_for_inclusion: (:obj:`bool`):
                     If true, the call waits for block-inclusion before continuing or throws error after timeout.
-
                 timeout: (:obj:`int`, default = 12 sec):
                     Time to wait for inclusion before raising a caught error.
-
             Returns:
                 code (:obj:`ENUM`) {
                     EmitSuccess (:obj:`ENUM`):
                         Raised when try_async_emit emits weights successfully with known result.
-
                     EmitNoOp (:obj:`ENUM`):
                         Raised when calling emit does not change weights on chain.
-
                     EmitUnknownError (:obj:`ENUM`):
                         UnknownError during emit.
-
                     EmitValueError (:obj:`ENUM`):
                         Raised during emission when passed weights are not properly set.
-
                     EmitTimeoutError (:obj:`ENUM`):
                         Raised during emission during a timeout.
-
                     EmitResultUnknown (:obj:`ENUM`):
                         Called when an emit step end without a known result, for instance, 
                         if the user has wait_for_inclusion = False.
                 }
                 message:
                     Message associated with code.
-
         """
         # --- Check type ----
         if not isinstance(weights, torch.Tensor):
@@ -1031,72 +723,27 @@ class Metagraph():
             return Metagraph.EmitValueError, message
 
         # ---- Check NO-OP ----
-        if await self._are_set_on_chain(weight_vals, weight_uids):
+        if self._are_set_on_chain(weight_vals, weight_uids):
             message = "When trying to set weights on chain. Weights are unchanged, nothing to emit."
             return Metagraph.EmitNoOp, message
 
         # ---- Emit ----
-        start_time = time.time()
-        while True:
-            try:
-                # --- Make emission call ----
-                logger.debug('Emit -> {} {}', weight_uids, weight_vals)
-                await self.subtensor_client.set_weights(weight_uids, weight_vals)
-                break
-
-            except Exception as e:
-                logger.trace('Emit error {}', e)
-
-                if not wait_for_inclusion:
-                    # --- No wait, and error during emit call ----
-                    message = "Error raised during call to emit {}".format( e )
-                    return Metagraph.EmitUnknownError, message
-                
-                elif (time.time() - start_time) > timeout:
-                    # --- Timeout during emit call ----
-                    message = "Timed-out with unknown Error while trying to make the emit call. With last exception {}".format(e)
-                    return Metagraph.EmitUnknownError, message
-
-                else:
-                    # --- Wait for inclusion, no error.
-                    logger.info('retry emit...')
-                    await asyncio.sleep(3) # To avoid ddos-ing the chain.
-                    continue
-
-        # --- Wait for inclusion ----
-        if not wait_for_inclusion:
-            message = "Emit ended but we don't know if weights were set on chain"
-            return Metagraph.EmitResultUnknown, message
-
+        logger.info('Emitting weights -> {}', list(zip(weight_uids, weight_vals)))
+        result = self.subtensor.set_weights(weight_uids, weight_vals, wait_for_inclusion=True, timeout = bittensor.__blocktime__ * 3)
+        if result:
+            message = "Successful emission"
+            return Metagraph.EmitSuccess, message
         else:
-            while True:
-                did_emit = await self._are_set_on_chain(weight_uids, weight_vals)
+            message = "Emission did not enter block."
+            return Metagraph.EmitNotInBlock, message
 
-                if not did_emit and (time.time() - start_time) > timeout:
-                    # ---- Emit caused timeout  -----
-                    message = "Timed-out while waiting for inclusion."
-                    return Metagraph.EmitTimeoutError, message
 
-                elif not did_emit:
-                    # ---- Did not emit, but waiting for inclusion -----
-                    await asyncio.sleep(3)
-                    continue
-
-                else:
-                    # --- Did emit, return latest chain weights ----
-                    messages = "Successful emission"
-                    return Metagraph.EmitSuccess, messages
-
-        message = 'Should never get here'
-        logger.critical(message)
-        return Metagraph.EmitUnknownError, message
-
-    async def _are_set_on_chain(self, weight_uids, weight_vals) -> bool:
+    def _are_set_on_chain(self, weight_uids, weight_vals) -> bool:
         r""" Returns true if the passed key and vals are set on chain.
         """
         cmap = {}
-        chain_uids = await self.subtensor_client.weight_uids_for_uid(self.uid)
-        chain_vals = await self.subtensor_client.weight_vals_for_uid(self.uid)
+        chain_uids = self.subtensor.weight_uids_for_uid(self.uid)
+        chain_vals = self.subtensor.weight_vals_for_uid(self.uid)
         if chain_uids != None and chain_vals != None:
             n_same = 0
             for uid, val in list(zip(chain_uids, chain_vals)):
@@ -1112,21 +759,19 @@ class Metagraph():
         else:
             return False 
 
-
     def convert_weights_to_emit(self, weights: List[float]) -> Tuple[List[str], List[int]]:
         r""" Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
-
              Returns:
                 keys (:obj:`List[str]`):
                     List of pubkeys associated with each weight from vals.
                 vals (:obj:`List[int]`):
                 List of u32 integer representations of floating point weights.
-
         """
         remainder = MAX_INT_WEIGHT
         weight_vals = []
         weight_uids = []
         pos_self_uid = -1
+        length = 0
         for i, val in enumerate(weights):
             int_val = int(float(val) * int(MAX_INT_WEIGHT)) # convert to int representation.
             remainder -= int_val
@@ -1145,9 +790,10 @@ class Metagraph():
             if int_val != 0:
                 weight_vals.append( int_val ) # int weights sum to MAX_INT_WEIGHT.
                 weight_uids.append( uid_i ) # Gets the uid at this index
+                length += 1
 
             if uid_i == self.uid:
-                pos_self_uid = i
+                pos_self_uid = (length - 1)
 
         # Places the self weight in the first position if it exists
         if pos_self_uid != -1 and len(weight_uids) > 1:

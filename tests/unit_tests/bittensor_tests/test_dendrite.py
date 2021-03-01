@@ -10,7 +10,7 @@ dendrite = bittensor.dendrite.Dendrite()
 dendrite.config.receptor.do_backoff = False
 neuron_pb2 = bittensor.proto.Neuron(
     version = bittensor.__version__,
-    public_key = dendrite.wallet.keypair.public_key,
+    public_key = dendrite.wallet.hotkey.public_key,
     address = '0.0.0.0',
     port = 12345,
 )
@@ -54,7 +54,7 @@ def test_dendrite_backoff():
     _dendrite.config.receptor.max_backoff = 1
     _neuron_pb2 = bittensor.proto.Neuron(
         version = bittensor.__version__,
-        public_key = _dendrite.wallet.keypair.public_key,
+        public_key = _dendrite.wallet.hotkey.public_key,
         address = '0.0.0.0',
         port = 12345,
     )
