@@ -82,15 +82,33 @@ def __tokenizer__(  version = __version__ ):
     return tokenizer
 
 # Hardcoded entry point nodes. 
-# TODO(const): make these curl based.
 __akira_entrypoints__ = [
-    'feynman.akira.bittensor.com:9944'
-]
-__boltzmann_entrypoints__ = [
-    'feynman.boltzmann.bittensor.com:9944'
+    '104.248.52.148:9944',
+    '142.93.194.110:9944',
+    '162.243.175.73:9944',
+    '165.227.92.237:9944',
+    '167.172.141.223:9944',
+    '174.138.32.166:9944',
+    '206.189.194.236:9944',
+    '68.183.130.145:9944',
+    '68.183.140.221:9944',
+    '68.183.140.251:9944'
 ]
 __kusanagi_entrypoints__ = [
-    'feynman.kusanagi.bittensor.com:9944'
+    '142.93.203.149:9944',
+    '157.230.11.1:9944',
+    '157.230.11.116:9944',
+    '157.230.11.31:9944',
+    '157.230.11.36:9944',
+    '157.230.11.53:9944',
+    '157.230.3.108:9944',
+    '159.65.236.189:9944',
+    '165.227.81.42:9944',
+    '206.189.207.173:9944'
+]
+__boltzmann_entrypoints__ = [
+    'feynman.boltzmann.bittensor.com:9944',
+    '157.230.223.68:9944'
 ]
 __local_entrypoints__ = [
     '127.0.0.1:9944'
