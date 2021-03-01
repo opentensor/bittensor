@@ -214,7 +214,7 @@ class Executor:
     def create_new_hotkey ( self ):  
         r""" Creates a new hotkey under this wallet.
         """
-        self.wallet.create_new_hotkey( self.config.n_words)  
+        self.wallet.create_new_hotkey( self.config.n_words )  
 
     def _associated_neurons( self ) -> Neurons:
         r""" Returns a list of neurons associate with this wallet's coldkey.
