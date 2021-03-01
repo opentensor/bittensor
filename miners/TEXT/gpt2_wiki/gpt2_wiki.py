@@ -37,13 +37,15 @@ class Miner():
     During instantiation, this class takes a config as a [Munch](https://github.com/Infinidat/munch) object. 
     """
 
-    def __init__(self, config: Munch = None):
+    def __init__(self, config: Munch = None, **kwargs):
         if config == None:
-            config = Miner.build_config(); logger.info(bittensor.config.Config.toString(config))
+            config = Miner.default_config( );       
+        bittensor.config.Config.update_with_kwargs(config.miner, kwargs) 
+        Miner.check_config(config)
         self.config = config
 
         # ---- Neuron ----
-        self.neuron = bittensor.neuron.Neuron(self.config)
+        self.neuron = bittensor.neuron.Neuron( self.config )
 
         # ---- Model ----
         self.model = GPT2LMSynapse( self.config )
@@ -58,7 +60,6 @@ class Miner():
         # ---- Dataset ----
         # Dataset: 74 million sentences pulled from books.
         self.dataset = load_dataset('ag_news')['train']
-
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # ---- Logging ----
@@ -67,11 +68,10 @@ class Miner():
             logger.add(self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
     
     @staticmethod
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Miner.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        Miner.check_config(config)
         return config
 
     @staticmethod
@@ -102,8 +102,6 @@ class Miner():
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
-        GPT2LMSynapse.check_config(config)
-        bittensor.neuron.Neuron.check_config(config)
 
     # --- Main loop ----
     def run (self):
@@ -219,6 +217,8 @@ class Miner():
 
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Miner.build_config(); logger.info(bittensor.config.Config.toString(config))
-    miner = Miner(config)
+    miner = Miner( 
+        learning_rate = 0.1
+    )
+    logger.info(bittensor.config.Config.toString(miner.config))
     miner.run()

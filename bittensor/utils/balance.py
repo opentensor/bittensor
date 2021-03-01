@@ -39,5 +39,3 @@ class Balance:
     def from_float(amount : float):
         rao = int(amount * pow(10, 9))
         return Balance(rao)
-
-

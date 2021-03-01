@@ -12,16 +12,12 @@ class KeyError(Exception):
 __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
 
 def encrypt(data, password):
-
     key = __generate_key(password)
-
     cipher_suite = Fernet(key)
     return cipher_suite.encrypt(data)
 
 def decrypt_keypair(data, password):
-
     key = __generate_key(password)
-
     cipher_suite = Fernet(key)
     return cipher_suite.decrypt(data)
 
@@ -30,11 +26,8 @@ def __generate_key(password):
     key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
     return key
 
-
-
 def is_encrypted(data):
     return data[:6] == b"gAAAAA"
-
 
 def decrypt_data(password, data):
     try:

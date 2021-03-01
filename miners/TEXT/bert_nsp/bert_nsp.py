@@ -70,9 +70,11 @@ def nsp_batch(data, batch_size, tokenizer):
 
 class Miner():
 
-    def __init__(self, config: Munch = None):
+    def __init__(self, config: Munch = None, **kwargs):
         if config == None:
-            config = Miner.build_config(); logger.info(bittensor.config.Config.toString(config))
+            config = Miner.default_config();       
+        bittensor.config.Config.update_with_kwargs(config.miner, kwargs) 
+        Miner.check_config(config)
         self.config = config
 
         # ---- Neuron ----
@@ -99,11 +101,10 @@ class Miner():
             logger.add(self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
 
     @staticmethod
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Miner.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        Miner.check_config(config)
         return config
 
     @staticmethod
@@ -134,8 +135,6 @@ class Miner():
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
-        BertNSPSynapse.check_config(config)
-        bittensor.neuron.Neuron.check_config(config)
 
     # --- Main loop ----
     def run (self):
@@ -255,7 +254,6 @@ class Miner():
 
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Miner.build_config(); logger.info(bittensor.config.Config.toString(config))
-    miner = Miner(config)
+    miner = Miner()
+    logger.info(bittensor.config.Config.toString(miner.config))
     miner.run()
-

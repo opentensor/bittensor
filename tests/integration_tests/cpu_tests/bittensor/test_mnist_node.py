@@ -27,7 +27,7 @@ class Session():
 
     def __init__(self, config: Munch):
         if config == None:
-            config = Session.build_config()
+            config = Session.default_config()
         self.config = config
 
         # ---- Neuron ----
@@ -53,7 +53,7 @@ class Session():
         self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
 
     @staticmethod
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Session.add_args(parser) 
         config = Config.to_config(parser); 

@@ -3,7 +3,7 @@ import unittest
 import pytest
 from munch import Munch
 import bittensor
-from bittensor.subtensor.interface import Keypair
+from bittensor.substrate import Keypair
 
 metagraph = None
 
@@ -12,25 +12,24 @@ def test_create( ):
     metagraph = bittensor.metagraph.Metagraph()
     assert True
 
-def test_check_config_network_not_exists_defaults_akira( ):
-    config = bittensor.metagraph.Metagraph.build_config()
-    config.metagraph.network = None
-    config.metagraph.chain_endpoint = None
-    bittensor.metagraph.Metagraph.check_config(config)
-    assert config.metagraph.network == 'akira'
-    assert config.metagraph.chain_endpoint in bittensor.__akira_entrypoints__
+def test_print_empty():
+    metagraph = bittensor.metagraph.Metagraph()
+    print (metagraph)
 
-def test_check_config_network_to_endpoint():
-    config = bittensor.metagraph.Metagraph.build_config()
-    config.metagraph.network = 'akira'
-    bittensor.metagraph.Metagraph.check_config(config)
-    assert config.metagraph.chain_endpoint in bittensor.__akira_entrypoints__
-    config.metagraph.network = 'boltzmann'
-    bittensor.metagraph.Metagraph.check_config(config)
-    assert config.metagraph.chain_endpoint in bittensor.__boltzmann_entrypoints__
-    config.metagraph.network = 'kusanagi'
-    bittensor.metagraph.Metagraph.check_config(config)
-    assert config.metagraph.chain_endpoint in bittensor.__kusanagi_entrypoints__
+def test_sync( ):
+    metagraph = bittensor.metagraph.Metagraph(
+        stale_emit_filter = 1000000000000
+    )
+    metagraph.config.subtensor.network = 'kusanagi'
+    metagraph.sync()
+    print (metagraph)
+
+def test_convert_weight_order_with_zeros( ):
+    MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
+    metagraph.state.uids = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+    metagraph.uid = 12
+    weights = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    uids, vals = metagraph.convert_weights_to_emit(weights)
 
 def test_convert_weight_order_should_work_last( ):
     MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
@@ -120,7 +119,6 @@ def test_convert_weight_zeros_adds_remainder_to_last_member( ):
     print (uids, vals)
     assert uids == [1]
     assert sum( vals ) == MAX_INT_WEIGHT
-
 
 chain_state = None
 def test_chain_state( ):
