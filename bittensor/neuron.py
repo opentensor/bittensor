@@ -174,6 +174,7 @@ class Neuron:
                 self.config.neuron.modality,
                 self.wallet.coldkeypub,
                 wait_for_finalization = True,
+                timeout = 4 * bittensor.__blocktime__,
         )
         if not subscribe_success:
             self.stop()
