@@ -134,6 +134,7 @@ class Miner():
         assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
+        config.custom_datasets = os.path.abspath(config.custom_datasets)
         full_path = '{}/{}/{}'.format(config.miner.root_dir, config.miner.name, config.miner.trial_uid)
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
