@@ -145,7 +145,7 @@ mac_activate_installed_python() {
     ohai "You are using python@ $PYTHONPATH$"
     ohai "Installing python tools"
     python -m pip install --upgrade pip
-    python -m pip install python-devel
+    python -m pip install python-dev
 }
 
 mac_install_bittensor() {
