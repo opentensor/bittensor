@@ -35,6 +35,7 @@ class Executor:
             config: 'Munch' = None, 
             wallet: 'bittensor.wallet.Wallet' = None,
             subtensor: 'bittensor.subtensor.Subtensor' = None,
+            metagraph: 'bittensor.metagraph.Metagraph' = None,
             **kwargs,
         ):
         r""" Initializes a new Metagraph chain interface.
@@ -45,9 +46,12 @@ class Executor:
                     bittensor wallet with hotkey and coldkeypub.
                 subtensor (:obj:`bittensor.subtensor.Subtensor`, `optional`):
                     subtensor interface utility.
+                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
+                    bittensor metagraph object.
         """
         if config == None:
             config = Executor.default_config()
+        bittensor.config.Config.update_with_kwargs(config, kwargs) 
         Executor.check_config(config)
         self.config = config
 
@@ -62,7 +66,9 @@ class Executor:
             self.subtensor = subtensor
 
         if self.config.command in ["overview", "save_state"]:
-            self.metagraph = bittensor.metagraph.Metagraph( self.config, self.wallet, self.subtensor )
+            if metagraph == None:
+                metagraph = bittensor.metagraph.Metagraph( self.config, self.wallet, self.subtensor)
+            self.metagraph = metagraph
             
 
     @staticmethod
@@ -246,6 +252,9 @@ class Executor:
     def overview ( self ): 
         r""" Prints an overview for the wallet's colkey.
         """
+        self.wallet.assert_coldkey()
+        self.wallet.assert_coldkeypub()
+        self.wallet.assert_hotkey()
         self.subtensor.connect()
         self.metagraph.sync()
         balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
@@ -277,6 +286,9 @@ class Executor:
     def unstake_all ( self ):
         r""" Unstaked from all hotkeys associated with this wallet's coldkey.
         """
+        self.wallet.assert_coldkey()
+        self.wallet.assert_coldkeypub()
+        self.wallet.assert_hotkey()
         self.subtensor.connect()
         neurons = self._associated_neurons()
         for neuron in neurons:
@@ -290,6 +302,9 @@ class Executor:
     def unstake( self ):
         r""" Unstaked token of amount to from uid.
         """
+        self.wallet.assert_coldkey()
+        self.wallet.assert_coldkeypub()
+        self.wallet.assert_hotkey()
         self.subtensor.connect()
         amount = Balance.from_float( self.config.amount )
         neurons = self._associated_neurons()
@@ -314,6 +329,9 @@ class Executor:
     def stake( self ):
         r""" Stakes token of amount to hotkey uid.
         """
+        self.wallet.assert_coldkey()
+        self.wallet.assert_coldkeypub()
+        self.wallet.assert_hotkey()
         self.subtensor.connect()
         amount = Balance.from_float( self.config.amount )
         balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
@@ -339,6 +357,9 @@ class Executor:
         r""" Transfers token of amount to dest.
             
         """
+        self.wallet.assert_coldkey()
+        self.wallet.assert_coldkeypub()
+        self.wallet.assert_hotkey()
         self.subtensor.connect()
         amount = Balance.from_float( self.config.amount )
         balance = self.subtensor.get_balance(self.wallet.coldkey.ss58_address)

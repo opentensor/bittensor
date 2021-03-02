@@ -35,6 +35,7 @@ import bittensor
 import bittensor.config as config_utils
 import bittensor.utils.networking as net
 from bittensor.subtensor import Subtensor
+from bittensor.crypto.keyfiles import KeyFileError
 
 MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
 
@@ -240,10 +241,9 @@ class Metagraph():
         bittensor.wallet.Wallet.add_args( parser )
         bittensor.subtensor.Subtensor.add_args( parser )
         try:
-            parser.add_argument('--metagraph.stale_emit_filter', default=10000, type=int, 
-                                help='''The metagraph filters neurons with last emit beyond this many blocks.
-                                        Note, this is used to trim the graph size,
-                                        but may change your incentive mechanism view.''')
+            parser.add_argument('--metagraph.stale_emit_filter', default=-1, type=int, 
+                                help='''Filter neurons who have not emitted in this number of blocks.
+                                        -1 for no filter.''')
         except:
             pass
         
@@ -550,19 +550,19 @@ class Metagraph():
         # the background.
         print(colored('\nSyncing metagraph:', 'white'))
         current_block = self.subtensor.get_current_block()
-        if (current_block - self.last_sync) > 20: # > Every 2 minutes.
-            # ---- Update cache ----
-            self.last_sync = current_block
-            self._sync_cache()
+        # ---- Update cache ----
+        self.last_sync = current_block
+        self._sync_cache()
 
-            # --- Update torch state
-            self.state = TorchChainState.from_cache(self.cache)
-            self.state.block = current_block
-            if self.wallet.hotkey.public_key in self.state.uid_for_pubkey:
-                self.uid = self.uid_for_pubkey( self.wallet.hotkey.public_key )
-                self.metadata = self.neuron_for_uid( self.uid )
-            else:
-                self.uid = None
+        # --- Update torch state
+        self.state = TorchChainState.from_cache(self.cache)
+        self.state.block = current_block
+
+        if self.wallet.has_hotkey and self.wallet.hotkey.public_key in self.state.uid_for_pubkey:
+            self.uid = self.uid_for_pubkey( self.wallet.hotkey.public_key )
+            self.metadata = self.neuron_for_uid( self.uid )
+        else:
+            self.uid = None
 
     def _sync_cache(self):
         r""" Synchronizes the local self.state with the chain state.
@@ -579,15 +579,19 @@ class Metagraph():
         current_block = await self.subtensor.async_get_current_block()
         active = dict( await self.subtensor.async_get_active() )
         last_emit = dict( await self.subtensor.async_get_last_emit() )
-        self_uid = await self.subtensor.async_get_uid_for_pubkey( self.wallet.hotkey.public_key )
-        if self_uid != None:
-            calls.append ( self._poll_uid ( self.wallet.hotkey.public_key, self_uid ) )        
+
+        if self.wallet.has_hotkey:
+            self_uid = await self.subtensor.async_get_uid_for_pubkey( self.wallet.hotkey.public_key )
+            if self_uid != None:
+                calls.append ( self._poll_uid (self.wallet.hotkey.public_key, self_uid ) )     
+
         for pubkey, uid in active.items():
             if uid in last_emit:
                 emit_block = last_emit[ uid ]
-                if (current_block - emit_block) < self.config.metagraph.stale_emit_filter:
+                if (current_block - emit_block) < self.config.metagraph.stale_emit_filter or self.config.metagraph.stale_emit_filter < 0:
                         calls.append( self._poll_uid ( pubkey, uid ) )
         await asyncio.gather(*calls)
+        print ('\n')
 
     async def _poll_uid(self, pubkey: str, uid:int):
         r""" Polls info info for a specfic public key.
@@ -599,9 +603,11 @@ class Metagraph():
             w_vals = await self.subtensor.async_weight_vals_for_uid( uid )
             neuron = await self.subtensor.async_get_neuron_for_uid ( uid )
             self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], modality = neuron['modality'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
+            print(colored('.', 'green'), end ="")
+
         except Exception as e:
-            print ('error', e)
-            #logger.error("Exception occurred: {}".format(e))
+            print(colored('x', 'red'), end ="")
+            logger.trace('error while polling uid: {} with error: {}', uid, e )
             #traceback.print_exc()
 
 
@@ -817,12 +823,6 @@ class Metagraph():
             weight_uids.insert(0, weight_uids.pop(pos_self_uid))
             weight_vals.insert(0, weight_vals.pop(pos_self_uid))
         return weight_uids, weight_vals
-
-    def write_to_file( filepath: str ):
-        r"""
-            Writes the metagraph state to a file. 
-        """
-        self.state.write_to_file( filepath )
 
     def __str__(self):
         uids = self.state.uids.tolist()
