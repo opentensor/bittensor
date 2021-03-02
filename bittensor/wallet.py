@@ -86,90 +86,80 @@ class Wallet():
     def check_config(config: Munch):
         pass
 
-    def assert_hotkey(self) -> bittensor.substrate.Keypair:
+    def assert_hotkey(self):
         r""" Checks for a valid hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or exits.
         """
         try:
-            return self.hotkey
-        except KeyFileError:
-            sys.exit(1)
-        except KeyError:
-            sys.exit(1)
-        except Exception as e:
+            assert self.has_hotkey
+        except:
             sys.exit(1)
         
-    def assert_coldkey(self) -> bittensor.substrate.Keypair:
+    def assert_coldkey(self):
         r""" Checks for a valid coldkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or exits.
         """
         try:
-            return self.coldkey
-        except KeyFileError:
-            sys.exit(1)
-        except KeyError:
-            sys.exit(1)
-        except Exception as e:
+            assert self.has_coldkey
+        except:
             sys.exit(1)
 
-    def asset_coldkeypub(self) -> str:
+    def assert_coldkeypub(self):
         r""" Checks for a valid coldkeypub from wallet.path/wallet.name/coldkeypub.txt or exits
         """
         try:
-            return self.coldkeypub
-        except KeyFileError:
+            assert self.has_coldkeypub
+        except:
             sys.exit(1)
-        except KeyError:
-            sys.exit(1)
-        except Exception as e:
-            sys.exit(1)
-
 
     @property
-    def try_hotkey(self) -> bittensor.substrate.Keypair:
-        r""" Attempts to load the hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or returns None.
+    def has_hotkey(self) -> bool:
+        r""" True if a hotkey can be loaded from wallet.path/wallet.name/hotkeys/wallet.hotkey or returns None.
             Returns:
-                hotkey (bittensor.substrate.Keypair):
-                    hotkey loaded from config arguments or None
+                hotkey (bool):
+                    True if the hotkey can be loaded from config arguments or False
         """
         try:
-            return self.hotkey
+            self.hotkey
+            return True
         except KeyFileError:
-            return None
+            return False
         except KeyError:
-            return None
+            return False
         except Exception as e:
-            return None
+            return False
         
     @property
-    def try_coldkey(self) -> bittensor.substrate.Keypair:
-        r""" Attempts to load the coldkey from wallet.path/wallet.name/coldkeypub.txt or returns None.
+    def has_coldkey(self) -> bool:
+        r""" True if a coldkey can be loaded from wallet.path/wallet.name/coldkeypub.txt
             Returns:
-                coldkey (bittensor.substrate.Keypair):
-                    colkey loaded from config arguments or None
+                has_coldkey (bool):
+                    True if the coldkey can be loaded from config arguments or False
         """
         try:
-            return self.coldkey
+            self.coldkey
+            return True
         except KeyFileError:
-            return None
+            return False
         except KeyError:
-            return None
+            return False
         except Exception as e:
-            return None
+            return False
 
     @property
-    def try_coldkeypub(self) -> str:
-        r""" Attempts to load the coldkeypub from wallet.path/wallet.name/coldkeypub.txt or returns an empty string.
+    def has_coldkeypub(self) -> bool:
+        r""" True if the coldkeypub can be loaded from wallet.path/wallet.name/coldkeypub.txt.
             Returns:
-                coldkeypub (str):
-                    colkeypub loaded from config arguments or ""
+                has_coldkeypub (bool):
+                    True if the coldkeypub can be loaded from config arguments or False
         """
         try:
-            return self.coldkeypub
+            self.coldkeypub
+            return True
         except KeyFileError:
-            return ""
+            return False
         except KeyError:
-            return ""
+            return False
         except Exception as e:
-            return ""
+            return False
 
     @property
     def hotkey(self) -> bittensor.substrate.Keypair:
