@@ -35,6 +35,7 @@ import bittensor
 import bittensor.config as config_utils
 import bittensor.utils.networking as net
 from bittensor.subtensor import Subtensor
+from bittensor.crypto.keyfiles import KeyFileError
 
 MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
 
@@ -579,7 +580,11 @@ class Metagraph():
         last_emit = dict( await self.subtensor.async_get_last_emit() )
         self_uid = await self.subtensor.async_get_uid_for_pubkey( self.wallet.hotkey.public_key )
         if self_uid != None:
-            calls.append ( self._poll_uid ( self.wallet.hotkey.public_key, self_uid ) )     
+            try:
+                calls.append ( self._poll_uid ( self.wallet.hotkey.public_key, self_uid ) )     
+            except KeyFileError:
+                pass
+
         for pubkey, uid in active.items():
             if uid in last_emit:
                 emit_block = last_emit[ uid ]
