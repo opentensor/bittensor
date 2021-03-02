@@ -32,6 +32,8 @@ from torch.utils.tensorboard import SummaryWriter
 from bittensor.utils.model_utils import ModelToolbox
 from synapses.bert import BertNSPSynapse
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
+from torch.nn.utils import clip_grad_norm_
+
 
 def nsp_batch(data, batch_size, tokenizer):
     """ Returns a random batch from text dataset with 50 percent NSP.
@@ -111,6 +113,7 @@ class Miner():
     def add_args(parser: argparse.ArgumentParser):
         parser.add_argument('--miner.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--miner.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--miner.clip_gradients', default=0.8, type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.')
         parser.add_argument('--miner.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
         parser.add_argument('--miner.epoch_length', default=500, type=int, help='Iterations of training per epoch')
         parser.add_argument('--miner.batch_size_train', default=1, type=int, help='Training batch size.')
@@ -220,6 +223,7 @@ class Miner():
             # ---- Backward pass ----
             loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
             loss.backward() # Accumulates gradients on the model.
+            clip_grad_norm_(self.model.parameters(), self.config.miner.clip_gradients) # clip model gradients
             self.optimizer.step() # Applies accumulated gradients.
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
