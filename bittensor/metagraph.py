@@ -559,7 +559,7 @@ class Metagraph():
         self.state.block = current_block
 
         if self.wallet.has_hotkey and self.wallet.hotkey.public_key in self.state.uid_for_pubkey:
-            self.uid = self.uid_for_pubkey( self.wallet.public_key )
+            self.uid = self.uid_for_pubkey( self.wallet.hotkey.public_key )
             self.metadata = self.neuron_for_uid( self.uid )
         else:
             self.uid = None
