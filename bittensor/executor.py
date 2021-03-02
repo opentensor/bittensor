@@ -16,6 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 import argparse
 import sys
+import os
+import pandas as pd
 
 from munch import Munch
 from loguru import logger
@@ -124,7 +126,8 @@ class Executor:
         bittensor.wallet.Wallet.add_args( new_hotkey_parser )
 
         # Fill arguments for the overview command
-        bittensor.wallet.Wallet.add_args( overview_parser )
+        overview_parser.add_argument('--to_file', required=False, dest='to_file', action='store_false', help='''Write the overview to a file.''')
+        overview_parser.set_defaults(to_file=True)
         bittensor.subtensor.Subtensor.add_args( overview_parser )
         bittensor.metagraph.Metagraph.add_args( overview_parser )
 
@@ -257,6 +260,11 @@ class Executor:
             total_stake += neuron.stake.__float__()
         print(t.get_string())
         print("Total stake: ", total_stake)
+
+        if self.config.to_file:
+            filepath = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name + "/overview-block{}.txt".format(self.metagraph.block))
+            print ('Saving metagraph.state to file: {}'.format( filepath ))
+            self.metagraph.state.write_to_file( filepath )
 
     def unstake_all ( self ):
         r""" Unstaked from all hotkeys associated with this wallet's coldkey.
