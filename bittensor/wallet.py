@@ -124,7 +124,7 @@ class Wallet():
             return False
         except KeyError:
             return False
-        except Exception as e:
+        except Exception:
             return False
         
     @property
@@ -141,7 +141,7 @@ class Wallet():
             return False
         except KeyError:
             return False
-        except Exception as e:
+        except Exception:
             return False
 
     @property
@@ -158,7 +158,7 @@ class Wallet():
             return False
         except KeyError:
             return False
-        except Exception as e:
+        except Exception:
             return False
 
     @property
