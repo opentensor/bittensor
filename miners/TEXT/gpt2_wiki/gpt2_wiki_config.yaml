@@ -34,8 +34,7 @@ router:
   stale_emit_filter: 10000
   topk: 10
 subtensor:
-  chain_endpoint: null
-  network: null
+  chain_endpoint: null 
 synapse:
   activation_function: gelu_new
   attn_pdrop: 0.1
