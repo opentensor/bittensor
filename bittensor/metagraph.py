@@ -558,9 +558,8 @@ class Metagraph():
         self.state = TorchChainState.from_cache(self.cache)
         self.state.block = current_block
 
-        hotkey = self.wallet.try_hotkey # Returns hotkey or None.
-        if hotkey and hotkey.public_key in self.state.uid_for_pubkey:
-            self.uid = self.uid_for_pubkey( hotkey.public_key )
+        if self.wallet.has_hotkey and self.wallet.hotkey.public_key in self.state.uid_for_pubkey:
+            self.uid = self.uid_for_pubkey( self.wallet.public_key )
             self.metadata = self.neuron_for_uid( self.uid )
         else:
             self.uid = None
@@ -581,11 +580,10 @@ class Metagraph():
         active = dict( await self.subtensor.async_get_active() )
         last_emit = dict( await self.subtensor.async_get_last_emit() )
 
-        hotkey = self.wallet.try_hotkey # Returns hotkey or None.
-        if hotkey != None:
-            self_uid = await self.subtensor.async_get_uid_for_pubkey( hotkey.public_key )
+        if self.wallet.has_hotkey:
+            self_uid = await self.subtensor.async_get_uid_for_pubkey( self.wallet.hotkey.public_key )
             if self_uid != None:
-                calls.append ( self._poll_uid (hotkey.public_key, self_uid ) )     
+                calls.append ( self._poll_uid (self.wallet.hotkey.public_key, self_uid ) )     
 
         for pubkey, uid in active.items():
             if uid in last_emit:
