@@ -39,18 +39,18 @@ class Session():
         self.model.to( self.device ) # Set model to device
         
         # ---- Optimizer ---- 
-        self.optimizer = optim.SGD(self.model.parameters(), lr=self.config.session.learning_rate, momentum=self.config.session.momentum)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=self.config.miner.learning_rate, momentum=self.config.miner.momentum)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10.0, gamma=0.1)
 
         # ---- Dataset ----
-        self.train_data = torchvision.datasets.MNIST(root = self.config.session.root_dir + "datasets/", train=True, download=True, transform=transforms.ToTensor())
-        self.trainloader = torch.utils.data.DataLoader(self.train_data, batch_size = self.config.session.batch_size_train, shuffle=True, num_workers=2)
-        self.test_data = torchvision.datasets.MNIST(root = self.config.session.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
-        self.testloader = torch.utils.data.DataLoader(self.test_data, batch_size = self.config.session.batch_size_test, shuffle=False, num_workers=2)
+        self.train_data = torchvision.datasets.MNIST(root = self.config.miner.root_dir + "datasets/", train=True, download=True, transform=transforms.ToTensor())
+        self.trainloader = torch.utils.data.DataLoader(self.train_data, batch_size = self.config.miner.batch_size_train, shuffle=True, num_workers=2)
+        self.test_data = torchvision.datasets.MNIST(root = self.config.miner.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
+        self.testloader = torch.utils.data.DataLoader(self.test_data, batch_size = self.config.miner.batch_size_test, shuffle=False, num_workers=2)
 
         # ---- Tensorboard ----
         self.global_step = 0
-        self.tensorboard = SummaryWriter(log_dir = self.config.session.full_path)
+        self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
 
     @staticmethod
     def default_config() -> Munch:
@@ -76,15 +76,15 @@ class Session():
 
     @staticmethod
     def check_config(config: Munch):
-        assert config.session.log_interval > 0, "log_interval dimension must be positive"
-        assert config.session.momentum > 0 and config.session.momentum < 1, "momentum must be a value between 0 and 1"
-        assert config.session.batch_size_train > 0, "batch_size_train must be a positive value"
-        assert config.session.batch_size_test > 0, "batch_size_test must be a positive value"
-        assert config.session.learning_rate > 0, "learning rate must be be a positive value."
-        full_path = '{}/{}/{}/'.format(config.session.root_dir, config.session.name, config.session.uid)
-        config.session.full_path = full_path
-        if not os.path.exists(config.session.full_path):
-            os.makedirs(config.session.full_path)
+        assert config.miner.log_interval > 0, "log_interval dimension must be positive"
+        assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
+        assert config.miner.batch_size_train > 0, "batch_size_train must be a positive value"
+        assert config.miner.batch_size_test > 0, "batch_size_test must be a positive value"
+        assert config.miner.learning_rate > 0, "learning rate must be be a positive value."
+        full_path = '{}/{}/{}/'.format(config.miner.root_dir, config.miner.name, config.miner.uid)
+        config.miner.full_path = full_path
+        if not os.path.exists(config.miner.full_path):
+            os.makedirs(config.miner.full_path)
         FFNNSynapse.check_config(config)
         Neuron.check_config(config)
 
@@ -151,7 +151,7 @@ class Session():
             self.weights = F.normalize(self.weights, p = 1, dim = 0) # Ensure normalization.
 
             # ---- Step Logs + Tensorboard ----
-            processed = ((batch_idx + 1) * self.config.session.batch_size_train)
+            processed = ((batch_idx + 1) * self.config.miner.batch_size_train)
             progress = (100. * processed) / len(self.train_data)
             logger.info('GS: {}\t Epoch: {} [{}/{} ({})]\t Loss: {}\t Acc: {}\t Axon: {}\t Dendrite: {}', 
                     colored('{}'.format(self.global_step), 'blue'), 
