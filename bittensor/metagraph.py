@@ -19,6 +19,7 @@ import argparse
 import asyncio
 import copy
 import pandas as pd
+import json
 import math
 import numpy
 import random
@@ -134,6 +135,22 @@ class TorchChainState():
         self.neurons = []
         self.uid_for_pubkey = {}
         self.index_for_uid = {}
+
+    def write_to_file(self, filepath: str ):
+        json_data = {
+            'block': self.block,
+            'tau': self.tau.tolist(),
+            'n': self.n,
+            'uids': self.uids.tolist(),
+            'indices': self.indices.tolist(),
+            'stake': self.stake.tolist(),
+            'lastemit': self.lastemit.tolist(),
+            'W': self.W.tolist(),
+            'neurons': [ {'uid': n.uid, 'ip': n.address, 'port': n.port, 'ip_type': n.ip_type, 'modality': n.modality, 'hotkey': n.public_key} for n in self.neurons]
+        }
+        with open( filepath, 'w') as fp:
+            json.dump(json_data, fp)
+
 
     @staticmethod
     def from_cache(cache: ChainState):
@@ -800,6 +817,12 @@ class Metagraph():
             weight_uids.insert(0, weight_uids.pop(pos_self_uid))
             weight_vals.insert(0, weight_vals.pop(pos_self_uid))
         return weight_uids, weight_vals
+
+    def write_to_file( filepath: str ):
+        r"""
+            Writes the metagraph state to a file. 
+        """
+        self.state.write_to_file( filepath )
 
     def __str__(self):
         uids = self.state.uids.tolist()
