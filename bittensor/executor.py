@@ -35,6 +35,7 @@ class Executor:
             config: 'Munch' = None, 
             wallet: 'bittensor.wallet.Wallet' = None,
             subtensor: 'bittensor.subtensor.Subtensor' = None,
+            metagraph: 'bittensor.metagraph.Metagraph' = None,
             **kwargs,
         ):
         r""" Initializes a new Metagraph chain interface.
@@ -45,9 +46,12 @@ class Executor:
                     bittensor wallet with hotkey and coldkeypub.
                 subtensor (:obj:`bittensor.subtensor.Subtensor`, `optional`):
                     subtensor interface utility.
+                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
+                    bittensor metagraph object.
         """
         if config == None:
             config = Executor.default_config()
+        bittensor.config.Config.update_with_kwargs(config, kwargs) 
         Executor.check_config(config)
         self.config = config
 
@@ -62,7 +66,9 @@ class Executor:
             self.subtensor = subtensor
 
         if self.config.command in ["overview", "save_state"]:
-            self.metagraph = bittensor.metagraph.Metagraph( self.config, self.wallet, self.subtensor )
+            if metagraph == None:
+                metagraph = bittensor.metagraph.Metagraph( self.config, self.wallet, self.subtensor)
+            self.metagraph = metagraph
             
 
     @staticmethod
