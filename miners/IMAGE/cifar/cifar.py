@@ -27,6 +27,7 @@ from bittensor.utils.model_utils import ModelToolbox
 from munch import Munch
 from loguru import logger
 from synapses.dpn import DPNSynapse
+from torch.nn.utils import clip_grad_norm_
 
 class Miner():
 
@@ -81,6 +82,7 @@ class Miner():
     def add_args(parser: argparse.ArgumentParser):    
         parser.add_argument('--miner.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--miner.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--miner.clip_gradients', default=0.8, type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.')
         parser.add_argument('--miner.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
         parser.add_argument('--miner.epoch_length', default=int(sys.maxsize), type=int, help='Iterations of training per epoch (or dataset EOF)')
         parser.add_argument('--miner.batch_size_train', default=64, type=int, help='Training batch size.')
@@ -177,6 +179,7 @@ class Miner():
             # ---- Remote Backward pass ----
             loss = output.remote_target_loss + output.local_target_loss + output.distillation_loss
             loss.backward() # Accumulates gradients on the model.
+            clip_grad_norm_(self.model.parameters(), self.config.miner.clip_gradients) # clip model gradients
             self.optimizer.step() # Applies accumulated gradients.
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation 
 
