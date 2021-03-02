@@ -16,6 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 import argparse
 import sys
+import os
+import pandas as pd
 
 from munch import Munch
 from loguru import logger
@@ -54,12 +56,12 @@ class Executor:
         self.wallet = wallet
 
         # Only load subtensor if we need it.
-        if self.config.command in ["transfer", "unstake", "stake", "overview"]:
+        if self.config.command in ["transfer", "unstake", "stake", "overview", "save_state"]:
             if subtensor == None:
                 subtensor = bittensor.subtensor.Subtensor( self.config, self.wallet )
             self.subtensor = subtensor
 
-        if self.config.command in ["overview"]:
+        if self.config.command in ["overview", "save_state"]:
             self.metagraph = bittensor.metagraph.Metagraph( self.config, self.wallet, self.subtensor )
             
 
@@ -79,6 +81,8 @@ class Executor:
 
         overview_parser = cmd_parsers.add_parser('overview', 
             help='''Show account overview.''')
+        save_state_parser = cmd_parsers.add_parser('save_state', 
+            help='''Saves the metagraph state to a json file.''')
         transfer_parser = cmd_parsers.add_parser('transfer', 
             help='''Transfer Tao between accounts.''')
 
@@ -124,9 +128,12 @@ class Executor:
         bittensor.wallet.Wallet.add_args( new_hotkey_parser )
 
         # Fill arguments for the overview command
-        bittensor.wallet.Wallet.add_args( overview_parser )
         bittensor.subtensor.Subtensor.add_args( overview_parser )
         bittensor.metagraph.Metagraph.add_args( overview_parser )
+
+        # Fill argument for the save_state command
+        bittensor.subtensor.Subtensor.add_args( save_state_parser )
+        bittensor.metagraph.Metagraph.add_args( save_state_parser )
 
         # Fill arguments for unstake command. 
         unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
@@ -189,6 +196,8 @@ class Executor:
             self.stake()
         elif self.config.command == "overview":
             self.overview()
+        elif self.config.command == "save_state":
+            self.save_state()
         elif self.config.command == "new_coldkey":
             self.create_new_coldkey()
         elif self.config.command == "new_hotkey":
@@ -257,6 +266,13 @@ class Executor:
             total_stake += neuron.stake.__float__()
         print(t.get_string())
         print("Total stake: ", total_stake)
+
+    def save_state( self ):
+        self.subtensor.connect()
+        self.metagraph.sync()
+        filepath = os.path.expanduser('~/.bittensor/metagraph-at-block{}.txt'.format(self.metagraph.block))
+        print ('Saving metagraph.state to file: {}'.format( filepath ))
+        self.metagraph.state.write_to_file( filepath )
 
     def unstake_all ( self ):
         r""" Unstaked from all hotkeys associated with this wallet's coldkey.
