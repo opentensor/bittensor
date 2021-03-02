@@ -86,9 +86,46 @@ class Wallet():
     def check_config(config: Munch):
         pass
 
+    def assert_hotkey(self) -> bittensor.substrate.Keypair:
+        r""" Checks for a valid hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or exits.
+        """
+        try:
+            return self.hotkey
+        except KeyFileError:
+            sys.exit(1)
+        except KeyError:
+            sys.exit(1)
+        except Exception as e:
+            sys.exit(1)
+        
+    def assert_coldkey(self) -> bittensor.substrate.Keypair:
+        r""" Checks for a valid coldkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or exits.
+        """
+        try:
+            return self.coldkey
+        except KeyFileError:
+            sys.exit(1)
+        except KeyError:
+            sys.exit(1)
+        except Exception as e:
+            sys.exit(1)
+
+    def asset_coldkeypub(self) -> str:
+        r""" Checks for a valid coldkeypub from wallet.path/wallet.name/coldkeypub.txt or exits
+        """
+        try:
+            return self.coldkeypub
+        except KeyFileError:
+            sys.exit(1)
+        except KeyError:
+            sys.exit(1)
+        except Exception as e:
+            sys.exit(1)
+
+
     @property
     def try_hotkey(self) -> bittensor.substrate.Keypair:
-        r""" Tries to loads the hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or returns None.
+        r""" Attempts to load the hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or returns None.
             Returns:
                 hotkey (bittensor.substrate.Keypair):
                     hotkey loaded from config arguments or None
@@ -96,14 +133,15 @@ class Wallet():
         try:
             return self.hotkey
         except KeyFileError:
-            print(colored("Failed attempt to load hotkey under dir".format( self.hotkeyfile ), 'red'))
+            return None
         except KeyError:
-            print(colored("Failed attempt to load hotkey under dir".format( self.hotkeyfile ), 'red'))
-        return None
+            return None
+        except Exception as e:
+            return None
         
     @property
     def try_coldkey(self) -> bittensor.substrate.Keypair:
-        r""" Loads the coldkeypub from wallet.path/wallet.name/coldkeypub.txt or returns None.
+        r""" Attempts to load the coldkey from wallet.path/wallet.name/coldkeypub.txt or returns None.
             Returns:
                 coldkey (bittensor.substrate.Keypair):
                     colkey loaded from config arguments or None
@@ -111,14 +149,15 @@ class Wallet():
         try:
             return self.coldkey
         except KeyFileError:
-            print(colored("Failed attempt to load hotkey under dir".format( self.coldkeyfile ), 'red'))
+            return None
         except KeyError:
-            print(colored("Failed attempt to load hotkey under dir".format( self.coldkeyfile ), 'red'))
-        return None
+            return None
+        except Exception as e:
+            return None
 
     @property
     def try_coldkeypub(self) -> str:
-        r""" Loads the coldkeypub from wallet.path/wallet.name/coldkeypub.txt or returns an empty string.
+        r""" Attempts to load the coldkeypub from wallet.path/wallet.name/coldkeypub.txt or returns an empty string.
             Returns:
                 coldkeypub (str):
                     colkeypub loaded from config arguments or ""
@@ -126,10 +165,11 @@ class Wallet():
         try:
             return self.coldkeypub
         except KeyFileError:
-            print(colored("Failed attempt to load hotkey under dir".format( self.coldkeypubfile ), 'red'))
+            return ""
         except KeyError:
-            print(colored("Failed attempt to load hotkey under dir".format( self.coldkeypubfile ), 'red'))
-        return ""
+            return ""
+        except Exception as e:
+            return ""
 
     @property
     def hotkey(self) -> bittensor.substrate.Keypair:
@@ -204,7 +244,6 @@ class Wallet():
         with open( self.coldkeypubfile, "r") as file:
             key = file.readline().strip()
             if not re.match("^0x[a-z0-9]{64}$", key):
-                logger.error("Cold key pub file is corrupt")
                 raise KeyFileError("Cold key pub file is corrupt")
 
         with open( self.coldkeypubfile , "r") as file:
