@@ -87,21 +87,90 @@ class Wallet():
         pass
 
     @property
+    def try_hotkey(self) -> bittensor.substrate.Keypair:
+        r""" Tries to loads the hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or returns None.
+            Returns:
+                hotkey (bittensor.substrate.Keypair):
+                    hotkey loaded from config arguments or None
+        """
+        try:
+            return self.hotkey
+        except KeyFileError:
+            print(colored("Failed attempt to load hotkey under dir".format( self.hotkeyfile ), 'red'))
+        except KeyError:
+            print(colored("Failed attempt to load hotkey under dir".format( self.hotkeyfile ), 'red'))
+        return None
+        
+    @property
+    def try_coldkey(self) -> bittensor.substrate.Keypair:
+        r""" Loads the coldkeypub from wallet.path/wallet.name/coldkeypub.txt or returns None.
+            Returns:
+                coldkey (bittensor.substrate.Keypair):
+                    colkey loaded from config arguments or None
+        """
+        try:
+            return self.coldkey
+        except KeyFileError:
+            print(colored("Failed attempt to load hotkey under dir".format( self.coldkeyfile ), 'red'))
+        except KeyError:
+            print(colored("Failed attempt to load hotkey under dir".format( self.coldkeyfile ), 'red'))
+        return None
+
+    @property
+    def try_coldkeypub(self) -> str:
+        r""" Loads the coldkeypub from wallet.path/wallet.name/coldkeypub.txt or returns an empty string.
+            Returns:
+                coldkeypub (str):
+                    colkeypub loaded from config arguments or ""
+        """
+        try:
+            return self.coldkeypub
+        except KeyFileError:
+            print(colored("Failed attempt to load hotkey under dir".format( self.coldkeypubfile ), 'red'))
+        except KeyError:
+            print(colored("Failed attempt to load hotkey under dir".format( self.coldkeypubfile ), 'red'))
+        return ""
+
+    @property
     def hotkey(self) -> bittensor.substrate.Keypair:
+        r""" Loads the hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or raises an error.
+            Returns:
+                hotkey (bittensor.substrate.Keypair):
+                    hotkey loaded from config arguments.
+            Raises:
+                KeyFileError: Raised if the file is corrupt of non-existent.
+                KeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
+        """
         if self._hotkey == None:
-            self._load_hotkey()
+            self._hotkey = self._load_hotkey()
         return self._hotkey
 
     @property
     def coldkey(self) -> bittensor.substrate.Keypair:
+        r""" Loads the hotkey from wallet.path/wallet.name/coldkey or raises an error.
+            Returns:
+                coldkey (bittensor.substrate.Keypair):
+                    colkey loaded from config arguments.
+            Raises:
+                KeyFileError: Raised if the file is corrupt of non-existent.
+                KeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
+        """
         if self._coldkey == None:
-            self._load_coldkey( )
+            self._coldkey = self._load_coldkey( )
         return self._coldkey
 
     @property
     def coldkeypub(self) -> str:
+        r""" Loads the coldkeypub from wallet.path/wallet.name/coldkeypub.txt or raises an error.
+            Returns:
+                coldkeypub (str):
+                    colkeypub loaded from config arguments.
+            Raises:
+                KeyFileError: Raised if the file is corrupt of non-existent.
+                KeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
+        """
         if self._coldkeypub == None:
-            self._load_coldkeypub( )
+            self._coldkeypub = self._load_coldkeypub( )
         return self._coldkeypub
 
     @property
@@ -119,94 +188,80 @@ class Wallet():
         full_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name)
         return full_path + "/hotkeys/" + self.config.wallet.hotkey
 
-
-    def _load_coldkeypub(self):
-        keyfile = os.path.expanduser( self.coldkeypubfile )
-        keyfile = os.path.expanduser(keyfile)
-
-        if not os.path.isfile(keyfile):
-            print(colored("coldkeypubfile  {} does not exist".format(keyfile), 'red'))
+    def _load_coldkeypub(self) -> str:
+        if not os.path.isfile( self.coldkeypubfile ):
+            print(colored("coldkeypubfile  {} does not exist".format( self.coldkeypubfile ), 'red'))
             raise KeyFileError
 
-        if not os.path.isfile(keyfile):
-            print(colored("coldkeypubfile  {} is not a file".format(keyfile), 'red'))
+        if not os.path.isfile( self.coldkeypubfile ):
+            print(colored("coldkeypubfile  {} is not a file".format( self.coldkeypubfile ), 'red'))
             raise KeyFileError
 
-        if not os.access(keyfile, os.R_OK):
-            print(colored("coldkeypubfile  {} is not readable".format(keyfile), 'red'))
+        if not os.access( self.coldkeypubfile , os.R_OK):
+            print(colored("coldkeypubfile  {} is not readable".format( self.coldkeypubfile ), 'red'))
             raise KeyFileError
 
-        with open(keyfile, "r") as file:
+        with open( self.coldkeypubfile, "r") as file:
             key = file.readline().strip()
             if not re.match("^0x[a-z0-9]{64}$", key):
                 logger.error("Cold key pub file is corrupt")
                 raise KeyFileError("Cold key pub file is corrupt")
 
-        with open(keyfile, "r") as file:
-            self._coldkeypub = file.readline().strip()
+        with open( self.coldkeypubfile , "r") as file:
+            coldkeypub = file.readline().strip()
 
-        print(colored("Loaded coldkey.pub: {}".format(self._coldkeypub), 'green'))
+        print(colored("Loaded coldkey.pub: {}".format( coldkeypub ), 'green'))
+        return coldkeypub
 
-    def _load_hotkey(self):
-        keyfile = os.path.expanduser( self.hotkeyfile )
-        keyfile = os.path.expanduser(keyfile)
+    def _load_hotkey(self) -> bittensor.substrate.Keypair:
 
-        if not os.path.isfile(keyfile):
-            print(colored("hotkeyfile  {} does not exist".format(keyfile), 'red'))
+        if not os.path.isfile( self.hotkeyfile ):
+            print(colored("hotkeyfile  {} does not exist".format( self.hotkeyfile ), 'red'))
             raise KeyFileError
 
-        if not os.path.isfile(keyfile):
-            print(colored("hotkeyfile  {} is not a file".format(keyfile), 'red'))
+        if not os.path.isfile( self.hotkeyfile ):
+            print(colored("hotkeyfile  {} is not a file".format( self.hotkeyfile ), 'red'))
             raise KeyFileError
 
-        if not os.access(keyfile, os.R_OK):
-            print(colored("hotkeyfile  {} is not readable".format(keyfile), 'red'))
+        if not os.access( self.hotkeyfile , os.R_OK):
+            print(colored("hotkeyfile  {} is not readable".format( self.hotkeyfile ), 'red'))
             raise KeyFileError
 
-        try:
-            with open(keyfile, 'rb') as file:
-                data = file.read()
-                try:
-                    # Try hotkey load.
-                    if is_encrypted(data):
-                        password = bittensor.utils.Cli.ask_password()
-                        print("decrypting key... (this may take a few moments)")
-                        data = decrypt_data(password, data)
-                    self._hotkey = load_keypair_from_data(data)
-                except KeyError:
-                    print(colored("Invalid password", 'red'))
-                    sys.exit(1)
-                except KeyFileError as e:
-                    print(colored("Keyfile corrupt", 'red'))
-                    sys.exit(1)
+        with open( self.hotkeyfile , 'rb') as file:
+            data = file.read()
+            try:
+                # Try hotkey load.
+                if is_encrypted(data):
+                    password = bittensor.utils.Cli.ask_password()
+                    print("decrypting key... (this may take a few moments)")
+                    data = decrypt_data(password, data)
+                hotkey = load_keypair_from_data(data)
+            except KeyError:
+                print(colored("Invalid password", 'red'))
+                raise KeyError("Invalid password")
 
-                print(colored("Loaded hotkey: {}".format(self._hotkey.public_key), 'green'))
+            except KeyFileError as e:
+                print(colored("Keyfile corrupt", 'red'))
+                raise KeyFileError("Keyfile corrupt")
 
-        except KeyError:
-            print(colored("Invalid password", 'red'))
-            raise KeyError("Invalid password")
+            print(colored("Loaded hotkey: {}".format(hotkey.public_key), 'green'))
+            return hotkey
 
-        except KeyFileError as e:
-            print(colored("Keyfile corrupt", 'red'))
-            raise KeyFileError("Keyfile corrupt")
 
-    def _load_coldkey(self):
-        keyfile = os.path.expanduser( self.coldkeyfile )
-        keyfile = os.path.expanduser(keyfile)
-
-        if not os.path.isfile(keyfile):
-            print(colored("coldkeyfile  {} does not exist".format(keyfile), 'red'))
+    def _load_coldkey(self) -> bittensor.substrate.Keypair:
+        if not os.path.isfile( self.coldkeyfile ):
+            print(colored("coldkeyfile  {} does not exist".format( self.coldkeyfile ), 'red'))
             raise KeyFileError
 
-        if not os.path.isfile(keyfile):
-            print(colored("coldkeyfile  {} is not a file".format(keyfile), 'red'))
+        if not os.path.isfile( self.coldkeyfile ):
+            print(colored("coldkeyfile  {} is not a file".format( self.coldkeyfile ), 'red'))
             raise KeyFileError
 
-        if not os.access(keyfile, os.R_OK):
-            print(colored("coldkeyfile  {} is not readable".format(keyfile), 'red'))
+        if not os.access( self.coldkeyfile , os.R_OK):
+            print(colored("coldkeyfile  {} is not readable".format( self.coldkeyfile ), 'red'))
             raise KeyFileError
 
-        with open(keyfile, 'rb') as file:
+        with open( self.coldkeyfile , 'rb') as file:
             data = file.read()
             try:
                 # Try key load.
@@ -214,16 +269,18 @@ class Wallet():
                     password = bittensor.utils.Cli.ask_password()
                     print("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
-                self._coldkey = load_keypair_from_data(data)
+                coldkey = load_keypair_from_data(data)
 
             except KeyError:
                 print(colored("Invalid password", 'red'))
-                sys.exit(1)
+                raise KeyError("Invalid password")
+
             except KeyFileError as e:
                 print(colored("Keyfile corrupt", 'red'))
-                sys.exit(1)
+                raise KeyFileError("Keyfile corrupt")
 
-            print(colored("Loaded coldkey: {}".format(self._coldkey.public_key), 'green'))
+            print(colored("Loaded coldkey: {}".format(coldkey.public_key), 'green'))
+            return coldkey
 
     @staticmethod
     def __is_world_readable(path):
@@ -252,13 +309,12 @@ class Wallet():
         dir_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name )
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
-        expanded_coldkeyfile_path = dir_path + '/coldkey'
 
         # Create Key
-        cli_utils.validate_create_path( expanded_coldkeyfile_path )
+        cli_utils.validate_create_path( self.coldkeyfile  )
         self._coldkey = cli_utils.gen_new_key( n_words )
         cli_utils.display_mnemonic_msg( self._coldkey  )
-        cli_utils.write_pubkey_to_text_file( expanded_coldkeyfile_path, self._coldkey.public_key )
+        cli_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
 
         # Encrypt
         if use_password:
@@ -271,36 +327,34 @@ class Wallet():
             coldkey_data = json.dumps(self._coldkey.toDict()).encode()
 
         # Save
-        cli_utils.save_keys( expanded_coldkeyfile_path, coldkey_data )
-        cli_utils.set_file_permissions( expanded_coldkeyfile_path )
+        cli_utils.save_keys( self.coldkeyfile, coldkey_data )
+        cli_utils.set_file_permissions( self.coldkeyfile )
 
     def create_new_hotkey( self, n_words:int = 12):  
         # Create directory 
         dir_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name + "/hotkeys/" )
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
-        expanded_hotkeyfile_path = dir_path + self.config.wallet.hotkey
 
         # Create
-        cli_utils.validate_create_path( expanded_hotkeyfile_path )
+        cli_utils.validate_create_path( self.hotkeyfile )
         self._hotkey = cli_utils.gen_new_key( n_words )
         cli_utils.display_mnemonic_msg( self._hotkey )
         hotkey_data = json.dumps(self._hotkey.toDict()).encode()
 
         # Save
-        cli_utils.save_keys( expanded_hotkeyfile_path, hotkey_data )
-        cli_utils.set_file_permissions( expanded_hotkeyfile_path )
+        cli_utils.save_keys( self.hotkeyfile, hotkey_data )
+        cli_utils.set_file_permissions( self.hotkeyfile )
 
     def regenerate_coldkey( self, mnemonic: str, use_password: bool):
         # Create directory 
         dir_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name )
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
-        expanded_coldkeyfile_path = dir_path + '/coldkey'
 
         # Regenerate
         self._coldkey = cli_utils.validate_generate_mnemonic( mnemonic )
-        cli_utils.write_pubkey_to_text_file(expanded_coldkeyfile_path, self._coldkey.public_key )
+        cli_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
         
         # Encrypt
         if use_password:
@@ -313,21 +367,20 @@ class Wallet():
             coldkey_data = json.dumps(self._coldkey.toDict()).encode()
 
         # Save
-        cli_utils.save_keys( expanded_coldkeyfile_path, coldkey_data ) 
-        cli_utils.set_file_permissions( expanded_coldkeyfile_path )
+        cli_utils.save_keys( self.coldkeyfile, coldkey_data ) 
+        cli_utils.set_file_permissions( self.coldkeyfile )
 
     def regenerate_hotkey( self, mnemonic: str ):
         # Create directory 
         dir_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name + "/hotkeys/" )
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
-        expanded_hotkeyfile_path = dir_path + self.config.wallet.hotkey
 
         # Regenerate
-        cli_utils.validate_create_path( expanded_hotkeyfile_path )
+        cli_utils.validate_create_path( self.hotkeyfile )
         self._hotkey = cli_utils.validate_generate_mnemonic( mnemonic )
         
         # Save
         hotkey_data = json.dumps(self._hotkey.toDict()).encode()
-        cli_utils.save_keys( expanded_hotkeyfile_path, hotkey_data )
-        cli_utils.set_file_permissions( expanded_hotkeyfile_path )
+        cli_utils.save_keys( self.hotkeyfile, hotkey_data )
+        cli_utils.set_file_permissions( self.hotkeyfile )
