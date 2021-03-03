@@ -6,7 +6,7 @@ import bittensor.bittensor_pb2 as proto
 import bittensor.bittensor_pb2_grpc as grpc
 
 # Bittensor code and protocol version.
-__version__ = '1.0.3'
+__version__ = '1.0.4'
 
 # Tensor dimension.
 # NOTE (const): if/when this increases peers must be responsible for trimming or expanding output to this size.
