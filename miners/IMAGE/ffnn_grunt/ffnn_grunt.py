@@ -4,7 +4,7 @@ This fil demonstrates how to train a FeedForward Neural network on the network
 without a training ste.
 
 Example:
-        $ python miners/IMAGE/ffnn_grunt.py
+        $ python miners/IMAGE/ffnn_grunt/ffnn_grunt.py
 
 Look at the yaml config file to tweak the parameters of the model. To run with those 
 default configurations, run:

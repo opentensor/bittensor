@@ -51,12 +51,15 @@ class SkeletonSynapse(bittensor.synapse.Synapse):
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
         self.transform = Normalize((0.1307,), (0.3081,),  device=self.device)
-        self.transform_pool = nn.AdaptiveAvgPool2d((28, 28))
-        self.transform_conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        self.transform_conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.transform_drop = nn.Dropout2d()
-        self.transform_dim = 320
-
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((32, 32))
+        self.transform_conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self.transform_bn1 = nn.BatchNorm2d(64)
+        self.last_planes = 64
+        self.transform_layer1 = self._make_layer(in_planes[0], out_planes[0], num_blocks[0], dense_depth[0], stride=1)
+        self.transform_layer2 = self._make_layer(in_planes[1], out_planes[1], num_blocks[1], dense_depth[1], stride=2)
+        self.transform_layer3 = self._make_layer(in_planes[2], out_planes[2], num_blocks[2], dense_depth[2], stride=1)
+        self.transform_layer4 = self._make_layer(in_planes[3], out_planes[3], num_blocks[3], dense_depth[3], stride=2)
+        self.transform_dim = (out_planes[3] * 4)+(((num_blocks[3]+1) * 4)*dense_depth[3])
         # context_layer: distills the remote_context from the transform layer.
         # [batch_size, transform_dim] -> [batch_size, bittensor.__network_dim__]
         self.context_layer1 = nn.Linear(self.transform_dim, 256)
@@ -123,7 +126,7 @@ class SkeletonSynapse(bittensor.synapse.Synapse):
         return hidden
 
     def local_forward(self, images: torch.Tensor, targets: torch.Tensor = None) -> SimpleNamespace:
-        r""" Forward pass non-sequential image inputs and targets through the FFNN Synapse. The call does not make 
+        r""" Forward pass non-sequential image inputs and targets through the Skeleton Synapse. The call does not make 
         remote queries to the network and returns only local hidden, target and losses.
 
         Args:
@@ -148,7 +151,7 @@ class SkeletonSynapse(bittensor.synapse.Synapse):
 
             local_accuracy (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                 Accuracy of target predictions.
-            
+
         """
 
         # Return vars to be filled.
