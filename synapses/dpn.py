@@ -38,16 +38,19 @@ class DPNSynapse(bittensor.synapse.Synapse):
     """ Bittensor endpoint trained on PIL images to detect objects using an DPN.
     """
 
-    def __init__( self, config: Munch = None):
+    def __init__( self, config: Munch = None, **kwargs):
         r""" Init a new DPN synapse module.
 
             Args:
                 config (:obj: `munch.Munch`, `required`)
                     munch namespace config item.
         """
-        super(DPNSynapse, self).__init__(config = config)
+        super(DPNSynapse, self).__init__(config = config, **kwargs)
         if config == None:
-            config = DPNSynapse.build_config()
+            config = DPNSynapse.default_config()
+        bittensor.config.Config.update_with_kwargs(config.synapse, kwargs) 
+        DPNSynapse.check_config(config)
+        self.config = config
         
         in_planes, out_planes = config.synapse.in_planes, config.synapse.out_planes
         num_blocks, dense_depth = config.synapse.num_blocks, config.synapse.dense_depth
@@ -99,11 +102,10 @@ class DPNSynapse(bittensor.synapse.Synapse):
         self.to(self.device)
 
     @staticmethod   
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         DPNSynapse.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        DPNSynapse.check_config(config)
         return config
 
     @staticmethod

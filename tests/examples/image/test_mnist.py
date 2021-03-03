@@ -7,10 +7,10 @@ import torch
 import numpy
 from mnist import Session
 def test_run_mnist():
-    mnist_session_config = Session.build_config()
+    mnist_session_config = Session.default_config()
     mnist_session_config.metagraph.chain_endpoint = 'feynman.akira.bittensor.com:9944'
-    mnist_session_config.session.n_epochs = 1
-    mnist_session_config.session.epoch_length = 1
+    mnist_session_config.miner.n_epochs = 1
+    mnist_session_config.miner.epoch_length = 1
     mnist_session = Session(mnist_session_config)
     mnist_session.neuron.metagraph.connect = MagicMock(return_value = (bittensor.metagraph.Metagraph.ConnectSuccess, ""))    
     mnist_session.neuron.metagraph.subscribe = MagicMock(return_value = (bittensor.metagraph.Metagraph.SubscribeSuccess, ""))   

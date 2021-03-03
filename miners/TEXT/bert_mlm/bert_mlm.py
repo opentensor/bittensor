@@ -34,6 +34,7 @@ from transformers import DataCollatorForLanguageModeling
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 from bittensor.utils.model_utils import ModelToolbox
 from synapses.bert import BertMLMSynapse
+from torch.nn.utils import clip_grad_norm_
 
 def mlm_batch(data, batch_size, tokenizer, collator):
     """ Returns a random batch from text dataset with 50 percent NSP.
@@ -63,9 +64,11 @@ def mlm_batch(data, batch_size, tokenizer, collator):
 
 class Miner():
 
-    def __init__(self, config: Munch = None):
+    def __init__(self, config: Munch = None, **kwargs):
         if config == None:
-            config = Miner.build_config(); logger.info(bittensor.config.Config.toString(config))
+            config = Miner.default_config();       
+        bittensor.config.Config.update_with_kwargs(config.miner, kwargs) 
+        Miner.check_config(config)
         self.config = config
 
         # ---- Neuron ----
@@ -96,11 +99,10 @@ class Miner():
             logger.add(self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
 
     @staticmethod
-    def build_config() -> Munch:
+    def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Miner.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
-        Miner.check_config(config)
         return config
 
     @staticmethod
@@ -112,13 +114,12 @@ class Miner():
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
-        BertMLMSynapse.check_config(config)
-        bittensor.neuron.Neuron.check_config(config)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         parser.add_argument('--miner.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--miner.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--miner.clip_gradients', default=0.8, type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.')
         parser.add_argument('--miner.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
         parser.add_argument('--miner.epoch_length', default=500, type=int, help='Iterations of training per epoch')
         parser.add_argument('--miner.batch_size_train', default=1, type=int, help='Training batch size.')
@@ -129,7 +130,7 @@ class Miner():
         parser.add_argument('--miner.root_dir', default='~/.bittensor/miners/', type=str,  help='Root path to load and save data associated with each miner')
         parser.add_argument('--miner.name', default='bert-nsp', type=str, help='Trials for this miner go in miner.root / miner.name')
         parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
-        parser.add_argument('--miner.record_log', default=True, help='Record all logs when running this miner')
+        parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         BertMLMSynapse.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
@@ -217,6 +218,7 @@ class Miner():
             # ---- Backward pass ----
             loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
             loss.backward() # Accumulates gradients on the model.
+            clip_grad_norm_(self.model.parameters(), self.config.miner.clip_gradients) # clip model gradients
             self.optimizer.step() # Applies accumulated gradients.
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
@@ -251,7 +253,7 @@ class Miner():
 
 if __name__ == "__main__":
     # ---- Build and Run ----
-    config = Miner.build_config(); logger.info(bittensor.config.Config.toString(config))
-    miner = Miner(config)
+    miner = Miner()
+    logger.info(bittensor.config.Config.toString(miner.config))
     miner.run()
 

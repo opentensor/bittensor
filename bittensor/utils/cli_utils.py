@@ -8,11 +8,10 @@ import getpass
 
 from loguru import logger
 
-from bittensor.subtensor.interface import Keypair
+from bittensor.substrate import Keypair
 from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError
 from termcolor import colored
 from bittensor.crypto import encrypt, is_encrypted, decrypt_data, KeyError
-from bittensor.subtensor.client import WSClient
 from bittensor.utils import Cli
 
 class cli_utils():
@@ -36,28 +35,12 @@ class cli_utils():
         except KeyFileError as e:
             print(colored("Keyfile corrupt", 'red'))
             raise e
-
-    @staticmethod
-    def get_client(endpoint, keypair):
-        return WSClient(socket=endpoint, keypair=keypair)
-
+        
     @staticmethod
     def enable_debug(should_debug):
         if not should_debug:
             logger.remove()
             logger.add(sink=sys.stderr, level="INFO")
-
-    @staticmethod
-    def create_config_dir_if_not_exists():
-        config_dir = "~/.bittensor"
-        config_dir = os.path.expanduser(config_dir)
-        if os.path.exists(config_dir):
-            if os.path.isdir(config_dir):
-                return
-            else:
-                print(colored("~/.bittensor exists, but is not a directory. Aborting", 'red'))
-                quit()
-        os.mkdir(config_dir)
 
     @staticmethod
     def create_wallet_dir_if_not_exists(wallet_dir):
