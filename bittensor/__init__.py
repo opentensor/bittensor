@@ -19,6 +19,7 @@ __blocktime__ = 6
 import bittensor.axon
 import bittensor.config 
 import bittensor.executor
+import bittensor.experimental
 import bittensor.dendrite
 import bittensor.metagraph
 import bittensor.neuron
