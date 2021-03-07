@@ -162,7 +162,7 @@ class Wallet():
             return False
 
     @property
-    def hotkey(self) -> bittensor.substrate.Keypair:
+    def hotkey(self) -> 'bittensor.substrate.Keypair':
         r""" Loads the hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or raises an error.
             Returns:
                 hotkey (bittensor.substrate.Keypair):
@@ -176,7 +176,7 @@ class Wallet():
         return self._hotkey
 
     @property
-    def coldkey(self) -> bittensor.substrate.Keypair:
+    def coldkey(self) -> 'bittensor.substrate.Keypair':
         r""" Loads the hotkey from wallet.path/wallet.name/coldkey or raises an error.
             Returns:
                 coldkey (bittensor.substrate.Keypair):
@@ -242,7 +242,7 @@ class Wallet():
         print(colored("Loaded coldkey.pub: {}".format( coldkeypub ), 'green'))
         return coldkeypub
 
-    def _load_hotkey(self) -> bittensor.substrate.Keypair:
+    def _load_hotkey(self) -> 'bittensor.substrate.Keypair':
 
         if not os.path.isfile( self.hotkeyfile ):
             print(colored("hotkeyfile  {} does not exist".format( self.hotkeyfile ), 'red'))
@@ -277,7 +277,7 @@ class Wallet():
             return hotkey
 
 
-    def _load_coldkey(self) -> bittensor.substrate.Keypair:
+    def _load_coldkey(self) -> 'bittensor.substrate.Keypair':
         if not os.path.isfile( self.coldkeyfile ):
             print(colored("coldkeyfile  {} does not exist".format( self.coldkeyfile ), 'red'))
             raise KeyFileError
@@ -317,11 +317,11 @@ class Wallet():
         return st.st_mode & stat.S_IROTH
 
     @staticmethod
-    def __create_keypair() -> bittensor.substrate.Keypair:
+    def __create_keypair() -> 'bittensor.substrate.Keypair':
         return bittensor.substrate.Keypair.create_from_mnemonic(bittensor.substrate.Keypair.generate_mnemonic())
 
     @staticmethod
-    def __save_keypair(keypair : bittensor.substrate.Keypair, path : str):
+    def __save_keypair(keypair : 'bittensor.substrate.Keypair', path : str):
         path = os.path.expanduser(path)
         with open(path, 'w') as file:
             json.dump(keypair.toDict(), file)

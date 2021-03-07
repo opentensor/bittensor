@@ -35,6 +35,8 @@ from termcolor import colored
 from types import SimpleNamespace
 from typing import List
 
+import torch.multiprocessing as mp
+
 import bittensor
 import bittensor.utils.networking as net
 import bittensor.serialization as serialization
@@ -48,7 +50,6 @@ class Axon(bittensor.grpc.BittensorServicer):
             self, 
             config: Munch = None, 
             wallet: 'bittensor.wallet.Wallet' = None,
-            nucleus: 'bittensor.nucleus.Nucleus' = None,
             metagraph: 'bittensor.metagraph.Metagraph' = None,
             **kwargs
         ):
@@ -59,8 +60,6 @@ class Axon(bittensor.grpc.BittensorServicer):
                     axon.Axon.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                nucleus (:obj:`bittensor.nucleus.Nucleus`, `optional`):
-                    backend processing nucleus.
                 metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
                     bittensor network metagraph.
                 local_port (default=8091, type=int): 
@@ -85,7 +84,7 @@ class Axon(bittensor.grpc.BittensorServicer):
                         Gradients passed from other peers accumulate on this endpoint and queue in axon.gradients.
         """
         # Config: Holds all config items for this items and those that are recursively defined. For instance,
-        # config for the wallet, metagraph, and nucleus sub-objects.
+        # config for the wallet, metagraph sub-objects.
         if config == None:
             config = Axon.default_config()
         bittensor.config.Config.update_with_kwargs(config.axon, kwargs) 
@@ -104,13 +103,6 @@ class Axon(bittensor.grpc.BittensorServicer):
             metagraph = bittensor.metagraph.Metagraph( config = self.config, wallet = self.wallet )
         self.metagraph = metagraph
 
-        # Nucleus: Request processing object. The Axon servicer passes requests to this
-        # object to perform the actual computation. Can be ripped out and replaced with various
-        # computational objects.
-        if nucleus == None:
-            nucleus = bittensor.nucleus.Nucleus( config = self.config, wallet = self.wallet, metagraph = self.metagraph )
-        self.nucleus = nucleus
-
         # Server: by default the axon serves an RPC server in its own thread using GPRC.
         # The servicer must implement Forward and Backward methods to properly communicate with
         # the other peers in the network.
@@ -118,17 +110,9 @@ class Axon(bittensor.grpc.BittensorServicer):
         bittensor.grpc.add_BittensorServicer_to_server(self, self._server)
         self._server.add_insecure_port('[::]:' + str(self.config.axon.local_port))
 
-        # Local Synapse: The synapse object that will be served to the network on this endpoint.
-        # Must be set by calling axon.server( synapse_object ). This object is not copied by default 
-        # and therefore should be threadsafe when run with any nucleus that alos runs in a separate thread 
-        # to the main training thread. 
-        self.synapse = None
-
-        # A map between public key and processing priority.
-        self.priority = {}
-
-        # Gradient queue: A queue of (input, gradient) tuples.
-        self.gradients = queue.PriorityQueue(maxsize = self.config.axon.max_gradients)
+        # Forward and Backward multiprocessing queues
+        self.forward_queue = mp.Queue()
+        self.backward_queue = mp.Queue()
 
         # Serving thread: A thread which runs the axon servicer passing items to the nucleus for
         # further processing.
@@ -159,8 +143,6 @@ class Axon(bittensor.grpc.BittensorServicer):
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
                     parser argument to append args to.
         """
-        bittensor.nucleus.Nucleus.add_args(parser)
-        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
         try:
             parser.add_argument('--axon.local_port', default=8091, type=int, 
                 help='''The port this axon endpoint is served on. i.e. 8091''')
@@ -234,11 +216,10 @@ class Axon(bittensor.grpc.BittensorServicer):
             
             Returns:
                 response (bittensor.proto.TensorMessage): 
-                    proto response carring the synapse forward output or None under failure.
+                    proto response carring the nucleus forward output or None under failure.
         """
         # TODO(const): check signature
         # TODO(const): black and white listing.
-
         tensor, message, code = self._forward(request)
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version__, 
@@ -247,7 +228,6 @@ class Axon(bittensor.grpc.BittensorServicer):
             message = message,
             tensors = [tensor] if tensor is not None else [],
         )
-
         # ---- Update stats for this request.
         self.update_stats_for_request(request, response)
         return response
@@ -267,7 +247,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             
             Returns:
                 response (:obj:`bittensor.proto.TensorMessage`): 
-                    proto response carring the synapse backward output or None under failure.
+                    proto response carring the nucleus backward output or None under failure.
         """
         tensor, message, code = self._backward(request)
         response = bittensor.proto.TensorMessage(
@@ -298,13 +278,6 @@ class Axon(bittensor.grpc.BittensorServicer):
                 code (:obj:`bittensor.proto.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.
         """
-
-        # ---- Check synapse exists ----
-        if self.synapse == None:
-            message = "Remote axon not serving a synapse"
-            code = bittensor.proto.ReturnCode.NotServingSynapse
-            return None, message, code
-
         # ---- Check Empty request ----
         if len(request.tensors) == 0:
             message = "Forward request contains {} tensors, expected 1 tensor in the forward call".format(len(request.tensors))
@@ -317,6 +290,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             deserializer = serialization.get_serializer( serialzer_type = inputs.serializer )
             x = deserializer.deserialize(inputs, to_type = bittensor.proto.TensorType.TORCH)
         except Exception as e:
+            logger.error(e)
             message  = "Forward request deserialization failed with error {}".format(e)
             code = bittensor.proto.ReturnCode.RequestDeserializationException
             return None, message, code
@@ -350,21 +324,24 @@ class Axon(bittensor.grpc.BittensorServicer):
                 code = bittensor.proto.ReturnCode.RequestShapeException
                 return None, message, code
 
-        # --- Get call priority ----
-        call_priority = self.get_call_priority(request)
-
         # ---- Make nucleus.Nucleus forward call. ----
         try:
-            outputs, message, code = self.nucleus.forward(
-                synapse = self.synapse.to(self.synapse.device), 
-                inputs = x.to(self.synapse.device), 
-                mode = inputs.modality, 
-                priority = call_priority
-            )
+            ping, pong = mp.Pipe()
+            payload = [pong, request.public_key, x, inputs.modality]
+            try:
+                self.forward_queue.put( payload, block=True, timeout = 5 )
+            except queue.Full:
+                message = "Forward queue is full"
+                return None, message, bittensor.proto.ReturnCode.NucleusFull
 
-            # ---- Catch nucleus.Nucleus errors ----
-            if code != bittensor.proto.ReturnCode.Success:
-                return None, message, code
+            if ping.poll( timeout = 5 ):
+                message = "Success"
+                code = bittensor.proto.ReturnCode.Success
+                outputs = ping.recv()
+            else:
+                message = "Processing timeout"
+                return None, message, bittensor.proto.ReturnCode.NucleusTimeout
+
 
         except Exception as e:
             message = "Unknown exception when calling nucleus forward {}".format(e)
@@ -399,12 +376,6 @@ class Axon(bittensor.grpc.BittensorServicer):
                 code: (:obj:`bittensor.proto.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.
         """
-        # ---- Check that we have a synapse ----.
-        if self.synapse == None:
-            message = "Remote axon not serving a synapse"
-            code = bittensor.proto.ReturnCode.NotServingSynapse
-            return None, message, code
-
         # ---- Check request inputs ----.
         if len(request.tensors) == 2:
             inputs_x = request.tensors[0]
@@ -425,28 +396,23 @@ class Axon(bittensor.grpc.BittensorServicer):
             message = "Backward request deserialization failed with unknown error {}".format(e)
             code =  bittensor.proto.ReturnCode.RequestDeserializationException
             return None, message, code
-
-        # --- Get call priority ----
-        try:
-            call_priority = self.priority[request.public_key] + random.random()
-        except:
-            call_priority = 1 + random.random()
-
-        # ---- Save gradients to buffer for later use. ---
-        try:
-            self.gradients.put( (call_priority, (request.public_key, inputs_x, grads_dy, modality_x)) , block=False)
-        except queue.Full:
-            logger.trace('gradient queue is full at size: {}', self.gradients.qsize())
-
+ 
         # ---- nucleus.Nucleus backward call ----
         try:
-            outputs, message, code = self.nucleus.backward(
-                    synapse = self.synapse, 
-                    inputs_x = inputs_x, 
-                    grads_dy = grads_dy, 
-                    modality = modality_x,
-                    priority = call_priority
-            )
+            ping, pong = mp.Pipe()
+            payload = [pong, request.public_key, inputs_x, grads_dy, modality_x]
+            try:
+                self.forward_queue.put( payload, block=True, timeout = 0.1 )
+            except queue.Full:
+                message = "Forward queue is full"
+                return None, message, bittensor.proto.ReturnCode.NucleusFull
+
+            if ping.poll( timeout = 0.1 ):
+                outputs = ping.recv()
+            else:
+                message = "Processing timeout"
+                return None, message, bittensor.proto.ReturnCode.NucleusTimeout
+
         except Exception as e:
             message  = "Unkown exception when calling backward with error {}".format(e)
             code =  bittensor.proto.ReturnCode.UnknownException
@@ -464,60 +430,6 @@ class Axon(bittensor.grpc.BittensorServicer):
 
         # ---- Finaly return ----
         return outputs_serialized, message, code
-
-    def serve(self, synapse: 'bittensor.synapse.Synapse'):
-        r""" Set the synapse being served on this axon endpoint. 
-            This object's call_forward and call_backward will be 
-            called on incoming Forward and Backward requests respectively.
-
-            Args:
-                synapse (:obj:`bittensor.synapse.synapse.Synapse`, `required`): 
-                    synpase object to serve.
-        """
-        self.synapse = synapse
-
-    def set_priority(self, neurons: List[bittensor.proto.Neuron], priority: torch.FloatTensor):
-        r""" Set the serving priority for requests on the served synapse. 
-            Float values must are normalized to 1.
-            
-            Args:
-                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
-                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
-
-                priority (:obj:`torch.FloatTnsor` of shape :obj:`(num_neurons)`, `required`): 
-                    call priority for neurons on endpoint.
-        """
-        assert priority.shape[0] == len(neurons), 'priority for neurons must of the same length'
-        if torch.sum(priority) != 0:
-            priority = torch.true_divide(priority, torch.sum(priority))
-        priority_map = {}
-        for neuron, priority in list(zip(neurons, priority.tolist())):
-            priority_map[neuron.public_key] = priority
-        self.priority = priority_map
-
-    def get_call_priority(self, request: bittensor.proto.TensorMessage):
-        """ Retrieves the priority of the calling neuron
-
-        Args:
-            request (:obj:`bittensor.proto`, `required`): 
-                Tensor request proto.
-
-        Returns:
-            call_priority (:obj:`dict`): 
-                A map between public key and processing priority.
-        """
-        if request.public_key in self.priority:
-            call_priority = self.priority[request.public_key]
-        else:
-            try:
-                uid = self.metagraph.state.uid_for_pubkey[request.public_key]
-                idx = int(self.metagraph.uids_to_indices(torch.tensor([uid])).item())
-                call_priority = self.metagraph.incentive[idx]
-            except Exception as e:
-                call_priority = 0.0
-        call_priority += random.random() * 0.0001
-        return call_priority
-
 
     def update_stats_for_request(self, request, response):
         self.stats.qps.update(1)
@@ -593,9 +505,6 @@ class Axon(bittensor.grpc.BittensorServicer):
             except net.UPNPCException:
                 # Catch but continue.
                 logger.error('Error while trying to destroy port map on your router.')
-        logger.info('Shutting down the nucleus.Nucleus...')
-        if self.nucleus != None:
-            self.nucleus.stop()
         if self._server != None:
             self._server.stop(0)
 

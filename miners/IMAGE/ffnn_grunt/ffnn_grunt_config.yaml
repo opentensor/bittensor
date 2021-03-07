@@ -26,13 +26,9 @@ session:
   name: ffnn-grunt
   accumulation_interval: 5
   record_log: true
-nucleus:
-  max_workers: 5
-  queue_maxsize: 10000
-  queue_timeout: 5
 # Make sure the path of your coldkeyfile and hotkeyfile match!
 neuron:
   coldkeyfile: ~/.bittensor/wallets/default/coldkeypub.txt
   hotkeyfile: ~/.bittensor/wallets/default/hotkeys/default
-synapse:
+nucleus:
   target_dim: 10

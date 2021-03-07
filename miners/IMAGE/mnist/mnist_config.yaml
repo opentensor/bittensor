@@ -20,8 +20,4 @@ miner:
   sync_interval: 10
   record_log: false
 nucleus:
-  max_workers: 5
-  queue_maxsize: 10000
-  queue_timeout: 5
-synapse:
   target_dim: 10 

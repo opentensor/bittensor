@@ -61,41 +61,41 @@ class GPT2Pooler(nn.Module):
         pooled_output = self.activation(pooled_output)
         return pooled_output
 
-class GPT2LMSynapse(bittensor.synapse.Synapse):
-    """ A Bittensor Synapse training GPT2 with Causal Language Modelling (CLM)
+class GPT2LMNucleus(bittensor.nucleus.Nucleus):
+    """ A Bittensor Nucleus training GPT2 with Causal Language Modelling (CLM)
     """
     def __init__(self, config: Munch = None, **kwargs):
-        r""" Init a new GPT2 synapse module.
+        r""" Init a new GPT2 nucleus module.
 
             Args:
                 config (:obj:`munch.Munch`, `required`): 
                     munched config class.
         """
-        super(GPT2LMSynapse, self).__init__(config = config, **kwargs)
+        super(GPT2LMNucleus, self).__init__(config = config, **kwargs)
         if config == None:
-            config = GPT2LMSynapse.default_config()
-        bittensor.config.Config.update_with_kwargs(config.synapse, kwargs) 
-        GPT2LMSynapse.check_config(config)
+            config = GPT2LMNucleus.default_config()
+        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
+        GPT2LMNucleus.check_config(config)
         self.config = config
 
-        # Build hugging face config.
+        # Build huggingface config.
         huggingface_config = GPT2Config(
                 vocab_size=bittensor.__vocab_size__, 
                 n_embd=bittensor.__network_dim__,
-                n_layer=config.synapse.n_layer,
-                n_head=config.synapse.n_head, 
-                n_inner=config.synapse.n_inner, 
-                activation_function=config.synapse.activation_function, 
-                resid_pdrop=config.synapse.resid_pdrop, 
-                embd_pdrop=config.synapse.embd_pdrop, 
-                attn_pdrop=config.synapse.attn_pdrop, 
-                layer_norm_epsilon=config.synapse.layer_norm_epsilon, 
-                initializer_range=config.synapse.initializer_range, 
-                summary_type=config.synapse.summary_type, 
-                summary_use_proj=config.synapse.summary_use_proj, 
-                summary_activation=config.synapse.summary_activation, 
-                summary_proj_to_labels=config.synapse.summary_proj_to_labels, 
-                summary_first_dropout=config.synapse.summary_first_dropout, 
+                n_layer=config.nucleus.n_layer,
+                n_head=config.nucleus.n_head, 
+                n_inner=config.nucleus.n_inner, 
+                activation_function=config.nucleus.activation_function, 
+                resid_pdrop=config.nucleus.resid_pdrop, 
+                embd_pdrop=config.nucleus.embd_pdrop, 
+                attn_pdrop=config.nucleus.attn_pdrop, 
+                layer_norm_epsilon=config.nucleus.layer_norm_epsilon, 
+                initializer_range=config.nucleus.initializer_range, 
+                summary_type=config.nucleus.summary_type, 
+                summary_use_proj=config.nucleus.summary_use_proj, 
+                summary_activation=config.nucleus.summary_activation, 
+                summary_proj_to_labels=config.nucleus.summary_proj_to_labels, 
+                summary_first_dropout=config.nucleus.summary_first_dropout, 
         )
 
         # encoder_layer: encodes tokenized sequences to network dim.
@@ -127,7 +127,7 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
     @staticmethod   
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
-        GPT2LMSynapse.add_args(parser) 
+        GPT2LMNucleus.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
         return config
 
@@ -135,35 +135,35 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
     def add_args(parser: argparse.ArgumentParser):    
         r""" Add custom params to the parser.
         """
-        parser.add_argument('--synapse.n_head', default=1, type=int, 
+        parser.add_argument('--nucleus.n_head', default=1, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
-        parser.add_argument('--synapse.n_layer', default=2, type=int, 
+        parser.add_argument('--nucleus.n_layer', default=2, type=int, 
                             help='Number of hidden layers in the Transformer encoder.')
-        parser.add_argument('--synapse.n_inner', default=8, type=int, 
+        parser.add_argument('--nucleus.n_inner', default=8, type=int, 
                             help='The dimensionality of the inner feed-forward layers. :obj:`None` will set it to 4 times n_embd')
-        parser.add_argument('--synapse.activation_function', default='gelu_new', type=str, 
+        parser.add_argument('--nucleus.activation_function', default='gelu_new', type=str, 
                             help='Activation function, to be selected in the list :obj:`["relu", "silu", "gelu", "tanh", "gelu_new"]')
-        parser.add_argument('--synapse.resid_pdrop', default=0.1, type=float, 
+        parser.add_argument('--nucleus.resid_pdrop', default=0.1, type=float, 
                             help='GPT residual dropout probabilit.')
-        parser.add_argument('--synapse.embd_pdrop', default=0.1, type=float, 
+        parser.add_argument('--nucleus.embd_pdrop', default=0.1, type=float, 
                             help='GPT embedding dropout probability.')
-        parser.add_argument('--synapse.attn_pdrop', default=0.1, type=float, 
+        parser.add_argument('--nucleus.attn_pdrop', default=0.1, type=float, 
                             help='GPT attention dropout probability.')
-        parser.add_argument('--synapse.layer_norm_epsilon', default=1e-05, type=float, 
+        parser.add_argument('--nucleus.layer_norm_epsilon', default=1e-05, type=float, 
                             help='GPT the epsilon to use in the layer normalization layers')
-        parser.add_argument('--synapse.summary_type', default='cls_index', type=str, 
+        parser.add_argument('--nucleus.summary_type', default='cls_index', type=str, 
                             help='Supply a Tensor of classification token position (like GPT/GPT-2).')
-        parser.add_argument('--synapse.initializer_range', default=0.02, type=float, 
+        parser.add_argument('--nucleus.initializer_range', default=0.02, type=float, 
                             help='The standard deviation of the truncated_normal_initializer for initializing all weight matrices.')
-        parser.add_argument('--synapse.summary_use_proj', default=True, type=bool, 
+        parser.add_argument('--nucleus.summary_use_proj', default=True, type=bool, 
                             help='Whether or not to add a projection after the vector extraction.')
-        parser.add_argument('--synapse.summary_activation', type=str, 
+        parser.add_argument('--nucleus.summary_activation', type=str, 
                             help='Pass "tanh" for a tanh activation to the output, any other value will result in no activation.')
-        parser.add_argument('--synapse.summary_proj_to_labels', default=True, type=bool, 
+        parser.add_argument('--nucleus.summary_proj_to_labels', default=True, type=bool, 
                             help='Whether the projection outputs should have config.num_labels or config.hidden_size classes.')
-        parser.add_argument('--synapse.summary_first_dropout', default=0.1, type=float, 
+        parser.add_argument('--nucleus.summary_first_dropout', default=0.1, type=float, 
                             help='The dropout ratio to be used after the projection and activation.')
-        parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
+        parser.add_argument('--nucleus.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
         PKMRouter.add_args(parser)
 
     @staticmethod
@@ -171,7 +171,7 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
         pass
 
     def forward_text(self, inputs: torch.LongTensor):
-        """ Local forward inputs through the MLM GPT Synapse.
+        """ Local forward inputs through the MLM GPT Nucleus.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
@@ -185,7 +185,7 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
         return hidden
 
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
-        r""" Forward pass through GPT synapse.
+        r""" Forward pass through GPT nucleus.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 

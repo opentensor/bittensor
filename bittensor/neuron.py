@@ -51,7 +51,6 @@ class Neuron:
                 wallet: 'bittensor.wallet.Wallet' = None, 
                 subtensor: 'bittensor.subtensor.Subtensor' = None,
                 metagraph: 'bittensor.metagraph.Metagraph' = None,
-                nucleus: 'bittensor.nucleus.Nucleus' = None,
                 axon: 'bittensor.axon.Axon' = None,
                 dendrite: 'bittensor.dendrite.Dendrite' = None,
                 **kwargs,
@@ -67,16 +66,14 @@ class Neuron:
                     subtensor interface utility.
                 metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
                     bittensor network metagraph.
-                nucleus (:obj:`bittensor.nucleus.Nucleus`, `optional`):
-                    backend processing nucleus.
                 axon (:obj:`bittensor.axon.Axon`, `optional`):
-                    synapse serving endpoint.
+                    nucleus serving endpoint.
                 dendrite (:obj:`bittensor.dendrite.Dendrite`, `optional`):
-                    synapse connecting object. 
+                    nucleus connecting object. 
                 modality (default=0, type=int)
                     Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT
         """
-        # Config: Config items for all subobjects: wallet, metagraph, nucleus, axon, dendrite.
+        # Config: Config items for all subobjects: wallet, metagraph, axon, dendrite.
         # This object can be instantiated by calling Neuron.default_config()
         if config == None:
             config = Neuron.default_config()
@@ -96,13 +93,9 @@ class Neuron:
         if metagraph == None:
             metagraph = bittensor.metagraph.Metagraph(config = self.config, wallet = self.wallet, subtensor = self.subtensor)
         self.metagraph = metagraph
-        # Nucleus: Processes requests passed to this neuron on its axon endpoint.
-        if nucleus == None:
-            nucleus = bittensor.nucleus.Nucleus(config = self.config, wallet = self.wallet, metagraph = self.metagraph)
-        self.nucleus = nucleus
-        # Axon: RPC server endpoint which serves your synapse. Responds to Forward and Backward requests.
+        # Axon: RPC server endpoint which serves your nucleus. Responds to Forward and Backward requests.
         if axon == None:
-            axon = bittensor.axon.Axon(config = self.config, wallet = self.wallet, nucleus = self.nucleus, metagraph = self.metagraph)
+            axon = bittensor.axon.Axon(config = self.config, wallet = self.wallet, metagraph = self.metagraph)
         self.axon = axon
         # Dendrite: RPC client makes Forward and Backward requests to downstream peers.
         if dendrite == None:
@@ -122,7 +115,6 @@ class Neuron:
         bittensor.wallet.Wallet.add_args( parser )
         bittensor.subtensor.Subtensor.add_args( parser )
         bittensor.metagraph.Metagraph.add_args( parser )
-        bittensor.nucleus.Nucleus.add_args( parser )
         bittensor.axon.Axon.add_args(parser)
         bittensor.dendrite.Dendrite.add_args( parser )
         try:
@@ -169,8 +161,8 @@ class Neuron:
 
         print(colored('\nSubscribing:', 'white'))
         subscribe_success = self.subtensor.subscribe(
-                self.config.axon.external_ip, 
-                self.config.axon.external_port,
+                self.axon.config.axon.external_ip, 
+                self.axon.config.axon.external_port,
                 self.config.neuron.modality,
                 self.wallet.coldkeypub,
                 wait_for_finalization = True,

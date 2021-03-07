@@ -112,7 +112,7 @@ class Receptor(nn.Module):
                 bittensor.proto.ReturnCode.ResponseSerializationException: 0,
                 bittensor.proto.ReturnCode.RequestDeserializationException: 0,
                 bittensor.proto.ReturnCode.ResponseDeserializationException: 0,
-                bittensor.proto.ReturnCode.NotServingSynapse: 0,
+                bittensor.proto.ReturnCode.NotServingNucleus: 0,
                 bittensor.proto.ReturnCode.NucleusTimeout: 0,
                 bittensor.proto.ReturnCode.NucleusFull: 0,
                 bittensor.proto.ReturnCode.RequestIncompatibleVersion: 0,
@@ -278,7 +278,6 @@ class _ReceptorCall(torch.autograd.Function):
         ctx.mode = mode
         ctx.inputs = inputs
 
-        logger.info('1')
         zeros = nill_response_for(inputs)
         try:
             # ---- Check inputs size ----
@@ -295,7 +294,6 @@ class _ReceptorCall(torch.autograd.Function):
             ctx.serialized_inputs =  serialized_inputs
 
             # ---- Build request ----
-            logger.info('2')
             request = bittensor.proto.TensorMessage(
                 version = bittensor.__version__,
                 public_key = ctx.caller.wallet.hotkey.public_key,
@@ -305,15 +303,12 @@ class _ReceptorCall(torch.autograd.Function):
         
             # ---- Make RPC call ----
             try:
-                
-                logger.info('3')
                 start_time = time.time()
                 ctx.caller.stats.forward_qps.update(1)
                 ctx.caller.stats.forward_bytes_out.update(sys.getsizeof(request))
                 response = ctx.caller.stub.Forward(request, timeout=caller.config.receptor.timeout)
                 ctx.caller.stats.forward_bytes_in.update(sys.getsizeof(response))
                 ctx.caller.stats.forward_elapsed_time.update((time.time() - start_time))
-                logger.info('4')
 
                 # ---- Catch non-code ----
                 try:
@@ -321,30 +316,26 @@ class _ReceptorCall(torch.autograd.Function):
                 except:
                     logger.error('Remote host did not return return code with message: {}, {}', response.message, traceback.format_exc())
                     return zeros, torch.tensor(bittensor_code)
-                logger.info('5')
 
                 # ---- Catch bittensor errors ----
                 if bittensor_code == bittensor.proto.ReturnCode.UnknownException:
+                    logger.info('Unknown, {}, {}', bittensor_code, response.message,)
                     logger.error('Unknown exception returned from remote host with message: {}, {}', response.message, traceback.format_exc())
                     return zeros, torch.tensor(bittensor_code)
-                logger.info('6')
 
                 # ---- Catch all other negative codes ----
                 elif bittensor_code != bittensor.proto.ReturnCode.Success:
+                    logger.info('Not Success {}, {}', bittensor_code, response.message)
                     return zeros, torch.tensor(bittensor_code)
-                logger.info('7')
 
             # ---- Catch GRPC Errors ----
             except grpc.RpcError as rpc_error_call:
                 grpc_code = rpc_error_call.code()
-                logger.info('8')
 
                 if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
-                    logger.info('9')
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.Timeout)
 
                 elif grpc_code == grpc.StatusCode.UNAVAILABLE:
-                    logger.info('10')
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.Unavailable)
 
                 else:
@@ -371,7 +362,6 @@ class _ReceptorCall(torch.autograd.Function):
                 logger.error('Failed to serialize responses from forward call with error {}', e)
                 return zeros, torch.tensor(bittensor.proto.ReturnCode.ResponseDeserializationException)
         
-            logger.info('11')
             # ---- Check response shape ----
             if  outputs.size(0) != inputs.size(0) \
                 or outputs.size(1) != inputs.size(1) \
@@ -379,7 +369,6 @@ class _ReceptorCall(torch.autograd.Function):
                     logger.error('Forward request returned tensor with incorrect shape {}', list(outputs.shape))
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.ResponseShapeException)
 
-            logger.info('12')
             # ---- Safe catch NaNs and replace with 0.0 ----
             outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
         
@@ -389,7 +378,6 @@ class _ReceptorCall(torch.autograd.Function):
             return zeros, torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
         # ---- Return ----
-        logger.info('13')
         return outputs, torch.tensor(response.return_code)
 
     @staticmethod

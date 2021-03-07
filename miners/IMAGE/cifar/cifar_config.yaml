@@ -20,10 +20,6 @@ session:
   sync_interval: 10
   record_log: false
 nucleus:
-  max_workers: 5
-  queue_maxsize: 10000
-  queue_timeout: 5
-synapse:
   in_planes: 160
   out_planes: 256
   num_blocks: 3

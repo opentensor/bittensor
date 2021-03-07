@@ -21,10 +21,6 @@ miner:
   sync_interval: 100
 neuron:
   modality: 0
-nucleus:
-  max_workers: 5
-  queue_maxsize: 1000
-  queue_timeout: 5
 receptor:
   do_backoff: true
   max_backoff: 100
@@ -37,7 +33,7 @@ router:
 subtensor:
   chain_endpoint: null
   network: ' '
-synapse:
+nucleus:
   activation_function: gelu_new
   attn_pdrop: 0.1
   embd_pdrop: 0.1

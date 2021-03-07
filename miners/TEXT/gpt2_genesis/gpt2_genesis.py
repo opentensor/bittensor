@@ -29,7 +29,7 @@ from munch import Munch
 from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
 from bittensor.utils.model_utils import ModelToolbox
-from synapses.gpt2 import GPT2LMSynapse
+from nucleuss.gpt2 import GPT2LMNucleus
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 from os import listdir
 from torch.nn.utils import clip_grad_norm_
@@ -80,18 +80,37 @@ class Miner():
         Miner.check_config(config)
         self.config = config
 
-        # ---- Neuron ----
-        self.neuron = bittensor.neuron.Neuron(self.config)
+        # ---- Wallet ----
+        self.wallet = bittensor.wallet.Wallet( self.config )
+
+        # ---- Chain connection ----
+        self.subtensor = bittensor.subtensor.Subtensor(
+            config = self.config
+            wallet = self.wallet
+        )
+
+        # ---- Metagraph ----
+        self.metagraph = bittensor.metagraph.Metagraph(
+            config = self.config,
+            wallet = self.wallet,
+            subtensor = self.subtensor
+        )
+
+        # ---- Axon server ----
+        self.axon = bittensor.experimental.axon_multiprocessing.Axon(
+            config = self.config,
+            wallet = self.wallet
+        )
 
         # ---- Model ----
-        self.model = GPT2LMSynapse( self.config )
+        self.model = GPT2LMNucleus( self.config )
 
         # ---- Optimizer ----
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum)
         self.scheduler = WarmupCosineWithHardRestartsSchedule(self.optimizer, 50, 300)
 
         # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(GPT2LMSynapse, torch.optim.SGD)
+        self.model_toolbox = ModelToolbox(GPT2LMNucleus, torch.optim.SGD)
 
         # ---- Dataset ----
         # The Genesis Dataset:
@@ -128,7 +147,7 @@ class Miner():
         parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
         parser.add_argument('--miner.custom_dataset', default="~/.bittensor/bittensor/miners/TEXT/gpt2_genesis/genesis_dataset/", type=str, help='Custom datasets to train on.')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
-        GPT2LMSynapse.add_args(parser)
+        GPT2LMNucleus.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 
     @staticmethod

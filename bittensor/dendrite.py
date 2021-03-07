@@ -70,11 +70,6 @@ class Dendrite(nn.Module):
             wallet = bittensor.wallet.Wallet(self.config)
         self.wallet = wallet
 
-        # Metagraph: Maintains a connection to the subtensor chain and can be queried for the latest state.
-        if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph(self.config, self.wallet)
-        self.metagraph = metagraph
-
         # Receptors: Holds a set map of publickey -> receptor objects. Receptors encapsulate a TCP connection between
         # this dendrite and an upstream neuron (i.e. a peer we call for representations)
         self._receptors = {}

@@ -30,7 +30,7 @@ from datasets import load_dataset
 from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
 from bittensor.utils.model_utils import ModelToolbox
-from synapses.bert import BertNSPSynapse
+from nucleuss.bert import BertNSPNucleus
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 from torch.nn.utils import clip_grad_norm_
 
@@ -83,14 +83,14 @@ class Miner():
         self.neuron = bittensor.neuron.Neuron(self.config)
 
         # ---- Model ----
-        self.model = BertNSPSynapse( self.config )
+        self.model = BertNSPNucleus( self.config )
 
         # ---- Optimizer ----
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum)
         self.scheduler = WarmupCosineWithHardRestartsSchedule(self.optimizer, 50, 300)
 
         # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(BertNSPSynapse, torch.optim.SGD)
+        self.model_toolbox = ModelToolbox(BertNSPNucleus, torch.optim.SGD)
 
         # ---- Dataset ----
         # Dataset: News headlines
@@ -126,7 +126,7 @@ class Miner():
         parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
         parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
-        BertNSPSynapse.add_args(parser)
+        BertNSPNucleus.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 
     @staticmethod
