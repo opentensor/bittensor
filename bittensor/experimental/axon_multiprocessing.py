@@ -329,7 +329,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         # ---- Make nucleus.Nucleus forward call. ----
         try:
             ping, pong = mp.Pipe()
-            payload = [pong, request.public_key, inputs, inputs.modality]
+            payload = [pong, request.public_key, x, inputs.modality]
             try:
                 self.forward_queue.put( payload, block=True, timeout = 0.1 )
             except queue.Full:

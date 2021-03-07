@@ -7,9 +7,6 @@ import torch.multiprocessing as mp
 import queue
 from bittensor.experimental import axon_multiprocessing
 
-axon = axon_multiprocessing.Axon()
-axon.start()
-
 
 wallet = bittensor.wallet.Wallet(
     path = "~/.bittensor/wallets/",
@@ -23,9 +20,14 @@ print (tensor)
 neuron = bittensor.proto.Neuron(
     address = '127.0.0.1',
     port = 8091,
-    public_key = 'asdlmasskdmlakmsda'
+    public_key = wallet.hotkey.public_key
 )
 print(neuron)
+
+axon = axon_multiprocessing.Axon(
+    wallet = wallet
+)
+axon.start()
 
 config = bittensor.dendrite.Dendrite.default_config()
 config.receptor.timeout = 10
@@ -52,7 +54,7 @@ def consumer():
     try:
       print ('waiting on axon queue')
       pong, pubkey, inputs, modality = axon.forward_queue.get(block=True, timeout=3.0)
-      print ('pipe', pong, 'key',  pubkey, 'inputs', inputs, 'modality', modality)
+      print ('inputs', type(inputs))
       print (inputs.shape)
       pong.send( torch.zeros([1,2, 512]) )
     except queue.Empty:
