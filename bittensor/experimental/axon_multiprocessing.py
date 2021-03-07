@@ -222,7 +222,6 @@ class Axon(bittensor.grpc.BittensorServicer):
         """
         # TODO(const): check signature
         # TODO(const): black and white listing.
-
         tensor, message, code = self._forward(request)
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version__, 
@@ -231,7 +230,6 @@ class Axon(bittensor.grpc.BittensorServicer):
             message = message,
             tensors = [tensor] if tensor is not None else [],
         )
-
         # ---- Update stats for this request.
         self.update_stats_for_request(request, response)
         return response
@@ -282,13 +280,6 @@ class Axon(bittensor.grpc.BittensorServicer):
                 code (:obj:`bittensor.proto.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.
         """
-
-        # ---- Check synapse exists ----
-        if self.synapse == None:
-            message = "Remote axon not serving a synapse"
-            code = bittensor.proto.ReturnCode.NotServingSynapse
-            return None, message, code
-
         # ---- Check Empty request ----
         if len(request.tensors) == 0:
             message = "Forward request contains {} tensors, expected 1 tensor in the forward call".format(len(request.tensors))
@@ -301,6 +292,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             deserializer = serialization.get_serializer( serialzer_type = inputs.serializer )
             x = deserializer.deserialize(inputs, to_type = bittensor.proto.TensorType.TORCH)
         except Exception as e:
+            logger.error(e)
             message  = "Forward request deserialization failed with error {}".format(e)
             code = bittensor.proto.ReturnCode.RequestDeserializationException
             return None, message, code
@@ -334,24 +326,24 @@ class Axon(bittensor.grpc.BittensorServicer):
                 code = bittensor.proto.ReturnCode.RequestShapeException
                 return None, message, code
 
-        # --- Get call priority ----
-        call_priority = self.get_call_priority(request)
-
         # ---- Make nucleus.Nucleus forward call. ----
         try:
             ping, pong = mp.Pipe()
             payload = [pong, request.public_key, inputs, inputs.modality]
             try:
                 self.forward_queue.put( payload, block=True, timeout = 0.1 )
-            except mp.queue.QueueFull:
-                message = "forward queue full"
+            except queue.Full:
+                message = "Forward queue is full"
                 return None, message, bittensor.proto.ReturnCode.Timeout
 
             if ping.poll( timeout = 0.1 ):
+                message = "Success"
+                code = bittensor.proto.ReturnCode.Success
                 outputs = ping.recv()
             else:
                 message = "Processing timeout"
                 return None, message, bittensor.proto.ReturnCode.Timeout
+
 
         except Exception as e:
             message = "Unknown exception when calling nucleus forward {}".format(e)
@@ -386,12 +378,6 @@ class Axon(bittensor.grpc.BittensorServicer):
                 code: (:obj:`bittensor.proto.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.
         """
-        # ---- Check that we have a synapse ----.
-        if self.synapse == None:
-            message = "Remote axon not serving a synapse"
-            code = bittensor.proto.ReturnCode.NotServingSynapse
-            return None, message, code
-
         # ---- Check request inputs ----.
         if len(request.tensors) == 2:
             inputs_x = request.tensors[0]
@@ -419,7 +405,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             payload = [pong, request.public_key, inputs_x, grads_dy, modality_x]
             try:
                 self.forward_queue.put( payload, block=True, timeout = 0.1 )
-            except mp.queue.QueueFull:
+            except queue.Full:
                 message = "Forward queue is full"
                 return None, message, bittensor.proto.ReturnCode.Timeout
 
