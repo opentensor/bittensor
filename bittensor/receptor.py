@@ -126,8 +126,10 @@ class Receptor(nn.Module):
             # the local network. 
             # if local endpoint = localhost:port
             if neuron.address == self.config.axon.external_ip:
-                ip = "localhost:"
-                self.endpoint = ip + str(neuron.port)
+                self.endpoint = "localhost:" + str(neuron.port)
+                
+            else:
+                self.endpoint = neuron.address + ':' + str(neuron.port)
         except:
             # Otherwise fall back to the remote: address:port
             self.endpoint = neuron.address + ':' + str(neuron.port)
