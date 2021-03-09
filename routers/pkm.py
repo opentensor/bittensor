@@ -102,12 +102,12 @@ class PKMRouter():
 
         # all_uids: (torch.LongTensor): unique keys for each peer neuron.
         # all_uids.shape = [metagraph.n]
-        all_uids = bittensor.metagraph.uids # Returns a list of neuron uids.
+        all_uids = bittensor.metagraph.uids() # Returns a list of neuron uids.
 
         # filtered_uids: (torch.LongTensor): keys filtered by emit.
         # all_uids.shape = [metagraph.n]
-        current_block = bittensor.metagraph.block
-        lastemit = bittensor.metagraph.lastemit
+        current_block = bittensor.metagraph.block()
+        lastemit = bittensor.metagraph.lastemit()
         staleness = (current_block - lastemit)
         filtered_uids = all_uids[torch.where(staleness < self.config.router.stale_emit_filter)] 
         n_uids = torch.numel(filtered_uids)
@@ -115,7 +115,7 @@ class PKMRouter():
         # Return if there are no uids to query
         if n_uids == 0:
             # Return nill responses.
-            n = bittensor.metagraph.n
+            n = bittensor.metagraph.n()
             output.response = torch.zeros(size=(inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
             output.weights = torch.zeros(size=(inputs.shape[0], n))
             output.requests_sizes = torch.zeros(n)
@@ -233,14 +233,14 @@ class PKMRouter():
 
         # weights: (torch.LongTensor): weights scattered onto uids per example.
         # weights.shape = [batch_size, metagraph.n]
-        weights = torch.zeros(inputs.shape[0], bittensor.metagraph.n)
+        weights = torch.zeros(inputs.shape[0], bittensor.metagraph.n())
         weights = weights.to(self.device)
         indices = indices.to(self.device)
         weights.scatter_(1, indices.repeat(batch_size, 1), gates)
 
         # filled_sizes: (torch.LongTensor): number of examples queried to each uid.
         # filled_sizes.shape = [metagraph.n]
-        filled_request_sizes = torch.zeros(bittensor.metagraph.n, dtype=torch.long).to(self.device)
+        filled_request_sizes = torch.zeros(bittensor.metagraph.n(), dtype=torch.long).to(self.device)
         request_sizes = torch.tensor(request_sizes).to(self.device)
         filled_request_sizes.scatter_(0, indices, torch.tensor(request_sizes).to(self.device))
 

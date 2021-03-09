@@ -82,7 +82,7 @@ class Receptor(nn.Module):
         if wallet == None:
             wallet = bittensor.wallet.Wallet( self.config )
         self.wallet = wallet # Keypair information
-        self.neuron = neuron # Endpoint information.
+        bittensor.neuron = neuron # Endpoint information.
         self.signature = None # Call signature.
         self.nounce = None # Call nounce.
         self.backoff = 0 # Number o queries to backoff.
@@ -176,7 +176,7 @@ class Receptor(nn.Module):
         total_in_bytes = self.stats.forward_bytes_in.value + self.stats.backward_bytes_in.value
         total_in_bytes_str = colored('\u290A {:.1f}'.format((total_out_bytes*8)/1000), 'green')
         total_out_bytes_str = colored('\u290B {:.1f}'.format((total_in_bytes*8)/1000), 'red')
-        return str(self.neuron.uid) + ":(" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s)"
+        return str(bittensor.neuron.uid) + ":(" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s)"
 
     def __del__(self):
         if self.channel is not None:

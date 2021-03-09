@@ -51,7 +51,7 @@ class ChainState():
         self.lastemit = []
         self.weight_uids = []
         self.weight_vals = []
-        self.neurons = []
+        bittensor.neurons = []
         self.index_for_uid = {}
         self.index_for_pubkey = {}
         self.pubkey_for_index = {}
@@ -70,7 +70,7 @@ class ChainState():
         if pubkey in self.index_for_pubkey:
             index = self.index_for_pubkey[pubkey]
             if self.uids[index] == uid:
-                self.neurons[index] = neuron
+                bittensor.neurons[index] = neuron
                 self.stake[index] = float(stake) / 1000000000 
                 self.lastemit[index] = int(lastemit)
                 self.weight_uids[index] = list(w_uids)
@@ -83,7 +83,7 @@ class ChainState():
             self.n += 1
             self.index_for_pubkey[pubkey] = index
             self.pubkey_for_index[index] = pubkey
-            self.neurons.append(neuron)
+            bittensor.neurons.append(neuron)
             self.stake.append(float(stake) / 1000000000)
             self.lastemit.append(int(lastemit))
             self.weight_uids.append(list(w_uids))
@@ -133,7 +133,7 @@ class TorchChainState():
         self.stake = torch.tensor([])
         self.lastemit = torch.tensor([])
         self.W = torch.tensor([[]])
-        self.neurons = []
+        bittensor.neurons = []
         self.uid_for_pubkey = {}
         self.index_for_uid = {}
 
@@ -147,7 +147,7 @@ class TorchChainState():
             'stake': self.stake.tolist(),
             'lastemit': self.lastemit.tolist(),
             'W': self.W.tolist(),
-            'neurons': [ {'uid': n.uid, 'ip': n.address, 'port': n.port, 'ip_type': n.ip_type, 'modality': n.modality, 'hotkey': n.public_key} for n in self.neurons]
+            'neurons': [ {'uid': n.uid, 'ip': n.address, 'port': n.port, 'ip_type': n.ip_type, 'modality': n.modality, 'hotkey': n.public_key} for n in bittensor.neurons]
         }
         with open( filepath, 'w') as fp:
             json.dump(json_data, fp)
@@ -545,7 +545,7 @@ class Metagraph():
 
         if self.wallet.has_hotkey and self.wallet.hotkey.public_key in self.state.uid_for_pubkey:
             self.uid = self.uid_for_pubkey( self.wallet.hotkey.public_key )
-            self.metadata = self.neuron_for_uid( self.uid )
+            self.metadata = bittensor.neuron_for_uid( self.uid )
         else:
             self.uid = None
 
@@ -814,7 +814,7 @@ class Metagraph():
         return self.__str__()
 
     def toTensorboard(self, tensorboard, global_step):
-        self.__to_tensorboard__(tensorboard, global_step)
+        self.toTensorboard(tensorboard, global_step)
 
     def __str__(self):
         uids = self.state.uids.tolist()
@@ -833,7 +833,7 @@ class Metagraph():
         df.rename_axis(colored('[uid]', 'red'), axis=1)
         return '\nMetagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.uid, self.tau().item(), self.block(), self.n()) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
 
-    def __to_tensorboard__(self, tensorboard, global_step):
+    def toTensorboard(self, tensorboard, global_step):
         tensorboard.add_scalar('Metagraph/neurons', self.n(), global_step)
         tensorboard.add_scalar('Metagraph/inflation_rate', self.tau().item(), global_step)
 

@@ -34,12 +34,12 @@ class Miner():
         self.config = config
 
         # ---- Build Neuron ----
-        self.neuron = bittensor.neuron.Neuron(config)
+        bittensor.neuron = bittensor.neuron.Neuron(config)
 
         # ---- Build FFNN Model ----
         self.model = FFNNNucleus( self.config )
         self.model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-        self.neuron.axon.serve( self.model )
+        bittensor.neuron.axon.serve( self.model )
 
         # ---- Optimizer ----
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum)
@@ -86,14 +86,14 @@ class Miner():
     def run(self):
 
         # --- Subscribe / Update neuron ---
-        with self.neuron:
+        with bittensor.neuron:
 
             # ---- Loop for epochs ----
             self.model.train()
             for self.epoch in range(self.config.miner.n_epochs):
 
                 # ---- Poll until gradients ----
-                public_key, inputs_x, grads_dy, modality_x = self.neuron.axon.gradients.get(block = True)
+                public_key, inputs_x, grads_dy, modality_x = bittensor.neuron.axon.gradients.get(block = True)
 
                 # ---- Backward Gradients ----
                 # TODO (const): batch normalization over the gradients for consistency.
@@ -109,20 +109,19 @@ class Miner():
                 if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
                     self.model, self.optimizer = self.model_toolbox.load_model(self.config)
 
-                # ---- Serve latest model ----
-                self.neuron.axon.serve( self.model ) # Serve the newest model.
-                logger.info('Step: {} \t Key: {} \t sum(W[:,0])', self.epoch, public_key, torch.sum(self.neuron.metagraph.col).item())
+                # ---- Step logs ----
+                logger.info('Step: {} \t Key: {} \t sum(W[:,0])', self.epoch, public_key, torch.sum(bittensor.neuron.metagraph.col()).item())
             
                 # ---- Sync State ----
                 if (self.epoch + 1) % self.config.miner.sync_interval == 0:
 
                     # --- Display Epoch ----
-                    print(self.neuron.axon.__full_str__())
-                    print(self.neuron.dendrite.__full_str__())
-                    print(self.neuron.metagraph)
+                    print(bittensor.neuron.axon.fullToString())
+                    print(bittensor.neuron.dendrite.fullToString())
+                    print(bittensor.neuron.metagraph)
                     
                     # ---- Sync metagrapn from chain ----
-                    self.neuron.metagraph.sync() # Sync with the chain.
+                    bittensor.neuron.metagraph.sync() # Sync with the chain.
                     
                     # --- Save Model ----
                     self.model_toolbox.save_model(

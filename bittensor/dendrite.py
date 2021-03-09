@@ -46,15 +46,13 @@ class Dendrite(nn.Module):
         called during associated Forward operation.
     """
 
-    def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, metagraph: 'bittensor.metagraph.Metagraph' = None, **kwargs):
+    def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, **kwargs):
         r""" Initializes a new Dendrite entry point.
             Args:
                 config (:obj:`Munch`, `optional`): 
                     dendrite.Dendrite.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
-                    bittensor network metagraph.
         """
         super().__init__()
         # Config: Holds all config items for this items and those that are recursively defined. Specifically
@@ -72,7 +70,7 @@ class Dendrite(nn.Module):
 
         # Receptors: Holds a set map of publickey -> receptor objects. Receptors encapsulate a TCP connection between
         # this dendrite and an upstream neuron (i.e. a peer we call for representations)
-        self._receptors = {}
+        self.receptors = {}
 
         # Stats: hold statistics for this dendrite.
         self.stats = SimpleNamespace(
@@ -92,7 +90,6 @@ class Dendrite(nn.Module):
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
-        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
         bittensor.receptor.Receptor.add_args(parser)
         return parser
 
@@ -286,7 +283,7 @@ class Dendrite(nn.Module):
         return "(" + qps_str + "q/s|" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s" + ")"
 
     def fullToString(self):
-        return self.__full_str__()
+        return self.fullToString()
 
     def __full_str__(self):
         uids = [receptor.neuron.uid for receptor in self._receptors.values()]
@@ -301,9 +298,9 @@ class Dendrite(nn.Module):
         return '\nDendrite:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
        
     def toTensorboard(self, tensorboard, global_step):
-        self.__to_tensorboard__(tensorboard, global_step)
+        self.toTensorboard(tensorboard, global_step)
 
-    def __to_tensorboard__(self, tensorboard, global_step):
+    def toTensorboard(self, tensorboard, global_step):
         total_bytes_out = 0
         total_bytes_in = 0
         for receptor in self._receptors.values():

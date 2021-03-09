@@ -244,14 +244,14 @@ def test_row():
         metagraph.uid = i
         row = torch.zeros(100)
         row[i] = 1
-        assert torch.all(metagraph.row.eq(row))
+        assert torch.all(metagraph.row().eq(row))
 
 def test_col():
     for i in range(100):
         metagraph.uid = i
         col = torch.zeros(100)
         col[i] = 1
-        assert torch.all(metagraph.row.eq(col))
+        assert torch.all(metagraph.row().eq(col))
 
 
 

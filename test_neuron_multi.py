@@ -13,15 +13,20 @@ print ( bittensor.neuron.dendrite.toString() )
 print ( bittensor.neuron.axon.fullToString() )
 print ( bittensor.neuron.dendrite.fullToString() )
 
+
 # print ( bittensor.neuron.axon.toTensorboard(None, None) )
 # print ( bittensor.neuron.metagraph.state.index_for_uid[0] )
 
-# def function():
-#     print (bittensor.neuron.subtensor.connect())
+def function():
+    print ( bittensor.neuron.metagraph.toString() )
+    print ( bittensor.neuron.axon.toString() )
+    print ( bittensor.neuron.dendrite.toString() )
+    print ( bittensor.neuron.axon.fullToString() )
+    print ( bittensor.neuron.dendrite.fullToString() )
 
-# p1 = Process(target=function)
-# p1.start()
-# p1.join()
+p1 = Process(target=function)
+p1.start()
+p1.join()
 
 # p2 = Process(target=function)
 # p2.start()

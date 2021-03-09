@@ -49,7 +49,7 @@ class Subtensor:
         r""" Initializes a subtensor chain interface.
             Args:
                 config (:obj:`Munch`, `optional`): 
-                    metagraph.Metagraph.config()
+                    subtensor.Subtensor.default_config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 network (default='akira', type=str)

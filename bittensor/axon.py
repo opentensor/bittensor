@@ -50,7 +50,6 @@ class Axon(bittensor.grpc.BittensorServicer):
             self, 
             config: Munch = None, 
             wallet: 'bittensor.wallet.Wallet' = None,
-            metagraph: 'bittensor.metagraph.Metagraph' = None,
             **kwargs
         ):
         r""" Initializes a new Axon tensor processing endpoint.
@@ -60,8 +59,6 @@ class Axon(bittensor.grpc.BittensorServicer):
                     axon.Axon.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
-                    bittensor network metagraph.
                 local_port (default=8091, type=int): 
                     The port this axon endpoint is served on. i.e. 8091
                 local_ip (default='127.0.0.1', type=str): 
@@ -428,9 +425,9 @@ class Axon(bittensor.grpc.BittensorServicer):
         out_bytes = sys.getsizeof(response)
         self.stats.total_in_bytes.update(in_bytes)
         self.stats.total_out_bytes.update(out_bytes)
-        if request.public_key in self.metagraph.state.uid_for_pubkey:
+        if request.public_key in bittensor.neuron.metagraph.get_state().uid_for_pubkey:
             # ---- Check we have a stats column for this peer
-            request_uid = self.metagraph.state.uid_for_pubkey[request.public_key]
+            request_uid = bittensor.neuron.metagraph.get_state().uid_for_pubkey[request.public_key]
             if request_uid in self.stats.in_bytes_per_uid:
                 self.stats.in_bytes_per_uid[request_uid].update(in_bytes)
                 self.stats.out_bytes_per_uid[request_uid].update(out_bytes)
@@ -450,9 +447,9 @@ class Axon(bittensor.grpc.BittensorServicer):
         return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
     
     def toTensorboard(self, tensorboard, global_step):
-        self.__to_tensorboard__(tensorboard, global_step)
+        self.toTensorboard(tensorboard, global_step)
 
-    def __to_tensorboard__(self, tensorboard, global_step):
+    def toTensorboard(self, tensorboard, global_step):
         total_in_bytes = (self.stats.total_in_bytes.value * 8)/1000
         total_out_bytes = (self.stats.total_out_bytes.value * 8)/1000
         tensorboard.add_scalar("Axon/total_in_bytes", total_in_bytes, global_step)
@@ -460,7 +457,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         tensorboard.add_scalar("Axon/Queries/Sec", self.stats.qps.value, global_step)
 
     def fullToString(self):
-        return self.__full_str__()
+        return self.fullToString()
 
     def __full_str__(self):
         uids = list(self.stats.in_bytes_per_uid.keys())

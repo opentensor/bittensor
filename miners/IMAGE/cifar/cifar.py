@@ -39,7 +39,7 @@ class Miner():
         self.config = config
 
         # ---- Neuron ----
-        self.neuron = bittensor.neuron.Neuron(self.config)
+        bittensor.neuron = bittensor.neuron.Neuron(self.config)
     
         # ---- Model ----
         self.model = DPNNucleus( config ) # Feedforward neural network with PKMRouter.
@@ -113,14 +113,14 @@ class Miner():
     def run(self):
 
         # ---- Subscribe neuron ---- 
-        with self.neuron:
+        with bittensor.neuron:
 
             # ---- Loop for epochs ----
             self.epoch = -1; self.best_test_loss = math.inf; self.global_step = 0
-            self.row = self.neuron.metagraph.row # Trained weights.
+            self.row = bittensor.neuron.metagraph.row() # Trained weights.
             for self.epoch in range(self.config.miner.n_epochs):
                 # ---- Serve ----
-                self.neuron.axon.serve( self.model )
+                bittensor.neuron.axon.serve( self.model )
          
                 # ---- Train ----
                 self.train()
@@ -135,16 +135,16 @@ class Miner():
                 test_loss, test_accuracy = self.test()
 
                 # ---- Emit ----
-                self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
+                bittensor.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
                         
                 # ---- Sync ----  
-                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.weights = self.neuron.metagraph.row.to(self.device)
+                bittensor.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                self.weights = bittensor.neuron.metagraph.row().to(self.device)
 
                 # --- Display Epoch ----
-                print(self.neuron.axon.__full_str__())
-                print(self.neuron.dendrite.__full_str__())
-                print(self.neuron.metagraph)
+                print(bittensor.neuron.axon.fullToString())
+                print(bittensor.neuron.dendrite.fullToString())
+                print(bittensor.neuron.metagraph)
 
                 # ---- Save ----
                 if test_loss < self.best_test_loss:
@@ -171,7 +171,7 @@ class Miner():
 
             # ---- Remote Forward pass ----
             output = self.model.remote_forward(  
-                neuron = self.neuron,
+                neuron = bittensor.neuron,
                 images = images.to(self.device), 
                 targets = torch.LongTensor(targets).to(self.device), 
             ) 
@@ -199,8 +199,8 @@ class Miner():
                     colored('{:.2f}%'.format(progress), 'green'),
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
                     colored('{:.4f}'.format(output.local_accuracy.item()), 'green'),
-                    self.neuron.axon,
-                    self.neuron.dendrite)
+                    bittensor.neuron.axon,
+                    bittensor.neuron.dendrite)
             self.tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Lloss', output.local_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Dloss', output.distillation_loss.item(), self.global_step)
