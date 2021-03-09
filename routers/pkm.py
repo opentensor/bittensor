@@ -176,7 +176,7 @@ class PKMRouter():
 
         # requests: List(torch.FloatTensor): examples for each uids
         # requests.shape = n_uids * [-1, inputs.shape[1:]]
-        requests = torch.split(inputs_expanded, request_sizes, dim=0)
+        requests = torch.split(inputs_expanded.detach(), request_sizes, dim=0)
         
         # neurons: List[bittensor.proto.Neuron]: endpoint information for filtered keys.
         # neurons.shape = n_uids * [ bittensor.proto.Neuron ]
@@ -184,7 +184,7 @@ class PKMRouter():
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
-        requests = [request.detach() for request in requests]
+        requests = [r.detach() for r in requests]
         if modality == bittensor.proto.Modality.TEXT:
             responses, retops = bittensor.neuron.dendrite.forward_text(neurons, requests)
 
@@ -284,9 +284,6 @@ class PKMRouter():
         r""" Forwards text to connected neurons using the passed context to learn connectivity.
 
             Args:
-                neuron (:obj: `bittensor.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
-
                 text (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_dim)`, `required`): 
                     tensor of tokenized sentences.
                 
