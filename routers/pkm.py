@@ -184,7 +184,7 @@ class PKMRouter():
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
-        request = [request.detach() for request in requests]
+        requests = [request.detach() for request in requests]
         if modality == bittensor.proto.Modality.TEXT:
             responses, retops = bittensor.neuron.dendrite.forward_text(neurons, requests)
 
