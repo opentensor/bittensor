@@ -21,6 +21,7 @@ import bittensor.config
 import bittensor.executor
 import bittensor.dendrite
 import bittensor.metagraph
+import bittensor.nucleus
 import bittensor.receptor
 import bittensor.substrate
 import bittensor.subtensor
