@@ -51,7 +51,7 @@ class ChainState():
         self.lastemit = []
         self.weight_uids = []
         self.weight_vals = []
-        bittensor.neurons = []
+        self.neurons = []
         self.index_for_uid = {}
         self.index_for_pubkey = {}
         self.pubkey_for_index = {}
@@ -70,7 +70,7 @@ class ChainState():
         if pubkey in self.index_for_pubkey:
             index = self.index_for_pubkey[pubkey]
             if self.uids[index] == uid:
-                bittensor.neurons[index] = neuron
+                self.neurons[index] = neuron
                 self.stake[index] = float(stake) / 1000000000 
                 self.lastemit[index] = int(lastemit)
                 self.weight_uids[index] = list(w_uids)
@@ -83,7 +83,7 @@ class ChainState():
             self.n += 1
             self.index_for_pubkey[pubkey] = index
             self.pubkey_for_index[index] = pubkey
-            bittensor.neurons.append(neuron)
+            self.neurons.append(neuron)
             self.stake.append(float(stake) / 1000000000)
             self.lastemit.append(int(lastemit))
             self.weight_uids.append(list(w_uids))
@@ -133,7 +133,7 @@ class TorchChainState():
         self.stake = torch.tensor([])
         self.lastemit = torch.tensor([])
         self.W = torch.tensor([[]])
-        bittensor.neurons = []
+        self.neurons = []
         self.uid_for_pubkey = {}
         self.index_for_uid = {}
 
@@ -147,7 +147,7 @@ class TorchChainState():
             'stake': self.stake.tolist(),
             'lastemit': self.lastemit.tolist(),
             'W': self.W.tolist(),
-            'neurons': [ {'uid': n.uid, 'ip': n.address, 'port': n.port, 'ip_type': n.ip_type, 'modality': n.modality, 'hotkey': n.public_key} for n in bittensor.neurons]
+            'neurons': [ {'uid': n.uid, 'ip': n.address, 'port': n.port, 'ip_type': n.ip_type, 'modality': n.modality, 'hotkey': n.public_key} for n in self.neurons]
         }
         with open( filepath, 'w') as fp:
             json.dump(json_data, fp)
