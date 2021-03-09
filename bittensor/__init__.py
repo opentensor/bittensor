@@ -129,19 +129,96 @@ from munch import Munch
 from termcolor import colored
 from loguru import logger
 
-class _DendriteProxy(NamespaceProxy):
-    _exposed_ = tuple(dir(bittensor.dendrite.Dendrite))
+from multiprocessing.managers import BaseManager, NamespaceProxy
 
-    def __getattr__(self, name):
-        result = super().__getattr__(name)
-        if isinstance(result, types.MethodType):
-            def wrapper(*args, **kwargs):
-                self._callmethod(name, args)
-            return wrapper
-        return result
+# class BittensorManager(BaseManager):
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
 
 
-class _SubtensorProxy(NamespaceProxy):
+# def Proxy(target):
+#     dic = {'types': types}
+#     exec('''def __getattr__(self, key):
+#         result = self._callmethod('__getattribute__', (key,))
+#         if isinstance(result, types.MethodType):
+#             def wrapper(*args, **kwargs):
+#                 self._callmethod(key, args)
+#             return wrapper
+#         return result''', dic)
+#     proxyName = target.__name__ + "Proxy"
+#     ProxyType = type(proxyName, (NamespaceProxy,), dic)
+#     ProxyType._exposed_ = tuple(dir(target))
+#     return ProxyType
+
+from multiprocessing import Process
+from multiprocessing.managers import BaseManager, NamespaceProxy, BaseProxy, AutoProxy
+import time
+import types
+
+import multiprocessing.managers
+
+def AutoProxy(token, serializer, manager=None, authkey=None,
+              exposed=None, incref=True, manager_owned=False):
+    '''
+    Return an auto-proxy for `token`
+    '''
+    _Client = multiprocessing.managers.listener_client[serializer][1]
+
+    if exposed is None:
+        conn = _Client(token.address, authkey=authkey)
+        try:
+            exposed = dispatch(conn, None, 'get_methods', (token,))
+        finally:
+            conn.close()
+
+    if authkey is None and manager is not None:
+        authkey = manager._authkey
+    if authkey is None:
+        authkey = multiprocessing.process.current_process().authkey
+
+    ProxyType = multiprocessing.managers.MakeProxyType('AutoProxy[%s]' % token.typeid, exposed)
+    proxy = ProxyType(token, serializer, manager=manager, authkey=authkey,
+                      incref=incref, manager_owned=manager_owned)
+    proxy._isauto = True
+    return proxy
+
+multiprocessing.managers.AutoProxy = AutoProxy
+
+class MyManager(BaseManager): pass  # Avoid namespace pollution.
+
+# def Proxy(target):
+#     """ Create a derived NamespaceProxy class for `target`. """
+#     def __getattr__(self, key):
+#         result = self._callmethod('__getattribute__', (key,))
+#         if isinstance(result, types.MethodType):
+#             def wrapper(*args, **kwargs):
+#                 self._callmethod(key, args)
+#             return wrapper
+#         return result
+
+#     dic = {'types': types, '__getattr__': __getattr__}
+#     proxy_name = target.__name__ + "Proxy"
+#     ProxyType = type(proxy_name, (NamespaceProxy,), dic)  # Create subclass.
+#     ProxyType._exposed_ = tuple(dir(target))
+#     return ProxyType
+
+# class Thing:
+#     def __init__(self):
+#         self.b = 1
+
+# class BittensorProxy(AutoProxy):
+#     # We need to expose the same __dunder__ methods as NamespaceProxy,
+#     # in addition to the b method.
+#     _exposed_ = ('__getattribute__', '__setattr__', '__delattr__', 'b')
+
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+
+#     def b(self):
+#         callmethod = object.__getattribute__(self, '_callmethod')
+#         return callmethod('b')
+
+class TestProxy(NamespaceProxy):
     _exposed_ = tuple(dir(bittensor.subtensor.Subtensor))
 
     def __getattr__(self, name):
@@ -151,31 +228,6 @@ class _SubtensorProxy(NamespaceProxy):
                 self._callmethod(name, args)
             return wrapper
         return result
-
-
-class _MetagraphProxy(NamespaceProxy):
-    _exposed_ = tuple(dir(bittensor.metagraph.Metagraph))
-
-    def __getattr__(self, name):
-        result = super().__getattr__(name)
-        if isinstance(result, types.MethodType):
-            def wrapper(*args, **kwargs):
-                self._callmethod(name, args)
-            return wrapper
-        return result
-
-
-class _AxonProxy(NamespaceProxy):
-    _exposed_ = tuple(dir(bittensor.axon.Axon))
-
-    def __getattr__(self, name):
-        result = super().__getattr__(name)
-        if isinstance(result, types.MethodType):
-            def wrapper(*args, **kwargs):
-                self._callmethod(name, args)
-            return wrapper
-        return result
-
 
 neuron = None
 class Neuron:
@@ -195,14 +247,14 @@ class Neuron:
             wallet = bittensor.wallet.Wallet ( config )
         self.wallet = wallet
 
-        BaseManager.register('Subtensor', bittensor.subtensor.Subtensor, _SubtensorProxy)
-        BaseManager.register('Metagraph', bittensor.metagraph.Metagraph, _MetagraphProxy)
-        BaseManager.register('Dendrite', bittensor.dendrite.Dendrite, _DendriteProxy)
-        BaseManager.register('Axon', bittensor.axon.Axon, _AxonProxy)
-
+        BaseManager.register('Subtensor', bittensor.subtensor.Subtensor)
+        BaseManager.register('Metagraph', bittensor.metagraph.Metagraph)
+        BaseManager.register('Dendrite', bittensor.dendrite.Dendrite)
+        BaseManager.register('Axon', bittensor.axon.Axon)
         manager = BaseManager()
         manager.start()
-        
+
+        # self.thing = manager.Thing( )
         self.subtensor = manager.Subtensor( config = self.config, wallet = self.wallet )
         self.metagraph = manager.Metagraph( config = self.config, wallet = self.wallet )
         self.dendrite = manager.Dendrite( config = self.config, walelt = self.wallet )
@@ -279,7 +331,7 @@ class Neuron:
         )
         if not subscribe_success:
             raise RuntimeError('Failed to subscribe neuron.')
-        
+
 
 import asyncio
 def init( config: Munch = None,  wallet: 'bittensor.wallet.Wallet' = None, **kwargs ):
@@ -289,6 +341,10 @@ def init( config: Munch = None,  wallet: 'bittensor.wallet.Wallet' = None, **kwa
     global neuron
     neuron = Neuron(config, wallet)
 
+def start():
+    if neuron == None:
+        raise ValueError ('Must call bittensor.init() before bittensor.start()')
+    neuron.start()
 
 # def start(self):
 #     print(colored('', 'white'))

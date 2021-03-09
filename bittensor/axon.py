@@ -79,9 +79,6 @@ class Axon(bittensor.grpc.BittensorServicer):
                 max_workers (default=10, type=int): 
                     The maximum number connection handler threads working simultaneously on this endpoint. 
                         The grpc server distributes new worker threads to service requests up to this number.
-                max_gradients (default=100, type=int):
-                    The max number of lingering gradients stored in the gradient queue.
-                        Gradients passed from other peers accumulate on this endpoint and queue in axon.gradients.
         """
         # Config: Holds all config items for this items and those that are recursively defined. For instance,
         # config for the wallet, metagraph sub-objects.
@@ -97,12 +94,6 @@ class Axon(bittensor.grpc.BittensorServicer):
             wallet = bittensor.wallet.Wallet( config = self.config )
         self.wallet = wallet
         
-        # Metagraph: Maintains a connection to the subtensor chain which updates with a sync() call.
-        # The metagraph can be queried for the latest information about stake and weight matrix state.
-        if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph( config = self.config, wallet = self.wallet )
-        self.metagraph = metagraph
-
         # Server: by default the axon serves an RPC server in its own thread using GPRC.
         # The servicer must implement Forward and Backward methods to properly communicate with
         # the other peers in the network.
@@ -449,6 +440,9 @@ class Axon(bittensor.grpc.BittensorServicer):
                 self.stats.out_bytes_per_uid[request_uid] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
                 self.stats.qps_per_uid[request_uid] = stat_utils.timed_rolling_avg(1, 0.01)
 
+
+    def toString(self):
+        return self.__str__()
 
     def __str__(self):
         total_in_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'red')

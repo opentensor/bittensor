@@ -3,8 +3,12 @@ from multiprocessing import Process
 
 config = bittensor.Neuron.default_config()
 config.subtensor.network = 'kusanagi'
-bittensor.init(config = config)
-print(bittensor.neuron.metagraph.S)
+
+bittensor.init( config = config )
+bittensor.neuron.subtensor.connect()
+
+print ( bittensor.neuron.metagraph.S() )
+# print ( bittensor.neuron.metagraph.state.index_for_uid[0] )
 
 # def function():
 #     print (bittensor.neuron.subtensor.connect())

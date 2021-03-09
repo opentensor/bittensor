@@ -257,7 +257,6 @@ class Metagraph():
     def get(self):
         return self.last_emit
 
-    @property
     def n(self) -> int:
         r""" Return the number of known neurons on chain.
             
@@ -268,7 +267,6 @@ class Metagraph():
         """
         return self.state.n
 
-    @property
     def block(self) -> int:
         r""" Return the block number when the chain state was updated.
 
@@ -278,7 +276,6 @@ class Metagraph():
         """
         return self.state.block
 
-    @property
     def lastemit(self) -> torch.LongTensor:
         r""" Returns the last emit time for each known neuron.
             
@@ -288,7 +285,6 @@ class Metagraph():
         """
         return self.state.lastemit
 
-    @property
     def indices(self) -> torch.LongTensor:
         r""" Return the indices of each neuron in the chain state range(metagraph.n).
             
@@ -299,7 +295,6 @@ class Metagraph():
         """
         return self.state.indices
 
-    @property
     def uids(self) -> torch.LongTensor:
         r""" Returns unique ids for each neuron in the chain state.
             Returns:
@@ -308,7 +303,6 @@ class Metagraph():
         """
         return self.state.uids
 
-    @property
     def stake(self) -> torch.FloatTensor:
         r""" Returns the stake held by each known neuron.
             
@@ -319,7 +313,6 @@ class Metagraph():
         """
         return self.state.stake
 
-    @property
     def S(self) -> torch.FloatTensor:
         r""" Returns the stake held by each known neuron.
              
@@ -329,7 +322,6 @@ class Metagraph():
         """
         return self.state.stake
 
-    @property
     def tau(self) -> torch.FloatTensor:
         r""" tau: the chain per block inflation rate. i.e. 50
             
@@ -339,7 +331,6 @@ class Metagraph():
         """
         return self.state.tau
 
-    @property
     def incentive(self) -> torch.FloatTensor:
         r""" Returns the incentive value from each known neuron to you.
             
@@ -354,7 +345,6 @@ class Metagraph():
             incentive = self.tau * self.col * self.stake
         return incentive
 
-    @property
     def I(self) -> torch.FloatTensor:
         r""" Returns the inflation incentive for each peer per block.
         
@@ -366,7 +356,6 @@ class Metagraph():
         I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
         return I
 
-    @property
     def ranks(self) -> torch.FloatTensor:
         r""" Returns the ranks W^t * S
            
@@ -383,7 +372,6 @@ class Metagraph():
             R = torch.matmul(W, S).view(self.state.n)
         return R
 
-    @property
     def R(self) -> torch.FloatTensor:
         r""" Returns ranks for each known neuron in the graph.
              
@@ -393,7 +381,6 @@ class Metagraph():
         """
         return self.ranks
 
-    @property
     def row(self) -> torch.FloatTensor:
         r""" Returns this neuron's row weights, i.e. weights to other neurons.
             
@@ -411,7 +398,6 @@ class Metagraph():
             logger.error('your uid is not in self.state with state.uids {} and uid {}'.format(self.state.uids, self.uid))
             return torch.tensor([])
 
-    @property
     def col(self) -> torch.FloatTensor:
         r""" Returns this neuron's col weights, i.e. weights from other neurons to us.
             
@@ -428,7 +414,6 @@ class Metagraph():
             logger.error('your uid is not in self.state with state.uids {} and uid {}'.format( self.state.uids, self.uid ))
             return torch.tensor([])
 
-    @property
     def W(self) -> torch.FloatTensor:
         r""" Full chain weight matrix for each neuron.
              
@@ -438,7 +423,6 @@ class Metagraph():
         """
         return self.state.W
 
-    @property
     def neurons(self) -> List[bittensor.proto.Neuron]:
         r""" Return neuron endpoint information for each neuron.
             
@@ -449,7 +433,6 @@ class Metagraph():
         """
         return self.state.neurons
 
-    @property
     def public_keys(self) -> List[str]:
         r""" Return the ordered public keys for state neurons.
         
@@ -460,7 +443,6 @@ class Metagraph():
         """
         return [n.public_key for n in self.state.neurons]
 
-    @property
     def weights(self) -> torch.FloatTensor:
         r"""Return this neuron's weights. W[0,:]
             Returns:
