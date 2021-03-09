@@ -204,6 +204,7 @@ class Subtensor:
             success (bool):
                 True on success. 
         """
+        logger.info('connect')
         try: 
             loop = asyncio.get_event_loop()
         except:
@@ -397,7 +398,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or uncluded in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
-        logger.info('subscribing')
         try: 
             loop = asyncio.get_event_loop()
         except:

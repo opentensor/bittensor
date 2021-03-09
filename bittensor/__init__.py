@@ -114,19 +114,68 @@ __local_entrypoints__ = [
 ]
 
 from multiprocessing import Process, Manager
-from multiprocessing.managers import BaseManager
+from multiprocessing.managers import BaseManager, NamespaceProxy
 
 import argparse
 import json
 import os
 import re
 import stat
+import types
 import traceback as tb
 
 from io import StringIO
 from munch import Munch
 from termcolor import colored
 from loguru import logger
+
+class _DendriteProxy(NamespaceProxy):
+    _exposed_ = tuple(dir(bittensor.dendrite.Dendrite))
+
+    def __getattr__(self, name):
+        result = super().__getattr__(name)
+        if isinstance(result, types.MethodType):
+            def wrapper(*args, **kwargs):
+                self._callmethod(name, args)
+            return wrapper
+        return result
+
+
+class _SubtensorProxy(NamespaceProxy):
+    _exposed_ = tuple(dir(bittensor.subtensor.Subtensor))
+
+    def __getattr__(self, name):
+        result = super().__getattr__(name)
+        if isinstance(result, types.MethodType):
+            def wrapper(*args, **kwargs):
+                self._callmethod(name, args)
+            return wrapper
+        return result
+
+
+class _MetagraphProxy(NamespaceProxy):
+    _exposed_ = tuple(dir(bittensor.metagraph.Metagraph))
+
+    def __getattr__(self, name):
+        result = super().__getattr__(name)
+        if isinstance(result, types.MethodType):
+            def wrapper(*args, **kwargs):
+                self._callmethod(name, args)
+            return wrapper
+        return result
+
+
+class _AxonProxy(NamespaceProxy):
+    _exposed_ = tuple(dir(bittensor.axon.Axon))
+
+    def __getattr__(self, name):
+        result = super().__getattr__(name)
+        if isinstance(result, types.MethodType):
+            def wrapper(*args, **kwargs):
+                self._callmethod(name, args)
+            return wrapper
+        return result
+
 
 neuron = None
 class Neuron:
@@ -146,10 +195,10 @@ class Neuron:
             wallet = bittensor.wallet.Wallet ( config )
         self.wallet = wallet
 
-        BaseManager.register('Subtensor', bittensor.subtensor.Subtensor)
-        BaseManager.register('Metagraph', bittensor.metagraph.Metagraph)
-        BaseManager.register('Dendrite', bittensor.dendrite.Dendrite)
-        BaseManager.register('Axon', bittensor.axon.Axon)
+        BaseManager.register('Subtensor', bittensor.subtensor.Subtensor, _SubtensorProxy)
+        BaseManager.register('Metagraph', bittensor.metagraph.Metagraph, _MetagraphProxy)
+        BaseManager.register('Dendrite', bittensor.dendrite.Dendrite, _DendriteProxy)
+        BaseManager.register('Axon', bittensor.axon.Axon, _AxonProxy)
 
         manager = BaseManager()
         manager.start()
