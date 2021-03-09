@@ -68,7 +68,7 @@ class Dendrite(nn.Module):
             wallet = bittensor.wallet.Wallet(self.config)
         self.wallet = wallet
 
-        # Receptors: Holds a set map of publickey -> receptor objects. Receptors encapsulate a TCP connection between
+        # Receptors: Holds a map from publickey -> receptor objects. Receptors encapsulate a TCP connection between
         # this dendrite and an upstream neuron (i.e. a peer we call for representations)
         self.receptors = {}
 
@@ -257,9 +257,9 @@ class Dendrite(nn.Module):
         for (inputs_i, neuron_i) in list(zip(inputs, neurons)):
 
             # ---- Find receptor or create one ---- 
-            if neuron_i.public_key not in self._receptors:
-                self._receptors[neuron_i.public_key] = bittensor.receptor.Receptor(neuron_i, self.config, self.wallet)
-            receptor = self._receptors[neuron_i.public_key]
+            if neuron_i.public_key not in self.receptors:
+                self.receptors[neuron_i.public_key] = bittensor.receptor.Receptor(neuron_i, self.config, self.wallet)
+            receptor = self.receptors[neuron_i.public_key]
 
             # ---- Append async calls ---- 
             calls.append( loop.run_in_executor(None, receptor.forward, inputs_i, mode) )
@@ -274,7 +274,7 @@ class Dendrite(nn.Module):
     def __str__(self):
         total_bytes_out = 0
         total_bytes_in = 0
-        for receptor in self._receptors.values():
+        for receptor in self.receptors.values():
             total_bytes_out += receptor.stats.forward_bytes_out.value
             total_bytes_in += receptor.stats.forward_bytes_in.value
         qps_str = colored('{:.3f}'.format(self.stats.qps.value), 'blue')
@@ -286,10 +286,10 @@ class Dendrite(nn.Module):
         return self.fullToString()
 
     def __full_str__(self):
-        uids = [receptor.neuron.uid for receptor in self._receptors.values()]
-        bytes_out = [receptor.stats.forward_bytes_out.value * (8/1000) for receptor in self._receptors.values()]
-        bytes_in = [receptor.stats.forward_bytes_in.value * (8/1000) for receptor in self._receptors.values()]
-        qps = [receptor.stats.forward_qps.value + receptor.stats.backward_qps.value for receptor in self._receptors.values()]
+        uids = [receptor.neuron.uid for receptor in self.receptors.values()]
+        bytes_out = [receptor.stats.forward_bytes_out.value * (8/1000) for receptor in self.receptors.values()]
+        bytes_in = [receptor.stats.forward_bytes_in.value * (8/1000) for receptor in self.receptors.values()]
+        qps = [receptor.stats.forward_qps.value + receptor.stats.backward_qps.value for receptor in self.receptors.values()]
         rows = [bytes_out, bytes_in, qps]
         df = pd.DataFrame(rows, columns=uids)
         df = df.rename(index={df.index[0]: colored('\u290A kB/s', 'green')})
@@ -303,7 +303,7 @@ class Dendrite(nn.Module):
     def toTensorboard(self, tensorboard, global_step):
         total_bytes_out = 0
         total_bytes_in = 0
-        for receptor in self._receptors.values():
+        for receptor in self.receptors.values():
             total_bytes_out += receptor.stats.forward_bytes_out.value
             total_bytes_in += receptor.stats.forward_bytes_in.value
         total_in_bytes = (total_bytes_in*8)/1000
