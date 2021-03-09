@@ -168,6 +168,9 @@ class Receptor(nn.Module):
         except:
             pass
 
+    def toString(self):
+        return self.__str__()
+
     def __str__(self):
         total_out_bytes = self.stats.forward_bytes_out.value + self.stats.backward_bytes_out.value
         total_in_bytes = self.stats.forward_bytes_in.value + self.stats.backward_bytes_in.value

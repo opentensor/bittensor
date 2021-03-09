@@ -240,9 +240,6 @@ class Neuron:
         self.config = config
         print ( bittensor.config.Config.toString(config) )
 
-
-        # Wallet: Holds the hotkey keypair and coldkey pub which are user to sign messages 
-        # and subscribe to the chain.
         if wallet == None:
             wallet = bittensor.wallet.Wallet ( config )
         self.wallet = wallet

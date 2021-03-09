@@ -440,7 +440,6 @@ class Axon(bittensor.grpc.BittensorServicer):
                 self.stats.out_bytes_per_uid[request_uid] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
                 self.stats.qps_per_uid[request_uid] = stat_utils.timed_rolling_avg(1, 0.01)
 
-
     def toString(self):
         return self.__str__()
 
@@ -450,12 +449,18 @@ class Axon(bittensor.grpc.BittensorServicer):
         qps_str = colored("{:.3f}".format(float(self.stats.qps.value)), 'blue')
         return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
     
+    def toTensorboard(self, tensorboard, global_step):
+        self.__to_tensorboard__(tensorboard, global_step)
+
     def __to_tensorboard__(self, tensorboard, global_step):
         total_in_bytes = (self.stats.total_in_bytes.value * 8)/1000
         total_out_bytes = (self.stats.total_out_bytes.value * 8)/1000
         tensorboard.add_scalar("Axon/total_in_bytes", total_in_bytes, global_step)
         tensorboard.add_scalar("Axon/total_in_bytes", total_out_bytes, global_step)
         tensorboard.add_scalar("Axon/Queries/Sec", self.stats.qps.value, global_step)
+
+    def fullToString(self):
+        return self.__full_str__()
 
     def __full_str__(self):
         uids = list(self.stats.in_bytes_per_uid.keys())

@@ -7,7 +7,13 @@ config.subtensor.network = 'kusanagi'
 bittensor.init( config = config )
 bittensor.neuron.subtensor.connect()
 
-print ( bittensor.neuron.metagraph.S() )
+print ( bittensor.neuron.metagraph.toString() )
+print ( bittensor.neuron.axon.toString() )
+print ( bittensor.neuron.dendrite.toString() )
+print ( bittensor.neuron.axon.fullToString() )
+print ( bittensor.neuron.dendrite.fullToString() )
+
+# print ( bittensor.neuron.axon.toTensorboard(None, None) )
 # print ( bittensor.neuron.metagraph.state.index_for_uid[0] )
 
 # def function():

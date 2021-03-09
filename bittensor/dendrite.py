@@ -271,6 +271,9 @@ class Dendrite(nn.Module):
         results = await asyncio.gather(*calls)
         return results
 
+    def toString(self):
+        return self.__str__()
+
     def __str__(self):
         total_bytes_out = 0
         total_bytes_in = 0
@@ -281,6 +284,9 @@ class Dendrite(nn.Module):
         total_in_bytes_str = colored('\u290A {:.1f}'.format((total_bytes_out*8)/1000), 'green')
         total_out_bytes_str = colored('\u290B {:.1f}'.format((total_bytes_in*8)/1000), 'red')
         return "(" + qps_str + "q/s|" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s" + ")"
+
+    def fullToString(self):
+        return self.__full_str__()
 
     def __full_str__(self):
         uids = [receptor.neuron.uid for receptor in self._receptors.values()]
@@ -293,7 +299,10 @@ class Dendrite(nn.Module):
         df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
         df = df.rename(index={df.index[2]: colored('Q/s', 'blue')})
         return '\nDendrite:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
-    
+       
+    def toTensorboard(self, tensorboard, global_step):
+        self.__to_tensorboard__(tensorboard, global_step)
+
     def __to_tensorboard__(self, tensorboard, global_step):
         total_bytes_out = 0
         total_bytes_in = 0
@@ -305,6 +314,3 @@ class Dendrite(nn.Module):
         tensorboard.add_scalar('Dendrite/Incoming bytes', total_in_bytes, global_step)
         tensorboard.add_scalar('Dendrite/Outgoing bytes', total_out_bytes, global_step)
 
-    @property
-    def receptors(self):
-        return self._receptors.values()

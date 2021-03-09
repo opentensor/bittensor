@@ -251,12 +251,6 @@ class Metagraph():
     def check_config(config: Munch):
         pass
 
-    def set(self, x):
-        self.last_emit = x
-
-    def get(self):
-        return self.last_emit
-
     def n(self) -> int:
         r""" Return the number of known neurons on chain.
             
@@ -338,11 +332,11 @@ class Metagraph():
                 incentive (:obj:`torch.FLoatTensor` of shape :obj:`(metagraph.n)`):
                     inflation incentive from each known neuron.
         """
-        self_col = self.col
-        if len(self.col.tolist()) == 0:
+        self_col = self.col()
+        if len(self.col().tolist()) == 0:
             return torch.zeros(self.state.n)
         else:
-            incentive = self.tau * self.col * self.stake
+            incentive = self.tau() * self.col() * self.stake()
         return incentive
 
     def I(self) -> torch.FloatTensor:
@@ -352,7 +346,7 @@ class Metagraph():
                 I (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     stake of each known neuron.
         """
-        I =  (self.tau * self.ranks) / torch.sum(self.ranks)
+        I =  (self.tau() * self.ranks()) / torch.sum(self.ranks())
         I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
         return I
 
@@ -364,11 +358,11 @@ class Metagraph():
                     rank of each known neuron.
 
         """
-        if self.W.shape[0] == 0:
+        if self.W().shape[0] == 0:
             return torch.tensor([])
         else:
-            S = self.S.view(self.state.n, 1)
-            W = torch.transpose(self.W.view(self.state.n, self.state.n), 0, 1)
+            S = self.S().view(self.state.n, 1)
+            W = torch.transpose(self.W().view(self.state.n, self.state.n), 0, 1)
             R = torch.matmul(W, S).view(self.state.n)
         return R
 
@@ -379,7 +373,7 @@ class Metagraph():
                 rank (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     rank of each known neuron.
         """
-        return self.ranks
+        return self.ranks()
 
     def row(self) -> torch.FloatTensor:
         r""" Returns this neuron's row weights, i.e. weights to other neurons.
@@ -423,6 +417,9 @@ class Metagraph():
         """
         return self.state.W
 
+    def get_state(self) -> TorchChainState:
+        return self.state
+
     def neurons(self) -> List[bittensor.proto.Neuron]:
         r""" Return neuron endpoint information for each neuron.
             
@@ -452,7 +449,7 @@ class Metagraph():
         if self.state.n == 0:
             return torch.Tensor([])
         else:
-            w_0 = self.state.W[0,:]
+            w_0 = self.state.W()[0,:]
             return w_0
 
     def uids_to_indices(self, uids: torch.Tensor) -> torch.LongTensor:
@@ -812,11 +809,18 @@ class Metagraph():
             weight_vals.insert(0, weight_vals.pop(pos_self_uid))
         return weight_uids, weight_vals
 
+
+    def toString(self):
+        return self.__str__()
+
+    def toTensorboard(self, tensorboard, global_step):
+        self.__to_tensorboard__(tensorboard, global_step)
+
     def __str__(self):
         uids = self.state.uids.tolist()
-        rows = [self.S.tolist(), self.R.tolist(), self.I.tolist(), self.incentive.tolist(), self.row.tolist(), self.col.tolist()]
-        for i in range(self.n):
-            rows.append(self.W[i, :].tolist())
+        rows = [self.S().tolist(), self.R().tolist(), self.I().tolist(), self.incentive().tolist(), self.row().tolist(), self.col().tolist()]
+        for i in range(self.n()):
+            rows.append(self.W()[i, :].tolist())
         df = pd.DataFrame(rows, columns=uids)
         df = df.rename(index={df.index[0]: 'S'})
         df = df.rename(index={df.index[1]: 'R'})
@@ -824,13 +828,13 @@ class Metagraph():
         df = df.rename(index={df.index[3]: 'incentive'})
         df = df.rename(index={df.index[4]: 'row'})
         df = df.rename(index={df.index[5]: 'col'})
-        for i in range(self.n):
+        for i in range(self.n()):
             df = df.rename(index={df.index[i + 6]: uids[i]})
         df.rename_axis(colored('[uid]', 'red'), axis=1)
-        return '\nMetagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.uid, self.tau.item(), self.block, self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
+        return '\nMetagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.uid, self.tau().item(), self.block(), self.n()) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
 
     def __to_tensorboard__(self, tensorboard, global_step):
-        tensorboard.add_scalar('Metagraph/neurons', self.n, global_step)
-        tensorboard.add_scalar('Metagraph/inflation_rate', self.tau.item(), global_step)
+        tensorboard.add_scalar('Metagraph/neurons', self.n(), global_step)
+        tensorboard.add_scalar('Metagraph/inflation_rate', self.tau().item(), global_step)
 
 
