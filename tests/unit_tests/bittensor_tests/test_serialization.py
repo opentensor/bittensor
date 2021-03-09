@@ -8,7 +8,7 @@ import bittensor
 import bittensor.serialization as serialization
 
 from random import randrange
-
+from six.moves import urllib
 
 class TestSerialization(unittest.TestCase):
     config = None
@@ -46,6 +46,9 @@ class TestSerialization(unittest.TestCase):
     
     def test_serialize_deserialize_image(self):
         # Let's grab some image data
+        opener = urllib.request.build_opener()
+        opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+        urllib.request.install_opener(opener)
         data = torchvision.datasets.MNIST(root = 'data/datasets/', train=True, download=True, transform=transforms.ToTensor())
         
         # Let's grab a random image, and give it a crazy type to break the system
