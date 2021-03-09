@@ -367,7 +367,7 @@ class Executor:
             print(colored("Not enough balance ({}) to transfer {}".format(balance, amount), 'red'))
             quit()
 
-        print(colored("Requesting transfer of {}, from coldkey: {} to dest: {}".format(amount.rao, self.wallet.coldkey.public_key, dest), 'blue'))
+        print(colored("Requesting transfer of {}, from coldkey: {} to dest: {}".format(amount.rao, self.wallet.coldkey.public_key, self.config.dest), 'blue'))
         print(colored("Waiting for finalization...", 'white'))
         result = self.subtensor.transfer(self.config.dest, amount,  wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
         if result:
