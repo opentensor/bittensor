@@ -234,14 +234,11 @@ class GPT2LMNucleus(bittensor.nucleus.Nucleus):
                    
         return output
 
-    def remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, training: bool) -> SimpleNamespace:
+    def remote_forward(self, inputs: torch.LongTensor, training: bool) -> SimpleNamespace:
         """ Forward pass inputs and labels through the GPT2 module.
 
 
         Args:
-            neuron (:obj: `bittensor.neuron.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
-
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
@@ -279,7 +276,7 @@ class GPT2LMNucleus(bittensor.nucleus.Nucleus):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.router = self.router.forward_text(neuron, inputs.to(self.device), pooled)
+        output.router = self.router.forward_text( inputs.to(self.device), pooled )
         remote_context = output.router.response
 
         # distillation_loss: distillation loss between local_context and remote_context

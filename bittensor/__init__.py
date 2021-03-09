@@ -229,7 +229,6 @@ class Neuron:
                 timeout = 4 * bittensor.__blocktime__,
         )
         if not subscribe_success:
-            self.stop()
             raise RuntimeError('Failed to subscribe neuron.')
         
 
