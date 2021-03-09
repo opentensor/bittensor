@@ -45,9 +45,6 @@ class Miner():
         Miner.check_config(config)
         self.config = config
 
-        # ---- Neuron ----
-        self.neuron = bittensor.neuron.Neuron( self.config )
-
         # ---- Model ----
         self.model = GPT2LMNucleus( self.config )
 
@@ -109,67 +106,65 @@ class Miner():
     # --- Main loop ----
     def run (self):
 
-        # ---- Subscribe ----
-        with self.neuron:
+        # --- Init bittensor service ----
+        bittensor.init( self.config )
 
-            # ---- Weights ----
-            self.row = self.neuron.metagraph.row.to(self.model.device)
+        # ---- Weights ----
+        self.row = bittensor.neuron.metagraph.row.to(self.model.device)
 
-            # --- Run state ---
-            self.global_step = 0
-            self.best_train_loss = math.inf
+        # --- Run state ---
+        self.global_step = 0
+        self.best_train_loss = math.inf
 
-            # --- Loop for epochs ---
-            for self.epoch in range(self.config.miner.n_epochs):
-                try:
-                    # ---- Serve ----
-                    self.neuron.axon.serve( self.model )
-
-                    # ---- Train Model ----
-                    self.train()
-                    self.scheduler.step()
-                    
-                    # If model has borked for some reason, we need to make sure it doesn't emit weights
-                    # Instead, reload into previous version of model
-                    if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
-                        self.model, self.optimizer = self.model_toolbox.load_model(self.config)
-                        continue
-
-                    # ---- Emitting weights ----
-                    self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
-
-                    # ---- Sync metagraph ----
-                    self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                    self.row = self.neuron.metagraph.row.to(self.model.device)
-
-                    # --- Epoch logs ----
-                    print(self.neuron.axon.__full_str__())
-                    print(self.neuron.dendrite.__full_str__())
-                    print(self.neuron.metagraph)
-
-                    # ---- Update Tensorboard ----
-                    self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
-                    self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
-                    self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
+        # --- Loop for epochs ---
+        for self.epoch in range(self.config.miner.n_epochs):
+            try:
                 
-                    # ---- Save best loss and model ----
-                    if self.training_loss and self.epoch % 10 == 0 and self.training_loss < self.best_train_loss:
-                        self.best_train_loss = self.training_loss / 10 # update best train loss
-                        self.model_toolbox.save_model(
-                            self.config.miner.full_path,
-                            {
-                                'epoch': self.epoch, 
-                                'model_state_dict': self.model.state_dict(), 
-                                'loss': self.best_train_loss,
-                                'optimizer_state_dict': self.optimizer.state_dict(),
-                            }
-                        )
-                        self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
-                    
-                # --- Catch Errors ----
-                except Exception as e:
-                    logger.error('Exception in training script with error: {}, {}', e, traceback.format_exc())
-                    logger.info('Continuing to train.')
+                # ---- Train Model ----
+                self.train()
+                self.scheduler.step()
+                
+                # If model has borked for some reason, we need to make sure it doesn't emit weights
+                # Instead, reload into previous version of model
+                if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
+                    self.model, self.optimizer = self.model_toolbox.load_model(self.config)
+                    continue
+
+                # ---- Emitting weights ----
+                self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
+
+                # ---- Sync metagraph ----
+                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                self.row = self.neuron.metagraph.row.to(self.model.device)
+
+                # --- Epoch logs ----
+                print(self.neuron.axon.__full_str__())
+                print(self.neuron.dendrite.__full_str__())
+                print(self.neuron.metagraph)
+
+                # ---- Update Tensorboard ----
+                self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
+            
+                # ---- Save best loss and model ----
+                if self.training_loss and self.epoch % 10 == 0 and self.training_loss < self.best_train_loss:
+                    self.best_train_loss = self.training_loss / 10 # update best train loss
+                    self.model_toolbox.save_model(
+                        self.config.miner.full_path,
+                        {
+                            'epoch': self.epoch, 
+                            'model_state_dict': self.model.state_dict(), 
+                            'loss': self.best_train_loss,
+                            'optimizer_state_dict': self.optimizer.state_dict(),
+                        }
+                    )
+                    self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
+                
+            # --- Catch Errors ----
+            except Exception as e:
+                logger.error('Exception in training script with error: {}, {}', e, traceback.format_exc())
+                logger.info('Continuing to train.')
     
     # ---- Train Epoch ----
     def train(self):

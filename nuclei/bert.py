@@ -162,13 +162,10 @@ class BertNucleusBase (bittensor.nucleus.Nucleus):
 
         return output
 
-    def base_remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None):
+    def base_remote_forward(self, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None):
         """Forward pass inputs and labels through the remote BERT networks.
 
         Args:
-            neuron (:obj: `bittensor.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
-
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.                
 
@@ -288,13 +285,10 @@ class BertNSPNucleus (BertNucleusBase):
             output.local_target_loss = self.loss_fct( output.local_target.view(-1, 2), targets )            
         return output
 
-    def remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None, targets: torch.Tensor = None):
+    def remote_forward(self, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None, targets: torch.Tensor = None):
         r""" Forward pass inputs and labels through the NSP BERT module. (with queries to the network)
 
             Args:
-                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
-
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
@@ -319,7 +313,7 @@ class BertNSPNucleus (BertNucleusBase):
                 )
         """
         inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
-        output = BertNucleusBase.base_remote_forward( self, neuron = neuron, attention_mask = attention_mask, inputs = inputs)
+        output = BertNucleusBase.base_remote_forward( self, attention_mask = attention_mask, inputs = inputs)
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
             # local_target.shape = [batch_size, 2]
@@ -411,13 +405,10 @@ class BertMLMNucleus (BertNucleusBase):
         return output
 
 
-    def remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, targets: torch.LongTensor = None):
+    def remote_forward(self, inputs: torch.LongTensor, targets: torch.LongTensor = None):
         r""" Forward pass inputs and labels through the MLM BERT module. (with queries to the network)
 
             Args:
-                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
-
                 inputs (:obj:`torch.LongTensor` of shape ``(batch_size, sequence_length)``, `required`):
                     Batch_size length list of tokenized sentences.
                 

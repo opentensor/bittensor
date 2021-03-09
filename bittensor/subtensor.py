@@ -159,7 +159,10 @@ class Subtensor:
             success (bool):
                 True is the websocket is connected to the chain endpoint.
         """
-        loop = asyncio.get_event_loop()
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            asyncio.set_event_loop(loop)   
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_is_connected())
 
@@ -174,7 +177,11 @@ class Subtensor:
     def check_connection(self) -> bool:
         r""" Checks if substrate websocket backend is connected, connects if it is not. 
         """
-        loop = asyncio.get_event_loop()
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_check_connection())
 
@@ -197,7 +204,11 @@ class Subtensor:
             success (bool):
                 True on success. 
         """
-        loop = asyncio.get_event_loop()
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_connect(timeout, failure))
 
@@ -264,8 +275,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             coldkeypub (str):
                 string encoded coldekey pub.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_is_subscribed( ip, port, modality, coldkey))
 
     async def _submit_and_check_extrinsic(
@@ -382,7 +397,11 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or uncluded in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
-        loop = asyncio.get_event_loop()
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)        
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_subscribe(ip, port, modality, coldkeypub, wait_for_inclusion, wait_for_finalization, timeout))
 
@@ -447,8 +466,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             print(colored('Failed to subscribe', 'red'))
         return result
             
-
-       
     def add_stake(
             self, 
             amount: Balance, 
@@ -476,8 +493,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or uncluded in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_add_stake(amount, hotkey_id, wait_for_inclusion, wait_for_finalization, timeout))
 
     async def async_add_stake(
@@ -546,8 +567,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or uncluded in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_transfer(dest, amount, wait_for_inclusion, wait_for_finalization, timeout))
 
     async def async_transfer(
@@ -616,8 +641,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or uncluded in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_unstake(amount, hotkey_id, wait_for_inclusion, wait_for_finalization, timeout))
 
     async def async_unstake(
@@ -683,8 +712,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or uncluded in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_set_weights(destinations, values, wait_for_inclusion, wait_for_finalization, timeout))
 
     async def async_set_weights(
@@ -732,8 +765,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             balance (bittensor.utils.balance.Balance):
                 account balance
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_get_balance(address))
 
     async def async_get_balance(self, address) -> Balance:
@@ -764,8 +801,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             block_number (int):
                 Current chain blocknumber.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_get_current_block())
 
     async def async_get_current_block(self) -> int:
@@ -783,8 +824,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             active (List[Tuple[str, int]]):
                 List of active peers.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_get_active())
 
     async def async_get_active(self) -> List[Tuple[str, int]]:
@@ -806,8 +851,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             stake (List[Tuple[int, int]]):
                 List of stake values.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_get_stake())
 
     async def async_get_stake(self) -> List[Tuple[int, int]]:
@@ -829,8 +878,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             last_emit (List[Tuple[int, int]]):
                 List of last emit values.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_get_last_emit())
 
     async def async_get_last_emit(self) -> List[Tuple[int, int]]:
@@ -852,8 +905,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             weight_vals (List[Tuple[int, List[int]]]):
                 List of weight val pairs.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_get_weight_vals())
 
     async def async_get_weight_vals(self) -> List[Tuple[int, List[int]]]:
@@ -875,8 +932,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             weight_uids (List[Tuple[int, List[int]]]):
                 List of weight uid pairs
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_get_weight_uids())
 
     async def async_get_weight_uids(self) -> List[Tuple[int, List[int]]]:
@@ -898,8 +959,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron (List[Tuple[int, dict]]):
                 List of neuron objects.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_neurons( ))
 
     async def async_neurons(self) -> List[Tuple[int, dict]]:
@@ -924,8 +989,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             uid (int):
                 uid of peer with hotkey equal to passed public key.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_get_uid_for_pubkey( pubkey ))
 
     async def async_get_uid_for_pubkey(self, pubkey = str) -> int:
@@ -956,8 +1025,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             metadata (Dict):
                 Dict in list form containing metadata of associated uid.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_get_neuron_for_uid( uid ))
 
     async def async_get_neuron_for_uid(self, uid:int) -> dict:
@@ -986,8 +1059,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             stake (int):
                 Amount of staked token.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_get_stake_for_uid( uid ))
 
     async def async_get_stake_for_uid(self, uid) -> Balance:
@@ -1019,8 +1096,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             weight_uids (List[int]):
                 Weight uids for passed uid.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_weight_uids_for_uid( uid ))
 
     async def async_weight_uids_for_uid(self, uid) -> List[int]:
@@ -1049,8 +1130,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             weight_vals (List[int]):
                 Weight vals for passed uid.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_weight_vals_for_uid( uid ))
 
     async def async_weight_vals_for_uid(self, uid) -> List[int]:
@@ -1079,8 +1164,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             last_emit (int):
                 Last emit block numebr
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
+        try: 
+            loop = asyncio.get_event_loop()
+        except:
+            loop = asyncio.new_event_loop()   
+            asyncio.set_event_loop(loop)   
+        loop.set_debug(enabled=True) 
         return loop.run_until_complete(self.async_get_last_emit_data_for_uid( uid ))
 
     async def async_get_last_emit_data_for_uid(self, uid) -> int:

@@ -21,8 +21,6 @@ import bittensor.config
 import bittensor.executor
 import bittensor.dendrite
 import bittensor.metagraph
-import bittensor.nucleus
-import bittensor.neuron
 import bittensor.receptor
 import bittensor.substrate
 import bittensor.subtensor
@@ -113,3 +111,231 @@ __boltzmann_entrypoints__ = [
 __local_entrypoints__ = [
     '127.0.0.1:9944'
 ]
+
+from multiprocessing import Process, Manager
+from multiprocessing.managers import BaseManager
+
+import argparse
+import json
+import os
+import re
+import stat
+import traceback as tb
+
+from io import StringIO
+from munch import Munch
+from termcolor import colored
+from loguru import logger
+
+neuron = None
+class Neuron:
+
+    def __init__( self, config: Munch = None,  wallet: 'bittensor.wallet.Wallet' = None, **kwargs ):
+        if config == None:
+            config = Neuron.default_config()
+        bittensor.config.Config.update_with_kwargs(config.neuron, kwargs) 
+        Neuron.check_config(config)
+        self.config = config
+        print ( bittensor.config.Config.toString(config) )
+
+
+        # Wallet: Holds the hotkey keypair and coldkey pub which are user to sign messages 
+        # and subscribe to the chain.
+        if wallet == None:
+            wallet = bittensor.wallet.Wallet ( config )
+        self.wallet = wallet
+
+        BaseManager.register('Subtensor', bittensor.subtensor.Subtensor)
+        BaseManager.register('Metagraph', bittensor.metagraph.Metagraph)
+        BaseManager.register('Dendrite', bittensor.dendrite.Dendrite)
+        BaseManager.register('Axon', bittensor.axon.Axon)
+
+        manager = BaseManager()
+        manager.start()
+        
+        self.subtensor = manager.Subtensor( config = self.config, wallet = self.wallet )
+        self.metagraph = manager.Metagraph( config = self.config, wallet = self.wallet )
+        self.dendrite = manager.Dendrite( config = self.config, walelt = self.wallet )
+        self.axon = manager.Axon( config = self.config, wallet = self.wallet )
+
+    @staticmethod       
+    def default_config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        Neuron.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        return config
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser):
+        bittensor.wallet.Wallet.add_args( parser )
+        bittensor.subtensor.Subtensor.add_args( parser )
+        bittensor.metagraph.Metagraph.add_args( parser )
+        bittensor.axon.Axon.add_args(parser)
+        bittensor.dendrite.Dendrite.add_args( parser )
+        try:
+            parser.add_argument('--neuron.modality', default=0, type=int, 
+                                help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
+        except:
+            pass
+
+    @staticmethod   
+    def check_config(config: Munch):
+        bittensor.axon.Axon.check_config( config )
+        bittensor.subtensor.Subtensor.check_config( config )
+        bittensor.metagraph.Metagraph.check_config( config )
+        bittensor.dendrite.Dendrite.check_config( config )
+        assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
+
+    def start(self):
+        print(colored('', 'white'))
+        # ---- Check hotkey ----
+        print(colored('Loading wallet with path: {} name: {} hotkey: {}'.format(self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey), 'white'))
+        try:
+            self.wallet.hotkey # Check loaded hotkey
+        except:
+            logger.info('Failed to load hotkey under path:{} wallet name:{} hotkey:{}', self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey)
+            choice = input("Would you like to create a new hotkey ? (y/N) ")
+            if choice == "y":
+                self.wallet.create_new_hotkey()
+            else:
+                raise RuntimeError('The neuron requires a loaded hotkey')
+
+        # ---- Check coldkeypub ----
+        try:
+            self.wallet.coldkeypub
+        except:
+            logger.info('Failed to load coldkeypub under path:{} wallet name:{}', self.config.wallet.path, self.config.wallet.name)
+            choice = input("Would you like to create a new coldkey ? (y/N) ")
+            if choice == "y":
+                self.wallet.create_new_coldkey()
+            else:
+                raise RuntimeError('The neuron requires a loaded coldkeypub')
+
+        # ---- Start the axon ----
+        self.axon.start()
+
+        # ---- Subscribe to chain ----
+        print(colored('\nConnecting to network: {}'.format(self.config.subtensor.network), 'white'))
+        self.subtensor._callmethod('connect')
+
+        print(colored('\nSubscribing:', 'white'))
+        subscribe_success = self.subtensor.subscribe(
+                self.config.axon.external_ip, 
+                self.config.axon.external_port,
+                self.config.neuron.modality,
+                self.wallet.coldkeypub,
+                wait_for_finalization = True,
+                timeout = 4 * bittensor.__blocktime__,
+        )
+        if not subscribe_success:
+            self.stop()
+            raise RuntimeError('Failed to subscribe neuron.')
+        
+
+import asyncio
+def init( config: Munch = None,  wallet: 'bittensor.wallet.Wallet' = None, **kwargs ):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    global neuron
+    neuron = Neuron(config, wallet)
+
+
+# def start(self):
+#     print(colored('', 'white'))
+#     # ---- Check hotkey ----
+#     print(colored('Loading wallet with path: {} name: {} hotkey: {}'.format( config.wallet.path, config.wallet.name, config.wallet.hotkey), 'white'))
+#     try:
+#         wallet.hotkey # Check loaded hotkey
+#     except:
+#         logger.info('Failed to load hotkey under path:{} wallet name:{} hotkey:{}', config.wallet.path, config.wallet.name, config.wallet.hotkey)
+#         choice = input("Would you like to create a new hotkey ? (y/N) ")
+#         if choice == "y":
+#             wallet.create_new_hotkey()
+#         else:
+#             raise RuntimeError('The neuron requires a loaded hotkey')
+
+#     # ---- Check coldkeypub ----
+#     try:
+#         wallet.coldkeypub
+#     except:
+#         logger.info('Failed to load coldkeypub under path:{} wallet name:{}', config.wallet.path, config.wallet.name)
+#         choice = input("Would you like to create a new coldkey ? (y/N) ")
+#         if choice == "y":
+#             wallet.create_new_coldkey()
+#         else:
+#             raise RuntimeError('The neuron requires a loaded coldkeypub')
+
+#     # ---- Start the axon ----
+#     axon.start()
+
+#     # ---- Subscribe to chain ----
+#     print(colored('\nConnecting to network: {}'.format(config.subtensor.network), 'white'))
+#     subtensor.connect()
+
+#     print(colored('\nSubscribing:', 'white'))
+#     subscribe_success = subtensor.subscribe(
+#             config.axon.external_ip, 
+#             config.axon.external_port,
+#             config.neuron.modality,
+#             wallet.coldkeypub,
+#             wait_for_finalization = True,
+#             timeout = 4 * bittensor.__blocktime__,
+#     )
+#     if not subscribe_success:
+#         raise RuntimeError('Failed to subscribe neuron.')
+    
+#     # ---- Sync graph ----
+#     metagraph.sync()
+#     print( metagraph )
+
+    # def stop(self):
+
+    #     logger.info('Shutting down the Axon server ...')
+    #     try:
+    #         self.axon.stop()
+    #         logger.info('Axon server stopped')
+    #     except Exception as e:
+    #         logger.error('Neuron: Error while stopping axon server: {} ', e)
+
+    # def __enter__(self):
+    #     bittensor.exceptions.handlers.rollbar.init() # If a bittensor.exceptions.handlers.rollbar token is present, this will enable error reporting to bittensor.exceptions.handlers.rollbar
+    #     logger.trace('Neuron enter')
+    #     self.start()
+    #     return self
+
+    # def __exit__(self, exc_type, exc_value, exc_traceback):
+    #     """ Defines the exit protocol from asyncio task.
+    #     Args:
+    #         exc_type (Type): The type of the exception.
+    #         exc_value (RuntimeError): The value of the exception, typically RuntimeError. 
+    #         exc_traceback (traceback): The traceback that can be printed for this exception, detailing where error actually happend.
+    #     Returns:
+    #         Neuron: present instance of Neuron.
+    #     """        
+    #     self.stop()
+    #     if exc_value:
+
+    #         top_stack = StringIO()
+    #         tb.print_stack(file=top_stack)
+    #         top_lines = top_stack.getvalue().strip('\n').split('\n')[:-4]
+    #         top_stack.close()
+
+    #         full_stack = StringIO()
+    #         full_stack.write('Traceback (most recent call last):\n')
+    #         full_stack.write('\n'.join(top_lines))
+    #         full_stack.write('\n')
+    #         tb.print_tb(exc_traceback, file=full_stack)
+    #         full_stack.write('{}: {}'.format(exc_type.__name__, str(exc_value)))
+    #         sinfo = full_stack.getvalue()
+    #         full_stack.close()
+    #         # Log the combined stack
+    #         logger.error('Exception:{}'.format(sinfo))
+
+    #         if bittensor.exceptions.handlers.rollbar.is_enabled():
+    #             bittensor.exceptions.handlers.rollbar.send_exception()
+
+    #     return self
+
+    # def __del__(self):
+    #     self.stop()

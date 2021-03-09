@@ -251,6 +251,12 @@ class Metagraph():
     def check_config(config: Munch):
         pass
 
+    def set(self, x):
+        self.last_emit = x
+
+    def get(self):
+        return self.last_emit
+
     @property
     def n(self) -> int:
         r""" Return the number of known neurons on chain.
