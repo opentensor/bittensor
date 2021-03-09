@@ -38,9 +38,6 @@ class Miner():
         Miner.check_config(config)
         self.config = config
 
-        # ---- Neuron ----
-        bittensor.neuron = bittensor.neuron.Neuron(self.config)
-    
         # ---- Model ----
         self.model = DPNNucleus( config ) # Feedforward neural network with PKMRouter.
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
