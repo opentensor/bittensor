@@ -29,7 +29,7 @@ from loguru import logger
 from bittensor.config import Config
 from synapses.ffnn import FFNNSynapse
 from torch.nn.utils import clip_grad_norm_
-
+from six.moves import urllib
 
 
 class Miner():
@@ -57,6 +57,11 @@ class Miner():
         self.model_toolbox = ModelToolbox(FFNNSynapse, optim.SGD)
 
         # ---- Dataset ----
+        # We now require a user agent to download mnist dataset
+        opener = urllib.request.build_opener()
+        opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+        urllib.request.install_opener(opener)
+
         self.train_data = torchvision.datasets.MNIST(root = self.config.miner.root_dir + "datasets/", train=True, download=True, transform=transforms.ToTensor())
         self.trainloader = torch.utils.data.DataLoader(self.train_data, batch_size = self.config.miner.batch_size_train, shuffle=True, num_workers=2)
         self.test_data = torchvision.datasets.MNIST(root = self.config.miner.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
