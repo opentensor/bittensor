@@ -4,96 +4,76 @@ import torch
 import pytest
 import time
 from munch import Munch
+from unittest.mock import MagicMock
+from torch.utils.tensorboard import SummaryWriter
 import bittensor
 
 dendrite = bittensor.dendrite.Dendrite()
-dendrite.config.receptor.do_backoff = False
-neuron_pb2 = bittensor.proto.Neuron(
+neuron_a = bittensor.proto.Neuron(
     version = bittensor.__version__,
-    public_key = dendrite.wallet.hotkey.public_key,
-    address = '0.0.0.0',
-    port = 12345,
+    public_key = "A",
+    address = '0',
+    port = 1,
+)
+neuron_b = bittensor.proto.Neuron(
+    version = bittensor.__version__,
+    public_key = "B",
+    address = '0',
+    port = 1,
 )
 
-def test_dendrite_forward_tensor_shape_error():
-    x = torch.rand(3, 3, 3)
-    with pytest.raises(ValueError):
-        dendrite.forward_tensor( [neuron_pb2], [x])
+def test_create_receptors():
+    receptor_a = dendrite.get_receptor_for_neuron( neuron_a ) 
+    receptor_b = dendrite.get_receptor_for_neuron( neuron_b )
+    assert receptor_a.neuron.public_key == 'A'
+    assert receptor_b.neuron.public_key == 'B'
+    assert dendrite.getReceptors()['A'].neuron.public_key == 'A'
+    assert dendrite.getReceptors()['B'].neuron.public_key == 'B'
 
-def test_dendrite_forward_image_shape_error():
-    x = torch.rand(3, 3, 3)
-    with pytest.raises(ValueError):
-        dendrite.forward_image( [neuron_pb2], [x])
+def test_dendrite_foward():
+    receptor_a = dendrite.get_receptor_for_neuron( neuron_a ) 
+    receptor_b = dendrite.get_receptor_for_neuron( neuron_b )
 
-def test_dendrite_forward_text_shape_error():
-    x = torch.rand(3, 3, 3)
-    with pytest.raises(ValueError):
-        dendrite.forward_image( [neuron_pb2], [x])
-
-def test_dendrite_forward_text():
-    x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, ops = dendrite.forward_text( [neuron_pb2], [x])
-    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
-    assert list(out[0].shape) == [2, 4, bittensor.__network_dim__]
-
-def test_dendrite_forward_image():
-    x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ])
-    out, ops = dendrite.forward_image( [neuron_pb2], [x])
-    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
-    assert list(out[0].shape) == [1, 1, bittensor.__network_dim__]
-
-def test_dendrite_forward_tensor():
-    x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = dendrite.forward_tensor( [neuron_pb2], [x])
-    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
-    assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
-
-def test_dendrite_backoff():
-    _dendrite = bittensor.dendrite.Dendrite()
-    _dendrite.config.receptor.do_backoff = True
-    _dendrite.config.receptor.max_backoff = 1
-    _neuron_pb2 = bittensor.proto.Neuron(
-        version = bittensor.__version__,
-        public_key = _dendrite.wallet.hotkey.public_key,
-        address = '0.0.0.0',
-        port = 12345,
+    receptor_a.forward = MagicMock(return_value = [torch.tensor([1]), [0]]) 
+    receptor_b.forward = MagicMock(return_value = [torch.tensor([1]), [0]]) 
+    outputs, codes = dendrite.forward(
+        neurons = [neuron_a, neuron_b],
+        inputs = [torch.tensor([1,1,1]), torch.tensor([1,1,2])],
+        mode = bittensor.proto.Modality.TEXT
     )
-    
-    # Add a quick sleep here, it appears that this test is intermittent, likely based on the asyncio operations of past tests.
-    # This forces the test to sleep a little while until the dust settles. 
-    # Bandaid patch, TODO(unconst): fix this.
+    assert len(outputs) == 2
+    assert len(codes) == 2
+    assert outputs[0] == torch.tensor([1])
+    assert codes[0] == [0]
 
-    time.sleep(5)
-    # Normal call.
-    x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = _dendrite.forward_tensor( [_neuron_pb2], [x])
-    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
-    assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
+def test_dendrite_backward():
+    receptor_a = dendrite.get_receptor_for_neuron( neuron_a ) 
+    receptor_b = dendrite.get_receptor_for_neuron( neuron_b )
+    receptor_a.backward = MagicMock(return_value = [torch.tensor([1]), [0]]) 
+    receptor_b.backward = MagicMock(return_value = [torch.tensor([1]), [0]]) 
+    outputs, codes = dendrite.backward(
+        neurons = [neuron_a, neuron_b],
+        inputs = [torch.tensor([1,1,1]), torch.tensor([1,1,2])],
+        grads = [torch.tensor([1,1,1]), torch.tensor([1,1,2])],
+        codes = [[0], [0]],
+        mode = bittensor.proto.Modality.TEXT
+    )
+    assert len(outputs) == 2
+    assert len(codes) == 2
+    assert outputs[0] == torch.tensor([1])
+    assert codes[0] == [0]
 
-    # Backoff call.
-    x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = _dendrite.forward_tensor( [_neuron_pb2], [x])
-    assert ops[0].item() == bittensor.proto.ReturnCode.Backoff
-    assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
+def test_dendrite_to_string():
+    dendrite.toString()
 
-    # Normal call.
-    x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = _dendrite.forward_tensor( [_neuron_pb2], [x])
-    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
-    assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
+def test_dendrite_to_tensorboard():
+    summary_writer = SummaryWriter()
+    dendrite.toTensorboard(summary_writer, 1)
 
-    # Backoff call.
-    x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = _dendrite.forward_tensor( [_neuron_pb2], [x])
-    assert ops[0].item() == bittensor.proto.ReturnCode.Backoff
-    assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
+def test_dendrite_full_to_string():
+    dendrite.fullToString()
 
 
 if __name__ == "__main__":
-    test_dendrite_forward_tensor_shape_error ()
-    test_dendrite_forward_image_shape_error ()
-    test_dendrite_forward_text_shape_error ()
-    test_dendrite_forward_text ()
-    test_dendrite_forward_image ()
-    test_dendrite_forward_tensor ()
-    test_dendrite_backoff ()
+    test_create_receptors()
+    test_dendrite_foward()

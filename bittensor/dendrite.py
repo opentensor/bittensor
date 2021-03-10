@@ -89,11 +89,21 @@ class Dendrite(nn.Module):
         bittensor.receptor.Receptor.add_args(parser)
         return parser
 
+    def get_receptor_for_neuron( self, neuron: bittensor.proto.Neuron ) -> 'bittensor.receptor.Receptor':
+        # ---- Find receptor or create one ---- 
+        if neuron.public_key not in self.receptors:
+            self.receptors[neuron.public_key] = bittensor.receptor.Receptor(
+                neuron = neuron, 
+                config = self.config, 
+                wallet = self.wallet
+            )
+        return self.receptors[neuron.public_key]
+
     def forward(self, 
                 neurons: List[bittensor.proto.Neuron],
                 inputs: List[torch.Tensor],
                 mode: bittensor.proto.Modality
-        ) -> Tuple[List[torch.Tensor], List[bittensor.proto.ReturnCode]]:
+        ) -> Tuple[List[torch.Tensor], List[int]]:
         r""" Forward tensor inputs to neurons.
 
             Args:
@@ -123,7 +133,7 @@ class Dendrite(nn.Module):
             loop = loop, 
             neurons = neurons, 
             inputs = inputs, 
-            modes = mode
+            mode = mode
         ))
         loop.stop()
 
@@ -137,9 +147,9 @@ class Dendrite(nn.Module):
                 neurons: List[bittensor.proto.Neuron],
                 inputs: List[torch.Tensor],
                 grads: List[torch.Tensor],
-                codes: List[bittensor.proto.ReturnCode],
+                codes: List[int],
                 mode: bittensor.proto.Modality
-            ) -> Tuple[List[torch.Tensor], List[bittensor.proto.ReturnCode]]:
+            ) -> Tuple[List[torch.Tensor], List[int]]:
         r""" Forward tensor inputs to neurons.
 
             Args:
@@ -163,7 +173,7 @@ class Dendrite(nn.Module):
                 forward_outputs (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
                     Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
 
-                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                return_codes (:obj:`List[bittensor.proto.ReturnCodes]` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops.
         """
         # ---- Run async calls ----
@@ -188,7 +198,8 @@ class Dendrite(nn.Module):
             loop: asyncio.base_events.BaseEventLoop, 
             neurons: List[bittensor.proto.Neuron],
             inputs: List[torch.Tensor],
-            mode) -> List[Tuple[torch.FloatTensor, torch.LongTensor]]:
+            mode
+        ) -> List[Tuple[torch.FloatTensor, int]]:
         r""" Creates and returns the results from len(neurons) torch forward requests. Uses asyncio for concurrency.
 
             Args:
@@ -213,17 +224,7 @@ class Dendrite(nn.Module):
         # ---- Calls to fill ---- 
         calls = []
         for (inputs_i, neuron_i) in list(zip(inputs, neurons)):
-
-            # ---- Find receptor or create one ---- 
-            if neuron_i.public_key not in self.receptors:
-                self.receptors[neuron_i.public_key] = bittensor.receptor.Receptor(
-                    neuron = neuron_i, 
-                    config = self.config, 
-                    wallet = self.wallet
-                )
-            receptor = self.receptors[neuron_i.public_key]
-
-            # ---- Append async calls ---- 
+            receptor = self.get_receptor_for_neuron( neuron_i )
             calls.append( loop.run_in_executor( None, receptor.forward, 
                 inputs_i, 
                 mode
@@ -239,8 +240,8 @@ class Dendrite(nn.Module):
             neurons: List[bittensor.proto.Neuron],
             inputs: List[torch.Tensor],
             grads: List[torch.Tensor],
-            codes: List[bittensor.proto.ReturnCode],
-            mode) -> List[Tuple[torch.FloatTensor, torch.LongTensor]]:
+            codes: List[int],
+            mode) -> List[Tuple[torch.FloatTensor, int]]:
         r""" Creates and returns the results from len(neurons) torch forward requests. Uses asyncio for concurrency.
 
             Args:
@@ -272,16 +273,8 @@ class Dendrite(nn.Module):
         calls = []
         for (inputs_i, grads_i, code_i, neuron_i) in list(zip(inputs, grads, codes, neurons)):
 
-            # ---- Find receptor or create one ---- 
-            if neuron_i.public_key not in self.receptors:
-                self.receptors[neuron_i.public_key] = bittensor.receptor.Receptor(
-                    neuron = neuron_i, 
-                    config = self.config, 
-                    wallet = self.wallet
-                )
-            receptor = self.receptors[neuron_i.public_key]
-
-            # ---- Append async calls ---- 
+            # ---- Append async calls ----
+            receptor = self.get_receptor_for_neuron( neuron_i )
             calls.append( loop.run_in_executor( None, receptor.backward, 
                 inputs_i, 
                 grads_i, 
@@ -292,6 +285,9 @@ class Dendrite(nn.Module):
         # ---- Gather results and return ---- 
         results = await asyncio.gather(*calls)
         return results
+
+    def getReceptors(self):
+        return self.receptors
     
     def toString(self):
         total_bytes_out = 0

@@ -195,21 +195,21 @@ def test_convert_to_torch_state():
     assert torch.all(state.stake.eq(torch.tensor(list(range(100)))))
     assert torch.all(state.lastemit.eq(torch.tensor(list(range(100)))))
     metagraph.state = state
-    assert torch.all(metagraph.uids.eq(torch.tensor(list(range(100)))))
-    assert torch.all(metagraph.indices.eq(torch.tensor(list(range(100)))))
-    assert torch.all(metagraph.stake.eq(torch.tensor(list(range(100)))))
-    assert torch.all(metagraph.lastemit.eq(torch.tensor(list(range(100)))))
-    assert torch.all(metagraph.S.eq(metagraph.stake))
-    assert torch.all(metagraph.tau.eq(torch.tensor(0.5)))
+    assert torch.all(metagraph.uids().eq(torch.tensor(list(range(100)))))
+    assert torch.all(metagraph.indices().eq(torch.tensor(list(range(100)))))
+    assert torch.all(metagraph.stake().eq(torch.tensor(list(range(100)))))
+    assert torch.all(metagraph.lastemit().eq(torch.tensor(list(range(100)))))
+    assert torch.all(metagraph.S().eq(metagraph.stake()))
+    assert torch.all(metagraph.tau().eq(torch.tensor(0.5)))
 
-    pubkeys = metagraph.public_keys
+    pubkeys = metagraph.public_keys()
     for i in range(100):
         assert pubkeys[i] == str(i)
     for i in range(100):
         assert metagraph.uids_to_indices(torch.tensor([i])) == torch.tensor([i])
 
 def test_uids_to_indices():
-    assert torch.all(metagraph.uids_to_indices(metagraph.uids).eq(metagraph.indices))
+    assert torch.all(metagraph.uids_to_indices(metagraph.uids()).eq(metagraph.indices()))
 
 def test_uids_to_neurons():
     for i in range(100):
@@ -217,27 +217,27 @@ def test_uids_to_neurons():
         assert neuron.public_key == str(i)
 
 def test_neurons_to_uids():
-    assert torch.all(metagraph.neurons_to_uids(metagraph.neurons).eq(metagraph.uids))
+    assert torch.all(metagraph.neurons_to_uids(metagraph.neurons()).eq(metagraph.uids()))
 
 
 def test_ranks():
-    assert torch.all(metagraph.ranks.eq(torch.tensor(list(range(100)))))
-    assert torch.all(metagraph.R.eq(torch.tensor(list(range(100)))))
+    assert torch.all(metagraph.ranks().eq(torch.tensor(list(range(100)))))
+    assert torch.all(metagraph.R().eq(torch.tensor(list(range(100)))))
 
 def test_I():
     Ipr = torch.tensor(list(range(100))) * torch.tensor(0.5) / torch.sum(torch.tensor(list(range(100))))
-    assert torch.all(metagraph.I.eq(Ipr))
+    assert torch.all(metagraph.I().eq(Ipr))
 
 def test_W():
     for i in range(100):
         row = torch.zeros(100)
         row[i] = 1
-        assert torch.all(metagraph.W[i, :].eq(row))
+        assert torch.all(metagraph.W()[i, :].eq(row))
 
     for i in range(100):
         col = torch.zeros(100)
         col[i] = 1
-        assert torch.all(metagraph.W[:, i].eq(col))
+        assert torch.all(metagraph.W()[:, i].eq(col))
 
 def test_row():
     for i in range(100):

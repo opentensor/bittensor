@@ -24,12 +24,9 @@ class TestSerialization(unittest.TestCase):
             tensor_b = serializer.deserialize(content, to_type = bittensor.proto.TensorType.TORCH)
             torch.all(torch.eq(tensor_a, tensor_b))
             
-    def test_serialize_object_type_exception(self):
-        # Let's grab some image data
-        data = torchvision.datasets.MNIST(root = 'data/datasets/', train=True, download=True, transform=transforms.ToTensor())
-        
+    def test_serialize_object_type_exception(self):        
         # Let's grab a random image, and try and de-serialize it incorrectly.
-        image = data[randrange(len(data))][0]
+        image = torch.ones( [1, 28, 28] )
 
         serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
         with pytest.raises(serialization.SerializationTypeNotImplementedException):
@@ -45,11 +42,9 @@ class TestSerialization(unittest.TestCase):
             serializer.deserialize(tensor_message, to_type = 11)
     
     def test_serialize_deserialize_image(self):
-        # Let's grab some image data
-        data = torchvision.datasets.MNIST(root = 'data/datasets/', train=True, download=True, transform=transforms.ToTensor())
         
         # Let's grab a random image, and give it a crazy type to break the system
-        image = data[randrange(len(data))][0]
+        image = torch.ones( [1, 28, 28] )
 
         serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
         serialized_image_tensor_message = serializer.serialize(image, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)

@@ -1,140 +1,78 @@
 import torch
-import random
-import time
-import concurrent.futures
-from loguru import logger
-from munch import Munch
-from unittest.mock import MagicMock
 import bittensor
 
-nucleus = None
-
-def test_init():
-    global nucleus
+def test_nucleus():
     nucleus = bittensor.nucleus.Nucleus()
-
-def test_stop():
-    nucleus = bittensor.nucleus.Nucleus()
-    nucleus.stop()
-
-def test_not_implemented():
-    nucleus = bittensor.nucleus.Nucleus()
-    nucleus = bittensor.nucleus.Nucleus()
-    x = torch.tensor([])
-    mode = bittensor.proto.Modality.TEXT
-    outputs, _, code = nucleus.forward(nucleus = nucleus, inputs = x, mode = mode, priority = 1)
-    assert outputs == None
-    assert code == bittensor.proto.ReturnCode.NotImplemented
-
-def test_forward_success():
-    nucleus = bittensor.nucleus.Nucleus()
-    nucleus = bittensor.nucleus.Nucleus()
-    x = torch.rand(3, 3)
-    nucleus.call_forward = MagicMock(return_value = x)
-    mode = bittensor.proto.Modality.TEXT
-    outputs, _, code = nucleus.forward(nucleus = nucleus, inputs = x, mode = mode, priority = 1)
-    assert list(outputs.shape) == [3, 3]
-    assert code == bittensor.proto.ReturnCode.Success
-
-def test_multiple_forward_success():
-    nucleus = bittensor.nucleus.Nucleus()
-    nucleus = bittensor.nucleus.Nucleus()
-    x = torch.rand(3, 3, bittensor.__network_dim__)
-    nucleus.call_forward = MagicMock(return_value = x)
-    mode = bittensor.proto.Modality.TEXT
-    outputs1, _, code1 = nucleus.forward(nucleus = nucleus, inputs = x, mode = mode, priority = 1)
-    outputs2, _, code2 = nucleus.forward(nucleus = nucleus, inputs = x, mode = mode, priority = 1)
-    outputs3, _, code3 = nucleus.forward(nucleus = nucleus, inputs = x, mode = mode, priority = 1)
-    outputs4, _, code4 = nucleus.forward(nucleus = nucleus, inputs = x, mode = mode, priority = 1)
-    outputs5, _, code5 = nucleus.forward(nucleus = nucleus, inputs = x, mode = mode, priority = 1)
-
-    assert list(outputs1.shape) == [3, 3, bittensor.__network_dim__]
-    assert list(outputs2.shape) == [3, 3, bittensor.__network_dim__]
-    assert list(outputs3.shape) == [3, 3, bittensor.__network_dim__]
-    assert list(outputs4.shape) == [3, 3, bittensor.__network_dim__]
-    assert list(outputs5.shape) == [3, 3, bittensor.__network_dim__]
-
-    assert code1 == bittensor.proto.ReturnCode.Success
-    assert code2 == bittensor.proto.ReturnCode.Success
-    assert code3 == bittensor.proto.ReturnCode.Success
-    assert code4 == bittensor.proto.ReturnCode.Success
-    assert code5 == bittensor.proto.ReturnCode.Success
-
-# class SlowNucleus(bittensor.nucleus.Nucleus):
-#     def call_forward(self, a, b):
-#         time.sleep(1)
-
-# def test_queue_full():
-#     config = bittensor.nucleus.Nucleus.default_config()
-#     config.nucleus.queue_maxsize = 3
-#     nucleus = bittensor.nucleus.Nucleus( config )
-#     nucleus = SlowNucleus()
-#     x = torch.rand(3, 3, bittensor.__network_dim__)
-#     mode = bittensor.proto.Modality.TEXT
-
-#     def _call_nucleus_forward():
-#         _, _, code = nucleus.forward(nucleus = nucleus, inputs = x, mode = mode, priority = random.random())
-#         return code
-
-#     # Create many futures.
-#     futures = []
-#     with concurrent.futures.ThreadPoolExecutor() as executor:
-#         for _ in range(100):
-#             futures.append(executor.submit(_call_nucleus_forward))
-
-#     # Check future codes, should get at least one queue full.
-#     for f in futures:
-#         code = f.result()
-#         if code == bittensor.proto.ReturnCode.NucleusFull:
-#             return
-    
-#     # One should be a timeout.
-#     assert False
-
-# def test_stress_test():
-#     n_to_call = 100
-#     nucleus = bittensor.nucleus.Nucleus()
-#     nucleus = SlowNucleus()
-#     nucleus.config.nucleus.queue_maxsize = 10000
-#     nucleus.config.nucleus.queue_timeout = n_to_call
-
-#     x = torch.rand(3, 3, bittensor.__network_dim__)
-#     mode = bittensor.proto.Modality.TEXT
-
-#     def _call_nucleus_forward():
-#         _, _, code = nucleus.forward(nucleus = nucleus, inputs = x, mode = mode, priority = random.random())
-#         return code
-
-#     # Create many futures.
-#     futures = []
-#     with concurrent.futures.ThreadPoolExecutor() as executor:
-#         for _ in range(n_to_call):
-#             futures.append(executor.submit(_call_nucleus_forward))
-
-#     # All should return success fully.
-#     for f in futures:
-#         code = f.result()
-#         print (code)
-#         if code != bittensor.proto.ReturnCode.Success:
-#             assert False
-
-#     assert True
-
-def test_backward_success():
-    nucleus = bittensor.nucleus.Nucleus()
-    nucleus = bittensor.nucleus.Nucleus(None)
-    x = torch.rand(3, 3)
-    nucleus.call_backward = MagicMock(return_value = x)
-    mode = bittensor.proto.Modality.TEXT
-    nucleus.backward(nucleus = nucleus, inputs_x = x, grads_dy = x, mode = mode, priority = 1)
-   
-def test_tear_down():
-    global nucleus
-    nucleus.stop()
     del nucleus
 
+def test_nucleus_deepcopy():
+    nucleus = bittensor.nucleus.Nucleus()
+    nucleus2 = nucleus.deepcopy()
 
-def test_tear_down():
-    global nucleus
-    nucleus.stop()
-    del nucleus
+class MockNucleus(bittensor.nucleus.Nucleus):
+    def forward_text(self, text: torch.LongTensor) -> torch.FloatTensor:
+        return torch.tensor([1])
+
+    def forward_image(self, images: torch.FloatTensor) -> torch.FloatTensor:
+        return torch.tensor([2])
+
+    def forward_tensor(self, tensors: torch.FloatTensor) -> torch.FloatTensor:
+        return torch.tensor([3])
+
+def test_nucleus_text():
+    nucleus = MockNucleus()
+    response = nucleus.call_forward(torch.tensor([1]), bittensor.proto.Modality.TEXT)
+    assert response == torch.tensor([1])
+
+def test_nucleus_image():
+    nucleus = MockNucleus()
+    response = nucleus.call_forward(torch.tensor([1]), bittensor.proto.Modality.IMAGE)
+    assert response == torch.tensor([2])
+
+def test_nucleus_tensor():
+    nucleus = MockNucleus()
+    response = nucleus.call_forward(torch.tensor([1]), bittensor.proto.Modality.TENSOR)
+    assert response == torch.tensor([3])
+
+def test_nucleus_text_no_grad():
+    nucleus = MockNucleus()
+    response = nucleus.call_forward(torch.tensor([1]), bittensor.proto.Modality.TEXT, no_grad=False)
+    assert response == torch.tensor([1])
+
+def test_nucleus_image_no_grad():
+    nucleus = MockNucleus()
+    response = nucleus.call_forward(torch.tensor([1]), bittensor.proto.Modality.IMAGE, no_grad=False)
+    assert response == torch.tensor([2])
+
+def test_nucleus_tensor_no_grad():
+    nucleus = MockNucleus()
+    response = nucleus.call_forward(torch.tensor([1]), bittensor.proto.Modality.TENSOR, no_grad=False)
+    assert response == torch.tensor([3])
+
+class MultiplicationNucleus(bittensor.nucleus.Nucleus):
+    def __init__(self):
+        super().__init__()
+        self.weight = torch.autograd.Variable(torch.tensor([2.0]))
+    def forward_tensor(self, tensors: torch.FloatTensor) -> torch.FloatTensor:
+        return tensors * self.weight
+
+def test_nucleus_multiplication():
+    nucleus = MultiplicationNucleus()
+    response = nucleus.call_forward(torch.tensor([1]), bittensor.proto.Modality.TENSOR)
+    assert response == torch.tensor([2])
+
+def test_nucleus_grad():
+    nucleus = MultiplicationNucleus()
+    grad_dy = torch.autograd.Variable(torch.tensor([1.0]))
+    inputs = torch.autograd.Variable(torch.tensor([1.0]), requires_grad=True)
+    response = nucleus.grad(inputs, grad_dy, bittensor.proto.Modality.TENSOR)
+    assert torch.isclose(response, torch.tensor([2.0]))
+
+def test_nucleus_backward():
+    nucleus = MultiplicationNucleus()
+    grad_dy = torch.autograd.Variable(torch.tensor([1.0]))
+    inputs = torch.autograd.Variable(torch.tensor([1.0]), requires_grad=True)
+    nucleus.backward(inputs, grad_dy, bittensor.proto.Modality.TENSOR)
+
+test_nucleus_grad()
+test_nucleus_backward()

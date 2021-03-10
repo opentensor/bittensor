@@ -33,7 +33,7 @@ from munch import Munch
 from loguru import logger
 from termcolor import colored
 from types import SimpleNamespace
-from typing import List
+from typing import List, Tuple
 
 import torch.multiprocessing as mp
 
@@ -131,29 +131,37 @@ class Axon(bittensor.grpc.BittensorServicer):
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
                     parser argument to append args to.
         """
-        try:
-            parser.add_argument('--axon.local_port', default=8091, type=int, 
-                help='''The port this axon endpoint is served on. i.e. 8091''')
-            parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, 
-                help='''The local ip this axon binds to. ie. 0.0.0.0''')
-            parser.add_argument('--axon.use_upnpc', default=False, type=bool, 
-                help='''If true this axon will attempt to open a port on your router using upnpc.''')
-            parser.add_argument('--axon.external_ip', default=None, type=str, 
-                help='''The remote IP served to chain.
-                        This ip is subscribed to the chain on boot and is the endpoint other peers see.
-                        By default this field is None and is collected by querying a remote server during check_config. 
-                        i.e. 207.12.233.1''')
-            parser.add_argument('--axon.external_port', default=None, type=str, 
-                help='''The remote port to subscribe on chain. By default this port is the same as local_port.
-                        If use_upnpc is true this port is determined after the port mapping''')
-            parser.add_argument('--axon.max_workers', default=10, type=int, 
-                help='''The maximum number connection handler threads working simultaneously on this endpoint. 
-                        The grpc server distributes new worker threads to service requests up to this number.''')
-            parser.add_argument('--axon.max_gradients', default=100, type=int, 
-                help='''The max number of lingering gradients stored in the gradient queue.
-                        Gradients passed from other peers accumulate on this endpoint and queue in axon.gradients.''')
-        except:
-            pass
+        bittensor.wallet.Wallet.add_args(parser)
+        #try:
+        parser.add_argument('--axon.local_port', default=8091, type=int, 
+            help='''The port this axon endpoint is served on. i.e. 8091''')
+        parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, 
+            help='''The local ip this axon binds to. ie. 0.0.0.0''')
+        parser.add_argument('--axon.use_upnpc', default=False, type=bool, 
+            help='''If true this axon will attempt to open a port on your router using upnpc.''')
+        parser.add_argument('--axon.external_ip', default=None, type=str, 
+            help='''The remote IP served to chain.
+                    This ip is subscribed to the chain on boot and is the endpoint other peers see.
+                    By default this field is None and is collected by querying a remote server during check_config. 
+                    i.e. 207.12.233.1''')
+        parser.add_argument('--axon.external_port', default=None, type=str, 
+            help='''The remote port to subscribe on chain. By default this port is the same as local_port.
+                    If use_upnpc is true this port is determined after the port mapping''')
+        parser.add_argument('--axon.max_workers', default=10, type=int, 
+            help='''The maximum number connection handler threads working simultaneously on this endpoint. 
+                    The grpc server distributes new worker threads to service requests up to this number.''')
+        parser.add_argument('--axon.max_gradients', default=100, type=int, 
+            help='''The max number of lingering gradients stored in the gradient queue.
+                    Gradients passed from other peers accumulate on this endpoint and queue in axon.gradients.''')
+        parser.add_argument('--axon.forward_processing_timeout', default=100, type=int, 
+            help='''Length of time allocated to the miner forward process for computing and returning responses
+                    back to the axon.''')
+        parser.add_argument('--axon.backward_processing_timeout', default=100, type=int, 
+            help='''Length of time allocated to the miner backward process for computing and returning responses
+                    back to the axon.''')
+
+        # except:
+        #     pass
 
     @staticmethod   
     def check_config(config: Munch):
@@ -248,7 +256,102 @@ class Axon(bittensor.grpc.BittensorServicer):
 
         self.update_stats_for_request(request, response)
         return response
+
+    def enqueue_forward_to_nucleus(
+        self, 
+        public_key: str, 
+        inputs_x: torch.Tensor, 
+        modality: bittensor.proto.Modality
+        ) -> Tuple[ torch.FloatTensor, str, int ]:
+        r""" Forwards the torch_inputs to the axon.forward_queue for processing by the miner threads.
+        Responses are pulled from the pipe or a timeout occurs.
             
+            Args:
+                public_key (str, `required`): 
+                    public key of the sender
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs.
+            
+            Returns:
+                response (:obj:`torch.FloatTensor, `required`): 
+                    Torch tensor response from miner processes.
+                message (str, `required`): 
+                    message associated with forward call, potentially error, or 'success'.
+                code (:obj:`bittensor.proto.ReturnCode, `required`)
+                    return code associated with forward call i.e. Success of Timeout.
+        """
+        try:
+            # ---- Build pipe for request ----
+            ping, pong = mp.Pipe()
+            forward_payload = [pong, public_key, inputs_x, modality]
+
+            # ---- Send request to forward queue ----
+            try:
+                self.forward_queue.put( forward_payload, block=True, timeout = self.config.axon.forward_processing_timeout )
+            except queue.Full:
+                return None, "Forward queue is full", bittensor.proto.ReturnCode.NucleusFull
+
+            # ---- Recv response from pipe ----
+            if ping.poll( timeout = self.config.axon.forward_processing_timeout ):
+                outputs = ping.recv()
+                return outputs, "Success", bittensor.proto.ReturnCode.Success
+            else:
+                return None, "Processing timeout", bittensor.proto.ReturnCode.NucleusTimeout
+
+        except Exception as e:
+            return None, "Unknown exception when calling nucleus forward {}".format(e), bittensor.proto.ReturnCode.UnknownException
+
+    def enqueue_backward_to_nucleus(
+        self, 
+        public_key: str, 
+        inputs_x: torch.Tensor, 
+        grads_dy: torch.FloatTensor,
+        modality: bittensor.proto.Modality
+        ) -> Tuple[ torch.FloatTensor, str, int ]:
+        r""" Forwards the torch_inputs to the axon.backward_queue for processing by the miner threads.
+        Responses are pulled from the pipe or a timeout occurs.
+            
+            Args:
+                public_key (str, `required`): 
+                    public key of the sender
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be backward processed.
+                grads_dy ( :obj:`torch.Tensor`, `required`):
+                    torch gradient inputs to be backward processed with inputs.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs.
+            
+            Returns:
+                response (:obj:`torch.FloatTensor, `required`): 
+                    Torch tensor response from miner processes.
+                message (str, `required`): 
+                    message associated with forward call, potentially error, or 'success'.
+                code (:obj:`bittensor.proto.ReturnCode, `required`)
+                    return code associated with forward call i.e. Success of Timeout.
+        """
+        try:
+            # ---- Build pipe for request ----
+            ping, pong = mp.Pipe()
+            backward_payload = [pong, public_key, inputs_x, grads_dy, modality]
+
+            # ---- Send request to queue ----
+            try:
+                self.backward_queue.put( backward_payload, block=True, timeout = self.config.axon.backward_processing_timeout )
+            except queue.Full:
+                return None, "Backward queue is full", bittensor.proto.ReturnCode.NucleusFull
+
+            # ---- Recv response from pipe ----
+            if ping.poll( timeout = self.config.axon.backward_processing_timeout ):
+                outputs = ping.recv()
+                return outputs, "Success", bittensor.proto.ReturnCode.Success
+            else:
+                return None, "Processing timeout", bittensor.proto.ReturnCode.NucleusTimeout
+
+        except Exception as e:
+            return None, "Unknown exception when calling nucleus backward {}".format(e), bittensor.proto.ReturnCode.UnknownException
+  
 
     def _forward(self, request):
         r""" Performs validity checks on the grpc request before calling nucleus forward.
@@ -257,7 +360,6 @@ class Axon(bittensor.grpc.BittensorServicer):
             Args:
                 request (:obj:`bittensor.proto`, `required`): 
                     Tensor request proto.
-            
             Returns:
                 response (:obj:`bittensor.proto.Tensor, `required`): 
                     serialized tensor response from the nucleus call or None.
@@ -273,10 +375,11 @@ class Axon(bittensor.grpc.BittensorServicer):
             return None, message, code
 
         # ---- Check deserialization ----
-        inputs = request.tensors[0]
+        tensor_inputs = request.tensors[0]
+        modality = tensor_inputs.modality
         try:
-            deserializer = serialization.get_serializer( serialzer_type = inputs.serializer )
-            x = deserializer.deserialize(inputs, to_type = bittensor.proto.TensorType.TORCH)
+            deserializer = serialization.get_serializer( serialzer_type = tensor_inputs.serializer )
+            torch_inputs = deserializer.deserialize(tensor_inputs, to_type = bittensor.proto.TensorType.TORCH)
         except Exception as e:
             logger.error(e)
             message  = "Forward request deserialization failed with error {}".format(e)
@@ -284,56 +387,41 @@ class Axon(bittensor.grpc.BittensorServicer):
             return None, message, code
 
         # ---- Check shape and modality ----
-        if x.shape[0] < 1:
-            message = "Froward request batch dim exception with batch_size = {} ".format(x.shape[0])
+        if torch_inputs.shape[0] < 1:
+            message = "Forward request batch dim exception with batch_size = {} ".format(torch_inputs.shape[0])
             code = bittensor.proto.ReturnCode.RequestShapeException
             return None, message, code
 
-        if x.shape[1] < 1:
-            message = "Forward request sequence dim exception with sequence_dim = {} ".format(x.shape[1])
+        if torch_inputs.shape[1] < 1:
+            message = "Forward request sequence dim exception with sequence_dim = {} ".format(torch_inputs.shape[1])
             code =  bittensor.proto.ReturnCode.RequestShapeException
             return None, message, code
 
-        if inputs.modality == bittensor.proto.Modality.TEXT:
-            if len(x.shape) != 2:
-                message = "Forward text input shape exception with len(request.shape) = {} must have rank 2.".format(len(x.shape))
+        if modality == bittensor.proto.Modality.TEXT:
+            if len(torch_inputs.shape) != 2:
+                message = "Forward text input shape exception with len(request.shape) = {} must have rank 2.".format(len(torch_inputs.shape))
                 code =  bittensor.proto.ReturnCode.RequestShapeException
                 return None, message, code
             
-        if inputs.modality == bittensor.proto.Modality.IMAGE:
-            if len(x.shape) != 5:
-                message =  "Forward image input shape exception for len(shape) = {}  must have rank 5".format(len(x.shape))
+        if modality == bittensor.proto.Modality.IMAGE:
+            if len(torch_inputs.shape) != 5:
+                message =  "Forward image input shape exception for len(shape) = {}  must have rank 5".format(len(torch_inputs.shape))
                 code =  bittensor.proto.ReturnCode.RequestShapeException
                 return None, message, code
 
-        if inputs.modality == bittensor.proto.Modality.TENSOR:
-            if len(x.shape) != 3:
-                message = "Forward message tensor input shape exception len(shape) = {} must have rank 3".format(len(x.shape))
+        if modality == bittensor.proto.Modality.TENSOR:
+            if len(torch_inputs.shape) != 3:
+                message = "Forward message tensor input shape exception len(shape) = {} must have rank 3".format(len(torch_inputs.shape))
                 code = bittensor.proto.ReturnCode.RequestShapeException
                 return None, message, code
 
-        # ---- Make nucleus.Nucleus forward call. ----
-        try:
-            ping, pong = mp.Pipe()
-            payload = [pong, request.public_key, x, inputs.modality]
-            try:
-                self.forward_queue.put( payload, block=True, timeout = 5 )
-            except queue.Full:
-                message = "Forward queue is full"
-                return None, message, bittensor.proto.ReturnCode.NucleusFull
-
-            if ping.poll( timeout = 5 ):
-                message = "Success"
-                code = bittensor.proto.ReturnCode.Success
-                outputs = ping.recv()
-            else:
-                message = "Processing timeout"
-                return None, message, bittensor.proto.ReturnCode.NucleusTimeout
-
-
-        except Exception as e:
-            message = "Unknown exception when calling nucleus forward {}".format(e)
-            code = bittensor.proto.ReturnCode.UnknownException
+        # ---- Make nucleus forward call. ----
+        outputs, message, code = self.enqueue_forward_to_nucleus( 
+            public_key = request.public_key, 
+            inputs_x = torch_inputs, 
+            modality = modality
+        )
+        if code != bittensor.proto.ReturnCode.Success:
             return None, message, code
 
         # ---- Serialize response ----
@@ -384,26 +472,45 @@ class Axon(bittensor.grpc.BittensorServicer):
             message = "Backward request deserialization failed with unknown error {}".format(e)
             code =  bittensor.proto.ReturnCode.RequestDeserializationException
             return None, message, code
+
+        # ---- Check shapes ----
+        if modality_x == bittensor.proto.Modality.TEXT:
+            if len(inputs_x.shape) != 2:
+                message = "Forward text input shape exception with len(request.shape) = {} must have rank 2.".format(len(inputs_x.shape))
+                code =  bittensor.proto.ReturnCode.RequestShapeException
+                return None, message, code
+            
+        if modality_x == bittensor.proto.Modality.IMAGE:
+            if len(inputs_x.shape) != 5:
+                message =  "Forward image input shape exception for len(shape) = {}  must have rank 5".format(len(inputs_x.shape))
+                code =  bittensor.proto.ReturnCode.RequestShapeException
+                return None, message, code
+
+        if modality_x == bittensor.proto.Modality.TENSOR:
+            if len(inputs_x.shape) != 3:
+                message = "Forward message tensor input shape exception len(shape) = {} must have rank 3".format(len(inputs_x.shape))
+                code = bittensor.proto.ReturnCode.RequestShapeException
+                return None, message, code
+
+        if len(grads_dy.shape) != 3:
+            message = "Passed gradients must have rank 3 but got {}".format(len(grads_dy.shape))
+            code = bittensor.proto.ReturnCode.RequestShapeException
+            return None, message, code
+
+        logger.info('{}{}', grads_dy.shape, inputs_x.shape)
+        if grads_dy.shape[0] != inputs_x.shape[0] or grads_dy.shape[1] != inputs_x.shape[1]:
+            message = "Passed gradients must same first and second dimension as passed inputs got shapes {} and {}".format(grads_dy.shape, inputs_x.shape)
+            code = bittensor.proto.ReturnCode.RequestShapeException
+            return None, message, code
  
-        # ---- nucleus.Nucleus backward call ----
-        try:
-            ping, pong = mp.Pipe()
-            payload = [pong, request.public_key, inputs_x, grads_dy, modality_x]
-            try:
-                self.forward_queue.put( payload, block=True, timeout = 0.1 )
-            except queue.Full:
-                message = "Forward queue is full"
-                return None, message, bittensor.proto.ReturnCode.NucleusFull
-
-            if ping.poll( timeout = 0.1 ):
-                outputs = ping.recv()
-            else:
-                message = "Processing timeout"
-                return None, message, bittensor.proto.ReturnCode.NucleusTimeout
-
-        except Exception as e:
-            message  = "Unkown exception when calling backward with error {}".format(e)
-            code =  bittensor.proto.ReturnCode.UnknownException
+        # ---- Make nucleus backward call. ----
+        outputs, message, code = self.enqueue_backward_to_nucleus( 
+            public_key = request.public_key, 
+            inputs_x = inputs_x, 
+            grads_dy = grads_dy, 
+            modality = modality_x
+        )
+        if code != bittensor.proto.ReturnCode.Success:
             return None, message, code
 
         # ---- Deserialize response ----

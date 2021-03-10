@@ -1,6 +1,27 @@
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+
+
 import sys
 import random
+import torch
 from loguru import logger
+from typing import Tuple, List, Optional
+from torch.autograd.function import once_differentiable
 
 import bittensor.bittensor_pb2 as proto
 import bittensor.bittensor_pb2_grpc as grpc
@@ -173,18 +194,23 @@ class Neuron:
             wallet = bittensor.wallet.Wallet ( config )
         self.wallet = wallet
 
-        BaseManager.register('Subtensor', bittensor.subtensor.Subtensor)
-        BaseManager.register('Metagraph', bittensor.metagraph.Metagraph)
-        BaseManager.register('Dendrite', bittensor.dendrite.Dendrite)
-        BaseManager.register('Axon', bittensor.axon.Axon)
-        manager = BaseManager()
-        manager.start()
+        if config.neuron.multiprocessing:
+            BaseManager.register('Subtensor', bittensor.subtensor.Subtensor)
+            BaseManager.register('Metagraph', bittensor.metagraph.Metagraph)
+            BaseManager.register('Dendrite', bittensor.dendrite.Dendrite)
+            BaseManager.register('Axon', bittensor.axon.Axon)
+            manager = BaseManager()
+            manager.start()
 
-        # self.thing = manager.Thing( )
-        self.subtensor = manager.Subtensor( config = self.config, wallet = self.wallet )
-        self.metagraph = manager.Metagraph( config = self.config, wallet = self.wallet )
-        self.dendrite = manager.Dendrite( config = self.config, walelt = self.wallet )
-        self.axon = manager.Axon( config = self.config, wallet = self.wallet )
+            self.subtensor = manager.Subtensor( config = self.config, wallet = self.wallet )
+            self.metagraph = manager.Metagraph( config = self.config, wallet = self.wallet )
+            self.dendrite = manager.Dendrite( config = self.config, walelt = self.wallet )
+            self.axon = manager.Axon( config = self.config, wallet = self.wallet )
+        else:
+            self.subtensor = bittensor.subtensor.Subtensor( config = self.config, wallet = self.wallet )
+            self.metagraph = bittensor.metagraph.Metagraph( config = self.config, wallet = self.wallet )
+            self.dendrite = bittensor.dendrite.Dendrite( config = self.config, walelt = self.wallet )
+            self.axon = bittensor.axon.Axon( config = self.config, wallet = self.wallet )
 
     @staticmethod       
     def default_config() -> Munch:
@@ -203,6 +229,8 @@ class Neuron:
         try:
             parser.add_argument('--neuron.modality', default=0, type=int, 
                                 help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
+            parser.add_argument('--neuron.multiprocessing', default=0, type=int, 
+                                help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
         except:
             pass
 
@@ -216,7 +244,7 @@ class Neuron:
 
 def init( config: Munch = None,  wallet: 'bittensor.wallet.Wallet' = None, **kwargs ):
     global neuron
-    neuron = Neuron(config, wallet)
+    neuron = Neuron(config, wallet, **kwargs)
 
 # dummy tensor that triggers autograd in a RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
@@ -268,7 +296,10 @@ class _ForwardCall(torch.autograd.Function):
 
     @staticmethod
     @once_differentiable
-    def backward( ctx, *grads: List[torch.FloatTensor]) -> Tuple[ Optional[torch.Tensor], ... ]:
+    def backward( 
+            ctx, 
+            *grads: torch.FloatTensor
+        ) -> Tuple[ Optional[torch.Tensor], ... ]:
         """ Internal autograd-friendly Backward RPC call to a remote neurons.
 
             Args:
@@ -295,7 +326,6 @@ class _ForwardCall(torch.autograd.Function):
         return (DUMMY, None, None, *outputs)
 
 def _internal_forward(
-            self, 
             neurons: List[bittensor.proto.Neuron],
             inputs: List[torch.Tensor],
             mode: bittensor.proto.Modality
@@ -324,11 +354,10 @@ def _internal_forward(
                 dummy = DUMMY, 
                 neurons = neurons, 
                 mode = mode, 
-                inputs = *inputs
+                *inputs
             )
 
 def forward_text(
-            self, 
             neurons: List[bittensor.proto.Neuron],
             inputs: List[torch.Tensor]
         ) -> Tuple[List[torch.Tensor], torch.Tensor]:
@@ -349,7 +378,7 @@ def forward_text(
                 return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops.
         """
-        if len(x[0].shape) != 2:
+        if len(inputs[0].shape) != 2:
             error_msg = 'Text inputs should rank 2 with semantic shape: [batch_size, sequence_len]'
             raise ValueError(error_msg)
         if len(inputs) != len(neurons):
@@ -366,7 +395,6 @@ def forward_text(
         )
 
 def forward_image(
-            self, 
             neurons: List[bittensor.proto.Neuron],
             inputs: List[torch.Tensor]
         ) -> Tuple[List[torch.Tensor], torch.Tensor]:
@@ -405,7 +433,6 @@ def forward_image(
     )
 
 def forward_tensor(
-            self, 
             neurons: List[bittensor.proto.Neuron],
             inputs: List[torch.Tensor]
         ) -> Tuple[List[torch.Tensor], torch.Tensor]:

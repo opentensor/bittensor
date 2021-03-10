@@ -29,7 +29,6 @@ from termcolor import colored
 from loguru import logger
 from munch import Munch
 from types import SimpleNamespace
-from torch.autograd.function import once_differentiable
 from typing import Tuple, List, Optional
 
 import bittensor
@@ -192,7 +191,7 @@ class Receptor(nn.Module):
             self, 
             inputs: torch.Tensor, 
             mode: bittensor.proto.Modality
-        ) -> Tuple[torch.Tensor, bittensor.proto.ReturnCode]:
+        ) -> Tuple[torch.Tensor, int]:
         r""" Forward call: Triggers the grpc Forward call to the associated endpoint.
 
             Args:
@@ -213,7 +212,7 @@ class Receptor(nn.Module):
         try:
             outputs, code = self._call_forward( 
                 inputs = inputs, 
-                modes = mode 
+                mode = mode 
             )
         except Exception as e:
             # ---- Uncaught failure in the forward call ----
@@ -222,7 +221,7 @@ class Receptor(nn.Module):
             code = bittensor.proto.ReturnCode.UnknownException
 
         # --- Stats ----
-        if code in self.stats:
+        if code in self.stats.codes:
             self.stats.codes[ code ] += 1
 
         # ---- On failure: Increase backoff and double next_backoff towards max value ---- 
@@ -245,9 +244,9 @@ class Receptor(nn.Module):
             self, 
             inputs: torch.Tensor, 
             grads: torch.Tensor, 
-            code: bittensor.proto.ReturnCode, 
+            code: int, 
             mode: bittensor.proto.Modality
-        ) -> Tuple[torch.Tensor, bittensor.proto.ReturnCode]:
+        ) -> Tuple[torch.Tensor, int]:
         r""" Backward call: Triggers the grpc Backward call to the associated endpoint.
 
             Args:
@@ -352,9 +351,12 @@ class Receptor(nn.Module):
         except grpc.RpcError as rpc_error_call:
             grpc_code = rpc_error_call.code()
             if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
+                logger.info('timeout')
                 return zeros, bittensor.proto.ReturnCode.Timeout
+
             elif grpc_code == grpc.StatusCode.UNAVAILABLE:
                 return zeros, bittensor.proto.ReturnCode.Unavailable
+
             else:
                 logger.error('Uncaught GPRC error exception with code {} from endpoint {}', grpc_code, self.endpoint)
                 return zeros, bittensor.proto.ReturnCode.UnknownException
@@ -372,7 +374,7 @@ class Receptor(nn.Module):
             return zeros, bittensor.proto.ReturnCode.UnknownException
 
         # ---- Catch negative codes ----
-        elif bittensor_code != bittensor.proto.ReturnCode.Success:
+        if bittensor_code != bittensor.proto.ReturnCode.Success:
             logger.info('Not Success with code {} and message {}', bittensor_code, response.message)
             return zeros, bittensor_code
 
@@ -406,7 +408,8 @@ class Receptor(nn.Module):
             self,
             inputs: torch.Tensor, 
             grads: torch.FloatTensor, 
-            code: int
+            code: int,
+            mode: bittensor.proto.Modality
         ) -> Tuple[torch.Tensor, int]:
         """ Checks and makes RPC Forward call to a remote neuron (calls the Forward method on an Axon terminal of the endpoint)
 
@@ -443,11 +446,15 @@ class Receptor(nn.Module):
         if torch.numel(inputs) == 0:
             return zeros, bittensor.proto.ReturnCode.EmptyRequest
 
+        # ---- Check grads size ----
+        if torch.numel(grads) == 0:
+            return zeros, bittensor.proto.ReturnCode.EmptyRequest
+
         # ---- Serialization ----
         try:
             serializer = serialization.get_serializer( bittensor.proto.Serializer.MSGPACK )
             serialized_grads = serializer.serialize (grads, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH )
-            serialized_inputs = serializer.serialize (inputs, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH )
+            serialized_inputs = serializer.serialize (inputs, modality = mode, from_type = bittensor.proto.TensorType.TORCH )
         except Exception as e:
             return zeros, bittensor.proto.ReturnCode.RequestSerializationException 
         
