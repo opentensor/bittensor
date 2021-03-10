@@ -176,7 +176,7 @@ class PKMRouter():
 
         # requests: List(torch.FloatTensor): examples for each uids
         # requests.shape = n_uids * [-1, inputs.shape[1:]]
-        requests = torch.split(inputs_expanded.detach(), request_sizes, dim=0)
+        requests = torch.split(inputs_expanded, request_sizes, dim=0)
         
         # neurons: List[bittensor.proto.Neuron]: endpoint information for filtered keys.
         # neurons.shape = n_uids * [ bittensor.proto.Neuron ]
@@ -184,15 +184,14 @@ class PKMRouter():
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
-        requests = [r.detach() for r in requests]
         if modality == bittensor.proto.Modality.TEXT:
-            responses, retops = bittensor.neuron.dendrite.forward_text(neurons, requests)
+            responses, retops = bittensor.forward_text(neurons, requests)
 
         elif modality == bittensor.proto.Modality.IMAGE:
-            responses, retops = bittensor.neuron.dendrite.forward_image(neurons, requests)
+            responses, retops = bittensor.forward_image(neurons, requests)
 
         elif modality == bittensor.proto.Modality.TENSOR:
-            responses, retops = bittensor.neuron.dendrite.forward_tensor(neurons, requests)
+            responses, retops = bittensor.forward_tensor(neurons, requests)
 
         else:
             raise NotImplementedError

@@ -811,12 +811,6 @@ class Metagraph():
 
 
     def toString(self):
-        return self.__str__()
-
-    def toTensorboard(self, tensorboard, global_step):
-        self.toTensorboard(tensorboard, global_step)
-
-    def __str__(self):
         uids = self.state.uids.tolist()
         rows = [self.S().tolist(), self.R().tolist(), self.I().tolist(), self.incentive().tolist(), self.row().tolist(), self.col().tolist()]
         for i in range(self.n()):

@@ -113,9 +113,6 @@ __local_entrypoints__ = [
     '127.0.0.1:9944'
 ]
 
-from multiprocessing import Process, Manager
-from multiprocessing.managers import BaseManager, NamespaceProxy
-
 import argparse
 import json
 import os
@@ -129,33 +126,11 @@ from munch import Munch
 from termcolor import colored
 from loguru import logger
 
-from multiprocessing.managers import BaseManager, NamespaceProxy
-
-# class BittensorManager(BaseManager):
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-
-
-# def Proxy(target):
-#     dic = {'types': types}
-#     exec('''def __getattr__(self, key):
-#         result = self._callmethod('__getattribute__', (key,))
-#         if isinstance(result, types.MethodType):
-#             def wrapper(*args, **kwargs):
-#                 self._callmethod(key, args)
-#             return wrapper
-#         return result''', dic)
-#     proxyName = target.__name__ + "Proxy"
-#     ProxyType = type(proxyName, (NamespaceProxy,), dic)
-#     ProxyType._exposed_ = tuple(dir(target))
-#     return ProxyType
-
-from multiprocessing import Process
+from multiprocessing import Process, Manager
+import multiprocessing.managers
 from multiprocessing.managers import BaseManager, NamespaceProxy, BaseProxy, AutoProxy
 import time
 import types
-
-import multiprocessing.managers
 
 def AutoProxy(token, serializer, manager=None, authkey=None,
               exposed=None, incref=True, manager_owned=False):
@@ -181,53 +156,7 @@ def AutoProxy(token, serializer, manager=None, authkey=None,
                       incref=incref, manager_owned=manager_owned)
     proxy._isauto = True
     return proxy
-
 multiprocessing.managers.AutoProxy = AutoProxy
-
-class MyManager(BaseManager): pass  # Avoid namespace pollution.
-
-# def Proxy(target):
-#     """ Create a derived NamespaceProxy class for `target`. """
-#     def __getattr__(self, key):
-#         result = self._callmethod('__getattribute__', (key,))
-#         if isinstance(result, types.MethodType):
-#             def wrapper(*args, **kwargs):
-#                 self._callmethod(key, args)
-#             return wrapper
-#         return result
-
-#     dic = {'types': types, '__getattr__': __getattr__}
-#     proxy_name = target.__name__ + "Proxy"
-#     ProxyType = type(proxy_name, (NamespaceProxy,), dic)  # Create subclass.
-#     ProxyType._exposed_ = tuple(dir(target))
-#     return ProxyType
-
-# class Thing:
-#     def __init__(self):
-#         self.b = 1
-
-# class BittensorProxy(AutoProxy):
-#     # We need to expose the same __dunder__ methods as NamespaceProxy,
-#     # in addition to the b method.
-#     _exposed_ = ('__getattribute__', '__setattr__', '__delattr__', 'b')
-
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-
-#     def b(self):
-#         callmethod = object.__getattribute__(self, '_callmethod')
-#         return callmethod('b')
-
-class TestProxy(NamespaceProxy):
-    _exposed_ = tuple(dir(bittensor.subtensor.Subtensor))
-
-    def __getattr__(self, name):
-        result = super().__getattr__(name)
-        if isinstance(result, types.MethodType):
-            def wrapper(*args, **kwargs):
-                self._callmethod(name, args)
-            return wrapper
-        return result
 
 neuron = None
 class Neuron:
@@ -285,159 +214,233 @@ class Neuron:
         bittensor.dendrite.Dendrite.check_config( config )
         assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
 
-    def start(self):
-        print(colored('', 'white'))
-        # ---- Check hotkey ----
-        print(colored('Loading wallet with path: {} name: {} hotkey: {}'.format(self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey), 'white'))
-        try:
-            self.wallet.hotkey # Check loaded hotkey
-        except:
-            logger.info('Failed to load hotkey under path:{} wallet name:{} hotkey:{}', self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey)
-            choice = input("Would you like to create a new hotkey ? (y/N) ")
-            if choice == "y":
-                self.wallet.create_new_hotkey()
-            else:
-                raise RuntimeError('The neuron requires a loaded hotkey')
-
-        # ---- Check coldkeypub ----
-        try:
-            self.wallet.coldkeypub
-        except:
-            logger.info('Failed to load coldkeypub under path:{} wallet name:{}', self.config.wallet.path, self.config.wallet.name)
-            choice = input("Would you like to create a new coldkey ? (y/N) ")
-            if choice == "y":
-                self.wallet.create_new_coldkey()
-            else:
-                raise RuntimeError('The neuron requires a loaded coldkeypub')
-
-        # ---- Start the axon ----
-        self.axon.start()
-
-        # ---- Subscribe to chain ----
-        print(colored('\nConnecting to network: {}'.format(self.config.subtensor.network), 'white'))
-        self.subtensor._callmethod('connect')
-
-        print(colored('\nSubscribing:', 'white'))
-        subscribe_success = self.subtensor.subscribe(
-                self.config.axon.external_ip, 
-                self.config.axon.external_port,
-                self.config.neuron.modality,
-                self.wallet.coldkeypub,
-                wait_for_finalization = True,
-                timeout = 4 * bittensor.__blocktime__,
-        )
-        if not subscribe_success:
-            raise RuntimeError('Failed to subscribe neuron.')
-
-
-import asyncio
 def init( config: Munch = None,  wallet: 'bittensor.wallet.Wallet' = None, **kwargs ):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
     global neuron
     neuron = Neuron(config, wallet)
 
-def start():
-    if neuron == None:
-        raise ValueError ('Must call bittensor.init() before bittensor.start()')
-    neuron.start()
+# dummy tensor that triggers autograd in a RemoteExpert
+DUMMY = torch.empty(0, requires_grad=True)
 
-# def start(self):
-#     print(colored('', 'white'))
-#     # ---- Check hotkey ----
-#     print(colored('Loading wallet with path: {} name: {} hotkey: {}'.format( config.wallet.path, config.wallet.name, config.wallet.hotkey), 'white'))
-#     try:
-#         wallet.hotkey # Check loaded hotkey
-#     except:
-#         logger.info('Failed to load hotkey under path:{} wallet name:{} hotkey:{}', config.wallet.path, config.wallet.name, config.wallet.hotkey)
-#         choice = input("Would you like to create a new hotkey ? (y/N) ")
-#         if choice == "y":
-#             wallet.create_new_hotkey()
-#         else:
-#             raise RuntimeError('The neuron requires a loaded hotkey')
+class _ForwardCall(torch.autograd.Function):
+    @staticmethod
+    def forward(
+            ctx, 
+            dummy: torch.Tensor, 
+            neurons: List[bittensor.proto.Neuron], 
+            mode: bittensor.proto.Modality,
+            *inputs: torch.Tensor
+        ) -> Tuple[ List[torch.Tensor], torch.LongTensor ] :
+        """ Internal autograd-friendly Forward RPC call to a remote neurons.
 
-#     # ---- Check coldkeypub ----
-#     try:
-#         wallet.coldkeypub
-#     except:
-#         logger.info('Failed to load coldkeypub under path:{} wallet name:{}', config.wallet.path, config.wallet.name)
-#         choice = input("Would you like to create a new coldkey ? (y/N) ")
-#         if choice == "y":
-#             wallet.create_new_coldkey()
-#         else:
-#             raise RuntimeError('The neuron requires a loaded coldkeypub')
+            Args:
+                ctx: (:obj:`torch.autograd.ctx`, `required`):
+                    Autograd context, saves state information between forward and backward calls. i.e. inputs for gradient computation.
 
-#     # ---- Start the axon ----
-#     axon.start()
+                dummy: (:obj:`torch.Tensor`, `required`):
+                    Dummy torch tensor used to ensure that torch.backward computation is called on this function 
+                    regardless of the input types.
 
-#     # ---- Subscribe to chain ----
-#     print(colored('\nConnecting to network: {}'.format(config.subtensor.network), 'white'))
-#     subtensor.connect()
+                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(shape)`, `required`):
+                    List of remote neurons which match length of inputs. Tensors inputs are sent forward to these neurons.
 
-#     print(colored('\nSubscribing:', 'white'))
-#     subscribe_success = subtensor.subscribe(
-#             config.axon.external_ip, 
-#             config.axon.external_port,
-#             config.neuron.modality,
-#             wallet.coldkeypub,
-#             wait_for_finalization = True,
-#             timeout = 4 * bittensor.__blocktime__,
-#     )
-#     if not subscribe_success:
-#         raise RuntimeError('Failed to subscribe neuron.')
-    
-#     # ---- Sync graph ----
-#     metagraph.sync()
-#     print( metagraph )
+                mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                    Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
-    # def stop(self):
+                inputs (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
+                    List of torch tensors to be sent to the associated endpoint neurons.
 
-    #     logger.info('Shutting down the Axon server ...')
-    #     try:
-    #         self.axon.stop()
-    #         logger.info('Axon server stopped')
-    #     except Exception as e:
-    #         logger.error('Neuron: Error while stopping axon server: {} ', e)
+            Returns:
+                codes (:obj:`torch.LongTensor, `required`):
+                    Return code associated with forward call.
+                
+                outputs (:obj:`List[torch.FloatTensor]`, torch.LongTensor]`, `required`):
+                    Results from each endpoint.
+        """
+        ctx.neurons, ctx.inputs, ctx.mode = neurons, inputs, mode
+        inputs = [tensor.cpu().detach() for tensor in inputs]
+        outputs, forward_codes = neuron.dendrite.forward(
+            neurons = neurons, 
+            inputs = inputs, 
+            mode = mode
+        )
+        ctx.forward_codes = forward_codes
+        return outputs, torch.tensor(forward_codes, dtype=torch.int64)
 
-    # def __enter__(self):
-    #     bittensor.exceptions.handlers.rollbar.init() # If a bittensor.exceptions.handlers.rollbar token is present, this will enable error reporting to bittensor.exceptions.handlers.rollbar
-    #     logger.trace('Neuron enter')
-    #     self.start()
-    #     return self
+    @staticmethod
+    @once_differentiable
+    def backward( ctx, *grads: List[torch.FloatTensor]) -> Tuple[ Optional[torch.Tensor], ... ]:
+        """ Internal autograd-friendly Backward RPC call to a remote neurons.
 
-    # def __exit__(self, exc_type, exc_value, exc_traceback):
-    #     """ Defines the exit protocol from asyncio task.
-    #     Args:
-    #         exc_type (Type): The type of the exception.
-    #         exc_value (RuntimeError): The value of the exception, typically RuntimeError. 
-    #         exc_traceback (traceback): The traceback that can be printed for this exception, detailing where error actually happend.
-    #     Returns:
-    #         Neuron: present instance of Neuron.
-    #     """        
-    #     self.stop()
-    #     if exc_value:
+            Args:
+                ctx: (:obj:`torch.autograd.ctx`, `required`):
+                    Autograd context, saves state information between forward and backward calls. i.e. inputs for gradient computation.
+  
+                grads (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
+                    Gradients of this function's outputs computed during the loss.backward() call.
+            
+            Returns:
+                DUMMY, None, None,
+                outputs (:obj:`List[torch.FloatTensor], `optional`):
+                    Gradient results for each input.
 
-    #         top_stack = StringIO()
-    #         tb.print_stack(file=top_stack)
-    #         top_lines = top_stack.getvalue().strip('\n').split('\n')[:-4]
-    #         top_stack.close()
+        """
+        grads_cpu = [tensor.cpu() for tensor in grads]
+        outputs, _ = neuron.dendrite.backward (
+            neurons = ctx.neurons, 
+            inputs = ctx.inputs, 
+            grads = grads_cpu, 
+            codes = ctx.forward_codes, 
+            mode = ctx.mode
+        )
+        return (DUMMY, None, None, *outputs)
 
-    #         full_stack = StringIO()
-    #         full_stack.write('Traceback (most recent call last):\n')
-    #         full_stack.write('\n'.join(top_lines))
-    #         full_stack.write('\n')
-    #         tb.print_tb(exc_traceback, file=full_stack)
-    #         full_stack.write('{}: {}'.format(exc_type.__name__, str(exc_value)))
-    #         sinfo = full_stack.getvalue()
-    #         full_stack.close()
-    #         # Log the combined stack
-    #         logger.error('Exception:{}'.format(sinfo))
+def _internal_forward(
+            self, 
+            neurons: List[bittensor.proto.Neuron],
+            inputs: List[torch.Tensor],
+            mode: bittensor.proto.Modality
+        ) -> Tuple[List[torch.Tensor], torch.LongTensor]:
+        r""" Internal Forward tensor inputs to neurons.
 
-    #         if bittensor.exceptions.handlers.rollbar.is_enabled():
-    #             bittensor.exceptions.handlers.rollbar.send_exception()
+            Args:
+                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                    List of remote neurons which match length of inputs. Tensors from inputs are sent forward to these neurons.
 
-    #     return self
+                inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [shape])`, `required`):
+                    List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and shape depending on the
+                    modality.
 
-    # def __del__(self):
-    #     self.stop()
+                mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                    Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
+
+            Returns:
+                forward_outputs (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
+                    Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
+
+                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                    dendrite call return ops.
+        """
+        return _ForwardCall.forward(
+                dummy = DUMMY, 
+                neurons = neurons, 
+                mode = mode, 
+                inputs = *inputs
+            )
+
+def forward_text(
+            self, 
+            neurons: List[bittensor.proto.Neuron],
+            inputs: List[torch.Tensor]
+        ) -> Tuple[List[torch.Tensor], torch.Tensor]:
+        r""" Forward text inputs to neurons.
+
+            Args:
+                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                    List of remote neurons which match length of x. Tensors from inputs are sent forward to these neurons.
+
+                inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len])`, `required`):
+                    List of tensors to send to corresponsing neurons. Tensors are text input_ids encoded using the
+                    bittensor tokenizer of shape [batch_size, sequence_len].
+
+            Returns:
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                    Output encodings of inputs produced by remote neurons. Non-responses are zeroes of common shape.
+
+                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                    dendrite call return ops.
+        """
+        if len(x[0].shape) != 2:
+            error_msg = 'Text inputs should rank 2 with semantic shape: [batch_size, sequence_len]'
+            raise ValueError(error_msg)
+        if len(inputs) != len(neurons):
+            error_msg = 'List of text inputs should have the same length as passed destination neurons, got {} and {}'.format(len(inputs), len(neurons))
+            raise ValueError(error_msg)
+        if len(inputs) < 1:
+            error_msg = 'Must pass more than 0 inputs, got {}'.format(len(inputs))
+            raise ValueError(error_msg)
+
+        return _internal_forward (
+            neurons = neurons, 
+            inputs = inputs, 
+            mode = bittensor.proto.Modality.TEXT
+        )
+
+def forward_image(
+            self, 
+            neurons: List[bittensor.proto.Neuron],
+            inputs: List[torch.Tensor]
+        ) -> Tuple[List[torch.Tensor], torch.Tensor]:
+    r""" Forward image inputs to neurons.
+
+        Args:
+            neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                List of remote neurons which match length of x. Tensors from inputs are sent forward to these neurons.
+
+            inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, channels, rows, cols])`, `required`):
+                List of image-tensors to send to corresponsing neurons. Tensors are images encoded using the
+                torch.toTensor() or other encoding which produces the shape [batch_size, channels, rows, cols].
+
+        Returns:
+            forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`):
+                Output encodings of images produced by remote neurons. Non-responses are zeroes of common shape.
+
+            return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                dendrite call return ops.
+    """
+    # TODO(const): Checks across all tensors and other shape checks.
+    if len(inputs[0].shape) != 5:
+        error_msg = 'Image inputs should be rank 5 with semantic shape: [batch_size, sequence_dim, channels, rows, cols]'
+        raise ValueError(error_msg)
+    if len(inputs) != len(neurons):
+        error_msg = 'List of image inputs should have the same length as passed destination neurons, got {} and {}'.format(len(inputs), len(neurons))
+        raise ValueError(error_msg)
+    if len(inputs) < 1:
+        error_msg = 'Must pass more than 0 inputs, got {}'.format(len(inputs))
+        raise ValueError(error_msg)
+
+    return _internal_forward (
+            neurons = neurons, 
+            inputs = inputs, 
+            mode = bittensor.proto.Modality.TEXT
+    )
+
+def forward_tensor(
+            self, 
+            neurons: List[bittensor.proto.Neuron],
+            inputs: List[torch.Tensor]
+        ) -> Tuple[List[torch.Tensor], torch.Tensor]:
+    r""" Forward tensor inputs to neurons.
+
+        Args:
+            neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                List of remote neurons which match length of x. Tensors from inputs are sent forward to these neurons.
+
+            inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, bittensor.__network_dim__])`, `required`):
+                List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and
+                with shape [batch_size, sequence_len, bittensor.__network_dim__].
+
+        Returns:
+            forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.__network_dim__)]`, `required`):
+                Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
+
+            return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                dendrite call return ops.
+    """
+    if len(inputs[0].shape) != 3:
+        error_msg = 'Tensor inputs should be rank 3 with semantic shape: [batch_size, sequence_len, feature_len]'
+        raise ValueError(error_msg)
+    if len(inputs) != len(neurons):
+        error_msg = 'List of tensor inputs should have the same length as passed destination neurons, got {} and {}'.format(len(inputs), len(neurons))
+        raise ValueError(error_msg)
+    if inputs[0].shape[2] != bittensor.__network_dim__:
+        error_msg = 'Passed tensors must have last dimension {} got {}'.format(bittensor.__network_dim__, inputs[0].shape[2])
+        raise ValueError(error_msg)
+    if len(inputs) == 0:
+        error_msg = 'Must pass more than 0 inputs, got {}'.format(len(inputs))
+        raise ValueError(error_msg)
+
+    return _internal_forward (
+            neurons = neurons, 
+            inputs = inputs, 
+            mode = bittensor.proto.Modality.TEXT
+    )

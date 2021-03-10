@@ -438,17 +438,11 @@ class Axon(bittensor.grpc.BittensorServicer):
                 self.stats.qps_per_uid[request_uid] = stat_utils.timed_rolling_avg(1, 0.01)
 
     def toString(self):
-        return self.__str__()
-
-    def __str__(self):
         total_in_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'red')
         total_out_bytes_str = colored('\u290A {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'green')
         qps_str = colored("{:.3f}".format(float(self.stats.qps.value)), 'blue')
         return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
     
-    def toTensorboard(self, tensorboard, global_step):
-        self.toTensorboard(tensorboard, global_step)
-
     def toTensorboard(self, tensorboard, global_step):
         total_in_bytes = (self.stats.total_in_bytes.value * 8)/1000
         total_out_bytes = (self.stats.total_out_bytes.value * 8)/1000
@@ -457,9 +451,6 @@ class Axon(bittensor.grpc.BittensorServicer):
         tensorboard.add_scalar("Axon/Queries/Sec", self.stats.qps.value, global_step)
 
     def fullToString(self):
-        return self.fullToString()
-
-    def __full_str__(self):
         uids = list(self.stats.in_bytes_per_uid.keys())
         bytes_in = [avg.value * (8/1000) for avg in self.stats.in_bytes_per_uid.values()]
         bytes_out = [avg.value * (8/1000) for avg in self.stats.in_bytes_per_uid.values()]
