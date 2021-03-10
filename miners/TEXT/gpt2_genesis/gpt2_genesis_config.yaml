@@ -10,7 +10,7 @@ miner:
   batch_size_train: 1
   config_file: null
   custom_datasets: ./genesis_dataset/
-  epoch_length: 10
+  epoch_length: 500
   learning_rate: 0.01
   log_interval: 10
   momentum: 0.98
