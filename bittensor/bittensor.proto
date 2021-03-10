@@ -119,7 +119,7 @@ enum ReturnCode {
 	ResponseSerializationException = 12; // Response failed to serialize.
 	RequestDeserializationException = 13; // Request failed to deserialize.
 	ResponseDeserializationException = 14; // Response failed to deserialize.
-	NotServingNucleus = 15; // Axon is not serving a nucleus to query.
+	NotServingSynapse = 15; // (DEPRECATED) Axon is not serving a synapse to query.
 	NucleusTimeout = 16; // Processing on the server side timedout.
 	NucleusFull = 17; // Returned when the processing queue on the server is full.
 	RequestIncompatibleVersion = 18; // The request handler is incompatible with the request version.
