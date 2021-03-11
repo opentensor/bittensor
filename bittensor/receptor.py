@@ -216,26 +216,29 @@ class Receptor(nn.Module):
             )
         except Exception as e:
             # ---- Uncaught failure in the forward call ----
-            logger.error('Uncaught error in Forward call with error {}, {}'.format( e, traceback.format_exc()) )
+            message = 'Uncaught error in Forward call with error {}, {}'.format( e, traceback.format_exc())
             outputs = nill_response_for(inputs)
             code = bittensor.proto.ReturnCode.UnknownException
 
         # --- Stats ----
-        if code in self.stats.codes:
-            self.stats.codes[ code ] += 1
+        try:
+            if code in self.stats.codes:
+                self.stats.codes[ code ] += 1
 
-        # ---- On failure: Increase backoff and double next_backoff towards max value ---- 
-        # Catch all non-success / non-backoff codes and trigger backoff increase. This catches
-        # serialization errors, timeouts, unavailable endpoints etc. Note, it can 
-        # be triggered by invalid requests on this side of the query.
-        if code == bittensor.proto.ReturnCode.Backoff:
-            self.backoff -= 1
-        elif code == bittensor.proto.ReturnCode.Success:
-            self.backoff = 0
-            self.next_backoff = max(1, self.next_backoff / 2) # halve the next backoff.
-        else:
-            self.backoff = self.next_backoff
-            self.next_backoff = min(self.config.receptor.max_backoff, self.next_backoff * 2)
+            # ---- On failure: Increase backoff and double next_backoff towards max value ---- 
+            # Catch all non-success / non-backoff codes and trigger backoff increase. This catches
+            # serialization errors, timeouts, unavailable endpoints etc. Note, it can 
+            # be triggered by invalid requests on this side of the query.
+            if code == bittensor.proto.ReturnCode.Backoff:
+                self.backoff -= 1
+            elif code == bittensor.proto.ReturnCode.Success:
+                self.backoff = 0
+                self.next_backoff = max(1, self.next_backoff / 2) # halve the next backoff.
+            else:
+                self.backoff = self.next_backoff
+                self.next_backoff = min(self.config.receptor.max_backoff, self.next_backoff * 2)
+        except Exception as e:
+            message = 'Uncaught error while updating stats with error {}'.format( e )
 
         # ---- Return outputs and code ---- 
         return outputs, code, message
@@ -282,7 +285,7 @@ class Receptor(nn.Module):
                 mode = mode
             )
         except Exception as e:
-            logger.error('Uncaught error in backward call with error {}, {}'.format( e, traceback.format_exc()) )
+            message = 'Uncaught error in backward call with error {}'.format( e )
             outputs = nill_response_for(inputs)
             code = bittensor.proto.ReturnCode.UnknownException
 
@@ -332,7 +335,6 @@ class Receptor(nn.Module):
             serializer = serialization.get_serializer( bittensor.proto.Serializer.MSGPACK )
             serialized_inputs = serializer.serialize(inputs, modality = mode, from_type = bittensor.proto.TensorType.TORCH)
         except Exception as e:
-            logger.warning('Serialization error with error {}', e)
             return zeros, bittensor.proto.ReturnCode.RequestSerializationException, str(e)
 
         # ---- Make RPC call ----
