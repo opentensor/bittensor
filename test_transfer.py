@@ -7,7 +7,7 @@ YOUR_WALLET_NAME = 'puma'
 YOUR_HOTKEY_NAME = 'default'
 
 # Create the wallet object.
-wallet = bittensor.wallet.Wallet(
+wallet = bittensor.Wallet(
     path = "~/.bittensor/wallets/",
     name = YOUR_WALLET_NAME,
     hotkey = YOUR_HOTKEY_NAME

@@ -191,7 +191,7 @@ class Metagraph():
     def __init__(   
             self, 
             config: 'Munch' = None, 
-            wallet: 'bittensor.wallet.Wallet' = None,
+            wallet: 'bittensor.Wallet' = None,
             subtensor: 'bittensor.Subtensor' = None,
             **kwargs,
         ):
@@ -199,7 +199,7 @@ class Metagraph():
             Args:
                 config (:obj:`Munch`, `optional`): 
                     metagraph.Metagraph.config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 subtensor (:obj:`bittensor.Subtensor`, `optional`):
                     subtensor interface utility.
@@ -214,7 +214,7 @@ class Metagraph():
         self.config = config
 
         if wallet == None:
-            wallet = bittensor.wallet.Wallet( self.config )
+            wallet = bittensor.Wallet( self.config )
         self.wallet = wallet
 
         if subtensor == None:
@@ -238,7 +238,7 @@ class Metagraph():
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
-        bittensor.wallet.Wallet.add_args( parser )
+        bittensor.Wallet.add_args( parser )
         bittensor.Subtensor.add_args( parser )
         try:
             parser.add_argument('--metagraph.stale_emit_filter', default=-1, type=int, 

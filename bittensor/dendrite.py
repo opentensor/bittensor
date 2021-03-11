@@ -42,12 +42,12 @@ class Dendrite(nn.Module):
         Creates Forward and Backward calls to other neurons on the network. Maintains receptor TCP-RPC connections into the network.
     """
 
-    def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, **kwargs):
+    def __init__(self, config: Munch = None, wallet: 'bittensor.Wallet' = None, **kwargs):
         r""" Initializes a new Dendrite entry point.
             Args:
                 config (:obj:`Munch`, `optional`): 
                     dendrite.Dendrite.config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
         """
         super().__init__()
@@ -61,7 +61,7 @@ class Dendrite(nn.Module):
         # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
         # and subscribe to the chain.
         if wallet == None:
-            wallet = bittensor.wallet.Wallet(self.config)
+            wallet = bittensor.Wallet(self.config)
         self.wallet = wallet
 
         # Receptors: Holds a map from publickey -> receptor objects. Receptors encapsulate a TCP connection between

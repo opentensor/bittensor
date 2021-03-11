@@ -45,12 +45,12 @@ class Subtensor:
         }
     }
 
-    def __init__(self, config: 'Munch' = None, wallet: 'bittensor.wallet.Wallet' = None, **kwargs):
+    def __init__(self, config: 'Munch' = None, wallet: 'bittensor.Wallet' = None, **kwargs):
         r""" Initializes a subtensor chain interface.
             Args:
                 config (:obj:`Munch`, `optional`): 
                     subtensor.Subtensor.default_config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 network (default='akira', type=str)
                     The subtensor network flag. The likely choices are:
@@ -68,7 +68,7 @@ class Subtensor:
         self.config = config
 
         if wallet == None:
-            wallet = bittensor.wallet.Wallet( self.config )
+            wallet = bittensor.Wallet( self.config )
         self.wallet = wallet
 
         self.substrate = SubstrateWSInterface(
@@ -87,7 +87,7 @@ class Subtensor:
     
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
-        bittensor.wallet.Wallet.add_args( parser )
+        bittensor.Wallet.add_args( parser )
         try:
             parser.add_argument('--subtensor.network', default='akira', type=str, 
                                 help='''The subtensor network flag. The likely choices are:

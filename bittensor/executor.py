@@ -33,7 +33,7 @@ class Executor:
     def __init__(   
             self, 
             config: 'Munch' = None, 
-            wallet: 'bittensor.wallet.Wallet' = None,
+            wallet: 'bittensor.Wallet' = None,
             subtensor: 'bittensor.Subtensor' = None,
             metagraph: 'bittensor.Metagraph' = None,
             **kwargs,
@@ -42,7 +42,7 @@ class Executor:
             Args:
                 config (:obj:`Munch`, `optional`): 
                     neuron.Neuron.config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 subtensor (:obj:`bittensor.Subtensor`, `optional`):
                     subtensor interface utility.
@@ -56,7 +56,7 @@ class Executor:
         self.config = config
 
         if wallet == None:
-            wallet = bittensor.wallet.Wallet( self.config )
+            wallet = bittensor.Wallet( self.config )
         self.wallet = wallet
 
         # Only load subtensor if we need it.
@@ -113,12 +113,12 @@ class Executor:
         regen_coldkey_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
         regen_coldkey_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
         regen_coldkey_parser.set_defaults(use_password=True)
-        bittensor.wallet.Wallet.add_args( regen_coldkey_parser )
+        bittensor.Wallet.add_args( regen_coldkey_parser )
 
         # Fill arguments for the regen hotkey command.
         regen_hotkey_parser.add_argument("--mnemonic", required=True, nargs="+", 
             help='Mnemonic used to regen your key i.e. horse cart dog ...') 
-        bittensor.wallet.Wallet.add_args( regen_hotkey_parser )
+        bittensor.Wallet.add_args( regen_hotkey_parser )
 
         # Fill arguments for the new coldkey command.
         new_coldkey_parser.add_argument('--n_words', type=int, choices=[12,15,18,21,24], default=12, 
@@ -126,12 +126,12 @@ class Executor:
         new_coldkey_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
         new_coldkey_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
         new_coldkey_parser.set_defaults(use_password=True)
-        bittensor.wallet.Wallet.add_args( new_coldkey_parser )
+        bittensor.Wallet.add_args( new_coldkey_parser )
 
         # Fill arguments for the new hotkey command.
         new_hotkey_parser.add_argument('--n_words', type=int, choices=[12,15,18,21,24], default=12, 
             help='''The number of words representing the mnemonic. i.e. horse cart dog ... x 24''')
-        bittensor.wallet.Wallet.add_args( new_hotkey_parser )
+        bittensor.Wallet.add_args( new_hotkey_parser )
 
         # Fill arguments for the overview command
         bittensor.Subtensor.add_args( overview_parser )
@@ -145,19 +145,19 @@ class Executor:
         unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
         unstake_parser.add_argument('--uid', dest="uid", type=int, required=False)
         unstake_parser.add_argument('--amount', dest="amount", type=float, required=False)
-        bittensor.wallet.Wallet.add_args( unstake_parser )
+        bittensor.Wallet.add_args( unstake_parser )
         bittensor.Subtensor.add_args( unstake_parser )
 
         # Fill arguments for stake command.
         stake_parser.add_argument('--uid', dest="uid", type=int, required=False)
         stake_parser.add_argument('--amount', dest="amount", type=float, required=False)
-        bittensor.wallet.Wallet.add_args( stake_parser )
+        bittensor.Wallet.add_args( stake_parser )
         bittensor.Subtensor.add_args( stake_parser )
 
         # Fill arguments for transfer
         transfer_parser.add_argument('--dest', dest="dest", type=str, required=True)
         transfer_parser.add_argument('--amount', dest="amount", type=float, required=True)
-        bittensor.wallet.Wallet.add_args( transfer_parser )
+        bittensor.Wallet.add_args( transfer_parser )
         bittensor.Subtensor.add_args( transfer_parser )
 
         # Hack to print formatted help

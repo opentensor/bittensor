@@ -51,7 +51,7 @@ class Receptor(nn.Module):
             self, 
             neuron: bittensor.proto.Neuron, 
             config: Munch = None, 
-            wallet: 'bittensor.wallet.Wallet' = None, 
+            wallet: 'bittensor.Wallet' = None, 
             **kwargs
         ):
         r""" Initializes a receptor grpc connection.
@@ -60,7 +60,7 @@ class Receptor(nn.Module):
                     neuron endpoint descriptor proto.
                 config (:obj:`Munch`, `optional`): 
                     receptor.Receptor.config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 pass_gradients (default=True, type=bool)
                     Switch to true if the neuron passes gradients to downstream peers.
@@ -82,7 +82,7 @@ class Receptor(nn.Module):
         self.config = config # Configuration information.
 
         if wallet == None:
-            wallet = bittensor.wallet.Wallet( self.config )
+            wallet = bittensor.Wallet( self.config )
         self.wallet = wallet # Keypair information
         self.neuron = neuron # Endpoint information.
         self.signature = None # Call signature.
@@ -156,7 +156,7 @@ class Receptor(nn.Module):
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
-        bittensor.wallet.Wallet.add_args( parser )
+        bittensor.Wallet.add_args( parser )
         try:
             # Can be called multiple times.
             parser.add_argument('--receptor.pass_gradients', default=True, type=bool, 

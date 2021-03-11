@@ -49,7 +49,7 @@ class Axon(bittensor.grpc.BittensorServicer):
     def __init__(
             self, 
             config: Munch = None, 
-            wallet: 'bittensor.wallet.Wallet' = None,
+            wallet: 'bittensor.Wallet' = None,
             **kwargs
         ):
         r""" Initializes a new Axon tensor processing endpoint.
@@ -57,7 +57,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             Args:
                 config (:obj:`Munch`, `optional`): 
                     axon.Axon.config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 local_port (default=8091, type=int): 
                     The port this axon endpoint is served on. i.e. 8091
@@ -88,7 +88,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
         # and subscribe to the chain.
         if wallet == None:
-            wallet = bittensor.wallet.Wallet( config = self.config )
+            wallet = bittensor.Wallet( config = self.config )
         self.wallet = wallet
         
         # Server: by default the axon serves an RPC server in its own thread using GPRC.
@@ -131,7 +131,7 @@ class Axon(bittensor.grpc.BittensorServicer):
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
                     parser argument to append args to.
         """
-        bittensor.wallet.Wallet.add_args(parser)
+        bittensor.Wallet.add_args(parser)
         #try:
         parser.add_argument('--axon.local_port', default=8091, type=int, 
             help='''The port this axon endpoint is served on. i.e. 8091''')

@@ -48,7 +48,7 @@ import bittensor.nucleus
 import bittensor.receptor
 import bittensor.substrate
 from bittensor.subtensor import Subtensor as Subtensor
-import bittensor.wallet
+from bittensor.wallet import Wallet as Wallet
 
 # Create instance components
 # TODO(const) these should be protected with a warning if they do not exist
@@ -191,7 +191,7 @@ multiprocessing.managers.AutoProxy = AutoProxy
 
 class Neuron:
 
-    def __init__( self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, **kwargs ):
+    def __init__( self, config: Munch = None, wallet: 'bittensor.Wallet' = None, **kwargs ):
         if config == None:
             config = Neuron.default_config()
         bittensor.config.Config.update_with_kwargs(config.neuron, kwargs) 
@@ -199,7 +199,7 @@ class Neuron:
         self.config = config
 
         if wallet == None:
-            wallet = bittensor.wallet.Wallet ( config )
+            wallet = bittensor.Wallet ( config )
         else:
             config.wallet = wallet.config.wallet
         self.wallet = wallet
@@ -232,7 +232,7 @@ class Neuron:
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
-        bittensor.wallet.Wallet.add_args( parser )
+        bittensor.Wallet.add_args( parser )
         bittensor.Subtensor.add_args( parser )
         bittensor.Metagraph.add_args( parser )
         bittensor.Axon.add_args(parser)
@@ -255,7 +255,7 @@ class Neuron:
         bittensor.Dendrite.check_config( config )
         assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
 
-def init( config: Munch = None,  wallet: 'bittensor.wallet.Wallet' = None, **kwargs ):
+def init( config: Munch = None,  wallet: 'bittensor.Wallet' = None, **kwargs ):
     global neuron
     global subtensor
     global metagraph

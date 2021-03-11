@@ -98,7 +98,7 @@ class Miner():
         self.config = config
 
         # ---- Wallet ----
-        self.wallet = bittensor.wallet.Wallet( self.config )
+        self.wallet = bittensor.Wallet( self.config )
 
         # ---- Chain connection ----
         self.subtensor = bittensor.Subtensor(

@@ -8,7 +8,7 @@ import queue
 from bittensor.experimental import axon_multiprocessing
 
 
-wallet = bittensor.wallet.Wallet(
+wallet = bittensor.Wallet(
     path = "~/.bittensor/wallets/",
     name = "test",
     hotkey = "default"
