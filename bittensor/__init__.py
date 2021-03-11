@@ -289,7 +289,7 @@ class _ForwardCall(torch.autograd.Function):
                     Results from each endpoint.
         """
         ctx.neurons, ctx.inputs, ctx.mode = neurons, inputs, mode
-        inputs = [ torch.tensor( x ).cpu().detach() for x in inputs]
+        inputs = [ x.clone().detach() for x in inputs]
         outputs, forward_codes, messages = neuron.dendrite.forward(
             neurons = neurons, 
             inputs = inputs, 
@@ -322,7 +322,7 @@ class _ForwardCall(torch.autograd.Function):
                     Gradient results for each input.
 
         """
-        grads_cpu = [ torch.tensor( x ).cpu() for x in output_grads ]
+        grads_cpu = [ x.clone().detach() for x in output_grads ]
         input_grads, codes, messages = neuron.dendrite.backward (
             neurons = ctx.neurons, 
             inputs = ctx.inputs, 
