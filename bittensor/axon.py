@@ -254,6 +254,58 @@ class Axon(bittensor.grpc.BittensorServicer):
         self.update_stats_for_request(request, response)
         return response
 
+    def next_forward_item( self, timeout: int = 10 ):
+        r""" Returns the next forward item from the forward queue to the caller.
+        If there are no items on the queue after the timeout the response is None.
+        Every call to next forward should be followed by a corresponding pong.send( outputs_y )
+            
+            Args:
+                timeout (int, `required`): 
+                    queue pull timeout,
+            
+            Returns:
+                pong (:obj:`mp.Pipe, `optional`): 
+                    multiprocessing pipe tunnel for the response or None if a timeout occurs.
+                public_key (str, `optional`):
+                    public key of caller or None if a timeout occurs.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed or None if a timeout occurs.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs or None if a timeout occurs.
+
+        """
+        try:
+            return self.forward_queue.get(block=True, timeout=timeout)
+        except queue.Empty:
+            return (None, None, None, None)
+
+    def next_backward_item( self, timeout: int = 10 ):
+        r""" Returns the next backward item from the backward queue to the caller.
+        If there are no items on the queue after the timeout the response is None.
+        Every call to next backward should be followed by a corresponding pong.send( outputs_y )
+            
+            Args:
+                timeout (int, `required`): 
+                    queue pull timeout,
+            
+            Returns:
+                pong (:obj:`mp.Pipe, `optional`): 
+                    multiprocessing pipe tunnel for the response or None if a timeout occurs.
+                public_key (str, `optional`):
+                    public key of caller or None if a timeout occurs.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed or None if a timeout occurs.
+                grads_dy ( :obj:`torch.Tensor`, `required`):
+                    torch gradient inputs to be backward processed with inputs or None if a timeout occurs.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs or None if a timeout occurs.
+
+        """
+        try:
+            return self.backward_queue.get(block=True, timeout=timeout)
+        except queue.Empty:
+            return (None, None, None, None, None)
+
     def enqueue_forward_to_nucleus(
         self, 
         public_key: str, 
