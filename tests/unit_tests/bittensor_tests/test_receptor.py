@@ -53,7 +53,7 @@ def test_receptor_neuron_text():
     )
     receptor = bittensor.receptor.Receptor( neuron = neuron )
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, op = receptor.forward( inputs = x, mode = bittensor.proto.Modality.TEXT)
+    out, op, msg = receptor.forward( inputs = x, mode = bittensor.proto.Modality.TEXT)
     assert op == bittensor.proto.ReturnCode.Unavailable
     assert list(out.shape) == [2, 4, bittensor.__network_dim__]
 
@@ -66,7 +66,7 @@ def test_receptor_neuron_image():
     )
     receptor = bittensor.receptor.Receptor( neuron = neuron )
     x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ])
-    out, op = receptor.forward( x, bittensor.proto.Modality.IMAGE)
+    out, op, msg = receptor.forward( x, bittensor.proto.Modality.IMAGE)
     assert op == bittensor.proto.ReturnCode.Unavailable
     assert list(out.shape) == [1, 1, bittensor.__network_dim__]
 
@@ -79,7 +79,7 @@ def test_receptor_neuron_tensor():
     )
     receptor = bittensor.receptor.Receptor( neuron = neuron )
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, op = receptor.forward( x, bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.forward( x, bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.Unavailable
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -93,7 +93,7 @@ def test_receptor_neuron_request_empty():
     )
     receptor = bittensor.receptor.Receptor( neuron = neuron )
     x = torch.tensor([])
-    out, op = receptor.forward( x, bittensor.proto.Modality.TEXT)
+    out, op, msg = receptor.forward( x, bittensor.proto.Modality.TEXT)
     assert op == bittensor.proto.ReturnCode.EmptyRequest
     assert list(out.shape) == [0]
 
@@ -117,7 +117,7 @@ def test_receptor_neuron_mock_server():
     receptor.stub.Forward = MagicMock( return_value=mock_return_val )
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, op = receptor.forward(x, bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.forward(x, bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.Success
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -142,7 +142,7 @@ def test_receptor_neuron_serve_timeout():
     receptor.stub.Forward = MagicMock( return_value=mock_return_val )
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, op = receptor.forward(x, bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.forward(x, bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.Timeout
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -162,7 +162,7 @@ def test_receptor_neuron_serve_empty():
     receptor.stub.Forward = MagicMock( return_value=mock_return_val )
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, op = receptor.forward(x, bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.forward(x, bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.EmptyResponse
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -184,7 +184,7 @@ def test_receptor_neuron_mock_server_deserialization_error():
     receptor.stub.Forward = MagicMock( return_value=mock_return_val )
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, op = receptor.forward(x, bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.forward(x, bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.ResponseDeserializationException
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -210,7 +210,7 @@ def test_receptor_neuron_mock_server_shape_error():
 
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, op = receptor.forward(x, bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.forward(x, bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.ResponseShapeException
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -237,7 +237,7 @@ def test_receptor_neuron_server_response_with_nans():
     receptor.stub.Forward = MagicMock( return_value=mock_return_val )
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, op = receptor.forward(x, bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.forward(x, bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.Success
     assert out[0][0][0] == 0
 
@@ -252,7 +252,7 @@ def test_receptor_backward_neuron_text():
     receptor = bittensor.receptor.Receptor( neuron = neuron )
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, op = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TEXT)
+    out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TEXT)
     assert op == bittensor.proto.ReturnCode.Unavailable
     assert list(out.shape) == [2, 4, bittensor.__network_dim__]
 
@@ -267,7 +267,7 @@ def test_receptor_neuron_backward_image():
     receptor = bittensor.receptor.Receptor( neuron = neuron )
     x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ])
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, op = receptor.backward( inputs = x, grads = g, code = 0, mode =bittensor.proto.Modality.IMAGE)
+    out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode =bittensor.proto.Modality.IMAGE)
     assert op == bittensor.proto.ReturnCode.Unavailable
     assert list(out.shape) == [1, 1, bittensor.__network_dim__]
 
@@ -281,7 +281,7 @@ def test_receptor_neuron_backward_tensor():
     receptor = bittensor.receptor.Receptor( neuron = neuron )
     x = torch.rand(3, 3, bittensor.__network_dim__)
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, op = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.Unavailable
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -295,7 +295,7 @@ def test_receptor_backward_non_forward_success():
     receptor = bittensor.receptor.Receptor( neuron = neuron )
     x = torch.rand(3, 3, bittensor.__network_dim__)
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, op = receptor.backward( inputs = x, grads = g, code = 1, mode = bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.backward( inputs = x, grads = g, code = 1, mode = bittensor.proto.Modality.TENSOR)
     assert op == 1
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -310,7 +310,7 @@ def test_receptor_neuron_backward_request_empty():
     receptor = bittensor.receptor.Receptor( neuron = neuron )
     x = torch.tensor([])
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, op = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TEXT)
+    out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TEXT)
     assert op == bittensor.proto.ReturnCode.EmptyRequest
     assert list(out.shape) == [0]
 
@@ -324,7 +324,7 @@ def test_receptor_neuron_backward_request_empty_grads():
     receptor = bittensor.receptor.Receptor( neuron = neuron )
     g = torch.tensor([])
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, op = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TEXT)
+    out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TEXT)
     assert op == bittensor.proto.ReturnCode.EmptyRequest
     assert list(out.shape) == [2, 4, 512]
 
@@ -349,7 +349,7 @@ def test_receptor_neuron_backward_mock_server():
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, op = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.Success
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -375,7 +375,7 @@ def test_receptor_neuron_backward_serve_timeout():
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, op = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.Timeout
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -396,7 +396,7 @@ def test_receptor_neuron_backward_serve_empty():
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, op = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.EmptyResponse
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -419,7 +419,7 @@ def test_receptor_neuron_mock_backward_server_deserialization_error():
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, op = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.ResponseDeserializationException
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -444,7 +444,7 @@ def test_receptor_neuron_mock_backward_server_shape_error():
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, op = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.ResponseShapeException
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -472,6 +472,6 @@ def test_receptor_neuron_server_backward_response_with_nans():
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, op = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
+    out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.Success
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]

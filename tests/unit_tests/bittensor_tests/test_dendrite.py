@@ -34,9 +34,9 @@ def test_dendrite_foward():
     receptor_a = dendrite.get_receptor_for_neuron( neuron_a ) 
     receptor_b = dendrite.get_receptor_for_neuron( neuron_b )
 
-    receptor_a.forward = MagicMock(return_value = [torch.tensor([1]), [0]]) 
-    receptor_b.forward = MagicMock(return_value = [torch.tensor([1]), [0]]) 
-    outputs, codes = dendrite.forward(
+    receptor_a.forward = MagicMock(return_value = [torch.tensor([1]), [0], '']) 
+    receptor_b.forward = MagicMock(return_value = [torch.tensor([1]), [0], '']) 
+    outputs, codes, messages = dendrite.forward(
         neurons = [neuron_a, neuron_b],
         inputs = [torch.tensor([1,1,1]), torch.tensor([1,1,2])],
         mode = bittensor.proto.Modality.TEXT
@@ -49,9 +49,9 @@ def test_dendrite_foward():
 def test_dendrite_backward():
     receptor_a = dendrite.get_receptor_for_neuron( neuron_a ) 
     receptor_b = dendrite.get_receptor_for_neuron( neuron_b )
-    receptor_a.backward = MagicMock(return_value = [torch.tensor([1]), [0]]) 
-    receptor_b.backward = MagicMock(return_value = [torch.tensor([1]), [0]]) 
-    outputs, codes = dendrite.backward(
+    receptor_a.backward = MagicMock(return_value = [torch.tensor([1]), [0], '']) 
+    receptor_b.backward = MagicMock(return_value = [torch.tensor([1]), [0], '']) 
+    outputs, codes, messages = dendrite.backward(
         neurons = [neuron_a, neuron_b],
         inputs = [torch.tensor([1,1,1]), torch.tensor([1,1,2])],
         grads = [torch.tensor([1,1,1]), torch.tensor([1,1,2])],

@@ -20,7 +20,7 @@ import sys
 import random
 import torch
 from loguru import logger
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Any, Optional
 from torch.autograd.function import once_differentiable
 
 import bittensor.bittensor_pb2 as proto
@@ -231,6 +231,8 @@ class Neuron:
                                 help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
             parser.add_argument('--neuron.multiprocessing', default=True, type=bool, 
                                 help='''Are bittensor components process safe objects or run from a single thread.''')
+            parser.add_argument('--neuron.debug', default=False, type=bool, 
+                                help='''Are bittensor components process safe objects or run from a single thread.''')
         except:
             pass
 
@@ -249,19 +251,6 @@ def init( config: Munch = None,  wallet: 'bittensor.wallet.Wallet' = None, **kwa
 # dummy tensor that triggers autograd in a RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
 
-def nested_flatten(t):
-    """
-    Turn nested list/tuple/dict into a flat iterator.
-    """
-    if isinstance(t, (list, tuple)):
-        for x in t:
-            yield from nested_flatten(x)
-    elif isinstance(t, dict):
-        for k, v in sorted(t.items()):
-            yield from nested_flatten(v)
-    else:
-        yield t
-
 class _ForwardCall(torch.autograd.Function):
     @staticmethod
     def forward(
@@ -270,7 +259,7 @@ class _ForwardCall(torch.autograd.Function):
             neurons: List[bittensor.proto.Neuron], 
             mode: bittensor.proto.Modality,
             *inputs: torch.Tensor
-        ) -> Tuple[ List[torch.Tensor], torch.LongTensor ] :
+        ) -> Tuple[ torch.Tensor, ... ] :
         """ Internal autograd-friendly Forward RPC call to a remote neurons.
 
             Args:
@@ -299,11 +288,13 @@ class _ForwardCall(torch.autograd.Function):
         """
         ctx.neurons, ctx.inputs, ctx.mode = neurons, inputs, mode
         inputs = [ torch.tensor( x ).cpu().detach() for x in inputs]
-        outputs, forward_codes = neuron.dendrite.forward(
+        outputs, forward_codes, messages = neuron.dendrite.forward(
             neurons = neurons, 
             inputs = inputs, 
             mode = mode
         )
+        if neuron.config.neuron.debug:
+            print ('forward messages {}', messages)
         ctx.forward_codes = forward_codes
         return (torch.tensor(forward_codes, dtype=torch.int64), *outputs)
 
@@ -330,13 +321,15 @@ class _ForwardCall(torch.autograd.Function):
 
         """
         grads_cpu = [ torch.tensor( x ).cpu() for x in output_grads ]
-        input_grads, _ = neuron.dendrite.backward (
+        input_grads, codes, messages = neuron.dendrite.backward (
             neurons = ctx.neurons, 
             inputs = ctx.inputs, 
             grads = grads_cpu, 
             codes = ctx.forward_codes, 
             mode = ctx.mode
         )
+        if neuron.config.neuron.debug:
+            print ('backward messages {}', messages)
         return (None, None, None, *input_grads)
 
 def _internal_forward(

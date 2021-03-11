@@ -103,7 +103,7 @@ class Dendrite(nn.Module):
                 neurons: List[bittensor.proto.Neuron],
                 inputs: List[torch.Tensor],
                 mode: bittensor.proto.Modality
-        ) -> Tuple[List[torch.Tensor], List[int]]:
+        ) -> Tuple[List[torch.Tensor], List[int], List[str]]:
         r""" Forward tensor inputs to neurons.
 
             Args:
@@ -140,7 +140,8 @@ class Dendrite(nn.Module):
         # ---- Process results and return ----
         tensor_results = [res[0] for res in results]
         return_codes = [res[1] for res in results]
-        return tensor_results, return_codes
+        messages = [res[2] for res in results]
+        return tensor_results, return_codes, messages
 
     def backward(
                 self, 
@@ -149,7 +150,7 @@ class Dendrite(nn.Module):
                 grads: List[torch.Tensor],
                 codes: List[int],
                 mode: bittensor.proto.Modality
-            ) -> Tuple[List[torch.Tensor], List[int]]:
+            ) -> Tuple[List[torch.Tensor], List[int], List[str]]:
         r""" Forward tensor inputs to neurons.
 
             Args:
@@ -175,6 +176,9 @@ class Dendrite(nn.Module):
 
                 return_codes (:obj:`List[bittensor.proto.ReturnCodes]` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops.
+
+                messages (:obj:`List[str]` of shape :obj:`[num_neurons]`, `required`):
+                    messages associated with return codes
         """
         # ---- Run async calls ----
         loop = asyncio.new_event_loop()
@@ -191,7 +195,8 @@ class Dendrite(nn.Module):
         # ---- Process results and return ----
         tensor_results = [res[0] for res in results]
         return_codes = [res[1] for res in results]
-        return tensor_results, return_codes
+        messages = [res[2] for res in results]
+        return tensor_results, return_codes, messages
 
     async def _forward_gather(
             self, 
@@ -241,7 +246,7 @@ class Dendrite(nn.Module):
             inputs: List[torch.Tensor],
             grads: List[torch.Tensor],
             codes: List[int],
-            mode) -> List[Tuple[torch.FloatTensor, int]]:
+            mode) -> List[Tuple[torch.FloatTensor, int, str]]:
         r""" Creates and returns the results from len(neurons) torch forward requests. Uses asyncio for concurrency.
 
             Args:

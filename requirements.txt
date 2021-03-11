@@ -32,7 +32,7 @@ pytorch_transformers
 pyyaml
 rollbar
 requests~=2.25.0
-scalecodec~=0.10.59
+scalecodec==0.10.59
 termcolor
 tensorboard
 torch>=1.6.0

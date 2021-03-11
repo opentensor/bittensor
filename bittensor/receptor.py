@@ -210,7 +210,7 @@ class Receptor(nn.Module):
         """
         # ---- Make the query ----
         try:
-            outputs, code = self._call_forward( 
+            outputs, code, message = self._call_forward( 
                 inputs = inputs, 
                 mode = mode 
             )
@@ -238,7 +238,7 @@ class Receptor(nn.Module):
             self.next_backoff = min(self.config.receptor.max_backoff, self.next_backoff * 2)
 
         # ---- Return outputs and code ---- 
-        return outputs, code
+        return outputs, code, message
     
     def backward(
             self, 
@@ -246,7 +246,7 @@ class Receptor(nn.Module):
             grads: torch.Tensor, 
             code: int, 
             mode: bittensor.proto.Modality
-        ) -> Tuple[torch.Tensor, int]:
+        ) -> Tuple[torch.Tensor, int, str]:
         r""" Backward call: Triggers the grpc Backward call to the associated endpoint.
 
             Args:
@@ -269,10 +269,13 @@ class Receptor(nn.Module):
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
                     Return code associated with backward call.
 
+                message (str, `required):
+                    Message associated with backward call.
+
         """
         # ---- Make the query ----
         try:
-            outputs, code = self._call_backward( 
+            outputs, code, message = self._call_backward( 
                 inputs = inputs, 
                 grads = grads, 
                 code = code, 
@@ -285,14 +288,14 @@ class Receptor(nn.Module):
 
         # NOTE (const): Stats/ backoff are not updated for backward calls ---
         # ---- Return outputs and code ---- 
-        return outputs, code
+        return outputs, code, message
 
 
     def _call_forward(
             self, 
             inputs: torch.Tensor, 
             mode: bittensor.proto.Modality 
-        ) -> Tuple[torch.Tensor, int]:
+        ) -> Tuple[torch.Tensor, int, str]:
         """ Checks and makes RPC Forward call to a remote neuron (calls the Forward method on an Axon terminal of the endpoint)
 
             Args:  
@@ -308,17 +311,20 @@ class Receptor(nn.Module):
 
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
                     Return code associated with forward call.
+
+                message (str, `required):
+                    Message associated with forward call.
         """
         
         zeros = nill_response_for(inputs)
 
         # ---- Check backoff ----  
         if self.config.receptor.do_backoff and self.backoff >= 1:
-            return zeros, bittensor.proto.ReturnCode.Backoff
+            return zeros, bittensor.proto.ReturnCode.Backoff, "backoff"
 
         # ---- Check inputs size ----
         if torch.numel(inputs) == 0:
-            return zeros, bittensor.proto.ReturnCode.EmptyRequest
+            return zeros, bittensor.proto.ReturnCode.EmptyRequest, "empty request"
 
         # ---- Inputs Serialization ----
         # TODO(const): move serialization up to the process.
@@ -327,7 +333,7 @@ class Receptor(nn.Module):
             serialized_inputs = serializer.serialize(inputs, modality = mode, from_type = bittensor.proto.TensorType.TORCH)
         except Exception as e:
             logger.warning('Serialization error with error {}', e)
-            return zeros, bittensor.proto.ReturnCode.RequestSerializationException
+            return zeros, bittensor.proto.ReturnCode.RequestSerializationException, str(e)
 
         # ---- Make RPC call ----
         try:
@@ -348,39 +354,37 @@ class Receptor(nn.Module):
             self.stats.forward_elapsed_time.update((time.time() - start_time))
 
         # ---- Catch GRPC Errors ----
-        except grpc.RpcError as rpc_error_call:
-            grpc_code = rpc_error_call.code()
-            if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
-                logger.info('timeout')
-                return zeros, bittensor.proto.ReturnCode.Timeout
-
-            elif grpc_code == grpc.StatusCode.UNAVAILABLE:
-                return zeros, bittensor.proto.ReturnCode.Unavailable
-
+        except grpc.RpcError as e:
+            if e.code() == grpc.StatusCode.DEADLINE_EXCEEDED:
+                return zeros, bittensor.proto.ReturnCode.Timeout, 'grpc timeout'
+            elif e.code() == grpc.StatusCode.UNAVAILABLE:
+                return zeros, bittensor.proto.ReturnCode.Unavailable, 'grpc unavailable'
             else:
-                logger.error('Uncaught GPRC error exception with code {} from endpoint {}', grpc_code, self.endpoint)
-                return zeros, bittensor.proto.ReturnCode.UnknownException
+                return zeros, bittensor.proto.ReturnCode.UnknownException, 'grpc error with code {}'.format(e.code())
 
         # ---- Catch Unknown Errors ----
         except Exception as e:
-            logger.error('Uncaught error in forward call with error {} and endpoint', e, self.endpoint)
-            return zeros, bittensor.proto.ReturnCode.UnknownException
+            return zeros, bittensor.proto.ReturnCode.UnknownException, str(e)
 
         # ---- Catch bittensor codes ----
         try:
             bittensor_code = response.return_code
         except:
-            logger.error('Remote host did not return return code')
-            return zeros, bittensor.proto.ReturnCode.UnknownException
+            if response.message != None:
+                return zeros, bittensor.proto.ReturnCode.UnknownException, response.message
+            else:
+                return zeros, bittensor.proto.ReturnCode.UnknownException, 'unknown error with no message'
 
         # ---- Catch negative codes ----
         if bittensor_code != bittensor.proto.ReturnCode.Success:
-            logger.info('Not Success with code {} and message {}', bittensor_code, response.message)
-            return zeros, bittensor_code
+            if response.message != None:
+                return zeros, bittensor_code, response.message
+            else:
+                return zeros, bittensor_code, 'unknown message for exception'
 
         # ---- Check tensor response length ----
         if len(response.tensors) == 0:
-            return zeros, bittensor.proto.ReturnCode.EmptyResponse
+            return zeros, bittensor.proto.ReturnCode.EmptyResponse, 'empty response'
 
         # ---- Deserialize response ----
         try:
@@ -388,21 +392,20 @@ class Receptor(nn.Module):
             deserializer = serialization.get_serializer( outputs.serializer )
             outputs = deserializer.deserialize( outputs, to_type = bittensor.proto.TensorType.TORCH )
         except Exception as e:
-            logger.error('Failed to serialize responses from forward call with error {}', e)
-            return zeros, bittensor.proto.ReturnCode.ResponseDeserializationException
+            return zeros, bittensor.proto.ReturnCode.ResponseDeserializationException, str(e)
     
         # ---- Check response shape ----
         if  outputs.size(0) != inputs.size(0) \
             or outputs.size(1) != inputs.size(1) \
             or outputs.size(2) != bittensor.__network_dim__:
-                logger.error('Forward request returned tensor with incorrect shape {}', list(outputs.shape))
-                return zeros, bittensor.proto.ReturnCode.ResponseShapeException
+                message = 'Forward request returned tensor with incorrect shape {}'.format(list(outputs.shape))
+                return zeros, bittensor.proto.ReturnCode.ResponseShapeException, message
 
         # ---- Safe catch NaNs and replace with 0.0 ----
         outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
         
         # ---- Return ----
-        return outputs, bittensor.proto.ReturnCode.Success
+        return outputs, bittensor.proto.ReturnCode.Success, 'success'
 
     def _call_backward( 
             self,
@@ -436,19 +439,19 @@ class Receptor(nn.Module):
 
         # ---- Check if we are passing gradients ----
         if not self.config.receptor.pass_gradients:
-            return zeros, bittensor.proto.ReturnCode.Success
+            return zeros, bittensor.proto.ReturnCode.Success, 'not passing gradients'
  
         # ---- Check the code from the previous call. Returns the same code.
         if code != bittensor.proto.ReturnCode.Success:
-            return zeros, code
+            return zeros, code, 'failed on forward'
 
         # ---- Check inputs size ----
         if torch.numel(inputs) == 0:
-            return zeros, bittensor.proto.ReturnCode.EmptyRequest
+            return zeros, bittensor.proto.ReturnCode.EmptyRequest, 'empty request'
 
         # ---- Check grads size ----
         if torch.numel(grads) == 0:
-            return zeros, bittensor.proto.ReturnCode.EmptyRequest
+            return zeros, bittensor.proto.ReturnCode.EmptyRequest, 'empty request'
 
         # ---- Serialization ----
         try:
@@ -456,7 +459,7 @@ class Receptor(nn.Module):
             serialized_grads = serializer.serialize (grads, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH )
             serialized_inputs = serializer.serialize (inputs, modality = mode, from_type = bittensor.proto.TensorType.TORCH )
         except Exception as e:
-            return zeros, bittensor.proto.ReturnCode.RequestSerializationException 
+            return zeros, bittensor.proto.ReturnCode.RequestSerializationException, str(e) 
         
         # ---- Make RPC call ----
         try:
@@ -470,44 +473,37 @@ class Receptor(nn.Module):
             response = self.stub.Backward(request, timeout=self.config.receptor.timeout)
 
         # ---- Catch GRPC Errors ----
-        except grpc.RpcError as rpc_error_call:
-            grpc_code = rpc_error_call.code()
-
-            if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
-                return zeros, bittensor.proto.ReturnCode.Timeout
-
-            elif grpc_code == grpc.StatusCode.UNAVAILABLE:
-                return zeros, bittensor.proto.ReturnCode.Unavailable
-
+        except grpc.RpcError as e:
+            if e.code() == grpc.StatusCode.DEADLINE_EXCEEDED:
+                return zeros, bittensor.proto.ReturnCode.Timeout, 'grpc timeout'
+            elif e.code() == grpc.StatusCode.UNAVAILABLE:
+                return zeros, bittensor.proto.ReturnCode.Unavailable, 'grpc endpoint unavailable'
             else:
-                logger.error('Uncaught GPRC error exception with code {} from endpoint {}', grpc_code, self.endpoint)
-                return zeros, bittensor.proto.ReturnCode.UnknownException
+                return zeros, bittensor.proto.ReturnCode.UnknownException, 'grpc error with code {}'.format(grpc_code)
 
         # ---- Catch Unknown RPC Errors ----
         except Exception as e:
-            logger.error('Uncaught error in forward call with error {} and endpoint', e, self.endpoint)
-            return zeros, bittensor.proto.ReturnCode.UnknownException
+            return zeros, bittensor.proto.ReturnCode.UnknownException, str(e)
 
         # ---- Catch Code Errors ----
         try:
             bittensor_code = response.return_code
         except:
-            logger.error('Remote host did not return a code')
-            return zeros, bittensor.proto.ReturnCode.UnknownException
+            if response.message != None:
+                return zeros, bittensor.proto.ReturnCode.UnknownException, response.message
+            else:
+                return zeros, bittensor.proto.ReturnCode.UnknownException, 'unknown error from endpoint with no message'
 
-        # ---- Catch bittensor errors ----
-        if bittensor_code == bittensor.proto.ReturnCode.UnknownException:
-            logger.error('Unknown exception returned from remote host')
-            return zeros, bittensor.proto.ReturnCode.UnknownException
-
-        # ---- Catch all other negative codes ----
-        elif bittensor_code != bittensor.proto.ReturnCode.Success:
-            logger.trace('Backward call was not success with code: {}', bittensor_code)
-            return zeros, bittensor_code
+        # ---- Catch negative codes ----
+        if bittensor_code != bittensor.proto.ReturnCode.Success:
+            if response.message != None:
+                return zeros, bittensor_code, response.message
+            else:
+                return zeros, bittensor_code, 'unknown message for non-successful response code'
 
         # ---- Check for empty response ----
         if len(response.tensors) == 0:
-            return zeros, bittensor.proto.ReturnCode.EmptyResponse
+            return zeros, bittensor.proto.ReturnCode.EmptyResponse, 'empty request'
 
         # ---- Post-process request ----
         try:
@@ -515,18 +511,17 @@ class Receptor(nn.Module):
             deserializer = serialization.get_serializer( outputs.serializer )
             outputs = deserializer.deserialize( outputs, to_type = bittensor.proto.TensorType.TORCH )
         except Exception as e:
-            logger.error('Failed to serialize responses from forward call with error {}', e)
-            return zeros, bittensor.proto.ReturnCode.ResponseDeserializationException
+            return zeros, bittensor.proto.ReturnCode.ResponseDeserializationException, str(e)
 
         # ---- Check response shape is same as inputs ----
         if  outputs.size(0) != inputs.size(0) \
             or outputs.size(1) != inputs.size(1) \
             or outputs.size(2) != inputs.size(2):
-                logger.error('Backward request returned tensor with incorrect shape {}', list(outputs.shape))
-                return zeros, bittensor.proto.ReturnCode.ResponseShapeException
+                message = 'Backward request returned tensor with incorrect shape {}'.format(list(outputs.shape))
+                return zeros, bittensor.proto.ReturnCode.ResponseShapeException, message
 
         # ---- Safe catch NaNs and replace with 0.0 ----
         outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
    
         # ---- Return ----
-        return outputs, bittensor.proto.ReturnCode.Success
+        return outputs, bittensor.proto.ReturnCode.Success, 'success'
