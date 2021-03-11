@@ -182,7 +182,7 @@ multiprocessing.managers.AutoProxy = AutoProxy
 neuron = None
 class Neuron:
 
-    def __init__( self, config: Munch = None,  wallet: 'bittensor.wallet.Wallet' = None, **kwargs ):
+    def __init__( self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, **kwargs ):
         if config == None:
             config = Neuron.default_config()
         bittensor.config.Config.update_with_kwargs(config.neuron, kwargs) 
@@ -192,7 +192,9 @@ class Neuron:
 
         if wallet == None:
             wallet = bittensor.wallet.Wallet ( config )
-        self.wallet = wallet
+        else:
+            config.wallet = wallet.config.wallet
+            self.wallet = wallet
 
         if self.config.neuron.multiprocessing:
             BaseManager.register('Subtensor', bittensor.subtensor.Subtensor)
@@ -246,7 +248,7 @@ class Neuron:
 
 def init( config: Munch = None,  wallet: 'bittensor.wallet.Wallet' = None, **kwargs ):
     global neuron
-    neuron = Neuron(config, wallet, **kwargs)
+    neuron = Neuron(config = config, wallet = wallet, **kwargs)
 
 # dummy tensor that triggers autograd in a RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
