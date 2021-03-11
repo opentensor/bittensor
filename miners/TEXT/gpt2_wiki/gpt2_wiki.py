@@ -58,7 +58,7 @@ class Miner():
     def __init__(self, config: Munch = None, **kwargs):
         if config == None:
             config = Miner.default_config( );       
-        bittensor.config.Config.update_with_kwargs(config.miner, kwargs) 
+        bittensor.Config.update_with_kwargs(config.miner, kwargs) 
         Miner.check_config(config)
         self.config = config
 
@@ -86,7 +86,7 @@ class Miner():
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Miner.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.Config.to_config(parser); 
         return config
 
     @staticmethod
@@ -235,5 +235,5 @@ if __name__ == "__main__":
     miner = Miner( 
         learning_rate = 0.1
     )
-    logger.info(bittensor.config.Config.toString(miner.config))
+    logger.info(bittensor.Config.toString(miner.config))
     miner.run()

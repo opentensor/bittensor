@@ -56,7 +56,7 @@ class PKMRouter():
     def __init__(self, config: Munch, query_dim = bittensor.__network_dim__, **kwargs):
         if config == None:
             config = PKMRouter.default_config();       
-        bittensor.config.Config.update_with_kwargs(config.router, kwargs) 
+        bittensor.Config.update_with_kwargs(config.router, kwargs) 
         self.config = config
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -69,7 +69,7 @@ class PKMRouter():
     def default_config() -> Munch:
         parser = argparse.ArgumentParser()
         PKMRouter.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.Config.to_config(parser); 
         PKMRouter.check_config(config)
         return config
 

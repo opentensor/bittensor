@@ -81,7 +81,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         # config for the wallet, metagraph sub-objects.
         if config == None:
             config = Axon.default_config()
-        bittensor.config.Config.update_with_kwargs(config.axon, kwargs) 
+        bittensor.Config.update_with_kwargs(config.axon, kwargs) 
         Axon.check_config( config )
         self.config = config
 
@@ -121,7 +121,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Axon.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.Config.to_config(parser); 
         return config
 
     @staticmethod   

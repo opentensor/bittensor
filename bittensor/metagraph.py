@@ -209,7 +209,7 @@ class Metagraph():
         """
         if config == None:
             config = Metagraph.default_config()
-        bittensor.config.Config.update_with_kwargs(config.metagraph, kwargs) 
+        bittensor.Config.update_with_kwargs(config.metagraph, kwargs) 
         Metagraph.check_config(config)
         self.config = config
 

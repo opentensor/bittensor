@@ -2,7 +2,7 @@
 import bittensor
  
 if __name__ == '__main__':
-    config = bittensor.executor.Executor.default_config(); 
-    print(bittensor.config.Config.toString(config))
-    executor = bittensor.executor.Executor( config )
+    config = bittensor.Executor.default_config(); 
+    print(bittensor.Config.toString(config))
+    executor = bittensor.Executor( config )
     executor.run_command()

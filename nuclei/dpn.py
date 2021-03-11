@@ -33,7 +33,7 @@ import bittensor
 from routers.pkm import PKMRouter
 from bittensor.utils.batch_transforms import Normalize
 
-class DPNNucleus(bittensor.nucleus.Nucleus):
+class DPNNucleus(bittensor.Nucleus):
     """ Bittensor endpoint trained on PIL images to detect objects using an DPN.
     """
 
@@ -47,7 +47,7 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
         super(DPNNucleus, self).__init__(config = config, **kwargs)
         if config == None:
             config = DPNNucleus.default_config()
-        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
+        bittensor.Config.update_with_kwargs(config.nucleus, kwargs) 
         DPNNucleus.check_config(config)
         self.config = config
         
@@ -104,7 +104,7 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         DPNNucleus.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.Config.to_config(parser); 
         return config
 
     @staticmethod

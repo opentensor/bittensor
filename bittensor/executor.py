@@ -51,7 +51,7 @@ class Executor:
         """
         if config == None:
             config = Executor.default_config()
-        bittensor.config.Config.update_with_kwargs(config, kwargs) 
+        bittensor.Config.update_with_kwargs(config, kwargs) 
         Executor.check_config(config)
         self.config = config
 
@@ -78,7 +78,7 @@ class Executor:
         parser._positionals.title = "commands"
         parser.add_argument("--debug", default=False, help="Turn on debugging information", action="store_true")
         Executor.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.Config.to_config(parser); 
         return config
 
     @staticmethod   
@@ -379,6 +379,6 @@ class Executor:
 if __name__ == "__main__":
     # ---- Build and Run ----
     config = Executor.default_config(); 
-    logger.info(bittensor.config.Config.toString(config))
+    logger.info(bittensor.Config.toString(config))
     executor = Executor( config )
     executor.run_command()

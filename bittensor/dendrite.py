@@ -77,7 +77,7 @@ class Dendrite(nn.Module):
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Dendrite.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.Config.to_config(parser); 
         return config
 
     @staticmethod   
@@ -86,13 +86,13 @@ class Dendrite(nn.Module):
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
-        bittensor.receptor.Receptor.add_args(parser)
+        bittensor.Receptor.add_args(parser)
         return parser
 
-    def get_receptor_for_neuron( self, neuron: bittensor.proto.Neuron ) -> 'bittensor.receptor.Receptor':
+    def get_receptor_for_neuron( self, neuron: bittensor.proto.Neuron ) -> 'bittensor.Receptor':
         # ---- Find receptor or create one ---- 
         if neuron.public_key not in self.receptors:
-            self.receptors[neuron.public_key] = bittensor.receptor.Receptor(
+            self.receptors[neuron.public_key] = bittensor.Receptor(
                 neuron = neuron, 
                 config = self.config, 
                 wallet = self.wallet

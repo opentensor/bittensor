@@ -14,7 +14,7 @@ def test_regen_hotkey( ):
     config.wallet.hotkey = "pytest_hotkey"
     config.wallet.name = "test_wallet"
     config.wallet.path = "~/tmp/pytest_wallets/"
-    executor = bittensor.executor.Executor( config )
+    executor = bittensor.Executor( config )
     try:
         os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/hotkeys/pytest_hotkey"))
     except:
@@ -33,7 +33,7 @@ def test_create_hotkey( ):
     config.wallet.hotkey = "pytest_hotkey"
     config.wallet.name = "test_wallet"
     config.wallet.path = "~/tmp/pytest_wallets/"
-    executor = bittensor.executor.Executor( config )
+    executor = bittensor.Executor( config )
     try:
         os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/hotkeys/pytest_hotkey"))
     except:
@@ -52,7 +52,7 @@ def test_regen_coldkey( ):
     config.wallet = Munch()
     config.wallet.name = "test_wallet"
     config.wallet.path = "~/tmp/pytest_wallets/"
-    executor = bittensor.executor.Executor( config )
+    executor = bittensor.Executor( config )
     try:
         os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/coldkey"))
         os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/coldkeypub.txt"))
@@ -74,7 +74,7 @@ def test_create_coldkey( ):
     config.wallet.hotkey = "pytest_hotkey"
     config.wallet.name = "test_wallet"
     config.wallet.path = "~/tmp/pytest_wallets/"
-    executor = bittensor.executor.Executor( config )
+    executor = bittensor.Executor( config )
     try:
         os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/coldkey"))
         os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/coldkeypub.txt"))

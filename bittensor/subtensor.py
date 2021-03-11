@@ -63,7 +63,7 @@ class Subtensor:
         """
         if config == None:
             config = Subtensor.default_config()
-        bittensor.config.Config.update_with_kwargs(config.subtensor, kwargs) 
+        bittensor.Config.update_with_kwargs(config.subtensor, kwargs) 
         Subtensor.check_config(config)
         self.config = config
 
@@ -82,7 +82,7 @@ class Subtensor:
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Subtensor.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.Config.to_config(parser); 
         return config
     
     @staticmethod   

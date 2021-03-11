@@ -38,17 +38,17 @@ __blocktime__ = 6
 
 # Load components.
 from bittensor.axon import Axon as Axon
-import bittensor.config 
-import bittensor.executor
+from bittensor.config import Config as Config
+from bittensor.executor import Executor as Executor
 from bittensor.dendrite import Dendrite as Dendrite
 from bittensor.metagraph import Metagraph as Metagraph
 from bittensor.metagraph import ChainState as ChainState
 from bittensor.metagraph import TorchChainState as TorchChainState
-import bittensor.nucleus
-import bittensor.receptor
-import bittensor.substrate
+from bittensor.nucleus import Nucleus as Nucleus
+from bittensor.receptor import Receptor as Receptor
 from bittensor.subtensor import Subtensor as Subtensor
 from bittensor.wallet import Wallet as Wallet
+import bittensor.substrate
 
 # Create instance components
 # TODO(const) these should be protected with a warning if they do not exist
@@ -194,7 +194,7 @@ class Neuron:
     def __init__( self, config: Munch = None, wallet: 'bittensor.Wallet' = None, **kwargs ):
         if config == None:
             config = Neuron.default_config()
-        bittensor.config.Config.update_with_kwargs(config.neuron, kwargs) 
+        bittensor.Config.update_with_kwargs(config.neuron, kwargs) 
         Neuron.check_config(config)
         self.config = config
 
@@ -203,7 +203,7 @@ class Neuron:
         else:
             config.wallet = wallet.config.wallet
         self.wallet = wallet
-        print ( bittensor.config.Config.toString(config) )
+        print ( bittensor.Config.toString(config) )
         
         if self.config.neuron.multiprocessing:
             BaseManager.register('Subtensor', bittensor.Subtensor)
@@ -227,7 +227,7 @@ class Neuron:
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         Neuron.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.Config.to_config(parser); 
         return config
 
     @staticmethod   

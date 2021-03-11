@@ -44,7 +44,7 @@ class BertPooler(nn.Module):
         pooled_output = self.activation(pooled_output)
         return pooled_output
 
-class BertNucleusBase (bittensor.nucleus.Nucleus):
+class BertNucleusBase (bittensor.Nucleus):
     def __init__(self, config: Munch, **kwargs):
         r""" Init a new base-bert nucleus.
 
@@ -54,7 +54,7 @@ class BertNucleusBase (bittensor.nucleus.Nucleus):
         super(BertNucleusBase, self).__init__( config = config, **kwargs )
         if config == None:
             config = BertNucleusBase.default_config()
-        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
+        bittensor.Config.update_with_kwargs(config.nucleus, kwargs) 
         BertNucleusBase.check_config(config)
         self.config = config
 
@@ -88,7 +88,7 @@ class BertNucleusBase (bittensor.nucleus.Nucleus):
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         BertNucleusBase.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.Config.to_config(parser); 
         return config
 
     @staticmethod

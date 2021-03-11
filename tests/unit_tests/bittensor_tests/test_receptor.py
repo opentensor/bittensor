@@ -17,7 +17,7 @@ neuron = bittensor.proto.Neuron(
     address = '0',
     port = 1,
 )
-receptor = bittensor.receptor.Receptor( neuron = neuron )
+receptor = bittensor.Receptor( neuron = neuron )
 
 
 def test_receptor_create():
@@ -27,7 +27,7 @@ def test_receptor_create():
         address = '0',
         port = 1,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
     assert receptor.endpoint == '0:1'
 
 def test_receptor_localhost_endpoint():
@@ -37,10 +37,10 @@ def test_receptor_localhost_endpoint():
         address = "1.1.1.1",
         port = 1,
     )
-    config = bittensor.receptor.Receptor.default_config()
+    config = bittensor.Receptor.default_config()
     config.axon = Munch()
     config.axon.external_ip = "1.1.1.1"
-    receptor = bittensor.receptor.Receptor( neuron = neuron, config = config )
+    receptor = bittensor.Receptor( neuron = neuron, config = config )
     assert receptor.endpoint == 'localhost:1'
 
 
@@ -51,7 +51,7 @@ def test_receptor_neuron_text():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     out, op, msg = receptor.forward( inputs = x, mode = bittensor.proto.Modality.TEXT)
     assert op == bittensor.proto.ReturnCode.Unavailable
@@ -64,7 +64,7 @@ def test_receptor_neuron_image():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
     x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ])
     out, op, msg = receptor.forward( x, bittensor.proto.Modality.IMAGE)
     assert op == bittensor.proto.ReturnCode.Unavailable
@@ -77,7 +77,7 @@ def test_receptor_neuron_tensor():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
     x = torch.rand(3, 3, bittensor.__network_dim__)
     out, op, msg = receptor.forward( x, bittensor.proto.Modality.TENSOR)
     assert op == bittensor.proto.ReturnCode.Unavailable
@@ -91,7 +91,7 @@ def test_receptor_neuron_request_empty():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
     x = torch.tensor([])
     out, op, msg = receptor.forward( x, bittensor.proto.Modality.TEXT)
     assert op == bittensor.proto.ReturnCode.EmptyRequest
@@ -104,7 +104,7 @@ def test_receptor_neuron_mock_server():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
 
     y = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -129,7 +129,7 @@ def test_receptor_neuron_serve_timeout():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
 
     y = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -153,7 +153,7 @@ def test_receptor_neuron_serve_empty():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )             
+    receptor = bittensor.Receptor( neuron = neuron )             
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version__,
             public_key = "A",
@@ -174,7 +174,7 @@ def test_receptor_neuron_mock_server_deserialization_error():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron ) 
+    receptor = bittensor.Receptor( neuron = neuron ) 
     y = dict() # bad response
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version__,
@@ -196,7 +196,7 @@ def test_receptor_neuron_mock_server_shape_error():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron ) 
+    receptor = bittensor.Receptor( neuron = neuron ) 
 
     y = torch.rand(1, 3, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -222,7 +222,7 @@ def test_receptor_neuron_server_response_with_nans():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron ) 
+    receptor = bittensor.Receptor( neuron = neuron ) 
 
     import numpy as np
     y = torch.rand(3, 3, bittensor.__network_dim__)
@@ -249,7 +249,7 @@ def test_receptor_backward_neuron_text():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TEXT)
@@ -264,7 +264,7 @@ def test_receptor_neuron_backward_image():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
     x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ])
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode =bittensor.proto.Modality.IMAGE)
@@ -278,7 +278,7 @@ def test_receptor_neuron_backward_tensor():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
     x = torch.rand(3, 3, bittensor.__network_dim__)
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TENSOR)
@@ -292,7 +292,7 @@ def test_receptor_backward_non_forward_success():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
     x = torch.rand(3, 3, bittensor.__network_dim__)
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     out, op, msg = receptor.backward( inputs = x, grads = g, code = 1, mode = bittensor.proto.Modality.TENSOR)
@@ -307,7 +307,7 @@ def test_receptor_neuron_backward_request_empty():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
     x = torch.tensor([])
     g = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TEXT)
@@ -321,7 +321,7 @@ def test_receptor_neuron_backward_request_empty_grads():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
     g = torch.tensor([])
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     out, op, msg = receptor.backward( inputs = x, grads = g, code = 0, mode = bittensor.proto.Modality.TEXT)
@@ -335,7 +335,7 @@ def test_receptor_neuron_backward_mock_server():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
 
     y = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -361,7 +361,7 @@ def test_receptor_neuron_backward_serve_timeout():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )
+    receptor = bittensor.Receptor( neuron = neuron )
 
     y = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -386,7 +386,7 @@ def test_receptor_neuron_backward_serve_empty():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron )             
+    receptor = bittensor.Receptor( neuron = neuron )             
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version__,
             public_key = "A",
@@ -408,7 +408,7 @@ def test_receptor_neuron_mock_backward_server_deserialization_error():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron ) 
+    receptor = bittensor.Receptor( neuron = neuron ) 
     y = dict() # bad response
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version__,
@@ -430,7 +430,7 @@ def test_receptor_neuron_mock_backward_server_shape_error():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron ) 
+    receptor = bittensor.Receptor( neuron = neuron ) 
 
     y = torch.rand(1, 3, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -456,7 +456,7 @@ def test_receptor_neuron_server_backward_response_with_nans():
         address = '0.0.0.0',
         port = 22424,
     )
-    receptor = bittensor.receptor.Receptor( neuron = neuron ) 
+    receptor = bittensor.Receptor( neuron = neuron ) 
 
     import numpy as np
     y = torch.rand(3, 3, bittensor.__network_dim__)

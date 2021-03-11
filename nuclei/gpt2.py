@@ -60,7 +60,7 @@ class GPT2Pooler(nn.Module):
         pooled_output = self.activation(pooled_output)
         return pooled_output
 
-class GPT2LMNucleus(bittensor.nucleus.Nucleus):
+class GPT2LMNucleus(bittensor.Nucleus):
     """ A Bittensor Nucleus training GPT2 with Causal Language Modelling (CLM)
     """
     def __init__(self, config: Munch = None, **kwargs):
@@ -73,7 +73,7 @@ class GPT2LMNucleus(bittensor.nucleus.Nucleus):
         super(GPT2LMNucleus, self).__init__(config = config, **kwargs)
         if config == None:
             config = GPT2LMNucleus.default_config()
-        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
+        bittensor.Config.update_with_kwargs(config.nucleus, kwargs) 
         GPT2LMNucleus.check_config(config)
         self.config = config
 
@@ -127,7 +127,7 @@ class GPT2LMNucleus(bittensor.nucleus.Nucleus):
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         GPT2LMNucleus.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.Config.to_config(parser); 
         return config
 
     @staticmethod

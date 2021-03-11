@@ -55,7 +55,7 @@ class Wallet():
         """
         if config == None:
             config = Wallet.default_config()
-        bittensor.config.Config.update_with_kwargs(config.wallet, kwargs) 
+        bittensor.Config.update_with_kwargs(config.wallet, kwargs) 
         Wallet.check_config(config)
         self.config = config
         self._hotkey = None
@@ -67,7 +67,7 @@ class Wallet():
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Wallet.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.Config.to_config(parser); 
         return config
 
     @staticmethod   

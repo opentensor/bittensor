@@ -77,7 +77,7 @@ class Receptor(nn.Module):
         super().__init__()
         if config == None:
             config = Receptor.default_config()
-        bittensor.config.Config.update_with_kwargs(config.receptor, kwargs) 
+        bittensor.Config.update_with_kwargs(config.receptor, kwargs) 
         Receptor.check_config( config )
         self.config = config # Configuration information.
 
@@ -146,7 +146,7 @@ class Receptor(nn.Module):
     def default_config() -> Munch:
         parser = argparse.ArgumentParser()
         Receptor.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.Config.to_config(parser); 
         return config
 
     @staticmethod   

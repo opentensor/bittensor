@@ -2,14 +2,14 @@ import torch
 import bittensor
 
 def test_nucleus():
-    nucleus = bittensor.nucleus.Nucleus()
+    nucleus = bittensor.Nucleus()
     del nucleus
 
 def test_nucleus_deepcopy():
-    nucleus = bittensor.nucleus.Nucleus()
+    nucleus = bittensor.Nucleus()
     nucleus2 = nucleus.deepcopy()
 
-class MockNucleus(bittensor.nucleus.Nucleus):
+class MockNucleus(bittensor.Nucleus):
     def forward_text(self, text: torch.LongTensor) -> torch.FloatTensor:
         return torch.tensor([1])
 
@@ -49,7 +49,7 @@ def test_nucleus_tensor_no_grad():
     response = nucleus.call_forward(torch.tensor([1]), bittensor.proto.Modality.TENSOR, no_grad=False)
     assert response == torch.tensor([3])
 
-class MultiplicationNucleus(bittensor.nucleus.Nucleus):
+class MultiplicationNucleus(bittensor.Nucleus):
     def __init__(self):
         super().__init__()
         self.weight = torch.autograd.Variable(torch.tensor([2.0]))

@@ -34,7 +34,7 @@ import bittensor
 from routers.pkm import PKMRouter
 from bittensor.utils.batch_transforms import Normalize
 
-class FFNNNucleus(bittensor.nucleus.Nucleus):
+class FFNNNucleus(bittensor.Nucleus):
     """ Simple feed forward NN for images.
     """
 
@@ -47,7 +47,7 @@ class FFNNNucleus(bittensor.nucleus.Nucleus):
         super(FFNNNucleus, self).__init__(config = config, **kwargs)
         if config == None:
             config = FFNNNucleus.default_config()
-        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
+        bittensor.Config.update_with_kwargs(config.nucleus, kwargs) 
         FFNNNucleus.check_config(config)
         self.config = config
             
@@ -85,7 +85,7 @@ class FFNNNucleus(bittensor.nucleus.Nucleus):
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         FFNNNucleus.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.Config.to_config(parser); 
         return config
 
     @staticmethod

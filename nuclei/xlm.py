@@ -66,7 +66,7 @@ class XLMPooler(nn.Module):
         return pooled_output
 
 
-class XLMNucleus(bittensor.nucleus.Nucleus):
+class XLMNucleus(bittensor.Nucleus):
     """A Bittensor Nucleus training XLM 
 
     Args:
@@ -84,7 +84,7 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
         super(XLMNucleus, self).__init__(config = config, **kwargs)
         if config == None:
             config = XLMNucleus.default_config()
-        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
+        bittensor.Config.update_with_kwargs(config.nucleus, kwargs) 
         XLMNucleus.check_config(config)
         self.config = config
         
@@ -121,7 +121,7 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
     def default_config() -> Munch:
         parser = argparse.ArgumentParser()
         XLMNucleus.add_args(parser)
-        config = bittensor.config.Config.to_config(parser)
+        config = bittensor.Config.to_config(parser)
         return config
     
     @staticmethod

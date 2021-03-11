@@ -36,7 +36,7 @@ dendrite = bittensor.Dendrite(
     config = config,
     wallet = wallet
 )
-print (bittensor.config.Config.toString(config))
+print (bittensor.Config.toString(config))
 
 def producer():
   while True:
