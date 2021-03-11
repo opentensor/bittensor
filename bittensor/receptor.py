@@ -231,9 +231,10 @@ class Receptor(nn.Module):
             # be triggered by invalid requests on this side of the query.
             if code == bittensor.proto.ReturnCode.Backoff:
                 self.backoff -= 1
-            elif code == bittensor.proto.ReturnCode.Success:
+            elif code in [ bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.EmptyRequest, bittensor.proto.ReturnCode.RequestSerializationException ]:
                 self.backoff = 0
                 self.next_backoff = max(1, self.next_backoff / 2) # halve the next backoff.
+            # Failure was on server side.
             else:
                 self.backoff = self.next_backoff
                 self.next_backoff = min(self.config.receptor.max_backoff, self.next_backoff * 2)
