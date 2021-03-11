@@ -194,7 +194,7 @@ class Neuron:
             wallet = bittensor.wallet.Wallet ( config )
         self.wallet = wallet
 
-        if config.neuron.multiprocessing:
+        if self.config.neuron.multiprocessing:
             BaseManager.register('Subtensor', bittensor.subtensor.Subtensor)
             BaseManager.register('Metagraph', bittensor.metagraph.Metagraph)
             BaseManager.register('Dendrite', bittensor.dendrite.Dendrite)
@@ -229,8 +229,8 @@ class Neuron:
         try:
             parser.add_argument('--neuron.modality', default=0, type=int, 
                                 help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
-            parser.add_argument('--neuron.multiprocessing', default=0, type=int, 
-                                help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
+            parser.add_argument('--neuron.multiprocessing', default=True, type=bool, 
+                                help='''Are bittensor components process safe objects or run from a single thread.''')
         except:
             pass
 
