@@ -150,13 +150,10 @@ class Axon(bittensor.grpc.BittensorServicer):
         parser.add_argument('--axon.max_workers', default=10, type=int, 
             help='''The maximum number connection handler threads working simultaneously on this endpoint. 
                     The grpc server distributes new worker threads to service requests up to this number.''')
-        parser.add_argument('--axon.max_gradients', default=100, type=int, 
-            help='''The max number of lingering gradients stored in the gradient queue.
-                    Gradients passed from other peers accumulate on this endpoint and queue in axon.gradients.''')
-        parser.add_argument('--axon.forward_processing_timeout', default=100, type=int, 
+        parser.add_argument('--axon.forward_processing_timeout', default=5, type=int, 
             help='''Length of time allocated to the miner forward process for computing and returning responses
                     back to the axon.''')
-        parser.add_argument('--axon.backward_processing_timeout', default=100, type=int, 
+        parser.add_argument('--axon.backward_processing_timeout', default=5, type=int, 
             help='''Length of time allocated to the miner backward process for computing and returning responses
                     back to the axon.''')
 

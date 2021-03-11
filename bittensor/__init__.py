@@ -249,6 +249,19 @@ def init( config: Munch = None,  wallet: 'bittensor.wallet.Wallet' = None, **kwa
 # dummy tensor that triggers autograd in a RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
 
+def nested_flatten(t):
+    """
+    Turn nested list/tuple/dict into a flat iterator.
+    """
+    if isinstance(t, (list, tuple)):
+        for x in t:
+            yield from nested_flatten(x)
+    elif isinstance(t, dict):
+        for k, v in sorted(t.items()):
+            yield from nested_flatten(v)
+    else:
+        yield t
+
 class _ForwardCall(torch.autograd.Function):
     @staticmethod
     def forward(
@@ -292,13 +305,14 @@ class _ForwardCall(torch.autograd.Function):
             mode = mode
         )
         ctx.forward_codes = forward_codes
-        return outputs, torch.tensor(forward_codes, dtype=torch.int64)
+        return (torch.tensor(forward_codes, dtype=torch.int64), *outputs)
 
     @staticmethod
     @once_differentiable
     def backward( 
             ctx, 
-            *grads: torch.FloatTensor
+            code_grads: torch.FloatTensor,
+            *output_grads: torch.FloatTensor
         ) -> Tuple[ Optional[torch.Tensor], ... ]:
         """ Internal autograd-friendly Backward RPC call to a remote neurons.
 
@@ -315,15 +329,16 @@ class _ForwardCall(torch.autograd.Function):
                     Gradient results for each input.
 
         """
-        grads_cpu = [tensor.cpu() for tensor in grads]
-        outputs, _ = neuron.dendrite.backward (
+        print ('output grads', output_grads)
+        grads_cpu = [tensor.cpu() for tensor in output_grads]
+        input_grads, _ = neuron.dendrite.backward (
             neurons = ctx.neurons, 
             inputs = ctx.inputs, 
             grads = grads_cpu, 
             codes = ctx.forward_codes, 
             mode = ctx.mode
         )
-        return (DUMMY, None, None, *outputs)
+        return (None, None, None, *input_grads)
 
 def _internal_forward(
             neurons: List[bittensor.proto.Neuron],
@@ -350,12 +365,15 @@ def _internal_forward(
                 return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops.
         """
-        return _ForwardCall.forward(
-                dummy = DUMMY, 
-                neurons = neurons, 
-                mode = mode, 
+        forward_response = _ForwardCall.apply(
+                DUMMY, 
+                neurons, 
+                mode,
                 *inputs
             )
+        codes = forward_response[0]
+        tensors = forward_response[1:]
+        return codes, tensors
 
 def forward_text(
             neurons: List[bittensor.proto.Neuron],
@@ -390,8 +408,8 @@ def forward_text(
 
         return _internal_forward (
             neurons = neurons, 
-            inputs = inputs, 
-            mode = bittensor.proto.Modality.TEXT
+            mode = bittensor.proto.Modality.TEXT,
+            inputs = inputs
         )
 
 def forward_image(
@@ -428,8 +446,8 @@ def forward_image(
 
     return _internal_forward (
             neurons = neurons, 
-            inputs = inputs, 
-            mode = bittensor.proto.Modality.TEXT
+            mode = bittensor.proto.Modality.TEXT,
+            inputs = inputs
     )
 
 def forward_tensor(
@@ -468,6 +486,6 @@ def forward_tensor(
 
     return _internal_forward (
             neurons = neurons, 
-            inputs = inputs, 
-            mode = bittensor.proto.Modality.TEXT
+            mode = bittensor.proto.Modality.TEXT,
+            inputs = inputs
     )
