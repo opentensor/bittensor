@@ -29,10 +29,10 @@ axon = axon_multiprocessing.Axon(
 )
 axon.start()
 
-config = bittensor.dendrite.Dendrite.default_config()
+config = bittensor.Dendrite.default_config()
 config.receptor.timeout = 10
 config.receptor.do_backoff = False
-dendrite = bittensor.dendrite.Dendrite(
+dendrite = bittensor.Dendrite(
     config = config,
     wallet = wallet
 )

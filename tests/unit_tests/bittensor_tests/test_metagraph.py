@@ -9,15 +9,15 @@ metagraph = None
 
 def test_create( ):
     global metagraph
-    metagraph = bittensor.metagraph.Metagraph()
+    metagraph = bittensor.Metagraph()
     assert True
 
 def test_print_empty():
-    metagraph = bittensor.metagraph.Metagraph()
+    metagraph = bittensor.Metagraph()
     print (metagraph)
 
 def test_sync( ):
-    metagraph = bittensor.metagraph.Metagraph(
+    metagraph = bittensor.Metagraph(
         stale_emit_filter = 1000000000000
     )
     metagraph.config.subtensor.network = 'kusanagi'
@@ -123,7 +123,7 @@ def test_convert_weight_zeros_adds_remainder_to_last_member( ):
 chain_state = None
 def test_chain_state( ):
     global chain_state  
-    chain_state = bittensor.metagraph.ChainState()
+    chain_state = bittensor.ChainState()
     
 def test_add():
     global chain_state  
@@ -186,7 +186,7 @@ state = None
 def test_convert_to_torch_state():
     global state 
     global metagraph
-    state = bittensor.metagraph.TorchChainState.from_cache(chain_state) 
+    state = bittensor.TorchChainState.from_cache(chain_state) 
     assert state.tau == 0.5
     assert state.block == 0
     assert state.n == 100

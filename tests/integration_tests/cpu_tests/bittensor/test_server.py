@@ -21,7 +21,7 @@ class Axon(bittensor.grpc.BittensorServicer):
 def create_server():
     address = "[::]:8812"
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    axon = bittensor.axon.Axon()
+    axon = bittensor.Axon()
     bittensor.grpc.add_BittensorServicer_to_server(axon, server)
     server.add_insecure_port(address)
     return server

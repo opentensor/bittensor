@@ -37,16 +37,26 @@ __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __s
 __blocktime__ = 6
 
 # Load components.
-import bittensor.axon
+from bittensor.axon import Axon as Axon
 import bittensor.config 
 import bittensor.executor
-import bittensor.dendrite
-import bittensor.metagraph
+from bittensor.dendrite import Dendrite as Dendrite
+from bittensor.metagraph import Metagraph as Metagraph
+from bittensor.metagraph import ChainState as ChainState
+from bittensor.metagraph import TorchChainState as TorchChainState
 import bittensor.nucleus
 import bittensor.receptor
 import bittensor.substrate
-import bittensor.subtensor
+from bittensor.subtensor import Subtensor as Subtensor
 import bittensor.wallet
+
+# Create instance components
+# TODO(const) these should be protected with a warning if they do not exist
+neuron = None
+metagraph = None
+dendrite = None
+axon = None
+subtensor = None
 
 # Default logger
 logger_config = {
@@ -179,7 +189,6 @@ def AutoProxy(token, serializer, manager=None, authkey=None,
     return proxy
 multiprocessing.managers.AutoProxy = AutoProxy
 
-neuron = None
 class Neuron:
 
     def __init__( self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, **kwargs ):
@@ -188,19 +197,19 @@ class Neuron:
         bittensor.config.Config.update_with_kwargs(config.neuron, kwargs) 
         Neuron.check_config(config)
         self.config = config
-        print ( bittensor.config.Config.toString(config) )
 
         if wallet == None:
             wallet = bittensor.wallet.Wallet ( config )
         else:
             config.wallet = wallet.config.wallet
-            self.wallet = wallet
-
+        self.wallet = wallet
+        print ( bittensor.config.Config.toString(config) )
+        
         if self.config.neuron.multiprocessing:
-            BaseManager.register('Subtensor', bittensor.subtensor.Subtensor)
-            BaseManager.register('Metagraph', bittensor.metagraph.Metagraph)
-            BaseManager.register('Dendrite', bittensor.dendrite.Dendrite)
-            BaseManager.register('Axon', bittensor.axon.Axon)
+            BaseManager.register('Subtensor', bittensor.Subtensor)
+            BaseManager.register('Metagraph', bittensor.Metagraph)
+            BaseManager.register('Dendrite', bittensor.Dendrite)
+            BaseManager.register('Axon', bittensor.Axon)
             manager = BaseManager()
             manager.start()
 
@@ -209,10 +218,10 @@ class Neuron:
             self.dendrite = manager.Dendrite( config = self.config, walelt = self.wallet )
             self.axon = manager.Axon( config = self.config, wallet = self.wallet )
         else:
-            self.subtensor = bittensor.subtensor.Subtensor( config = self.config, wallet = self.wallet )
-            self.metagraph = bittensor.metagraph.Metagraph( config = self.config, wallet = self.wallet )
-            self.dendrite = bittensor.dendrite.Dendrite( config = self.config, walelt = self.wallet )
-            self.axon = bittensor.axon.Axon( config = self.config, wallet = self.wallet )
+            self.subtensor = bittensor.Subtensor( config = self.config, wallet = self.wallet )
+            self.metagraph = bittensor.Metagraph( config = self.config, wallet = self.wallet )
+            self.dendrite = bittensor.Dendrite( config = self.config, walelt = self.wallet )
+            self.axon = bittensor.Axon( config = self.config, wallet = self.wallet )
 
     @staticmethod       
     def default_config() -> Munch:
@@ -224,10 +233,10 @@ class Neuron:
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         bittensor.wallet.Wallet.add_args( parser )
-        bittensor.subtensor.Subtensor.add_args( parser )
-        bittensor.metagraph.Metagraph.add_args( parser )
-        bittensor.axon.Axon.add_args(parser)
-        bittensor.dendrite.Dendrite.add_args( parser )
+        bittensor.Subtensor.add_args( parser )
+        bittensor.Metagraph.add_args( parser )
+        bittensor.Axon.add_args(parser)
+        bittensor.Dendrite.add_args( parser )
         try:
             parser.add_argument('--neuron.modality', default=0, type=int, 
                                 help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
@@ -240,15 +249,23 @@ class Neuron:
 
     @staticmethod   
     def check_config(config: Munch):
-        bittensor.axon.Axon.check_config( config )
-        bittensor.subtensor.Subtensor.check_config( config )
-        bittensor.metagraph.Metagraph.check_config( config )
-        bittensor.dendrite.Dendrite.check_config( config )
+        bittensor.Axon.check_config( config )
+        bittensor.Subtensor.check_config( config )
+        bittensor.Metagraph.check_config( config )
+        bittensor.Dendrite.check_config( config )
         assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
 
 def init( config: Munch = None,  wallet: 'bittensor.wallet.Wallet' = None, **kwargs ):
     global neuron
+    global subtensor
+    global metagraph
+    global dendrite
+    global axon
     neuron = Neuron(config = config, wallet = wallet, **kwargs)
+    axon = neuron.axon
+    metagraph = neuron.metagraph
+    dendrite = neuron.dendrite
+    subtensor = neuron.subtensor
 
 # dummy tensor that triggers autograd in a RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)

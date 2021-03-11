@@ -192,7 +192,7 @@ class Metagraph():
             self, 
             config: 'Munch' = None, 
             wallet: 'bittensor.wallet.Wallet' = None,
-            subtensor: 'bittensor.subtensor.Subtensor' = None,
+            subtensor: 'bittensor.Subtensor' = None,
             **kwargs,
         ):
         r""" Initializes a new Metagraph chain interface.
@@ -201,7 +201,7 @@ class Metagraph():
                     metagraph.Metagraph.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                subtensor (:obj:`bittensor.subtensor.Subtensor`, `optional`):
+                subtensor (:obj:`bittensor.Subtensor`, `optional`):
                     subtensor interface utility.
                 stale_emit_filter', default=10000, type=int, 
                     The metagraph filters neurons with last emit beyond this many blocks.
@@ -218,7 +218,7 @@ class Metagraph():
         self.wallet = wallet
 
         if subtensor == None:
-            subtensor = bittensor.subtensor.Subtensor( self.config, self.wallet )
+            subtensor = bittensor.Subtensor( self.config, self.wallet )
         self.subtensor = subtensor
 
         # Chain state as cache and torch object.
@@ -239,7 +239,7 @@ class Metagraph():
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         bittensor.wallet.Wallet.add_args( parser )
-        bittensor.subtensor.Subtensor.add_args( parser )
+        bittensor.Subtensor.add_args( parser )
         try:
             parser.add_argument('--metagraph.stale_emit_filter', default=-1, type=int, 
                                 help='''Filter neurons who have not emitted in this number of blocks.
@@ -451,6 +451,19 @@ class Metagraph():
         else:
             w_0 = self.state.W()[0,:]
             return w_0
+
+    def index_for_uid(self, uid: int ) -> int:
+        r"""Return the index for a given uid.
+
+            Args:
+                uid: (:obj:`int` of shape :obj:`(1)`):
+                    uid to get index for.
+            Returns:
+                index (:obj:`int` of shape :obj:`(1)`):
+                    index of given uid.
+
+        """
+        return self.state.index_for_uid[uid]
 
     def uids_to_indices(self, uids: torch.Tensor) -> torch.LongTensor:
         r"""Return the indices of passed uids.

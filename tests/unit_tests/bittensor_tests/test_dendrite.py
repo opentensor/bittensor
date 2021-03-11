@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 from torch.utils.tensorboard import SummaryWriter
 import bittensor
 
-dendrite = bittensor.dendrite.Dendrite()
+dendrite = bittensor.Dendrite()
 neuron_a = bittensor.proto.Neuron(
     version = bittensor.__version__,
     public_key = "A",

@@ -34,8 +34,8 @@ class Executor:
             self, 
             config: 'Munch' = None, 
             wallet: 'bittensor.wallet.Wallet' = None,
-            subtensor: 'bittensor.subtensor.Subtensor' = None,
-            metagraph: 'bittensor.metagraph.Metagraph' = None,
+            subtensor: 'bittensor.Subtensor' = None,
+            metagraph: 'bittensor.Metagraph' = None,
             **kwargs,
         ):
         r""" Initializes a new Metagraph chain interface.
@@ -44,9 +44,9 @@ class Executor:
                     neuron.Neuron.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                subtensor (:obj:`bittensor.subtensor.Subtensor`, `optional`):
+                subtensor (:obj:`bittensor.Subtensor`, `optional`):
                     subtensor interface utility.
-                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
+                metagraph (:obj:`bittensor.Metagraph`, `optional`):
                     bittensor metagraph object.
         """
         if config == None:
@@ -62,12 +62,12 @@ class Executor:
         # Only load subtensor if we need it.
         if self.config.command in ["transfer", "unstake", "stake", "overview", "save_state"]:
             if subtensor == None:
-                subtensor = bittensor.subtensor.Subtensor( self.config, self.wallet )
+                subtensor = bittensor.Subtensor( self.config, self.wallet )
             self.subtensor = subtensor
 
         if self.config.command in ["overview", "save_state"]:
             if metagraph == None:
-                metagraph = bittensor.metagraph.Metagraph( self.config, self.wallet, self.subtensor)
+                metagraph = bittensor.Metagraph( self.config, self.wallet, self.subtensor)
             self.metagraph = metagraph
             
 
@@ -134,31 +134,31 @@ class Executor:
         bittensor.wallet.Wallet.add_args( new_hotkey_parser )
 
         # Fill arguments for the overview command
-        bittensor.subtensor.Subtensor.add_args( overview_parser )
-        bittensor.metagraph.Metagraph.add_args( overview_parser )
+        bittensor.Subtensor.add_args( overview_parser )
+        bittensor.Metagraph.add_args( overview_parser )
 
         # Fill argument for the save_state command
-        bittensor.subtensor.Subtensor.add_args( save_state_parser )
-        bittensor.metagraph.Metagraph.add_args( save_state_parser )
+        bittensor.Subtensor.add_args( save_state_parser )
+        bittensor.Metagraph.add_args( save_state_parser )
 
         # Fill arguments for unstake command. 
         unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
         unstake_parser.add_argument('--uid', dest="uid", type=int, required=False)
         unstake_parser.add_argument('--amount', dest="amount", type=float, required=False)
         bittensor.wallet.Wallet.add_args( unstake_parser )
-        bittensor.subtensor.Subtensor.add_args( unstake_parser )
+        bittensor.Subtensor.add_args( unstake_parser )
 
         # Fill arguments for stake command.
         stake_parser.add_argument('--uid', dest="uid", type=int, required=False)
         stake_parser.add_argument('--amount', dest="amount", type=float, required=False)
         bittensor.wallet.Wallet.add_args( stake_parser )
-        bittensor.subtensor.Subtensor.add_args( stake_parser )
+        bittensor.Subtensor.add_args( stake_parser )
 
         # Fill arguments for transfer
         transfer_parser.add_argument('--dest', dest="dest", type=str, required=True)
         transfer_parser.add_argument('--amount', dest="amount", type=float, required=True)
         bittensor.wallet.Wallet.add_args( transfer_parser )
-        bittensor.subtensor.Subtensor.add_args( transfer_parser )
+        bittensor.Subtensor.add_args( transfer_parser )
 
         # Hack to print formatted help
         if len(sys.argv) == 1:

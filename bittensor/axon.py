@@ -33,7 +33,7 @@ from munch import Munch
 from loguru import logger
 from termcolor import colored
 from types import SimpleNamespace
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Any, Optional
 
 import torch.multiprocessing as mp
 
@@ -432,7 +432,6 @@ class Axon(bittensor.grpc.BittensorServicer):
         # ---- Check deserialization ----
         tensor_inputs = request.tensors[0]
         modality = tensor_inputs.modality
-        public_key = request.public_key
         try:
             deserializer = serialization.get_serializer( serialzer_type = tensor_inputs.serializer )
             torch_inputs = deserializer.deserialize(tensor_inputs, to_type = bittensor.proto.TensorType.TORCH)
@@ -465,7 +464,7 @@ class Axon(bittensor.grpc.BittensorServicer):
 
         # ---- Make nucleus forward call. ----
         outputs, code, message = self.enqueue_forward_to_nucleus( 
-            public_key = public_key, 
+            public_key = request.public_key, 
             inputs_x = torch_inputs, 
             modality = modality
         )
@@ -541,7 +540,7 @@ class Axon(bittensor.grpc.BittensorServicer):
  
         # ---- Make nucleus backward call. ----
         outputs, code, message = self.enqueue_backward_to_nucleus( 
-            public_key = public_key, 
+            public_key = request.public_key, 
             inputs_x = inputs_x, 
             grads_dy = grads_dy, 
             modality = modality_x

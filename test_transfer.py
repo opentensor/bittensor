@@ -16,7 +16,7 @@ wallet = bittensor.wallet.Wallet(
 assert wallet.has_hotkey
 assert wallet.has_coldkeypub
 
-subtensor = bittensor.subtensor.Subtensor(
+subtensor = bittensor.Subtensor(
     wallet = wallet,
     network = 'kusanagi'
 )

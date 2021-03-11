@@ -3,20 +3,20 @@ import pytest
 from munch import Munch
 
 def test_create():
-    subtensor = bittensor.subtensor.Subtensor()
+    subtensor = bittensor.Subtensor()
 
 def test_defaults_to_akira( ):
-    subtensor = bittensor.subtensor.Subtensor()
+    subtensor = bittensor.Subtensor()
     assert subtensor.endpoint_for_network() in bittensor.__akira_entrypoints__
 
 def test_endpoint_overides():
-    subtensor = bittensor.subtensor.Subtensor(
+    subtensor = bittensor.Subtensor(
         chain_endpoint = "this is the endpoint"
     )
     assert subtensor.endpoint_for_network() == "this is the endpoint"
 
 def test_networks():
-    subtensor = bittensor.subtensor.Subtensor()
+    subtensor = bittensor.Subtensor()
     subtensor.config.subtensor.network = 'akira'
     assert subtensor.endpoint_for_network()  in bittensor.__akira_entrypoints__
     subtensor.config.subtensor.network = 'boltzmann'
@@ -25,19 +25,19 @@ def test_networks():
     assert subtensor.endpoint_for_network() in bittensor.__kusanagi_entrypoints__
 
 def test_connect_failure( ):
-    subtensor = bittensor.subtensor.Subtensor(
+    subtensor = bittensor.Subtensor(
         chain_endpoint = "this is the endpoint"
     )
     with pytest.raises(ValueError):
         subtensor.connect(timeout = 1)
 
 def test_connect_no_failure( ):
-    subtensor = bittensor.subtensor.Subtensor(
+    subtensor = bittensor.Subtensor(
         network = "kusanagi"
     )
     subtensor.connect(timeout = 1, failure=False)
 
-subtensor = bittensor.subtensor.Subtensor( 
+subtensor = bittensor.Subtensor( 
     network = 'kusanagi'
 )
 def test_connect_success( ):

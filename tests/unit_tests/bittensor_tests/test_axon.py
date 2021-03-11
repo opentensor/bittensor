@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import bittensor
 import bittensor.serialization as serialization
 
-axon = bittensor.axon.Axon()
+axon = bittensor.Axon()
 
 def test_forward_success():
     axon.enqueue_forward_to_nucleus = MagicMock(
@@ -118,7 +118,7 @@ def test_forward_deserialization():
 
 
 def test_forward_pipe_timeout():
-    axon = bittensor.axon.Axon()
+    axon = bittensor.Axon()
     axon.config.axon.forward_processing_timeout = 0.1
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -133,7 +133,7 @@ def test_forward_pipe_timeout():
     assert code == bittensor.proto.ReturnCode.NucleusTimeout
 
 def test_backward_pipe_timeout():
-    axon = bittensor.axon.Axon()
+    axon = bittensor.Axon()
     axon.config.axon.backward_processing_timeout = 0.1
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
     grads_raw = torch.rand(3, 3, bittensor.__network_dim__)
@@ -151,7 +151,7 @@ def test_backward_pipe_timeout():
 
 
 def test_backward_invalid_request():
-    axon = bittensor.axon.Axon()
+    axon = bittensor.Axon()
     axon.config.axon.backward_processing_timeout = 0.1
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -234,7 +234,7 @@ def test_backward_grad_inputs_shape_error():
 
 
 def test_backward_response_deserialization_error():
-    axon = bittensor.axon.Axon()
+    axon = bittensor.Axon()
     axon.enqueue_backward_to_nucleus = MagicMock(
         return_value=[None, bittensor.proto.ReturnCode.Success, 'success']
     )
@@ -253,7 +253,7 @@ def test_backward_response_deserialization_error():
 
 
 def test_backward_response_success():
-    axon = bittensor.axon.Axon()
+    axon = bittensor.Axon()
     axon.enqueue_backward_to_nucleus = MagicMock(
         return_value=[torch.tensor([1]), bittensor.proto.ReturnCode.Success, 'Success']
     )

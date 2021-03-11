@@ -101,13 +101,13 @@ class Miner():
         self.wallet = bittensor.wallet.Wallet( self.config )
 
         # ---- Chain connection ----
-        self.subtensor = bittensor.subtensor.Subtensor(
+        self.subtensor = bittensor.Subtensor(
             config = self.config
             wallet = self.wallet
         )
 
         # ---- Metagraph ----
-        self.metagraph = bittensor.metagraph.Metagraph(
+        self.metagraph = bittensor.Metagraph(
             config = self.config,
             wallet = self.wallet,
             subtensor = self.subtensor

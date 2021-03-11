@@ -119,8 +119,8 @@ class Miner():
     def run (self):
 
         bittensor.init( config = self.config )
-        bittensor.neuron.subtensor.connect()
-        bittensor.neuron.metagraph.sync()
+        bittensor.subtensor.connect()
+        bittensor.metagraph.sync()
 
         # ---- Subscribe ----
         with bittensor.neuron:
