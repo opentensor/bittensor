@@ -294,7 +294,7 @@ class _ForwardCall(torch.autograd.Function):
             mode = mode
         )
         if neuron.config.neuron.debug:
-            print ('forward messages {}', messages)
+            logger.info('forward messages {}', messages)
         ctx.forward_codes = forward_codes
         return (torch.tensor(forward_codes, dtype=torch.int64), *outputs)
 
@@ -329,7 +329,7 @@ class _ForwardCall(torch.autograd.Function):
             mode = ctx.mode
         )
         if neuron.config.neuron.debug:
-            print ('backward messages {}', messages)
+            logger.info('backward messages {}', messages)
         return (None, None, None, *input_grads)
 
 def _internal_forward(
