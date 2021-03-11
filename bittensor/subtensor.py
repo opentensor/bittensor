@@ -227,6 +227,9 @@ class Subtensor:
         """
         start_time = time.time()
         attempted_endpoints = []
+        if await self.async_check_connection():
+            print(colored("Subtensor connected to: {}".format(self.config.subtensor.network), 'green'))
+            return True
         while True:
             def connection_error_message():
                 print('''
