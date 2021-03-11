@@ -265,7 +265,7 @@ class PKMRouter():
         output.response = combined
         output.weights = weights
         output.request_sizes = filled_request_sizes
-        output.return_codes = retops
+        output.return_codes = codes
         return output
 
 
