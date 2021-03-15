@@ -25,7 +25,7 @@ class TestSerialization(unittest.TestCase):
             
     def test_serialize_object_type_exception(self):
         # Let's grab a random image, and try and de-serialize it incorrectly.
-        image = image = torch.ones( [1, 28, 28] )
+        image = torch.ones( [1, 28, 28] )
 
         serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
         with pytest.raises(serialization.SerializationTypeNotImplementedException):
@@ -43,7 +43,7 @@ class TestSerialization(unittest.TestCase):
     def test_serialize_deserialize_image(self):
         # Let's grab some image data
         # Let's grab a random image, and give it a crazy type to break the system
-        image = image = torch.ones( [1, 28, 28] )
+        image = torch.ones( [1, 28, 28] )
 
         serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
         serialized_image_tensor_message = serializer.serialize(image, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
