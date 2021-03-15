@@ -125,6 +125,7 @@ class Neuron:
         bittensor.nucleus.Nucleus.add_args( parser )
         bittensor.axon.Axon.add_args(parser)
         bittensor.dendrite.Dendrite.add_args( parser )
+        bittensor.synapse.Synapse.add_args( parser )
         try:
             parser.add_argument('--neuron.modality', default=0, type=int, 
                                 help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')

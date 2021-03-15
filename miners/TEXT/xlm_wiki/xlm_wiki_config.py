@@ -7,15 +7,14 @@ metagraph:
 miner:
   accumulation_interval: 1
   apply_remote_gradients: false
-  batch_size_train: 1
+  batch_size_train: 8
   config_file: null
-  custom_datasets: ./genesis_dataset/
-  epoch_length: 500
+  epoch_length: 10
   learning_rate: 0.01
   log_interval: 10
   momentum: 0.98
   n_epochs: 9223372036854775807
-  name: gpt2-genesis
+  name: xlm
   record_log: false
   root_dir: ~/.bittensor/miners/
   sync_interval: 100
@@ -35,22 +34,7 @@ router:
   stale_emit_filter: 10000
   topk: 10
 subtensor:
-  chain_endpoint: null
-  network: ' '
+  network: 'kusanagi'
 synapse:
-  activation_function: gelu_new
-  attn_pdrop: 0.1
-  embd_pdrop: 0.1
-  initializer_range: 0.02
-  layer_norm_epsilon: 1.0e-05
-  n_block_filter: 100
-  n_head: 1
-  n_inner: 8
-  n_layer: 2
-  resid_pdrop: 0.1
-  summary_activation: null
-  summary_first_dropout: 0.1
-  summary_proj_to_labels: true
-  summary_type: cls_index
-  summary_use_proj: true
-  
+  n_heads: 16
+  n_layers: 12
