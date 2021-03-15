@@ -203,7 +203,6 @@ class Neuron:
         else:
             config.wallet = wallet.config.wallet
         self.wallet = wallet
-        print ( bittensor.Config.toString(config) )
         
         if self.config.neuron.multiprocessing:
             BaseManager.register('Subtensor', bittensor.Subtensor)
@@ -408,7 +407,7 @@ def forward_text(
                     Output encodings of inputs produced by remote neurons. Non-responses are zeroes of common shape.
         """
         if len(inputs[0].shape) != 2:
-            error_msg = 'Text inputs should rank 2 with semantic shape: [batch_size, sequence_len]'
+            error_msg = 'Text inputs should have rank 2 with semantic shape: [batch_size, sequence_len], got {}'.format(inputs[0].shape)
             raise ValueError(error_msg)
         if len(inputs) != len(neurons):
             error_msg = 'List of text inputs should have the same length as passed destination neurons, got {} and {}'.format(len(inputs), len(neurons))
