@@ -47,6 +47,9 @@ class Miner():
         # ---- Model ----
         self.model = FFNNSynapse( config ) # Feedforward neural network with PKMRouter.
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if hasattr(self.config.synapse, 'device'):
+            self.device = torch.device(self.config.synapse.device)
+        
         self.model.to( self.device ) # Set model to device
         
         # ---- Optimizer ---- 

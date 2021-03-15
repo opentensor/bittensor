@@ -47,7 +47,10 @@ class Synapse(nn.Module):
             config = Synapse.default_config()
         Synapse.check_config(config)
         self.config = config
+
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if hasattr(self.config.synapse, 'device'):
+            self.device = torch.device(self.config.synapse.device)
 
     @staticmethod   
     def default_config() -> Munch:
@@ -55,7 +58,11 @@ class Synapse(nn.Module):
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
-       pass
+       try:
+            parser.add_argument('--synapse.device', required=False, 
+                                    help='''Whether to use "cuda" or "cpu" when running miner''')
+       except:
+            pass
 
     @staticmethod   
     def check_config(config: Munch):
