@@ -370,11 +370,11 @@ def _internal_forward(
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
-                forward_outputs (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
-                    Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
-
-                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops.
+
+                responses (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                    Output encodings of inputs produced by remote neurons. Non-responses are zeroes of common shape.
         """
         forward_response = _ForwardCall.apply(
                 DUMMY, 
@@ -401,11 +401,11 @@ def forward_text(
                     bittensor tokenizer of shape [batch_size, sequence_len].
 
             Returns:
-                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                    Output encodings of inputs produced by remote neurons. Non-responses are zeroes of common shape.
-
-                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops.
+
+                responses (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                    Output encodings of inputs produced by remote neurons. Non-responses are zeroes of common shape.
         """
         if len(inputs[0].shape) != 2:
             error_msg = 'Text inputs should rank 2 with semantic shape: [batch_size, sequence_len]'
@@ -438,11 +438,11 @@ def forward_image(
                 torch.toTensor() or other encoding which produces the shape [batch_size, channels, rows, cols].
 
         Returns:
-            forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`):
-                Output encodings of images produced by remote neurons. Non-responses are zeroes of common shape.
-
-            return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+            codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
                 dendrite call return ops.
+
+            responses (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`):
+                Output encodings of images produced by remote neurons. Non-responses are zeroes of common shape.
     """
     # TODO(const): Checks across all tensors and other shape checks.
     if len(inputs[0].shape) != 5:
@@ -476,11 +476,11 @@ def forward_tensor(
                 with shape [batch_size, sequence_len, bittensor.__network_dim__].
 
         Returns:
-            forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.__network_dim__)]`, `required`):
-                Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
-
-            return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+            codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
                 dendrite call return ops.
+
+            response (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.__network_dim__)]`, `required`):
+                Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
     """
     if len(inputs[0].shape) != 3:
         error_msg = 'Tensor inputs should be rank 3 with semantic shape: [batch_size, sequence_len, feature_len]'
