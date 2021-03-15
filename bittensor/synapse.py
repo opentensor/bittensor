@@ -54,7 +54,11 @@ class Synapse(nn.Module):
 
     @staticmethod   
     def default_config() -> Munch:
-        return Munch()
+         # Parses and returns a config Munch for this object.
+        parser = argparse.ArgumentParser(); 
+        Synapse.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        return config
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
