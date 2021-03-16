@@ -13,7 +13,7 @@
 
 </div>
 
-Bittensor is a p2p-market which rewards the production of machine intelligence with a digital token called Tao. Peers in the system train models by mining knowledge from unsupervised datasets to share with others. Consumers access the network and distill what they learn into production models. The network is collectively-run, open-source, open-access, decentralized, and incentivized to produce state-of-the-art intelligence. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
+Bittensor is a p2p-market which rewards the production of machine intelligence with a digital token called Tao. Peers in the system train models by mining knowledge from unsupervised datasets to share with others. Consumers access the network and distill what they learn into production models. The network is collectively-run, open-source, open-access, decentralized, and incentivized to produce state-of-the-art intelligence. For more info, read our [paper](https://arxiv.org/abs/2003.03917).
 
 # Running a miner
 
