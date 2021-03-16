@@ -581,15 +581,21 @@ class Metagraph():
         if self.wallet.has_hotkey:
             self_uid = await self.subtensor.async_get_uid_for_pubkey( self.wallet.hotkey.public_key )
             if self_uid != None:
-                calls.append ( self._poll_uid (self.wallet.hotkey.public_key, self_uid ) )     
+                calls.append( self._poll_uid ( self.wallet.hotkey.public_key, self_uid ) )
 
+        n_calls = 0
+        MAX_CONCURRENT_CALLS = 100
         for pubkey, uid in active.items():
             if uid in last_emit:
                 emit_block = last_emit[ uid ]
                 if (current_block - emit_block) < self.config.metagraph.stale_emit_filter or self.config.metagraph.stale_emit_filter < 0:
                         calls.append( self._poll_uid ( pubkey, uid ) )
+                        n_calls += 1
+            if len(calls) > MAX_CONCURRENT_CALLS:
+                await asyncio.gather(*calls)
+                n_calls = 0 
+                calls = []
         await asyncio.gather(*calls)
-        print ('\n')
 
     async def _poll_uid(self, pubkey: str, uid:int):
         r""" Polls info info for a specfic public key.
@@ -602,11 +608,9 @@ class Metagraph():
             neuron = await self.subtensor.async_get_neuron_for_uid ( uid )
             self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], modality = neuron['modality'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
             print(colored('.', 'green'), end ="")
-
         except Exception as e:
             print(colored('x', 'red'), end ="")
             logger.trace('error while polling uid: {} with error: {}', uid, e )
-            #traceback.print_exc()
 
 
     EmitSuccess = 1

@@ -987,7 +987,7 @@ class SubstrateWSInterface:
                 self.debug_message('Stored metadata for {} in Redis'.format(self.runtime_version))
                 self.cache_region.set('METADATA_{}'.format(self.runtime_version), self.metadata_decoder)
 
-    async def iterate_map(self, module, storage_function, block_hash=None):
+    async def iterate_map(self, module, storage_function, block_hash=None, block_id=None):
         """
         iterates over all key-pairs localted at the given module and storage_function. The storage
         item must be a map.
@@ -1003,7 +1003,7 @@ class SubstrateWSInterface:
         A two dimensional list of key-value pairs, both decoded into the given type, e.g.
         [[k1, v1], [k2, v2], ...]
         """
-        await self.init_runtime(block_hash=block_hash)
+        await self.init_runtime(block_hash=block_hash, block_id=block_id)
 
         key_type = None
         value_type = None
@@ -1048,7 +1048,7 @@ class SubstrateWSInterface:
 
         return list(pairs)
 
-    async def get_runtime_state(self, module, storage_function, params=None, block_hash=None):
+    async def get_runtime_state(self, module, storage_function, params=None, block_hash=None, block_id=None):
         """
         Retrieves the storage entry for given module, function and optional parameters at given block hash
 
@@ -1064,7 +1064,7 @@ class SubstrateWSInterface:
 
         """
 
-        await self.init_runtime(block_hash=block_hash)
+        await self.init_runtime(block_hash=block_hash, block_id=None)
 
         # Search storage call in metadata
         for metadata_module in self.metadata_decoder.metadata.modules:

@@ -226,10 +226,11 @@ class Subtensor:
                 True on success. 
         """
         start_time = time.time()
-        attempted_endpoints = []
         if await self.async_is_connected():
             print(colored("Subtensor connected to: {}".format(self.config.subtensor.network), 'green'))
             return True
+
+        attempted_endpoints = []
         while True:
             def connection_error_message():
                 print('''
@@ -849,7 +850,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         )
         return result
 
-    def get_stake(self) -> List[Tuple[int, int]]:
+    def get_stake(self, block_id=None) -> List[Tuple[int, int]]:
         r""" Returns a list of (uid, stake) pairs one for each active peer on chain.
         Returns:
             stake (List[Tuple[int, int]]):
@@ -861,9 +862,9 @@ To run a local node (See: docs/running_a_validator.md) \n
             loop = asyncio.new_event_loop()   
             asyncio.set_event_loop(loop)   
         loop.set_debug(enabled=True) 
-        return loop.run_until_complete(self.async_get_stake())
+        return loop.run_until_complete(self.async_get_stake(block_id=block_id))
 
-    async def async_get_stake(self) -> List[Tuple[int, int]]:
+    async def async_get_stake(self, block_id=None) -> List[Tuple[int, int]]:
         r""" Returns a list of (uid, stake) pairs one for each active peer on chain.
         Returns:
             stake (List[Tuple[int, int]]):
@@ -873,6 +874,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         result = await self.substrate.iterate_map(
             module='SubtensorModule',
             storage_function='Stake',
+            block_id=block_id
         )
         return result
 
@@ -1048,9 +1050,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         await self.async_check_connection()
         result = await self.substrate.get_runtime_state(
-                module='SubtensorModule',
-                storage_function='Neurons',
-                params=[uid]
+            module='SubtensorModule',
+            storage_function='Neurons',
+            params=[uid],
         )
         return result['result']
 

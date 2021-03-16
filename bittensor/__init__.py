@@ -62,8 +62,6 @@ import bittensor.substrate
 # Create instance components
 # TODO(const) these should be protected with a warning if they do not exist
 neuron = None
-config = None
-wallet = None
 metagraph = None
 dendrite = None
 axon = None
@@ -231,7 +229,7 @@ class Neuron:
         try:
             parser.add_argument('--neuron.modality', default=0, type=int, 
                                 help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
-            parser.add_argument('--neuron.multiprocessing', default=True, type=bool, 
+            parser.add_argument('--neuron.multiprocessing', default=False, type=bool, 
                                 help='''Are bittensor components process safe objects or run from a single thread.''')
             parser.add_argument('--neuron.debug', default=False, type=bool, 
                                 help='''Are bittensor components process safe objects or run from a single thread.''')
@@ -246,20 +244,17 @@ class Neuron:
         bittensor.Dendrite.check_config( config )
         assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
 
-def init( config: Munch = None,  wallet: 'bittensor.Wallet' = None, **kwargs ):
+def init( config: Munch = None, wallet: 'bittensor.Wallet' = None, **kwargs ):
     global neuron
     global subtensor
     global metagraph
     global dendrite
     global axon
-    global config
     neuron = Neuron(config = config, wallet = wallet, **kwargs)
     axon = neuron.axon
     metagraph = neuron.metagraph
     dendrite = neuron.dendrite
     subtensor = neuron.subtensor
-    config = neuron.config
-    wallet = neuron.wallet
 
 # dummy tensor that triggers autograd in a RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
