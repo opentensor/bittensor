@@ -15,7 +15,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import argparse
+from munch import Munch
+from termcolor import colored
+from loguru import logger
 
+from multiprocessing import Process, Manager
+import multiprocessing.managers
+from multiprocessing.managers import BaseManager, NamespaceProxy, BaseProxy, AutoProxy
+
+import time
 import sys
 import random
 import torch
@@ -53,6 +62,8 @@ import bittensor.substrate
 # Create instance components
 # TODO(const) these should be protected with a warning if they do not exist
 neuron = None
+config = None
+wallet = None
 metagraph = None
 dendrite = None
 axon = None
@@ -143,25 +154,6 @@ __boltzmann_entrypoints__ = [
 __local_entrypoints__ = [
     '127.0.0.1:9944'
 ]
-
-import argparse
-import json
-import os
-import re
-import stat
-import types
-import traceback as tb
-
-from io import StringIO
-from munch import Munch
-from termcolor import colored
-from loguru import logger
-
-from multiprocessing import Process, Manager
-import multiprocessing.managers
-from multiprocessing.managers import BaseManager, NamespaceProxy, BaseProxy, AutoProxy
-import time
-import types
 
 def AutoProxy(token, serializer, manager=None, authkey=None,
               exposed=None, incref=True, manager_owned=False):
@@ -260,11 +252,14 @@ def init( config: Munch = None,  wallet: 'bittensor.Wallet' = None, **kwargs ):
     global metagraph
     global dendrite
     global axon
+    global config
     neuron = Neuron(config = config, wallet = wallet, **kwargs)
     axon = neuron.axon
     metagraph = neuron.metagraph
     dendrite = neuron.dendrite
     subtensor = neuron.subtensor
+    config = neuron.config
+    wallet = neuron.wallet
 
 # dummy tensor that triggers autograd in a RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)
