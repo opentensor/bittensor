@@ -131,10 +131,10 @@ class Miner():
 
             # ---- Loop for epochs ----
             self.epoch = -1; self.best_test_loss = math.inf; self.global_step = 0
-            self.row = bittensor.neuron.metagraph.row() # Trained weights.
+            self.row = bittensor.metagraph.row() # Trained weights.
             for self.epoch in range(self.config.miner.n_epochs):
                 # ---- Serve ----
-                bittensor.neuron.axon.serve( self.model )
+                bittensor.axon.serve( self.model )
          
                 # ---- Train ----
                 self.train()
@@ -149,16 +149,16 @@ class Miner():
                 test_loss, test_accuracy = self.test()
 
                 # ---- Emit ----
-                bittensor.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
+                bittensor.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
                         
                 # ---- Sync ----  
-                bittensor.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.weights = bittensor.neuron.metagraph.row().to(self.device)
+                bittensor.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                self.weights = bittensor.metagraph.row().to(self.device)
 
                 # --- Display Epoch ----
-                print(bittensor.neuron.axon.fullToString())
-                print(bittensor.neuron.dendrite.fullToString())
-                print(bittensor.neuron.metagraph)
+                print(bittensor.axon.fullToString())
+                print(bittensor.dendrite.fullToString())
+                print(bittensor.metagraph)
 
                 # ---- Save ----
                 if test_loss < self.best_test_loss:
@@ -213,8 +213,8 @@ class Miner():
                     colored('{:.2f}%'.format(progress), 'green'),
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
                     colored('{:.4f}'.format(output.local_accuracy.item()), 'green'),
-                    bittensor.neuron.axon,
-                    bittensor.neuron.dendrite)
+                    bittensor.axon,
+                    bittensor.dendrite)
             self.tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Lloss', output.local_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Dloss', output.distillation_loss.item(), self.global_step)

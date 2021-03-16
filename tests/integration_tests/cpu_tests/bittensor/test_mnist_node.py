@@ -97,16 +97,16 @@ class Session():
             # ---- Loop forever ----
             start_time = time.time()
             self.epoch = -1; self.best_test_loss = math.inf; self.global_step = 0
-            self.weights = bittensor.neuron.metagraph.row # Trained weights.
+            self.weights = bittensor.metagraph.row # Trained weights.
             while True:
                 self.epoch += 1
 
                 # ---- Emit ----
-                bittensor.neuron.metagraph.set_weights(self.weights, wait_for_inclusion = True) # Sets my row-weights on the chain.
+                bittensor.metagraph.set_weights(self.weights, wait_for_inclusion = True) # Sets my row-weights on the chain.
                         
                 # ---- Sync ----  
-                bittensor.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.weights = bittensor.neuron.metagraph.row().to(self.device)
+                bittensor.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                self.weights = bittensor.metagraph.row().to(self.device)
                         
                 # ---- Train ----
                 self.train()
@@ -119,7 +119,7 @@ class Session():
                 time_elapsed = time.time() - start_time
                 assert test_accuracy > 0.8
                 assert test_loss < 0.2
-                assert len(bittensor.neuron.metagraph.state.neurons) > 0
+                assert len(bittensor.metagraph.state.neurons) > 0
                 assert time_elapsed < 300 # 1 epoch of MNIST should take less than 5 mins.
 
                 # ---- End test ----
@@ -161,8 +161,8 @@ class Session():
                     colored('{:.2f}%'.format(progress), 'green'),
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
                     colored('{:.4f}'.format(output.local_accuracy.item()), 'green'),
-                    bittensor.neuron.axon,
-                    bittensor.neuron.dendrite)
+                    bittensor.axon,
+                    bittensor.dendrite)
             self.tensorboard.add_scalar('Rloss', output.remote_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Lloss', output.local_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('Dloss', output.distillation_loss.item(), self.global_step)

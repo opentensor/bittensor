@@ -565,9 +565,9 @@ class Axon(bittensor.grpc.BittensorServicer):
         out_bytes = sys.getsizeof(response)
         self.stats.total_in_bytes.update(in_bytes)
         self.stats.total_out_bytes.update(out_bytes)
-        if request.public_key in bittensor.neuron.metagraph.get_state().uid_for_pubkey:
+        if request.public_key in bittensor.metagraph.get_state().uid_for_pubkey:
             # ---- Check we have a stats column for this peer
-            request_uid = bittensor.neuron.metagraph.get_state().uid_for_pubkey[request.public_key]
+            request_uid = bittensor.metagraph.get_state().uid_for_pubkey[request.public_key]
             if request_uid in self.stats.in_bytes_per_uid:
                 self.stats.in_bytes_per_uid[request_uid].update(in_bytes)
                 self.stats.out_bytes_per_uid[request_uid].update(out_bytes)

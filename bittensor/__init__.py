@@ -20,23 +20,14 @@ from munch import Munch
 from termcolor import colored
 from loguru import logger
 
-from multiprocessing import Process, Manager
-import multiprocessing.managers
-from multiprocessing.managers import BaseManager, NamespaceProxy, BaseProxy, AutoProxy
-
-import time
 import sys
-import random
 import torch
 from loguru import logger
 from typing import Tuple, List, Any, Optional
 from torch.autograd.function import once_differentiable
 
-import bittensor.bittensor_pb2 as proto
-import bittensor.bittensor_pb2_grpc as grpc
-
 # Bittensor code and protocol version.
-__version__ = '1.0.4'
+__version__ = '1.0.5'
 
 # Tensor dimension.
 # NOTE (const): if/when this increases peers must be responsible for trimming or expanding output to this size.
@@ -44,28 +35,6 @@ __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __s
 
 # Substrate chain block time (seconds).
 __blocktime__ = 6
-
-# Load components.
-from bittensor.axon import Axon as Axon
-from bittensor.config import Config as Config
-from bittensor.executor import Executor as Executor
-from bittensor.dendrite import Dendrite as Dendrite
-from bittensor.metagraph import Metagraph as Metagraph
-from bittensor.metagraph import ChainState as ChainState
-from bittensor.metagraph import TorchChainState as TorchChainState
-from bittensor.nucleus import Nucleus as Nucleus
-from bittensor.receptor import Receptor as Receptor
-from bittensor.subtensor import Subtensor as Subtensor
-from bittensor.wallet import Wallet as Wallet
-import bittensor.substrate
-
-# Create instance components
-# TODO(const) these should be protected with a warning if they do not exist
-neuron = None
-metagraph = None
-dendrite = None
-axon = None
-subtensor = None
 
 # Default logger
 logger_config = {
@@ -77,6 +46,62 @@ logger_config = {
     }]
 }
 logger.configure(**logger_config)
+
+
+# Load components.
+import bittensor.bittensor_pb2 as proto
+import bittensor.bittensor_pb2_grpc as grpc
+from bittensor.axon import Axon as Axon
+from bittensor.config import Config as Config
+from bittensor.executor import Executor as Executor
+from bittensor.dendrite import Dendrite as Dendrite
+from bittensor.metagraph import Metagraph as Metagraph
+from bittensor.metagraph import ChainState as ChainState
+from bittensor.metagraph import TorchChainState as TorchChainState
+from bittensor.neuron import Neuron as Neuron
+from bittensor.nucleus import Nucleus as Nucleus
+from bittensor.receptor import Receptor as Receptor
+from bittensor.subtensor import Subtensor as Subtensor
+from bittensor.wallet import Wallet as Wallet
+import bittensor.substrate
+
+# Create instance components
+
+# An encapsulation of bittensor objects (metagraph, subtensor, axon, dendrite)
+neuron = None
+
+# Holds/updates the chain state as a torch object.
+metagraph = None
+
+# Maintain RPC connections to other node in the network. 
+dendrite = None
+
+# Recieves and queues messages for processing.
+axon = None
+
+# An interface to the chain endpoint.
+subtensor = None
+
+def help():
+    r""" Prints bittensor config arguments to stdout
+    """
+    parser = argparse.ArgumentParser(); 
+    bittensor.Neuron.add_args(parser)
+    parser.print_help()
+
+def init( config: Munch = None, wallet: 'bittensor.Wallet' = None, **kwargs ):
+    r""" Creates bittensor background objects.
+    """
+    global neuron
+    global subtensor
+    global metagraph
+    global dendrite
+    global axon
+    neuron = Neuron(config = config, wallet = wallet, **kwargs)
+    axon = neuron.axon
+    metagraph = neuron.metagraph
+    dendrite = neuron.dendrite
+    subtensor = neuron.subtensor
 
 # Tokenizer
 # NOTE (const): tokenizers are guaranteed to improve and expand as time progresses. We version the tokenizer here.
@@ -153,108 +178,6 @@ __local_entrypoints__ = [
     '127.0.0.1:9944'
 ]
 
-def AutoProxy(token, serializer, manager=None, authkey=None,
-              exposed=None, incref=True, manager_owned=False):
-    '''
-    Return an auto-proxy for `token`
-    '''
-    _Client = multiprocessing.managers.listener_client[serializer][1]
-
-    if exposed is None:
-        conn = _Client(token.address, authkey=authkey)
-        try:
-            exposed = dispatch(conn, None, 'get_methods', (token,))
-        finally:
-            conn.close()
-
-    if authkey is None and manager is not None:
-        authkey = manager._authkey
-    if authkey is None:
-        authkey = multiprocessing.process.current_process().authkey
-
-    ProxyType = multiprocessing.managers.MakeProxyType('AutoProxy[%s]' % token.typeid, exposed)
-    proxy = ProxyType(token, serializer, manager=manager, authkey=authkey,
-                      incref=incref, manager_owned=manager_owned)
-    proxy._isauto = True
-    return proxy
-multiprocessing.managers.AutoProxy = AutoProxy
-
-class Neuron:
-
-    def __init__( self, config: Munch = None, wallet: 'bittensor.Wallet' = None, **kwargs ):
-        if config == None:
-            config = Neuron.default_config()
-        bittensor.Config.update_with_kwargs(config.neuron, kwargs) 
-        Neuron.check_config(config)
-        self.config = config
-
-        if wallet == None:
-            wallet = bittensor.Wallet ( config )
-        else:
-            config.wallet = wallet.config.wallet
-        self.wallet = wallet
-        
-        if self.config.neuron.multiprocessing:
-            BaseManager.register('Subtensor', bittensor.Subtensor)
-            BaseManager.register('Metagraph', bittensor.Metagraph)
-            BaseManager.register('Dendrite', bittensor.Dendrite)
-            BaseManager.register('Axon', bittensor.Axon)
-            manager = BaseManager()
-            manager.start()
-
-            self.subtensor = manager.Subtensor( config = self.config, wallet = self.wallet )
-            self.metagraph = manager.Metagraph( config = self.config, wallet = self.wallet )
-            self.dendrite = manager.Dendrite( config = self.config, walelt = self.wallet )
-            self.axon = manager.Axon( config = self.config, wallet = self.wallet )
-        else:
-            self.subtensor = bittensor.Subtensor( config = self.config, wallet = self.wallet )
-            self.metagraph = bittensor.Metagraph( config = self.config, wallet = self.wallet )
-            self.dendrite = bittensor.Dendrite( config = self.config, walelt = self.wallet )
-            self.axon = bittensor.Axon( config = self.config, wallet = self.wallet )
-
-    @staticmethod       
-    def default_config() -> Munch:
-        parser = argparse.ArgumentParser(); 
-        Neuron.add_args(parser) 
-        config = bittensor.Config.to_config(parser); 
-        return config
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        bittensor.Wallet.add_args( parser )
-        bittensor.Subtensor.add_args( parser )
-        bittensor.Metagraph.add_args( parser )
-        bittensor.Axon.add_args(parser)
-        bittensor.Dendrite.add_args( parser )
-        try:
-            parser.add_argument('--neuron.modality', default=0, type=int, 
-                                help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
-            parser.add_argument('--neuron.multiprocessing', default=False, type=bool, 
-                                help='''Are bittensor components process safe objects or run from a single thread.''')
-            parser.add_argument('--neuron.debug', default=False, type=bool, 
-                                help='''Are bittensor components process safe objects or run from a single thread.''')
-        except:
-            pass
-
-    @staticmethod   
-    def check_config(config: Munch):
-        bittensor.Axon.check_config( config )
-        bittensor.Subtensor.check_config( config )
-        bittensor.Metagraph.check_config( config )
-        bittensor.Dendrite.check_config( config )
-        assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
-
-def init( config: Munch = None, wallet: 'bittensor.Wallet' = None, **kwargs ):
-    global neuron
-    global subtensor
-    global metagraph
-    global dendrite
-    global axon
-    neuron = Neuron(config = config, wallet = wallet, **kwargs)
-    axon = neuron.axon
-    metagraph = neuron.metagraph
-    dendrite = neuron.dendrite
-    subtensor = neuron.subtensor
 
 # dummy tensor that triggers autograd in a RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)

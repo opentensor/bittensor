@@ -163,7 +163,7 @@ class Miner():
         with bittensor.neuron:
 
             # ---- Weights ----
-            self.row = bittensor.neuron.metagraph.row()
+            self.row = bittensor.metagraph.row()
 
             # --- Run state ---
             self.global_step = 0
@@ -173,7 +173,7 @@ class Miner():
             for self.epoch in range(self.config.miner.n_epochs):
                 try:
                     # ---- Serve ----
-                    bittensor.neuron.axon.serve( self.model )
+                    bittensor.axon.serve( self.model )
 
                     # ---- Train Model ----
                     self.train()
@@ -186,21 +186,21 @@ class Miner():
                         continue               
 
                     # ---- Emit row-weights ----
-                    bittensor.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
+                    bittensor.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
 
                     # ---- Sync metagraph ----
-                    bittensor.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                    self.row = bittensor.neuron.metagraph.row
+                    bittensor.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                    self.row = bittensor.metagraph.row
 
                     # --- Epoch logs ----
-                    print(bittensor.neuron.axon.fullToString())
-                    print(bittensor.neuron.dendrite.fullToString())
-                    print(bittensor.neuron.metagraph.toString())
+                    print(bittensor.axon.fullToString())
+                    print(bittensor.dendrite.fullToString())
+                    print(bittensor.metagraph.toString())
 
                     # ---- Update Tensorboard ----
-                    bittensor.neuron.dendrite.toTensorboard(self.tensorboard, self.global_step)
-                    bittensor.neuron.metagraph.toTensorboard(self.tensorboard, self.global_step)
-                    bittensor.neuron.axon.toTensorboard(self.tensorboard, self.global_step)
+                    bittensor.dendrite.toTensorboard(self.tensorboard, self.global_step)
+                    bittensor.metagraph.toTensorboard(self.tensorboard, self.global_step)
+                    bittensor.axon.toTensorboard(self.tensorboard, self.global_step)
                 
                     # ---- Save best loss and model ----
                     if self.training_loss and self.epoch % 10 == 0:
@@ -257,8 +257,8 @@ class Miner():
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
                     colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
                     colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
-                    bittensor.neuron.axon,
-                    bittensor.neuron.dendrite)
+                    bittensor.axon,
+                    bittensor.dendrite)
             logger.info('Codes: {}', output.router.return_codes.tolist())
             
             self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)

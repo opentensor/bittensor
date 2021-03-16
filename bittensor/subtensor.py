@@ -93,8 +93,7 @@ class Subtensor:
                                 help='''The subtensor network flag. The likely choices are:
                                         -- akira (testing network)
                                         -- kusanagi (main network)
-                                    If this option is set it overloads subtensor.chain_endpoint with 
-                                    an entry point node from that network.
+                                    This option is overloaded by subtensor.chain_endpoint.
                                     ''')
             parser.add_argument('--subtensor.chain_endpoint', default=None, type=str, 
                                 help='''The subtensor endpoint flag. If set, overrides the --network flag.

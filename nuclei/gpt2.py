@@ -110,7 +110,7 @@ class GPT2LMNucleus(bittensor.Nucleus):
         self.router = PKMRouter(config, query_dim = bittensor.__network_dim__)
 
         # hidden_layer: transforms context and encoding to network_dim hidden units.
-        # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
+        # [batch_size, sequence_dim, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
         self.hidden_layer = nn.Linear( bittensor.__network_dim__, bittensor.__network_dim__ )
 
         # target_layer: maps from hidden layer to vocab dimension for each token. Used by MLM loss.

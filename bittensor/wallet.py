@@ -76,7 +76,7 @@ class Wallet():
             parser.add_argument('--wallet.name', required=False, default='default', 
                                     help='''The name of the wallet to unlock for running bittensor''')
             parser.add_argument('--wallet.hotkey', required=False, default='default', 
-                                    help='''The name of hotkey used to running the miner.''')
+                                    help='''The name of the wallet's-hotkey used to run the miner.''')
             parser.add_argument('--wallet.path', required=False, default='~/.bittensor/wallets/', 
                                     help='''The path to your bittensor wallets''')
         except:
