@@ -88,11 +88,15 @@ class Miner():
         Miner.check_config(config)
         self.config = config
 
-        # ---- Neuron ----
-        bittensor.neuron = bittensor.neuron.Neuron(self.config)
+        # ---- Wallet ----
+        self.wallet = bittensor.Wallet( self.config )
 
         # ---- Model ----
         self.model = BertMLMNucleus( self.config )
+
+        # ---- Serving thread ----
+        self.quit_serving = None
+        self.serving_thread = None # Thread for running queries on our model.
 
         # ---- Optimizer ----
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum)
@@ -152,74 +156,109 @@ class Miner():
         BertMLMNucleus.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 
+     def init_bittensor(self):
+
+        # ---- Bittensor ----
+        # Created background objects.
+        bittensor.init( config = self.config, wallet = self.wallet )
+
+        # ---- Check/Create wallet ----
+        if not self.wallet.has_coldkeypub:
+            self.wallet.create_new_coldkey(n_words = 12, use_password = True )
+        if not self.wallet.has_hotkey:
+            self.wallet.create_new_hotkey(n_words = 12)
+
+        # --- Check chain connection----
+        assert bittensor.subtensor.connect()
+
+        # --- Sync the metagraph ----
+        bittensor.metagraph.sync()
+
+        # --- Start our Axon server endpoint ----
+        bittensor.axon.start()
+
+        # Subscribe our endpoint to the chain.
+        subscribe_success = bittensor.subtensor.subscribe(
+            self.config.axon.external_ip, 
+            self.config.axon.external_port,
+            self.config.neuron.modality,
+            self.wallet.coldkeypub,
+            wait_for_finalization = True,
+            timeout = 4 * bittensor.__blocktime__,
+        )
+        if not subscribe_success:
+            raise ValueError('Failed to subscribe miner to the network')
+
     # --- Main loop ----
     def run (self):
 
-        # ---- Subscribe ----
-        with bittensor.neuron:
+        # --- Setup bittensor ----
+        self.init_bittensor()
 
-            # ---- Weights ----
-            self.row = bittensor.metagraph.row()
+        # --- Start background serving thread ----
+        self.quit_serving = mp.Event()
+        self.serving_thread = threading.Thread( target = self.serving_loop,  name = 'serving', daemon=True)
+        self.serving_thread.start()
 
-            # --- Run state ---
-            self.global_step = 0
-            self.best_train_loss = math.inf
+        # ---- Weights ----
+        self.row = bittensor.metagraph.row()
 
-            # --- Loop for epochs ---
-            for self.epoch in range(self.config.miner.n_epochs):
-                try:
-                    # ---- Serve ----
-                    bittensor.axon.serve( self.model )
+        # --- Run state ---
+        self.global_step = 0
+        self.best_train_loss = math.inf
 
-                    # ---- Train Model ----
-                    self.train()
-                    self.scheduler.step()
+        # --- Loop for epochs ---
+        for self.epoch in range(self.config.miner.n_epochs):
+            try:
+                # ---- Train Model ----
+                self.train()
+                self.scheduler.step()
 
-                    # If model has borked for some reason, we need to make sure it doesn't emit weights
-                    # Instead, reload into previous version of model
-                    if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
-                        self.model, self.optimizer = self.model_toolbox.load_model(self.config)    
-                        continue
+                # If model has borked for some reason, we need to make sure it doesn't emit weights
+                # Instead, reload into previous version of model
+                if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
+                    self.model, self.optimizer = self.model_toolbox.load_model(self.config)    
+                    continue
 
-                    # ---- Emitting weights ----
-                    bittensor.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
+                # ---- Emitting weights ----
+                bittensor.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
 
-                    # ---- Sync metagraph ----
-                    bittensor.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                    self.row = bittensor.metagraph.row()
+                # ---- Sync metagraph ----
+                bittensor.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                self.row = bittensor.metagraph.row()
 
-                    # --- Epoch logs ----
-                    print(bittensor.axon.fullToString())
-                    print(bittensor.dendrite.fullToString())
-                    print(bittensor.metagraph.toString())
+                # --- Epoch logs ----
+                print(bittensor.axon.fullToString())
+                print(bittensor.dendrite.fullToString())
+                print(bittensor.metagraph.toString())
 
-                    # ---- Update Tensorboard ----
-                    bittensor.dendrite.toTensorboard(self.tensorboard, self.global_step)
-                    bittensor.metagraph.toTensorboard(self.tensorboard, self.global_step)
-                    bittensor.axon.toTensorboard(self.tensorboard, self.global_step)
+                # ---- Update Tensorboard ----
+                bittensor.dendrite.toTensorboard(self.tensorboard, self.global_step)
+                bittensor.metagraph.toTensorboard(self.tensorboard, self.global_step)
+                bittensor.axon.toTensorboard(self.tensorboard, self.global_step)
+            
+                # ---- Save best loss and model ----
+                if self.training_loss and self.epoch % 10 == 0:
+                    if self.training_loss < self.best_train_loss:
+                        self.best_train_loss = self.training_loss # update best train loss
+                        self.model_toolbox.save_model(
+                            self.config.miner.full_path,
+                            {
+                                'epoch': self.epoch, 
+                                'model_state_dict': self.model.state_dict(), 
+                                'loss': self.best_train_loss,
+                                'optimizer_state_dict': self.optimizer.state_dict(),
+                            }
+                        )
+                        self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
                 
-                    # ---- Save best loss and model ----
-                    if self.training_loss and self.epoch % 10 == 0:
-                        if self.training_loss < self.best_train_loss:
-                            self.best_train_loss = self.training_loss # update best train loss
-                            self.model_toolbox.save_model(
-                                self.config.miner.full_path,
-                                {
-                                    'epoch': self.epoch, 
-                                    'model_state_dict': self.model.state_dict(), 
-                                    'loss': self.best_train_loss,
-                                    'optimizer_state_dict': self.optimizer.state_dict(),
-                                }
-                            )
-                            self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
-                    
-                # --- Catch Errors ----
-                except Exception as e:
-                    logger.error('Exception in training script with error: {}', e)
-                    logger.info(traceback.print_exc())
-                    logger.info('Continuing to train.')
-                    time.sleep(1)
-    
+            # --- Catch Errors ----
+            except Exception as e:
+                logger.error('Exception in training script with error: {}', e)
+                logger.info(traceback.print_exc())
+                logger.info('Continuing to train.')
+                time.sleep(1)
+
     # ---- Train Epoch ----
     def train(self):
         self.training_loss = 0.0
@@ -267,6 +306,38 @@ class Miner():
             # --- Memory clean up ----
             torch.cuda.empty_cache()
             del output
+
+    # ---- Serving loop -----
+    def serving_loop ( self ): 
+        # ---- Loop until event is set -----
+        logger.info('Serving thread started: ')
+        while not self.stop_serving.is_set():
+
+            # ---- Pull request ----
+            logger.info('Axon:{}, waiting for query ... ', bittensor.axon.toString())
+            pong, pubkey, inputs, modality = bittensor.axon.next_forward_item( timeout = 10.0 )
+
+            # ---- Process request ----
+            if None not in [ pong, pubkey, inputs, modality]:
+                logger.info('Recieved Query: from:{}, inputs.shape:{}', pubkey, inputs.shape)
+                try:          
+                    outputs = self.model.local_forward( inputs, training = False ).local_hidden
+                    pong.send( outputs.detach() )
+                    logger.info('Sent response: to:{}, outputs.shape:{}', pubkey, outputs.shape)
+
+                except Exception as e:
+                    logger.exception('Error in forward process with error {}', e)
+                    continue
+
+        # ---- Tensorboard ----
+        #bittensor.neuron.axon.toTensorboard(serving_tensorboard, serving_step)
+
+    def __del__(self):
+        if self.serving_thread != None:
+            self.quit_serving.set()
+            self.serving_thread.join( timeout = 12.0 )
+            if self.serving_thread.is_alive():
+                logger.error('Failed to join serving thread.')
 
 if __name__ == "__main__":
     # ---- Build and Run ----
