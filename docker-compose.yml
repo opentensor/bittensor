@@ -11,4 +11,4 @@ services:
     
     command: /bin/bash -c "
       cd /bittensor
-      && python3.7 miners/TEXT/gpt2_genesis.py --subtensor.chain_endpoint 172.17.0.1:9944"
+      && python3.7 miners/TEXT/gpt2_genesis/gpt2_genesis.py --subtensor.chain_endpoint 172.17.0.1:9944"
