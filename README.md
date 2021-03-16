@@ -21,11 +21,6 @@ Paste the below command in a MacOS Terminal or Ubuntu shell prompt and follow th
 ```
 $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/opentensor/bittensor/master/scripts/install.sh)"
 ```
-If you wish to run bittensor through a docker container, create a new wallet, and run docker-compose:
-```
-$ bin/bittensor-cli new_default                                                     # Generate default keys	
-$ docker-compose up
-```
 
 ---
 
