@@ -261,14 +261,11 @@ class XLMNucleus(bittensor.Nucleus):
         
         return output
 
-    def remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, training: bool) -> SimpleNamespace:
+    def remote_forward(self, inputs: torch.LongTensor, training: bool) -> SimpleNamespace:
         """ Forward pass inputs and labels through the XLM module.
 
 
         Args:
-            neuron (:obj: `bittensor.neuron.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
-
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 

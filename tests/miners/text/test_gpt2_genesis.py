@@ -14,27 +14,27 @@ def test_run_gpt2_genesis():
         n_epochs = 1,
         custom_dataset = './miners/TEXT/gpt2_genesis/genesis_dataset/'
     )
-    miner.neuron.subtensor.connect = MagicMock(return_value = True)    
-    miner.neuron.subtensor.subscribe = MagicMock(return_value = True)   
-    miner.neuron.metagraph.set_weights = MagicMock()   
-    miner.neuron.metagraph.sync = MagicMock()  
+    bittensor.subtensor.connect = MagicMock(return_value = True)    
+    bittensor.subtensor.subscribe = MagicMock(return_value = True)   
+    bittensor.metagraph.set_weights = MagicMock()   
+    bittensor.metagraph.sync = MagicMock()  
     neuron = bittensor.proto.Neuron(
         version = bittensor.__version__,
-        public_key = miner.neuron.wallet.hotkey.public_key,
-        address = miner.config.axon.external_ip,
-        port = miner.config.axon.external_port,
+        public_key = bittensor.neuron.wallet.hotkey.public_key,
+        address = bittensor.config.axon.external_ip,
+        port = bittensor.config.axon.external_port,
         uid = 0,
     )
-    miner.neuron.metagraph.uid = 0
-    miner.neuron.metagraph.state.n = 1
-    miner.neuron.metagraph.state.tau = torch.tensor([0.5], dtype = torch.float32)
-    miner.neuron.metagraph.state.neurons = [neuron]
-    miner.neuron.metagraph.state.indices = torch.tensor([0], dtype=torch.int64)
-    miner.neuron.metagraph.state.uids = torch.tensor([0], dtype=torch.int64)
-    miner.neuron.metagraph.state.lastemit = torch.tensor([0], dtype=torch.int64)
-    miner.neuron.metagraph.state.stake = torch.tensor([0], dtype=torch.float32)
-    miner.neuron.metagraph.state.uid_for_pubkey[miner.neuron.wallet.hotkey.public_key] = 0
-    miner.neuron.metagraph.state.index_for_uid[0] = 0
-    miner.neuron.metagraph.state.W = torch.tensor( numpy.ones( (1, 1) ), dtype=torch.float32)
+    bittensor.metagraph.uid = 0
+    bittensor.metagraph.state.n = 1
+    bittensor.metagraph.state.tau = torch.tensor([0.5], dtype = torch.float32)
+    bittensor.metagraph.state.neurons = [neuron]
+    bittensor.metagraph.state.indices = torch.tensor([0], dtype=torch.int64)
+    bittensor.metagraph.state.uids = torch.tensor([0], dtype=torch.int64)
+    bittensor.metagraph.state.lastemit = torch.tensor([0], dtype=torch.int64)
+    bittensor.metagraph.state.stake = torch.tensor([0], dtype=torch.float32)
+    bittensor.metagraph.state.uid_for_pubkey[bittensor.wallet.hotkey.public_key] = 0
+    bittensor.metagraph.state.index_for_uid[0] = 0
+    bittensor.metagraph.state.W = torch.tensor( numpy.ones( (1, 1) ), dtype=torch.float32)
     miner.run()
 test_run_gpt2_genesis()

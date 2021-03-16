@@ -34,10 +34,11 @@ import torch.nn.functional as F
 import torch.multiprocessing as mp 
 import traceback
 import time
+import threading
 import bittensor
 
 from termcolor import colored
-from nucleuss.xlm import XLMNucleus, nextbatch
+from nuclei.xlm import XLMNucleus, nextbatch
 from bittensor.utils.model_utils import ModelToolbox
 from munch import Munch
 from loguru import logger
@@ -61,6 +62,13 @@ class Miner():
 
         # ---- Wallet ----
         self.wallet = bittensor.Wallet( self.config )
+        if not self.wallet.has_coldkeypub:
+            self.wallet.create_new_coldkey(n_words = 12, use_password = True )
+        if not self.wallet.has_hotkey:
+            self.wallet.create_new_hotkey(n_words = 12)
+        
+        # ---- Bittensor components ----
+        bittensor.init( with_config = self.config, with_wallet = self.wallet )
 
         # ---- Model ----
         self.model = XLMNucleus( self.config )
@@ -111,7 +119,7 @@ class Miner():
         parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         XLMNucleus.add_args(parser)
-        bittensor.neuron.Neuron.add_args(parser)
+        bittensor.Neuron.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
@@ -123,17 +131,7 @@ class Miner():
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
     
-    def init_bittensor(self):
-
-        # ---- Bittensor ----
-        # Created background objects.
-        bittensor.init( config = self.config, wallet = self.wallet )
-
-        # ---- Check/Create wallet ----
-        if not self.wallet.has_coldkeypub:
-            self.wallet.create_new_coldkey(n_words = 12, use_password = True )
-        if not self.wallet.has_hotkey:
-            self.wallet.create_new_hotkey(n_words = 12)
+    def start_bittensor(self):
 
         # --- Check chain connection----
         assert bittensor.subtensor.connect()
@@ -160,7 +158,7 @@ class Miner():
     def run (self):
 
         # --- Init bittensor ---
-        self.init_bittensor()
+        self.start_bittensor()
 
         # --- Start the serving thread ----
         self.quit_serving = mp.Event()
@@ -233,7 +231,6 @@ class Miner():
             # ---- Forward pass ----
             inputs = nextbatch(self.dataset, self.config.miner.batch_size_train, bittensor.__tokenizer__())
             output = self.model.remote_forward(
-                bittensor.neuron,
                 inputs.to(self.model.device),
                 training = True,
             )
@@ -277,7 +274,7 @@ class Miner():
     def serving_loop ( self ): 
         # ---- Loop until event is set -----
         logger.info('Serving thread started: ')
-        while not self.stop_serving.is_set():
+        while not self.quit_serving.is_set():
 
             # ---- Pull request ----
             logger.info('Axon:{}, waiting for query ... ', bittensor.axon.toString())

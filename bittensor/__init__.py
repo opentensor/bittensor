@@ -70,6 +70,12 @@ import bittensor.substrate
 # An encapsulation of bittensor objects (metagraph, subtensor, axon, dendrite)
 neuron = None
 
+# Config object used by bittensor objects.
+config = None
+
+# Wallet used to initialize bittensor.
+wallet = None
+
 # Holds/updates the chain state as a torch object.
 metagraph = None
 
@@ -89,7 +95,7 @@ def help():
     bittensor.Neuron.add_args(parser)
     parser.print_help()
 
-def init( config: Munch = None, wallet: 'bittensor.Wallet' = None, **kwargs ):
+def init( with_config: Munch = None, with_wallet: 'bittensor.Wallet' = None, **kwargs ):
     r""" Creates bittensor background objects.
     """
     global neuron
@@ -97,11 +103,15 @@ def init( config: Munch = None, wallet: 'bittensor.Wallet' = None, **kwargs ):
     global metagraph
     global dendrite
     global axon
-    neuron = Neuron(config = config, wallet = wallet, **kwargs)
+    global wallet
+    global config
+    neuron = Neuron(config = with_config, wallet = with_wallet, **kwargs)
     axon = neuron.axon
     metagraph = neuron.metagraph
     dendrite = neuron.dendrite
     subtensor = neuron.subtensor
+    wallet = neuron.wallet
+    config = neuron.config
 
 # Tokenizer
 # NOTE (const): tokenizers are guaranteed to improve and expand as time progresses. We version the tokenizer here.

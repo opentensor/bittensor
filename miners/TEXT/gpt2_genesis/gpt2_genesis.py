@@ -37,7 +37,9 @@ import sys
 import time
 import torch
 import torch.nn.functional as F
+import torch.multiprocessing as mp 
 import time
+import threading
 import random
 import bittensor
 
@@ -46,7 +48,7 @@ from munch import Munch
 from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
 from bittensor.utils.model_utils import ModelToolbox
-from nucleuss.gpt2 import GPT2LMNucleus
+from nuclei.gpt2 import GPT2LMNucleus
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 from os import listdir
 from torch.nn.utils import clip_grad_norm_
@@ -99,6 +101,13 @@ class Miner():
 
         # ---- Wallet ----
         self.wallet = bittensor.Wallet( self.config )
+        if not self.wallet.has_coldkeypub:
+            self.wallet.create_new_coldkey(n_words = 12, use_password = True )
+        if not self.wallet.has_hotkey:
+            self.wallet.create_new_hotkey(n_words = 12)
+
+        # ---- Bittensor ----
+        bittensor.init( with_config = self.config, with_wallet = self.wallet )
 
         # ---- Model ----
         self.model = GPT2LMNucleus( self.config )
@@ -150,7 +159,7 @@ class Miner():
         parser.add_argument('--miner.custom_dataset', default="~/.bittensor/bittensor/miners/TEXT/gpt2_genesis/genesis_dataset/", type=str, help='Custom datasets to train on.')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         GPT2LMNucleus.add_args(parser)
-        bittensor.neuron.Neuron.add_args(parser)
+        bittensor.Neuron.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
@@ -163,18 +172,7 @@ class Miner():
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
 
-    def init_bittensor(self):
-
-        # ---- Bittensor ----
-        # Created background objects.
-        bittensor.init( config = self.config, wallet = self.wallet )
-
-        # ---- Check/Create wallet ----
-        if not self.wallet.has_coldkeypub:
-            self.wallet.create_new_coldkey(n_words = 12, use_password = True )
-        if not self.wallet.has_hotkey:
-            self.wallet.create_new_hotkey(n_words = 12)
-
+    def start_bittensor(self):
         # --- Check chain connection----
         assert bittensor.subtensor.connect()
 
@@ -200,7 +198,7 @@ class Miner():
     def run (self):
 
         # --- Setup bittensor ----
-        self.init_bittensor()
+        self.start_bittensor()
 
         # --- Start background serving thread ----
         self.quit_serving = mp.Event()
@@ -266,7 +264,6 @@ class Miner():
             # ---- Forward pass ----
             inputs = self.dataset.nextbatch( self.config.miner.batch_size_train, bittensor.__tokenizer__() )
             output = self.model.remote_forward(
-                bittensor.neuron,
                 inputs.to(self.model.device),
                 training = True,
             )
@@ -312,7 +309,7 @@ class Miner():
     def serving_loop ( self ): 
         # ---- Loop until event is set -----
         logger.info('Serving thread started: ')
-        while not self.stop_serving.is_set():
+        while not self.quit_serving.is_set():
 
             # ---- Pull request ----
             logger.info('Axon:{}, waiting for query ... ', bittensor.axon.toString())
