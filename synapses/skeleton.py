@@ -38,7 +38,7 @@ class SkeletonSynapse(bittensor.synapse.Synapse):
     """ Simple feed forward NN for images.
     """
 
-    def __init__(self, config: Munch):
+    def __init__(self, config: Munch = None, **kwargs):
         r""" Init a new ffnn synapse module.
                 :param [config]: munch namespace config item.
                 :type [config]:  [:obj:`munch.Munch`](, `required`)
@@ -47,19 +47,20 @@ class SkeletonSynapse(bittensor.synapse.Synapse):
         super(SkeletonSynapse, self).__init__(config = config)
         if config == None:
             config = SkeletonSynapse.build_config()
-            
+        
+        bittensor.config.Config.update_with_kwargs(config.synapse, kwargs) 
+        SkeletonSynapse.check_config(config)
+        self.config = config
+        
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
         self.transform = Normalize((0.1307,), (0.3081,),  device=self.device)
-        self.adaptive_pool = nn.AdaptiveAvgPool2d((32, 32))
-        self.transform_conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
-        self.transform_bn1 = nn.BatchNorm2d(64)
-        self.last_planes = 64
-        self.transform_layer1 = self._make_layer(in_planes[0], out_planes[0], num_blocks[0], dense_depth[0], stride=1)
-        self.transform_layer2 = self._make_layer(in_planes[1], out_planes[1], num_blocks[1], dense_depth[1], stride=2)
-        self.transform_layer3 = self._make_layer(in_planes[2], out_planes[2], num_blocks[2], dense_depth[2], stride=1)
-        self.transform_layer4 = self._make_layer(in_planes[3], out_planes[3], num_blocks[3], dense_depth[3], stride=2)
-        self.transform_dim = (out_planes[3] * 4)+(((num_blocks[3]+1) * 4)*dense_depth[3])
+        self.transform_pool = nn.AdaptiveAvgPool2d((28, 28))
+        self.transform_conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.transform_conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.transform_drop = nn.Dropout2d()
+        self.transform_dim = 320
+        
         # context_layer: distills the remote_context from the transform layer.
         # [batch_size, transform_dim] -> [batch_size, bittensor.__network_dim__]
         self.context_layer1 = nn.Linear(self.transform_dim, 256)
@@ -91,15 +92,14 @@ class SkeletonSynapse(bittensor.synapse.Synapse):
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
-        parser.add_argument('--synapse.target_dim', default=10, type=int, 
-                            help='Final logit layer dimension. i.e. 10 for MNIST.')
+        parser.add_argument('--synapse.target_dim', default=10, type=int, help='Final logit layer dimension. i.e. 10 for CIFAR-10.')
         parser = PKMRouter.add_args(parser)
 
     @staticmethod   
     def check_config(config: Munch):
         assert config.synapse.target_dim > 0, "target dimension must be greater than 0."
-        config = PKMRouter.check_config(config)
-
+        config = PKMRouter.check_config(config)        
+        
     def forward_image(self, images: torch.Tensor):
         r""" Forward image inputs through the Skeleton synapse .
 
