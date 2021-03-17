@@ -59,6 +59,8 @@ class Miner():
         self.dataset = load_dataset('amazon_reviews_multi', 'en')['train']
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if self.config.synapse.device:
+            self.device = torch.device(self.config.synapse.device)
 
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
