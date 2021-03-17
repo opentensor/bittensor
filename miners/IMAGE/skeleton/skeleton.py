@@ -75,7 +75,7 @@ class Miner():
         self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
         if self.config.miner.record_log:
             logger.add(self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
-     
+
     @staticmethod
     def build_config() -> Munch:
         parser = argparse.ArgumentParser(); 
