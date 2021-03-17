@@ -102,10 +102,10 @@ class PKMRouter():
                     responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
                         Joined responses from each queried neuron.
 
-                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `required`): 
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n())`, `required`): 
                         weights for each neuron per example.
 
-                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `required`): 
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n())`, `required`): 
                         number of requests sent to each uid in this batch.
 
                     return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):

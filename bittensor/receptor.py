@@ -114,7 +114,7 @@ class Receptor(nn.Module):
                 bittensor.proto.ReturnCode.ResponseSerializationException: 0,
                 bittensor.proto.ReturnCode.RequestDeserializationException: 0,
                 bittensor.proto.ReturnCode.ResponseDeserializationException: 0,
-                bittensor.proto.ReturnCode.NotServingNucleus: 0,
+                bittensor.proto.ReturnCode.NotServingSynapse: 0,
                 bittensor.proto.ReturnCode.NucleusTimeout: 0,
                 bittensor.proto.ReturnCode.NucleusFull: 0,
                 bittensor.proto.ReturnCode.RequestIncompatibleVersion: 0,

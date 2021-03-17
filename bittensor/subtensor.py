@@ -203,7 +203,6 @@ class Subtensor:
             success (bool):
                 True on success. 
         """
-        logger.info('connect')
         try: 
             loop = asyncio.get_event_loop()
         except:

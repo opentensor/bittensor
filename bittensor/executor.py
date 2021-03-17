@@ -267,10 +267,10 @@ class Executor:
         t.align = 'l'
         total_stake = 0.0
         for neuron in neurons:
-            index = self.metagraph.state.index_for_uid[ neuron.uid ]
-            stake = float(self.metagraph.S[index])
-            rank = float(self.metagraph.R[index])
-            incentive = float(self.metagraph.I[index])
+            index = self.metagraph.get_state().index_for_uid[ neuron.uid ]
+            stake = float(self.metagraph.S()[index])
+            rank = float(self.metagraph.R()[index])
+            incentive = float(self.metagraph.I()[index])
             t.add_row([neuron.uid, neuron.ip, stake, rank, incentive])
             total_stake += neuron.stake.__float__()
         print(t.get_string())
@@ -279,9 +279,9 @@ class Executor:
     def save_state( self ):
         self.subtensor.connect()
         self.metagraph.sync()
-        filepath = os.path.expanduser('~/.bittensor/metagraph-at-block{}.txt'.format(self.metagraph.block))
+        filepath = os.path.expanduser('~/.bittensor/metagraph-at-block{}.txt'.format(self.metagraph.block()))
         print ('Saving metagraph.state to file: {}'.format( filepath ))
-        self.metagraph.state.write_to_file( filepath )
+        self.metagraph.get_state().write_to_file( filepath )
 
     def unstake_all ( self ):
         r""" Unstaked from all hotkeys associated with this wallet's coldkey.

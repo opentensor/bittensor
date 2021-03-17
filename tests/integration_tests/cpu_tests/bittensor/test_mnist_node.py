@@ -97,7 +97,7 @@ class Session():
             # ---- Loop forever ----
             start_time = time.time()
             self.epoch = -1; self.best_test_loss = math.inf; self.global_step = 0
-            self.weights = bittensor.metagraph.row # Trained weights.
+            self.weights = bittensor.metagraph.row() # Trained weights.
             while True:
                 self.epoch += 1
 

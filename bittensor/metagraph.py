@@ -102,22 +102,22 @@ class TorchChainState():
             block (:obj:`int`):
                 state block number.
 
-            uids (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+            uids (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n())`):
                 UIDs for each neuron ordered by index.
             
-            indices (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
-                Index of neurons, range(metagraph.n)
+            indices (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n())`):
+                Index of neurons, range(metagraph.n())
 
-            stake (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+            stake (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n())`):
                 Stake balance for each neuron ordered by index.
                 
-            lastemit (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+            lastemit (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n())`):
                 Last emission call for each neuron ordered by index.
 
-            weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+            weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n())`):
                 This neuron's weights W[,:]
 
-            W (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n, metagraph.n)`):
+            W (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n(), metagraph.n())`):
                 Full weight matrix on chain.
 
             neurons (List[bittensor.proto.Neuron]) 
@@ -283,7 +283,7 @@ class Metagraph():
         r""" Return the indices of each neuron in the chain state range(metagraph.n).
             
             Returns:
-                indices (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+                indices (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n())`):
                     returned indices for each neuron.
 
         """
@@ -292,7 +292,7 @@ class Metagraph():
     def uids(self) -> torch.LongTensor:
         r""" Returns unique ids for each neuron in the chain state.
             Returns:
-                uids (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+                uids (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n())`):
                     unique id for each neuron.
         """
         return self.state.uids
@@ -301,7 +301,7 @@ class Metagraph():
         r""" Returns the stake held by each known neuron.
             
             Returns:
-                stake (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                stake (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n())`):
                     stake of each known neuron.
 
         """
@@ -311,7 +311,7 @@ class Metagraph():
         r""" Returns the stake held by each known neuron.
              
              Returns:
-                S (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                S (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n())`):
                     stake of each known neuron.
         """
         return self.state.stake
@@ -329,7 +329,7 @@ class Metagraph():
         r""" Returns the incentive value from each known neuron to you.
             
             Returns:
-                incentive (:obj:`torch.FLoatTensor` of shape :obj:`(metagraph.n)`):
+                incentive (:obj:`torch.FLoatTensor` of shape :obj:`(metagraph.n())`):
                     inflation incentive from each known neuron.
         """
         self_col = self.col()
@@ -343,7 +343,7 @@ class Metagraph():
         r""" Returns the inflation incentive for each peer per block.
         
             Returns:
-                I (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                I (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n())`):
                     stake of each known neuron.
         """
         I =  (self.tau() * self.ranks()) / torch.sum(self.ranks())
@@ -354,7 +354,7 @@ class Metagraph():
         r""" Returns the ranks W^t * S
            
             Returns:
-                ranks (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                ranks (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n())`):
                     rank of each known neuron.
 
         """
@@ -370,7 +370,7 @@ class Metagraph():
         r""" Returns ranks for each known neuron in the graph.
              
              Returns:
-                rank (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                rank (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n())`):
                     rank of each known neuron.
         """
         return self.ranks()
@@ -379,7 +379,7 @@ class Metagraph():
         r""" Returns this neuron's row weights, i.e. weights to other neurons.
             
             Returns:
-                row: (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n)`):
+                row: (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n())`):
                     `w_{i,*}`
                 
         """
@@ -396,7 +396,7 @@ class Metagraph():
         r""" Returns this neuron's col weights, i.e. weights from other neurons to us.
             
              Returns:
-                col (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n)`):
+                col (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n())`):
                     `w_{*,i}`
         """
         if self.uid == None:
@@ -412,7 +412,7 @@ class Metagraph():
         r""" Full chain weight matrix for each neuron.
              
              Returns:
-                W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
+                W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n(), metagraph.n())`):
                     w_ij of each neuron.
         """
         return self.state.W
@@ -424,7 +424,7 @@ class Metagraph():
         r""" Return neuron endpoint information for each neuron.
             
             Returns:
-                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(metagraph.n, metagraph.n)`):
+                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(metagraph.n(), metagraph.n()`):
                     endpoint information for each neuron.
 
         """
