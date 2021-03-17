@@ -30,46 +30,13 @@ from bittensor.utils.balance import Balance
 
 class Executor:
 
-    def __init__(   
-            self, 
-            config: 'Munch' = None, 
-            wallet: 'bittensor.Wallet' = None,
-            subtensor: 'bittensor.Subtensor' = None,
-            metagraph: 'bittensor.Metagraph' = None,
-            **kwargs,
-        ):
-        r""" Initializes a new Metagraph chain interface.
-            Args:
-                config (:obj:`Munch`, `optional`): 
-                    neuron.Neuron.config()
-                wallet (:obj:`bittensor.Wallet`, `optional`):
-                    bittensor wallet with hotkey and coldkeypub.
-                subtensor (:obj:`bittensor.Subtensor`, `optional`):
-                    subtensor interface utility.
-                metagraph (:obj:`bittensor.Metagraph`, `optional`):
-                    bittensor metagraph object.
+    def __init__( self ):
+        r""" Initializes a new Executor.
         """
-        if config == None:
-            config = Executor.default_config()
-        bittensor.Config.update_with_kwargs(config, kwargs) 
-        Executor.check_config(config)
-        self.config = config
-
-        if wallet == None:
-            wallet = bittensor.Wallet( self.config )
-        self.wallet = wallet
-
-        # Only load subtensor if we need it.
-        if self.config.command in ["transfer", "unstake", "stake", "overview", "save_state"]:
-            if subtensor == None:
-                subtensor = bittensor.Subtensor( self.config, self.wallet )
-            self.subtensor = subtensor
-
-        if self.config.command in ["overview", "save_state"]:
-            if metagraph == None:
-                metagraph = bittensor.Metagraph( self.config, self.wallet, self.subtensor)
-            self.metagraph = metagraph
-            
+        self.wallet = bittensor.wallet
+        self.config = bittensor.config
+        self.subtensor = bittensor.subtensor
+    
 
     @staticmethod
     def default_config () -> Munch:

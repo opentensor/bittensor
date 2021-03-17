@@ -29,6 +29,7 @@ import traceback
 from termcolor import colored
 from types import SimpleNamespace
 from typing import Tuple, List, Optional
+from torch.autograd.function import once_differentiable
 from loguru import logger
 from munch import Munch
 
@@ -37,25 +38,316 @@ import bittensor.utils.stats as stat_utils
 import bittensor.serialization as serialization
 from bittensor.exceptions.handlers import rollbar
 
-class Dendrite(nn.Module):
-    r"""
-        Creates Forward and Backward calls to other neurons on the network. Maintains receptor TCP-RPC connections into the network.
-    """
+# dummy tensor that triggers autograd 
+DUMMY = torch.empty(0, requires_grad=True)
 
+class Dendrite(torch.autograd.Function):
+
+    def __init__(self ):
+        r""" Initializes a new Dendrite network entry point.
+        """
+        super().__init__()
+        self.config = bittensor.config
+        self.wallet = bittensor.wallet
+        if self.config.dendrite.multiprocessing == True:
+            # The internal dendrite object is process safe and stored in shared memory.
+            self._dendrite = bittensor.manager._Dendrite( config = self.config, wallet = self.wallet )
+        else:
+            self._dendrite = _Dendrite( config = self.config, wallet = self.wallet )
+
+    @staticmethod   
+    def default_config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        Dendrite.add_args(parser) 
+        config = bittensor.Config.to_config(parser); 
+        return config
+
+    @staticmethod   
+    def check_config(config: Munch):
+        pass
+
+    @staticmethod   
+    def add_args(parser: argparse.ArgumentParser):
+        _Dendrite.add_args( parser )
+        try:
+            # Can be called multiple times.
+            parser.add_argument('--dendrite.multiprocessing', default=False, type=bool, 
+                help='''Dendrite object is created in shared memory and can be concurrently accessed from multiple processes.''')
+
+            parser.add_argument('--dendrite.debug', default=False, type=bool, 
+                help='''If true, request information is logged. ''')
+        except:
+            pass
+
+    def __str__(self) -> str:
+        return self._dendrite.toString()
+    
+    def __full_str__(self) -> str:
+        return self._dendrite.fullToString()
+
+    def toString(self) -> str:
+        return self._dendrite.toString()
+
+    def fullToString(self) -> str:
+        return self._dendrite.fullToString()
+
+    def getReceptors(self) -> List['bittensor.Receptor']:
+        return self._dendrite.getReceptors()
+    
+    @staticmethod
+    def forward(
+            ctx, 
+            dendrite: 'bittensor.Dendrite',
+            dummy: torch.Tensor, 
+            neurons: List[bittensor.proto.Neuron], 
+            mode: bittensor.proto.Modality,
+            *inputs: torch.Tensor
+        ) -> Tuple[ torch.Tensor, ... ] :
+        """ Internal autograd-friendly Forward RPC call to a remote neurons.
+
+            Args:
+                ctx: (:obj:`torch.autograd.ctx`, `required`):
+                    Autograd context, saves state information between forward and backward calls. i.e. inputs for gradient computation.
+
+                dummy: (:obj:`torch.Tensor`, `required`):
+                    Dummy torch tensor used to ensure that torch.backward computation is called on this function 
+                    regardless of the input types.
+
+                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(shape)`, `required`):
+                    List of remote neurons which match length of inputs. Tensors inputs are sent forward to these neurons.
+
+                mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                    Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
+
+                inputs (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
+                    List of torch tensors to be sent to the associated endpoint neurons.
+
+            Returns:
+                codes (:obj:`torch.LongTensor, `required`):
+                    Return code associated with forward call.
+                
+                outputs (:obj:`List[torch.FloatTensor]`, torch.LongTensor]`, `required`):
+                    Results from each endpoint.
+        """
+        ctx.dendrite = dendrite
+        ctx.neurons, ctx.inputs, ctx.mode = neurons, inputs, mode
+        inputs = [ x.clone().detach() for x in inputs]
+        outputs, forward_codes, messages = ctx.dendrite._dendrite.forward(
+            neurons = neurons, 
+            inputs = inputs, 
+            mode = mode
+        )
+        if ctx.dendrite.config.dendrite.debug:
+            logger.info('forward messages {}', messages)
+        ctx.forward_codes = forward_codes
+        return (torch.tensor(forward_codes, dtype=torch.int64), *outputs)
+
+    @staticmethod
+    @once_differentiable
+    def backward( 
+            ctx, 
+            code_grads: torch.FloatTensor,
+            *output_grads: torch.FloatTensor
+        ) -> Tuple[ Optional[torch.Tensor], ... ]:
+        """ Internal autograd-friendly Backward RPC call to a remote neurons.
+
+            Args:
+                ctx: (:obj:`torch.autograd.ctx`, `required`):
+                    Autograd context, saves state information between forward and backward calls. i.e. inputs for gradient computation.
+  
+                grads (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
+                    Gradients of this function's outputs computed during the loss.backward() call.
+            
+            Returns:
+                DUMMY, None, None,
+                outputs (:obj:`List[torch.FloatTensor], `optional`):
+                    Gradient results for each input.
+
+        """
+        grads_cpu = [ x.clone().detach() for x in output_grads ]
+        input_grads, codes, messages =  ctx.dendrite._dendrite.backward (
+            neurons = ctx.neurons, 
+            inputs = ctx.inputs, 
+            grads = grads_cpu, 
+            codes = ctx.forward_codes, 
+            mode = ctx.mode
+        )
+        if ctx.dendrite.config.dendrite.debug:
+            logger.info('backward messages {}', messages)
+        return (None, None, None, None, *input_grads)
+
+    def _forward(
+                self,
+                neurons: List[bittensor.proto.Neuron],
+                inputs: List[torch.Tensor],
+                mode: bittensor.proto.Modality
+            ) -> Tuple[List[torch.Tensor], torch.LongTensor]:
+            r""" Internal Forward tensor inputs to neurons.
+
+                Args:
+                    neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                        List of remote neurons which match length of inputs. Tensors from inputs are sent forward to these neurons.
+
+                    inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [shape])`, `required`):
+                        List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and shape depending on the
+                        modality.
+
+                    mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                        Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
+
+                Returns:
+                    codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                        dendrite call return ops.
+
+                    responses (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Output encodings of inputs produced by remote neurons. Non-responses are zeroes of common shape.
+            """
+            forward_response = Dendrite.apply(
+                self,
+                DUMMY, 
+                neurons, 
+                mode,
+                *inputs
+            )
+            codes = forward_response[0]
+            tensors = forward_response[1:]
+            return codes, tensors
+
+    def forward_text(
+                self,
+                neurons: List[bittensor.proto.Neuron],
+                inputs: List[torch.Tensor]
+            ) -> Tuple[List[torch.Tensor], torch.Tensor]:
+            r""" Forward text inputs to neurons.
+
+                Args:
+                    neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                        List of remote neurons which match length of x. Tensors from inputs are sent forward to these neurons.
+
+                    inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len])`, `required`):
+                        List of tensors to send to corresponsing neurons. Tensors are text input_ids encoded using the
+                        bittensor tokenizer of shape [batch_size, sequence_len].
+
+                Returns:
+                    codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                        dendrite call return ops.
+
+                    responses (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Output encodings of inputs produced by remote neurons. Non-responses are zeroes of common shape.
+            """
+            if len(inputs[0].shape) != 2:
+                error_msg = 'Text inputs should have rank 2 with semantic shape: [batch_size, sequence_len], got {}'.format(inputs[0].shape)
+                raise ValueError(error_msg)
+            if len(inputs) != len(neurons):
+                error_msg = 'List of text inputs should have the same length as passed destination neurons, got {} and {}'.format(len(inputs), len(neurons))
+                raise ValueError(error_msg)
+            if len(inputs) < 1:
+                error_msg = 'Must pass more than 0 inputs, got {}'.format(len(inputs))
+                raise ValueError(error_msg)
+
+            return self._forward (
+                neurons = neurons, 
+                mode = bittensor.proto.Modality.TEXT,
+                inputs = inputs
+            )
+
+    def forward_image(
+                self,
+                neurons: List[bittensor.proto.Neuron],
+                inputs: List[torch.Tensor]
+            ) -> Tuple[List[torch.Tensor], torch.Tensor]:
+        r""" Forward image inputs to neurons.
+
+            Args:
+                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                    List of remote neurons which match length of x. Tensors from inputs are sent forward to these neurons.
+
+                inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, channels, rows, cols])`, `required`):
+                    List of image-tensors to send to corresponsing neurons. Tensors are images encoded using the
+                    torch.toTensor() or other encoding which produces the shape [batch_size, channels, rows, cols].
+
+            Returns:
+                codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                    dendrite call return ops.
+
+                responses (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`):
+                    Output encodings of images produced by remote neurons. Non-responses are zeroes of common shape.
+        """
+        # TODO(const): Checks across all tensors and other shape checks.
+        if len(inputs[0].shape) != 5:
+            error_msg = 'Image inputs should be rank 5 with semantic shape: [batch_size, sequence_dim, channels, rows, cols]'
+            raise ValueError(error_msg)
+        if len(inputs) != len(neurons):
+            error_msg = 'List of image inputs should have the same length as passed destination neurons, got {} and {}'.format(len(inputs), len(neurons))
+            raise ValueError(error_msg)
+        if len(inputs) < 1:
+            error_msg = 'Must pass more than 0 inputs, got {}'.format(len(inputs))
+            raise ValueError(error_msg)
+
+        return self._forward (
+                neurons = neurons, 
+                mode = bittensor.proto.Modality.TEXT,
+                inputs = inputs
+        )
+
+    def forward_tensor(
+                self,
+                neurons: List[bittensor.proto.Neuron],
+                inputs: List[torch.Tensor]
+            ) -> Tuple[List[torch.Tensor], torch.Tensor]:
+        r""" Forward tensor inputs to neurons.
+
+            Args:
+                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
+                    List of remote neurons which match length of x. Tensors from inputs are sent forward to these neurons.
+
+                inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, bittensor.__network_dim__])`, `required`):
+                    List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and
+                    with shape [batch_size, sequence_len, bittensor.__network_dim__].
+
+            Returns:
+                codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                    dendrite call return ops.
+
+                response (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.__network_dim__)]`, `required`):
+                    Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
+        """
+        if len(inputs[0].shape) != 3:
+            error_msg = 'Tensor inputs should be rank 3 with semantic shape: [batch_size, sequence_len, feature_len]'
+            raise ValueError(error_msg)
+        if len(inputs) != len(neurons):
+            error_msg = 'List of tensor inputs should have the same length as passed destination neurons, got {} and {}'.format(len(inputs), len(neurons))
+            raise ValueError(error_msg)
+        if inputs[0].shape[2] != bittensor.__network_dim__:
+            error_msg = 'Passed tensors must have last dimension {} got {}'.format(bittensor.__network_dim__, inputs[0].shape[2])
+            raise ValueError(error_msg)
+        if len(inputs) == 0:
+            error_msg = 'Must pass more than 0 inputs, got {}'.format(len(inputs))
+            raise ValueError(error_msg)
+
+        return self._forward (
+                neurons = neurons, 
+                mode = bittensor.proto.Modality.TEXT,
+                inputs = inputs
+        )
+
+class _Dendrite:
+    r"""
+        Process Safe Dendrite object, holds RPC connections to other nodes.
+    """
     def __init__(self, config: Munch = None, wallet: 'bittensor.Wallet' = None, **kwargs):
-        r""" Initializes a new Dendrite entry point.
+        r""" Initializes a new shared dendrite object.
             Args:
                 config (:obj:`Munch`, `optional`): 
                     dendrite.Dendrite.config()
                 wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
         """
-        super().__init__()
         # Config: Holds all config items for this items and those that are recursively defined. Specifically
         # config for you wallet and metagraph.
         if config == None:
-            config = Dendrite.default_config()
-        Dendrite.check_config( config )
+            config = _Dendrite.default_config()
+        _Dendrite.check_config( config )
         self.config = config
 
         # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
@@ -76,7 +368,7 @@ class Dendrite(nn.Module):
     @staticmethod   
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
-        Dendrite.add_args(parser) 
+        _Dendrite.add_args(parser) 
         config = bittensor.Config.to_config(parser); 
         return config
 
@@ -87,7 +379,7 @@ class Dendrite(nn.Module):
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
         bittensor.Receptor.add_args(parser)
-        return parser
+        pass
 
     def get_receptor_for_neuron( self, neuron: bittensor.proto.Neuron ) -> 'bittensor.Receptor':
         # ---- Find receptor or create one ---- 
