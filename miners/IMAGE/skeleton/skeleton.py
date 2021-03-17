@@ -70,17 +70,6 @@ class Miner():
         self.test_data = torchvision.datasets.MNIST(root = self.config.miner.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
         self.testloader = torch.utils.data.DataLoader(self.test_data, batch_size = self.config.miner.batch_size_test, shuffle=False, num_workers=2)
 
-        # self.train_data = torchvision.datasets.CIFAR10(
-        #     root=self.config.miner.root_dir + "datasets/", train=True, download=True, transform=transforms.Compose([
-        #     transforms.RandomCrop(32, padding=4),
-        #     transforms.RandomHorizontalFlip(),
-        #     transforms.ToTensor(),
-        # ]))
-        # self.trainloader = torch.utils.data.DataLoader(self.train_data, batch_size = self.config.miner.batch_size_train, shuffle=True, num_workers=2)
-        # self.test_data = torchvision.datasets.CIFAR10(root = self.config.miner.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
-        # self.testloader = torch.utils.data.DataLoader(self.test_data, batch_size = self.config.miner.batch_size_test, shuffle=False, num_workers=2)
-        # self.test_data = torchvision.datasets.CIFAR10(root = self.config.miner.root_dir + "datasets/", train=False, download=True, transform=transforms.ToTensor())
-        
         # ---- Logging ----
         self.global_step = 0
         self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
