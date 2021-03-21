@@ -38,22 +38,40 @@ import bittensor.utils.stats as stat_utils
 import bittensor.serialization as serialization
 from bittensor.exceptions.handlers import rollbar
 
+import multiprocessing.managers
+from multiprocessing.managers import BaseManager
+
+
 # dummy tensor that triggers autograd 
 DUMMY = torch.empty(0, requires_grad=True)
 
 class Dendrite(torch.autograd.Function):
 
-    def __init__(self ):
+    def __init__(
+            self, 
+            config: 'Munch' = None, 
+            wallet: 'bittensor.Wallet' = None,
+            **kwargs
+        ):
         r""" Initializes a new Dendrite network entry point.
         """
         super().__init__()
-        self.config = bittensor.config
-        self.wallet = bittensor.wallet
-        if self.config.dendrite.multiprocessing == True:
-            # The internal dendrite object is process safe and stored in shared memory.
-            self._dendrite = bittensor.manager._Dendrite( config = self.config, wallet = self.wallet )
-        else:
-            self._dendrite = _Dendrite( config = self.config, wallet = self.wallet )
+        if config == None:
+            config = Dendrite.default_config()
+        print (config)
+        bittensor.Config.update_with_kwargs(config.dendrite, kwargs) 
+        _Dendrite.check_config(config)
+        self.config = config
+
+        if wallet == None:
+            wallet = bittensor.Wallet( self.config )
+        self.wallet = wallet
+
+        # Create shared memory Dendrite.
+        BaseManager.register( '_Dendrite', bittensor.dendrite._Dendrite )
+        self._manager = BaseManager()
+        self._manager.start()
+        self._dendrite = self._manager._Dendrite( config = self.config, wallet = self.wallet )
 
     @staticmethod   
     def default_config() -> Munch:
@@ -68,16 +86,13 @@ class Dendrite(torch.autograd.Function):
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
+        bittensor.Wallet.add_args( parser )
         _Dendrite.add_args( parser )
-        try:
-            # Can be called multiple times.
-            parser.add_argument('--dendrite.multiprocessing', default=False, type=bool, 
-                help='''Dendrite object is created in shared memory and can be concurrently accessed from multiple processes.''')
+        parser.add_argument('--dendrite.multiprocessing', default=False, type=bool, 
+            help='''Dendrite object is created in shared memory and can be concurrently accessed from multiple processes.''')
 
-            parser.add_argument('--dendrite.debug', default=False, type=bool, 
-                help='''If true, request information is logged. ''')
-        except:
-            pass
+        parser.add_argument('--dendrite.debug', default=False, type=bool, 
+            help='''If true, request information is logged. ''')
 
     def __str__(self) -> str:
         return self._dendrite.toString()

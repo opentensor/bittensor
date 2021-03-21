@@ -52,103 +52,12 @@ from bittensor.config import Config as Config
 from bittensor.executor import Executor as Executor
 from bittensor.dendrite import Dendrite as Dendrite
 from bittensor.metagraph import Metagraph as Metagraph
-from bittensor.metagraph import ChainState as ChainState
-from bittensor.metagraph import TorchChainState as TorchChainState
-from bittensor.neuron import Neuron as Neuron
+from bittensor.metagraph import _Metagraph as _Metagraph
 from bittensor.nucleus import Nucleus as Nucleus
 from bittensor.receptor import Receptor as Receptor
 from bittensor.subtensor import Subtensor as Subtensor
 from bittensor.wallet import Wallet as Wallet
 import bittensor.substrate
-
-import multiprocessing.managers
-from multiprocessing.managers import BaseManager
-
-# Create shared memory Manager
-BaseManager.register('Subtensor', bittensor.Subtensor)
-BaseManager.register('Metagraph', bittensor.Metagraph)
-BaseManager.register('_Dendrite', bittensor.dendrite._Dendrite)
-BaseManager.register('Axon', bittensor.Axon)
-manager = BaseManager()
-manager.start()
-
-# Create instance components
-
-# An encapsulation of bittensor objects (metagraph, subtensor, axon, dendrite)
-neuron = None
-
-# Config object used by bittensor objects.
-config = None
-
-# Wallet used to initialize bittensor.
-wallet = None
-
-# Holds/updates the chain state as a torch object.
-metagraph = None
-
-# Maintain RPC connections to other node in the network. 
-dendrite = None
-
-# Recieves and queues messages for processing.
-axon = None
-
-# An interface to the chain endpoint.
-subtensor = None
-
-def help():
-    r""" Prints bittensor config arguments to stdout
-    """
-    parser = argparse.ArgumentParser(); 
-    bittensor.Neuron.add_args(parser)
-    parser.print_help()
-
-def default_config() -> Munch:
-    parser = argparse.ArgumentParser(); 
-    Neuron.add_args(parser) 
-    config = bittensor.Config.to_config(parser); 
-    return config
-
-def add_args(parser: argparse.ArgumentParser):
-    bittensor.Wallet.add_args( parser )
-    bittensor.Subtensor.add_args( parser )
-    bittensor.Metagraph.add_args( parser )
-    bittensor.Axon.add_args(parser)
-    bittensor.Dendrite.add_args( parser )
-    try:
-        parser.add_argument('--neuron.modality', default=0, type=int, 
-                            help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
-        parser.add_argument('--neuron.multiprocessing', default=False, type=bool, 
-                            help='''Are bittensor components process safe objects or run from a single thread.''')
-        parser.add_argument('--neuron.debug', default=False, type=bool, 
-                            help='''True if forward and backward calls print response messages to the screen''')
-    except:
-        pass
-
-def check_config(config: Munch):
-    bittensor.Axon.check_config( config )
-    bittensor.Subtensor.check_config( config )
-    bittensor.Metagraph.check_config( config )
-    bittensor.Dendrite.check_config( config )
-    assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
-
-
-def init( with_config: Munch = None, with_wallet: 'bittensor.Wallet' = None, **kwargs ):
-    r""" Creates bittensor background objects.
-    """
-    global neuron
-    global subtensor
-    global metagraph
-    global dendrite
-    global axon
-    global wallet
-    global config
-    neuron = Neuron(config = with_config, wallet = with_wallet, **kwargs)
-    axon = neuron.axon
-    metagraph = neuron.metagraph
-    dendrite = neuron.dendrite
-    subtensor = neuron.subtensor
-    wallet = neuron.wallet
-    config = neuron.config
 
 # Tokenizer
 # NOTE (const): tokenizers are guaranteed to improve and expand as time progresses. We version the tokenizer here.

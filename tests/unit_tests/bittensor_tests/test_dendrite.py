@@ -6,6 +6,7 @@ import time
 from munch import Munch
 from unittest.mock import MagicMock
 from torch.utils.tensorboard import SummaryWriter
+from torch.autograd import Variable
 import bittensor
 
 from bittensor.dendrite import _Dendrite
