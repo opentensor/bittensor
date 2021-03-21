@@ -4,6 +4,8 @@ import pytest
 from munch import Munch
 import bittensor
 from bittensor.substrate import Keypair
+import multiprocessing
+import time
 
 def test_create( ):
     metagraph = bittensor.Metagraph( bittensor.Subtensor() )
@@ -110,8 +112,39 @@ def test_sync():
     print (metagraph.uids_to_neurons(metagraph.uids()))
     print (metagraph.neurons_to_uids(metagraph.neurons()))
 
+def test_multprocessing_access():
+    metagraph = bittensor.Metagraph(
+        bittensor.Subtensor(
+            network = 'kusanagi'
+        )
+    )
+    metagraph.sync()
+    def call_methods( object ):
+        for _ in range(5):
+            metagraph.n()
+            metagraph.block()
+            metagraph.tau()
+            metagraph.uids()
+            metagraph.stake()
+            metagraph.lastemit()
+            metagraph.S()
+            metagraph.R()
+            metagraph.I()
+            metagraph.W()
+            metagraph.neurons()
+            metagraph.public_keys()
+            metagraph.uids_to_neurons(metagraph.uids())
+            metagraph.neurons_to_uids(metagraph.neurons())
+            time.sleep(0.5)
+
+    p1 = multiprocessing.Process(target=call_methods, args=(metagraph,))
+    p2 = multiprocessing.Process(target=call_methods, args=(metagraph,))
+    p1.start()
+    p2.start()
+    p1.join()
+    p2.join()
 
 if __name__ == "__main__":
-    test_sync()
+    test_multprocessing_access()
     #test_print_empty()
     #test_chain_state()
