@@ -131,33 +131,33 @@ class Axon(bittensor.grpc.BittensorServicer):
                     parser argument to append args to.
         """
         bittensor.Wallet.add_args(parser)
-        #try:
-        parser.add_argument('--axon.local_port', default=8091, type=int, 
-            help='''The port this axon endpoint is served on. i.e. 8091''')
-        parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, 
-            help='''The local ip this axon binds to. ie. 0.0.0.0''')
-        parser.add_argument('--axon.use_upnpc', default=False, type=bool, 
-            help='''If true this axon will attempt to open a port on your router using upnpc.''')
-        parser.add_argument('--axon.external_ip', default=None, type=str, 
-            help='''The remote IP served to chain.
-                    This ip is subscribed to the chain on boot and is the endpoint other peers see.
-                    By default this field is None and is collected by querying a remote server during check_config. 
-                    i.e. 207.12.233.1''')
-        parser.add_argument('--axon.external_port', default=None, type=str, 
-            help='''The remote port to subscribe on chain. By default this port is the same as local_port.
-                    If use_upnpc is true this port is determined after the port mapping''')
-        parser.add_argument('--axon.max_workers', default=10, type=int, 
-            help='''The maximum number connection handler threads working simultaneously on this endpoint. 
-                    The grpc server distributes new worker threads to service requests up to this number.''')
-        parser.add_argument('--axon.forward_processing_timeout', default=5, type=int, 
-            help='''Length of time allocated to the miner forward process for computing and returning responses
-                    back to the axon.''')
-        parser.add_argument('--axon.backward_processing_timeout', default=5, type=int, 
-            help='''Length of time allocated to the miner backward process for computing and returning responses
-                    back to the axon.''')
+        try:
+            parser.add_argument('--axon.local_port', default=8091, type=int, 
+                help='''The port this axon endpoint is served on. i.e. 8091''')
+            parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, 
+                help='''The local ip this axon binds to. ie. 0.0.0.0''')
+            parser.add_argument('--axon.use_upnpc', default=False, type=bool, 
+                help='''If true this axon will attempt to open a port on your router using upnpc.''')
+            parser.add_argument('--axon.external_ip', default=None, type=str, 
+                help='''The remote IP served to chain.
+                        This ip is subscribed to the chain on boot and is the endpoint other peers see.
+                        By default this field is None and is collected by querying a remote server during check_config. 
+                        i.e. 207.12.233.1''')
+            parser.add_argument('--axon.external_port', default=None, type=str, 
+                help='''The remote port to subscribe on chain. By default this port is the same as local_port.
+                        If use_upnpc is true this port is determined after the port mapping''')
+            parser.add_argument('--axon.max_workers', default=10, type=int, 
+                help='''The maximum number connection handler threads working simultaneously on this endpoint. 
+                        The grpc server distributes new worker threads to service requests up to this number.''')
+            parser.add_argument('--axon.forward_processing_timeout', default=5, type=int, 
+                help='''Length of time allocated to the miner forward process for computing and returning responses
+                        back to the axon.''')
+            parser.add_argument('--axon.backward_processing_timeout', default=5, type=int, 
+                help='''Length of time allocated to the miner backward process for computing and returning responses
+                        back to the axon.''')
 
-        # except:
-        #     pass
+        except:
+            pass
 
     @staticmethod   
     def check_config(config: Munch):
@@ -576,20 +576,20 @@ class Axon(bittensor.grpc.BittensorServicer):
                 self.stats.out_bytes_per_uid[request_uid] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
                 self.stats.qps_per_uid[request_uid] = stat_utils.timed_rolling_avg(1, 0.01)
 
-    def toString(self):
+    def __str__(self):
         total_in_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'red')
         total_out_bytes_str = colored('\u290A {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'green')
         qps_str = colored("{:.3f}".format(float(self.stats.qps.value)), 'blue')
         return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
     
-    def toTensorboard(self, tensorboard, global_step):
+    def __to_tensorboard__(self, tensorboard, global_step):
         total_in_bytes = (self.stats.total_in_bytes.value * 8)/1000
         total_out_bytes = (self.stats.total_out_bytes.value * 8)/1000
         tensorboard.add_scalar("Axon/total_in_bytes", total_in_bytes, global_step)
         tensorboard.add_scalar("Axon/total_in_bytes", total_out_bytes, global_step)
         tensorboard.add_scalar("Axon/Queries/Sec", self.stats.qps.value, global_step)
 
-    def fullToString(self):
+    def __full_string__(self):
         uids = list(self.stats.in_bytes_per_uid.keys())
         bytes_in = [avg.value * (8/1000) for avg in self.stats.in_bytes_per_uid.values()]
         bytes_out = [avg.value * (8/1000) for avg in self.stats.in_bytes_per_uid.values()]

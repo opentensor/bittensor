@@ -30,14 +30,18 @@ from bittensor.utils.balance import Balance
 
 class Executor:
 
-    def __init__( self ):
+    def __init__( self, config ):
         r""" Initializes a new Executor.
         """
-        self.wallet = bittensor.wallet
-        self.config = bittensor.config
-        self.subtensor = bittensor.subtensor
+        # config for the wallet, metagraph sub-objects.
+        if config == None:
+            config = Executor.default_config()
+        Executor.check_config( config )
+        self.config = config
+        self.wallet = bittensor.Wallet( cofnig = config )
+        self.subtensor = bittensor.Subtensor( config = config, wallet = self.wallet )
+        self.metagraph = bittensor.Metagraph( subtensor = self.subtensor )
     
-
     @staticmethod
     def default_config () -> Munch:
          # Build top level parser.
@@ -54,8 +58,6 @@ class Executor:
 
         overview_parser = cmd_parsers.add_parser('overview', 
             help='''Show account overview.''')
-        save_state_parser = cmd_parsers.add_parser('save_state', 
-            help='''Saves the metagraph state to a json file.''')
         transfer_parser = cmd_parsers.add_parser('transfer', 
             help='''Transfer Tao between accounts.''')
 
@@ -102,11 +104,6 @@ class Executor:
 
         # Fill arguments for the overview command
         bittensor.Subtensor.add_args( overview_parser )
-        bittensor.Metagraph.add_args( overview_parser )
-
-        # Fill argument for the save_state command
-        bittensor.Subtensor.add_args( save_state_parser )
-        bittensor.Metagraph.add_args( save_state_parser )
 
         # Fill arguments for unstake command. 
         unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
@@ -169,8 +166,6 @@ class Executor:
             self.stake()
         elif self.config.command == "overview":
             self.overview()
-        elif self.config.command == "save_state":
-            self.save_state()
         elif self.config.command == "new_coldkey":
             self.create_new_coldkey()
         elif self.config.command == "new_hotkey":
@@ -227,28 +222,23 @@ class Executor:
         balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
         neurons = self._associated_neurons()
 
-        print("BALANCE: %s : [%s]" % ( self.wallet.coldkey.ss58_address, balance ))
+        print("BALANCE: %s : [%s]" % ( self.wallet.coldkey.ss58_address, "\u03C4" + str(balance.tao) ))
         print()
         print("--===[[ STAKES ]]===--")
-        t = PrettyTable(["UID", "IP", "STAKE", "RANK", "INCENTIVE"])
+        t = PrettyTable(["UID", "IP", "STAKE (\u03C4)", "RANK (\u03C4)", "INCENTIVE (\u03C1)"])
         t.align = 'l'
         total_stake = 0.0
+        S = self.metagraph.S()
+        R = self.metagraph.R()
+        I = self.metagraph.I()
         for neuron in neurons:
-            index = self.metagraph.get_state().index_for_uid[ neuron.uid ]
-            stake = float(self.metagraph.S()[index])
-            rank = float(self.metagraph.R()[index])
-            incentive = float(self.metagraph.I()[index])
-            t.add_row([neuron.uid, neuron.ip, stake, rank, incentive])
+            stake = float(S[neuron.uid])
+            rank = float(R[neuron.uid])
+            incentive = float(I[neuron.uid])
+            t.add_row([neuron.uid, neuron.ip, "\u03C4" + str(stake / pow(10, 9)) , "\u03C4" + str(rank / pow(10, 9)), "\u03C1" + str(incentive * pow(10, 9))])
             total_stake += neuron.stake.__float__()
         print(t.get_string())
-        print("Total stake: ", total_stake)
-
-    def save_state( self ):
-        self.subtensor.connect()
-        self.metagraph.sync()
-        filepath = os.path.expanduser('~/.bittensor/metagraph-at-block{}.txt'.format(self.metagraph.block()))
-        print ('Saving metagraph.state to file: {}'.format( filepath ))
-        self.metagraph.get_state().write_to_file( filepath )
+        print("Total stake: ", "\u03C4" + str(total_stake))
 
     def unstake_all ( self ):
         r""" Unstaked from all hotkeys associated with this wallet's coldkey.

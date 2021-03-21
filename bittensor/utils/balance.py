@@ -19,7 +19,6 @@ class Balance:
     unit = "Tao"
     rao : int
     tao: float
-
     # Balance should always be an int and represent the satoshi of our token:rao
     def __init__(self, balance):
         self.rao = balance

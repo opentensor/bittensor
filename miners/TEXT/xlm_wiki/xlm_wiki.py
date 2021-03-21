@@ -49,7 +49,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 class Miner():
     """
-    Initializes, trains, and tests models created inside of 'bittensor/nucleuss'. 
+    Initializes, trains, and tests models created inside of 'bittensor/nucleus'. 
     During instantiation, this class takes a config as a [Munch](https://github.com/Infinidat/munch) object. 
     """
 
@@ -58,6 +58,7 @@ class Miner():
             config = Miner.default_config();       
         bittensor.Config.update_with_kwargs(config.miner, kwargs) 
         Miner.check_config(config)
+        logger.info(bittensor.Config.toString( config ))
         self.config = config
 
         # ---- Wallet ----
@@ -68,10 +69,13 @@ class Miner():
             self.wallet.create_new_hotkey(n_words = 12)
         
         # ---- Bittensor components ----
-        bittensor.init( with_config = self.config, with_wallet = self.wallet )
+        self.axon = bittensor.Axon( config = config, wallet = wallet )
+        self.dendrite = bittensor.Dendrite( config = config, wallet = wallet )
+        self.subtensor = bittensor.Subtensor( config = config, wallet = wallet )
+        self.metagraph = bittensor.Metagraph( subtensor = subtensor )
 
         # ---- Model ----
-        self.model = XLMNucleus( self.config )
+        self.model = XLMNucleus ( self.config, self.dendrite, self.metagraph )
 
         # ---- Serving thread ----
         self.quit_serving = None
@@ -93,7 +97,13 @@ class Miner():
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
         if self.config.miner.record_log:
-            logger.add(self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
+            filepath = self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),
+            logger.add (
+                filepath,
+                format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
+                rotation="500 MB",
+                retention="10 days"
+            )
     
     @staticmethod
     def default_config() -> Munch:
@@ -119,7 +129,9 @@ class Miner():
         parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         XLMNucleus.add_args(parser)
-        bittensor.Neuron.add_args(parser)
+        bittensor.Axon.add_args(parser)
+        bittensor.Dendrite.add_args(parser)
+        bittensor.Subtensor.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
@@ -129,81 +141,76 @@ class Miner():
         full_path = '{}/{}/{}'.format(config.miner.root_dir, config.miner.name, config.miner.trial_uid)
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
-            os.makedirs(config.miner.full_path)
-    
-    def start_bittensor(self):
-
-        # --- Check chain connection----
-        assert bittensor.subtensor.connect()
-
-        # --- Sync the metagraph ----
-        bittensor.metagraph.sync()
-
-        # --- Start our Axon server endpoint ----
-        bittensor.axon.start()
-
-        # Subscribe our endpoint to the chain.
-        subscribe_success = bittensor.subtensor.subscribe(
-            self.config.axon.external_ip, 
-            self.config.axon.external_port,
-            self.config.neuron.modality,
-            self.wallet.coldkeypub,
-            wait_for_finalization = True,
-            timeout = 4 * bittensor.__blocktime__,
-        )
-        if not subscribe_success:
-            raise ValueError('Failed to subscribe miner to the network')
+            os.makedirs(config.miner.full_path)       
     
     # --- Main loop ----
     def run (self):
 
-        # --- Init bittensor ---
-        self.start_bittensor()
+        # --- Connect to the chain. ---
+        if not self.subtensor.connect():
+            raise RuntimeError('Failed to connect miner to network: {}'.format(self.subtensor.config.network))
+
+        # --- Subscribe our endpoint ----
+        if not self.subtensor.subscribe(
+                self.config.axon.external_ip, 
+                self.config.axon.external_port,
+                self.config.neuron.modality,
+                self.wallet.coldkeypub,
+                wait_for_finalization = True,
+                timeout = 4 * bittensor.__blocktime__
+            )
+            raise RuntimeError('Failed to subscribe miner on network: {}'.format(self.subtensor.config.network))
+
+        # --- Start the serving endpoint ----
+        self.axon.start()
 
         # --- Start the serving thread ----
         self.quit_serving = mp.Event()
         self.serving_thread = threading.Thread( target = self.serving_loop,  name = 'serving', daemon=True)
         self.serving_thread.start()
 
-        # ---- Weights ----
-        self.row = bittensor.metagraph.row().to(self.model.device)
+        # --- Sync metagraph  ----
+        self.metagraph.sync()
+        self.weights = torch.rand([self.metagraph.n()])
 
-        # --- Run state ---
+        # --- Init running state ---
         self.global_step = 0
         self.best_train_loss = math.inf
 
         # --- Loop for epochs ---
         for self.epoch in range(self.config.miner.n_epochs):
             try:
-                # ---- Serve ----
-                bittensor.axon.serve( self.model )
-
                 # ---- Train Model ----
                 self.train()
                 self.scheduler.step()
                 
+                # ---- Catch NaNs ----
                 # If model has borked for some reason, we need to make sure it doesn't emit weights
                 # Instead, reload into previous version of model
                 if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
-                    self.model, self.optimizer = self.model_toolbox.load_model(self.config)
+                    self.model, self.optimizer = self.model_toolbox.load_model( self.config )
                     continue
 
-                # ---- Emitting weights ----
-                bittensor.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
+                # ---- Set weights on chain ----
+                self.subtensor.set_weights (
+                    uids = self.metagraph.uids(),
+                    weights = self.weights,
+                    wait_for_inclusion = False
+                )
 
                 # ---- Sync metagraph ----
-                bittensor.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.row = bittensor.metagraph.row().to(self.model.device)
+                self.metagraph.sync() # Pulls latest chain info.
+                self.weights = torch.nn.functional.pad(self.weights, pad = [0, self.metagraph.n() - self.weights.numel() ]) # Pads weights to the correct size.
 
                 # --- Epoch logs ----
-                print(bittensor.axon.fullToString())
-                print(bittensor.dendrite.fullToString())
-                print(bittensor.metagraph.toString())
+                print(self.axon)
+                print(self.dendrite)
+                print(self.metagraph)
 
                 # ---- Update Tensorboard ----
-                bittensor.dendrite.toTensorboard(self.tensorboard, self.global_step)
-                bittensor.metagraph.toTensorboard(self.tensorboard, self.global_step)
-                bittensor.axon.toTensorboard(self.tensorboard, self.global_step)
+                self.axon.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
             
                 # ---- Save best loss and model ----
                 if self.training_loss and self.epoch % 10 == 0 and self.training_loss < self.best_train_loss:
@@ -231,7 +238,7 @@ class Miner():
             # ---- Forward pass ----
             inputs = nextbatch(self.dataset, self.config.miner.batch_size_train, bittensor.__tokenizer__())
             output = self.model.remote_forward(
-                inputs.to(self.model.device),
+                inputs.to( self.model.device ),
                 training = True,
             )
 
@@ -243,8 +250,8 @@ class Miner():
 
             # ---- Train row weights ----
             batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
-            self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
-            self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
+            self.weights = (1 - 0.03) * self.weights + 0.03 * batch_weights # Moving avg update.
+            self.weights = F.normalize( self.weights, p = 1, dim = 0 ) # Ensure normalization.
 
             # ---- Step logs ----
             logger.info('GS: {} LS: {} Epoch: {}\tLocal Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}\tAxon: {}\tDendrite: {}',
@@ -254,8 +261,8 @@ class Miner():
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
                     colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
                     colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
-                    bittensor.axon.toString(),
-                    bittensor.dendrite.toString())
+                    self.axon,
+                    self.dendrite)
             logger.info('Codes: {}', output.router.return_codes.tolist())
             
             self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
@@ -277,8 +284,8 @@ class Miner():
         while not self.quit_serving.is_set():
 
             # ---- Pull request ----
-            logger.info('Axon:{}, waiting for query ... ', bittensor.axon.toString())
-            pong, pubkey, inputs, modality = bittensor.axon.next_forward_item( timeout = 10.0 )
+            logger.info('Axon:{}, waiting for query ... ', self.axon.toString())
+            pong, pubkey, inputs, modality = self.axon.next_forward_item( timeout = 10.0 )
 
             # ---- Process request ----
             if None not in [ pong, pubkey, inputs, modality]:
@@ -305,5 +312,4 @@ class Miner():
 if __name__ == "__main__":
     # ---- Build and Run ----
     miner = Miner()
-    logger.info(bittensor.Config.toString(miner.config))
     miner.run()

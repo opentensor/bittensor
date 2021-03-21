@@ -3,6 +3,8 @@ import torch
 import pytest
 from unittest.mock import MagicMock
 from torch.autograd import Variable
+import multiprocessing
+import time
 
 dendrite = bittensor.Dendrite()
 dendrite._dendrite.forward = MagicMock(return_value = [torch.tensor([]), [0], ['']]) 
@@ -139,6 +141,32 @@ def test_dendrite_backward_multiple():
     tensors[2].backward()
     assert list(x3.grad.shape) == [1, 1]
     assert x3.grad.tolist() == y3.tolist()
+
+
+def test_multprocessing_forward():
+    dendrite = bittensor.Dendrite()
+    dendrite._dendrite.forward = MagicMock(return_value = [torch.tensor([]), [0], ['']]) 
+    dendrite._dendrite.backward = MagicMock(return_value = [torch.tensor([]), [0], ['']]) 
+    neuron_pb2 = bittensor.proto.Neuron(
+        version = bittensor.__version__,
+        public_key = dendrite.wallet.hotkey.public_key,
+        address = '0.0.0.0',
+        port = 12345,
+    )
+    def call_forwad_multiple_times( object ):
+        for _ in range(5):
+            x = torch.rand(3, 3, bittensor.__network_dim__)
+            y = torch.zeros([3, 3, bittensor.__network_dim__])
+            dendrite._dendrite.forward = MagicMock(return_value = [ [y, y, y] , [0, 0, 0], ['','','']]) 
+            codes, tensors = dendrite.forward_tensor( neurons=[neuron_pb2, neuron_pb2, neuron_pb2], inputs=[x, x, x])
+
+
+    p1 = multiprocessing.Process(target=call_forwad_multiple_times, args=(dendrite,))
+    p2 = multiprocessing.Process(target=call_forwad_multiple_times, args=(dendrite,))
+    p1.start()
+    p2.start()
+    p1.join()
+    p2.join()
 
 
 if __name__  == "__main__":

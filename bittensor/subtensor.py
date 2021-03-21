@@ -18,6 +18,7 @@ import argparse
 import asyncio
 import random
 import time
+import torch
 
 from munch import Munch
 from loguru import logger
@@ -89,7 +90,7 @@ class Subtensor:
     def add_args(parser: argparse.ArgumentParser):
         bittensor.Wallet.add_args( parser )
         try:
-            parser.add_argument('--subtensor.network', default='akira', type=str, 
+            parser.add_argument('--subtensor.network', default='kusanagi', type=str, 
                                 help='''The subtensor network flag. The likely choices are:
                                         -- akira (testing network)
                                         -- kusanagi (main network)
@@ -690,18 +691,18 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     def set_weights(
             self, 
-            destinations, 
-            values, 
+            uids: torch.LongTensor,
+            weights: torch.FloatTensor,
             wait_for_inclusion:bool = False, 
             wait_for_finalization:bool = False,
             timeout: int = 3 * bittensor.__blocktime__
         ) -> bool:
         r""" Sets the given weights and values on chain for wallet hotkey account.
         Args:
-            destinations (List[int]):
+            uids (torch.LongTensor):
                 uint64 uids of destination neurons.
-            values (List[int]):
-                u32 max encoded floating point weights.
+            weights (torch.FloatTensor):
+                weights to set which must floats and coorespond to the passed uids
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true, 
                 or returns false if the extrinsic fails to enter the block within the timeout.
@@ -721,22 +722,22 @@ To run a local node (See: docs/running_a_validator.md) \n
             loop = asyncio.new_event_loop()   
             asyncio.set_event_loop(loop)   
         loop.set_debug(enabled=True) 
-        return loop.run_until_complete(self.async_set_weights(destinations, values, wait_for_inclusion, wait_for_finalization, timeout))
+        return loop.run_until_complete(self.async_set_weights(uids, weights, wait_for_inclusion, wait_for_finalization, timeout))
 
     async def async_set_weights(
             self, 
-            destinations, 
-            values, 
+            uids: torch.LongTensor,
+            weights: torch.FloatTensor,
             wait_for_inclusion:bool = False, 
             wait_for_finalization:bool = False,
             timeout: int = 3 * bittensor.__blocktime__
         ) -> bool:
         r""" Sets the given weights and values on chain for wallet hotkey account.
         Args:
-            destinations (List[int]):
+            uids (torch.LongTensor):
                 uint64 uids of destination neurons.
-            values (List[int]):
-                u32 max encoded floating point weights.
+            weights (torch.FloatTensor):
+                weights to set which must floats and correspond to the passed uids.
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true, 
                 or returns false if the extrinsic fails to enter the block within the timeout.
@@ -750,11 +751,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or uncluded in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
+        weight_uids, weight_vals = bittensor.utils.weight_utils.convert_weights_and_uids_for_emit( uids, weights )
         await self.async_check_connection()
         call = await self.substrate.compose_call(
             call_module='SubtensorModule',
             call_function='set_weights',
-            call_params = {'dests': destinations, 'weights': values}
+            call_params = {'dests': weight_uids, 'weights': weight_vals}
         )
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair = self.wallet.hotkey)
         return await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
