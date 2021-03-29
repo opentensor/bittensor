@@ -40,6 +40,7 @@ import torch.nn.functional as F
 import torch.multiprocessing as mp 
 import time
 import threading
+import traceback
 import random
 import bittensor
 
@@ -94,9 +95,10 @@ class Miner():
 
     def __init__(self, config: Munch = None, **kwargs):
         if config == None:
-            config = Miner.default_config();       
-        bittensor.Config.update_with_kwargs(config.miner, kwargs)
+            config = Miner.default_config( );       
+        bittensor.Config.update_with_kwargs(config.miner, kwargs) 
         Miner.check_config(config)
+        logger.info(bittensor.Config.toString( config ))
         self.config = config
 
         # ---- Wallet ----
@@ -105,12 +107,17 @@ class Miner():
             self.wallet.create_new_coldkey(n_words = 12, use_password = True )
         if not self.wallet.has_hotkey:
             self.wallet.create_new_hotkey(n_words = 12)
-
-        # ---- Bittensor ----
-        bittensor.init( with_config = self.config, with_wallet = self.wallet )
+        
+        # ---- Bittensor components ----
+        self.axon = bittensor.Axon( config = self.config, wallet = self.wallet )
+        self.dendrite = bittensor.Dendrite( config = self.config, wallet = self.wallet )
+        self.subtensor = bittensor.Subtensor( config = self.config, wallet = self.wallet )
+        self.metagraph = bittensor.Metagraph( subtensor = self.subtensor )
 
         # ---- Model ----
         self.model = GPT2LMNucleus( self.config )
+        self.model.router.set_dendrite( self.dendrite )
+        self.model.router.set_metagraph( self.metagraph )
 
         # ---- Serving thread ----
         self.quit_serving = None
@@ -128,10 +135,19 @@ class Miner():
         # The dataset used to train Adam and his first 100 children.
         self.dataset = AdamCorpus(self.config.miner.custom_dataset)
 
+        # ---- Tokenizer ----
+        self.tokenizer = bittensor.__tokenizer__()
+
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
         if self.config.miner.record_log:
-            logger.add(self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}")
+            filepath = self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),
+            logger.add (
+                filepath,
+                format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
+                rotation="500 MB",
+                retention="10 days"
+            )
 
     @staticmethod
     def default_config() -> Munch:
@@ -156,10 +172,12 @@ class Miner():
         parser.add_argument('--miner.name', default='gpt2-genesis', type=str, help='Trials for this miner go in miner.root / miner.name')
         parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
         parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
-        parser.add_argument('--miner.custom_dataset', default="~/.bittensor/bittensor/miners/TEXT/gpt2_genesis/genesis_dataset/", type=str, help='Custom datasets to train on.')
+        parser.add_argument('--miner.custom_dataset', default= os.path.abspath(os.getcwd()) + "/miners/TEXT/gpt2_genesis/genesis_dataset/", type=str, help='Custom datasets to train on.')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         GPT2LMNucleus.add_args(parser)
-        bittensor.Neuron.add_args(parser)
+        bittensor.Axon.add_args(parser)
+        bittensor.Dendrite.add_args(parser)
+        bittensor.Subtensor.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
@@ -172,79 +190,80 @@ class Miner():
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
 
-    def start_bittensor(self):
-        # --- Check chain connection----
-        assert bittensor.subtensor.connect()
-
-        # --- Sync the metagraph ----
-        bittensor.metagraph.sync()
-
-        # --- Start our Axon server endpoint ----
-        bittensor.axon.start()
-
-        # Subscribe our endpoint to the chain.
-        subscribe_success = bittensor.subtensor.subscribe(
-            self.config.axon.external_ip, 
-            self.config.axon.external_port,
-            self.config.neuron.modality,
-            self.wallet.coldkeypub,
-            wait_for_finalization = True,
-            timeout = 4 * bittensor.__blocktime__,
-        )
-        if not subscribe_success:
-            raise ValueError('Failed to subscribe miner to the network')
-
     # --- Main loop ----
     def run (self):
 
-        # --- Setup bittensor ----
-        self.start_bittensor()
+        # --- Connect to the chain. ---
+        if not self.subtensor.connect():
+            raise RuntimeError('Failed to connect miner to network: {}'.format(self.subtensor.config.network))
 
-        # --- Start background serving thread ----
+        # --- Subscribe our endpoint ----
+        if not self.subtensor.subscribe(
+                self.config.axon.external_ip, 
+            self.config.axon.external_ip, 
+                self.config.axon.external_ip, 
+                self.config.axon.external_port,
+                bittensor.proto.Modality.TEXT,
+                self.wallet.coldkeypub,
+                wait_for_finalization = True,
+                timeout = 4 * bittensor.__blocktime__):
+            raise RuntimeError('Failed to subscribe miner on network: {}'.format(self.subtensor.config.network))
+
+        # --- Start the serving endpoint ----
+        self.axon.start()
+
+        # --- Start the serving thread ----
         self.quit_serving = mp.Event()
         self.serving_thread = threading.Thread( target = self.serving_loop,  name = 'serving', daemon=True)
         self.serving_thread.start()
 
-        # ---- Weights ----
-        self.row = bittensor.metagraph.row().to(self.model.device)
+        # --- Sync metagraph  ----
+        self.metagraph.sync()
+        self.weights = torch.rand([self.metagraph.n()])
 
-        # --- Run state ---
+        # --- Init running state ---
         self.global_step = 0
         self.best_train_loss = math.inf
 
         # --- Loop for epochs ---
         for self.epoch in range(self.config.miner.n_epochs):
+            try:
+                # ---- Train Model ----
+                self.train()
+                self.scheduler.step()
+                
+                # ---- Catch NaNs ----
+                # If model has borked for some reason, we need to make sure it doesn't emit weights
+                # Instead, reload into previous version of model
+                if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
+                    self.model, self.optimizer = self.model_toolbox.load_model( self.config )
+                    self.model.router.set_dendrite( self.dendrite )
+                    self.model.router.set_metagraph( self.metagraph )
+                    continue
 
-            # ---- Train Model ----
-            self.train()
-            self.scheduler.step()
+                # ---- Set weights on chain ----
+                self.subtensor.set_weights (
+                    uids = self.metagraph.uids(),
+                    weights = self.weights,
+                    wait_for_inclusion = False
+                )
 
-            # If model has borked for some reason, we need to make sure it doesn't emit weights
-            # Instead, reload into previous version of model
-            if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
-                self.model, self.optimizer = self.model_toolbox.load_model(self.config)
-                continue
+                # ---- Sync metagraph ----
+                self.metagraph.sync() # Pulls latest chain info.
+                self.weights = torch.nn.functional.pad(self.weights, pad = [0, self.metagraph.n() - self.weights.numel() ]) # Pads weights to the correct size.
 
-            # ---- Emitting weights ----
-            bittensor.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
+                # --- Epoch logs ----
+                print(self.axon)
+                print(self.dendrite)
+                print(self.metagraph)
 
-            # ---- Sync metagraph ----
-            bittensor.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-            self.row = bittensor.metagraph.row().to(self.model.device)
-
-            # --- Epoch logs ----
-            print(bittensor.axon.fullToString())
-            print(bittensor.dendrite.fullToString())
-            print(bittensor.metagraph.toString())
-
-            # ---- Update Tensorboard ----
-            bittensor.dendrite.toTensorboard(self.tensorboard, self.global_step)
-            bittensor.metagraph.toTensorboard(self.tensorboard, self.global_step)
-            bittensor.axon.toTensorboard(self.tensorboard, self.global_step)
-
-            # ---- Save best loss and model ----
-            if self.training_loss and self.epoch % 10 == 0:
-                if self.training_loss < self.best_train_loss:
+                # ---- Update Tensorboard ----
+                self.axon.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
+            
+                # ---- Save best loss and model ----
+                if self.training_loss and self.epoch % 10 == 0 and self.training_loss < self.best_train_loss:
                     self.best_train_loss = self.training_loss / 10 # update best train loss
                     self.model_toolbox.save_model(
                         self.config.miner.full_path,
@@ -255,31 +274,34 @@ class Miner():
                             'optimizer_state_dict': self.optimizer.state_dict(),
                         }
                     )
-                    self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
+                    self.tensorboard.add_scalar('Miner/Train_loss', self.training_loss, self.global_step)
+
+            # --- Catch Errors ----
+            except Exception as e:
+                logger.error('Exception in training script with error: {}, {}', e, traceback.format_exc())
+                logger.info('Continuing to train.')
 
     # ---- Train Epoch ----
     def train(self):
         self.training_loss = 0.0
         for local_step in range(self.config.miner.epoch_length):
             # ---- Forward pass ----
-            inputs = self.dataset.nextbatch( self.config.miner.batch_size_train, bittensor.__tokenizer__() )
+            inputs = self.dataset.nextbatch( self.config.miner.batch_size_train, self.tokenizer )
             output = self.model.remote_forward(
-                inputs.to(self.model.device),
+                inputs.to( self.model.device ),
                 training = True,
             )
 
             # ---- Backward pass ----
             loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
             loss.backward() # Accumulates gradients on the model.
-            clip_grad_norm_(self.model.parameters(), self.config.miner.clip_gradients) # clip model gradients
             self.optimizer.step() # Applies accumulated gradients.
             self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
             # ---- Train row weights ----
             batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
-            self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
-            self.row = torch.log( torch.abs( self.row ) + 1 )
-            self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
+            self.weights = (1 - 0.03) * self.weights + 0.03 * batch_weights # Moving avg update.
+            self.weights = F.normalize( self.weights, p = 1, dim = 0 ) # Ensure normalization.
 
             # ---- Step logs ----
             logger.info('GS: {} LS: {} Epoch: {}\tLocal Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}\tAxon: {}\tDendrite: {}',
@@ -289,13 +311,13 @@ class Miner():
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
                     colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
                     colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
-                    bittensor.axon.toString(),
-                    bittensor.dendrite.toString())
+                    self.axon,
+                    self.dendrite)
             logger.info('Codes: {}', output.router.return_codes.tolist())
-
-            self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
-            self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
-            self.tensorboard.add_scalar('Neuron/Dloss', output.distillation_loss.item(), self.global_step)
+            
+            self.tensorboard.add_scalar('Miner/Rloss', output.remote_target_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('Miner/Lloss', output.local_target_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('Miner/Dloss', output.distillation_loss.item(), self.global_step)
 
             # ---- Step increments ----
             self.global_step += 1
@@ -312,8 +334,8 @@ class Miner():
         while not self.quit_serving.is_set():
 
             # ---- Pull request ----
-            logger.info('Axon:{}, waiting for query ... ', bittensor.axon.toString())
-            pong, pubkey, inputs, modality = bittensor.axon.next_forward_item( timeout = 10.0 )
+            logger.info('Axon:{}, waiting for query ... ', self.axon)
+            pong, pubkey, inputs, modality = self.axon.next_forward_item( timeout = 10.0 )
 
             # ---- Process request ----
             if None not in [ pong, pubkey, inputs, modality]:

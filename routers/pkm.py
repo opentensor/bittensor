@@ -65,6 +65,28 @@ class PKMRouter():
         # Query -> Keys
         self.projection = nn.Linear(query_dim, self.config.router.key_dim, bias=True).to(self.device)
 
+        # Bittensor components to be used for routing.
+        self._metagraph = None
+        self._dendrite = None
+
+    @property
+    def metagraph(self):
+        if self._metagraph == None:
+            raise ValueError('self._metagraph == None, must call set_metagraph before accessing this property')
+        return self._metagraph
+
+    @property
+    def dendrite(self):
+        if self._dendrite == None:
+            raise ValueError('self._dendrite == None, must call set_dendrite before accessing this property')
+        return self._dendrite
+
+    def set_metagraph(self, metagraph: 'bittensor.Metagraph'):
+        self._metagraph = metagraph
+
+    def set_dendrite(self, dendrite: 'bittensor.Dendrite'):
+        self._dendrite = dendrite
+
     @staticmethod   
     def default_config() -> Munch:
         parser = argparse.ArgumentParser()
@@ -119,12 +141,12 @@ class PKMRouter():
 
         # all_uids: (torch.LongTensor): unique keys for each peer neuron.
         # all_uids.shape = [metagraph.n]
-        all_uids = bittensor.metagraph.uids() # Returns a list of neuron uids.
+        all_uids = self.metagraph.uids() # Returns a list of neuron uids.
 
         # filtered_uids: (torch.LongTensor): keys filtered by emit.
         # all_uids.shape = [metagraph.n]
-        current_block = bittensor.metagraph.block()
-        lastemit = bittensor.metagraph.lastemit()
+        current_block = self.metagraph.block()
+        lastemit = self.metagraph.lastemit()
         staleness = (current_block - lastemit)
         filtered_uids = all_uids[torch.where(staleness < self.config.router.stale_emit_filter)] 
         n_uids = torch.numel(filtered_uids)
@@ -132,7 +154,7 @@ class PKMRouter():
         # Return if there are no uids to query
         if n_uids == 0:
             # Return nill responses.
-            n = bittensor.metagraph.n()
+            n = self.metagraph.n()
             output.response = torch.zeros(size=(inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
             output.weights = torch.zeros(size=(inputs.shape[0], n))
             output.requests_sizes = torch.zeros(n)
@@ -197,18 +219,18 @@ class PKMRouter():
         
         # neurons: List[bittensor.proto.Neuron]: endpoint information for filtered keys.
         # neurons.shape = n_uids * [ bittensor.proto.Neuron ]
-        neurons = bittensor.metagraph.uids_to_neurons(filtered_uids)
+        neurons = self.metagraph.uids_to_neurons(filtered_uids)
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
         if modality == bittensor.proto.Modality.TEXT:
-            codes, responses = bittensor.forward_text(neurons, requests)
+            codes, responses = self.dendrite.forward_text(neurons, requests)
 
         elif modality == bittensor.proto.Modality.IMAGE:
-            codes, responses = bittensor.forward_image(neurons, requests)
+            codes, responses = self.dendrite.forward_image(neurons, requests)
 
         elif modality == bittensor.proto.Modality.TENSOR:
-            codes, responses = bittensor.forward_tensor(neurons, requests)
+            codes, responses = self.dendrite.forward_tensor(neurons, requests)
 
         else:
             raise NotImplementedError
@@ -246,18 +268,18 @@ class PKMRouter():
 
         # indices: (torch.LongTensor): indices of uids queried during this forward call.
         # indices = [batch_size, metagraph.n]
-        indices = bittensor.metagraph.uids_to_indices(filtered_uids)
+        indices = self.metagraph.uids_to_indices(filtered_uids)
 
         # weights: (torch.LongTensor): weights scattered onto uids per example.
         # weights.shape = [batch_size, metagraph.n]
-        weights = torch.zeros(inputs.shape[0], bittensor.metagraph.n())
+        weights = torch.zeros(inputs.shape[0], self.metagraph.n())
         weights = weights.to(self.device)
         indices = indices.to(self.device)
         weights.scatter_(1, indices.repeat(batch_size, 1), gates)
 
         # filled_sizes: (torch.LongTensor): number of examples queried to each uid.
         # filled_sizes.shape = [metagraph.n]
-        filled_request_sizes = torch.zeros(bittensor.metagraph.n(), dtype=torch.long).to(self.device)
+        filled_request_sizes = torch.zeros(self.metagraph.n(), dtype=torch.long).to(self.device)
         request_sizes = torch.tensor(request_sizes).to(self.device)
         filled_request_sizes.scatter_(0, indices, torch.tensor(request_sizes).to(self.device))
 

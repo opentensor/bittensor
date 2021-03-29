@@ -111,9 +111,9 @@ class Axon(bittensor.grpc.BittensorServicer):
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_out_bytes= stat_utils.timed_rolling_avg(0.0, 0.01),
-            in_bytes_per_uid = {},
-            out_bytes_per_uid = {},
-            qps_per_uid = {},
+            in_bytes_per_pubkey = {},
+            out_bytes_per_pubkey = {},
+            qps_per_pubkey = {},
         )
 
     @staticmethod   
@@ -507,7 +507,6 @@ class Axon(bittensor.grpc.BittensorServicer):
             message = "Passed gradients must have rank 3 but got {}".format(len(grads_dy.shape))
             return None, bittensor.proto.ReturnCode.RequestShapeException, message
 
-        logger.info('{}{}', grads_dy.shape, inputs_x.shape)
         if grads_dy.shape[0] != inputs_x.shape[0] or grads_dy.shape[1] != inputs_x.shape[1]:
             message = "Passed gradients must same first and second dimension as passed inputs got shapes {} and {}".format(grads_dy.shape, inputs_x.shape)
             return None, bittensor.proto.ReturnCode.RequestShapeException, message
@@ -519,6 +518,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             grads_dy = grads_dy, 
             modality = modality_x
         )
+        logger.info('{},{},{}', outputs, code, message)
         if code != bittensor.proto.ReturnCode.Success:
             return None, code, message
 
@@ -539,17 +539,15 @@ class Axon(bittensor.grpc.BittensorServicer):
         out_bytes = sys.getsizeof(response)
         self.stats.total_in_bytes.update(in_bytes)
         self.stats.total_out_bytes.update(out_bytes)
-        if request.public_key in bittensor.metagraph.get_state().uid_for_pubkey:
-            # ---- Check we have a stats column for this peer
-            request_uid = bittensor.metagraph.get_state().uid_for_pubkey[request.public_key]
-            if request_uid in self.stats.in_bytes_per_uid:
-                self.stats.in_bytes_per_uid[request_uid].update(in_bytes)
-                self.stats.out_bytes_per_uid[request_uid].update(out_bytes)
-                self.stats.qps_per_uid[request_uid].update(1)
-            else:
-                self.stats.in_bytes_per_uid[request_uid] = stat_utils.timed_rolling_avg(in_bytes, 0.01)
-                self.stats.out_bytes_per_uid[request_uid] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
-                self.stats.qps_per_uid[request_uid] = stat_utils.timed_rolling_avg(1, 0.01)
+        # ---- Check we have a stats column for this peer
+        if request.public_key in self.stats.in_bytes_per_pubkey:
+            self.stats.in_bytes_per_pubkey[request.public_key].update(in_bytes)
+            self.stats.out_bytes_per_pubkey[request.public_key].update(out_bytes)
+            self.stats.qps_per_pubkey[request.public_key].update(1)
+        else:
+            self.stats.in_bytes_per_pubkey[request.public_key] = stat_utils.timed_rolling_avg(in_bytes, 0.01)
+            self.stats.out_bytes_per_pubkey[request.public_key] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
+            self.stats.qps_per_pubkey[request.public_key] = stat_utils.timed_rolling_avg(1, 0.01)
 
     def __str__(self):
         total_in_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'red')
@@ -565,12 +563,12 @@ class Axon(bittensor.grpc.BittensorServicer):
         tensorboard.add_scalar("Axon/Queries/Sec", self.stats.qps.value, global_step)
 
     def __full_string__(self):
-        uids = list(self.stats.in_bytes_per_uid.keys())
-        bytes_in = [avg.value * (8/1000) for avg in self.stats.in_bytes_per_uid.values()]
-        bytes_out = [avg.value * (8/1000) for avg in self.stats.in_bytes_per_uid.values()]
-        qps = [qps.value for qps in self.stats.qps_per_uid.values()]
+        pubkeys = list(self.stats.in_bytes_per_pubkey.keys())
+        bytes_in = [avg.value * (8/1000) for avg in self.stats.in_bytes_per_pubkey.values()]
+        bytes_out = [avg.value * (8/1000) for avg in self.stats.out_bytes_per_pubkey.values()]
+        qps = [qps.value for qps in self.stats.qps_per_pubkey.values()]
         rows = [bytes_out, bytes_in, qps]
-        df = pd.DataFrame(rows, columns=uids)
+        df = pd.DataFrame(rows, columns=pubkeys)
         df = df.rename(index={df.index[0]: colored('\u290A kB/s', 'green')})
         df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
         df = df.rename(index={df.index[2]: colored('Q/s', 'blue')})

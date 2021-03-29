@@ -62,7 +62,8 @@ class Config:
     def update_split_with_kwargs( config:Munch, kwargs ):
         for key, val in kwargs.items():
             prefix = key.split('_')[0]
-            sufix = key.split('_')[1]
+            sufix = key.split('_')[1:]
+            sufix = '_'.join(sufix)
             if prefix in config and type(config[prefix]) == type(Munch()):
                 config[prefix][sufix] = val
             

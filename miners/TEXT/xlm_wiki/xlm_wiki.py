@@ -69,13 +69,15 @@ class Miner():
             self.wallet.create_new_hotkey(n_words = 12)
         
         # ---- Bittensor components ----
-        self.axon = bittensor.Axon( config = config, wallet = wallet )
-        self.dendrite = bittensor.Dendrite( config = config, wallet = wallet )
-        self.subtensor = bittensor.Subtensor( config = config, wallet = wallet )
-        self.metagraph = bittensor.Metagraph( subtensor = subtensor )
+        self.axon = bittensor.Axon( config = self.config, wallet = self.wallet )
+        self.dendrite = bittensor.Dendrite( config = self.config, wallet = self.wallet )
+        self.subtensor = bittensor.Subtensor( config = self.config, wallet = self.wallet )
+        self.metagraph = bittensor.Metagraph( subtensor = self.subtensor )
 
         # ---- Model ----
-        self.model = XLMNucleus ( self.config, self.dendrite, self.metagraph )
+        self.model = XLMNucleus ( self.config )
+        self.model.router.set_dendrite( self.dendrite )
+        self.model.router.set_metagraph( self.metagraph )
 
         # ---- Serving thread ----
         self.quit_serving = None
@@ -91,8 +93,10 @@ class Miner():
         # ---- Dataset ----
         # Dataset: 74 million sentences pulled from books.
         self.dataset = load_dataset('amazon_reviews_multi', 'en')['train']
-
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # ---- Tokenizer ----
+        self.tokenizer = bittensor.__tokenizer__()
 
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
@@ -154,11 +158,10 @@ class Miner():
         if not self.subtensor.subscribe(
                 self.config.axon.external_ip, 
                 self.config.axon.external_port,
-                self.config.neuron.modality,
+                bittensor.proto.Modality.TEXT,
                 self.wallet.coldkeypub,
                 wait_for_finalization = True,
-                timeout = 4 * bittensor.__blocktime__
-            )
+                timeout = 4 * bittensor.__blocktime__):
             raise RuntimeError('Failed to subscribe miner on network: {}'.format(self.subtensor.config.network))
 
         # --- Start the serving endpoint ----
@@ -189,6 +192,8 @@ class Miner():
                 # Instead, reload into previous version of model
                 if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
                     self.model, self.optimizer = self.model_toolbox.load_model( self.config )
+                    self.model.router.set_dendrite( self.dendrite )
+                    self.model.router.set_metagraph( self.metagraph )
                     continue
 
                 # ---- Set weights on chain ----
@@ -236,7 +241,7 @@ class Miner():
         self.training_loss = 0.0
         for local_step in range(self.config.miner.epoch_length):
             # ---- Forward pass ----
-            inputs = nextbatch(self.dataset, self.config.miner.batch_size_train, bittensor.__tokenizer__())
+            inputs = nextbatch(self.dataset, self.config.miner.batch_size_train, self.tokenizer)
             output = self.model.remote_forward(
                 inputs.to( self.model.device ),
                 training = True,
@@ -265,9 +270,9 @@ class Miner():
                     self.dendrite)
             logger.info('Codes: {}', output.router.return_codes.tolist())
             
-            self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
-            self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
-            self.tensorboard.add_scalar('Neuron/Dloss', output.distillation_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('Miner/Rloss', output.remote_target_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('Miner/Lloss', output.local_target_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('Miner/Dloss', output.distillation_loss.item(), self.global_step)
 
             # ---- Step increments ----
             self.global_step += 1
@@ -284,7 +289,7 @@ class Miner():
         while not self.quit_serving.is_set():
 
             # ---- Pull request ----
-            logger.info('Axon:{}, waiting for query ... ', self.axon.toString())
+            logger.info('Axon:{}, waiting for query ... ', self.axon)
             pong, pubkey, inputs, modality = self.axon.next_forward_item( timeout = 10.0 )
 
             # ---- Process request ----

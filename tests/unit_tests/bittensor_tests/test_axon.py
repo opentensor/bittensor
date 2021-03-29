@@ -1,6 +1,7 @@
 import random
 import torch
 import unittest
+import grpc
 from munch import Munch
 from unittest.mock import MagicMock
 import bittensor
@@ -269,3 +270,68 @@ def test_backward_response_success():
     )
     response, code, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.Success
+
+
+
+
+
+axon = bittensor.Axon (
+        local_port = 8080,
+        local_ip = '127.0.0.1'
+    )
+axon.enqueue_forward_to_nucleus = MagicMock(
+    return_value=[torch.tensor([1]), bittensor.proto.ReturnCode.Success, 'Success']
+)
+axon.enqueue_backward_to_nucleus = MagicMock(
+        return_value=[torch.tensor([1]), bittensor.proto.ReturnCode.Success, 'Success']
+)
+axon.start()
+
+def test_grpc_forward_works():
+    
+    channel = grpc.insecure_channel(
+            '127.0.0.1:8080',
+            options=[('grpc.max_send_message_length', -1),
+                     ('grpc.max_receive_message_length', -1)])
+    stub = bittensor.grpc.BittensorStub( channel )
+
+    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
+    serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version__,
+        public_key = '1092310312914',
+        tensors = [inputs_serialized]
+    )
+    response = stub.Forward(request)
+
+    outputs = serializer.deserialize(response.tensors[0], to_type=bittensor.proto.TensorType.TORCH)
+    assert outputs.tolist() == [1]
+
+def test_grpc_backward_works():
+    channel = grpc.insecure_channel(
+            '127.0.0.1:8080',
+            options=[('grpc.max_send_message_length', -1),
+                     ('grpc.max_receive_message_length', -1)])
+    stub = bittensor.grpc.BittensorStub( channel )
+
+    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
+    grads_raw = torch.rand(3, 3, bittensor.__network_dim__)
+    serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version__,
+        public_key = '1092310312914',
+        tensors = [inputs_serialized, grads_serialized]
+    )
+    response = stub.Backward(request)
+
+    outputs = serializer.deserialize(response.tensors[0], to_type=bittensor.proto.TensorType.TORCH)
+    assert outputs.tolist() == [1]
+
+if __name__ == "__main__":
+    test_grpc_forward_works()
+    test_grpc_backward_works()
+
+

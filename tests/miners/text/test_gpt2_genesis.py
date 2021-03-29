@@ -7,34 +7,14 @@ import torch
 import numpy
 from gpt2_genesis.gpt2_genesis import Miner
 
-
 def test_run_gpt2_genesis():
     miner = Miner(
         epoch_length = 1,
         n_epochs = 1,
-        custom_dataset = './miners/TEXT/gpt2_genesis/genesis_dataset/'
     )
-    bittensor.subtensor.connect = MagicMock(return_value = True)    
-    bittensor.subtensor.subscribe = MagicMock(return_value = True)   
-    bittensor.metagraph.set_weights = MagicMock()   
-    bittensor.metagraph.sync = MagicMock()  
-    neuron = bittensor.proto.Neuron(
-        version = bittensor.__version__,
-        public_key = bittensor.neuron.wallet.hotkey.public_key,
-        address = bittensor.config.axon.external_ip,
-        port = bittensor.config.axon.external_port,
-        uid = 0,
-    )
-    bittensor.metagraph.uid = 0
-    bittensor.metagraph.state.n = 1
-    bittensor.metagraph.state.tau = torch.tensor([0.5], dtype = torch.float32)
-    bittensor.metagraph.state.neurons = [neuron]
-    bittensor.metagraph.state.indices = torch.tensor([0], dtype=torch.int64)
-    bittensor.metagraph.state.uids = torch.tensor([0], dtype=torch.int64)
-    bittensor.metagraph.state.lastemit = torch.tensor([0], dtype=torch.int64)
-    bittensor.metagraph.state.stake = torch.tensor([0], dtype=torch.float32)
-    bittensor.metagraph.state.uid_for_pubkey[bittensor.wallet.hotkey.public_key] = 0
-    bittensor.metagraph.state.index_for_uid[0] = 0
-    bittensor.metagraph.state.W = torch.tensor( numpy.ones( (1, 1) ), dtype=torch.float32)
+    miner.subtensor.connect = MagicMock(return_value = True)    
+    miner.subtensor.subscribe = MagicMock(return_value = True)  
+    miner.metagraph.set_weights = MagicMock()   
+    miner.metagraph.sync = MagicMock()  
     miner.run()
 test_run_gpt2_genesis()
