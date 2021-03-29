@@ -112,7 +112,7 @@ class Miner():
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        parser.add_argument('--miner.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
+        parser.add_argument('--miner.learning_rate', default=0.00002, type=float, help='Training initial learning rate.')
         parser.add_argument('--miner.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
         parser.add_argument('--miner.clip_gradients', default=0.8, type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.')
         parser.add_argument('--miner.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')

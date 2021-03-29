@@ -8,6 +8,7 @@ class ModelToolbox:
     def __init__(self, model_class, optimizer_class):
         self.model_class = model_class
         self.optimizer_class = optimizer_class
+            
 
 
     def save_model(self, miner_path, model_info):
@@ -49,7 +50,7 @@ class ModelToolbox:
         optimizer = self.optimizer_class(model.parameters(), lr = config.miner.learning_rate, momentum=config.miner.momentum)
         
         try:
-            checkpoint = torch.load("{}/model.torch".format(config.miner.full_path))
+            checkpoint = torch.load("{}/model.torch".format(config.miner.full_path), map_location=config.synapse.device)
             model.load_state_dict(checkpoint['model_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             epoch = checkpoint['epoch']
