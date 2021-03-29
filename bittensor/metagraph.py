@@ -99,8 +99,6 @@ class _Metagraph():
             uid_for_pubkey[neuron.public_key] = uid
         self.uid_for_pubkey = self._manager.dict( uid_for_pubkey )
 
-
-
 class Metagraph():
     """ Maintains the chain state as a process safe object. 
 
@@ -224,7 +222,7 @@ class Metagraph():
         """
         try:
             self._lock.acquire()
-            return_value = torch.tensor(copy.deepcopy(self._metagraph.stake), dtype=torch.float32)
+            return_value = torch.tensor(copy.deepcopy(self._metagraph.stake), dtype=torch.float32) / torch.tensor( pow(10, 9))
         finally:
             self._lock.release()
         return return_value

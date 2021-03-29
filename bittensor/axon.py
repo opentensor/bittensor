@@ -88,6 +88,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         # and subscribe to the chain.
         if wallet == None:
             wallet = bittensor.Wallet( config = self.config )
+        config.wallet = wallet.config.wallet
         self.wallet = wallet
         
         # Server: by default the axon serves an RPC server in its own thread using GPRC.
@@ -167,32 +168,6 @@ class Axon(bittensor.grpc.BittensorServicer):
                     config to check.
         """
         assert config.axon.local_port > 1024 and config.axon.local_port < 65535, 'config.axon.local_port must be in range [1024, 65535]'
-        # Attain external ip.
-        if config.axon.external_ip == None:
-            try:
-                config.axon.external_ip = net.get_external_ip()
-            except net.ExternalIPNotFound as external_port_exception:
-                logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
-                raise external_port_exception
-
-        if config.axon.external_port == None:
-            # Optionally: use upnpc to map your router to the local host.
-            if config.axon.use_upnpc:
-                # Open a port on your router
-                logger.info('UPNPC: ON')
-                try:
-                    config.axon.external_port = net.upnpc_create_port_map(local_port = config.axon.local_port)
-                except net.UPNPCException as upnpc_exception:
-                    logger.error('Axon failed to hole-punch with upnpc')
-                    raise upnpc_exception
-            # Falls back to using your provided local_port.
-            else:
-                logger.info('UPNPC: OFF')
-                config.axon.external_port = config.axon.local_port
-
-        logger.info('Using external endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
-        logger.info('Using local endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
-
 
     def Forward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.

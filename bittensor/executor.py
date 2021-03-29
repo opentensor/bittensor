@@ -38,7 +38,7 @@ class Executor:
             config = Executor.default_config()
         Executor.check_config( config )
         self.config = config
-        self.wallet = bittensor.Wallet( cofnig = config )
+        self.wallet = bittensor.Wallet( config = config )
         self.subtensor = bittensor.Subtensor( config = config, wallet = self.wallet )
         self.metagraph = bittensor.Metagraph( subtensor = self.subtensor )
     
@@ -215,8 +215,6 @@ class Executor:
         r""" Prints an overview for the wallet's colkey.
         """
         self.wallet.assert_coldkey()
-        self.wallet.assert_coldkeypub()
-        self.wallet.assert_hotkey()
         self.subtensor.connect()
         self.metagraph.sync()
         balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )

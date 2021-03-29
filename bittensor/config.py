@@ -54,9 +54,17 @@ class Config:
         return "\n" + yaml.dump(items.toDict())
 
     @staticmethod
-    def update_with_kwargs(config:Munch, kwargs ):
+    def update_with_kwargs( config:Munch, kwargs ):
         for key,val in kwargs.items():
             config[key] = val
+    
+    @staticmethod
+    def update_split_with_kwargs( config:Munch, kwargs ):
+        for key, val in kwargs.items():
+            prefix = key.split('_')[0]
+            sufix = key.split('_')[1]
+            if prefix in config and type(config[prefix]) == type(Munch()):
+                config[prefix][sufix] = val
             
     @staticmethod
     def to_config(parser: argparse.ArgumentParser) -> Munch:

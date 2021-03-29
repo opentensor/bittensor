@@ -27,6 +27,7 @@ from termcolor import colored
 
 import bittensor
 import bittensor.utils.networking as net
+import bittensor.utils.weight_utils as weight_utils
 from bittensor.substrate import SubstrateWSInterface, Keypair
 from bittensor.substrate.exceptions import SubstrateRequestException
 from bittensor.utils.neurons import Neuron, Neurons
@@ -70,6 +71,7 @@ class Subtensor:
 
         if wallet == None:
             wallet = bittensor.Wallet( self.config )
+        config.wallet = wallet.config.wallet
         self.wallet = wallet
 
         self.substrate = SubstrateWSInterface(
@@ -310,7 +312,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 Time that this call waits for either finalization of inclusion.
         Returns:
             success (bool):
-                flag is true if extrinsic was finalized or uncluded in the block. 
+                flag is true if the extrinsic was finalized or included in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
         # Send extrinsic
@@ -398,7 +400,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 time that this call waits for either finalization of inclusion.
         Returns:
             success (bool):
-                flag is true if extrinsic was finalized or uncluded in the block. 
+                flag is true if extrinsic was finalized or included in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
         try: 
@@ -439,7 +441,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 time that this call waits for either finalization of inclusion.
         Returns:
             success (bool):
-                flag is true if extrinsic was finalized or uncluded in the block. 
+                flag is true if extrinsic was finalized or included in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
         if not await self.async_check_connection():
@@ -494,7 +496,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 time that this call waits for either finalization of inclusion.
         Returns:
             success (bool):
-                flag is true if extrinsic was finalized or uncluded in the block. 
+                flag is true if extrinsic was finalized or included in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
         try: 
@@ -529,7 +531,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 time that this call waits for either finalization of inclusion.
         Returns:
             success (bool):
-                flag is true if extrinsic was finalized or uncluded in the block. 
+                flag is true if extrinsic was finalized or included in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
         await self.async_check_connection()
@@ -568,7 +570,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 time that this call waits for either finalization of inclusion.
         Returns:
             success (bool):
-                flag is true if extrinsic was finalized or uncluded in the block. 
+                flag is true if extrinsic was finalized or included in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
         try: 
@@ -603,7 +605,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 time that this call waits for either finalization of inclusion.
         Returns:
             success (bool):
-                flag is true if extrinsic was finalized or uncluded in the block. 
+                flag is true if extrinsic was finalized or included in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
         await self.async_check_connection()
@@ -642,7 +644,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 time that this call waits for either finalization of inclusion.
         Returns:
             success (bool):
-                flag is true if extrinsic was finalized or uncluded in the block. 
+                flag is true if extrinsic was finalized or included in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
         try: 
@@ -677,7 +679,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 time that this call waits for either finalization of inclusion.
         Returns:
             success (bool):
-                flag is true if extrinsic was finalized or uncluded in the block. 
+                flag is true if extrinsic was finalized or included in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
         await self.async_check_connection()
@@ -713,7 +715,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 time that this call waits for either finalization of inclusion.
         Returns:
             success (bool):
-                flag is true if extrinsic was finalized or uncluded in the block. 
+                flag is true if extrinsic was finalized or included in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
         try: 
@@ -726,8 +728,8 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     async def async_set_weights(
             self, 
-            uids: torch.LongTensor,
-            weights: torch.FloatTensor,
+            uids: torch.int64,
+            weights: torch.float32,
             wait_for_inclusion:bool = False, 
             wait_for_finalization:bool = False,
             timeout: int = 3 * bittensor.__blocktime__
@@ -748,10 +750,10 @@ To run a local node (See: docs/running_a_validator.md) \n
                 time that this call waits for either finalization of inclusion.
         Returns:
             success (bool):
-                flag is true if extrinsic was finalized or uncluded in the block. 
+                flag is true if extrinsic was finalized or included in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
-        weight_uids, weight_vals = bittensor.utils.weight_utils.convert_weights_and_uids_for_emit( uids, weights )
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit( uids, weights )
         await self.async_check_connection()
         call = await self.substrate.compose_call(
             call_module='SubtensorModule',
@@ -960,7 +962,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         return result
 
     def neurons(self) -> List[Tuple[int, dict]]: 
-        r""" Returns a list of neuron from the chain. 
+        r""" Returns all neurons from the chain. 
         Returns:
             neuron (List[Tuple[int, dict]]):
                 List of neuron objects.
@@ -974,7 +976,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         return loop.run_until_complete(self.async_neurons( ))
 
     async def async_neurons(self) -> List[Tuple[int, dict]]:
-        r""" Returns a list of neuron from the chain. 
+        r""" Returns all neurons from the chain. 
         Returns:
             neuron (List[Tuple[int, dict]]):
                 List of neuron objects.

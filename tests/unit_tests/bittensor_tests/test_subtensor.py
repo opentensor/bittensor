@@ -7,7 +7,7 @@ def test_create():
 
 def test_defaults_to_akira( ):
     subtensor = bittensor.Subtensor()
-    assert subtensor.endpoint_for_network() in bittensor.__akira_entrypoints__
+    assert subtensor.endpoint_for_network() in bittensor.__kusanagi_entrypoints__
 
 def test_endpoint_overides():
     subtensor = bittensor.Subtensor(

@@ -58,13 +58,13 @@ class Dendrite(torch.autograd.Function):
         super().__init__()
         if config == None:
             config = Dendrite.default_config()
-        print (config)
-        bittensor.Config.update_with_kwargs(config.dendrite, kwargs) 
+        bittensor.Config.update_split_with_kwargs(config, kwargs)
         _Dendrite.check_config(config)
         self.config = config
 
         if wallet == None:
             wallet = bittensor.Wallet( self.config )
+        config.wallet = wallet.config.wallet
         self.wallet = wallet
 
         # Create shared memory Dendrite.
@@ -88,8 +88,6 @@ class Dendrite(torch.autograd.Function):
     def add_args(parser: argparse.ArgumentParser):
         bittensor.Wallet.add_args( parser )
         _Dendrite.add_args( parser )
-        parser.add_argument('--dendrite.multiprocessing', default=False, type=bool, 
-            help='''Dendrite object is created in shared memory and can be concurrently accessed from multiple processes.''')
 
         parser.add_argument('--dendrite.debug', default=False, type=bool, 
             help='''If true, request information is logged. ''')
