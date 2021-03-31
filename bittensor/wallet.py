@@ -215,7 +215,9 @@ class Wallet():
 
     @property
     def hotkeyfile(self) -> str:
-        full_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name)
+        full_path = os.path.expanduser(
+            os.path.join(self.config.wallet.path, self.config.wallet.name)
+        )
         return os.path.join(full_path, "hotkeys", self.config.wallet.hotkey)
 
     def _load_coldkeypub(self) -> str:
