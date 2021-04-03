@@ -263,7 +263,7 @@ class Executor:
         print("BALANCE: %s : [%s]" % ( self.wallet.coldkey.ss58_address, balance ))
         print()
         print("--===[[ STAKES ]]===--")
-        t = PrettyTable(["UID", "IP", "STAKE", "RANK", "INCENTIVE", "HOTKEY])
+        t = PrettyTable(["UID", "IP", "STAKE", "RANK", "INCENTIVE", "HOTKEY"])
         t.align = 'l'
         total_stake = 0.0
         for neuron in neurons:
