@@ -89,7 +89,7 @@ class Subtensor:
     def add_args(parser: argparse.ArgumentParser):
         bittensor.wallet.Wallet.add_args( parser )
         try:
-            parser.add_argument('--subtensor.network', default='akira', type=str, 
+            parser.add_argument('--subtensor.network', default='kusanagi', type=str, 
                                 help='''The subtensor network flag. The likely choices are:
                                         -- akira (testing network)
                                         -- kusanagi (main network)
