@@ -23,7 +23,8 @@ $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/opentensor/bitten
 ```
 If you wish to run bittensor through a docker container, create a new wallet, and run docker-compose:
 ```
-$ bin/bittensor-cli new_default                                                     # Generate default keys	
+$ bin/bittensor-cli new_coldkey                  # Generate default wallet
+$ bin/bittensor-cli new_hotkey                   # Generate default hotkey	
 $ docker-compose up
 ```
 
