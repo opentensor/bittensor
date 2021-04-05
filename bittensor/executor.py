@@ -254,7 +254,6 @@ class Executor:
         """
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
-        self.wallet.assert_hotkey()
         self.subtensor.connect()
         self.metagraph.sync()
         balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
