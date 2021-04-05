@@ -89,7 +89,7 @@ class Miner():
         parser.add_argument('--miner.momentum', default=0.9, type=float, help='Training initial momentum for SGD.')
         parser.add_argument('--miner.clip_gradients', default=0.8, type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.')
         parser.add_argument('--miner.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
-        parser.add_argument('--miner.epoch_length', default=int(sys.maxsize), type=int, help='Iterations of training per epoch (or dataset EOF)')
+        parser.add_argument('--miner.epoch_length', default=500, type=int, help='Iterations of training per epoch (or dataset EOF)')
         parser.add_argument('--miner.batch_size_train', default=64, type=int, help='Training batch size.')
         parser.add_argument('--miner.batch_size_test', default=64, type=int, help='Testing batch size.')
         parser.add_argument('--miner.log_interval', default=150, type=int, help='Batches until miner prints log statements.')
