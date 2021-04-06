@@ -54,18 +54,18 @@ class Subtensor:
                     subtensor.Subtensor.default_config()
                 wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                network (default='akira', type=str)
+                subtensor_network (default='kusanagi', type=str)
                     The subtensor network flag. The likely choices are:
                             -- akira (testing network)
                             -- kusanagi (main network)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
-                chain_endpoint (default=None, type=str)
+                subtensor_chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the --network flag.
         """
         if config == None:
             config = Subtensor.default_config()
-        bittensor.Config.update_with_kwargs(config.subtensor, kwargs) 
+        bittensor.Config.update_split_with_kwargs(config, kwargs)
         Subtensor.check_config(config)
         self.config = config
 

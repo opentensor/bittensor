@@ -68,10 +68,13 @@ class Dendrite(torch.autograd.Function):
         self.wallet = wallet
 
         # Create shared memory Dendrite.
-        BaseManager.register( '_Dendrite', bittensor.dendrite._Dendrite )
-        self._manager = BaseManager()
-        self._manager.start()
-        self._dendrite = self._manager._Dendrite( config = self.config, wallet = self.wallet )
+        if self.config.dendrite.multiprocess == True:
+            BaseManager.register( '_Dendrite', bittensor.dendrite._Dendrite )
+            self._manager = BaseManager()
+            self._manager.start()
+            self._dendrite = self._manager._Dendrite( config = self.config, wallet = self.wallet )
+        else:
+            self._dendrite = _Dendrite( config = self.config, wallet = self.wallet )
 
     @staticmethod   
     def default_config() -> Munch:
@@ -91,6 +94,9 @@ class Dendrite(torch.autograd.Function):
 
         parser.add_argument('--dendrite.debug', default=False, type=bool, 
             help='''If true, request information is logged. ''')
+
+        parser.add_argument('--dendrite.multiprocess', default=True, type=bool, 
+            help='''If true, the dendrite is created in shared memory and accessible from multiple processes. ''')
 
     def __str__(self) -> str:
         return self._dendrite.toString()
@@ -116,7 +122,7 @@ class Dendrite(torch.autograd.Function):
             mode: bittensor.proto.Modality,
             *inputs: torch.Tensor
         ) -> Tuple[ torch.Tensor, ... ] :
-        """ Internal autograd-friendly Forward RPC call to a remote neurons.
+        """ Internal autograd-friendly Forward RPC call to a list of neuron endpoints.
 
             Args:
                 ctx: (:obj:`torch.autograd.ctx`, `required`):
@@ -162,7 +168,7 @@ class Dendrite(torch.autograd.Function):
             code_grads: torch.FloatTensor,
             *output_grads: torch.FloatTensor
         ) -> Tuple[ Optional[torch.Tensor], ... ]:
-        """ Internal autograd-friendly Backward RPC call to a remote neurons.
+        """ Internal autograd-friendly Backward RPC call to a list of neuron endpoints.
 
             Args:
                 ctx: (:obj:`torch.autograd.ctx`, `required`):
@@ -195,7 +201,7 @@ class Dendrite(torch.autograd.Function):
                 inputs: List[torch.Tensor],
                 mode: bittensor.proto.Modality
             ) -> Tuple[List[torch.Tensor], torch.LongTensor]:
-            r""" Internal Forward tensor inputs to neurons.
+            r""" Internal Forward tensor inputs to a list of neuron endpoints.
 
                 Args:
                     neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
@@ -231,7 +237,7 @@ class Dendrite(torch.autograd.Function):
                 neurons: List[bittensor.proto.Neuron],
                 inputs: List[torch.Tensor]
             ) -> Tuple[List[torch.Tensor], torch.Tensor]:
-            r""" Forward text inputs to neurons.
+            r""" Forward text inputs to a list of neuron endpoints.
 
                 Args:
                     neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
@@ -269,7 +275,7 @@ class Dendrite(torch.autograd.Function):
                 neurons: List[bittensor.proto.Neuron],
                 inputs: List[torch.Tensor]
             ) -> Tuple[List[torch.Tensor], torch.Tensor]:
-        r""" Forward image inputs to neurons.
+        r""" Forward image inputs to list of neuron endpoints.
 
             Args:
                 neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):
@@ -308,7 +314,7 @@ class Dendrite(torch.autograd.Function):
                 neurons: List[bittensor.proto.Neuron],
                 inputs: List[torch.Tensor]
             ) -> Tuple[List[torch.Tensor], torch.Tensor]:
-        r""" Forward tensor inputs to neurons.
+        r""" Forward tensor inputs to a list of neuron endpoints.
 
             Args:
                 neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(num_neurons)`, `required`):

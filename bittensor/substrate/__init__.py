@@ -438,7 +438,7 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
 
         # Wait for events.
         try:
-            response = await asyncio.wait_for( message_future, timeout = timeout )
+            response = await asyncio.wait_for( message_future, timeout = 20 )
         except asyncio.TimeoutError:
             response = None
         
@@ -495,7 +495,7 @@ class SubstrateWSInterface:
         self.debug = False
         self.nonce = {} # Map from pubkey to nonce
 
-    async def async_connect(self, url: str, timeout: int = 3) -> bool:
+    async def async_connect(self, url: str, timeout: int = 10) -> bool:
         r""" Connects the protocol to the passed url waits of a connection future.
         Args:
             url (str):
@@ -1355,7 +1355,7 @@ class SubstrateWSInterface:
 
         return extrinsic
 
-    async def submit_extrinsic(self, extrinsic, wait_for_inclusion=False, wait_for_finalization=False, timeout: int = 2) -> dict:
+    async def submit_extrinsic(self, extrinsic, wait_for_inclusion=False, wait_for_finalization=False, timeout: int = 10) -> dict:
         """
 
         Parameters

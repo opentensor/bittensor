@@ -58,21 +58,21 @@ class Axon(bittensor.grpc.BittensorServicer):
                     axon.Axon.config()
                 wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                local_port (default=8091, type=int): 
+                axon_local_port (default=8091, type=int): 
                     The port this axon endpoint is served on. i.e. 8091
-                local_ip (default='127.0.0.1', type=str): 
+                axon_local_ip (default='127.0.0.1', type=str): 
                     The local ip this axon binds to. ie. 0.0.0.0
-                use_upnpc (default=False, type=bool):
+                axon_use_upnpc (default=False, type=bool):
                     If true this axon will attempt to open a port on your router using upnpc.
-                external_ip (default=None, type=str):
+                axon_external_ip (default=None, type=str):
                     The remote IP served to chain.
                         This ip is subscribed to the chain on boot and is the endpoint other peers see.
                         By default this field is None and is collected by querying a remote server during check_config. 
                         i.e. 207.12.233.1
-                external_port (default=None, type=str):
+                axon_external_port (default=None, type=str):
                     The remote port to subscribe on chain. By default this port is the same as local_port.
                         If use_upnpc is true this port is determined after the port mapping
-                max_workers (default=10, type=int): 
+                axon_max_workers (default=10, type=int): 
                     The maximum number connection handler threads working simultaneously on this endpoint. 
                         The grpc server distributes new worker threads to service requests up to this number.
         """
@@ -80,7 +80,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         # config for the wallet, metagraph sub-objects.
         if config == None:
             config = Axon.default_config()
-        bittensor.Config.update_with_kwargs(config.axon, kwargs) 
+        bittensor.Config.update_split_with_kwargs(config, kwargs)
         Axon.check_config( config )
         self.config = config
 
@@ -99,8 +99,8 @@ class Axon(bittensor.grpc.BittensorServicer):
         self._server.add_insecure_port('[::]:' + str(self.config.axon.local_port))
 
         # Forward and Backward multiprocessing queues
-        self.forward_queue = mp.Queue()
-        self.backward_queue = mp.Queue()
+        self.forward_queue = mp.Queue(1000)
+        self.backward_queue = mp.Queue(1000)
 
         # Serving thread: A thread which runs the axon servicer passing items to the nucleus for
         # further processing.
@@ -328,7 +328,7 @@ class Axon(bittensor.grpc.BittensorServicer):
                 outputs = ping.recv()
                 return outputs, bittensor.proto.ReturnCode.Success, "success",
             else:
-                return None, bittensor.proto.ReturnCode.NucleusTimeout, "processing timeout"
+                return None, bittensor.proto.ReturnCode.NucleusTimeout, "processing timeout got here: {}".format([pong, public_key, inputs_x, modality])
 
         except Exception as e:
             return None, bittensor.proto.ReturnCode.UnknownException, "Unknown exception when calling nucleus forward {}".format(e)
@@ -583,6 +583,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         r""" Starts the standalone axon GRPC server thread.
         """
         # Serving thread.
+        print ('start')
         self._thread = threading.Thread(target=self._serve, daemon=False)
         self._thread.start()
 

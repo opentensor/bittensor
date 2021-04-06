@@ -538,6 +538,7 @@ class Metagraph():
                     ) 
                 )
         await asyncio.gather(*pending_queries)
+        print ('\n')
         return next_n, next_tau, next_block, next_uids, next_lastemit, next_stake, next_weight_vals, next_weight_uids, next_neurons
 
     # Function which fills weights and neuron info for a uid.
@@ -555,7 +556,7 @@ class Metagraph():
         neuron_proto = bittensor.proto.Neuron(
                 version = bittensor.__version__,
                 public_key = neuron['hotkey'],
-                address = str(neuron['ip']),
+                address = bittensor.utils.networking.int_to_ip(int(neuron['ip'])),
                 port = neuron['port'],
                 uid = neuron['uid'], 
                 modality = neuron['modality'],

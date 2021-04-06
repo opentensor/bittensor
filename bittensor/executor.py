@@ -223,7 +223,7 @@ class Executor:
         print("BALANCE: %s : [%s]" % ( self.wallet.coldkey.ss58_address, "\u03C4" + str(balance.tao) ))
         print()
         print("--===[[ STAKES ]]===--")
-        t = PrettyTable(["UID", "IP", "STAKE (\u03C4)", "RANK (\u03C4)", "INCENTIVE (\u03C1)"])
+        t = PrettyTable(["UID", "IP", "STAKE (\u03C4)", "RANK (\u03C4)", "INCENTIVE (\u03C4)"])
         t.align = 'l'
         total_stake = 0.0
         S = self.metagraph.S()
@@ -233,7 +233,7 @@ class Executor:
             stake = float(S[neuron.uid])
             rank = float(R[neuron.uid])
             incentive = float(I[neuron.uid])
-            t.add_row([neuron.uid, neuron.ip, "\u03C4" + str(stake / pow(10, 9)) , "\u03C4" + str(rank / pow(10, 9)), "\u03C1" + str(incentive * pow(10, 9))])
+            t.add_row([neuron.uid, neuron.ip, "\u03C4" + str(neuron.stake.__float__()) , "\u03C4" + str(rank / pow(10, 9)), "\u03C4" + str(incentive)])
             total_stake += neuron.stake.__float__()
         print(t.get_string())
         print("Total stake: ", "\u03C4" + str(total_stake))

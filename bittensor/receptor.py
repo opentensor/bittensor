@@ -352,7 +352,7 @@ class Receptor(nn.Module):
             start_time = time.time()
             self.stats.forward_qps.update(1)
             self.stats.forward_bytes_out.update(sys.getsizeof(request))
-            response = self.stub.Forward(request, timeout=self.config.receptor.timeout)
+            response = self.stub.Forward(request, timeout=5)
             self.stats.forward_bytes_in.update(sys.getsizeof(response))
             self.stats.forward_elapsed_time.update((time.time() - start_time))
 

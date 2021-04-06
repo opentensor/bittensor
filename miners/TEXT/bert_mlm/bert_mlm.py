@@ -94,9 +94,9 @@ class Miner():
         # ---- Wallet ----
         self.wallet = bittensor.Wallet( self.config )
         if not self.wallet.has_coldkeypub:
-            self.wallet.create_new_coldkey(n_words = 12, use_password = True )
+            self.wallet.create_new_coldkey( n_words = 12, use_password = True )
         if not self.wallet.has_hotkey:
-            self.wallet.create_new_hotkey(n_words = 12)
+            self.wallet.create_new_hotkey( n_words = 12, use_password = False )
         
         # ---- Bittensor components ----
         self.axon = bittensor.Axon( config = self.config, wallet = self.wallet )
@@ -111,14 +111,14 @@ class Miner():
 
         # ---- Serving thread ----
         self.quit_serving = None
-        self.serving_thread = None # Thread for running queries on our model.
+        self.serving_thread = threading.Thread( target = self.serving_loop, name = 'serving', daemon=True )
 
         # ---- Optimizer ----
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum)
-        self.scheduler = WarmupCosineWithHardRestartsSchedule(self.optimizer, 50, 300)
+        self.optimizer = torch.optim.SGD( self.model.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum )
+        self.scheduler = WarmupCosineWithHardRestartsSchedule( self.optimizer, 50, 300 )
 
         # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(BertMLMNucleus, torch.optim.SGD)
+        self.model_toolbox = ModelToolbox( BertMLMNucleus, torch.optim.SGD )
 
         # ---- Dataset ----
         # Dataset: 74 million sentences pulled from books.
@@ -133,9 +133,9 @@ class Miner():
         self.tokenizer = bittensor.__tokenizer__()
 
         # ---- Logging ----
-        self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
+        self.tensorboard = SummaryWriter( log_dir = self.config.miner.full_path )
         if self.config.miner.record_log:
-            filepath = self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),
+            filepath = self.config.miner.full_path + "/{}_{}.log".format( self.config.miner.name, self.config.miner.trial_uid ),
             logger.add (
                 filepath,
                 format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
@@ -188,42 +188,40 @@ class Miner():
         if not self.subtensor.connect():
             raise RuntimeError('Failed to connect miner to network: {}'.format(self.subtensor.config.network))
 
-        # --- Subscribe our endpoint ----
-        if not self.subtensor.subscribe(
-                self.config.axon.external_ip, 
-            self.config.axon.external_ip, 
-                self.config.axon.external_ip, 
-                self.config.axon.external_port,
-                bittensor.proto.Modality.TEXT,
-                self.wallet.coldkeypub,
+        # --- Subscribe our endpoint. ----
+        if not self.subtensor.subscribe (
+                external_ip = self.config.axon.external_ip, 
+                external_port = self.config.axon.external_port,
+                modality = bittensor.proto.Modality.TEXT,
+                coldkeypub = self.wallet.coldkeypub,
                 wait_for_finalization = True,
-                timeout = 4 * bittensor.__blocktime__):
+                timeout = 4 * bittensor.__blocktime__
+            ):
             raise RuntimeError('Failed to subscribe miner on network: {}'.format(self.subtensor.config.network))
 
-        # --- Start the serving endpoint ----
+        # --- Start the serving endpoint. ----
         self.axon.start()
 
-        # --- Start the serving thread ----
+        # --- Start the serving thread. ----
         self.quit_serving = mp.Event()
-        self.serving_thread = threading.Thread( target = self.serving_loop,  name = 'serving', daemon=True)
         self.serving_thread.start()
 
-        # --- Sync metagraph  ----
+        # --- Sync metagraph. ----
         self.metagraph.sync()
         self.weights = torch.rand([self.metagraph.n()])
 
-        # --- Init running state ---
+        # --- Init running state. ---
         self.global_step = 0
         self.best_train_loss = math.inf
 
-        # --- Loop for epochs ---
+        # --- Loop for epochs. ---
         for self.epoch in range(self.config.miner.n_epochs):
             try:
-                # ---- Train Model ----
+                # ---- Train Model. ----
                 self.train()
                 self.scheduler.step()
                 
-                # ---- Catch NaNs ----
+                # ---- Catch NaNs. ----
                 # If model has borked for some reason, we need to make sure it doesn't emit weights
                 # Instead, reload into previous version of model
                 if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
@@ -232,38 +230,34 @@ class Miner():
                     self.model.router.set_metagraph( self.metagraph )
                     continue
 
-                # ---- Set weights on chain ----
+                # ---- Set weights on chain. ----
                 self.subtensor.set_weights (
                     uids = self.metagraph.uids(),
                     weights = self.weights,
                     wait_for_inclusion = False
                 )
 
-                # ---- Sync metagraph ----
+                # ---- Sync metagraph. ----
                 self.metagraph.sync() # Pulls latest chain info.
                 self.weights = torch.nn.functional.pad(self.weights, pad = [0, self.metagraph.n() - self.weights.numel() ]) # Pads weights to the correct size.
 
-                # --- Epoch logs ----
+                # --- Epoch logs. ----
                 print(self.axon)
                 print(self.dendrite)
                 print(self.metagraph)
 
-                # ---- Update Tensorboard ----
+                # ---- Update Tensorboard. ----
                 self.axon.__to_tensorboard__(self.tensorboard, self.global_step)
                 self.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
                 self.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
             
-                # ---- Save best loss and model ----
+                # ---- Save best loss and model. ----
                 if self.training_loss and self.epoch % 10 == 0 and self.training_loss < self.best_train_loss:
                     self.best_train_loss = self.training_loss / 10 # update best train loss
                     self.model_toolbox.save_model(
                         self.config.miner.full_path,
                         {
                             'epoch': self.epoch, 
-                                'epoch': self.epoch, 
-                            'epoch': self.epoch, 
-                            'model_state_dict': self.model.state_dict(), 
-                                'model_state_dict': self.model.state_dict(), 
                             'model_state_dict': self.model.state_dict(), 
                             'loss': self.best_train_loss,
                             'optimizer_state_dict': self.optimizer.state_dict(),
@@ -333,9 +327,9 @@ class Miner():
             # ---- Pull request ----
             logger.info('Axon:{}, waiting for query ... ', self.axon)
             pong, pubkey, inputs, modality = self.axon.next_forward_item( timeout = 10.0 )
-
-            # ---- Process request ----
-            if None not in [ pong, pubkey, inputs, modality]:
+            if None not in [ pong, pubkey, inputs, modality ]:
+                
+                # ---- Process request ----
                 logger.info('Recieved Query: from:{}, inputs.shape:{}', pubkey, inputs.shape)
                 try:          
                     outputs = self.model.local_forward( inputs, training = False ).local_hidden
@@ -345,9 +339,6 @@ class Miner():
                 except Exception as e:
                     logger.exception('Error in forward process with error {}', e)
                     continue
-
-        # ---- Tensorboard ----
-        #bittensor.neuron.axon.toTensorboard(serving_tensorboard, serving_step)
 
     def __del__(self):
         if self.serving_thread != None:

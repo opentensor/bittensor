@@ -76,7 +76,6 @@ def test_dendrite_to_tensorboard():
 def test_dendrite_full_to_string():
     dendrite.fullToString()
 
-
 if __name__ == "__main__":
     test_create_receptors()
     test_dendrite_foward()
