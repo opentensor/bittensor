@@ -44,9 +44,7 @@ class AdamCorpus():
         self.block_size = block_size
         self.tokenizer = tokenizer
 
-        self.lines = load_dataset('wiki40b', 'en')
-        import pdb;  pdb.set_trace()
-
+        self.lines = load_dataset('wikitext', 'wikitext-103-raw-v1')['train']
 
     def __len__(self):
         return len(self.lines) - self.block_size
@@ -61,7 +59,7 @@ class AdamCorpus():
                 x
         """
 
-        chunk = self.lines[idx:idx + self.block_size]['sentence']
+        chunk = self.lines[idx:idx + self.block_size]['text']
 
         dix = []
         block_num=0
@@ -122,7 +120,7 @@ class Miner():
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-       parser.add_argument('--miner.learning_rate', default=3e-2, type=float, help='Training initial learning rate.')
+        parser.add_argument('--miner.learning_rate', default=3e-2, type=float, help='Training initial learning rate.')
         parser.add_argument('--miner.weight_decay', default=0.25, help='Model parameter weight decay.')
         parser.add_argument('--miner.lr_decay', default=True, help='learning rate decay params: linear warmup followed by cosine decay to 10% of original.')
         parser.add_argument('--miner.warmup_tokens', default=375e6, help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)')
