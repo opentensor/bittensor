@@ -176,8 +176,8 @@ class Receptor(nn.Module):
     def __str__(self):
         total_out_bytes = self.stats.forward_bytes_out.value + self.stats.backward_bytes_out.value
         total_in_bytes = self.stats.forward_bytes_in.value + self.stats.backward_bytes_in.value
-        total_in_bytes_str = colored('\u290A {:.1f}'.format((total_out_bytes*8)/1000), 'green')
-        total_out_bytes_str = colored('\u290B {:.1f}'.format((total_in_bytes*8)/1000), 'red')
+        total_in_bytes_str = colored('\u290A{:.1f}'.format((total_in_bytes*8)/1000), 'green')
+        total_out_bytes_str = colored('\u290B{:.1f}'.format((total_out_bytes*8)/1000), 'red')
         return str(self.neuron.uid) + ":(" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s)"
 
     def __del__(self):
