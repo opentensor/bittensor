@@ -198,18 +198,24 @@ class GPT2Synapse(bittensor.synapse.Synapse):
         self.num_parameters = sum(p.numel() for p in self.parameters())
         self.to(self.device)
     
+    @staticmethod   
+    def default_config() -> Munch:
+        parser = argparse.ArgumentParser(); 
+        GPT2Synapse.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
+        return config
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         """ Add model params
         """
-        parser.add_argument('--synapse.n_head', default=16, type=int, 
+        parser.add_argument('--synapse.n_head', default=32, type=int, 
                                 help='Number of attention heads for each attention layer in the Transformer encoder.')
         
-        parser.add_argument('--synapse.n_layer', default=8, type=int, 
+        parser.add_argument('--synapse.n_layer', default=12, type=int, 
                                 help='Number of hidden layers in the Transformer encoder.')
         
-        parser.add_argument('--synapse.block_size', default=128, type=int, 
+        parser.add_argument('--synapse.block_size', default=20, type=int, 
                                 help='Number of hidden layers in the Transformer encoder.')
         
         parser.add_argument('--synapse.embd_pdrop', default=0.1, type=float, 
