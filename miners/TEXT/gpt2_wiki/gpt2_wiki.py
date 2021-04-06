@@ -122,7 +122,7 @@ class Miner():
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        parser.add_argument('--miner.learning_rate', default=3e-2, type=float, help='Training initial learning rate.')
+       parser.add_argument('--miner.learning_rate', default=3e-2, type=float, help='Training initial learning rate.')
         parser.add_argument('--miner.weight_decay', default=0.25, help='Model parameter weight decay.')
         parser.add_argument('--miner.lr_decay', default=True, help='learning rate decay params: linear warmup followed by cosine decay to 10% of original.')
         parser.add_argument('--miner.warmup_tokens', default=375e6, help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)')
@@ -360,7 +360,16 @@ class Miner():
                 self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
                 self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
 
-                pbar.set_description(f"GS: {colored('{}'.format(self.global_step), 'red')} | LS: {colored('{}'.format(it), 'blue')} | Epoch: {colored('{}'.format(self.epoch+1), 'green')} | LTL: {output.local_target_loss.item():.5f} | RTL: {output.remote_target_loss.item():.5f} | DL: {output.distillation_loss.item():.5f}  | lr {self.get_lr():e}. Axon: {self.neuron.axon.__str__()} Dendrite: {self.neuron.dendrite.__str__()}")
+                pbar.set_infos({
+                    'GS': colored('{}'.format(self.global_step), 'red'),
+                    'LS': colored('{}'.format(it), 'blue'),
+                    'Epoch': colored('{}'.format(self.epoch+1), 'green'),
+                    'Local loss': colored('{}'.format(output.local_target_loss.item()), 'red'),
+                    'Remote loss': colored('{}'.format(output.remote_target_loss.item()), 'blue'),
+                    'Distillation loss': colored('{}'.format(output.distillation_loss.item()), 'green'),
+                    'Axon': self.neuron.axon.__str__(),
+                    'Dendrite': self.neuron.dendrite.__str__(),
+                })
 
                 self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
                 self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
