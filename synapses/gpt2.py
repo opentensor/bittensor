@@ -1,52 +1,25 @@
-'''
-The MIT License (MIT)
-Copyright © 2021 Opentensor.ai
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
-and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
-the Software.
-
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
-DEALINGS IN THE SOFTWARE.
-'''
+"""GPT Synapse
+    - Initial stem consists of a combination of token encodings and positional encoding. 
+    - Basically, a uniform sequence of Transformer blocks.
+        - Each transformer is a sequential combination of a 1-hidden layer MLP block and a self-attention block.
+        - all blocks feed into a central residual pathway similar to resnets.
+    - Final decoder is a linear projection into a vanilla softmax. 
+    - This implementation is based on Karpathy et al.'s implementation of minGPT.
+"""
 
 import argparse
-import random
+import math
+import bittensor
 import torch
-import torch.nn.functional as F
-
-from transformers import GPT2Config, GPT2Model
-from torch import nn
+import torch.nn as nn
 from munch import Munch
+
+
+from torch.nn import functional as F
+from routers.pkm import PKMRouter
 from types import SimpleNamespace
 
-import bittensor
-from routers.pkm import PKMRouter
-
-def nextbatch(data, batch_size, tokenizer):
-    """ Returns a random batch of sentences from text dataset.
-
-        Args:
-            data: (List[dict{'text': str}]): Dataset of text inputs.
-            batch_size: size of batch to create.
-        
-        Returns:
-            batch_inputs torch.Tensor (batch_size, sequence_length): List of tokenized sentences.
-    """
-    batch_text = []
-    for _ in range(batch_size):
-        batch_text.append(data[random.randint(0, len(data))]['text'])
-    batch_inputs = tokenizer(batch_text, return_tensors='pt', padding=True, truncation=True)['input_ids']
-    return batch_inputs
-
-class GPT2Pooler(nn.Module):
+class GPTPooler(nn.Module):
 
     def __init__(self, config):
         super().__init__()
@@ -61,117 +34,216 @@ class GPT2Pooler(nn.Module):
         pooled_output = self.activation(pooled_output)
         return pooled_output
 
-class GPT2LMSynapse(bittensor.synapse.Synapse):
-    """ A Bittensor Synapse training GPT2 with Causal Language Modelling (CLM)
+class GPTConfig:
+    """Base GPT config, params common to all GPT versions.
     """
-    def __init__(self, config: Munch = None, **kwargs):
-        r""" Init a new GPT2 synapse module.
+    embd_pdrop = 0.1
+    resid_pdrop = 0.1
+    attn_pdrop = 0.1
 
-            Args:
-                config (:obj:`munch.Munch`, `required`): 
-                    munched config class.
+    def __init__(self, vocab_size: int, block_size: int, **kwargs):
+        """GPTConfig constructor
+
+        Args:
+            vocab_size (:int:): Size of the vocabulary
+            block_size (:int:): How many transformer blocks
         """
-        super(GPT2LMSynapse, self).__init__(config = config, **kwargs)
-        if config == None:
-            config = GPT2LMSynapse.default_config()
-        bittensor.config.Config.update_with_kwargs(config.synapse, kwargs) 
-        GPT2LMSynapse.check_config(config)
-        self.config = config
+        self.vocab_size = vocab_size
+        self.block_size = block_size
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
-        # Build hugging face config.
-        huggingface_config = GPT2Config(
-                vocab_size=bittensor.__vocab_size__, 
-                n_embd=bittensor.__network_dim__,
-                n_layer=config.synapse.n_layer,
-                n_head=config.synapse.n_head, 
-                n_inner=config.synapse.n_inner, 
-                activation_function=config.synapse.activation_function, 
-                resid_pdrop=config.synapse.resid_pdrop, 
-                embd_pdrop=config.synapse.embd_pdrop, 
-                attn_pdrop=config.synapse.attn_pdrop, 
-                layer_norm_epsilon=config.synapse.layer_norm_epsilon, 
-                initializer_range=config.synapse.initializer_range, 
-                summary_type=config.synapse.summary_type, 
-                summary_use_proj=config.synapse.summary_use_proj, 
-                summary_activation=config.synapse.summary_activation, 
-                summary_proj_to_labels=config.synapse.summary_proj_to_labels, 
-                summary_first_dropout=config.synapse.summary_first_dropout, 
+class Block(nn.Module):
+    """
+    Transformer block!
+    """
+
+    def __init__ (self, config):
+        """Constructor
+
+        Args:
+            config (`GPTConfig`): Configuration containing n_embd and n_head
+        """
+        super().__init__()
+        
+        assert hasattr(config, 'n_embd')
+        assert hasattr(config, 'n_head')
+
+        self.ln1 = nn.LayerNorm(config.n_embd)
+        self.ln2 = nn.LayerNorm(config.n_embd)
+        self.attn = CausalSelfAttention(config)
+        self.mlp = nn.Sequential(
+            nn.Linear(config.n_embd, 4 * config.n_embd),
+            nn.GELU(),
+            nn.Linear(4 * config.n_embd, config.n_embd),
+            nn.Dropout(config.resid_pdrop)
         )
 
-        # encoder_layer: encodes tokenized sequences to network dim.
-        # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
-        self.transformer = GPT2Model(huggingface_config)
+    def forward(self, x):
+        x = x + self.attn(self.ln1(x))
+        x = x + self.mlp(self.ln2(x))
+        return x
+
+
+class CausalSelfAttention(nn.Module):
+    """
+    A vanilla multi-head masked self-attention layer with a projection at the end.
+
+    TODO (shibshib): Investigate using torch.nn.MultiheadAttention here.
+    """
+
+    def __init__(self, config):
+        super().__init__()
+        assert config.n_embd % config.n_head == 0
+        # key, query, value projections for all heads
+        self.key = nn.Linear(config.n_embd, config.n_embd)
+        self.query = nn.Linear(config.n_embd, config.n_embd)
+        self.value = nn.Linear(config.n_embd, config.n_embd)
+        # regularization
+        self.attn_drop = nn.Dropout(config.attn_pdrop)
+        self.resid_drop = nn.Dropout(config.resid_pdrop)
+        # output projection
+        self.proj = nn.Linear(config.n_embd, config.n_embd)
+        # causal mask to ensure that attention is only applied to the left in the input sequence
+        self.register_buffer("mask", torch.tril(torch.ones(config.block_size, config.block_size))
+                                     .view(1, 1, config.block_size, config.block_size))
+        self.n_head = config.n_head
+
+    def forward(self, x, layer_past=None):
+        B, T, C = x.size()
+
+        # calculate query, key, values for all heads in batch and move head forward to be the batch dim
+        k = self.key(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        q = self.query(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        v = self.value(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+
+        # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
+        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
+        att = att.masked_fill(self.mask[:,:,:T,:T] == 0, float('-inf'))
+        att = F.softmax(att, dim=-1)
+        att = self.attn_drop(att)
+        y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
+        y = y.transpose(1, 2).contiguous().view(B, T, C) # re-assemble all head outputs side by side
+
+        # output projection
+        y = self.resid_drop(self.proj(y))
+        return y
+
+class GPT2Synapse(bittensor.synapse.Synapse):
+
+    def __init__(self, config, **kwargs):
+        super(GPT2Synapse, self).__init__(config = config, **kwargs)
+        """The full GPT language model, with context of a block size.
+            Args:
+                config (:obj: `munch.Munch`, `required`):
+                    munched config class.
+        """
+
+        if config == None:
+            config = GPT2Synapse.default_config()
+        
+        bittensor.config.Config.update_with_kwargs(config.synapse, kwargs)
+        GPT2Synapse.check_config(config)
+        self.config = config
+
+        gpt_config = GPTConfig(
+            vocab_size = bittensor.__vocab_size__,
+            n_embd=bittensor.__network_dim__,
+            n_head=config.synapse.n_head,
+            n_layer=config.synapse.n_layer,
+            block_size=config.synapse.block_size,
+            embd_pdrop=config.synapse.embd_pdrop,
+            resid_pdrop=config.synapse.resid_pdrop,
+            attn_pdrop=config.synapse.attn_pdrop
+        )
+        # Token embedding layer. 
+        # [bittensor.__vocab_size__, bittensor.__network_dim__]
+        self.tok_emb = nn.Embedding(gpt_config.vocab_size, gpt_config.n_embd)
+
+        # Positional embedding.
+        # [1, block_size, bittensor.__network_dim__]
+        self.pos_emb = nn.Parameter(torch.zeros(1, gpt_config.block_size, gpt_config.n_embd))
+        self.drop = nn.Dropout(gpt_config.embd_pdrop)
+
+        # Transformer blocks
+        self.blocks = nn.Sequential(*[Block(gpt_config) for _ in range(gpt_config.n_layer)])
+
+        # Decoder head
+        self.ln_f = nn.LayerNorm(gpt_config.n_embd)
+
+        # Head
+        # [ bittensor.__network_dim__, bittensor.__network_dim__ ]
+        self.head = nn.Linear(gpt_config.n_embd, bittensor.__network_dim__, bias=False)
 
         # pooler_layer: pools the hidden units for use by the pkm dendrite rpc query.
-        # [batch_size, bittensor.__network_dim__, sequence_len] -> [batch_size, bittensor.__network_dim__]
-        self.pooler = GPT2Pooler(huggingface_config)
+        self.pooler = GPTPooler(gpt_config)
 
-        # router: (PKM layer) queries network using pooled embeddings as context.
-        # [batch_size, bittensor.__network_dim__] -> topk * [batch_size, bittensor.__network_dim__]
+        # Router: (PKM layer) queries network using pooled embeddings as context.
         self.router = PKMRouter(config, query_dim = bittensor.__network_dim__)
 
-        # hidden_layer: transforms context and encoding to network_dim hidden units.
-        # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
+        # Hidden layer
         self.hidden_layer = nn.Linear( bittensor.__network_dim__, bittensor.__network_dim__ )
 
-        # target_layer: maps from hidden layer to vocab dimension for each token. Used by MLM loss.
-        # [batch_size, sequence_len, bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__vocab_size__]
-        self.target_layer = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__, bias=False )
-        
+        # Target layer
+        self.target_layer = nn.Linear( bittensor.__network_dim__, gpt_config.vocab_size, bias=False )
+
+        # Block size here corresponds to sequence lengths
+        self.block_size = gpt_config.block_size
+        self.apply(self._init_weights)
+
         # Loss function: MLM cross-entropy loss.
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = nn.CrossEntropyLoss()
-
+                
+        self.num_parameters = sum(p.numel() for p in self.parameters())
         self.to(self.device)
-
-    @staticmethod   
-    def default_config() -> Munch:
-        parser = argparse.ArgumentParser(); 
-        GPT2LMSynapse.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        return config
+    
 
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser):    
-        r""" Add custom params to the parser.
+    def add_args(parser: argparse.ArgumentParser):
+        """ Add model params
         """
-        parser.add_argument('--synapse.n_head', default=1, type=int, 
-                            help='Number of attention heads for each attention layer in the Transformer encoder.')
-        parser.add_argument('--synapse.n_layer', default=2, type=int, 
-                            help='Number of hidden layers in the Transformer encoder.')
-        parser.add_argument('--synapse.n_inner', default=8, type=int, 
-                            help='The dimensionality of the inner feed-forward layers. :obj:`None` will set it to 4 times n_embd')
-        parser.add_argument('--synapse.activation_function', default='gelu_new', type=str, 
-                            help='Activation function, to be selected in the list :obj:`["relu", "silu", "gelu", "tanh", "gelu_new"]')
-        parser.add_argument('--synapse.resid_pdrop', default=0.1, type=float, 
-                            help='GPT residual dropout probabilit.')
+        parser.add_argument('--synapse.n_head', default=32, type=int, 
+                                help='Number of attention heads for each attention layer in the Transformer encoder.')
+        
+        parser.add_argument('--synapse.n_layer', default=12, type=int, 
+                                help='Number of hidden layers in the Transformer encoder.')
+        
+        parser.add_argument('--synapse.block_size', default=128, type=int, 
+                                help='Number of hidden layers in the Transformer encoder.')
+        
         parser.add_argument('--synapse.embd_pdrop', default=0.1, type=float, 
                             help='GPT embedding dropout probability.')
+
+        parser.add_argument('--synapse.resid_pdrop', default=0.1, type=float, 
+                            help='GPT residual dropout probabilit.')
+        
         parser.add_argument('--synapse.attn_pdrop', default=0.1, type=float, 
                             help='GPT attention dropout probability.')
-        parser.add_argument('--synapse.layer_norm_epsilon', default=1e-05, type=float, 
-                            help='GPT the epsilon to use in the layer normalization layers')
-        parser.add_argument('--synapse.summary_type', default='cls_index', type=str, 
-                            help='Supply a Tensor of classification token position (like GPT/GPT-2).')
-        parser.add_argument('--synapse.initializer_range', default=0.02, type=float, 
-                            help='The standard deviation of the truncated_normal_initializer for initializing all weight matrices.')
-        parser.add_argument('--synapse.summary_use_proj', default=True, type=bool, 
-                            help='Whether or not to add a projection after the vector extraction.')
-        parser.add_argument('--synapse.summary_activation', type=str, 
-                            help='Pass "tanh" for a tanh activation to the output, any other value will result in no activation.')
-        parser.add_argument('--synapse.summary_proj_to_labels', default=True, type=bool, 
-                            help='Whether the projection outputs should have config.num_labels or config.hidden_size classes.')
-        parser.add_argument('--synapse.summary_first_dropout', default=0.1, type=float, 
-                            help='The dropout ratio to be used after the projection and activation.')
-        parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
+        
         PKMRouter.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
         pass
 
+    def get_block_size(self):
+        return self.block_size
+
+    def _init_weights(self, module):
+        if isinstance(module, (nn.Linear, nn.Embedding)):
+            module.weight.data.normal_(mean=0.0, std=0.02)
+
+            if isinstance(module, nn.Linear) and module.bias is not None:
+                module.bias.data.zero_()
+            
+        elif isinstance(module, nn.LayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
+    
+
     def forward_text(self, inputs: torch.LongTensor):
-        """ Local forward inputs through the MLM GPT Synapse.
+        """ Local forward inputs through the CLM GPT Synapse.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
@@ -184,15 +256,16 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
         hidden = self.local_forward(inputs=inputs.to(self.device), training = False).local_hidden
         return hidden
 
-    def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
-        r""" Forward pass through GPT synapse.
+
+    def local_forward(self, inputs: torch.LongTensor, training : bool = True) -> SimpleNamespace:
+        """ Forward pass through GPT2 synapse.
 
             Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
-                    Batch_size length list of text sentences.
+                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, block_size)`, `required`): 
+                    Batch_size length x list of text sentences.
 
                 training (:obj:`bool')`, `optional`, defaults to True):
-                    Switch to True if this forward pass computes an MLM loss.
+                    Switch to True if this forward pass computes a CLM loss.
 
             SimpleNamespace {
                     local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
@@ -208,34 +281,40 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
                         GPT MLM loss using local_context.
                 }
         """
-        inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
+        _, t = inputs.size()
+        assert t <= self.block_size, "Cannot forward, model block size is exhausted."
 
-        # Return vars to be filled.
+        # FWD locally
+        # Each index maps to a learnable vector
+        token_embeddings = self.tok_emb(inputs) 
+        # Each Position maps to a learnable vector
+        position_embeddings = self.pos_emb[:, :t, :]
+
         output = SimpleNamespace()
-        
-        # local_context: distilled version of remote_context.
-        # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.local_context = self.transformer(input_ids=inputs, return_dict=True).last_hidden_state
+        # Dropout on token embeddings and position embeddings
+        out = self.drop(token_embeddings + position_embeddings)
 
-        # local_hidden: hidden layer encoding of sequence with local_context.
-        # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        # 
+        out = self.blocks(out)
+        out = self.ln_f(out)
+        output.local_context = self.head(out)
+
         output.local_hidden = self.hidden_layer(output.local_context)
 
-        if training:
-            # local_target: projection of local_hidden onto target dimension.
-            # local_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
+        if training :
             output.local_target = self.target_layer(output.local_hidden)
-
-            # local_target_loss: MLM loss between local_target and passed targets.
-            # local_target_loss.shape = [1]
+            
             shift_logits = output.local_target[..., :-1, :].contiguous()
             shift_labels = inputs[..., 1:].contiguous()
-            output.local_target_loss = self.loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+            
+            output.local_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
+            
                    
         return output
 
+
     def remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, training: bool) -> SimpleNamespace:
-        """ Forward pass inputs and labels through the GPT2 module.
+        """ Forward pass inputs and labels through the GPT2 module and into the remote network.
 
 
         Args:
@@ -268,39 +347,39 @@ class GPT2LMSynapse(bittensor.synapse.Synapse):
             )
         """
         inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
-
-        # Run the local model.
+        # Run local model
         # output = SimpleNamespace
         output = self.local_forward(inputs, training)
-
-        # pooled: pooled hidden layer from local run, used as our query context.
-        # pooled.shape = [batch_size, bittensor.__network_dim__]
+        
+        # pooled: pooled hidden layer from local run, used as query context
         pooled = self.pooler(output.local_hidden.detach())
 
         # remote_context: joined responses from a dendrite.forward_text call.
-        # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        # remote_context.shape = [batch_size, sequence_len (or block_size), bittensor.__network_dim__]
         output.router = self.router.forward_text(neuron, inputs.to(self.device), pooled)
-        remote_context = output.router.response
-
-        # distillation_loss: distillation loss between local_context and remote_context
+        remote_context = output.router.response.to(self.device)
+        
+        # distillation_loss : distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
         output.distillation_loss = F.mse_loss(output.local_context, remote_context.detach())
 
-        # remote_hidden: hidden layer encoding using remote_context.
+        # remote_hidden: hidden l;ayer encoding using remote_context.
         # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         output.remote_hidden = self.hidden_layer(remote_context)
 
         if training:
-            # remote_target: projection of remote_hidden onto target dimension.
+            # remote_target : projection of remote_hidden onto the target dimension
             # remote_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
             output.remote_target = self.target_layer(output.remote_hidden)
 
-            # remote_target_loss: MLM loss between remote_target and passed targets.
+            # remote_target_loss : CLM loss between remote_target and passed_targets.
             # remote_target_loss.shape = [1]
             shift_logits = output.remote_target[..., :-1, :].contiguous()
             shift_labels = inputs[..., 1:].contiguous()
+
+
             output.remote_target_loss = self.loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+            shift_labels.view(-1)
         
         return output
-
 
