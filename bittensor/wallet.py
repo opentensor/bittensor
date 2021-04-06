@@ -76,7 +76,7 @@ class Wallet():
             parser.add_argument('--wallet.name', required=False, default='default', 
                                     help='''The name of the wallet to unlock for running bittensor''')
             parser.add_argument('--wallet.hotkey', required=False, default='default', 
-                                    help='''The name of hotkey used to running the miner.''')
+                                    help='''The name of wallet's hotkey.''')
             parser.add_argument('--wallet.path', required=False, default='~/.bittensor/wallets/', 
                                     help='''The path to your bittensor wallets''')
         except:
@@ -176,7 +176,7 @@ class Wallet():
         return self._hotkey
 
     @property
-    def coldkey(self) -> bittensor.substrate.Keypair:
+    def coldkey(self) -> 'bittensor.substrate.Keypair':
         r""" Loads the hotkey from wallet.path/wallet.name/coldkey or raises an error.
             Returns:
                 coldkey (bittensor.substrate.Keypair):
@@ -244,7 +244,7 @@ class Wallet():
         print(colored("Loaded coldkey.pub: {}".format( coldkeypub ), 'green'))
         return coldkeypub
 
-    def _load_hotkey(self) -> bittensor.substrate.Keypair:
+    def _load_hotkey(self) -> 'bittensor.substrate.Keypair':
 
         if not os.path.isfile( self.hotkeyfile ):
             print(colored("hotkeyfile  {} does not exist".format( self.hotkeyfile ), 'red'))
@@ -279,7 +279,7 @@ class Wallet():
             return hotkey
 
 
-    def _load_coldkey(self) -> bittensor.substrate.Keypair:
+    def _load_coldkey(self) -> 'bittensor.substrate.Keypair':
         if not os.path.isfile( self.coldkeyfile ):
             print(colored("coldkeyfile  {} does not exist".format( self.coldkeyfile ), 'red'))
             raise KeyFileError
@@ -323,7 +323,7 @@ class Wallet():
         return bittensor.substrate.Keypair.create_from_mnemonic(bittensor.substrate.Keypair.generate_mnemonic())
 
     @staticmethod
-    def __save_keypair(keypair : bittensor.substrate.Keypair, path : str):
+    def __save_keypair(keypair : 'bittensor.substrate.Keypair', path : str):
         path = os.path.expanduser(path)
         with open(path, 'w') as file:
             json.dump(keypair.toDict(), file)
