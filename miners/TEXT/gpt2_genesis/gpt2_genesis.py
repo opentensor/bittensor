@@ -30,10 +30,9 @@ from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
 from bittensor.utils.model_utils import ModelToolbox
 from synapses.gpt2 import GPT2Synapse
-from os import listdir
 from torch.nn.utils import clip_grad_norm_
 from transformers import AdamW
-from tqdm import tqdm
+from qqdm import qqdm, format_str
 from torch.utils.data.dataloader import DataLoader
 from datasets import load_dataset
 
@@ -41,10 +40,9 @@ from datasets import load_dataset
 
 class AdamCorpus():
 
-    def __init__(self, directory: str, block_size: int, tokenizer=bittensor.__tokenizer__()):
+    def __init__(self, block_size: int, tokenizer=bittensor.__tokenizer__()):
         self.block_size = block_size
         self.tokenizer = tokenizer
-
         self.lines = load_dataset('glue', 'cola')['train']
 
 
@@ -104,7 +102,7 @@ class Miner():
         # The Genesis Dataset:
         # The dataset used to train Adam and his first 100 children.
         # Here block size = sequence length.
-        self.dataset = AdamCorpus(self.config.miner.custom_dataset, self.model.get_block_size())
+        self.dataset = AdamCorpus(self.model.get_block_size())
         self.tokens = 0
 
         # ---- Logging ----
@@ -283,10 +281,6 @@ class Miner():
             self.lr = self.config.miner.learning_rate
 
 
-    def reset_learning_rate(self, lr):
-        for param_group in self.optimizer.param_groups:
-            param_group['lr'] = lr
-
     def shuffle_dataset_epoch_length(self):
         """Shuffles the miner's dataset so we get a shuffled, randomized dataset
         of length miner.epoch_length
@@ -325,9 +319,8 @@ class Miner():
             # we train for an epoch.
             logger.info("Preparing dataset batch...")
             dataset = self.shuffle_dataset_epoch_length()
-            pbar = tqdm(enumerate(dataset), total=len(dataset))
+            pbar = qqdm(enumerate(dataset), total=len(dataset), desc=format_str('blue', f'Epoch Progress'))
 
-            #self.reset_learning_rate(self.config.miner.learning_rate)
             for it, (batch) in pbar:
                 batch = batch.to(self.model.device)
                 output = self.model.remote_forward(self.neuron, batch, training=True)
@@ -347,7 +340,16 @@ class Miner():
                 self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
                 self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
 
-                pbar.set_description(f"GS: {colored('{}'.format(self.global_step), 'red')} | LS: {colored('{}'.format(it), 'blue')} | Epoch: {colored('{}'.format(self.epoch+1), 'green')} | LTL: {output.local_target_loss.item():.5f} | RTL: {output.remote_target_loss.item():.5f} | DL: {output.distillation_loss.item():.5f}  | lr {self.get_lr():e}. Axon: {self.neuron.axon.__str__()} Dendrite: {self.neuron.dendrite.__str__()}")
+                pbar.set_infos({
+                    'GS': colored('{}'.format(self.global_step), 'red'),
+                    'LS': colored('{}'.format(it), 'blue'),
+                    'Epoch': colored('{}'.format(self.epoch+1), 'green'),
+                    'Local loss': colored('{}'.format(output.local_target_loss.item()), 'red'),
+                    'Remote loss': colored('{}'.format(output.remote_target_loss.item()), 'blue'),
+                    'Distillation loss': colored('{}'.format(output.distillation_loss.item()), 'green'),
+                    'Axon': self.neuron.axon.__str__(),
+                    'Dendrite': self.neuron.dendrite.__str__(),
+                })
 
                 self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
                 self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)

@@ -203,10 +203,10 @@ class GPT2Synapse(bittensor.synapse.Synapse):
     def add_args(parser: argparse.ArgumentParser):
         """ Add model params
         """
-        parser.add_argument('--synapse.n_head', default=32, type=int, 
+        parser.add_argument('--synapse.n_head', default=16, type=int, 
                                 help='Number of attention heads for each attention layer in the Transformer encoder.')
         
-        parser.add_argument('--synapse.n_layer', default=12, type=int, 
+        parser.add_argument('--synapse.n_layer', default=8, type=int, 
                                 help='Number of hidden layers in the Transformer encoder.')
         
         parser.add_argument('--synapse.block_size', default=128, type=int, 
