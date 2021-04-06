@@ -96,8 +96,9 @@ class Miner():
 
         # ---- Optimizer ----
         self.optimizer = self.configure_optimizers()
-
         self.lr = self.config.miner.learning_rate
+        self.training_loss = math.inf
+        self.best_train_loss = math.inf
 
         # ---- Dataset ----
         # The Genesis Dataset:
@@ -128,15 +129,10 @@ class Miner():
         parser.add_argument('--miner.warmup_tokens', default=375e6, help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)')
         parser.add_argument('--miner.final_tokens', default=260e9, help='At what point we reach 10% of original LR')
         parser.add_argument('--miner.num_workers', default=1, help='Number of workers for data loader.')
-
         parser.add_argument('--miner.clip_gradients', default=1.0, type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.')
         parser.add_argument('--miner.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
         parser.add_argument('--miner.epoch_length', default=500, type=int, help='Iterations of training per epoch')
         parser.add_argument('--miner.batch_size_train', default=2, type=int, help='Training batch size.')
-        parser.add_argument('--miner.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
-        parser.add_argument('--miner.log_interval', default=10, type=int, help='Batches before we log miner info.')
-        parser.add_argument('--miner.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
-        parser.add_argument('--miner.apply_remote_gradients', default=True, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
         parser.add_argument('--miner.root_dir', default='~/.bittensor/miners/', type=str,  help='Root path to load and save data associated with each miner')
         parser.add_argument('--miner.name', default='gpt2-genesis', type=str, help='Trials for this miner go in miner.root / miner.name')
         parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
@@ -238,19 +234,13 @@ class Miner():
                 self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
                 self.row = self.neuron.metagraph.row.to(self.model.device)
 
-                # --- Epoch logs ----
-                #print(self.neuron.axon.__full_str__())
-                #print(self.neuron.dendrite.__full_str__())
-                #print(self.neuron.metagraph)
-
                 # ---- Update Tensorboard ----
                 self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
                 self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
                 self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
 
                 # ---- Save best loss and model ----
-                if self.training_loss and self.training_loss < self.best_train_loss: #self.epoch % 10 == 0:
-                    if self.training_loss < self.best_train_loss:
+                if self.training_loss < self.best_train_loss: #self.epoch % 10 == 0:
                         self.best_train_loss = self.training_loss  # update best train loss
                         self.model_toolbox.save_model(
                             self.config.miner.full_path,
@@ -324,11 +314,9 @@ class Miner():
 
     # ---- Train Epoch ----
     def train(self):
-        self.training_loss = 0.0
 
         def run_epoch():
             self.model.train(True)
-            self.best_train_loss = math.inf
             losses = []
 
             # Re-create dataloader every time we call train
@@ -338,7 +326,6 @@ class Miner():
             logger.info("Preparing dataset batch...")
             dataset = self.shuffle_dataset_epoch_length()
             pbar = tqdm(enumerate(dataset), total=len(dataset))
-
 
             #self.reset_learning_rate(self.config.miner.learning_rate)
             for it, (batch) in pbar:
@@ -370,10 +357,6 @@ class Miner():
 
             avg_loss = sum(losses) / len(losses)
             self.training_loss = avg_loss
-            if avg_loss < self.best_train_loss:
-                self.best_train_loss = avg_loss
-                self.model_toolbox.save_model(self.config.miner.full_path,{'epoch': self.epoch, 'model_state_dict': self.model.state_dict(), 'loss': loss.item(), 'optimizer_state_dict': self.optimizer.state_dict()})
-
 
         run_epoch()
 
