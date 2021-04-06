@@ -44,7 +44,8 @@ class AdamCorpus():
         self.block_size = block_size
         self.tokenizer = tokenizer
 
-        self.lines = load_dataset('glue', 'cola')['train']
+        self.lines = load_dataset('wiki40b', 'en')
+        import pdb;  pdb.set_trace()
 
 
     def __len__(self):
@@ -102,7 +103,7 @@ class Miner():
         # The Genesis Dataset:
         # The dataset used to train Adam and his first 100 children.
         # Here block size = sequence length.
-        self.dataset = AdamCorpus(self.config.miner.custom_dataset, self.model.get_block_size())
+        self.dataset = AdamCorpus(self.model.get_block_size())
         self.tokens = 0
 
         # ---- Logging ----
