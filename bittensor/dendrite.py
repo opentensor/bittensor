@@ -283,8 +283,8 @@ class Dendrite(nn.Module):
             total_bytes_out += receptor.stats.forward_bytes_out.value
             total_bytes_in += receptor.stats.forward_bytes_in.value
         qps_str = colored('{:.3f}'.format(self.stats.qps.value), 'blue')
-        total_in_bytes_str = colored('\u290A {:.1f}'.format((total_bytes_out*8)/1000), 'green')
-        total_out_bytes_str = colored('\u290B {:.1f}'.format((total_bytes_in*8)/1000), 'red')
+        total_out_bytes_str = colored('\u290A{:.1f}'.format((total_bytes_out*8)/1000), 'green')
+        total_in_bytes_str = colored('\u290B{:.1f}'.format((total_bytes_in*8)/1000), 'red')
         return "(" + qps_str + "q/s|" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s" + ")"
 
     def __full_str__(self):
