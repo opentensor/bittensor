@@ -362,14 +362,14 @@ class Miner():
                     'GS': colored('{}'.format(self.global_step), 'red'),
                     'LS': colored('{}'.format(it), 'blue'),
                     'Epoch': colored('{}'.format(self.epoch+1), 'green'),
-                    'Local loss': colored('{}'.format(output.local_target_loss.item()), 'red'),
-                    'Remote loss': colored('{}'.format(output.remote_target_loss.item()), 'blue'),
-                    'Distillation loss': colored('{}'.format(output.distillation_loss.item()), 'green'),
-                    'Learning Rate:': colored('{}'.format(self.lr), 'white'),
+                    'Local loss': colored('{}:.5f'.format(output.local_target_loss.item()), 'red'),
+                    'Remote loss': colored('{}:.5f'.format(output.remote_target_loss.item()), 'blue'),
+                    'Distillation loss': colored('{}:.5f'.format(output.distillation_loss.item()), 'green'),
+                    'Learning Rate:': colored('{}:e'.format(self.lr), 'white'),
                     'Axon': self.neuron.axon.__str__(),
                     'Dendrite': self.neuron.dendrite.__str__(),
                 })
-
+                
                 self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
                 self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
                 self.tensorboard.add_scalar('Neuron/Dloss', output.distillation_loss.item(), self.global_step)
