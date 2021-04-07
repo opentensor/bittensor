@@ -347,6 +347,7 @@ class Miner():
                     'Local loss': colored('{}'.format(output.local_target_loss.item()), 'red'),
                     'Remote loss': colored('{}'.format(output.remote_target_loss.item()), 'blue'),
                     'Distillation loss': colored('{}'.format(output.distillation_loss.item()), 'green'),
+                    'Learning Rate:': colored('{}'.format(self.lr), 'white'),
                     'Axon': self.neuron.axon.__str__(),
                     'Dendrite': self.neuron.dendrite.__str__(),
                 })
