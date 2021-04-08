@@ -65,7 +65,7 @@ class Miner():
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
         if self.config.miner.record_log == True:
-            filepath = self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),
+            filepath = f"{self.config.miner.full_path}/{self.config.miner.name}_ {self.config.miner.trial_uid}.log"
             logger.add (
                 filepath,
                 format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
