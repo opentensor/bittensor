@@ -11,7 +11,7 @@ def test_defaults_to_akira( ):
 
 def test_endpoint_overides():
     subtensor = bittensor.Subtensor(
-        chain_endpoint = "this is the endpoint"
+        subtensor_chain_endpoint = "this is the endpoint"
     )
     assert subtensor.endpoint_for_network() == "this is the endpoint"
 
@@ -26,19 +26,19 @@ def test_networks():
 
 def test_connect_failure( ):
     subtensor = bittensor.Subtensor(
-        chain_endpoint = "this is the endpoint"
+        subtensor_chain_endpoint = "this is the endpoint"
     )
     with pytest.raises(ValueError):
         subtensor.connect(timeout = 1)
 
 def test_connect_no_failure( ):
     subtensor = bittensor.Subtensor(
-        network = "kusanagi"
+        subtensor_network = "kusanagi"
     )
     subtensor.connect(timeout = 1, failure=False)
 
 subtensor = bittensor.Subtensor( 
-    network = 'kusanagi'
+    subtensor_network = 'kusanagi'
 )
 def test_connect_success( ):
     subtensor.connect()

@@ -359,7 +359,7 @@ class Wallet():
         cli_utils.save_keys( self.coldkeyfile, coldkey_data )
         cli_utils.set_file_permissions( self.coldkeyfile )
 
-    def create_new_hotkey( self, n_words:int = 12):  
+    def create_new_hotkey( self, n_words:int = 12, use_password: bool = True):  
         # Create directory 
         dir_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name + "/hotkeys/" )
         if not os.path.exists( dir_path ):
@@ -369,13 +369,22 @@ class Wallet():
         cli_utils.validate_create_path( self.hotkeyfile )
         self._hotkey = cli_utils.gen_new_key( n_words )
         cli_utils.display_mnemonic_msg( self._hotkey )
-        hotkey_data = json.dumps(self._hotkey.toDict()).encode()
+
+        # Encrypt
+        if use_password:
+            password = cli_utils.input_password()
+            bittensor.__cli_logger__.log("USER", "Encrypting hotkey ... (this might take a few moments)")
+            hotkey_json_data = json.dumps( self._hotkey.toDict() ).encode()
+            hotkey_data = encrypt(hotkey_json_data, password)
+            del hotkey_json_data
+        else:
+            hotkey_data = json.dumps(self._hotkey.toDict()).encode()
 
         # Save
         cli_utils.save_keys( self.hotkeyfile, hotkey_data )
         cli_utils.set_file_permissions( self.hotkeyfile )
 
-    def regenerate_coldkey( self, mnemonic: str, use_password: bool):
+    def regenerate_coldkey( self, mnemonic: str, use_password: bool ):
         # Create directory 
         dir_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name )
         if not os.path.exists( dir_path ):
@@ -399,7 +408,7 @@ class Wallet():
         cli_utils.save_keys( self.coldkeyfile, coldkey_data ) 
         cli_utils.set_file_permissions( self.coldkeyfile )
 
-    def regenerate_hotkey( self, mnemonic: str ):
+    def regenerate_hotkey( self, mnemonic: str, use_password: bool ):
         # Create directory 
         dir_path = os.path.expanduser(self.config.wallet.path + "/" + self.config.wallet.name + "/hotkeys/" )
         if not os.path.exists( dir_path ):
@@ -408,6 +417,16 @@ class Wallet():
         # Regenerate
         cli_utils.validate_create_path( self.hotkeyfile )
         self._hotkey = cli_utils.validate_generate_mnemonic( mnemonic )
+
+        # Encrypt
+        if use_password:
+            password = cli_utils.input_password()
+            bittensor.__cli_logger__.log("Encrypting hotkey ... (this might take a few moments)")
+            json_data = json.dumps( self._hotkey.toDict() ).encode()
+            hotkey_data = encrypt(json_data, password)
+            del json_data
+        else:
+            hotkey_data = json.dumps(self._hotkey.toDict()).encode()
         
         # Save
         hotkey_data = json.dumps(self._hotkey.toDict()).encode()

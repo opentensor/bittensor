@@ -83,6 +83,7 @@ class Receptor(nn.Module):
 
         if wallet == None:
             wallet = bittensor.Wallet( self.config )
+        self.config.wallet = wallet.config.wallet
         self.wallet = wallet # Keypair information
         self.neuron = neuron # Endpoint information.
         self.signature = None # Call signature.

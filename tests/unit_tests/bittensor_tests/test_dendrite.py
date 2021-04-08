@@ -42,7 +42,7 @@ def test_dendrite_foward():
     outputs, codes, messages = dendrite.forward(
         neurons = [neuron_a, neuron_b],
         inputs = [torch.tensor([1,1,1]), torch.tensor([1,1,2])],
-        mode = bittensor.proto.Modality.TEXT
+        modality = bittensor.proto.Modality.TEXT
     )
     assert len(outputs) == 2
     assert len(codes) == 2
@@ -59,7 +59,7 @@ def test_dendrite_backward():
         inputs = [torch.tensor([1,1,1]), torch.tensor([1,1,2])],
         grads = [torch.tensor([1,1,1]), torch.tensor([1,1,2])],
         codes = [[0], [0]],
-        mode = bittensor.proto.Modality.TEXT
+        modality = bittensor.proto.Modality.TEXT
     )
     assert len(outputs) == 2
     assert len(codes) == 2

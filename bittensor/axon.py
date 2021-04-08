@@ -394,7 +394,7 @@ class Axon(bittensor.grpc.BittensorServicer):
 
             else:
                 message = "processing timeout"
-                bittensor.__logger.__.debug(message)
+                bittensor.__logger__.debug(message)
                 return None, bittensor.proto.ReturnCode.NucleusTimeout, message
 
         except Exception as e:
@@ -476,7 +476,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             serializer = serialization.get_serializer ( bittensor.proto.Serializer.MSGPACK )
             outputs_serialized = serializer.serialize ( outputs, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH )
         except Exception as e:
-            bittensor.__logger__.error(message)
+            bittensor.__logger__.error(e)
             return None, bittensor.proto.ReturnCode.ResponseDeserializationException, str(e)
 
         # ---- Return successful response ----

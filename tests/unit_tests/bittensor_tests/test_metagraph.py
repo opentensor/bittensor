@@ -90,7 +90,7 @@ def test_metagraph_create_100():
 def test_sync():
     metagraph = bittensor.Metagraph(
         bittensor.Subtensor(
-            network = 'kusanagi'
+            subtensor_network = 'kusanagi'
         )
     )
     print ('sync')
@@ -115,7 +115,7 @@ def test_sync():
 def test_multprocessing_access():
     metagraph = bittensor.Metagraph(
         bittensor.Subtensor(
-            network = 'kusanagi'
+            subtensor_network = 'kusanagi'
         )
     )
     metagraph.sync()

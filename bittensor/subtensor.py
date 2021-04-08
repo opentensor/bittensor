@@ -71,7 +71,7 @@ class Subtensor:
 
         if wallet == None:
             wallet = bittensor.Wallet( self.config )
-        config.wallet = wallet.config.wallet
+        self.config.wallet = wallet.config.wallet
         self.wallet = wallet
 
         self.substrate = SubstrateWSInterface(
@@ -111,6 +111,9 @@ class Subtensor:
     def endpoint_for_network( self, blacklist: List[str] = [] ) -> str:
         r""" Returns a chain endpoint based on config.subtensor.network.
             Returns None if there are no available endpoints.
+        Args:
+            blacklist: List[str]
+                A list of endpoints that should not be used.
         Raises:
             endpoint (str):
                 Websocket endpoint or None if there are none available.

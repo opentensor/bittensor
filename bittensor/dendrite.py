@@ -64,7 +64,7 @@ class Dendrite(torch.autograd.Function):
 
         if wallet == None:
             wallet = bittensor.Wallet( self.config )
-        config.wallet = wallet.config.wallet
+        self.config.wallet = wallet.config.wallet
         self.wallet = wallet
 
         # Create shared memory Dendrite.

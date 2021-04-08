@@ -275,20 +275,20 @@ def test_backward_response_success():
 
 
 
-axon = bittensor.Axon (
-        local_port = 8080,
-        local_ip = '127.0.0.1'
-    )
-axon.enqueue_forward_to_nucleus = MagicMock(
-    return_value=[torch.tensor([1]), bittensor.proto.ReturnCode.Success, 'Success']
-)
-axon.enqueue_backward_to_nucleus = MagicMock(
-        return_value=[torch.tensor([1]), bittensor.proto.ReturnCode.Success, 'Success']
-)
-axon.start()
 
 def test_grpc_forward_works():
-    
+    axon = bittensor.Axon (
+        axon_local_port = 8080,
+        axon_local_ip = '127.0.0.1'
+    )
+    axon.enqueue_forward_to_nucleus = MagicMock(
+        return_value=[torch.tensor([1]), bittensor.proto.ReturnCode.Success, 'Success']
+    )
+    axon.enqueue_backward_to_nucleus = MagicMock(
+            return_value=[torch.tensor([1]), bittensor.proto.ReturnCode.Success, 'Success']
+    )
+    axon.start()
+
     channel = grpc.insecure_channel(
             '127.0.0.1:8080',
             options=[('grpc.max_send_message_length', -1),
@@ -306,9 +306,23 @@ def test_grpc_forward_works():
     response = stub.Forward(request)
 
     outputs = serializer.deserialize(response.tensors[0], to_type=bittensor.proto.TensorType.TORCH)
+    print (outputs)
     assert outputs.tolist() == [1]
+    axon.stop()
 
 def test_grpc_backward_works():
+    axon = bittensor.Axon (
+        axon_local_port = 8080,
+        axon_local_ip = '127.0.0.1'
+    )
+    axon.enqueue_forward_to_nucleus = MagicMock(
+        return_value=[torch.tensor([1]), bittensor.proto.ReturnCode.Success, 'Success']
+    )
+    axon.enqueue_backward_to_nucleus = MagicMock(
+            return_value=[torch.tensor([1]), bittensor.proto.ReturnCode.Success, 'Success']
+    )
+    axon.start()
+
     channel = grpc.insecure_channel(
             '127.0.0.1:8080',
             options=[('grpc.max_send_message_length', -1),
@@ -328,7 +342,10 @@ def test_grpc_backward_works():
     response = stub.Backward(request)
 
     outputs = serializer.deserialize(response.tensors[0], to_type=bittensor.proto.TensorType.TORCH)
+    print (outputs)
     assert outputs.tolist() == [1]
+    axon.stop()
+
 
 if __name__ == "__main__":
     test_grpc_forward_works()
