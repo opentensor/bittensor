@@ -155,9 +155,9 @@ class CLI:
             if self.config.unstake_all:
                 self.executor.unstake_all()
             else:
-                self.executor.unstake( amount_int=self.config.amount, uid=self.config.uid )
+                self.executor.unstake( amount_tao=self.config.amount, uid=self.config.uid )
         elif self.config.command == "stake":
-            self.executor.stake( amount_int=self.config.amount, uid=self.config.uid )
+            self.executor.stake( amount_tao=self.config.amount, uid=self.config.uid )
         elif self.config.command == "overview":
             self.executor.overview()
         elif self.config.command == "new_coldkey":

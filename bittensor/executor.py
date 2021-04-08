@@ -152,13 +152,13 @@ class Executor:
             else:
                 bittensor.__cli_logger__.critical("Unstaking transaction failed")
 
-    def unstake( self, amount_int:int, uid:int ):
+    def unstake( self, amount_tao:int, uid:int ):
         r""" Unstaked token of amount to from uid.
         """
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
         self.subtensor.connect()
-        amount_balance = Balance.from_float( amount_int )
+        amount_balance = Balance.from_float( amount_tao )
         neurons = self._associated_neurons()
         neuron = neurons.get_by_uid( uid )
         if not neuron:
@@ -178,13 +178,13 @@ class Executor:
         else:
             bittensor.__cli_logger__.critical("<Unstaking transaction failed")
 
-    def stake( self, amount_int: int, uid: int ):
+    def stake( self, amount_tao: int, uid: int ):
         r""" Stakes token of amount to hotkey uid.
         """
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
         self.subtensor.connect()
-        amount_balance = Balance.from_float( amount_int )
+        amount_balance = Balance.from_float( amount_tao )
         balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
         if balance < amount_balance:
             bittensor.__cli_logger__.critical("Not enough balance ({}) to stake {}".format(balance, amount_balance))

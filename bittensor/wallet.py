@@ -55,7 +55,7 @@ class Wallet():
         """
         if config == None:
             config = Wallet.default_config()
-        bittensor.Config.update_with_kwargs(config.wallet, kwargs) 
+        bittensor.Config.update_split_with_kwargs(config, kwargs) 
         Wallet.check_config(config)
         self.config = config
         self._hotkey = None

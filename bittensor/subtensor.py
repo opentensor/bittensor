@@ -197,7 +197,7 @@ class Subtensor:
             return await self.async_connect()
         return True
 
-    def connect(self, timeout: int = 10, failure = True ) -> bool:
+    def connect(self, timeout: int = 1 * bittensor.__blocktime__, failure = True ) -> bool:
         r""" Attempts to connect the substrate interface backend. 
         If the connection fails, attemps another endpoint until a timeout.
         Args:
@@ -217,7 +217,7 @@ class Subtensor:
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_connect(timeout, failure))
 
-    async def async_connect(self, timeout: int = 10, failure = True ) -> bool:
+    async def async_connect(self, timeout: int = 1 * bittensor.__blocktime__ , failure = True ) -> bool:
         r""" Attempts to connect the substrate interface backend. 
         If the connection fails, attemps another endpoint until a timeout.
         Args:
@@ -260,7 +260,7 @@ class Subtensor:
             attempted_endpoints.append(ws_chain_endpoint)
 
             # --- Attempt connection ----
-            if await self.substrate.async_connect( ws_chain_endpoint, timeout = 5 ):
+            if await self.substrate.async_connect( ws_chain_endpoint,  ):
                 bittensor.__cli_logger__.success("Successfully connected to {} endpoint: {}".format(self.config.subtensor.network, ws_chain_endpoint))
                 return True
             

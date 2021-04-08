@@ -326,7 +326,6 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
         """
         # 1. Load json message.
         json_data = json.loads(payload)
-        bittensor.__logger__.debug(json_data)
 
         # Message id is passed by initial responses.
         message_id = None
@@ -396,7 +395,7 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
         bittensor.__logger__.debug("Sending message: {}", payload)
         super().sendMessage(payload, isBinary, fragmentSize, sync, doNotCompress)
 
-    async def async_rpc_request( self, method, params, result_handler = None, is_subscription = False, timeout = 10 ) -> dict:
+    async def async_rpc_request( self, method, params, result_handler = None, is_subscription = False, timeout: int = 3 * bittensor.__blocktime__ ) -> dict:
         r""" Creates a websocket message and waits until the response is recieved.
             Maintains memory about the sent request and only returns when the passed handler produces a
             non-null response or a timeout occurs. The call is blocking.
@@ -439,7 +438,7 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
 
         # Wait for events.
         try:
-            response = await asyncio.wait_for( message_future, timeout = 20 )
+            response = await asyncio.wait_for( message_future, timeout = timeout )
         except asyncio.TimeoutError:
             response = None
         
@@ -1356,7 +1355,7 @@ class SubstrateWSInterface:
 
         return extrinsic
 
-    async def submit_extrinsic(self, extrinsic, wait_for_inclusion=False, wait_for_finalization=False, timeout: int = 10) -> dict:
+    async def submit_extrinsic(self, extrinsic, wait_for_inclusion=False, wait_for_finalization=False, timeout: int = 3 * bittensor.__blocktime__) -> dict:
         """
 
         Parameters
@@ -1378,12 +1377,14 @@ class SubstrateWSInterface:
         def result_handler(result):
             # Check if extrinsic is included and finalized
             if 'error' in result and type(result['error']) is dict:
+                bittensor.__logger__.debug('request returned error: {}', result['error'])
                 return {
                     'error': result['error']
                 }
 
             if 'params' in result and type(result['params']['result']) is dict:
                 if 'finalized' in result['params']['result'] and wait_for_finalization:
+                    bittensor.__logger__.debug('request is finalized')
                     return {
                         'block_hash': result['params']['result']['finalized'],
                         'extrinsic_hash': '0x{}'.format(extrinsic.extrinsic_hash),
@@ -1391,6 +1392,7 @@ class SubstrateWSInterface:
                         'finalized': True
                     }
                 elif 'inBlock' in result['params']['result'] and wait_for_inclusion and not wait_for_finalization:
+                    bittensor.__logger__.debug('request is in inblock')
                     return {
                         'block_hash': result['params']['result']['inBlock'],
                         'extrinsic_hash': '0x{}'.format(extrinsic.extrinsic_hash),
