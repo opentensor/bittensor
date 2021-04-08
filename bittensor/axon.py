@@ -97,8 +97,8 @@ class Axon(bittensor.grpc.BittensorServicer):
         self._server = None 
 
         # Forward and Backward multiprocessing queues
-        self.forward_queue = mp.Queue(1000)
-        self.backward_queue = mp.Queue(1000)
+        self.forward_queue = mp.Queue(100)
+        self.backward_queue = mp.Queue(100)
 
         # Serving thread: A thread which runs the axon servicer passing items to the nucleus for
         # further processing.
