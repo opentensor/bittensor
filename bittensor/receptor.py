@@ -89,7 +89,7 @@ class Receptor(nn.Module):
         self.nounce = None # Call nounce.
         self.backoff = 0 # Number o queries to backoff.
         self.next_backoff = 1 # Next backoff level.
-        self.stats = SimpleNamespace(
+        self.stats = SimpleNamespace (
             forward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             backward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             forward_elapsed_time = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -97,7 +97,6 @@ class Receptor(nn.Module):
             forward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.01),
             backward_bytes_out = stat_utils.timed_rolling_avg(0.0, 0.01),
             backward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.01),
-
             codes = {
                 bittensor.proto.ReturnCode.Success: 0,
                 bittensor.proto.ReturnCode.Timeout: 0,
@@ -135,12 +134,12 @@ class Receptor(nn.Module):
         except:
             # Otherwise fall back to the remote: address:port
             self.endpoint = neuron.address + ':' + str(neuron.port)
-
         self.channel = grpc.insecure_channel(
             self.endpoint,
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])
         self.stub = bittensor.grpc.BittensorStub(self.channel)
+        bittensor.__logger__.debug( 'New receptor: {}{}{}', self.endpoint, self.channel, self.stub )
 
     @staticmethod   
     def default_config() -> Munch:
@@ -151,7 +150,8 @@ class Receptor(nn.Module):
 
     @staticmethod   
     def check_config(config: Munch):
-        assert config.receptor.timeout >= 0, 'timeout must be positive value, got {}'.format(config.receptor.timeout)
+        assert config.receptor.forward_timeout >= 0, 'timeout must be positive value, got {}'.format(config.receptor.forward_timeout)
+        assert config.receptor.backward_timeout >= 0, 'timeout must be positive value, got {}'.format(config.receptor.backward_timeout)
         assert config.receptor.max_backoff >= 0, 'max_backoff must be positive value, got {}'.format(config.receptor.max_backoff)
 
     @staticmethod   
@@ -162,8 +162,10 @@ class Receptor(nn.Module):
             parser.add_argument('--receptor.pass_gradients', default=True, type=bool, 
                 help='''Switch to true if the neuron passes gradients to downstream peers.
                         By default the backward call i.e. loss.backward() triggers passing gradients on the wire.''')
-            parser.add_argument('--receptor.timeout', default=0.5, type=float, 
-                help='''The per request RPC timeout. a.k.a the maximum request time.''')
+            parser.add_argument('--receptor.forward_timeout', default=0.5, type=float, 
+                help='''The per forward request RPC timeout. a.k.a the maximum request time.''')
+            parser.add_argument('--receptor.backward_timeout', default=0.5, type=float, 
+                help='''The per backward request RPC timeout. a.k.a the maximum request time.''')
             parser.add_argument('--receptor.do_backoff', default=True, type=bool, 
                 help='''Neurons who return non successful return codes are
                         periodically not called with a multiplicative backoff.
@@ -190,7 +192,7 @@ class Receptor(nn.Module):
     def forward(
             self, 
             inputs: torch.Tensor, 
-            mode: bittensor.proto.Modality
+            modality: bittensor.proto.Modality
         ) -> Tuple[torch.Tensor, int]:
         r""" Forward call: Triggers the grpc Forward call to the associated endpoint.
 
@@ -198,7 +200,7 @@ class Receptor(nn.Module):
                 inputs (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
                     Single torch tensor to be sent to the remote neuron endpoint.
 
-                mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
@@ -212,7 +214,7 @@ class Receptor(nn.Module):
         try:
             outputs, code, message = self._call_forward( 
                 inputs = inputs, 
-                mode = mode 
+                modality = modality 
             )
         except Exception as e:
             # ---- Uncaught failure in the forward call ----
@@ -249,7 +251,7 @@ class Receptor(nn.Module):
             inputs: torch.Tensor, 
             grads: torch.Tensor, 
             code: int, 
-            mode: bittensor.proto.Modality
+            modality: bittensor.proto.Modality
         ) -> Tuple[torch.Tensor, int, str]:
         r""" Backward call: Triggers the grpc Backward call to the associated endpoint.
 
@@ -263,7 +265,7 @@ class Receptor(nn.Module):
                 code (`bittensor.proto.ReturnCode`, `required`):
                     dendrite call return ops from previous forward call.
 
-                mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
@@ -283,7 +285,7 @@ class Receptor(nn.Module):
                 inputs = inputs, 
                 grads = grads, 
                 code = code, 
-                mode = mode
+                modality = modality
             )
         except Exception as e:
             message = 'Uncaught error in backward call with error {}'.format( e )
@@ -298,7 +300,7 @@ class Receptor(nn.Module):
     def _call_forward(
             self, 
             inputs: torch.Tensor, 
-            mode: bittensor.proto.Modality 
+            modality: bittensor.proto.Modality 
         ) -> Tuple[torch.Tensor, int, str]:
         """ Checks and makes RPC Forward call to a remote neuron (calls the Forward method on an Axon terminal of the endpoint)
 
@@ -306,7 +308,7 @@ class Receptor(nn.Module):
                 inputs (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
                     Torch tensor to be sent to the caller associated endpoint neurons.
 
-                mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
@@ -334,7 +336,7 @@ class Receptor(nn.Module):
         # TODO(const): move serialization up to the process.
         try:
             serializer = serialization.get_serializer( bittensor.proto.Serializer.MSGPACK )
-            serialized_inputs = serializer.serialize(inputs, modality = mode, from_type = bittensor.proto.TensorType.TORCH)
+            serialized_inputs = serializer.serialize(inputs, modality = modality, from_type = bittensor.proto.TensorType.TORCH)
         except Exception as e:
             return zeros, bittensor.proto.ReturnCode.RequestSerializationException, str(e)
 
@@ -352,7 +354,8 @@ class Receptor(nn.Module):
             start_time = time.time()
             self.stats.forward_qps.update(1)
             self.stats.forward_bytes_out.update(sys.getsizeof(request))
-            response = self.stub.Forward(request, timeout=5)
+            bittensor.__logger__.debug('-> Forward rpc to: {}', self.endpoint)
+            response = self.stub.Forward(request, timeout=self.config.receptor.forward_timeout)
             self.stats.forward_bytes_in.update(sys.getsizeof(response))
             self.stats.forward_elapsed_time.update((time.time() - start_time))
 
@@ -415,7 +418,7 @@ class Receptor(nn.Module):
             inputs: torch.Tensor, 
             grads: torch.FloatTensor, 
             code: int,
-            mode: bittensor.proto.Modality
+            modality: bittensor.proto.Modality
         ) -> Tuple[torch.Tensor, int]:
         """ Checks and makes RPC Forward call to a remote neuron (calls the Forward method on an Axon terminal of the endpoint)
 
@@ -460,7 +463,7 @@ class Receptor(nn.Module):
         try:
             serializer = serialization.get_serializer( bittensor.proto.Serializer.MSGPACK )
             serialized_grads = serializer.serialize (grads, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH )
-            serialized_inputs = serializer.serialize (inputs, modality = mode, from_type = bittensor.proto.TensorType.TORCH )
+            serialized_inputs = serializer.serialize (inputs, modality = modality, from_type = bittensor.proto.TensorType.TORCH )
         except Exception as e:
             return zeros, bittensor.proto.ReturnCode.RequestSerializationException, str(e) 
         
@@ -473,7 +476,8 @@ class Receptor(nn.Module):
                 signature = self.signature,
                 tensors = [serialized_inputs, serialized_grads]
             )
-            response = self.stub.Backward(request, timeout=self.config.receptor.timeout)
+            bittensor.__logger__.debug('-> Backward rpc to: {}', self.endpoint)
+            response = self.stub.Backward(request, timeout=self.config.receptor.backward_timeout)
 
         # ---- Catch GRPC Errors ----
         except grpc.RpcError as e:

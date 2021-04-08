@@ -92,9 +92,6 @@ class Dendrite(torch.autograd.Function):
         bittensor.Wallet.add_args( parser )
         _Dendrite.add_args( parser )
 
-        parser.add_argument('--dendrite.debug', default=False, type=bool, 
-            help='''If true, request information is logged. ''')
-
         parser.add_argument('--dendrite.multiprocess', default=True, type=bool, 
             help='''If true, the dendrite is created in shared memory and accessible from multiple processes. ''')
 
@@ -119,7 +116,7 @@ class Dendrite(torch.autograd.Function):
             dendrite: 'bittensor.Dendrite',
             dummy: torch.Tensor, 
             neurons: List[bittensor.proto.Neuron], 
-            mode: bittensor.proto.Modality,
+            modality: bittensor.proto.Modality,
             *inputs: torch.Tensor
         ) -> Tuple[ torch.Tensor, ... ] :
         """ Internal autograd-friendly Forward RPC call to a list of neuron endpoints.
@@ -135,7 +132,7 @@ class Dendrite(torch.autograd.Function):
                 neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(shape)`, `required`):
                     List of remote neurons which match length of inputs. Tensors inputs are sent forward to these neurons.
 
-                mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
                 inputs (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
@@ -149,15 +146,15 @@ class Dendrite(torch.autograd.Function):
                     Results from each endpoint.
         """
         ctx.dendrite = dendrite
-        ctx.neurons, ctx.inputs, ctx.mode = neurons, inputs, mode
-        inputs = [ x.clone().detach() for x in inputs]
+        ctx.neurons, ctx.inputs, ctx.modality = neurons, inputs, modality
+        inputs = [ x.clone().detach() for x in inputs ]
+        bittensor.__logger__.debug('-> Forward n_inputs = {}', len(inputs))
         outputs, forward_codes, messages = ctx.dendrite._dendrite.forward(
             neurons = neurons, 
             inputs = inputs, 
-            mode = mode
+            modality = modality
         )
-        if ctx.dendrite.config.dendrite.debug:
-            logger.info('forward messages {}', messages)
+        bittensor.__logger__.debug('<- Forward messages: {}', list(zip(forward_codes, messages)))
         ctx.forward_codes = forward_codes
         return (torch.tensor(forward_codes, dtype=torch.int64), *outputs)
 
@@ -184,22 +181,22 @@ class Dendrite(torch.autograd.Function):
 
         """
         grads_cpu = [ x.clone().detach() for x in output_grads ]
+        bittensor.__logger__.debug('-> Backward n_inputs = {}', len(grads_cpu))
         input_grads, codes, messages =  ctx.dendrite._dendrite.backward (
             neurons = ctx.neurons, 
             inputs = ctx.inputs, 
             grads = grads_cpu, 
             codes = ctx.forward_codes, 
-            mode = ctx.mode
+            modality = ctx.modality
         )
-        if ctx.dendrite.config.dendrite.debug:
-            logger.info('backward messages {}', messages)
+        bittensor.__logger__.debug('<- Backward messages: {}', list(zip(codes, messages)))
         return (None, None, None, None, *input_grads)
 
     def _forward(
                 self,
                 neurons: List[bittensor.proto.Neuron],
                 inputs: List[torch.Tensor],
-                mode: bittensor.proto.Modality
+                modality: bittensor.proto.Modality
             ) -> Tuple[List[torch.Tensor], torch.LongTensor]:
             r""" Internal Forward tensor inputs to a list of neuron endpoints.
 
@@ -211,7 +208,7 @@ class Dendrite(torch.autograd.Function):
                         List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and shape depending on the
                         modality.
 
-                    mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                    modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                         Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
                 Returns:
@@ -225,7 +222,7 @@ class Dendrite(torch.autograd.Function):
                 self,
                 DUMMY, 
                 neurons, 
-                mode,
+                modality,
                 *inputs
             )
             codes = forward_response[0]
@@ -266,7 +263,7 @@ class Dendrite(torch.autograd.Function):
 
             return self._forward (
                 neurons = neurons, 
-                mode = bittensor.proto.Modality.TEXT,
+                modality = bittensor.proto.Modality.TEXT,
                 inputs = inputs
             )
 
@@ -305,7 +302,7 @@ class Dendrite(torch.autograd.Function):
 
         return self._forward (
                 neurons = neurons, 
-                mode = bittensor.proto.Modality.TEXT,
+                modality = bittensor.proto.Modality.TEXT,
                 inputs = inputs
         )
 
@@ -346,7 +343,7 @@ class Dendrite(torch.autograd.Function):
 
         return self._forward (
                 neurons = neurons, 
-                mode = bittensor.proto.Modality.TEXT,
+                modality = bittensor.proto.Modality.TEXT,
                 inputs = inputs
         )
 
@@ -400,20 +397,44 @@ class _Dendrite:
         bittensor.Receptor.add_args(parser)
         pass
 
+    def __del__(self):
+        for receptor in self.receptors.values():
+            bittensor.__logger__.debug('Deleting receptor with neuron: {}', receptor.neuron )
+            del receptor
+
     def get_receptor_for_neuron( self, neuron: bittensor.proto.Neuron ) -> 'bittensor.Receptor':
-        # ---- Find receptor or create one ---- 
-        if neuron.public_key not in self.receptors:
-            self.receptors[neuron.public_key] = bittensor.Receptor(
-                neuron = neuron, 
-                config = self.config, 
-                wallet = self.wallet
+        # TODO(const): receptor retention should go here.
+        # ---- Find receptor, update or create one ---- 
+        if neuron.public_key in self.receptors:
+            receptor = self.receptors[neuron.public_key]
+
+            # Change receptor address.
+            if receptor.neuron.address != neuron.address or receptor.neuron.port != neuron.port:
+                del receptor
+                bittensor.__logger__.debug('Update receptor for neuron: {}', neuron )
+                receptor = bittensor.Receptor (
+                    neuron = neuron, 
+                    config = self.config, 
+                    wallet = self.wallet
+                )            
+                self.receptors[neuron.public_key] = receptor
+
+        else:
+            # Create new receptor.
+            bittensor.__logger__.debug('Create receptor for neuron: {}', neuron )
+            receptor = bittensor.Receptor (
+                    neuron = neuron, 
+                    config = self.config, 
+                    wallet = self.wallet
             )
-        return self.receptors[neuron.public_key]
+            self.receptors[neuron.public_key] = receptor
+
+        return receptor
 
     def forward(self, 
                 neurons: List[bittensor.proto.Neuron],
                 inputs: List[torch.Tensor],
-                mode: bittensor.proto.Modality
+                modality: bittensor.proto.Modality
         ) -> Tuple[List[torch.Tensor], List[int], List[str]]:
         r""" Forward tensor inputs to neurons.
 
@@ -425,7 +446,7 @@ class _Dendrite:
                     List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and shape depending on the
                     modality.
 
-                mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
@@ -444,7 +465,7 @@ class _Dendrite:
             loop = loop, 
             neurons = neurons, 
             inputs = inputs, 
-            mode = mode
+            modality = modality
         ))
         loop.stop()
 
@@ -460,7 +481,7 @@ class _Dendrite:
                 inputs: List[torch.Tensor],
                 grads: List[torch.Tensor],
                 codes: List[int],
-                mode: bittensor.proto.Modality
+                modality: bittensor.proto.Modality
             ) -> Tuple[List[torch.Tensor], List[int], List[str]]:
         r""" Forward tensor inputs to neurons.
 
@@ -478,7 +499,7 @@ class _Dendrite:
                 codes (:obj:`List[bittensor.proto.ReturnCode]` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops from previous forward call.
 
-                mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
@@ -499,7 +520,7 @@ class _Dendrite:
             inputs = inputs, 
             grads = grads, 
             codes = codes, 
-            mode = mode
+            modality = modality
         ))
         loop.stop()
 
@@ -514,7 +535,7 @@ class _Dendrite:
             loop: asyncio.base_events.BaseEventLoop, 
             neurons: List[bittensor.proto.Neuron],
             inputs: List[torch.Tensor],
-            mode
+            modality: bittensor.proto.Modality
         ) -> List[Tuple[torch.FloatTensor, int]]:
         r""" Creates and returns the results from len(neurons) torch forward requests. Uses asyncio for concurrency.
 
@@ -529,7 +550,7 @@ class _Dendrite:
                     List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and shape depending on the
                     modality.
 
-                mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
@@ -543,7 +564,7 @@ class _Dendrite:
             receptor = self.get_receptor_for_neuron( neuron_i )
             calls.append( loop.run_in_executor( None, receptor.forward, 
                 inputs_i, 
-                mode
+                modality
             ))
 
         # ---- Gather results and return ---- 
@@ -557,7 +578,8 @@ class _Dendrite:
             inputs: List[torch.Tensor],
             grads: List[torch.Tensor],
             codes: List[int],
-            mode) -> List[Tuple[torch.FloatTensor, int, str]]:
+            modality: bittensor.proto.Modality
+        ) -> List[Tuple[torch.FloatTensor, int, str]]:
         r""" Creates and returns the results from len(neurons) torch forward requests. Uses asyncio for concurrency.
 
             Args:
@@ -577,7 +599,7 @@ class _Dendrite:
                 codes (:obj:`List[bittensor.proto.ReturnCode]` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops from previous forward call.
 
-                mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
@@ -595,7 +617,7 @@ class _Dendrite:
                 inputs_i, 
                 grads_i, 
                 code_i, 
-                mode
+                modality
             ))
 
         # ---- Gather results and return ---- 

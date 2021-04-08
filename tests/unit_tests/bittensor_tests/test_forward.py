@@ -143,7 +143,7 @@ def test_dendrite_backward_multiple():
     assert x3.grad.tolist() == y3.tolist()
 
 
-def test_multprocessing_forward():
+def test_multiprocessing_forward():
     dendrite = bittensor.Dendrite()
     dendrite._dendrite.forward = MagicMock(return_value = [torch.tensor([]), [0], ['']]) 
     dendrite._dendrite.backward = MagicMock(return_value = [torch.tensor([]), [0], ['']]) 
