@@ -259,6 +259,8 @@ class GPT2Synapse(bittensor.synapse.Synapse):
                 hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Hidden layer representation produced using the local_context.
         """
+        # Truncate seq length of incoming inputs if they are too long
+        inputs = inputs if inputs.size(1) <= self.block_size else inputs[:, -self.block_size:]
         hidden = self.local_forward(inputs=inputs.to(self.device), training = False).local_hidden
         return hidden
 
