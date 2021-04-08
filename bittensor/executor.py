@@ -133,25 +133,25 @@ class Executor:
     def check_config (config: Munch):
         if config.command == "transfer":
             if not config.dest:
-                print(colored("The --dest argument is required for this command", 'red'))
+                bittensor.__cli_logger__.critical("The --dest argument is required for this command")
                 quit()
             if not config.amount:
-                print(colored("The --amount argument is required for this command", 'red'))
+                bittensor.__cli_logger__.critical("The --amount argument is required for this command")
                 quit()
         elif config.command == "unstake":
             if not config.unstake_all:
                 if config.uid is None:
-                    print(colored("The --uid argument is required for this command", 'red'))
+                    bittensor.__cli_logger__.critical("The --uid argument is required for this command")
                     quit()
                 if not config.amount:
-                    print(colored("The --amount argument is required for this command", 'red'))
+                    bittensor.__cli_logger__.critical("The --amount argument is required for this command")
                     quit()
         elif config.command == "stake":
             if config.uid is None:
-                print(colored("The --uid argument is required for this command", 'red'))
+                bittensor.__cli_logger__.critical("The --uid argument is required for this command")
                 quit()
             if config.amount is None:
-                print(colored("The --amount argument is required for this command", 'red'))
+                bittensor.__cli_logger__.critical("The --amount argument is required for this command")
                 quit()
 
     def run_command(self):
@@ -175,7 +175,7 @@ class Executor:
         elif self.config.command == "regen_hotkey":
             self.regenerate_hotkey()
         else:
-            print(colored("The command {} not implemented".format( self.config.command ), 'red'))
+            bittensor.__cli_logger__.critical("The command {} not implemented".format( self.config.command ))
             quit()
             
     def regenerate_coldkey ( self ):
@@ -201,7 +201,7 @@ class Executor:
     def _associated_neurons( self ) -> Neurons:
         r""" Returns a list of neurons associate with this wallet's coldkey.
         """
-        print(colored("Retrieving all nodes associated with cold key : {}".format( self.wallet.coldkeypub ), 'white'))
+        bittensor.__cli_logger__.log("USER", 'Retrieving all nodes associated with coldkey: {}'.format( self.wallet.coldkeypub ))
         neurons = self.subtensor.neurons()
         neurons = Neurons.from_list( neurons )
         result = filter(lambda x : x.coldkey == self.wallet.coldkey.public_key, neurons )# These are the neurons associated with the provided cold key
@@ -250,9 +250,9 @@ class Executor:
             neuron.stake = self.subtensor.get_stake_for_uid( neuron.uid )
             result = self.subtensor.unstake( neuron.stake, neuron.hotkey, wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
             if result:
-                print(colored("Unstaked: {} Tao from uid: {} to coldkey.pub: {}".format( neuron.stake, neuron.uid, self.wallet.coldkey.public_key ) , 'green'))
+                bittensor.__cli_logger__.success("Unstaked: {} Tao from uid: {} to coldkey.pub: {}".format( neuron.stake, neuron.uid, self.wallet.coldkey.public_key ))
             else:
-                print(colored("Unstaking transaction failed", 'red'))
+                bittensor.__cli_logger__.critical("Unstaking transaction failed")
 
     def unstake( self ):
         r""" Unstaked token of amount to from uid.
@@ -265,21 +265,21 @@ class Executor:
         neurons = self._associated_neurons()
         neuron = neurons.get_by_uid( self.config.uid )
         if not neuron:
-            print(colored("Neuron with uid: {} is not associated with coldkey.pub: {}".format( self.config.uid, self.wallet.coldkey.public_key), 'red'))
+            bittensor.__cli_logger__.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( self.config.uid, self.wallet.coldkey.public_key))
             quit()
 
         neuron.stake = self.subtensor.get_stake_for_uid(neuron.uid)
         if amount > neuron.stake:
-            print(colored("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format( self.config.uid, neuron.stake, amount), 'red'))
+            bittensor.__cli_logger__.critical("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format( self.config.uid, neuron.stake, amount))
             quit()
 
-        print(colored("Requesting unstake of {} rao for hotkey: {} to coldkey: {}".format(amount.rao, neuron.hotkey, self.wallet.coldkey.public_key), 'blue'))
-        print(colored("Waiting for finalization...", 'white'))
+        bittensor.__cli_logger__.log('USER', "Requesting unstake of {} rao for hotkey: {} to coldkey: {}".format(amount.rao, neuron.hotkey, self.wallet.coldkey.public_key))
+        bittensor.__cli_logger__.log('USER', "Waiting for finalization...")
         result = self.subtensor.unstake(amount, neuron.hotkey, wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
         if result:
-            print(colored("Unstaked:{} from uid:{} to coldkey.pub:{}".format(amount.tao, neuron.uid, self.wallet.coldkey.public_key), 'green'))
+            bittensor.__cli_logger__.success("Unstaked:{} from uid:{} to coldkey.pub:{}".format(amount.tao, neuron.uid, self.wallet.coldkey.public_key))
         else:
-            print(colored("Unstaking transaction failed", 'red'))
+            bittensor.__cli_logger__.critical("<Unstaking transaction failed")
 
     def stake( self ):
         r""" Stakes token of amount to hotkey uid.
@@ -291,22 +291,22 @@ class Executor:
         amount = Balance.from_float( self.config.amount )
         balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
         if balance < amount:
-            print(colored("Not enough balance ({}) to stake {}".format(balance, amount), 'red'))
+            bittensor.__cli_logger__.critical("Not enough balance ({}) to stake {}".format(balance, amount))
             quit()
 
         neurons = self._associated_neurons()
         neuron = neurons.get_by_uid( self.config.uid )
         if not neuron:
-            print(colored("Neuron with uid: {} is not associated with coldkey.pub: {}".format(self.config.uid, self.wallet.coldkey.public_key), 'red'))
+            bittensor.__cli_logger__.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format(self.config.uid, self.wallet.coldkey.public_key))
             quit()
 
-        print(colored("Adding stake of {} rao from coldkey {} to hotkey {}".format(amount.rao, self.wallet.coldkey.public_key, neuron.hotkey), 'blue'))
-        print(colored("Waiting for finalization...", 'white'))
+        bittensor.__cli_logger__.log('USER', "Adding stake of {} rao from coldkey {} to hotkey {}".format(amount.rao, self.wallet.coldkey.public_key, neuron.hotkey))
+        bittensor.__cli_logger__.log('USER', "Waiting for finalization...")
         result = self.subtensor.add_stake( amount, neuron.hotkey, wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
         if result:
-            print(colored("Staked: {} Tao to uid: {} from coldkey.pub: {}".format(amount.tao, self.config.uid, self.wallet.coldkey.public_key), 'green'))
+            bittensor.__cli_logger__.success("Staked: {} Tao to uid: {} from coldkey.pub: {}".format(amount.tao, self.config.uid, self.wallet.coldkey.public_key))
         else:
-            print(colored("Stake transaction failed", 'red'))
+            bittensor.__cli_logger__.critical("Stake transaction failed")
 
     def transfer( self ):
         r""" Transfers token of amount to dest.
@@ -319,16 +319,16 @@ class Executor:
         amount = Balance.from_float( self.config.amount )
         balance = self.subtensor.get_balance(self.wallet.coldkey.ss58_address)
         if balance < amount:
-            print(colored("Not enough balance ({}) to transfer {}".format(balance, amount), 'red'))
+            bittensor.__cli_logger__.critical("Not enough balance ({}) to transfer {}".format(balance, amount))
             quit()
 
-        print(colored("Requesting transfer of {}, from coldkey: {} to dest: {}".format(amount.rao, self.wallet.coldkey.public_key, dest), 'blue'))
-        print(colored("Waiting for finalization...", 'white'))
+        bittensor.__cli_logger__.log('USER', 'Requesting transfer of {}, from coldkey: {} to dest: {}'.format(amount.rao, self.wallet.coldkey.public_key, dest))
+        bittensor.__cli_logger__.log('USER', 'Waiting for finalization...')
         result = self.subtensor.transfer(self.config.dest, amount,  wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
         if result:
-            print(colored("Transfer finalized with amount: {} Tao to dest: {} from coldkey.pub: {}".format(amount.tao, self.config.dest, self.wallet.coldkey.public_key), 'green'))
+            bittensor.__logger__.success("Transfer finalized with amount: {} Tao to dest: {} from coldkey.pub: {}".format(amount.tao, self.config.dest, self.wallet.coldkey.public_key))
         else:
-            print(colored("Transfer failed", 'red'))
+            bittensor.__logger__.critical("Transfer failed")
  
 
 if __name__ == "__main__":

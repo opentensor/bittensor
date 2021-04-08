@@ -228,26 +228,27 @@ class Subtensor:
         """
         start_time = time.time()
         if await self.async_is_connected():
-            print(colored("Subtensor connected to: {}".format(self.config.subtensor.network), 'green'))
+            bittensor.__cli_logger__.success("Subtensor connected to: {}".format(self.config.subtensor.network))
             return True
 
         attempted_endpoints = []
         while True:
             def connection_error_message():
-                print('''
-Check that your internet connection is working and the chain endpoints are available: {}
-The subtensor.network should likely be one of the following choices:
-    -- local - (your locally running node)
-    -- akira - (testnet)
-    -- kusanagi - (mainnet)
-Or you may set the endpoint manually using the --subtensor.chain_endpoint flag 
-To run a local node (See: docs/running_a_validator.md) \n
-                              '''.format( attempted_endpoints) )
+                bittensor.__cli_logger__.critical(               
+                    '''
+                    Check that your internet connection is working and the chain endpoints are available: {}
+                    The subtensor.network should likely be one of the following choices:
+                        -- local - (your locally running node)
+                        -- akira - (testnet)
+                        -- kusanagi - (mainnet)
+                    Or you may set the endpoint manually using the --subtensor.chain_endpoint flag 
+                    To run a local node (See: docs/running_a_validator.md) \n
+                    '''.format( attempted_endpoints))
 
             # ---- Get next endpoint ----
             ws_chain_endpoint = self.endpoint_for_network( blacklist = attempted_endpoints )
             if ws_chain_endpoint == None:
-                print(colored("No more endpoints available for subtensor.network: {}, attempted: {}".format(self.config.subtensor.network, attempted_endpoints), 'red'))
+                bittensor.__cli_logger__.critical("No more endpoints available for subtensor.network: {}, attempted: {}".format(self.config.subtensor.network, attempted_endpoints))
                 connection_error_message()
                 if failure:
                     raise RuntimeError('Unable to connect to network {}. Make sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
@@ -257,12 +258,12 @@ To run a local node (See: docs/running_a_validator.md) \n
 
             # --- Attempt connection ----
             if await self.substrate.async_connect( ws_chain_endpoint, timeout = 5 ):
-                print(colored("Successfully connected to {} endpoint: {}".format(self.config.subtensor.network, ws_chain_endpoint), 'green'))
+                bittensor.__cli_logger__.success("Successfully connected to {} endpoint: {}".format(self.config.subtensor.network, ws_chain_endpoint))
                 return True
             
             # ---- Timeout ----
             elif (time.time() - start_time) > timeout:
-                print(colored("Error while connecting to the chain endpoint {}".format(ws_chain_endpoint), 'red'))
+                bittensor.__cli_logger__.critical("Error while connecting to the chain endpoint {}".format(ws_chain_endpoint))
                 connection_error_message()
                 if failure:
                     raise RuntimeError('Unable to connect to network {}. Make sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
@@ -324,15 +325,15 @@ To run a local node (See: docs/running_a_validator.md) \n
                                     timeout = timeout
                             )
         except SubstrateRequestException as e:
-            logger.error('Extrinsic exception with error {}', e)
+            bittensor.__logger__.error('Extrinsic exception with error {}', e)
             return False
         except Exception as e:
-            logger.error('Error submitting extrinsic with error {}', e)
+            bittensor.__logger__.error('Error submitting extrinsic with error {}', e)
             return False
 
         # Check timeout.
         if response == None:
-            logger.error('Error in extrinsic: No response within timeout')
+            bittensor.__logger__.error('Error in extrinsic: No response within timeout')
             return False
 
         # Check result.
@@ -340,7 +341,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             return True
         else:
             if 'error' in response:
-                logger.error('Error in extrinsic: {}', response['error'])
+                bittensor.__logger__.error('Error in extrinsic: {}', response['error'])
             elif 'finalized' in response and response['finalized'] == True:
                 return True
             elif 'inBlock' in response and response['inBlock'] == True:
@@ -448,7 +449,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             return False
 
         if await self.async_is_subscribed( ip, port, modality, coldkeypub ):
-            print(colored('Already subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub), 'green'))
+            bittensor.__cli_logger__.success("Already subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]".format(ip, port, modality, coldkeypub))
             return True
 
         ip_as_int  = net.ip_to_int(ip)
@@ -467,9 +468,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.hotkey)
         result = await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
         if result:
-            print(colored('Successfully subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub), 'green'))
+            bittensor.__cli_logger__.success('Successfully subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub))
         else:
-            print(colored('Failed to subscribe', 'red'))
+            bittensor.__cli_logger__.critical('Failed to subscribe')
         return result
             
     def add_stake(

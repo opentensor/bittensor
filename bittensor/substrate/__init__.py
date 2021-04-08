@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import bittensor
 import asyncio
 from hashlib import blake2b
 import binascii
@@ -279,7 +280,7 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
             transport_details (autobahn.websocket.types.TransportDetails):
                  information about the transport.
         """
-        logger.trace("Connecting to websocket server {}", transport_details)
+        bittensor.__logger__.trace("Connecting to websocket server {}", transport_details)
 
     def onConnect(self, response):
         r""" Callback fired during WebSocket opening handshake when a client connects 
@@ -291,13 +292,13 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
                     Connection response from server.
 
         """
-        logger.trace("Connected. {}", response)
+        bittensor.__logger__.trace("Connected. {}", response)
 
     def onOpen(self):
         r""" Callback fired when the initial WebSocket opening handshake was completed. 
             You now can send and receive WebSocket messages.
         """
-        logger.trace("Connection open to websocket established")
+        bittensor.__logger__.trace("Connection open to websocket established")
         self.is_connected.set_result( True )
 
     def onClose(self, wasClean, code, reason):
@@ -312,7 +313,7 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
                     Close reason as sent by the WebSocket peer.
         """
 
-        logger.trace("Connection closed.")
+        bittensor.__logger__.trace("Connection closed.")
         self.is_connected.set_result( False )
 
     def onMessage(self, payload, isBinary):
@@ -325,7 +326,7 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
         """
         # 1. Load json message.
         json_data = json.loads(payload)
-        logger.trace(json_data)
+        bittensor.__logger__.trace(json_data)
 
         # Message id is passed by initial responses.
         message_id = None
@@ -349,7 +350,7 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
         # Note that on subscription we attain the message_id from the self._id_for_subscription mem.
         if message_id == None:
             return
-        logger.trace('recieved message with id {}', message_id)
+        bittensor.__logger__.trace("recieved message with id {}", message_id)
 
         # 5. The first message of a subscription contains the subscription key.
         # We check the self._is_subscrtiption to see if we are watching this stream.
@@ -373,12 +374,12 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
         # 7. Check handler has result is non-none. The non-none result specifies the end of the 
         # subscription.
         if handler_result == None:
-            logger.trace('handler produced non-result')
+            bittensor.__logger__.trace("handler produced non-result")
             return 
 
         # 8. Sanity check.
         if message_id not in self._futures:
-            logger.trace('no future for message')
+            bittensor.__logger__.trace("no future for message")
             return
         
         # 9. Set result and event.
@@ -392,7 +393,7 @@ class SubtensorClientProtocol(WebSocketClientProtocol):
                 isBinary (bool):
                     Flag indicating whether payload is binary or UTF-8 encoded text.
         """
-        logger.trace("Sending message: {}", payload)
+        bittensor.__logger__.trace("Sending message: {}", payload)
         super().sendMessage(payload, isBinary, fragmentSize, sync, doNotCompress)
 
     async def async_rpc_request( self, method, params, result_handler = None, is_subscription = False, timeout = 10 ) -> dict:
@@ -1023,7 +1024,7 @@ class SubstrateWSInterface:
                                 elif storage_item.type['MapType']['hasher'] == "Identity":
                                     concat_hash_len = 0
                                 else:
-                                    logger.error("hasher : {}", storage_item.type['MapType']['hasher'])
+                                    bittensor.__logger__.error("hasher : {}", storage_item.type['MapType']['hasher'])
                                     raise ValueError('Unsupported hash type')
                             else:
                                 raise ValueError('Given storage is not a map')
@@ -2201,6 +2202,6 @@ class SubstrateWSInterface:
             return False
 
     def debug_message(self, message):
-        logger.trace(message)
+        bittensor.__logger__.trace(message)
 
 

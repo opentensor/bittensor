@@ -49,7 +49,7 @@ import bittensor.substrate
 
 # Parse env vars.
 parser = argparse.ArgumentParser(); 
-parser.add_argument('--STDOUT_LOGGING_LEVEL', default='ERROR', type=str, 
+parser.add_argument('--STDOUT_LOGGING_LEVEL', default='SUCCESS', type=str, 
     help='''Bittensor debug level passed to stdout.''')
 parser.add_argument('--FILE_LOGGING_LEVEL', default='INFO', type=str, 
     help='''Bittensor debug level passed to ~/.bittensor/logs.''')
@@ -58,23 +58,41 @@ params = parser.parse_known_args()[0]
 # Logger
 STDOUT_LOGGING_LEVEL = params.STDOUT_LOGGING_LEVEL
 FILE_LOGGING_LEVEL = params.FILE_LOGGING_LEVEL
+
 def stdout_filter( record ):
-    if bool(record["extra"].get("bittensor_internal")) and record["level"].no >= logger.level(STDOUT_LOGGING_LEVEL).no:
+    if bool(record["extra"].get("internal")) and record["level"].no >= logger.level(STDOUT_LOGGING_LEVEL).no:
+        return True
+    return False
+
+def file_filter( record ):
+    if bool(record["extra"].get("internal")) and record["level"].no >= logger.level(FILE_LOGGING_LEVEL).no:
+        return True
+    return False
+
+def cli_filter( record ):
+    if bool(record["extra"].get("cli")):
         return True
     else:
         return False
 
-def file_filter( record ):
-    if bool(record["extra"].get("bittensor_internal")) and record["level"].no >= logger.level(FILE_LOGGING_LEVEL).no:
-        return True
-    else:
-        return False
+def formatter(record):
+    if record["level"].no == logger.level('SUCCESS').no:
+        return "<green>{message}</green>\n"
+    if record["level"].no == logger.level('CRITICAL').no:
+        return "<red>{message}</red>\n"
+    if record["level"].name == 'USER':
+        return "<blue>{message}</blue>\n"
+    return "{message}"
 
 # Build Logging syncs.
 logger.remove()
 logger.add(sys.stdout, filter=stdout_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True)
+logger.add(sys.stdout, filter=cli_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True, format=formatter)
 logger.add('~/.bittensor/logs.log', filter=file_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True, rotation="20 MB")
-__logger__ = logger.bind(bittensor_internal=True)
+logger.level("USER", no=33, icon="🤖")
+__logger__ = logger.bind(internal=True)
+__cli_logger__ = logger.bind(cli=True)
+
 
 # Tokenizer
 # NOTE (const): tokenizers are guaranteed to improve and expand as time progresses. We version the tokenizer here.

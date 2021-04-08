@@ -118,13 +118,13 @@ def upnpc_delete_port_map(external_port: int):
                 Raised if UPNPC port map delete fails.
     """
     try:
-        logger.info('UPNPC: Deleting port map {}', external_port)
+        bittensor.__logger__.info('UPNPC: Deleting port map {}', external_port)
         u = miniupnpc.UPnP()
         u.discoverdelay = 200
         u.discover()
         u.selectigd()
         u.deleteportmapping(external_port, 'TCP')
-        logger.info('UPNPC: Delete Success')
+        bittensor.__logger__.info('UPNPC: Delete Success')
 
     except Exception as e:
         raise UPNPCException(e)
@@ -147,18 +147,18 @@ def upnpc_create_port_map(local_port: int):
     try:
         u = miniupnpc.UPnP()
         u.discoverdelay = 200
-        logger.debug('UPNPC: Using UPnP to open a port on your router ...')
-        logger.debug('UPNPC: Discovering... delay={}ms', u.discoverdelay)
+        bittensor.__logger__.debug('UPNPC: Using UPnP to open a port on your router ...')
+        bittensor.__logger__.debug('UPNPC: Discovering... delay={}ms', u.discoverdelay)
         ndevices = u.discover()
         u.selectigd()
-        logger.debug('UPNPC: ' + str(ndevices) + ' device(s) detected')
+        bittensor.__logger__.debug('UPNPC: ' + str(ndevices) + ' device(s) detected')
 
         local_ip = u.lanaddr
         external_ip = u.externalipaddress()
 
-        logger.debug('UPNPC: your local ip address: ' + str(local_ip))
-        logger.debug('UPNPC: your external ip address: ' + str(external_ip))
-        logger.debug('UPNPC: status = ' + str(u.statusinfo()) + " connection type = " + str(u.connectiontype()))
+        bittensor.__logger__.debug('UPNPC: your local ip address: ' + str(local_ip))
+        bittensor.__logger__.debug('UPNPC: your external ip address: ' + str(external_ip))
+        bittensor.__logger__.debug('UPNPC: status = ' + str(u.statusinfo()) + " connection type = " + str(u.connectiontype()))
 
         # find a free port for the redirection
         external_port = local_port
@@ -169,9 +169,9 @@ def upnpc_create_port_map(local_port: int):
         if rc != None:
             raise UPNPCException("UPNPC: No available external ports for port mapping.")
 
-        logger.info('UPNPC: trying to redirect remote: {}:{} => local: {}:{} over TCP', external_ip, external_port, local_ip, local_port)
+        bittensor.__logger__.info('UPNPC: trying to redirect remote: {}:{} => local: {}:{} over TCP', external_ip, external_port, local_ip, local_port)
         u.addportmapping(external_port, 'TCP', local_ip, local_port, 'Bittensor: %u' % external_port, '')
-        logger.info('UPNPC: Create Success')
+        bittensor.__logger__.info('UPNPC: Create Success')
 
         return external_port
 

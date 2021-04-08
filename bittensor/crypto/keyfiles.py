@@ -13,5 +13,5 @@ def load_keypair_from_data(data) -> Keypair:
 
         return Keypair.create_from_seed(data['secretSeed'])
     except BaseException as e:
-        logger.debug(e)
+        bittensor.__logger__.exception(e)
         raise KeyFileError("Keyfile corrupt")
