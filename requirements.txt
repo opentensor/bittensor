@@ -44,4 +44,5 @@ pandas
 numpy
 wheel
 codecov
-
+tqdm
+qqdm
