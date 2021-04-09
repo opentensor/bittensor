@@ -126,25 +126,25 @@ class CLI:
     def check_config (config: Munch):
         if config.command == "transfer":
             if not config.dest:
-                bittensor.__cli_logger__.critical("The --dest argument is required for this command")
+                bittensor.__user_logger__.critical("The --dest argument is required for this command")
                 quit()
             if not config.amount:
-                bittensor.__cli_logger__.critical("The --amount argument is required for this command")
+                bittensor.__user_logger__.critical("The --amount argument is required for this command")
                 quit()
         elif config.command == "unstake":
             if not config.unstake_all:
                 if config.uid is None:
-                    bittensor.__cli_logger__.critical("The --uid argument is required for this command")
+                    bittensor.__user_logger__.critical("The --uid argument is required for this command")
                     quit()
                 if not config.amount:
-                    bittensor.__cli_logger__.critical("The --amount argument is required for this command")
+                    bittensor.__user_logger__.critical("The --amount argument is required for this command")
                     quit()
         elif config.command == "stake":
             if config.uid is None:
-                bittensor.__cli_logger__.critical("The --uid argument is required for this command")
+                bittensor.__user_logger__.critical("The --uid argument is required for this command")
                 quit()
             if config.amount is None:
-                bittensor.__cli_logger__.critical("The --amount argument is required for this command")
+                bittensor.__user_logger__.critical("The --amount argument is required for this command")
                 quit()
 
     def run_command(self):
@@ -169,12 +169,12 @@ class CLI:
         elif self.config.command == "regen_hotkey":
             self.executor.regenerate_hotkey( mnemonic=self.config.mnemonic, use_password=self.config.use_password )
         else:
-            bittensor.__cli_logger__.critical("The command {} not implemented".format( self.config.command ))
+            bittensor.__user_logger__.critical("The command {} not implemented".format( self.config.command ))
             quit()
 
  
 if __name__ == '__main__':
     config = CLI.default_config(); 
-    bittensor.__cli_logger__.log('USER', bittensor.Config.toString(config))
+    bittensor.__user_logger__.log('USER', bittensor.Config.toString(config))
     cli = CLI( config )
     cli.run_command()

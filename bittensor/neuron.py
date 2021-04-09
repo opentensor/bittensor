@@ -1,101 +1,13 @@
-#!/bin/python3
-# The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
-# the Software.
-
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
-# DEALINGS IN THE SOFTWARE.
-
-"""BERT Next Sentence Prediction Neuron.
-
-This file demonstrates training the BERT neuron with next sentence prediction.
-
-Example:
-        $ python miners/TEXT/bert_nsp/bert_nsp.py
-
-Look at the yaml config file to tweak the parameters of the model. To run with those 
-default configurations, run:
-        $ cd miners/TEXT
-        $ python bert_nsp/bert_nsp.py --session.config_file bert_nsp/bert_nsp_config.yaml
-
-"""
-import argparse
-import math
-import os
-import sys
-import random
-import time
-import torch
-import torch.nn.functional as F
-import torch.multiprocessing as mp 
-import traceback
-import time
-import threading
-import bittensor
-
-from termcolor import colored
-from munch import Munch
-from datasets import load_dataset
-from loguru import logger
-from torch.utils.tensorboard import SummaryWriter
-from bittensor.utils.model_utils import ModelToolbox
-from nuclei.bert import BertNSPNucleus
-from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
-from torch.nn.utils import clip_grad_norm_
-
-def nsp_batch(data, batch_size, tokenizer):
-    """ Returns a random batch from text dataset with 50 percent NSP.
-
-        Args:
-            data: (List[dict{'text': str}]): Dataset of text inputs.
-            batch_size: size of batch to create.
-        
-        Returns:
-            input_ids List[str]: List of sentences.
-            batch_labels torch.Tensor(batch_size): 1 if random next sentence, otherwise 0.
-    """
-
-    batch_inputs = []
-    batch_next = []
-    batch_labels = []
-    for _ in range(batch_size):
-        if random.random() > 0.5:
-            pos = random.randint(0, len(data))
-            batch_inputs.append(data[pos]['text'])
-            batch_next.append(data[pos + 1]['text'])
-            batch_labels.append(0)
-        else:
-            while True:
-                pos_1 = random.randint(0, len(data))
-                pos_2 = random.randint(0, len(data))
-                batch_inputs.append(data[pos_1]['text'])
-                batch_next.append(data[pos_2]['text'])
-                batch_labels.append(1)
-                if (pos_1 != pos_2) and (pos_1 != pos_2 - 1):
-                    break
-
-    tokenized = tokenizer(batch_inputs, text_pair = batch_next, return_tensors='pt', padding=True)
-    return tokenized, torch.tensor(batch_labels, dtype=torch.long)
 
 
-class Miner():
 
-    def __init__(self, config: Munch = None, **kwargs):
+class Neuron:
+
+    def __init__( config:Munch, **kwargs ):
         if config == None:
-            config = Miner.default_config( );       
+            config = Neuron.default_config( );       
         bittensor.Config.update_with_kwargs(config.miner, kwargs) 
-        Miner.check_config(config)
-        logger.opt(raw=True).info(bittensor.Config.toString( config ))
+        Neuron.check_config(config)
         self.config = config
 
         # ---- Wallet ----
@@ -111,48 +23,25 @@ class Miner():
         self.subtensor = bittensor.Subtensor( config = self.config, wallet = self.wallet )
         self.metagraph = bittensor.Metagraph( subtensor = self.subtensor )
 
-        # ---- Model ----
-        self.model = BertNSPNucleus( self.config )
-        self.model.router.set_dendrite( self.dendrite )
-        self.model.router.set_metagraph( self.metagraph )
-
         # ---- Forward and Backward serving threads ----
         self.quit_forward = mp.Event()
-        self.forward_thread = threading.Thread( target = self.forward_loop, name = 'forward', daemon=True)
+        self.forward_thread = threading.Thread( target = self.forward_loop, name = 'forward', daemon=True )
         self.quit_backward = mp.Event()
-        self.backward_thread = threading.Thread( target = self.backward_loop, name = 'backward', daemon=True)
-
-        # ---- Optimizer ----
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum)
-        self.scheduler = WarmupCosineWithHardRestartsSchedule(self.optimizer, 50, 300)
-
-        # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(BertNSPNucleus, torch.optim.SGD)
-
-        # ---- Dataset ----
-        # Dataset: News headlines
-        self.dataset = load_dataset('ag_news')['train']
-
-        # ---- Tokenizer ----
-        self.tokenizer = bittensor.__tokenizer__()
-
-        # ---- Logging ----
-        self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
-        if self.config.miner.record_log:
-            filepath = self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),
-            logger.add (
-                filepath,
-                format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
-                rotation="500 MB",
-                retention="10 days"
-            )
+        self.backward_thread = threading.Thread( target = self.backward_loop, name = 'backward', daemon=True )
 
     @staticmethod
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
-        Miner.add_args(parser) 
+        Neuron.add_args(parser) 
         config = bittensor.Config.to_config(parser); 
         return config
+
+    @staticmethod
+    def check_config(config: Munch):
+        full_path = '{}/{}/{}'.format(config.neuron.root_dir, config.neuron.name, config.neuron.trial_uid)
+        config.miner.full_path = os.path.expanduser(full_path)
+        if not os.path.exists(config.miner.full_path):
+            os.makedirs(config.miner.full_path)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -171,21 +60,12 @@ class Miner():
         parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
         parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
-        BertNSPNucleus.add_args( parser )
-        bittensor.Axon.add_args( parser )
-        bittensor.Dendrite.add_args( parser )
-        bittensor.Subtensor.add_args( parser )
+        BertMLMNucleus.add_args(parser)
+        bittensor.Axon.add_args(parser)
+        bittensor.Dendrite.add_args(parser)
+        bittensor.Subtensor.add_args(parser)
 
-    @staticmethod
-    def check_config(config: Munch):
-        assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
-        assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
-        assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
-        full_path = '{}/{}/{}'.format(config.miner.root_dir, config.miner.name, config.miner.trial_uid)
-        config.miner.full_path = os.path.expanduser(full_path)
-        if not os.path.exists(config.miner.full_path):
-            os.makedirs(config.miner.full_path)
-
+    # ---- Starts miner ----
     def start(self):   
         # --- Connect to the chain. ---
         if not self.subtensor.connect():
@@ -214,22 +94,22 @@ class Miner():
 
         # --- Runs the miner main loop.
         self.run()
-    
+
     # --- Main loop ----
     def run (self):
 
-        # --- Init running state ---
+        # --- Init running state. ---
         self.global_step = 0
         self.best_train_loss = math.inf
 
-        # --- Loop forever ---
+        # --- Loop for epochs. ---
         for self.epoch in range(self.config.miner.n_epochs):
             try:
-                # ---- Train Model ----
+                # ---- Train Model. ----
                 self.train()
                 self.scheduler.step()
                 
-                # ---- Catch NaNs ----
+                # ---- Catch NaNs. ----
                 # If model has borked for some reason, we need to make sure it doesn't emit weights
                 # Instead, reload into previous version of model
                 if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
@@ -238,38 +118,34 @@ class Miner():
                     self.model.router.set_metagraph( self.metagraph )
                     continue
 
-                # ---- Set weights on chain ----
+                # ---- Set weights on chain. ----
                 self.subtensor.set_weights (
                     uids = self.metagraph.uids(),
                     weights = self.weights,
                     wait_for_inclusion = False
                 )
 
-                # ---- Sync metagraph ----
+                # ---- Sync metagraph. ----
                 self.metagraph.sync() # Pulls latest chain info.
                 self.weights = torch.nn.functional.pad(self.weights, pad = [0, self.metagraph.n() - self.weights.numel() ]) # Pads weights to the correct size.
 
-                # --- Epoch logs ----
+                # --- Epoch logs. ----
                 print(self.axon)
                 print(self.dendrite)
                 print(self.metagraph)
 
-                # ---- Update Tensorboard ----
+                # ---- Update Tensorboard. ----
                 self.axon.__to_tensorboard__(self.tensorboard, self.global_step)
                 self.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
                 self.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
             
-                # ---- Save best loss and model ----
+                # ---- Save best loss and model. ----
                 if self.training_loss and self.epoch % 10 == 0 and self.training_loss < self.best_train_loss:
                     self.best_train_loss = self.training_loss / 10 # update best train loss
                     self.model_toolbox.save_model(
                         self.config.miner.full_path,
                         {
                             'epoch': self.epoch, 
-                                'epoch': self.epoch, 
-                            'epoch': self.epoch, 
-                            'model_state_dict': self.model.state_dict(), 
-                                'model_state_dict': self.model.state_dict(), 
                             'model_state_dict': self.model.state_dict(), 
                             'loss': self.best_train_loss,
                             'optimizer_state_dict': self.optimizer.state_dict(),
@@ -282,16 +158,16 @@ class Miner():
             except Exception as e:
                 logger.error('Exception in training script with error: {}, {}', e, traceback.format_exc())
                 logger.info('Continuing to train.')
-    
+
     # ---- Train Epoch ----
     def train(self):
         self.training_loss = 0.0
         for local_step in range(self.config.miner.epoch_length):
             # ---- Forward pass ----
-            inputs, targets = nsp_batch(self.dataset, self.config.miner.batch_size_train, self.tokenizer)
+            inputs, targets = mlm_batch(self.dataset, self.config.miner.batch_size_train, self.tokenizer, self.data_collator)
             output = self.model.remote_forward (
-                    inputs = inputs['input_ids'].to(self.model.device), 
-                    attention_mask = inputs['attention_mask'].to(self.model.device),
+                    bittensor.neuron,
+                    inputs = inputs.to(self.model.device), 
                     targets = targets.to(self.model.device)
             )
 
@@ -382,7 +258,5 @@ class Miner():
             if self.backward_thread.is_alive():
                 logger.error('Failed to join backward thread.')
 
-if __name__ == "__main__":
-    # ---- Build and Run ----
-    miner = Miner()
-    miner.start()
+
+    

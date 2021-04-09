@@ -48,8 +48,8 @@ from bittensor.wallet import Wallet as Wallet
 import bittensor.substrate
 
 # Logger
-BITTENSOR_STDOUT_LOGGING_LEVEL = 'SUCCESS' if os.environ.get('BITTENSOR_STDOUT_LOGGING_LEVEL') == None else os.environ.get('BITTENSOR_STDOUT_LOGGING_LEVEL')
-BITTENSOR_FILE_LOGGING_LEVEL = 'SUCCESS' if os.environ.get('BITTENSOR_FILE_LOGGING_LEVEL') == None else os.environ.get('BITTENSOR_FILE_LOGGING_LEVEL')
+BITTENSOR_STDOUT_LOGGING_LEVEL = 'SUCCESS' # if os.environ.get('BITTENSOR_STDOUT_LOGGING_LEVEL') == None else os.environ.get('BITTENSOR_STDOUT_LOGGING_LEVEL')
+BITTENSOR_FILE_LOGGING_LEVEL = 'SUCCESS'# if os.environ.get('BITTENSOR_FILE_LOGGING_LEVEL') == None else os.environ.get('BITTENSOR_FILE_LOGGING_LEVEL')
 
 def stdout_filter( record ):
     if bool(record["extra"].get("internal")) and record["level"].no >= logger.level(BITTENSOR_STDOUT_LOGGING_LEVEL).no:
@@ -76,17 +76,17 @@ def formatter(record):
         return "<blue>{message}</blue>\n"
     if record["level"].name == 'USER':
         return "<white>{message}</white>\n"
-    return "{message}"
+    return ""
 
 # Build Logging syncs.
-logger.remove()
+__logger__ = logger.bind(internal=True)
+__user_logger__ = logger.bind(cli=True)
 logger.add(sys.stdout, filter=stdout_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True)
 logger.add(sys.stdout, filter=cli_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True, format=formatter)
 logger.add('~/.bittensor/logs.log', filter=file_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True, rotation="20 MB")
 logger.level("USER-ACTION", no=33, icon="🤖")
 logger.level("USER", no=33, icon="🤖")
-__logger__ = logger.bind(internal=True)
-__cli_logger__ = logger.bind(cli=True)
+
 
 
 # Tokenizer

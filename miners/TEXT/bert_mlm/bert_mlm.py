@@ -88,7 +88,7 @@ class Miner():
             config = Miner.default_config( );       
         bittensor.Config.update_with_kwargs(config.miner, kwargs) 
         Miner.check_config(config)
-        logger.info(bittensor.Config.toString( config ))
+        logger.opt(raw=True).info(bittensor.Config.toString( config ))
         self.config = config
 
         # ---- Wallet ----
@@ -109,9 +109,11 @@ class Miner():
         self.model.router.set_dendrite( self.dendrite )
         self.model.router.set_metagraph( self.metagraph )
 
-        # ---- Serving thread ----
-        self.quit_serving = None
-        self.serving_thread = threading.Thread( target = self.serving_loop, name = 'serving', daemon=True )
+        # ---- Forward and Backward serving threads ----
+        self.quit_forward = mp.Event()
+        self.forward_thread = threading.Thread( target = self.forward_loop, name = 'forward', daemon=True )
+        self.quit_backward = mp.Event()
+        self.backward_thread = threading.Thread( target = self.backward_loop, name = 'backward', daemon=True )
 
         # ---- Optimizer ----
         self.optimizer = torch.optim.SGD( self.model.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum )
@@ -142,6 +144,7 @@ class Miner():
                 rotation="500 MB",
                 retention="10 days"
             )
+            
     @staticmethod
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
@@ -181,34 +184,38 @@ class Miner():
         bittensor.Dendrite.add_args(parser)
         bittensor.Subtensor.add_args(parser)
 
-    # --- Main loop ----
-    def run (self):
-
+    # ---- Starts miner ----
+    def start(self):   
         # --- Connect to the chain. ---
         if not self.subtensor.connect():
             raise RuntimeError('Failed to connect miner to network: {}'.format(self.subtensor.config.network))
 
-        # --- Subscribe our endpoint. ----
-        if not self.subtensor.subscribe (
-                external_ip = self.config.axon.external_ip, 
-                external_port = self.config.axon.external_port,
-                modality = bittensor.proto.Modality.TEXT,
-                coldkeypub = self.wallet.coldkeypub,
+        # --- Subscribe our endpoint ----
+        if not self.subtensor.subscribe(
+                self.config.axon.external_ip, 
+                self.config.axon.external_port,
+                bittensor.proto.Modality.TEXT,
+                self.wallet.coldkeypub,
                 wait_for_finalization = True,
-                timeout = 4 * bittensor.__blocktime__
-            ):
+                timeout = 4 * bittensor.__blocktime__):
             raise RuntimeError('Failed to subscribe miner on network: {}'.format(self.subtensor.config.network))
 
-        # --- Start the serving endpoint. ----
+        # --- Start the forward endpoint ----
         self.axon.start()
 
-        # --- Start the serving thread. ----
-        self.quit_serving = mp.Event()
-        self.serving_thread.start()
+        # --- Start the forward/backward threads ----
+        self.forward_thread.start()
+        self.backwar_thread.start()
 
-        # --- Sync metagraph. ----
+        # --- Sync metagraph  ----
         self.metagraph.sync()
         self.weights = torch.rand([self.metagraph.n()])
+
+        # --- Runs the miner main loop.
+        self.run()
+
+    # --- Main loop ----
+    def run (self):
 
         # --- Init running state. ---
         self.global_step = 0
@@ -318,38 +325,60 @@ class Miner():
             torch.cuda.empty_cache()
             del output
 
-    # ---- Serving loop -----
-    def serving_loop ( self ): 
+    # ---- Forward loop -----
+    def forward_loop ( self ): 
         # ---- Loop until event is set -----
         logger.info('Serving thread started: ')
-        while not self.quit_serving.is_set():
+        while not self.quit_forward.is_set():
+            try:
 
-            # ---- Pull request ----
-            logger.info('Axon:{}, waiting for query ... ', self.axon)
-            pong, pubkey, inputs, modality = self.axon.next_forward_item( timeout = 10.0 )
-            if None not in [ pong, pubkey, inputs, modality ]:
-                
+                # ---- Pull request ----
+                logger.info('Axon:{}, waiting for forward query ... ', self.axon)
+                pong, pubkey, inputs, modality = self.axon.next_forward_item( timeout = 10.0 )
+
                 # ---- Process request ----
-                logger.info('Recieved Query: from:{}, inputs.shape:{}', pubkey, inputs.shape)
-                try:          
+                if None not in [ pong, pubkey, inputs, modality]:
+                    logger.info('Recieved Query: from:{}, inputs.shape:{}', pubkey, inputs.shape)
                     outputs = self.model.local_forward( inputs, training = False ).local_hidden
                     pong.send( outputs.detach() )
                     logger.info('Sent response: to:{}, outputs.shape:{}', pubkey, outputs.shape)
 
-                except Exception as e:
-                    logger.exception('Error in forward process with error {}', e)
-                    continue
+            except Exception as e:
+                logger.exception('Error in forward thread with error {}', e)
+                continue
+            
+    # ---- Backward loop -----
+    def backward_loop ( self ): 
+        # ---- Loop until event is set -----
+        logger.info('Backward thread started: ')
+        while not self.quit_forward.is_set():
+            try:
+
+                # ---- Pull request ----
+                logger.info('Axon:{}, waiting for backward query ... ', self.axon)
+                pong, pubkey, inputs_x, grads_dy, modality = self.axon.next_backward_item( timeout = 10.0 )
+                # TODO(anyone): apply gradients from peers to maximize profit.
+                pong.send( None )
+
+            except Exception as e:
+                logger.exception('Error in backward thread with error {}', e)
+                continue
 
     def __del__(self):
-        if self.serving_thread != None:
-            self.quit_serving.set()
-            self.serving_thread.join( timeout = 12.0 )
-            if self.serving_thread.is_alive():
-                logger.error('Failed to join serving thread.')
+        if self.forward_thread != None:
+            self.quit_forward.set()
+            self.forward_thread.join( timeout = 12.0 )
+            if self.forward_thread.is_alive():
+                logger.error('Failed to join forward thread.')
+
+        if self.backward_thread != None:
+            self.quit_backward.set()
+            self.backward_thread.join( timeout = 12.0 )
+            if self.backward_thread.is_alive():
+                logger.error('Failed to join backward thread.')
 
 if __name__ == "__main__":
     # ---- Build and Run ----
     miner = Miner()
-    logger.info(bittensor.Config.toString(miner.config))
-    miner.run()
+    miner.start()
 

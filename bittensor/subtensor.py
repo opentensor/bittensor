@@ -231,13 +231,13 @@ class Subtensor:
         """
         start_time = time.time()
         if await self.async_is_connected():
-            bittensor.__cli_logger__.success("Subtensor connected to: {}".format(self.config.subtensor.network))
+            bittensor.__user_logger__.success("Subtensor connected to: {}".format(self.config.subtensor.network))
             return True
 
         attempted_endpoints = []
         while True:
             def connection_error_message():
-                bittensor.__cli_logger__.critical(               
+                bittensor.__user_logger__.critical(               
                     '''
                     Check that your internet connection is working and the chain endpoints are available: {}
                     The subtensor.network should likely be one of the following choices:
@@ -251,7 +251,7 @@ class Subtensor:
             # ---- Get next endpoint ----
             ws_chain_endpoint = self.endpoint_for_network( blacklist = attempted_endpoints )
             if ws_chain_endpoint == None:
-                bittensor.__cli_logger__.critical("No more endpoints available for subtensor.network: {}, attempted: {}".format(self.config.subtensor.network, attempted_endpoints))
+                bittensor.__user_logger__.critical("No more endpoints available for subtensor.network: {}, attempted: {}".format(self.config.subtensor.network, attempted_endpoints))
                 connection_error_message()
                 if failure:
                     raise RuntimeError('Unable to connect to network {}. Make sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
@@ -261,12 +261,12 @@ class Subtensor:
 
             # --- Attempt connection ----
             if await self.substrate.async_connect( ws_chain_endpoint,  ):
-                bittensor.__cli_logger__.success("Successfully connected to {} endpoint: {}".format(self.config.subtensor.network, ws_chain_endpoint))
+                bittensor.__user_logger__.success("Successfully connected to {} endpoint: {}".format(self.config.subtensor.network, ws_chain_endpoint))
                 return True
             
             # ---- Timeout ----
             elif (time.time() - start_time) > timeout:
-                bittensor.__cli_logger__.critical("Error while connecting to the chain endpoint {}".format(ws_chain_endpoint))
+                bittensor.__user_logger__.critical("Error while connecting to the chain endpoint {}".format(ws_chain_endpoint))
                 connection_error_message()
                 if failure:
                     raise RuntimeError('Unable to connect to network {}. Make sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
@@ -452,7 +452,7 @@ class Subtensor:
             return False
 
         if await self.async_is_subscribed( ip, port, modality, coldkeypub ):
-            bittensor.__cli_logger__.success("Already subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]".format(ip, port, modality, coldkeypub))
+            bittensor.__user_logger__.success("Already subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]".format(ip, port, modality, coldkeypub))
             return True
 
         ip_as_int  = net.ip_to_int(ip)
@@ -471,9 +471,9 @@ class Subtensor:
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.hotkey)
         result = await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
         if result:
-            bittensor.__cli_logger__.success('Successfully subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub))
+            bittensor.__user_logger__.success('Successfully subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub))
         else:
-            bittensor.__cli_logger__.critical('Failed to subscribe')
+            bittensor.__user_logger__.critical('Failed to subscribe')
         return result
             
     def add_stake(
