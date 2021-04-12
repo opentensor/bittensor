@@ -34,15 +34,13 @@ class Nucleus ():
         The nucleus uses a prioritized thread pool to process requests according in priority. Priority is set by the Axon.
     """
 
-    def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, metagraph: 'metagraph.Metagraph' = None, **kwargs):
+    def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, **kwargs):
         r""" Initializes a new tensor processing backend
             Args:
                 config (:obj:`Munch`, `optional`): 
                     nucleus.Nucleus.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
-                    bittensor network metagraph.
                 max_workers (default=5, type=int):
                     The maximum number of outstanding nucleuss priority queue workers.
                     Adding additional work to the work queue past this point does not trigger additional thread creation.
@@ -61,10 +59,6 @@ class Nucleus ():
         if wallet == None:
             wallet = bittensor.wallet.Wallet(self.config)
         self.wallet = wallet
-
-        if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph( config = self.config, wallet = self.wallet )
-        self.metagraph = metagraph
 
         self._forward_pool = ptp.ThreadPoolExecutor(maxsize = self.config.nucleus.queue_maxsize, max_workers=self.config.nucleus.max_workers)
         self._backward_pool = ptp.ThreadPoolExecutor(maxsize = self.config.nucleus.queue_maxsize, max_workers=self.config.nucleus.max_workers)

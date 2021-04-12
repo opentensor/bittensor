@@ -37,10 +37,12 @@ class Metagraph():
 
     def __init__( 
             self, 
-            config: Munch = None, 
-            subtensor: 'bittensor.subtensor.Subtensor' = None,
-            data_dir: str = None
+            subtensor: 'bittensor.subtensor.Subtensor',
+            config: Munch = None,
+            data_dir: str = None,
         ):
+
+        # Fill config object.
         if config == None:
             config = Metagraph.default_config()
         else:
@@ -49,9 +51,7 @@ class Metagraph():
         Metagraph.check_config( config )
         self.config = config
 
-        if subtensor == None:
-            subtensor = bittensor.subtensor.Subtensor( self.config )
-        self.config.subtensor = subtensor.config.subtensor
+        # Fill subtensor.
         self.subtensor = subtensor
 
         # Empty Shared State.
@@ -79,8 +79,11 @@ class Metagraph():
     @staticmethod   
     def add_args( parser: argparse.ArgumentParser ):
         bittensor.subtensor.Subtensor.add_args( parser )
-        parser.add_argument('--metagraph.data_dir', default='~/.bittensor/metagraph_data/', type=str, 
-            help='''Caching file for metagraph state.''')
+        try:
+            parser.add_argument('--metagraph.data_dir', default='~/.bittensor/metagraph_data/', type=str, 
+                help='''Caching file for metagraph state.''')
+        except argparse.ArgumentError:
+            pass 
 
     @staticmethod   
     def check_config(config: Munch):
@@ -138,7 +141,7 @@ class Metagraph():
         r""" Returns the stake held by each known neuron.
             
             Returns:
-                stake (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n())`):
+                stake (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     stake of each known neuron.
 
         """
@@ -154,7 +157,7 @@ class Metagraph():
         r""" Returns the stake held by each known neuron.
              
              Returns:
-                S (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n())`):
+                S (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     stake of each known neuron.
         """
         try:
@@ -184,7 +187,7 @@ class Metagraph():
         r""" Returns the ranks W^t * S
            
             Returns:
-                ranks (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n())`):
+                ranks (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     rank of each known neuron.
 
         """
@@ -200,7 +203,7 @@ class Metagraph():
         r""" Returns ranks for each known neuron in the graph.
              
              Returns:
-                rank (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n())`):
+                rank (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     rank of each known neuron.
         """
         try:
@@ -215,7 +218,7 @@ class Metagraph():
         r""" Returns the inflation incentive for each peer per block.
         
             Returns:
-                I (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n())`):
+                I (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     stake of each known neuron.
         """
         try:
@@ -255,7 +258,7 @@ class Metagraph():
         r""" Non locking weight calculation.
              
              Returns:
-                W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n(), metagraph.n())`):
+                W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
                     w_ij of each neuron.
         """
         n = self._n.value
@@ -366,7 +369,7 @@ class Metagraph():
         return response
 
     def sync( self ):
-        r""" Syncs the _metagraph with updated chain state.
+        r""" Syncs the metagraph with updated chain state.
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)

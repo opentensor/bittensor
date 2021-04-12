@@ -141,8 +141,8 @@ class Miner():
         parser.add_argument('--miner.root_dir', default='~/.bittensor/miners/', type=str,  help='Root path to load and save data associated with each miner')
         parser.add_argument('--miner.name', default='gpt2-genesis', type=str, help='Trials for this miner go in miner.root / miner.name')
         parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
-        parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
-        parser.add_argument('--miner.custom_dataset', default="~/.bittensor/bittensor/miners/TEXT/gpt2_genesis/genesis_dataset/", type=str, help='Custom datasets to train on.')
+        parser.add_argument('--miner.record_log', default = False, help='Record all logs when running this miner')
+        parser.add_argument('--miner.custom_dataset', default = os.path.abspath(os.getcwd()) + "/miners/TEXT/gpt2_genesis/genesis_dataset/", type=str, help='Custom datasets to train on.')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         GPT2LMSynapse.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
@@ -165,7 +165,8 @@ class Miner():
         with self.neuron:
 
             # ---- Weights ----
-            self.row = self.neuron.metagraph.row.to(self.model.device)
+            self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+            self.row = torch.rand([self.metagraph.n]).to(self.model.device)
 
             # --- Run state ---
             self.global_step = 0
@@ -191,8 +192,12 @@ class Miner():
                 self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
 
                 # ---- Sync metagraph ----
-                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.row = self.neuron.metagraph.row.to(self.model.device)
+                self.neuron.metagraph.sync() # Pulls latest chain info.
+                self.row = torch.nn.functional.pad(
+                    self.row, 
+                    pad = [0, self.metagraph.n - self.row.numel() ],
+                    value = torch.mean(self.row).item() / 2 # New values start at 1/2 the mean.
+                ).clone().detach().requires_grad_(True).to(self.model.device)
 
                 # --- Epoch logs ----
                 print(self.neuron.axon.__full_str__())

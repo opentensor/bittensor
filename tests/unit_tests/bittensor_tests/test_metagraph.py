@@ -8,15 +8,27 @@ import multiprocessing
 import time
 
 def test_create( ):
-    metagraph = bittensor.metagraph.Metagraph()
+    metagraph = bittensor.metagraph.Metagraph(
+        subtensor = bittensor.subtensor.Subtensor(
+            network = 'akira'
+        )
+    )
     assert True
 
 def test_print_empty():
-    metagraph = bittensor.metagraph.Metagraph()
+    metagraph = bittensor.metagraph.Metagraph(
+        subtensor = bittensor.subtensor.Subtensor(
+            network = 'akira'
+        )
+    )
     print (metagraph)
 
 def test_metagraph_create_null():
-    metagraph = bittensor.metagraph.Metagraph()
+    metagraph = bittensor.metagraph.Metagraph(
+        subtensor = bittensor.subtensor.Subtensor(
+            network = 'akira'
+        )
+    )
     metagraph._update(
         n = 0,
         tau = 0.5,
@@ -40,7 +52,11 @@ def test_metagraph_create_null():
     assert torch.all(metagraph.W.eq(torch.tensor([[0]])))
 
 def test_metagraph_create_100():
-    metagraph = bittensor.metagraph.Metagraph()
+    metagraph = bittensor.metagraph.Metagraph(
+        subtensor = bittensor.subtensor.Subtensor(
+            network = 'akira'
+        )
+    )
     metagraph._update(
         n = 100,
         tau = 0.5,
@@ -88,7 +104,7 @@ def test_metagraph_create_100():
 def test_sync():
     metagraph = bittensor.metagraph.Metagraph(
         subtensor = bittensor.subtensor.Subtensor(
-            network = 'kusanagi'
+            network = 'akira'
         )
     )
     print ('sync')
@@ -113,7 +129,7 @@ def test_sync():
 def test_multprocessing_access():
     metagraph = bittensor.metagraph.Metagraph(
         subtensor = bittensor.subtensor.Subtensor(
-            network = 'kusanagi'
+            network = 'akira'
         )
     )
     metagraph.sync()

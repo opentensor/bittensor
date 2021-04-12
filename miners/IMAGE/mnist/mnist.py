@@ -121,7 +121,8 @@ class Miner():
         with self.neuron:
 
             # ---- Weights ----
-            self.row = self.neuron.metagraph.row.to(self.model.device)
+            self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+            self.row = torch.rand([self.metagraph.n]).to(self.model.device)
 
             # --- Loop for epochs ---
             self.best_test_loss = math.inf; self.global_step = 0
@@ -146,8 +147,12 @@ class Miner():
                 self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
                         
                 # ---- Sync ----  
-                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.row = self.neuron.metagraph.row.to(self.device)
+                self.neuron.metagraph.sync() # Pulls latest chain info.
+                self.row = torch.nn.functional.pad(
+                    self.row, 
+                    pad = [0, self.metagraph.n - self.row.numel() ],
+                    value = torch.mean(self.row).item() / 2 # New values start at 1/2 the mean.
+                ).clone().detach().requires_grad_(True).to(self.model.device)
 
                 # --- Display Epoch ----
                 print(self.neuron.axon.__full_str__())

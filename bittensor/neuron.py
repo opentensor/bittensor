@@ -94,7 +94,7 @@ class Neuron:
         self.subtensor = subtensor
         # Metagraph: Maintains a connection to the subtensor chain and hold chain state.
         if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph(config = self.config, wallet = self.wallet, subtensor = self.subtensor)
+            metagraph = bittensor.metagraph.Metagraph( subtensor = self.subtensor, config = self.config )
         self.metagraph = metagraph
         # Nucleus: Processes requests passed to this neuron on its axon endpoint.
         if nucleus == None:

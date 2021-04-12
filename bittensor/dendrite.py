@@ -46,19 +46,17 @@ class Dendrite(nn.Module):
         called during associated Forward operation.
     """
 
-    def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, metagraph: 'bittensor.metagraph.Metagraph' = None, **kwargs):
+    def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, **kwargs):
         r""" Initializes a new Dendrite entry point.
             Args:
                 config (:obj:`Munch`, `optional`): 
                     dendrite.Dendrite.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
-                    bittensor network metagraph.
         """
         super().__init__()
         # Config: Holds all config items for this items and those that are recursively defined. Specifically
-        # config for you wallet and metagraph.
+        # config for your wallet.
         if config == None:
             config = Dendrite.default_config()
         Dendrite.check_config( config )
@@ -69,11 +67,6 @@ class Dendrite(nn.Module):
         if wallet == None:
             wallet = bittensor.wallet.Wallet(self.config)
         self.wallet = wallet
-
-        # Metagraph: Maintains a connection to the subtensor chain and can be queried for the latest state.
-        if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph(self.config, self.wallet)
-        self.metagraph = metagraph
 
         # Receptors: Holds a set map of publickey -> receptor objects. Receptors encapsulate a TCP connection between
         # this dendrite and an upstream neuron (i.e. a peer we call for representations)
@@ -97,7 +90,6 @@ class Dendrite(nn.Module):
 
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
-        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
         bittensor.receptor.Receptor.add_args(parser)
         return parser
 
