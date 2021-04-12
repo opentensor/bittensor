@@ -147,7 +147,7 @@ class Metagraph():
         """
         try:
             self._lock.acquire()
-            return_value = torch.tensor(copy.deepcopy(self._stake), dtype=torch.float32)
+            return_value = torch.tensor(copy.deepcopy(self._stake), dtype=torch.float32) / torch.tensor( pow(10, 9))
         finally:
             self._lock.release()
         return return_value
@@ -240,7 +240,7 @@ class Metagraph():
     def _compute_I(self) -> torch.FloatTensor:
         tau = copy.deepcopy(self._tau.value)
         R = self._compute_R()
-        I =  (tau * R) / torch.sum( R )
+        I = (tau * R) / torch.sum( R )
         I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
         return I
 
@@ -249,7 +249,7 @@ class Metagraph():
         if W.shape[0] == 0:
             return torch.tensor([])
         else:
-            S = torch.tensor(copy.deepcopy(self._stake), dtype=torch.float32)
+            S = torch.tensor(copy.deepcopy(self._stake), dtype=torch.float32) / torch.tensor( pow(10, 9))
             W = torch.transpose( W.view(self._n.value, self._n.value), 0, 1 )
             R = torch.matmul(W, S).view(self._n.value)
         return R

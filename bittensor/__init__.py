@@ -45,18 +45,62 @@ import bittensor.subtensor
 import bittensor.synapse
 import bittensor.wallet
 
-# Default logger
-logger_config = {
-    "handlers": [{
-        "sink":
-            sys.stdout,
-        "format":
-            "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-    }]
-}
-logger.configure(**logger_config)
 
-# Tokenizer
+#  LOGGING ----------------------------------
+BITTENSOR_STDOUT_LOGGING_LEVEL = 'SUCCESS' # if os.environ.get('BITTENSOR_STDOUT_LOGGING_LEVEL') == None else os.environ.get('BITTENSOR_STDOUT_LOGGING_LEVEL')
+BITTENSOR_FILE_LOGGING_LEVEL = 'SUCCESS'# if os.environ.get('BITTENSOR_FILE_LOGGING_LEVEL') == None else os.environ.get('BITTENSOR_FILE_LOGGING_LEVEL')
+
+# Remove all loggers.
+logger.remove()
+
+# Standard logger.
+# Adds back the standard out sync but filters all of bittensor internal logging.
+def not_bittensor_filter( record ):
+    if bool(record["extra"].get("internal")) or bool(record["extra"].get("to_user")):
+        return False
+    return True
+logger.add(sys.stdout, filter = not_bittensor_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True)
+
+# Internal logger.
+def stdout_filter( record ):
+    if bool(record["extra"].get("internal")) and record["level"].no >= logger.level(BITTENSOR_STDOUT_LOGGING_LEVEL).no:
+        return True
+    return False
+def file_filter( record ):
+    if bool(record["extra"].get("internal")) and record["level"].no >= logger.level(BITTENSOR_FILE_LOGGING_LEVEL).no:
+        return True
+    return False
+logger.add(sys.stdout, filter = stdout_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True)
+logger.add('~/.bittensor/logs.log', filter=file_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True, rotation="20 MB")
+__internal_logger__ = logger.bind( internal=True )
+
+# Logging to user.
+def user_filter( record ):
+    if bool(record["extra"].get("to_user")):
+        return True
+    else:
+        return False
+def user_formatter(record):
+    if record["level"].no == logger.level('SUCCESS').no:
+        return "<green>{message}</green>\n"
+    if record["level"].no == logger.level('CRITICAL').no:
+        return "<red>{message}</red>\n"
+    if record["level"].name == 'USER-ACTION':
+        return "<blue>{message}</blue>\n"
+    if record["level"].name == 'USER':
+        return "<white>{message}</white>\n"
+    return ""
+
+try:
+    logger.level("USER-ACTION", no=33, icon="🤖") # Blue
+    logger.level("USER", no=33, icon="🤖") # White
+except:
+    pass # Levels already exist.
+logger.add(sys.stdout, filter = user_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True, format=user_formatter)
+__user_logger__ = logger.bind( to_user = True )
+
+
+# TOKENIZER  ----------------------------------
 # NOTE (const): tokenizers are guaranteed to improve and expand as time progresses. We version the tokenizer here.
 # neurons must be aware that versions will increase and be ready to convert between tokenizers.
 # TODO (const): Add functionality to allow tokenizer conversion. i.e. for input token conversion.

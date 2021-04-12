@@ -190,8 +190,11 @@ class Miner():
                         self.model, self.optimizer = self.model_toolbox.load_model(self.config)     
                         continue               
 
-                    # ---- Emit row-weights ----
-                    self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
+                    # ---- Emitting Weights ----
+                    self.neuron.subtensor.set_weights(
+                        uids = self.neuron.metagraph.uids,
+                        weights = self.row
+                    )
 
                     # ---- Sync metagraph ----
                     self.neuron.metagraph.sync() # Pulls latest chain info.
