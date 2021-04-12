@@ -235,7 +235,7 @@ class PKMRouter():
 
         # indices: (torch.LongTensor): indices of uids queried during this forward call.
         # indices = [batch_size, metagraph.n]
-        indices = neuron.metagraph.uids_to_indices(filtered_uids)
+        indices = filtered_uids # Uids correspond directly to their index.
 
         # weights: (torch.LongTensor): weights scattered onto uids per example.
         # weights.shape = [batch_size, metagraph.n]

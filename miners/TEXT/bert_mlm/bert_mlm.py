@@ -88,7 +88,7 @@ class Miner():
         self.config = config
 
         # ---- Neuron ----
-        self.neuron = bittensor.neuron.Neuron(self.config)
+        self.neuron = bittensor.neuron.Neuron( self.config )
 
         # ---- Model ----
         self.model = BertMLMSynapse( self.config )

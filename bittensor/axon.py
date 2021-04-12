@@ -511,8 +511,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         else:
             try:
                 uid = self.metagraph.state.uid_for_pubkey[request.public_key]
-                idx = int(self.metagraph.uids_to_indices(torch.tensor([uid])).item())
-                call_priority = self.metagraph.incentive[idx]
+                call_priority = self.metagraph.incentive[uid]
             except Exception as e:
                 call_priority = 0.0
         call_priority += random.random() * 0.0001
