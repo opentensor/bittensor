@@ -119,8 +119,7 @@ class Miner():
 
             # ---- Loop for epochs ----
             self.epoch = -1; self.best_test_loss = math.inf; self.global_step = 0
-            self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-            self.row = torch.rand([self.metagraph.n]).to(self.model.device)
+            self.row = self.neuron.metagraph.row # Trained weights.
             for self.epoch in range(self.config.miner.n_epochs):
                 # ---- Serve ----
                 self.neuron.axon.serve( self.model )
@@ -137,19 +136,12 @@ class Miner():
                 # ---- Test ----
                 test_loss, test_accuracy = self.test()
 
-                # ---- Emitting Weights ----
-                self.neuron.subtensor.set_weights(
-                    uids = self.neuron.metagraph.uids,
-                    weights = self.row
-                )
+                # ---- Emit ----
+                self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
                         
                 # ---- Sync ----  
-                self.neuron.metagraph.sync() # Pulls latest chain info.
-                self.row = torch.nn.functional.pad(
-                    self.row, 
-                    pad = [0, self.metagraph.n - self.row.numel() ],
-                    value = torch.mean(self.row).item() / 2 # New values start at 1/2 the mean.
-                ).clone().detach().requires_grad_(True).to(self.model.device)
+                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                self.weights = self.neuron.metagraph.row.to(self.device)
 
                 # --- Display Epoch ----
                 print(self.neuron.axon.__full_str__())

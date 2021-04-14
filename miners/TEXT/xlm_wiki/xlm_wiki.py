@@ -134,8 +134,7 @@ class Miner():
         with self.neuron:
 
             # ---- Weights ----
-            self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-            self.row = torch.rand([self.neuron.metagraph.n]).to(self.model.device)
+            self.row = self.neuron.metagraph.row.to(self.model.device)
 
             # --- Run state ---
             self.global_step = 0
@@ -158,23 +157,16 @@ class Miner():
                         continue
 
                     # ---- Emitting weights ----
-                    success = self.neuron.subtensor.set_weights( 
-                        uids = self.neuron.metagraph.uids,
-                        weights = self.row,
-                        wait_for_finalization = True
-                    )
-                    if success:
-                        logger.success('Successfully set weights on chain.')
-                    else:
-                        logger.error('Failed to set weights on chain.')
+                    self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
 
                     # ---- Sync metagraph ----
-                    self.neuron.metagraph.sync() # Pulls latest chain info.
-                    self.row = torch.nn.functional.pad(
-                        self.row, 
-                        pad = [0, self.neuron.metagraph.n - self.row.numel() ],
-                        value = torch.mean(self.row).item() / 2 # New values start at 1/2 the mean.
-                    ).clone().detach().requires_grad_(True).to(self.model.device)
+                    self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                    self.row = self.neuron.metagraph.row.to(self.model.device)
+
+                    # --- Epoch logs ----
+                    print(self.neuron.axon.__full_str__())
+                    print(self.neuron.dendrite.__full_str__())
+                    print(self.neuron.metagraph)
 
                     # ---- Update Tensorboard ----
                     self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)

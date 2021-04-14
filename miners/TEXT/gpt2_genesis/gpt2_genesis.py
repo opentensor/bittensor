@@ -154,8 +154,8 @@ class Miner():
         parser.add_argument('--miner.root_dir', default='~/.bittensor/miners/', type=str,  help='Root path to load and save data associated with each miner')
         parser.add_argument('--miner.name', default='gpt2-genesis', type=str, help='Trials for this miner go in miner.root / miner.name')
         parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
-        parser.add_argument('--miner.record_log', default = False, help='Record all logs when running this miner')
-        parser.add_argument('--miner.custom_dataset', default = os.path.abspath(os.getcwd()) + "/miners/TEXT/gpt2_genesis/genesis_dataset/", type=str, help='Custom datasets to train on.')
+        parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
+        parser.add_argument('--miner.custom_dataset', default="~/.bittensor/bittensor/miners/TEXT/gpt2_genesis/genesis_dataset/", type=str, help='Custom datasets to train on.')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         GPT2Synapse.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
@@ -225,8 +225,7 @@ class Miner():
         with self.neuron:
 
             # ---- Weights ----
-            self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-            self.row = torch.rand([self.neuron.metagraph.n]).to(self.model.device)
+            self.row = self.neuron.metagraph.row.to(self.model.device)
 
             # --- Run state ---
             self.global_step = 0
@@ -247,25 +246,11 @@ class Miner():
                     continue
 
                 # ---- Emitting weights ----
-                success = self.neuron.subtensor.set_weights( 
-                    uids = self.neuron.metagraph.uids,
-                    weights = self.row,
-                    wait_for_finalization = True,
-                    timeout = bittensor.__blocktime__ * 4,
-                )
-                if success:
-                    logger.success('Successfully set weights on chain.')
-                else:
-                    logger.error('Failed to set weights on chain.')
-
+                self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
 
                 # ---- Sync metagraph ----
-                self.neuron.metagraph.sync() # Pulls latest chain info.
-                self.row = torch.nn.functional.pad(
-                    self.row, 
-                    pad = [0, self.neuron.metagraph.n - self.row.numel() ],
-                    value = torch.mean(self.row).item() / 2 # New values start at 1/2 the mean.
-                ).clone().detach().requires_grad_(True).to(self.model.device)
+                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                self.row = self.neuron.metagraph.row.to(self.model.device)
 
                 # ---- Update Tensorboard ----
                 self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
@@ -370,7 +355,7 @@ class Miner():
 
                 losses.append(loss.item())
 
-                # ---- Train row weights ----
+                 # ---- Train row weights ----
                 batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
                 self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
                 self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
@@ -379,10 +364,10 @@ class Miner():
                     'GS': colored('{}'.format(self.global_step), 'red'),
                     'LS': colored('{}'.format(it), 'blue'),
                     'Epoch': colored('{}'.format(self.epoch+1), 'green'),
-                    'L-loss': colored('{:.5f}'.format(output.local_target_loss.item()), 'red'),
-                    'R-loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'blue'),
-                    'D-loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
-                    'lr:': colored('{:e}'.format(self.lr), 'white'),
+                    'Local loss': colored('{:.5f}'.format(output.local_target_loss.item()), 'red'),
+                    'Remote loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'blue'),
+                    'Distillation loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
+                    'Learning Rate:': colored('{:e}'.format(self.lr), 'white'),
                     'Axon': self.neuron.axon.__str__(),
                     'Dendrite': self.neuron.dendrite.__str__(),
                 })

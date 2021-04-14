@@ -39,6 +39,7 @@ import time
 import bittensor
 import torch.nn.functional as F
 
+
 from termcolor import colored
 from munch import Munch
 from loguru import logger
@@ -50,6 +51,8 @@ from transformers import AdamW
 from tqdm import tqdm
 from torch.utils.data.dataloader import DataLoader
 from datasets import load_dataset
+
+
 
 class AdamCorpus():
 
@@ -226,56 +229,47 @@ class Miner():
         with self.neuron:
 
             # ---- Weights ----
-            self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-            self.row = torch.rand([self.neuron.metagraph.n]).to(self.model.device)
+            self.row = self.neuron.metagraph.row.to(self.model.device)
 
             # --- Run state ---
             self.global_step = 0
 
             # --- Loop for epochs ---
             for self.epoch in range(self.config.miner.n_epochs):
-                try:
-                    # ---- Serve ----
-                    self.neuron.axon.serve( self.model )
 
-                    # ---- Train Model ----
-                    self.train()
-                    self.scheduler.step()
-                    
-                    # If model has borked for some reason, we need to make sure it doesn't emit weights
-                    # Instead, reload into previous version of model
-                    if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
-                        self.model, self.optimizer = self.model_toolbox.load_model(self.config)
-                        continue
+                # ---- Serve ----
+                self.neuron.axon.serve( self.model )
 
-                    # ---- Emitting weights ----
-                    success = self.neuron.subtensor.set_weights( 
-                        uids = self.neuron.metagraph.uids,
-                        weights = self.row,
-                        wait_for_finalization = True,
-                        timeout = bittensor.__blocktime__ * 4,
-                    )
-                    if success:
-                        logger.success('Successfully set weights on chain.')
-                    else:
-                        logger.error('Failed to set weights on chain.')
+                # ---- Train Model ----
+                self.train()
 
-                    # ---- Sync metagraph ----
-                    self.neuron.metagraph.sync() # Pulls latest chain info.
-                    self.row = torch.nn.functional.pad(
-                        self.row, 
-                        pad = [0, self.neuron.metagraph.n - self.row.numel() ],
-                        value = torch.mean(self.row).item() / 2 # New values start at 1/2 the mean.
-                    ).clone().detach().requires_grad_(True).to(self.model.device)
+                # If model has borked for some reason, we need to make sure it doesn't emit weights
+                # Instead, reload into previous version of model
+                if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
+                    self.model, self.optimizer = self.model_toolbox.load_model(self.config)
+                    continue
 
-                    # ---- Update Tensorboard ----
-                    self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
-                    self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
-                    self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
-                
-                    # ---- Save best loss and model ----
-                    if self.training_loss and self.epoch % 10 == 0 and self.training_loss < self.best_train_loss:
-                        self.best_train_loss = self.training_loss / 10 # update best train loss
+                # ---- Emitting weights ----
+                self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
+
+                # ---- Sync metagraph ----
+                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                self.row = self.neuron.metagraph.row.to(self.model.device)
+
+                # --- Epoch logs ----
+                #print(self.neuron.axon.__full_str__())
+                #print(self.neuron.dendrite.__full_str__())
+                #print(self.neuron.metagraph)
+
+                # ---- Update Tensorboard ----
+                self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
+
+                # ---- Save best loss and model ----
+                if self.training_loss and self.training_loss < self.best_train_loss: #self.epoch % 10 == 0:
+                    if self.training_loss < self.best_train_loss:
+                        self.best_train_loss = self.training_loss  # update best train loss
                         self.model_toolbox.save_model(
                             self.config.miner.full_path,
                             {
@@ -286,8 +280,6 @@ class Miner():
                             }
                         )
                         self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
-                except:
-                    continue
                 logger.info("This epoch's training loss: {}...Current best training loss: {}".format(self.training_loss, self.best_train_loss))
 
 
@@ -364,6 +356,7 @@ class Miner():
             logger.info("Preparing dataset batch...")
             dataset = self.shuffle_dataset_epoch_length()
             pbar = tqdm(enumerate(dataset), total=len(dataset))
+
 
             #self.reset_learning_rate(self.config.miner.learning_rate)
             for it, (batch) in pbar:
