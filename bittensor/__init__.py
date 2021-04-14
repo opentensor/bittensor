@@ -38,6 +38,7 @@ import bittensor.cli
 import bittensor.config 
 import bittensor.executor
 import bittensor.dendrite
+import bittensor.logging
 import bittensor.metagraph
 import bittensor.neuron
 import bittensor.nucleus
@@ -46,57 +47,11 @@ import bittensor.subtensor
 import bittensor.synapse
 import bittensor.wallet
 
-#  LOGGING ----------------------------------
-BITTENSOR_LOGGING_LEVEL = 'SUCCESS' # if os.environ.get('BITTENSOR_STDOUT_LOGGING_LEVEL') == None else os.environ.get('BITTENSOR_STDOUT_LOGGING_LEVEL')
+# ---- LOGGING ----
+BITTENSOR_LOGGING_LEVEL = 'SUCCESS' 
+__logger__ = bittensor.logging.get_logger()
 
-# Remove all loggers.
-logger.remove()
-
-# Add back the Standard logger.
-def not_bittensor_filter( record ):
-    if bool(record["extra"].get("internal")):
-        return False
-    return True
-logger.add(sys.stdout, filter = not_bittensor_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True)
-
-# Internal logger.
-def bittensor_formatter(record):
-    if record["level"].name == 'USER-SUCCESS':
-        return "<green>{message}</green>\n"
-    if record["level"].name == 'USER-CRITICAL':
-        return "<red>{message}</red>\n"
-    if record["level"].name == 'USER-ACTION':
-        return "<blue>{message}</blue>\n"
-    if record["level"].name == 'USER-INFO':
-        return "<white>{message}</white>\n"
-    else:
-        return "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>\n"
-
-def bittensor_log_filter( record ):
-    if not bool(record["extra"].get("internal")):
-        return False
-    if record["level"].name == 'USER-SUCCESS':
-        return True
-    elif record["level"].name == 'USER-CRITICAL':
-        return True
-    elif record["level"].name == 'USER-ACTION':
-        return True
-    elif record["level"].name == 'USER-INFO':
-        return True
-    elif record["level"].no >= logger.level(BITTENSOR_LOGGING_LEVEL).no:
-        return True
-    else:
-        return False
-
-logger.level("USER-SUCCESS", no=33, icon="s")
-logger.level("USER-CRITICAL", no=34, icon="c")
-logger.level("USER-ACTION", no=35, icon="a") 
-logger.level("USER-INFO", no=36, icon="i") 
-logger.add( sys.stdout, filter = bittensor_log_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True, format = bittensor_formatter)
-__logger__ = logger.bind( internal=True )
-
-
-# TOKENIZER  ----------------------------------
+# ---- TOKENIZER ----
 # NOTE (const): tokenizers are guaranteed to improve and expand as time progresses. We version the tokenizer here.
 # neurons must be aware that versions will increase and be ready to convert between tokenizers.
 # TODO (const): Add functionality to allow tokenizer conversion. i.e. for input token conversion.

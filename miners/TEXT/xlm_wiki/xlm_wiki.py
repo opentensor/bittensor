@@ -176,11 +176,6 @@ class Miner():
                         value = torch.mean(self.row).item() / 2 # New values start at 1/2 the mean.
                     ).clone().detach().requires_grad_(True).to(self.model.device)
 
-                    # --- Epoch logs ----
-                    print(self.neuron.axon.__full_str__())
-                    print(self.neuron.dendrite.__full_str__())
-                    print(self.neuron.metagraph)
-
                     # ---- Update Tensorboard ----
                     self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
                     self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
