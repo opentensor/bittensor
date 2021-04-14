@@ -165,7 +165,7 @@ class Miner():
 
             # ---- Weights ----
             self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-            self.row = torch.rand([self.metagraph.n]).to(self.model.device)
+            self.row = torch.rand([self.neuron.metagraph.n]).to(self.model.device)
 
             # --- Run state ---
             self.global_step = 0
@@ -188,16 +188,22 @@ class Miner():
                         continue
 
                     # ---- Emitting Weights ----
-                    self.neuron.subtensor.set_weights(
-                        uids = self.neuron.metagraph.uids,
-                        weights = self.row
+                    success = self.neuron.subtensor.set_weights( 
+                            uids = self.neuron.metagraph.uids,
+                            weights = self.row,
+                            wait_for_finalization = True,
+                            timeout = bittensor.__blocktime__ * 4,
                     )
+                    if success:
+                        logger.success('Successfully set weights on chain.')
+                    else:
+                        logger.error('Failed to set weights on chain.')
 
                     # ---- Sync metagraph ----
                     self.neuron.metagraph.sync() # Pulls latest chain info.
                     self.row = torch.nn.functional.pad(
                         self.row, 
-                        pad = [0, self.metagraph.n - self.row.numel() ],
+                        pad = [0, self.neuron.metagraph.n - self.row.numel() ],
                         value = torch.mean(self.row).item() / 2 # New values start at 1/2 the mean.
                     ).clone().detach().requires_grad_(True)
 

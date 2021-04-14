@@ -213,7 +213,7 @@ class Receptor(nn.Module):
 
             # ---- On unknown failure: we return zeros and unknown code ---- 
             except Exception as e:
-                logger.error('Uncaught error in forward call with error {}, {}'.format( e, traceback.format_exc()))
+                bittensor.__logger__.error('Uncaught error in forward call with error {}, {}'.format( e, traceback.format_exc()))
                 outputs = nill_response_for(inputs)
                 code = torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
@@ -294,7 +294,7 @@ class _ReceptorCall(torch.autograd.Function):
                 serializer = serialization.get_serializer( bittensor.proto.Serializer.MSGPACK )
                 serialized_inputs = serializer.serialize(inputs, modality = mode, from_type = bittensor.proto.TensorType.TORCH)
             except Exception as e:
-                logger.warning('Serialization error with error {}', e)
+                bittensor.__logger__.warning('Serialization error with error {}', e)
                 return zeros, torch.tensor(bittensor.proto.ReturnCode.RequestSerializationException)
             ctx.serialized_inputs =  serialized_inputs
 
@@ -320,12 +320,12 @@ class _ReceptorCall(torch.autograd.Function):
                 try:
                     bittensor_code = response.return_code
                 except:
-                    logger.error('Unknown exception returned from remote host with message {}, {}', response.message, traceback.format_exc())
+                    bittensor.__logger__.error('Unknown exception returned from remote host with message {}, {}', response.message, traceback.format_exc())
                     return zeros, torch.tensor(bittensor_code)
 
                 # ---- Catch bittensor errors ----
                 if bittensor_code == bittensor.proto.ReturnCode.UnknownException:
-                    logger.error('Unknown exception returned from remote host with message {}, {}', response.message, traceback.format_exc())
+                    bittensor.__logger__.error('Unknown exception returned from remote host with message {}, {}', response.message, traceback.format_exc())
                     return zeros, torch.tensor(bittensor_code)
 
                 elif bittensor_code != bittensor.proto.ReturnCode.Success:
@@ -342,12 +342,12 @@ class _ReceptorCall(torch.autograd.Function):
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.Unavailable)
 
                 else:
-                    logger.error('Uncaught GPRC error exception with code {} from endpoint {}', grpc_code, caller.endpoint)
+                    bittensor.__logger__.error('Uncaught GPRC error exception with code {} from endpoint {}', grpc_code, caller.endpoint)
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
             # ---- Catch Unknown Errors ----
             except Exception as e:
-                logger.error('Uncaught error in forward call with error {} and endpoint', e, caller.endpoint)
+                bittensor.__logger__.error('Uncaught error in forward call with error {} and endpoint', e, caller.endpoint)
                 return zeros, torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
             # ---- Check tensor response length ----
@@ -361,14 +361,14 @@ class _ReceptorCall(torch.autograd.Function):
                 outputs = deserializer.deserialize( outputs, to_type = bittensor.proto.TensorType.TORCH )
 
             except Exception as e:
-                logger.error('Failed to serialize responses from forward call with error {}', e)
+                bittensor.__logger__.error('Failed to serialize responses from forward call with error {}', e)
                 return zeros, torch.tensor(bittensor.proto.ReturnCode.ResponseDeserializationException)
         
             # ---- Check response shape ----
             if  outputs.size(0) != inputs.size(0) \
                 or outputs.size(1) != inputs.size(1) \
                 or outputs.size(2) != bittensor.__network_dim__:
-                    logger.error('Forward request returned tensor with incorrect shape {}', list(outputs.shape))
+                    bittensor.__logger__.error('Forward request returned tensor with incorrect shape {}', list(outputs.shape))
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.ResponseShapeException)
 
             # ---- Safe catch NaNs and replace with 0.0 ----
@@ -376,7 +376,7 @@ class _ReceptorCall(torch.autograd.Function):
         
         # ---- Catch all ----
         except Exception as e:
-            logger.error('Forward request returned unknown error {}', e)
+            bittensor.__logger__.error('Forward request returned unknown error {}', e)
             return zeros, torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
         # ---- Return ----
@@ -420,7 +420,7 @@ class _ReceptorCall(torch.autograd.Function):
                 try:
                     serialized_inputs = ctx.serialized_inputs
                 except:
-                    logger.trace('backward failed because forward previously failed.')
+                    bittensor.__logger__.trace('backward failed because forward previously failed.')
                     return (None, None, zeros, None)
 
                 # ---- Serialization ----
@@ -432,7 +432,7 @@ class _ReceptorCall(torch.autograd.Function):
                     serialized_grads = serializer.serialize (grads, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
 
                 except Exception as e:
-                    logger.trace('backward failed during serialization of gradients.')
+                    bittensor.__logger__.trace('backward failed during serialization of gradients.')
                     return (None, None, zeros, None)
 
     
@@ -453,7 +453,7 @@ class _ReceptorCall(torch.autograd.Function):
                     ctx.caller.stats.backwar_bytes_in.update(0.0) # responses are dropped.
 
                 except:
-                    logger.trace('backward failed during backward call. Do not care.')
+                    bittensor.__logger__.trace('backward failed during backward call. Do not care.')
                     return (None, None, zeros, None)
 
                 # ---- Always return zeros ----

@@ -10,7 +10,7 @@ receptor:
   stale_emit_filter: 10000
   topk: 10
 metagraph:
-  stale_emit_filter: 10000
+  data_dir: ~/.bittensor/metagraph_data/
 miner:
   learning_rate: 0.001
   momentum: 0.98

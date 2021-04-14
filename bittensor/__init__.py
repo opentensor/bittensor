@@ -34,6 +34,7 @@ __blocktime__ = 6
 
 # Load components.
 import bittensor.axon
+import bittensor.cli
 import bittensor.config 
 import bittensor.executor
 import bittensor.dendrite
@@ -45,59 +46,54 @@ import bittensor.subtensor
 import bittensor.synapse
 import bittensor.wallet
 
-
 #  LOGGING ----------------------------------
-BITTENSOR_STDOUT_LOGGING_LEVEL = 'SUCCESS' # if os.environ.get('BITTENSOR_STDOUT_LOGGING_LEVEL') == None else os.environ.get('BITTENSOR_STDOUT_LOGGING_LEVEL')
-BITTENSOR_FILE_LOGGING_LEVEL = 'SUCCESS'# if os.environ.get('BITTENSOR_FILE_LOGGING_LEVEL') == None else os.environ.get('BITTENSOR_FILE_LOGGING_LEVEL')
+BITTENSOR_LOGGING_LEVEL = 'SUCCESS' # if os.environ.get('BITTENSOR_STDOUT_LOGGING_LEVEL') == None else os.environ.get('BITTENSOR_STDOUT_LOGGING_LEVEL')
 
 # Remove all loggers.
 logger.remove()
 
-# Standard logger.
-# Adds back the standard out sync but filters all of bittensor internal logging.
+# Add back the Standard logger.
 def not_bittensor_filter( record ):
-    if bool(record["extra"].get("internal")) or bool(record["extra"].get("to_user")):
+    if bool(record["extra"].get("internal")):
         return False
     return True
 logger.add(sys.stdout, filter = not_bittensor_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True)
 
 # Internal logger.
-def stdout_filter( record ):
-    if bool(record["extra"].get("internal")) and record["level"].no >= logger.level(BITTENSOR_STDOUT_LOGGING_LEVEL).no:
-        return True
-    return False
-def file_filter( record ):
-    if bool(record["extra"].get("internal")) and record["level"].no >= logger.level(BITTENSOR_FILE_LOGGING_LEVEL).no:
-        return True
-    return False
-logger.add(sys.stdout, filter = stdout_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True)
-logger.add('~/.bittensor/logs.log', filter=file_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True, rotation="20 MB")
-__internal_logger__ = logger.bind( internal=True )
-
-# Logging to user.
-def user_filter( record ):
-    if bool(record["extra"].get("to_user")):
-        return True
-    else:
-        return False
-def user_formatter(record):
-    if record["level"].no == logger.level('SUCCESS').no:
+def bittensor_formatter(record):
+    if record["level"].name == 'USER-SUCCESS':
         return "<green>{message}</green>\n"
-    if record["level"].no == logger.level('CRITICAL').no:
+    if record["level"].name == 'USER-CRITICAL':
         return "<red>{message}</red>\n"
     if record["level"].name == 'USER-ACTION':
         return "<blue>{message}</blue>\n"
-    if record["level"].name == 'USER':
+    if record["level"].name == 'USER-INFO':
         return "<white>{message}</white>\n"
-    return ""
+    else:
+        return "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>\n"
 
-try:
-    logger.level("USER-ACTION", no=33, icon="🤖") # Blue
-    logger.level("USER", no=33, icon="🤖") # White
-except:
-    pass # Levels already exist.
-logger.add(sys.stdout, filter = user_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True, format=user_formatter)
-__user_logger__ = logger.bind( to_user = True )
+def bittensor_log_filter( record ):
+    if not bool(record["extra"].get("internal")):
+        return False
+    if record["level"].name == 'USER-SUCCESS':
+        return True
+    elif record["level"].name == 'USER-CRITICAL':
+        return True
+    elif record["level"].name == 'USER-ACTION':
+        return True
+    elif record["level"].name == 'USER-INFO':
+        return True
+    elif record["level"].no >= logger.level(BITTENSOR_LOGGING_LEVEL).no:
+        return True
+    else:
+        return False
+
+logger.level("USER-SUCCESS", no=33, icon="s")
+logger.level("USER-CRITICAL", no=34, icon="c")
+logger.level("USER-ACTION", no=35, icon="a") 
+logger.level("USER-INFO", no=36, icon="i") 
+logger.add( sys.stdout, filter = bittensor_log_filter, colorize=True, enqueue=True, backtrace=True, diagnose=True, format = bittensor_formatter)
+__logger__ = logger.bind( internal=True )
 
 
 # TOKENIZER  ----------------------------------

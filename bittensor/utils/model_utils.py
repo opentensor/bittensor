@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import bittensor
 from loguru import logger
 import torch
 
@@ -49,11 +50,11 @@ class ModelToolbox:
             if 'optimizer_state_dict' not in model_info.keys():
                 raise ModelInformationNotFoundException("Missing 'optimizer' in torch save dict")
             
-            logger.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(model_info['epoch'], model_info['loss'], miner_path))
+            bittensor.__logger__.info( 'Saving/Serving model: epoch: {}, loss: {}, path: {}/model.torch'.format(model_info['epoch'], model_info['loss'], miner_path))
             torch.save(model_info,"{}/model.torch".format(miner_path))
 
         except ModelInformationNotFoundException as e:
-            logger.error("Encountered exception trying to save model: {}", e)
+            bittensor.__logger__.error("Encountered exception trying to save model: {}", e)
     
     def load_model(self, config):
         """ Loads a model saved by save_model() and returns it. 
@@ -72,9 +73,9 @@ class ModelToolbox:
             epoch = checkpoint['epoch']
             loss = checkpoint['loss']
 
-            logger.info( 'Reloaded model: epoch: {}, loss: {}, path: {}/model.torch'.format(epoch, loss, config.miner.full_path))
+            bittensor.__logger__.info( 'Reloaded model: epoch: {}, loss: {}, path: {}/model.torch'.format(epoch, loss, config.miner.full_path))
         except Exception as e:
-            logger.warning ( 'Exception {}. Could not find model in path: {}/model.torch', e, config.miner.full_path )
+            bittensor.__logger__.warning ( 'Exception {}. Could not find model in path: {}/model.torch', e, config.miner.full_path )
 
 
         return model, optimizer

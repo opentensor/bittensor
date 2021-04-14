@@ -43,7 +43,7 @@ def convert_weights_and_uids_for_emit( uids: torch.LongTensor, weights: torch.Fl
     remainder = 4294967295 
     weight_vals = []
     weight_uids = []
-    for i, weight_i, uid_i in enumerate(list(zip(weights, uids))):
+    for i, (weight_i, uid_i) in enumerate(list(zip(weights, uids))):
         uint32_val = int(float(weight_i) * int(4294967295)) # convert to int representation.
         remainder -= uint32_val
         

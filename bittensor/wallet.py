@@ -18,6 +18,7 @@
 
 import argparse
 import json
+import getpass
 import os
 import re
 import stat
@@ -41,21 +42,29 @@ class Wallet():
     The coldkey must be used to stake and unstake funds from a running node. The hotkey, on the other hand, is only used
     for suscribing and setting weights from running code. Hotkeys are linked to coldkeys through the metagraph. 
     """
-    def __init__(self, config: Munch = None, **kwargs):
+    def __init__(
+            self, 
+            config: Munch = None, 
+            name: str = None,
+            hotkey: str = None, 
+            path: str = None
+        ):
         r""" Init bittensor wallet object containing a hot and coldkey.
 
             Args:
                 config (:obj:`Munch`, `optional`): 
-                name (required=False, default='default):
+                name (required=False, default='default'):
                     The name of the wallet to unlock for running bittensor
-                hotkey (required=False, default='default):
+                hotkey (required=False, default='default'):
                     The name of hotkey used to running the miner.
                 path (required=False, default='~/.bittensor/wallets/'):
                     The path to your bittensor wallets
         """
         if config == None:
             config = Wallet.default_config()
-        bittensor.config.Config.update_with_kwargs(config.wallet, kwargs) 
+        config.wallet.path = path if path is not None else config.wallet.path
+        config.wallet.name = name if name is not None else config.wallet.name
+        config.wallet.hotkey = hotkey if hotkey is not None else config.wallet.hotkey
         Wallet.check_config(config)
         self.config = config
         self._hotkey = None
@@ -222,15 +231,15 @@ class Wallet():
 
     def _load_coldkeypub(self) -> str:
         if not os.path.isfile( self.coldkeypubfile ):
-            print(colored("coldkeypubfile  {} does not exist".format( self.coldkeypubfile ), 'red'))
+            bittensor.__logger__.log('USER-CRITICAL', "coldkeypubfile  {} does not exist".format( self.coldkeypubfile ))
             raise KeyFileError
 
         if not os.path.isfile( self.coldkeypubfile ):
-            print(colored("coldkeypubfile  {} is not a file".format( self.coldkeypubfile ), 'red'))
+            bittensor.__logger__.log('USER-CRITICAL', "coldkeypubfile  {} is not a file".format( self.coldkeypubfile ))
             raise KeyFileError
 
         if not os.access( self.coldkeypubfile , os.R_OK):
-            print(colored("coldkeypubfile  {} is not readable".format( self.coldkeypubfile ), 'red'))
+            bittensor.__logger__.log('USER-CRITICAL', "coldkeypubfile  {} is not readable".format( self.coldkeypubfile ))
             raise KeyFileError
 
         with open( self.coldkeypubfile, "r") as file:
@@ -241,21 +250,21 @@ class Wallet():
         with open( self.coldkeypubfile , "r") as file:
             coldkeypub = file.readline().strip()
 
-        print(colored("Loaded coldkey.pub: {}".format( coldkeypub ), 'green'))
+        bittensor.__logger__.log('USER-SUCCESS', "Loaded coldkey.pub: {}".format( coldkeypub ))
         return coldkeypub
 
     def _load_hotkey(self) -> 'bittensor.substrate.Keypair':
 
         if not os.path.isfile( self.hotkeyfile ):
-            print(colored("hotkeyfile  {} does not exist".format( self.hotkeyfile ), 'red'))
+            bittensor.__logger__.log('USER-CRITICAL', "hotkeyfile  {} does not exist".format( self.hotkeyfile ))
             raise KeyFileError
 
         if not os.path.isfile( self.hotkeyfile ):
-            print(colored("hotkeyfile  {} is not a file".format( self.hotkeyfile ), 'red'))
+            bittensor.__logger__.log('USER-CRITICAL', "hotkeyfile  {} is not a file".format( self.hotkeyfile ))
             raise KeyFileError
 
         if not os.access( self.hotkeyfile , os.R_OK):
-            print(colored("hotkeyfile  {} is not readable".format( self.hotkeyfile ), 'red'))
+            bittensor.__logger__.log('USER-CRITICAL', "hotkeyfile  {} is not readable".format( self.hotkeyfile ))
             raise KeyFileError
 
         with open( self.hotkeyfile , 'rb') as file:
@@ -263,33 +272,36 @@ class Wallet():
             try:
                 # Try hotkey load.
                 if is_encrypted(data):
-                    password = bittensor.utils.Cli.ask_password()
-                    print("decrypting key... (this may take a few moments)")
+                    password = getpass.getpass("Enter password to unlock key: ")
+                    bittensor.__logger__.log('USER-INFO', "decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
                 hotkey = load_keypair_from_data(data)
             except KeyError:
-                print(colored("Invalid password", 'red'))
+                bittensor.__logger__.log('USER-CRITICAL', "Invalid password")
                 raise KeyError("Invalid password")
 
             except KeyFileError as e:
-                print(colored("Keyfile corrupt", 'red'))
+                bittensor.__logger__.log('USER-CRITICAL', "Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt")
 
-            print(colored("Loaded hotkey: {}".format(hotkey.public_key), 'green'))
+            except Exception as e:
+                bittensor.__logger__.log('USER-CRITICAL', "Error unlocking key: {}", e)
+
+            bittensor.__logger__.log('USER-SUCCESS', "Loaded hotkey: {}".format(hotkey.public_key))
             return hotkey
 
 
     def _load_coldkey(self) -> 'bittensor.substrate.Keypair':
         if not os.path.isfile( self.coldkeyfile ):
-            print(colored("coldkeyfile  {} does not exist".format( self.coldkeyfile ), 'red'))
+            bittensor.__logger__.log('USER-CRITICAL', "coldkeyfile  {} does not exist".format( self.coldkeyfile ))
             raise KeyFileError
 
         if not os.path.isfile( self.coldkeyfile ):
-            print(colored("coldkeyfile  {} is not a file".format( self.coldkeyfile ), 'red'))
+            bittensor.__logger__.log('USER-CRITICAL', "coldkeyfile  {} is not a file".format( self.coldkeyfile ))
             raise KeyFileError
 
         if not os.access( self.coldkeyfile , os.R_OK):
-            print(colored("coldkeyfile  {} is not readable".format( self.coldkeyfile ), 'red'))
+            bittensor.__logger__.log('USER-CRITICAL', "coldkeyfile  {} is not readable".format( self.coldkeyfile ))
             raise KeyFileError
 
         with open( self.coldkeyfile , 'rb') as file:
@@ -297,20 +309,23 @@ class Wallet():
             try:
                 # Try key load.
                 if is_encrypted(data):
-                    password = bittensor.utils.Cli.ask_password()
-                    print("decrypting key... (this may take a few moments)")
+                    password = getpass.getpass("Enter password to unlock key: ")
+                    bittensor.__logger__.log('USER-INFO', "decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
                 coldkey = load_keypair_from_data(data)
 
             except KeyError:
-                print(colored("Invalid password", 'red'))
+                bittensor.__logger__.log('USER-CRITICAL', "Invalid password")
                 raise KeyError("Invalid password")
 
             except KeyFileError as e:
-                print(colored("Keyfile corrupt", 'red'))
+                bittensor.__logger__.log('USER-CRITICAL', "Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt")
+            
+            except Exception as e:
+                bittensor.__logger__.log('USER-CRITICAL', "Error unlocking key: {}", e)
 
-            print(colored("Loaded coldkey: {}".format(coldkey.public_key), 'green'))
+            bittensor.__logger__.log('USER-SUCCESS', "Loaded coldkey: {}".format(coldkey.public_key))
             return coldkey
 
     @staticmethod
@@ -350,7 +365,7 @@ class Wallet():
         # Encrypt
         if use_password:
             password = cli_utils.input_password()
-            print("Encrypting coldkey ... (this might take a few moments)")
+            bittensor.__logger__.log('USER-INFO', "Encrypting coldkey ... (this might take a few moments)")
             coldkey_json_data = json.dumps( self._coldkey.toDict() ).encode()
             coldkey_data = encrypt(coldkey_json_data, password)
             del coldkey_json_data
@@ -361,7 +376,7 @@ class Wallet():
         cli_utils.save_keys( self.coldkeyfile, coldkey_data )
         cli_utils.set_file_permissions( self.coldkeyfile )
 
-    def create_new_hotkey( self, n_words:int = 12):  
+    def create_new_hotkey( self, n_words:int = 12, use_password: bool = True):  
         # Create directory 
         dir_path = os.path.expanduser(
             os.path.join(self.config.wallet.path, self.config.wallet.name, "hotkeys")
@@ -374,6 +389,16 @@ class Wallet():
         self._hotkey = cli_utils.gen_new_key( n_words )
         cli_utils.display_mnemonic_msg( self._hotkey )
         hotkey_data = json.dumps(self._hotkey.toDict()).encode()
+
+        # Encrypt
+        if use_password:
+            password = cli_utils.input_password()
+            bittensor.__logger__.log('USER-INFO', "Encrypting coldkey ... (this might take a few moments)")
+            hotkey_json_data = json.dumps( self._hotkey.toDict() ).encode()
+            hotkey_data = encrypt(hotkey_json_data, password)
+            del hotkey_json_data
+        else:
+            hotkey_data = json.dumps(self._hotkey.toDict()).encode()
 
         # Save
         cli_utils.save_keys( self.hotkeyfile, hotkey_data )
@@ -392,7 +417,7 @@ class Wallet():
         # Encrypt
         if use_password:
             password = cli_utils.input_password()
-            print("Encrypting key ... (this might take a few moments)")
+            bittensor.__logger__.log('USER-INFO', "Encrypting key ... (this might take a few moments)")
             json_data = json.dumps( self._coldkey.toDict() ).encode()
             coldkey_data = encrypt(json_data, password)
             del json_data
@@ -403,7 +428,7 @@ class Wallet():
         cli_utils.save_keys( self.coldkeyfile, coldkey_data ) 
         cli_utils.set_file_permissions( self.coldkeyfile )
 
-    def regenerate_hotkey( self, mnemonic: str ):
+    def regenerate_hotkey( self, mnemonic: str, use_password: bool ):
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self.config.wallet.path, self.config.wallet.name, "hotkeys"))
         if not os.path.exists( dir_path ):
@@ -412,8 +437,17 @@ class Wallet():
         # Regenerate
         cli_utils.validate_create_path( self.hotkeyfile )
         self._hotkey = cli_utils.validate_generate_mnemonic( mnemonic )
+
+        # Encrypt
+        if use_password:
+            password = cli_utils.input_password()
+            bittensor.__logger__.log('USER-INFO', "Encrypting coldkey ... (this might take a few moments)")
+            hotkey_json_data = json.dumps( self._hotkey.toDict() ).encode()
+            hotkey_data = encrypt(hotkey_json_data, password)
+            del hotkey_json_data
+        else:
+            hotkey_data = json.dumps(self._hotkey.toDict()).encode()
         
         # Save
-        hotkey_data = json.dumps(self._hotkey.toDict()).encode()
         cli_utils.save_keys( self.hotkeyfile, hotkey_data )
         cli_utils.set_file_permissions( self.hotkeyfile )

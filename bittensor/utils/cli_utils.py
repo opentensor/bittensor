@@ -25,32 +25,40 @@ import getpass
 
 from loguru import logger
 
+import bittensor
 from bittensor.substrate import Keypair
 from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError
 from termcolor import colored
 from bittensor.crypto import encrypt, is_encrypted, decrypt_data, KeyError
-from bittensor.utils import Cli
 
 class cli_utils():
 
     @staticmethod
+    def ask_password():
+        print ('here')
+        return getpass.getpass("Enter password to unlock key: ")
+
+    @staticmethod
     def load_key(path) -> Keypair:
         path = os.path.expanduser(path)
+        password = getpass.getpass("Enter password to unlock key: ")
         try:
             with open(path, 'rb') as file:
                 data = file.read()
                 if is_encrypted(data):
-                    password = Cli.ask_password()
-                    print("decrypting key... (this may take a few moments)")
+                    password = getpass.getpass("Enter password to unlock key: ")
+                    print ('here2')
+                    bittensor.__logger__.log('USER-INFO', "decrypting key... (this may take a few moments)")
+                    print ('here3')
                     data = decrypt_data(password, data)
 
                 return load_keypair_from_data(data)
 
         except KeyError:
-            print(colored("Invalid password", 'red'))
+            bittensor.__logger__.log('USER-CRITICAL', "Invalid password")
             quit()
         except KeyFileError as e:
-            print(colored("Keyfile corrupt", 'red'))
+            bittensor.__logger__.log('USER-CRITICAL', "Keyfile corrupt")
             raise e
         
     @staticmethod
@@ -66,7 +74,7 @@ class cli_utils():
             if os.path.isdir(wallet_dir):
                 return
             else:
-                print(colored("{} exists, but is not a directory. Aborting".format(wallet_dir), 'red'))
+                bittensor.__logger__.log('USER-CRITICAL', "{} exists, but is not a directory. Aborting".format(wallet_dir))
                 quit()
         os.mkdir(wallet_dir)
 
@@ -77,7 +85,7 @@ class cli_utils():
             if os.path.isdir(hotkeys_dir):
                 return
             else:
-                print(colored("{} exists, but is not a directory. Aborting".format(hotkeys_dir), 'red'))
+                bittensor.__logger__.log('USER-CRITICAL', "{} exists, but is not a directory. Aborting".format(hotkeys_dir))
                 quit()
         os.mkdir(hotkeys_dir)
 
@@ -89,7 +97,7 @@ class cli_utils():
             if os.path.isdir(wallet_dir):
                 return
             else:
-                print(colored("~/.bittensor/wallets exists, but is not a directory. Aborting", 'red'))
+                bittensor.__logger__.log('USER-CRITICAL', "~/.bittensor/wallets exists, but is not a directory. Aborting")
                 quit()
         os.mkdir(wallet_dir)
 
@@ -128,11 +136,11 @@ class cli_utils():
         path = os.path.expanduser(path)
 
         if not os.path.isfile(path):
-            print(colored("{} is not a file. Aborting".format(path), 'red'))
+            bittensor.__logger__.log('USER-CRITICAL', "{} is not a file. Aborting".format(path))
             quit()
 
         if not os.access(path, os.R_OK):
-            print(colored("{} is not readable. Aborting".format(path), 'red'))
+            bittensor.__logger__.log('USER-CRITICAL', "{} is not readable. Aborting".format(path))
             quit()
 
     @staticmethod
@@ -152,14 +160,14 @@ class cli_utils():
                 else:
                     quit()
             else:
-                print(colored("No write access for  %s" % keyfile, 'red'))
+                bittensor.__logger__.log('USER-CRITICAL', "No write access for  %s" % keyfile)
                 quit()
         else:
             pdir = os.path.dirname(keyfile)
             if os.access(pdir, os.W_OK):
                 return keyfile
             else:
-                print(colored("No write access for  %s" % keyfile, 'red'))
+                bittensor.__logger__.log('USER-CRITICAL', "No write access for  %s" % keyfile)
                 quit()
 
     @staticmethod
@@ -190,12 +198,12 @@ class cli_utils():
         tested_pass = policy.password(password)
         result = tested_pass.test()
         if len(result) > 0:
-            print(colored('Password not strong enough. Try increasing the length of the password or the password complexity'))
+            bittensor.__logger__.log('USER-CRITICAL', "Password not strong enough. Try increasing the length of the password or the password complexity")
             return False
 
         password_verification = getpass.getpass("Retype your password: ")
         if password != password_verification:
-            print("Passwords do not match")
+            bittensor.__logger__.log('USER-CRITICAL', "Passwords do not match")
             return False
 
         return True
@@ -203,14 +211,14 @@ class cli_utils():
     @staticmethod
     def validate_generate_mnemonic(mnemonic):
         if len(mnemonic) not in [12,15,18,21,24]:
-            print(colored("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words", 'red'))
+            bittensor.__logger__.log('USER-CRITICAL', "Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
             quit()
 
         try:
             keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
             return keypair
         except ValueError as e:
-            print(colored(str(e), "red"))
+            bittensor.__logger__.log('USER-CRITICAL', str(e))
             quit()
 
     @staticmethod
@@ -222,18 +230,17 @@ class cli_utils():
     @staticmethod
     def display_mnemonic_msg( kepair : Keypair ):
         mnemonic = kepair.mnemonic
-        mnemonic_green = colored(mnemonic, 'green')
-        print (colored("\nIMPORTANT: Store this mnemonic in a secure (preferable offline place), as anyone " \
-                    "who has possesion of this mnemonic can use it to regenerate the key and access your tokens. \n", "red"))
-        print ("The mnemonic to the new key is:\n\n%s\n" % mnemonic_green)
-        print ("You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:")
-        print("bittensor-cli regen --mnemonic %s" % mnemonic)
-        print('')
+        bittensor.__logger__.log('USER-CRITICAL', "\nIMPORTANT: Store this mnemonic in a secure (preferable offline place), as anyone " \
+                    "who has possesion of this mnemonic can use it to regenerate the key and access your tokens. \n")
+        bittensor.__logger__.log('USER-SUCCESS', "The mnemonic to the new key is:\n\n%s\n" % mnemonic)
+        bittensor.__logger__.log('USER-INFO', "You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:")
+        bittensor.__logger__.log('USER-INFO', "bittensor-cli regen --mnemonic %s" % mnemonic)
+        bittensor.__logger__.log('USER-INFO', '')
 
 
     @staticmethod
     def save_keys(path, data):
-        print("Writing key to %s" % path)
+        bittensor.__logger__.log('USER-INFO', "Writing key to %s" % path)
         with open(path, "wb") as keyfile:
             keyfile.write(data)
     
@@ -244,12 +251,12 @@ class cli_utils():
 
     @staticmethod
     def confirm_no_password():
-        print(colored('*** WARNING ***', 'white'))
-        print(colored('You have not specified the --password flag.', 'white'))
-        print(colored('This means that the generated key will be stored as plaintext in the keyfile', 'white'))
-        print(colored('The benefit of this is that you will not be prompted for a password when bittensor starts', 'white'))
-        print(colored('The drawback is that an attacker has access to the key if they have access to the account bittensor runs on', 'white'))
-        print()
+        bittensor.__logger__.log('USER-INFO', "*** WARNING ***")
+        bittensor.__logger__.log('USER-INFO', "You have not specified the --password flag.")
+        bittensor.__logger__.log('USER-INFO', "This means that the generated key will be stored as plaintext in the keyfile")
+        bittensor.__logger__.log('USER-INFO', "The benefit of this is that you will not be prompted for a password when bittensor starts")
+        bittensor.__logger__.log('USER-INFO', "The drawback is that an attacker has access to the key if they have access to the account bittensor runs on")
+        bittensor.__logger__.log('USER-INFO', "")
         choice = input("Do you wish to proceed? (Y/n) ")
         if choice in ["n", "N"]:
             return False

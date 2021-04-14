@@ -25,10 +25,12 @@ import stat
 import validators
 import yaml
 
+
 from loguru import logger
 from munch import Munch
 from importlib.machinery import SourceFileLoader
 
+import bittensor
 from bittensor.crypto import KeyError
 from bittensor.crypto.keyfiles import KeyFileError
 

@@ -3,7 +3,7 @@ axon:
   max_workers: 10
   use_upnpc: false
 metagraph:
-  stale_emit_filter: 10000
+  data_dir: ~/.bittensor/metagraph_data/
 miner:
   accumulation_interval: 1
   apply_remote_gradients: false

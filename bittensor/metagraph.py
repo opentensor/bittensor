@@ -55,8 +55,8 @@ class Metagraph():
         self.subtensor = subtensor
 
         # Empty Shared State.
-        self._lock = multiprocessing.RLock()
         self._manager = multiprocessing.Manager()
+        self._lock = self._manager.Lock()
         self._n = self._manager.Value( 'i', 0 )
         self._tau = self._manager.Value( 'd', 0.5 )
         self._block = self._manager.Value( 'i', 0 )
@@ -549,22 +549,11 @@ class Metagraph():
         self._uid_for_pubkey = self._manager.dict( uid_for_pubkey )
 
     def __str__(self):
-        uids = self.uids.tolist()
-        rows = [self.S.tolist(), self.R.tolist(), self.I.tolist()]
-        for i in range(self.n):
-            rows.append(self.W[i, :].tolist())
-        df = pd.DataFrame(rows, columns=uids)
-        df = df.rename(index={df.index[0]: 'S'})
-        df = df.rename(index={df.index[1]: 'R'})
-        df = df.rename(index={df.index[2]: 'I'})
-        for i in range(self.n):
-            df = df.rename(index={df.index[i + 6]: uids[i]})
-        df.rename_axis(colored('[uid]', 'red'), axis=1)
-        return '\nMetagraph: inflation_rate: {} block: {} n_neurons: {} \n'.format(self.tau, self.block, self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
+        return '\nMetagraph: inflation_rate: {} block: {} n_neurons: {} \n'.format(self.tau, self.block, self.n)
 
     def __to_tensorboard__(self, tensorboard, global_step):
         tensorboard.add_scalar('Metagraph/neurons', self.n, global_step)
-        tensorboard.add_scalar('Metagraph/inflation_rate', self.tau.item(), global_step)
+        tensorboard.add_scalar('Metagraph/inflation_rate', self.tau, global_step)
 
 
     # def _read_json_from_data_dir(self ) -> dict:

@@ -15,6 +15,7 @@ import threading
 import weakref
 import os
 import sys
+import bittensor
 
 # Workers are created as daemon threads. This is done to allow the interpreter
 # to exit when there are still idle threads in a ThreadPoolExecutor's thread
@@ -42,7 +43,7 @@ def _python_exit():
     for t, q in items:
         t.join()
         if t.is_alive():
-            logger.error('thread was not joined {}', t)
+            bittensor.__logger__.error('thread was not joined {}', t)
 
 atexit.register(_python_exit)
 
@@ -108,7 +109,7 @@ def _worker(executor_reference, work_queue, initializer, initargs):
                 return
             del executor
     except BaseException:
-        logger.error('work_item', work_item)
+        bittensor.__logger__.error('work_item', work_item)
         _base.LOGGER.critical('Exception in worker', exc_info=True)
 
 

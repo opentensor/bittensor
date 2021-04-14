@@ -136,7 +136,7 @@ class Nucleus ():
             return None, message, code
         except Exception as e:
             message = 'Unknown error on nucleus submit with error {}'.format(e)
-            logger.error(message)
+            bittensor.__logger__.error(message)
             code = bittensor.proto.ReturnCode.UnknownException
             return None, message, code
 

@@ -188,26 +188,26 @@ class Axon(bittensor.grpc.BittensorServicer):
             try:
                 config.axon.external_ip = net.get_external_ip()
             except net.ExternalIPNotFound as external_port_exception:
-                logger.error('Axon failed in its attempt to attain your external ip. Check your internet connection.')
+                bittensor.__logger__.log('USER-CRITICAL', 'Axon failed in its attempt to attain your external ip. Check your internet connection.')
                 raise external_port_exception
 
         if config.axon.external_port == None:
             # Optionally: use upnpc to map your router to the local host.
             if config.axon.use_upnpc:
                 # Open a port on your router
-                logger.info('UPNPC: ON')
+                bittensor.__logger__.log('USER-INFO', 'UPNPC: ON')
                 try:
                     config.axon.external_port = net.upnpc_create_port_map(local_port = config.axon.local_port)
                 except net.UPNPCException as upnpc_exception:
-                    logger.error('Axon failed to hole-punch with upnpc')
+                    bittensor.__logger__.log('USER-CRITICAL', 'Axon failed to hole-punch with upnpc')
                     raise upnpc_exception
             # Falls back to using your provided local_port.
             else:
-                logger.info('UPNPC: OFF')
+                bittensor.__logger__.log('USER-INFO', 'UPNPC: OFF')
                 config.axon.external_port = config.axon.local_port
 
-        logger.info('Using external endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
-        logger.info('Using local endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
+        bittensor.__logger__.info('Using external endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
+        bittensor.__logger__.info('Using local endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
 
 
     def Forward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
@@ -426,7 +426,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         try:
             self.gradients.put( (call_priority, (request.public_key, inputs_x, grads_dy, modality_x)) , block=False)
         except queue.Full:
-            logger.trace('gradient queue is full at size: {}', self.gradients.qsize())
+            bittensor.__logger__.trace('gradient queue is full at size: {}', self.gradients.qsize())
 
         # ---- nucleus.Nucleus backward call ----
         try:
@@ -565,7 +565,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         except (KeyboardInterrupt, SystemExit):
             self.stop()
         except Exception as e:
-            logger.error(e)
+            bittensor.__logger__.error(e)
 
     def stop(self):
         r""" Stop the axon grpc server.
@@ -576,8 +576,8 @@ class Axon(bittensor.grpc.BittensorServicer):
                 net.upnpc_delete_port_map(self.config.axon.external_port)
             except net.UPNPCException:
                 # Catch but continue.
-                logger.error('Error while trying to destroy port map on your router.')
-        logger.info('Shutting down the nucleus.Nucleus...')
+                bittensor.__logger__.error('Error while trying to destroy port map on your router.')
+        bittensor.__logger__.info('Shutting down the nucleus.Nucleus...')
         if self.nucleus != None:
             self.nucleus.stop()
         if self._server != None:
