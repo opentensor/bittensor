@@ -294,7 +294,7 @@ class _ReceptorCall(torch.autograd.Function):
                 serializer = serialization.get_serializer( bittensor.proto.Serializer.MSGPACK )
                 serialized_inputs = serializer.serialize(inputs, modality = mode, from_type = bittensor.proto.TensorType.TORCH)
             except Exception as e:
-                bittensor.__logger__.warning('Serialization error with error {}', e)
+                bittensor.__logger__.debug('Serialization error with error {}', e)
                 return zeros, torch.tensor(bittensor.proto.ReturnCode.RequestSerializationException)
             ctx.serialized_inputs =  serialized_inputs
 
@@ -320,12 +320,12 @@ class _ReceptorCall(torch.autograd.Function):
                 try:
                     bittensor_code = response.return_code
                 except:
-                    bittensor.__logger__.error('Unknown exception returned from remote host with message {}, {}', response.message, traceback.format_exc())
+                    bittensor.__logger__.debug('Unknown exception returned from remote host with message {}, {}', response.message, traceback.format_exc())
                     return zeros, torch.tensor(bittensor_code)
 
                 # ---- Catch bittensor errors ----
                 if bittensor_code == bittensor.proto.ReturnCode.UnknownException:
-                    bittensor.__logger__.error('Unknown exception returned from remote host with message {}, {}', response.message, traceback.format_exc())
+                    bittensor.__logger__.debug('Unknown exception returned from remote host with message {}, {}', response.message, traceback.format_exc())
                     return zeros, torch.tensor(bittensor_code)
 
                 elif bittensor_code != bittensor.proto.ReturnCode.Success:
@@ -342,12 +342,12 @@ class _ReceptorCall(torch.autograd.Function):
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.Unavailable)
 
                 else:
-                    bittensor.__logger__.error('Uncaught GPRC error exception with code {} from endpoint {}', grpc_code, caller.endpoint)
+                    bittensor.__logger__.debug('Uncaught GPRC error exception with code {} from endpoint {}', grpc_code, caller.endpoint)
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
             # ---- Catch Unknown Errors ----
             except Exception as e:
-                bittensor.__logger__.error('Uncaught error in forward call with error {} and endpoint', e, caller.endpoint)
+                bittensor.__logger__.debug('Uncaught error in forward call with error {} and endpoint', e, caller.endpoint)
                 return zeros, torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
             # ---- Check tensor response length ----
@@ -361,14 +361,14 @@ class _ReceptorCall(torch.autograd.Function):
                 outputs = deserializer.deserialize( outputs, to_type = bittensor.proto.TensorType.TORCH )
 
             except Exception as e:
-                bittensor.__logger__.error('Failed to serialize responses from forward call with error {}', e)
+                bittensor.__logger__.debug('Failed to serialize responses from forward call with error {}', e)
                 return zeros, torch.tensor(bittensor.proto.ReturnCode.ResponseDeserializationException)
         
             # ---- Check response shape ----
             if  outputs.size(0) != inputs.size(0) \
                 or outputs.size(1) != inputs.size(1) \
                 or outputs.size(2) != bittensor.__network_dim__:
-                    bittensor.__logger__.error('Forward request returned tensor with incorrect shape {}', list(outputs.shape))
+                    bittensor.__logger__.debug('Forward request returned tensor with incorrect shape {}', list(outputs.shape))
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.ResponseShapeException)
 
             # ---- Safe catch NaNs and replace with 0.0 ----
@@ -376,7 +376,7 @@ class _ReceptorCall(torch.autograd.Function):
         
         # ---- Catch all ----
         except Exception as e:
-            bittensor.__logger__.error('Forward request returned unknown error {}', e)
+            bittensor.__logger__.debug('Forward request returned unknown error {}', e)
             return zeros, torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
         # ---- Return ----

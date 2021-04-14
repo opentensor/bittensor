@@ -206,8 +206,8 @@ class Axon(bittensor.grpc.BittensorServicer):
                 bittensor.__logger__.log('USER-INFO', 'UPNPC: OFF')
                 config.axon.external_port = config.axon.local_port
 
-        bittensor.__logger__.info('Using external endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
-        bittensor.__logger__.info('Using local endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
+        bittensor.__logger__.log('USER-INFO', 'Using external endpoint: {}:{}', config.axon.external_ip, config.axon.external_port)
+        bittensor.__logger__.log('USER-INFO', 'Using local endpoint: {}:{}', config.axon.local_ip, config.axon.local_port)
 
 
     def Forward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
