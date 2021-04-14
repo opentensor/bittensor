@@ -39,7 +39,6 @@ import time
 import bittensor
 import torch.nn.functional as F
 
-
 from termcolor import colored
 from munch import Munch
 from loguru import logger
@@ -51,8 +50,6 @@ from transformers import AdamW
 from tqdm import tqdm
 from torch.utils.data.dataloader import DataLoader
 from datasets import load_dataset
-
-
 
 class AdamCorpus():
 
@@ -294,6 +291,8 @@ class Miner():
                             }
                         )
                         self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
+                except:
+                    continue
                 logger.info("This epoch's training loss: {}...Current best training loss: {}".format(self.training_loss, self.best_train_loss))
 
 
@@ -370,7 +369,6 @@ class Miner():
             logger.info("Preparing dataset batch...")
             dataset = self.shuffle_dataset_epoch_length()
             pbar = tqdm(enumerate(dataset), total=len(dataset))
-
 
             #self.reset_learning_rate(self.config.miner.learning_rate)
             for it, (batch) in pbar:
