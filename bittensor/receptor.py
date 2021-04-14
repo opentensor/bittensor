@@ -368,7 +368,7 @@ class _ReceptorCall(torch.autograd.Function):
             if  outputs.size(0) != inputs.size(0) \
                 or outputs.size(1) != inputs.size(1) \
                 or outputs.size(2) != bittensor.__network_dim__:
-                    bittensor.__logger__.debug('Forward request returned tensor with incorrect shape {}', list(outputs.shape))
+                    bittensor.__logger__.debug('Forward request returned tensor with incorrect shape {}, expected {}, from {}', list(outputs.shape), list(inputs.shape), ctx.caller.endpoint)
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.ResponseShapeException)
 
             # ---- Safe catch NaNs and replace with 0.0 ----
