@@ -370,7 +370,7 @@ class Miner():
 
                 losses.append(loss.item())
 
-                 # ---- Train row weights ----
+                # ---- Train row weights ----
                 batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
                 self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
                 self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
@@ -379,10 +379,10 @@ class Miner():
                     'GS': colored('{}'.format(self.global_step), 'red'),
                     'LS': colored('{}'.format(it), 'blue'),
                     'Epoch': colored('{}'.format(self.epoch+1), 'green'),
-                    'Local loss': colored('{:.5f}'.format(output.local_target_loss.item()), 'red'),
-                    'Remote loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'blue'),
-                    'Distillation loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
-                    'Learning Rate:': colored('{:e}'.format(self.lr), 'white'),
+                    'L-loss': colored('{:.5f}'.format(output.local_target_loss.item()), 'red'),
+                    'R-loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'blue'),
+                    'D-loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
+                    'lr:': colored('{:e}'.format(self.lr), 'white'),
                     'Axon': self.neuron.axon.__str__(),
                     'Dendrite': self.neuron.dendrite.__str__(),
                 })

@@ -122,7 +122,7 @@ class Miner():
 
             # ---- Weights ----
             self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-            self.row = torch.rand([self.metagraph.n]).to(self.model.device)
+            self.row = torch.rand([self.neuron.metagraph.n]).to(self.model.device)
 
             # --- Loop for epochs ---
             self.best_test_loss = math.inf; self.global_step = 0
