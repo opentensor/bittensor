@@ -150,6 +150,7 @@ class Axon(bittensor.grpc.BittensorServicer):
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
                     parser argument to append args to.
         """
+        bittensor.wallet.Wallet.add_args( parser )
         bittensor.nucleus.Nucleus.add_args(parser)
         try:
             parser.add_argument('--axon.local_port', default=8091, type=int, 

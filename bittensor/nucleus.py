@@ -78,6 +78,7 @@ class Nucleus ():
                     parser (:obj:`argparse.ArgumentParser`, `required`): 
                         parser argument to append args to.
         """
+        bittensor.wallet.Wallet.add_args( parser )
         try:
             # Can be called twice.
             parser.add_argument('--nucleus.max_workers', default=5, type=int, 
