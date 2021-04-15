@@ -752,7 +752,13 @@ class Metagraph():
 
         # ---- Emit ----
         logger.info('Emitting weights -> {}', list(zip(weight_uids, weight_vals)))
-        result = self.subtensor.set_weights(self.wallet, weight_uids, weight_vals, wait_for_inclusion=True, timeout = bittensor.__blocktime__ * 3)
+        result = self.subtensor.set_weights (
+            wallet = self.wallet,
+            destinations = weight_uids, 
+            values = weight_vals, 
+            wait_for_inclusion=True, 
+            timeout = bittensor.__blocktime__ * 3
+        )
         if result:
             message = "Successful emission"
             return Metagraph.EmitSuccess, message
