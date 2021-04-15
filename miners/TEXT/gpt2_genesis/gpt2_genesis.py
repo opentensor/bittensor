@@ -157,11 +157,15 @@ class Miner():
         parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
         parser.add_argument('--miner.custom_dataset', default="~/.bittensor/bittensor/miners/TEXT/gpt2_genesis/genesis_dataset/", type=str, help='Custom datasets to train on.')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
+        parser.add_argument('--debug', dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
+        parser.set_defaults( debug=False )
         GPT2Synapse.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
+        if config.debug:  bittensor.__log_level__ = 'TRACE'; logger.debug('DEBUG is ON')
+        else: logger.info('DEBUG is OFF') 
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         config.miner.custom_dataset = os.path.expanduser(config.miner.custom_dataset)
