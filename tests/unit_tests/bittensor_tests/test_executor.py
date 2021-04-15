@@ -4,7 +4,7 @@ import pytest
 import os
 
 wallet = bittensor.wallet.Wallet (
-    path = 'pytest',
+    path = '/tmp/pytest',
     name = 'pytest',
     hotkey = 'pytest',
 )
