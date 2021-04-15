@@ -35,9 +35,11 @@ __blocktime__ = 6
 # Load components.
 import bittensor.axon
 import bittensor.config 
+import bittensor.cli
 import bittensor.executor
 import bittensor.dendrite
 import bittensor.metagraph
+import bittensor.logging
 import bittensor.neuron
 import bittensor.nucleus
 import bittensor.receptor
@@ -45,16 +47,9 @@ import bittensor.subtensor
 import bittensor.synapse
 import bittensor.wallet
 
-# Default logger
-logger_config = {
-    "handlers": [{
-        "sink":
-            sys.stdout,
-        "format":
-            "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-    }]
-}
-logger.configure(**logger_config)
+# ---- LOGGING ----
+__log_level__ = 'SUCCESS' 
+bittensor.logging.init_logger()
 
 # Tokenizer
 # NOTE (const): tokenizers are guaranteed to improve and expand as time progresses. We version the tokenizer here.
