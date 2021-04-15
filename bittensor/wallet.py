@@ -475,7 +475,7 @@ class Wallet():
         cli_utils.save_keys( self.coldkeyfile, coldkey_data ) 
         cli_utils.set_file_permissions( self.coldkeyfile )
 
-    def regenerate_hotkey( self, mnemonic: str ):
+    def regenerate_hotkey( self, mnemonic: str, use_password: bool = True):
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self.config.wallet.path, self.config.wallet.name, "hotkeys"))
         if not os.path.exists( dir_path ):
@@ -484,8 +484,17 @@ class Wallet():
         # Regenerate
         cli_utils.validate_create_path( self.hotkeyfile )
         self._hotkey = cli_utils.validate_generate_mnemonic( mnemonic )
+
+        # Encrypt
+        if use_password:
+            password = cli_utils.input_password()
+            print("Encrypting hotkey ... (this might take a few moments)")
+            hotkey_json_data = json.dumps( self._hotkey.toDict() ).encode()
+            hotkey_data = encrypt(hotkey_json_data, password)
+            del hotkey_json_data
+        else:
+            hotkey_data = json.dumps(self._hotkey.toDict()).encode()
         
         # Save
-        hotkey_data = json.dumps(self._hotkey.toDict()).encode()
         cli_utils.save_keys( self.hotkeyfile, hotkey_data )
         cli_utils.set_file_permissions( self.hotkeyfile )
