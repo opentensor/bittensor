@@ -249,7 +249,7 @@ class Keypair:
             'accountId': self.public_key,
             'publicKey': self.public_key,
             'secretPhrase': self.mnemonic,
-            'secretSeed': ("0x" + self.seed_hex) if self.seed_hex != None else "",
+            'secretSeed': "0x" + self.seed_hex,
             'ss58Address': self.ss58_address
         }
 
