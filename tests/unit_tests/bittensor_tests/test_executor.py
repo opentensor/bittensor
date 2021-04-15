@@ -3,83 +3,67 @@ from munch import Munch
 import pytest
 import os
 
-def test_regen_hotkey( ):
-    config = Munch()
-    config.command = "regen_hotkey"
-    config.debug = False
-    config.mnemonic = ["cabin", "thing", "arch", "canvas", "game", "park", "motion", "snack", "advice", "arch", "parade", "climb"]
-    config.subtensor = Munch()
-    config.subtensor.network = "akira"
-    config.wallet = Munch()
-    config.wallet.hotkey = "pytest_hotkey"
-    config.wallet.name = "test_wallet"
-    config.wallet.path = "~/tmp/pytest_wallets/"
-    executor = bittensor.executor.Executor( config )
-    try:
-        os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/hotkeys/pytest_hotkey"))
-    except:
-        pass    
-    executor.run_command()
-    os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/hotkeys/pytest_hotkey"))
+wallet = bittensor.wallet.Wallet (
+    path = '/tmp/pytest',
+    name = 'pytest',
+    hotkey = 'pytest',
+)
+subtensor = bittensor.subtensor.Subtensor (
+    network = 'boltzmann'
+)
+metagraph = bittensor.metagraph.Metagraph (
+    subtensor = subtensor
+)
+executor = bittensor.executor.Executor( 
+    wallet = wallet,
+    subtensor = subtensor,
+    metagraph = metagraph,  
+)
 
-def test_create_hotkey( ):
-    config = Munch()
-    config.command = "new_hotkey"
-    config.debug = False
-    config.n_words = 12
-    config.subtensor = Munch()
-    config.subtensor.network = "akira"
-    config.wallet = Munch()
-    config.wallet.hotkey = "pytest_hotkey"
-    config.wallet.name = "test_wallet"
-    config.wallet.path = "~/tmp/pytest_wallets/"
-    executor = bittensor.executor.Executor( config )
-    try:
-        os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/hotkeys/pytest_hotkey"))
-    except:
-        pass
-    executor.run_command()
-    os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/hotkeys/pytest_hotkey"))
+try:
+    os.remove(executor.wallet.coldkeyfile)
+    os.remove(executor.wallet.hotkeyfile)
+except:
+    pass
 
-def test_regen_coldkey( ):
-    config = Munch()
-    config.command = "regen_coldkey"
-    config.debug = False
-    config.use_password = False
-    config.mnemonic = ["cabin", "thing", "arch", "canvas", "game", "park", "motion", "snack", "advice", "arch", "parade", "climb"]
-    config.subtensor = Munch()
-    config.subtensor.network = "akira"
-    config.wallet = Munch()
-    config.wallet.name = "test_wallet"
-    config.wallet.path = "~/tmp/pytest_wallets/"
-    executor = bittensor.executor.Executor( config )
-    try:
-        os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/coldkey"))
-        os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/coldkeypub.txt"))
-    except:
-        pass    
-    executor.run_command()
-    os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/coldkey"))
-    os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/coldkeypub.txt"))
+def test_create_hotkey():
+    executor.create_new_hotkey(
+        n_words = 12,
+        use_password=False
+    )
+    assert os.path.isfile(executor.wallet.hotkeyfile) 
+    os.remove(executor.wallet.hotkeyfile)
+    assert not os.path.isfile(executor.wallet.hotkeyfile) 
 
-def test_create_coldkey( ):
-    config = Munch()
-    config.command = "new_coldkey"
-    config.debug = False
-    config.n_words = 12
-    config.use_password = False
-    config.subtensor = Munch()
-    config.subtensor.network = "akira"
-    config.wallet = Munch()
-    config.wallet.hotkey = "pytest_hotkey"
-    config.wallet.name = "test_wallet"
-    config.wallet.path = "~/tmp/pytest_wallets/"
-    executor = bittensor.executor.Executor( config )
-    try:
-        os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/coldkey"))
-        os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/coldkeypub.txt"))
-    except:
-        pass    
-    executor.run_command()
-    os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/coldkey"))
-    os.remove(os.path.expanduser("~/tmp/pytest_wallets/test_wallet/coldkeypub.txt"))
+def test_create_coldkey():
+    executor.create_new_coldkey(
+        n_words = 12,
+        use_password=False
+    )
+    assert os.path.isfile(executor.wallet.coldkeyfile) 
+    os.remove(executor.wallet.coldkeyfile)
+    os.remove(executor.wallet.coldkeypubfile)
+    assert not os.path.isfile(executor.wallet.coldkeyfile) 
+    assert not os.path.isfile(executor.wallet.coldkeypubfile) 
+
+def test_regenerate_coldkey():
+    executor.wallet.config.wallet.coldkey = 'pytest3'
+    executor.regenerate_coldkey(
+        mnemonic = ["cabin", "thing", "arch", "canvas", "game", "park", "motion", "snack", "advice", "arch", "parade", "climb"],
+        use_password=False
+    )
+    assert os.path.isfile(executor.wallet.coldkeyfile) 
+    os.remove(executor.wallet.coldkeyfile)
+    os.remove(executor.wallet.coldkeypubfile)
+    assert not os.path.isfile(executor.wallet.coldkeyfile) 
+    assert not os.path.isfile(executor.wallet.coldkeypubfile) 
+
+def test_regenerate_hotkey():
+    executor.wallet.config.wallet.coldkey = 'pytest4'
+    executor.regenerate_hotkey(
+        mnemonic = ["cabin", "thing", "arch", "canvas", "game", "park", "motion", "snack", "advice", "arch", "parade", "climb"],
+        use_password=False
+    )
+    assert os.path.isfile(executor.wallet.hotkeyfile) 
+    os.remove(executor.wallet.hotkeyfile)
+    assert not os.path.isfile(executor.wallet.hotkeyfile) 

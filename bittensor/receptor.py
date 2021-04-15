@@ -162,7 +162,7 @@ class Receptor(nn.Module):
             parser.add_argument('--receptor.pass_gradients', default=True, type=bool, 
                 help='''Switch to true if the neuron passes gradients to downstream peers.
                         By default the backward call i.e. loss.backward() triggers passing gradients on the wire.''')
-            parser.add_argument('--receptor.timeout', default=0.5, type=float, 
+            parser.add_argument('--receptor.timeout', default=3, type=float, 
                 help='''The per request RPC timeout. a.k.a the maximum request time.''')
             parser.add_argument('--receptor.do_backoff', default=True, type=bool, 
                 help='''Neurons who return non successful return codes are
@@ -248,6 +248,7 @@ class Receptor(nn.Module):
         return outputs, code
 
 class _ReceptorCall(torch.autograd.Function):
+
     @staticmethod
     def forward(ctx, caller: Receptor, dummy: torch.Tensor, inputs: torch.Tensor, mode: bittensor.proto.Modality) -> Tuple[torch.Tensor, int]:
 
@@ -277,7 +278,6 @@ class _ReceptorCall(torch.autograd.Function):
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
                     Return code associated with forward call.
         """
-        
         # ---- Save for backward call ----
         ctx.caller = caller
         ctx.mode = mode
@@ -308,27 +308,34 @@ class _ReceptorCall(torch.autograd.Function):
         
             # ---- Make RPC call ----
             try:
-                
                 start_time = time.time()
                 ctx.caller.stats.forward_qps.update(1)
                 ctx.caller.stats.forward_bytes_out.update(sys.getsizeof(request))
+                logger.opt(ansi=True).debug('<green><-- Forward Request</green>, <white>endpoint</white>:{}, <white>inputs</white>:{}, <white>mode</white>:{}', caller.endpoint, inputs.shape, mode)
                 response = ctx.caller.stub.Forward(request, timeout=caller.config.receptor.timeout)
                 ctx.caller.stats.forward_bytes_in.update(sys.getsizeof(response))
                 ctx.caller.stats.forward_elapsed_time.update((time.time() - start_time))
+
+                # Get message
+                try:
+                    response_message = response.message 
+                except:
+                    response_message = ''
 
                 # ---- Catch non-code ----
                 try:
                     bittensor_code = response.return_code
                 except:
-                    logger.error('Unknown exception returned from remote host with message {}, {}', response.message, traceback.format_exc())
+                    logger.opt(ansi=True).debug('<white>--> Forward Response</white>, <white>code</white>:<yellow>UnknownException</yellow>, <white>endpoint</white>:{}, message:<red>{}</red>', caller.endpoint, response_message)
                     return zeros, torch.tensor(bittensor_code)
 
                 # ---- Catch bittensor errors ----
                 if bittensor_code == bittensor.proto.ReturnCode.UnknownException:
-                    logger.error('Unknown exception returned from remote host with message {}, {}', response.message, traceback.format_exc())
+                    logger.opt(ansi=True).debug('<white>--> Forward Response</white>, <white>code</white>:<yellow>UnknownException</yellow>, <white>endpoint</white>:{}, message:<red>{}</red>', caller.endpoint, response_message)
                     return zeros, torch.tensor(bittensor_code)
 
                 elif bittensor_code != bittensor.proto.ReturnCode.Success:
+                    logger.opt(ansi=True).debug('<white>--> Forward Response</white>, <white>code</white>:<yellow>{}</yellow>, <white>endpoint</white>:{}, message:<red>{}</red>', caller.endpoint, bittensor_code, response_message)
                     return zeros, torch.tensor(bittensor_code)
 
             # ---- Catch GRPC Errors ----
@@ -336,22 +343,25 @@ class _ReceptorCall(torch.autograd.Function):
                 grpc_code = rpc_error_call.code()
 
                 if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
+                    logger.opt(ansi=True).debug('<white>--> Forward Response</white>, <white>code</white>:<yellow>Timeout</yellow>, <white>endpoint</white>:{}', caller.endpoint )
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.Timeout)
 
                 elif grpc_code == grpc.StatusCode.UNAVAILABLE:
+                    logger.opt(ansi=True).debug('<white>--> Forward Response</white>, <white>code</white>:<yellow>Unavailable</yellow>, <white>endpoint</white>:{}', caller.endpoint )
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.Unavailable)
 
                 else:
-                    logger.error('Uncaught GPRC error exception with code {} from endpoint {}', grpc_code, caller.endpoint)
+                    logger.opt(ansi=True).debug('<white>--> Forward Response</white>, <white>code</white>:<red>UnknownException</red>, <white>endpoint</white>:{} ', caller.endpoint )
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
             # ---- Catch Unknown Errors ----
             except Exception as e:
-                logger.error('Uncaught error in forward call with error {} and endpoint', e, caller.endpoint)
+                logger.opt(ansi=True).debug('<white>--> Forward Response</white>, <white>code</white>:<red>UnknownException</red>, <white>endpoint</white>:{}, <white>message</white>:<red>{}</red>', caller.endpoint. e)
                 return zeros, torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
             # ---- Check tensor response length ----
             if len(response.tensors) == 0:
+                logger.opt(ansi=True).debug('<white>--> Forward Response</white> <white>code</white>:<yellow>EmptyResponse</yellow>, <white>endpoint</white>:{}', caller.endpoint )
                 return zeros, torch.tensor(bittensor.proto.ReturnCode.EmptyResponse)
 
             # ---- Deserialize response ----
@@ -361,14 +371,14 @@ class _ReceptorCall(torch.autograd.Function):
                 outputs = deserializer.deserialize( outputs, to_type = bittensor.proto.TensorType.TORCH )
 
             except Exception as e:
-                logger.error('Failed to serialize responses from forward call with error {}', e)
+                logger.opt(ansi=True).debug('<white>--> Forward Response</white>, <white>code</white>:<red>ResponseDeserializationException</red>, <white>endpoint</white>:{}, message:<red>{}</red> ]', caller.endpoint, e)
                 return zeros, torch.tensor(bittensor.proto.ReturnCode.ResponseDeserializationException)
         
             # ---- Check response shape ----
             if  outputs.size(0) != inputs.size(0) \
                 or outputs.size(1) != inputs.size(1) \
                 or outputs.size(2) != bittensor.__network_dim__:
-                    logger.error('Forward request returned tensor with incorrect shape {}, expected {}, from {}', list(outputs.shape), list(inputs.shape), ctx.caller.endpoint)
+                    logger.opt(ansi=True).debug('<white>--> Forward Response</white> <white>code</white>:<red>ResponseShapeException</red>, <white>endpoint</white>:{}, <white>shape</white>:{}, <white>expected</white>:{}', caller.endpoint, list(outputs.shape), [inputs.size(0), inputs.size(1), bittensor.__network_dim__])
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.ResponseShapeException)
 
             # ---- Safe catch NaNs and replace with 0.0 ----
@@ -376,10 +386,11 @@ class _ReceptorCall(torch.autograd.Function):
         
         # ---- Catch all ----
         except Exception as e:
-            logger.error('Forward request returned unknown error {}', e)
+            logger.error('<white>--> Forward Response</white> <white>code</white>:<red>UnknownException</red>, <white>endpoint</white>:{}, <white>message</white>:<red>{}</red>', caller.endpoint, e)
             return zeros, torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
         # ---- Return ----
+        logger.opt(ansi=True).debug('<green> --> Forward Response</green>, <white>code</white>:<green>Success</green>, <white>endpoint</white>:{}, <white>outputs</white>:{}', caller.endpoint, inputs.shape)
         return outputs, torch.tensor(response.return_code)
 
     @staticmethod
