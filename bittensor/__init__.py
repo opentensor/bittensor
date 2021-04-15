@@ -48,7 +48,7 @@ import bittensor.synapse
 import bittensor.wallet
 
 # ---- LOGGING ----
-__log_level__ = 'SUCCESS' 
+__log_level__ = 'INFO' 
 bittensor.logging.init_logger()
 
 # Tokenizer

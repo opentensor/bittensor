@@ -342,36 +342,44 @@ class Miner():
             pbar = qqdm(enumerate(dataset), total=len(dataset), desc=format_str('blue', f'Epoch Progress'))
 
             for it, (batch) in pbar:
+
+                # ---- Forward pass ----
                 batch = batch.to(self.model.device)
                 output = self.model.remote_forward(self.neuron, batch, training=True)
+
+                # ---- Backward pass ----
                 loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
                 loss.backward()
 
+                # ---- Gradient Step ----
                 clip_grad_norm_(self.model.parameters(), self.config.miner.clip_gradients)
                 self.optimizer.step()
                 self.optimizer.zero_grad()
-
                 self.decay_learning_rate(batch)
-
                 losses.append(loss.item())
 
-                 # ---- Train row weights ----
+                # ---- Train row weights ----
                 batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
                 self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
                 self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
 
+                # ---- Logging ----
+                index = self.neuron.metagraph.state.index_for_uid[self.neuron.metagraph.uid]
                 pbar.set_infos({
                     'GS': colored('{}'.format(self.global_step), 'red'),
                     'LS': colored('{}'.format(it), 'blue'),
                     'Epoch': colored('{}'.format(self.epoch+1), 'green'),
-                    'Local loss': colored('{:.5f}'.format(output.local_target_loss.item()), 'red'),
-                    'Remote loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'blue'),
-                    'Distillation loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
-                    'Learning Rate:': colored('{:e}'.format(self.lr), 'white'),
+                    'L-loss': colored('{:.5f}'.format(output.local_target_loss.item()), 'red'),
+                    'R-loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'blue'),
+                    'D-loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
+                    'lr:': colored('{:e}'.format(self.lr), 'white'),
+                    'nPeers': self.neuron.metagraph.n,
+                    'Stake(\u03C4)': float(self.neuron.metagraph.S[index]),
+                    'Rank(\u03C4)': float(self.neuron.metagraph.R[index]),
+                    'Incentive(\u03C4/block)': float(self.neuron.metagraph.I[index]),
                     'Axon': self.neuron.axon.__str__(),
                     'Dendrite': self.neuron.dendrite.__str__(),
                 })
-
                 self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
                 self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
                 self.tensorboard.add_scalar('Neuron/Dloss', output.distillation_loss.item(), self.global_step)
