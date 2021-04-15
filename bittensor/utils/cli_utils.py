@@ -35,7 +35,6 @@ class cli_utils():
 
     @staticmethod
     def ask_password():
-        print ('here')
         return getpass.getpass("Enter password to unlock key: ")
 
     @staticmethod

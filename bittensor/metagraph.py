@@ -489,28 +489,28 @@ class Metagraph():
         weight_uids_to_fill: List[List[int]],
         neurons_to_fill: List[bittensor.proto.Neuron]
     ) -> bool:
-        #try:
-        weight_uids = await self.subtensor.async_weight_uids_for_uid( uid ) 
-        weight_vals = await self.subtensor.async_weight_vals_for_uid( uid ) 
-        neuron = await self.subtensor.async_get_neuron_for_uid( uid )
-        neuron_proto = bittensor.proto.Neuron(
-                version = bittensor.__version__,
-                public_key = neuron['hotkey'],
-                address = bittensor.utils.networking.int_to_ip(int(neuron['ip'])),
-                port = neuron['port'],
-                uid = neuron['uid'], 
-                modality = neuron['modality'],
-                ip_type = neuron['ip_type']          
-        )
-        weight_vals_to_fill[uid] = weight_vals
-        weight_uids_to_fill[uid] = weight_uids
-        neurons_to_fill[uid] = neuron_proto
-        print(colored('.', 'green'), end ="")
-        return True
-        # except Exception as e:
-        #     print ()
-        #     print(colored('x', 'red'), end ="")
-        #     return False
+        try:
+            weight_uids = await self.subtensor.async_weight_uids_for_uid( uid ) 
+            weight_vals = await self.subtensor.async_weight_vals_for_uid( uid ) 
+            neuron = await self.subtensor.async_get_neuron_for_uid( uid )
+            neuron_proto = bittensor.proto.Neuron(
+                    version = bittensor.__version__,
+                    public_key = neuron['hotkey'],
+                    address = bittensor.utils.networking.int_to_ip(int(neuron['ip'])),
+                    port = neuron['port'],
+                    uid = neuron['uid'], 
+                    modality = neuron['modality'],
+                    ip_type = neuron['ip_type']          
+            )
+            weight_vals_to_fill[uid] = weight_vals
+            weight_uids_to_fill[uid] = weight_uids
+            neurons_to_fill[uid] = neuron_proto
+            print(colored('.', 'green'), end ="")
+            return True
+        except Exception as e:
+            print ()
+            print(colored('x', 'red'), end ="")
+            return False
 
     def _update(
         self,

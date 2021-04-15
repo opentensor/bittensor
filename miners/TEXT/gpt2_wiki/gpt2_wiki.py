@@ -240,7 +240,6 @@ class Miner():
 
                     # ---- Train Model ----
                     self.train()
-                    self.scheduler.step()
                     
                     # If model has borked for some reason, we need to make sure it doesn't emit weights
                     # Instead, reload into previous version of model
