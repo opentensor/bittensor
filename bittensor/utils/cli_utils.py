@@ -29,7 +29,6 @@ from bittensor.substrate import Keypair
 from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError
 from termcolor import colored
 from bittensor.crypto import encrypt, is_encrypted, decrypt_data, KeyError
-from bittensor.utils import Cli
 
 class cli_utils():
 
