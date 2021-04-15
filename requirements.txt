@@ -37,7 +37,7 @@ termcolor
 tensorboard
 torch>=1.6.0
 torchvision
-transformers
+transformers>=4.5.0
 validators
 xxhash>=2.0.0
 pandas

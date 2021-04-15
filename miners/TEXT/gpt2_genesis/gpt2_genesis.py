@@ -141,24 +141,110 @@ class Miner():
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        parser.add_argument('--miner.learning_rate', default=3e-2, type=float, help='Training initial learning rate.')
-        parser.add_argument('--miner.weight_decay', default=0.25, help='Model parameter weight decay.')
-        parser.add_argument('--miner.lr_decay', default=True, help='learning rate decay params: linear warmup followed by cosine decay to 10% of original.')
-        parser.add_argument('--miner.warmup_tokens', default=375e6, help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)')
-        parser.add_argument('--miner.final_tokens', default=260e9, help='At what point we reach 10% of original LR')
-        parser.add_argument('--miner.num_workers', default=1, help='Number of workers for data loader.')
-        parser.add_argument('--miner.clip_gradients', default=1.0, type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.')
-        parser.add_argument('--miner.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
-        parser.add_argument('--miner.epoch_length', default=500, type=int, help='Iterations of training per epoch')
-        parser.add_argument('--miner.batch_size_train', default=2, type=int, help='Training batch size.')
-        parser.add_argument('--miner.root_dir', default='~/.bittensor/miners/', type=str,  help='Root path to load and save data associated with each miner')
-        parser.add_argument('--miner.name', default='gpt2-genesis', type=str, help='Trials for this miner go in miner.root / miner.name')
-        parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
-        parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
-        parser.add_argument('--miner.custom_dataset', default="~/.bittensor/bittensor/miners/TEXT/gpt2_genesis/genesis_dataset/", type=str, help='Custom datasets to train on.')
-        parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
-        parser.add_argument('--debug', dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
-        parser.set_defaults( debug=False )
+        parser.add_argument(
+            '--miner.learning_rate', 
+            default=3e-2, 
+            type=float, 
+            help='Training initial learning rate.'
+        )
+        parser.add_argument(
+            '--miner.weight_decay', 
+            default=0.25, 
+            type=float, 
+            help='Model parameter weight decay.'
+        )
+        parser.add_argument(
+            '--miner.lr_decay',
+            default=True,
+            type=bool,
+            help='learning rate decay params: linear warmup followed by cosine decay to 10% of original.'
+        )
+        parser.add_argument(
+            '--miner.warmup_tokens',
+            default=375e6,
+            type=float,
+            help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)'
+        )
+        parser.add_argument(
+            '--miner.final_tokens',
+            default=260e9,
+            type=float,
+            help='At what point we reach 10% of original LR'
+        )
+        parser.add_argument(
+            '--miner.num_workers',
+            default=1,
+            type=int,
+            help='Number of workers for data loader.'
+        )
+        parser.add_argument(
+            '--miner.clip_gradients',
+            default=1.0,
+            type=float,
+            help='Implement gradient clipping to avoid exploding loss on smaller architectures.'
+        )
+        parser.add_argument(
+            '--miner.n_epochs', 
+            default=int(sys.maxsize), 
+            type=int, 
+            help='Number of training epochs.'
+        )
+        parser.add_argument(
+            '--miner.epoch_length', 
+            default=500, 
+            type=int, 
+            help='Iterations of training per epoch'
+        )
+        parser.add_argument(
+            '--miner.batch_size_train', 
+            default=2, 
+            type=int, 
+            help='Training batch size.'
+        )
+        parser.add_argument (
+            '--miner.root_dir',
+            default='~/.bittensor/miners/',
+            type=str,
+            help='Root path to load and save data associated with each miner'
+        )
+        parser.add_argument (
+            '--miner.name',
+            default='gpt2-genesis',
+            type=str,
+            help='Trials for this miner go in miner.root / miner.name'
+        )
+        parser.add_argument (
+            '--miner.trial_uid',
+            default=str(time.time()).split('.')[0],
+            type=str,
+            help='Saved models go in miner.root_dir / miner.name / miner.uid'
+        )
+        parser.add_argument (
+            '--miner.record_log',
+            default=False,
+            type=bool,
+            help='Record all logs when running this miner')
+        parser.add_argument (
+            '--miner.custom_dataset',
+            default="~/.bittensor/bittensor/miners/TEXT/gpt2_genesis/genesis_dataset/",
+            type=str,
+            help='Custom datasets to train on.'
+        )
+        parser.add_argument (
+            '--miner.config_file',
+            type=str,
+            help='config file to run this neuron, if not using cmd line arguments.'
+        )
+        parser.add_argument (
+            '--debug', 
+            dest='debug', 
+            action='store_true', 
+            help='''Turn on bittensor debugging information'''
+        )
+        parser.set_defaults ( 
+            debug=False 
+        )
+
         GPT2Synapse.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 

@@ -260,8 +260,16 @@ class GPT2Synapse(bittensor.synapse.Synapse):
                     Hidden layer representation produced using the local_context.
         """
         # Truncate seq length of incoming inputs if they are too long
-        inputs = inputs if inputs.size(1) <= self.block_size else inputs[:, -self.block_size:]
+        initial_length = inputs.size(1)
+        inputs = inputs if initial_length <= self.block_size else inputs[:, -self.block_size:]
         hidden = self.local_forward(inputs=inputs.to(self.device), training = False).local_hidden
+        
+        # Now pad the output tensor back to the original length
+        if initial_length > self.block_size:
+            diff = initial_length - self.block_size
+            padding = (0,0,diff,0)
+            hidden = torch.nn.functional.pad(hidden, padding, "constant", 0)
+            
         return hidden
 
 
