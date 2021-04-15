@@ -439,6 +439,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             call_function='subscribe',
             call_params=params
         )
+        # TODO (const): hotkey should be an argument here not assumed. Either that or the coldkey pub should also be assumed.
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.hotkey)
         result = await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
         if result:
@@ -723,7 +724,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair = self.wallet.hotkey)
         return await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
 
-    def get_balance(self, address) -> Balance:
+    def get_balance(self, address: str) -> Balance:
         r""" Returns the token balance for the passed ss58_address address
         Args:
             address (Substrate address format, default = 42):

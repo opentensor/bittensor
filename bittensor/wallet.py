@@ -28,6 +28,7 @@ from loguru import logger
 from termcolor import colored
 
 import bittensor
+from bittensor.substrate import Keypair
 from bittensor.utils.cli_utils import cli_utils
 from bittensor.crypto import encrypt, is_encrypted, decrypt_data, KeyError
 from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError
@@ -41,7 +42,13 @@ class Wallet():
     The coldkey must be used to stake and unstake funds from a running node. The hotkey, on the other hand, is only used
     for suscribing and setting weights from running code. Hotkeys are linked to coldkeys through the metagraph. 
     """
-    def __init__(self, config: Munch = None, **kwargs):
+    def __init__(
+            self, 
+            config: Munch = None,
+            name: str = None,
+            path: str = None,
+            hotkey: str = None
+        ):
         r""" Init bittensor wallet object containing a hot and coldkey.
 
             Args:
@@ -55,7 +62,9 @@ class Wallet():
         """
         if config == None:
             config = Wallet.default_config()
-        bittensor.config.Config.update_with_kwargs(config.wallet, kwargs) 
+        config.wallet.name = name if name != None else config.wallet.name
+        config.wallet.path = path if path != None else config.wallet.path
+        config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey
         Wallet.check_config(config)
         self.config = config
         self._hotkey = None
@@ -335,6 +344,60 @@ class Wallet():
         path = os.path.expanduser(path)
         return os.path.exists(path)
 
+    def create_coldkey_from_uri(self, uri:str, use_password: bool = True):
+         # Create directory 
+        dir_path = os.path.expanduser(os.path.join(self.config.wallet.path, self.config.wallet.name))
+        if not os.path.exists( dir_path ):
+            os.makedirs( dir_path )
+
+        # Create Key
+        cli_utils.validate_create_path( self.coldkeyfile  )
+        self._coldkey = Keypair.create_from_uri( uri )
+        cli_utils.display_mnemonic_msg( self._coldkey  )
+        cli_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
+
+        # Encrypt
+        if use_password:
+            password = cli_utils.input_password()
+            print("Encrypting coldkey ... (this might take a few moments)")
+            coldkey_json_data = json.dumps( self._coldkey.toDict() ).encode()
+            coldkey_data = encrypt(coldkey_json_data, password)
+            del coldkey_json_data
+        else:
+            coldkey_data = json.dumps(self._coldkey.toDict()).encode()
+
+        # Save
+        cli_utils.save_keys( self.coldkeyfile, coldkey_data )
+        cli_utils.set_file_permissions( self.coldkeyfile )
+
+    def create_hotkey_from_uri( self, uri:str, use_password: bool = True):  
+        # Create directory 
+        dir_path = os.path.expanduser(
+            os.path.join(self.config.wallet.path, self.config.wallet.name, "hotkeys")
+        )
+        if not os.path.exists( dir_path ):
+            os.makedirs( dir_path )
+
+        # Create
+        cli_utils.validate_create_path( self.hotkeyfile )
+        self._hotkey = Keypair.create_from_uri( uri )
+        cli_utils.display_mnemonic_msg( self._hotkey )
+
+        # Encrypt
+        if use_password:
+            password = cli_utils.input_password()
+            print("Encrypting hotkey ... (this might take a few moments)")
+            hotkey_json_data = json.dumps( self._hotkey.toDict() ).encode()
+            hotkey_data = encrypt(hotkey_json_data, password)
+            del hotkey_json_data
+        else:
+            hotkey_data = json.dumps(self._hotkey.toDict()).encode()
+
+        # Save
+        cli_utils.save_keys( self.hotkeyfile, hotkey_data )
+        cli_utils.set_file_permissions( self.hotkeyfile )
+
+
     def create_new_coldkey( self, n_words:int = 12, use_password: bool = True ):    
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self.config.wallet.path, self.config.wallet.name))
@@ -361,7 +424,7 @@ class Wallet():
         cli_utils.save_keys( self.coldkeyfile, coldkey_data )
         cli_utils.set_file_permissions( self.coldkeyfile )
 
-    def create_new_hotkey( self, n_words:int = 12):  
+    def create_new_hotkey( self, n_words:int = 12, use_password: bool = True):  
         # Create directory 
         dir_path = os.path.expanduser(
             os.path.join(self.config.wallet.path, self.config.wallet.name, "hotkeys")
@@ -373,7 +436,16 @@ class Wallet():
         cli_utils.validate_create_path( self.hotkeyfile )
         self._hotkey = cli_utils.gen_new_key( n_words )
         cli_utils.display_mnemonic_msg( self._hotkey )
-        hotkey_data = json.dumps(self._hotkey.toDict()).encode()
+
+        # Encrypt
+        if use_password:
+            password = cli_utils.input_password()
+            print("Encrypting hotkey ... (this might take a few moments)")
+            hotkey_json_data = json.dumps( self._hotkey.toDict() ).encode()
+            hotkey_data = encrypt(hotkey_json_data, password)
+            del hotkey_json_data
+        else:
+            hotkey_data = json.dumps(self._hotkey.toDict()).encode()
 
         # Save
         cli_utils.save_keys( self.hotkeyfile, hotkey_data )
