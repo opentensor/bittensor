@@ -89,7 +89,6 @@ def init_logger():
         # Rollbar is enabled.
         logger.info("Error reporting enabled using {}:{}", rollbar_token, rollbar_env)
         rollbar.init(rollbar_token, rollbar_env)
-        set_runtime_status("OK")
         logger.add (
             sink = rollbar_handler,
             level = 'WARNING',
