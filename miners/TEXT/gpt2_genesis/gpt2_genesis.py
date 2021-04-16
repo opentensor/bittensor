@@ -32,17 +32,14 @@ default configurations, run:
 import argparse
 import math
 import os
-import sys
-import time
 import torch
-import time
 import bittensor
 import torch.nn.functional as F
 
 from munch import Munch
 from loguru import logger
+from typing import Tuple, List, Optional
 
-from bittensor.utils.model_utils import ModelToolbox
 from synapses.gpt2 import GPT2Synapse
 from torch.nn.utils import clip_grad_norm_
 from transformers import AdamW
@@ -80,7 +77,7 @@ class AdamCorpus():
         x = torch.tensor(dix, dtype=torch.long)
         return x
 
-class Miner(bittensor.miner.Neuron):
+class Miner( bittensor.neuron.Neuron ):
 
     def __init__(self, config: Munch = None ):
         if config == None:
@@ -88,7 +85,12 @@ class Miner(bittensor.miner.Neuron):
         Miner.check_config(config)
         self.config = config
 
+        # ---- Row Weights ----
+        # Neuron specific mechanism weights.
+        self.row_weights = torch.ones([1])
+
         # ---- Model ----
+        # Unique ML model, served and used to train row_weights
         self.model = GPT2Synapse( self.config )
 
         # ---- Optimizer ----
@@ -96,7 +98,6 @@ class Miner(bittensor.miner.Neuron):
         self.lr = self.config.miner.learning_rate
 
         # ---- Dataset ----
-        # The Genesis Dataset:
         # The dataset used to train Adam and his first 100 children.
         # Here block size = sequence length.
         self.dataset = AdamCorpus(self.model.get_block_size())
@@ -155,12 +156,6 @@ class Miner(bittensor.miner.Neuron):
             help='Implement gradient clipping to avoid exploding loss on smaller architectures.'
         )
         parser.add_argument(
-            '--miner.n_epochs', 
-            default=int(sys.maxsize), 
-            type=int, 
-            help='Number of training epochs.'
-        )
-        parser.add_argument(
             '--miner.epoch_length', 
             default=500, 
             type=int, 
@@ -183,50 +178,50 @@ class Miner(bittensor.miner.Neuron):
             type=str,
             help='config file to run this neuron, if not using cmd line arguments.'
         )
-        parser.add_argument (
-            '--debug', 
-            dest='debug', 
-            action='store_true', 
-            help='''Turn on bittensor debugging information'''
-        )
-        parser.set_defaults ( 
-            debug=False 
-        )
         GPT2Synapse.add_args(parser)
-        bittensor.miner.Neuron.add_args(parser)
+        bittensor.neuron.Neuron.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
-        if config.debug:  bittensor.__log_level__ = 'TRACE'; logger.debug('DEBUG is ON')
-        else: logger.info('DEBUG is OFF') 
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         config.miner.custom_dataset = os.path.expanduser(config.miner.custom_dataset)
 
-    def get_model(self):
-        return self.model
+    def get_row_weights( self ) -> torch.FloatTensor:
+        self.row_weights = torch.nn.functional.pad(self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel() ])
+        return self.row_weights
 
-    def get_row(self):
-        return self.row
-
-    def set_model( self, model: 'bittensor.synapse.Synapse' ):
-        self.model = model
-
-    def set_row( self, row: torch.FloatTensor ):
-        self.row = row
+    def next_training_batches(self, epoch:int ) -> List[dict]:
+        batches = []
+        loader = DataLoader(
+            self.dataset, shuffle=True,
+            batch_size=self.config.miner.batch_size_train,
+            num_workers=self.config.miner.num_workers
+        )
+        for iteration, inputs in enumerate(loader):
+            batch = { 'inputs': inputs }
+            batches.append( batch )
+            if iteration == self.config.miner.epoch_length:
+                break
+        return batches
 
     def training_forward(self, batch: dict ):
 
-        # ---- Turn on training ----
+        # ---- Init for forward pass ----
         self.model.train(True)
+        self.row_weights = torch.nn.functional.pad(self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel() ])
 
         # ---- Forward pass ----
-        batch = batch.to(self.model.device)
-        output = self.model.remote_forward(self.neuron, batch, training=True)
+        batch = batch['inputs'].to(self.model.device)
+        output = self.model.remote_forward(
+            neuron = self, 
+            inputs = batch, 
+            training = True
+        )
 
         # ---- Backward pass ----
-        loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-        loss.backward()
+        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+        output.loss.backward()
 
         # ---- Gradient Step ----
         clip_grad_norm_(self.model.parameters(), self.config.miner.clip_gradients)
@@ -236,30 +231,9 @@ class Miner(bittensor.miner.Neuron):
 
         # ---- Train row weights ----
         batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
-        self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
-        self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
-
+        self.row_weights = (1 - 0.03) * self.row_weights + 0.03 * batch_weights # Moving avg update.
+        self.row_weights = F.normalize(self.row_weights, p = 1, dim = 0) # Ensure normalization.
         return output
-
-    def next_training_batches(self, epoch:int ):
-        """Overrides super class.
-        Shuffles the miner's dataset so we get a shuffled, randomized dataset
-        of length miner.epoch_length
-
-        Returns:
-            [list] : shuffled dataset of length miner.epoch_length
-        """
-        shuffled_dataset = []
-        loader = DataLoader(self.dataset, shuffle=True,
-                        batch_size=self.config.miner.batch_size_train,
-                        num_workers=self.config.miner.num_workers)
-
-        for it, batch in enumerate(loader):
-            shuffled_dataset.append(batch)
-            if it == self.config.miner.epoch_length:
-                break
-
-        return shuffled_dataset
 
     def get_lr(self):
         for param_group in self.optimizer.param_groups:

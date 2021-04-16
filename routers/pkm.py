@@ -70,30 +70,13 @@ class PKMRouter():
     def check_config(config):   
         return config
 
-    def set_metagraph ( self, metagraph: 'bittensor.metagraph.Metagraph' ):
-        self._metagraph = metagraph
-
-    def set_dendrite ( self, dendrite: 'bittensor.dendrite.Dendrite' ):
-        self._dendrite = dendrite
-
-    @property()
-    def metagraph( self ) -> 'bittensor.metagraph.Metagraph':
-        if self._metagraph == None:
-            raise RuntimeError('Router metagraph must be set before a forward call.')
-        else:
-            return self._metagraph
-
-    @property()
-    def dendrite( self ) -> 'bittensor.dendrite.Dendrite':
-        if self._dendrite == None:
-            raise RuntimeError('Router dendrite must be set before a forward call.')
-        else:
-            return self._dendrite
-
-    def _route( self, inputs: torch.FloatTensor, query: torch.FloatTensor, modality: bittensor.proto.Modality ) -> SimpleNamespace:
+    def _route( self, neuron: 'bittensor.neuron.Neuron', inputs: torch.FloatTensor, query: torch.FloatTensor, modality: bittensor.proto.Modality ) -> SimpleNamespace:
         r""" Routes inputs using context and metagraph state.
 
             Args:
+                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
+                    Miner super class.
+
                 inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, *-1*)`, `required`): 
                     tensors inputs to distribute to neurons using context.
                 
@@ -125,12 +108,12 @@ class PKMRouter():
 
         # all_uids: (torch.LongTensor): unique keys for each peer neuron.
         # all_uids.shape = [metagraph.n]
-        all_uids = self.metagraph.uids # Returns a list of neuron uids.
+        all_uids = neuron.metagraph.uids # Returns a list of neuron uids.
 
         # filtered_uids: (torch.LongTensor): keys filtered by emit.
         # all_uids.shape = [metagraph.n]
-        current_block = self.metagraph.block
-        lastemit = self.metagraph.lastemit
+        current_block = neuron.metagraph.block
+        lastemit = neuron.metagraph.lastemit
         staleness = (current_block - lastemit)
         filtered_uids = all_uids[torch.where(staleness < self.config.router.stale_emit_filter)] 
         n_uids = torch.numel(filtered_uids)
@@ -138,7 +121,7 @@ class PKMRouter():
         # Return if there are no uids to query
         if n_uids == 0:
             # Return nill responses.
-            n = self.metagraph.n
+            n = neuron.metagraph.n
             output.response = torch.zeros(size=(inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
             output.weights = torch.zeros(size=(inputs.shape[0], n))
             output.requests_sizes = torch.zeros(n)
@@ -203,18 +186,18 @@ class PKMRouter():
         
         # neurons: List[bittensor.proto.Neuron]: endpoint information for filtered keys.
         # neurons.shape = n_uids * [ bittensor.proto.Neuron ]
-        neurons = self.metagraph.uids_to_neurons(filtered_uids)
+        neurons = neuron.metagraph.uids_to_neurons(filtered_uids)
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
         if modality == bittensor.proto.Modality.TEXT:
-            responses, retops = self.dendrite.forward_text(neurons, requests)
+            responses, retops = neuron.dendrite.forward_text(neurons, requests)
 
         elif modality == bittensor.proto.Modality.IMAGE:
-            responses, retops = self.dendrite.forward_image(neurons, requests)
+            responses, retops = neuron.dendrite.forward_image(neurons, requests)
 
         elif modality == bittensor.proto.Modality.TENSOR:
-            responses, retops = self.dendrite.forward_tensor(neurons, requests)
+            responses, retops = neuron.dendrite.forward_tensor(neurons, requests)
 
         else:
             raise NotImplementedError
@@ -252,18 +235,18 @@ class PKMRouter():
 
         # indices: (torch.LongTensor): indices of uids queried during this forward call.
         # indices = [batch_size, metagraph.n]
-        indices = self.metagraph.uids_to_indices(filtered_uids)
+        indices = neuron.metagraph.uids_to_indices(filtered_uids)
 
         # weights: (torch.LongTensor): weights scattered onto uids per example.
         # weights.shape = [batch_size, metagraph.n]
-        weights = torch.zeros(inputs.shape[0], self.metagraph.n)
+        weights = torch.zeros(inputs.shape[0], neuron.metagraph.n)
         weights = weights.to(self.device)
         indices = indices.to(self.device)
         weights.scatter_(1, indices.repeat(batch_size, 1), gates)
 
         # filled_sizes: (torch.LongTensor): number of examples queried to each uid.
         # filled_sizes.shape = [metagraph.n]
-        filled_request_sizes = torch.zeros(self.metagraph.n, dtype=torch.long).to(self.device)
+        filled_request_sizes = torch.zeros(neuron.metagraph.n, dtype=torch.long).to(self.device)
         request_sizes = torch.tensor(request_sizes).to(self.device)
         filled_request_sizes.scatter_(0, indices, torch.tensor(request_sizes).to(self.device))
 
@@ -275,12 +258,12 @@ class PKMRouter():
         return output
 
 
-    def forward_image(self, neuron: Neuron, images: torch.FloatTensor, query: torch.FloatTensor) -> SimpleNamespace:
+    def forward_image(self, neuron: 'bittensor.neuron.Neuron', images: torch.FloatTensor, query: torch.FloatTensor) -> SimpleNamespace:
         r""" Forwards images to connected neurons using the passed context to learn connectivity.
 
             Args:
-                neuron (:obj: `bittensor.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
+                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
+                    Miner super class.
 
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
                     Image tensors to forward.
@@ -305,12 +288,12 @@ class PKMRouter():
         """
         return self._route(neuron, images, query, bittensor.proto.Modality.IMAGE)
 
-    def forward_text(self, neuron: Neuron, text: torch.LongTensor, query: torch.FloatTensor) -> SimpleNamespace:
+    def forward_text(self, neuron: 'bittensor.neuron.Neuron', text: torch.LongTensor, query: torch.FloatTensor) -> SimpleNamespace:
         r""" Forwards text to connected neurons using the passed context to learn connectivity.
 
             Args:
-                neuron (:obj: `bittensor.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
+                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
+                    Miner super class.
 
                 text (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_dim)`, `required`): 
                     tensor of tokenized sentences.
@@ -337,12 +320,12 @@ class PKMRouter():
         return self._route(neuron, text, query, bittensor.proto.Modality.TEXT)
 
 
-    def forward_tensor(self, neuron: Neuron, tensors: torch.FloatTensor, query: torch.FloatTensor) -> SimpleNamespace:
+    def forward_tensor(self, neuron: 'bittensor.neuron.Neuron', tensors: torch.FloatTensor, query: torch.FloatTensor) -> SimpleNamespace:
         r""" Forwards tensors to connected neurons using the passed context to learn connectivity.
 
             Args:
-                neuron (:obj: `bittensor.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
+                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
+                    Miner super class.
 
                 tensors (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
                     tensors sent to connected neurons.

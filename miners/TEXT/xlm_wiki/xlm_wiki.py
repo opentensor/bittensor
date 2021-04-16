@@ -131,117 +131,27 @@ class Miner():
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
     
-    # --- Main loop ----
-    def run (self):
+    def training_forward( self, batch: dict ):
 
-        # ---- Subscribe ----
-        with self.neuron:
+    # ---- Forward pass ----
+    inputs = nextbatch(self.dataset, self.config.miner.batch_size_train, bittensor.__tokenizer__())
+    output = self.model.remote_forward(
+        self.neuron,
+        inputs.to(self.model.device),
+        training = True,
+    )
 
-            # ---- Weights ----
-            self.row = self.neuron.metagraph.row.to(self.model.device)
+    # ---- Backward pass ----
+    loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+    loss.backward() # Accumulates gradients on the model.
+    self.optimizer.step() # Applies accumulated gradients.
+    self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
-            # --- Run state ---
-            self.global_step = 0
-            self.best_train_loss = math.inf
+    # ---- Train row weights ----
+    batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
+    self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
+    self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
 
-            # --- Loop for epochs ---
-            for self.epoch in range(self.config.miner.n_epochs):
-                try:
-                    # ---- Serve ----
-                    self.neuron.axon.serve( self.model )
-
-                    # ---- Train Model ----
-                    self.train()
-                    self.scheduler.step()
-                    
-                    # If model has borked for some reason, we need to make sure it doesn't emit weights
-                    # Instead, reload into previous version of model
-                    if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
-                        self.model, self.optimizer = self.model_toolbox.load_model(self.config)
-                        continue
-
-                    # ---- Emitting weights ----
-                    self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
-
-                    # ---- Sync metagraph ----
-                    self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                    self.row = self.neuron.metagraph.row.to(self.model.device)
-
-                    # --- Epoch logs ----
-                    print(self.neuron.axon.__full_str__())
-                    print(self.neuron.dendrite.__full_str__())
-                    print(self.neuron.metagraph)
-
-                    # ---- Update Tensorboard ----
-                    self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
-                    self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
-                    self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
-                
-                    # ---- Save best loss and model ----
-                    if self.training_loss and self.epoch % 10 == 0 and self.training_loss < self.best_train_loss:
-                        self.best_train_loss = self.training_loss / 10 # update best train loss
-                        self.model_toolbox.save_model(
-                            self.config.miner.full_path,
-                            {
-                                'epoch': self.epoch, 
-                                'model_state_dict': self.model.state_dict(), 
-                                'loss': self.best_train_loss,
-                                'optimizer_state_dict': self.optimizer.state_dict(),
-                            }
-                        )
-                        self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
-                    
-                # --- Catch Errors ----
-                except Exception as e:
-                    logger.error('Exception in training script with error: {}, {}', e, traceback.format_exc())
-                    logger.info('Continuing to train.')
-    
-    # ---- Train Epoch ----
-    def train(self):
-        self.training_loss = 0.0
-        for local_step in range(self.config.miner.epoch_length):
-            # ---- Forward pass ----
-            inputs = nextbatch(self.dataset, self.config.miner.batch_size_train, bittensor.__tokenizer__())
-            output = self.model.remote_forward(
-                self.neuron,
-                inputs.to(self.model.device),
-                training = True,
-            )
-
-            # ---- Backward pass ----
-            loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-            loss.backward() # Accumulates gradients on the model.
-            self.optimizer.step() # Applies accumulated gradients.
-            self.optimizer.zero_grad() # Zeros out gradients for next accummulation
-
-            # ---- Train row weights ----
-            batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
-            self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
-            self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
-
-            # ---- Step logs ----
-            logger.info('GS: {} LS: {} Epoch: {}\tLocal Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}\tAxon: {}\tDendrite: {}',
-                    colored('{}'.format(self.global_step), 'red'),
-                    colored('{}'.format(local_step), 'blue'),
-                    colored('{}'.format(self.epoch), 'green'),
-                    colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
-                    colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
-                    colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
-                    self.neuron.axon,
-                    self.neuron.dendrite)
-            logger.info('Codes: {}', output.router.return_codes.tolist())
-            
-            self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
-            self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
-            self.tensorboard.add_scalar('Neuron/Dloss', output.distillation_loss.item(), self.global_step)
-
-            # ---- Step increments ----
-            self.global_step += 1
-            self.training_loss += output.local_target_loss.item()
-
-            # --- Memory clean up ----
-            torch.cuda.empty_cache()
-            del output
 
 if __name__ == "__main__":
     # ---- Build and Run ----

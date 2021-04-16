@@ -268,7 +268,7 @@ class XLMSynapse(bittensor.synapse.Synapse):
 
         Args:
             neuron (:obj: `bittensor.neuron.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
+                    Miner super class.
 
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.

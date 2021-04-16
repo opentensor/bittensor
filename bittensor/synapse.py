@@ -76,26 +76,6 @@ class Synapse(nn.Module):
     def check_config(config: Munch):
         pass
 
-    def set_metagraph ( self, metagraph: 'bittensor.metagraph.Metagraph' ):
-        self._metagraph = metagraph
-
-    def set_dendrite ( self, dendrite: 'bittensor.dendrite.Dendrite' ):
-        self._dendrite = dendrite
-
-    @property()
-    def metagraph( self ) -> 'bittensor.metagraph.Metagraph':
-        if self._metagraph == None:
-            raise RuntimeError('Router metagraph must be set before a forward call.')
-        else:
-            return self._metagraph
-
-    @property()
-    def dendrite( self ) -> 'bittensor.dendrite.Dendrite':
-        if self._dendrite == None:
-            raise RuntimeError('Router dendrite must be set before a forward call.')
-        else:
-            return self._dendrite
-
     def deepcopy(self):
         """ Returns a copy of this synapse by passing the model params to load_state_dict.
 

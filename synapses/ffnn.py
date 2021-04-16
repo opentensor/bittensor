@@ -200,7 +200,7 @@ class FFNNSynapse(bittensor.synapse.Synapse):
             
             Args:
                 neuron (:obj: `bittensor.neuron.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
+                     Miner super class.
 
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
                     PIL.toTensor() encoded images.

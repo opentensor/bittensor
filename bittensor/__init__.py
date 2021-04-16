@@ -39,7 +39,6 @@ import bittensor.cli
 import bittensor.executor
 import bittensor.dendrite
 import bittensor.metagraph
-import bittensor.miner
 import bittensor.logging
 import bittensor.neuron
 import bittensor.nucleus

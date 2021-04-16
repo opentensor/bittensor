@@ -166,17 +166,17 @@ class BertSynapseBase (bittensor.synapse.Synapse):
         """Forward pass inputs and labels through the remote BERT networks.
 
         Args:
-            neuron (:obj: `bittensor.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
+            neuron (:obj: `bittensor.neuron.Neuron`, `required`):
+                Miner super class.
 
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
-                    Batch_size length list of text sentences.                
+                Batch_size length list of text sentences.                
 
             attention_mask (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
-                    Mask to avoid performing attention on padding token indices.
-                    Mask values selected in ``[0, 1]``:
-                        - 1 for tokens that are **not masked**,
-                        - 0 for tokens that are **maked**.        
+                Mask to avoid performing attention on padding token indices.
+                Mask values selected in ``[0, 1]``:
+                    - 1 for tokens that are **not masked**,
+                    - 0 for tokens that are **maked**.        
 
         Returns:
             SimpleNamespace ( 
@@ -293,7 +293,7 @@ class BertNSPSynapse (BertSynapseBase):
 
             Args:
                 neuron (:obj: `bittensor.neuron.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
+                    Miner super class.
 
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
@@ -416,7 +416,7 @@ class BertMLMSynapse (BertSynapseBase):
 
             Args:
                 neuron (:obj: `bittensor.neuron.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
+                    Miner super class.
 
                 inputs (:obj:`torch.LongTensor` of shape ``(batch_size, sequence_length)``, `required`):
                     Batch_size length list of tokenized sentences.
