@@ -186,6 +186,8 @@ class Miner( bittensor.neuron.Neuron ):
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         config.miner.custom_dataset = os.path.expanduser(config.miner.custom_dataset)
+        GPT2Synapse.check_config( config )
+        bittensor.neuron.Neuron.check_config( config )
 
     def get_row_weights( self ) -> torch.FloatTensor:
         self.row_weights = torch.nn.functional.pad(self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel() ])

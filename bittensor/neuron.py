@@ -134,7 +134,7 @@ class Neuron():
     @property
     def _model(self):
         if self.model == None:
-            raise RuntimeError('Subclasses must set model class')
+            raise RuntimeError('Subclasses must set a model class')
 
     def get_row_weights( self ) -> torch.FloatTensor:
         raise NotImplementedError()
@@ -187,7 +187,7 @@ class Neuron():
 
             # ---- Set weights ----
             self.metagraph.set_weights(
-                weights = self.get_row(), 
+                weights = self.get_row_weights(), 
                 wait_for_inclusion = True
             )
 
