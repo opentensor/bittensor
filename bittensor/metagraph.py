@@ -218,7 +218,7 @@ class Metagraph():
         self.wallet = wallet
 
         if subtensor == None:
-            subtensor = bittensor.subtensor.Subtensor( self.config, self.wallet )
+            subtensor = bittensor.subtensor.Subtensor( self.config )
         self.subtensor = subtensor
 
         # Chain state as cache and torch object.
@@ -634,7 +634,7 @@ class Metagraph():
         code, message = self._try_emit(weights, wait_for_inclusion, timeout)
         if code == Metagraph.EmitSuccess:
             # ---- Emit was a success. ----
-            logger.info("Emission was successful and entered the block.")
+            logger.success("Emission was successful and entered the block.")
 
         elif code == Metagraph.EmitValueError:
             # ---- Passed weights were incorrect ----
@@ -752,7 +752,13 @@ class Metagraph():
 
         # ---- Emit ----
         logger.info('Emitting weights -> {}', list(zip(weight_uids, weight_vals)))
-        result = self.subtensor.set_weights(weight_uids, weight_vals, wait_for_inclusion=True, timeout = bittensor.__blocktime__ * 3)
+        result = self.subtensor.set_weights (
+            wallet = self.wallet,
+            destinations = weight_uids, 
+            values = weight_vals, 
+            wait_for_inclusion=True, 
+            timeout = bittensor.__blocktime__ * 3
+        )
         if result:
             message = "Successful emission"
             return Metagraph.EmitSuccess, message

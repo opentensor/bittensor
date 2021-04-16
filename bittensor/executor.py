@@ -61,7 +61,7 @@ class Executor:
         self.wallet = wallet
 
         if subtensor == None:
-            subtensor = bittensor.subtensor.Subtensor( config = self.config, wallet = self.wallet )
+            subtensor = bittensor.subtensor.Subtensor( config = self.config )
         self.config.subtensor = subtensor.config.subtensor
         self.subtensor = subtensor
 
@@ -154,7 +154,13 @@ class Executor:
         neurons = self._associated_neurons()
         for neuron in neurons:
             neuron.stake = self.subtensor.get_stake_for_uid( neuron.uid )
-            result = self.subtensor.unstake( neuron.stake, neuron.hotkey, wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
+            result = self.subtensor.unstake( 
+                wallet = self.wallet, 
+                amount = neuron.stake, 
+                hotkey_id = neuron.hotkey, 
+                wait_for_finalization = True, 
+                timeout = bittensor.__blocktime__ * 5 
+            )
             if result:
                 logger.log('USER-SUCCESS', "Unstaked: \u03C4{} from uid: {} to coldkey.pub: {}".format( neuron.stake, neuron.uid, self.wallet.coldkey.public_key ))
             else:
@@ -180,7 +186,13 @@ class Executor:
 
         logger.log('USER-ACTION', "Requesting unstake of \u03C4{} from hotkey: {} to coldkey: {}".format(unstaking_balance.tao, neuron.hotkey, self.wallet.coldkey.public_key))
         logger.log('USER-INFO', "Waiting for finalization...")
-        result = self.subtensor.unstake(unstaking_balance, neuron.hotkey, wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
+        result = self.subtensor.unstake (
+            wallet = self.wallet, 
+            amount = unstaking_balance, 
+            hotkey_id = neuron.hotkey, 
+            wait_for_finalization = True, 
+            timeout = bittensor.__blocktime__ * 5
+        )
         if result:
             logger.log('USER-SUCCESS', "Unstaked: \u03C4{} from uid:{} to coldkey.pub:{}".format(unstaking_balance.tao, neuron.uid, self.wallet.coldkey.public_key))
         else:
@@ -206,7 +218,13 @@ class Executor:
 
         logger.log('USER-ACTION', "Adding stake of \u03C4{} from coldkey {} to hotkey {}".format( staking_balance.tao, self.wallet.coldkey.public_key, neuron.hotkey))
         logger.log('USER-INFO', "Waiting for finalization...")
-        result = self.subtensor.add_stake( staking_balance, neuron.hotkey, wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
+        result = self.subtensor.add_stake ( 
+            wallet = self.wallet, 
+            amount = staking_balance, 
+            hotkey_id = neuron.hotkey, 
+            wait_for_finalization = True, 
+            timeout = bittensor.__blocktime__ * 5
+        )
         if result: 
             logger.log('USER-SUCCESS', "Staked: \u03C4{} to uid: {} from coldkey.pub: {}".format( staking_balance.tao, uid, self.wallet.coldkey.public_key ))
         else:
@@ -227,7 +245,13 @@ class Executor:
 
         logger.log('USER-ACTION', "Requesting transfer of \u03C4{}, from coldkey: {} to destination: {}".format(transfer_balance.tao, self.wallet.coldkey.public_key, destination))
         logger.log('USER-INFO', "Waiting for finalization...")
-        result = self.subtensor.transfer( destination, transfer_balance,  wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5 )
+        result = self.subtensor.transfer( 
+            wallet = self.wallet, 
+            dest = destination, 
+            amount = transfer_balance,  
+            wait_for_finalization = True, 
+            timeout = bittensor.__blocktime__ * 5 
+        )
         if result:
             logger.log('USER-SUCCESS', "Transfer finalized with amount: \u03C4{} to destination: {} from coldkey.pub: {}".format(transfer_balance.tao, destination, self.wallet.coldkey.public_key))
         else:
