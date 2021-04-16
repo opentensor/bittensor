@@ -44,17 +44,16 @@ def setup_chain():
     os.system("kill %i" % proc.pid)
 
 
-def connect( wallet: bittensor.wallet.Wallet, port:int ):
+def connect( port:int ):
     chain_endpoint = "localhost:%i" % port
     subtensor = bittensor.subtensor.Subtensor(
         chain_endpoint = chain_endpoint,
-        wallet = wallet, 
     )
     subtensor.connect()
     return subtensor
 
 async def add_stake( port:int, wallet:bittensor.wallet.Wallet, amount: Balance ):
-    subtensor = connect(wallet, port)
+    subtensor = connect( port )
     await subtensor.is_connected()
 
     # Get the uid of the new neuron
@@ -66,7 +65,7 @@ async def add_stake( port:int, wallet:bittensor.wallet.Wallet, amount: Balance )
     assert int(result) == int(Balance(0))
 
     # Add stake to new neuron
-    await subtensor.add_stake(amount, hotkeypair.public_key)
+    await subtensor.add_stake( wallet = wallet, amount = amount, hotkey_id = hotkeypair.public_key )
 
 def generate_wallet( name:str = 'pytest' ):
     wallet = bittensor.wallet.Wallet(
@@ -84,18 +83,18 @@ def generate_wallet( name:str = 'pytest' ):
     
 def subscribe( subtensor, wallet):
     subtensor.subscribe(
-            ip = "8.8.8.8", 
-            port = 6666, 
-            modality = bittensor.proto.Modality.TEXT,
-            coldkeypub = wallet.coldkeypub, 
-            wait_for_finalization = True,
-            timeout = 6 * bittensor.__blocktime__,
+        wallet = wallet,
+        ip = "8.8.8.8", 
+        port = 6666, 
+        modality = bittensor.proto.Modality.TEXT,
+        wait_for_finalization = True,
+        timeout = 6 * bittensor.__blocktime__,
     )
-    assert subtensor.is_subscribed (
+    assert subtensor.async_is_subscribed (
+        wallet = wallet,
         ip = "8.8.8.8",
         port = 6666, 
         modality = bittensor.proto.Modality.TEXT,
-        coldkey = wallet.coldkeypub
     )
 
 '''
@@ -105,7 +104,7 @@ connect() tests
 def test_connect_success(setup_chain):
     logger.error(setup_chain)
     wallet = generate_wallet()
-    subtensor = connect(wallet, setup_chain)
+    subtensor = connect(setup_chain)
     result = subtensor.is_connected()
     assert result is True
 
@@ -115,7 +114,7 @@ subscribe() tests
 
 def test_subscribe_success(setup_chain):
     wallet = generate_wallet()
-    subtensor = connect(wallet, setup_chain)
+    subtensor = connect(setup_chain)
     subtensor.is_connected()
     subscribe(subtensor, wallet)
     uid = subtensor.get_uid_for_pubkey(wallet.hotkey.public_key)
@@ -123,14 +122,14 @@ def test_subscribe_success(setup_chain):
 
 def test_get_balance_success(setup_chain):
     wallet = generate_wallet()
-    subtensor = connect(wallet, setup_chain)
+    subtensor = connect(setup_chain)
     subtensor.is_connected()
     result = subtensor.get_balance(wallet.hotkey.ss58_address)
     assert result == Balance(0)
 
 def test_get_uid_for_pubkey_succes(setup_chain):
     wallet = generate_wallet()
-    subtensor = connect(wallet, setup_chain)
+    subtensor = connect(setup_chain)
     subtensor.is_connected()
     subscribe(subtensor, wallet)
     result = subtensor.get_uid_for_pubkey(wallet.hotkey.public_key)
@@ -138,14 +137,14 @@ def test_get_uid_for_pubkey_succes(setup_chain):
 
 def test_get_current_block(setup_chain):
     wallet = generate_wallet()
-    subtensor = connect(wallet, setup_chain)
+    subtensor = connect(setup_chain)
     subtensor.is_connected()
     block = subtensor.get_current_block()
     assert block >= 0
 
 def test_get_active(setup_chain):
     wallet = generate_wallet()
-    subtensor = connect(wallet, setup_chain)
+    subtensor = connect(setup_chain)
     subtensor.is_connected()
     subscribe(subtensor, wallet)
     result = subtensor.get_active()
@@ -159,14 +158,14 @@ def test_get_active(setup_chain):
 
 def test_get_stake_for_uid___unknown_uid(setup_chain):
     wallet = generate_wallet()
-    subtensor = connect(wallet, setup_chain)
+    subtensor = connect(setup_chain)
     subtensor.is_connected()
     result = subtensor.get_stake_for_uid(999999999)
     assert int(result) == 0
 
 def test_get_neuron_for_uid(setup_chain):
     wallet = generate_wallet()
-    subtensor = connect(wallet, setup_chain)
+    subtensor = connect(setup_chain)
     subtensor.is_connected()
     subscribe(subtensor, wallet)
     uid = subtensor.get_uid_for_pubkey(wallet.hotkey.public_key)
@@ -189,7 +188,7 @@ def test_get_neuron_for_uid(setup_chain):
 
 def test_get_last_emit_data_for_uid__success(setup_chain):
     wallet = generate_wallet()
-    subtensor = connect(wallet, setup_chain)
+    subtensor = connect(setup_chain)
     subtensor.is_connected()
     subscribe(subtensor, wallet)
     uid = subtensor.get_uid_for_pubkey(wallet.hotkey.public_key)
@@ -199,7 +198,7 @@ def test_get_last_emit_data_for_uid__success(setup_chain):
 
 def test_get_last_emit_data_for_uid__no_uid(setup_chain):
     wallet = generate_wallet()
-    subtensor = connect(wallet, setup_chain)
+    subtensor = connect(setup_chain)
     subtensor.is_connected()
     result = subtensor.get_last_emit_data_for_uid( 999999 )
     assert result is None
@@ -208,8 +207,8 @@ def test_get_neurons(setup_chain):
     walletA = generate_wallet('A')
     walletB = generate_wallet('B')
 
-    subtensorA = connect(walletA, setup_chain)
-    subtensorB = connect(walletB, setup_chain)
+    subtensorA = connect(setup_chain)
+    subtensorB = connect(setup_chain)
     subtensorA.is_connected()
     subtensorB.is_connected()
 
@@ -243,8 +242,8 @@ def test_set_weights_success(setup_chain):
     walletA = generate_wallet('A')
     walletB = generate_wallet('B')
 
-    subtensorA = connect(walletA, setup_chain)
-    subtensorB = connect(walletB, setup_chain)
+    subtensorA = connect(setup_chain)
+    subtensorB = connect(setup_chain)
     subtensorA.is_connected()
     subtensorB.is_connected()
 
@@ -256,8 +255,20 @@ def test_set_weights_success(setup_chain):
 
     w_uids = [uidA, uidB]
     w_vals = [pow(2, 31)-1, pow(2,31)-1]
-    subtensorA.set_weights(w_uids, w_vals, wait_for_finalization=True, timeout = 4 * bittensor.__blocktime__)
-    subtensorB.set_weights(w_uids, w_vals, wait_for_finalization=True, timeout = 4 * bittensor.__blocktime__)
+    subtensorA.set_weights(
+        wallet = self.wallet, 
+        destinations = w_uids, 
+        values = w_vals, 
+        wait_for_finalization=True, 
+        timeout = 4 * bittensor.__blocktime__
+    )
+    subtensorB.set_weights (
+        wallet = self.wallet, 
+        destinations = w_uids, 
+        values = w_vals, 
+        wait_for_finalization=True, 
+        timeout = 4 * bittensor.__blocktime__
+    )
 
     result_uids = subtensorA.weight_uids_for_uid(uidA)
     result_vals = subtensorA.weight_vals_for_uid(uidA)
@@ -266,7 +277,7 @@ def test_set_weights_success(setup_chain):
 
 def test_get_stake_for_uid___has_no_stake(setup_chain):
     wallet = generate_wallet()
-    subtensor = connect(wallet, setup_chain)
+    subtensor = connect(setup_chain)
     subtensor.is_connected()
     subscribe(subtensor, wallet)
     uid = subtensor.get_uid_for_pubkey(wallet.hotkey.public_key)

@@ -90,7 +90,7 @@ class Neuron:
         self.wallet = wallet
         # Subtensor: provides an interface to the subtensor chain given a wallet.
         if subtensor == None:
-            subtensor = bittensor.subtensor.Subtensor( self.config, self.wallet )
+            subtensor = bittensor.subtensor.Subtensor( self.config )
         self.subtensor = subtensor
         # Metagraph: Maintains a connection to the subtensor chain and hold chain state.
         if metagraph == None:
@@ -170,10 +170,10 @@ class Neuron:
 
         print(colored('\nSubscribing:', 'white'))
         subscribe_success = self.subtensor.subscribe(
-                self.config.axon.external_ip, 
-                self.config.axon.external_port,
-                self.config.neuron.modality,
-                self.wallet.coldkeypub,
+                wallet = self.wallet,
+                ip = self.config.axon.external_ip, 
+                port = self.config.axon.external_port,
+                modality = self.config.neuron.modality,
                 wait_for_finalization = True,
                 timeout = 4 * bittensor.__blocktime__,
         )
