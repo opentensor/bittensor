@@ -39,20 +39,15 @@ import time
 import bittensor
 import torch.nn.functional as F
 
-
-from termcolor import colored
 from munch import Munch
 from loguru import logger
-from torch.utils.tensorboard import SummaryWriter
+
 from bittensor.utils.model_utils import ModelToolbox
 from synapses.gpt2 import GPT2Synapse
 from torch.nn.utils import clip_grad_norm_
 from transformers import AdamW
-from qqdm import qqdm, format_str
 from torch.utils.data.dataloader import DataLoader
 from datasets import load_dataset
-
-
 
 class AdamCorpus():
 
@@ -60,7 +55,6 @@ class AdamCorpus():
         self.block_size = block_size
         self.tokenizer = tokenizer
         self.lines = load_dataset('glue', 'cola')['train']
-
 
     def __len__(self):
         return len(self.lines) - self.block_size
@@ -74,9 +68,7 @@ class AdamCorpus():
             Returns:
                 x
         """
-
         chunk = self.lines[idx:idx + self.block_size]['sentence']
-
         dix = []
         block_num=0
         while block_num < self.block_size:
@@ -85,34 +77,23 @@ class AdamCorpus():
                 if block_num < self.block_size:
                     dix.append(t)
                     block_num += 1
-
-
         x = torch.tensor(dix, dtype=torch.long)
         return x
 
-class Miner():
+class Miner(bittensor.miner.Neuron):
 
-    def __init__(self, config: Munch = None, **kwargs):
+    def __init__(self, config: Munch = None ):
         if config == None:
             config = Miner.default_config()
-        bittensor.config.Config.update_with_kwargs(config.miner, kwargs)
         Miner.check_config(config)
         self.config = config
-
-        # ---- Neuron ----
-        self.neuron = bittensor.neuron.Neuron(self.config)
 
         # ---- Model ----
         self.model = GPT2Synapse( self.config )
 
-        # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(GPT2Synapse, AdamW)
-
         # ---- Optimizer ----
         self.optimizer = self.configure_optimizers()
         self.lr = self.config.miner.learning_rate
-        self.training_loss = math.inf
-        self.best_train_loss = math.inf
 
         # ---- Dataset ----
         # The Genesis Dataset:
@@ -120,17 +101,7 @@ class Miner():
         # Here block size = sequence length.
         self.dataset = AdamCorpus(self.model.get_block_size())
         self.tokens = 0
-
-        # ---- Logging ----
-        self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
-        if self.config.miner.record_log == True:
-            filepath = self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),
-            logger.add (
-                filepath,
-                format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
-                rotation="250 MB",
-                retention="10 days"
-            )
+        super(Miner, self).__init__( config )
                
     @staticmethod
     def default_config() -> Munch:
@@ -202,29 +173,6 @@ class Miner():
             help='Training batch size.'
         )
         parser.add_argument (
-            '--miner.root_dir',
-            default='~/.bittensor/miners/',
-            type=str,
-            help='Root path to load and save data associated with each miner'
-        )
-        parser.add_argument (
-            '--miner.name',
-            default='gpt2-genesis',
-            type=str,
-            help='Trials for this miner go in miner.root / miner.name'
-        )
-        parser.add_argument (
-            '--miner.trial_uid',
-            default=str(time.time()).split('.')[0],
-            type=str,
-            help='Saved models go in miner.root_dir / miner.name / miner.uid'
-        )
-        parser.add_argument (
-            '--miner.record_log',
-            default=False,
-            type=bool,
-            help='Record all logs when running this miner')
-        parser.add_argument (
             '--miner.custom_dataset',
             default="~/.bittensor/bittensor/miners/TEXT/gpt2_genesis/genesis_dataset/",
             type=str,
@@ -244,9 +192,8 @@ class Miner():
         parser.set_defaults ( 
             debug=False 
         )
-
         GPT2Synapse.add_args(parser)
-        bittensor.neuron.Neuron.add_args(parser)
+        bittensor.miner.Neuron.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
@@ -255,11 +202,68 @@ class Miner():
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         config.miner.custom_dataset = os.path.expanduser(config.miner.custom_dataset)
-        full_path = '{}/{}/{}'.format(config.miner.root_dir, config.miner.name, config.miner.trial_uid)
-        config.miner.full_path = os.path.expanduser(full_path)
-        if not os.path.exists(config.miner.full_path):
-            os.makedirs(config.miner.full_path)
 
+    def get_model(self):
+        return self.model
+
+    def get_row(self):
+        return self.row
+
+    def set_model( self, model: 'bittensor.synapse.Synapse' ):
+        self.model = model
+
+    def set_row( self, row: torch.FloatTensor ):
+        self.row = row
+
+    def training_forward(self, batch: dict ):
+
+        # ---- Turn on training ----
+        self.model.train(True)
+
+        # ---- Forward pass ----
+        batch = batch.to(self.model.device)
+        output = self.model.remote_forward(self.neuron, batch, training=True)
+
+        # ---- Backward pass ----
+        loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+        loss.backward()
+
+        # ---- Gradient Step ----
+        clip_grad_norm_(self.model.parameters(), self.config.miner.clip_gradients)
+        self.optimizer.step()
+        self.optimizer.zero_grad()
+        self.decay_learning_rate(batch)
+
+        # ---- Train row weights ----
+        batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
+        self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
+        self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
+
+        return output
+
+    def next_training_batches(self, epoch:int ):
+        """Overrides super class.
+        Shuffles the miner's dataset so we get a shuffled, randomized dataset
+        of length miner.epoch_length
+
+        Returns:
+            [list] : shuffled dataset of length miner.epoch_length
+        """
+        shuffled_dataset = []
+        loader = DataLoader(self.dataset, shuffle=True,
+                        batch_size=self.config.miner.batch_size_train,
+                        num_workers=self.config.miner.num_workers)
+
+        for it, batch in enumerate(loader):
+            shuffled_dataset.append(batch)
+            if it == self.config.miner.epoch_length:
+                break
+
+        return shuffled_dataset
+
+    def get_lr(self):
+        for param_group in self.optimizer.param_groups:
+            return param_group['lr']
 
     def configure_optimizers(self):
         """
@@ -308,61 +312,6 @@ class Miner():
         optimizer = torch.optim.AdamW(optim_groups, lr=self.config.miner.learning_rate, betas=(0.9, 0.95))
         return optimizer
 
-    # --- Main loop ----
-    def run (self):
-
-        # ---- Subscribe ----
-        with self.neuron:
-
-            # ---- Weights ----
-            self.row = self.neuron.metagraph.row.to(self.model.device)
-
-            # --- Run state ---
-            self.global_step = 0
-
-            # --- Loop for epochs ---
-            for self.epoch in range(self.config.miner.n_epochs):
-
-                # ---- Serve ----
-                self.neuron.axon.serve( self.model )
-
-                # ---- Train Model ----
-                self.train()
-
-                # If model has borked for some reason, we need to make sure it doesn't emit weights
-                # Instead, reload into previous version of model
-                if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
-                    self.model, self.optimizer = self.model_toolbox.load_model(self.config)
-                    continue
-
-                # ---- Emitting weights ----
-                self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
-
-                # ---- Sync metagraph ----
-                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.row = self.neuron.metagraph.row.to(self.model.device)
-
-                # ---- Update Tensorboard ----
-                self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
-                self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
-                self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
-
-                # ---- Save best loss and model ----
-                if self.training_loss < self.best_train_loss: #self.epoch % 10 == 0:
-                        self.best_train_loss = self.training_loss  # update best train loss
-                        self.model_toolbox.save_model(
-                            self.config.miner.full_path,
-                            {
-                                'epoch': self.epoch,
-                                'model_state_dict': self.model.state_dict(),
-                                'loss': self.best_train_loss,
-                                'optimizer_state_dict': self.optimizer.state_dict(),
-                            }
-                        )
-                        self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
-                logger.info("This epoch's training loss: {}...Current best training loss: {}".format(self.training_loss, self.best_train_loss))
-
-
     def decay_learning_rate(self, batch):
         """Decay the learning rate based on the progress thus far.
         Adjusts the self.config.miner.learning_rate according to the
@@ -389,98 +338,6 @@ class Miner():
                 param_group['lr'] = self.lr
         else:
             self.lr = self.config.miner.learning_rate
-
-
-    def shuffle_dataset_epoch_length(self):
-        """Shuffles the miner's dataset so we get a shuffled, randomized dataset
-        of length miner.epoch_length
-
-        Returns:
-            [list] : shuffled dataset of length miner.epoch_length
-        """
-
-        shuffled_dataset = []
-        loader = DataLoader(self.dataset, shuffle=True,
-                        batch_size=self.config.miner.batch_size_train,
-                        num_workers=self.config.miner.num_workers)
-
-
-        for it, batch in enumerate(loader):
-            shuffled_dataset.append(batch)
-            if it == self.config.miner.epoch_length:
-                break
-
-        return shuffled_dataset
-
-    def get_lr(self):
-        for param_group in self.optimizer.param_groups:
-            return param_group['lr']
-
-    # ---- Train Epoch ----
-    def train(self):
-
-        def run_epoch():
-            self.model.train(True)
-            losses = []
-
-            # Re-create dataloader every time we call train
-            # This way, since epoch_length < len(dataset), we can
-            # make sure that the dataset is randomly shuffled each time
-            # we train for an epoch.
-            logger.info("Preparing dataset batch...")
-            dataset = self.shuffle_dataset_epoch_length()
-            pbar = qqdm(enumerate(dataset), total=len(dataset), desc=format_str('blue', f'Epoch Progress'))
-
-            for it, (batch) in pbar:
-
-                # ---- Forward pass ----
-                batch = batch.to(self.model.device)
-                output = self.model.remote_forward(self.neuron, batch, training=True)
-
-                # ---- Backward pass ----
-                loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-                loss.backward()
-
-                # ---- Gradient Step ----
-                clip_grad_norm_(self.model.parameters(), self.config.miner.clip_gradients)
-                self.optimizer.step()
-                self.optimizer.zero_grad()
-                self.decay_learning_rate(batch)
-                losses.append(loss.item())
-
-                # ---- Train row weights ----
-                batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
-                self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
-                self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
-
-                # ---- Logging ----
-                index = self.neuron.metagraph.state.index_for_uid[self.neuron.metagraph.uid]
-                pbar.set_infos({
-                    'GS': colored('{}'.format(self.global_step), 'red'),
-                    'LS': colored('{}'.format(it), 'blue'),
-                    'Epoch': colored('{}'.format(self.epoch+1), 'green'),
-                    'L-loss': colored('{:.5f}'.format(output.local_target_loss.item()), 'red'),
-                    'R-loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'blue'),
-                    'D-loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
-                    'lr:': colored('{:e}'.format(self.lr), 'white'),
-                    'nPeers': self.neuron.metagraph.n,
-                    'Stake(\u03C4)': float(self.neuron.metagraph.S[index]),
-                    'Rank(\u03C4)': float(self.neuron.metagraph.R[index]),
-                    'Incentive(\u03C4/block)': float(self.neuron.metagraph.I[index]),
-                    'Axon': self.neuron.axon.__str__(),
-                    'Dendrite': self.neuron.dendrite.__str__(),
-                })
-                self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
-                self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
-                self.tensorboard.add_scalar('Neuron/Dloss', output.distillation_loss.item(), self.global_step)
-                self.global_step += 1
-
-
-            avg_loss = sum(losses) / len(losses)
-            self.training_loss = avg_loss
-
-        run_epoch()
-
 
 if __name__ == "__main__":
     # ---- Build and Run ----

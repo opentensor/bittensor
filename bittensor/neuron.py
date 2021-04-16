@@ -83,157 +83,98 @@ class Neuron:
         bittensor.config.Config.update_with_kwargs(config.neuron, kwargs) 
         Neuron.check_config(config)
         self.config = config
-        # Wallet: Holds the hotkey keypair and coldkey pub which are user to sign messages 
-        # and subscribe to the chain.
-        if wallet == None:
-            wallet = bittensor.wallet.Wallet (self.config )
-        self.wallet = wallet
-        # Subtensor: provides an interface to the subtensor chain given a wallet.
-        if subtensor == None:
-            subtensor = bittensor.subtensor.Subtensor( self.config )
-        self.subtensor = subtensor
-        # Metagraph: Maintains a connection to the subtensor chain and hold chain state.
-        if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph(config = self.config, wallet = self.wallet, subtensor = self.subtensor)
-        self.metagraph = metagraph
-        # Nucleus: Processes requests passed to this neuron on its axon endpoint.
-        if nucleus == None:
-            nucleus = bittensor.nucleus.Nucleus(config = self.config, wallet = self.wallet )
-        self.nucleus = nucleus
-        # Axon: RPC server endpoint which serves your synapse. Responds to Forward and Backward requests.
-        if axon == None:
-            axon = bittensor.axon.Axon(config = self.config, wallet = self.wallet, nucleus = self.nucleus )
-        self.axon = axon
-        # Dendrite: RPC client makes Forward and Backward requests to downstream peers.
-        if dendrite == None:
-            dendrite = bittensor.dendrite.Dendrite(config = self.config, wallet = self.wallet )
-        self.dendrite = dendrite
+    #     # Wallet: Holds the hotkey keypair and coldkey pub which are user to sign messages 
+    #     # and subscribe to the chain.
+    #     if wallet == None:
+    #         wallet = bittensor.wallet.Wallet (self.config )
+    #     self.wallet = wallet
+    #     # Subtensor: provides an interface to the subtensor chain given a wallet.
+    #     if subtensor == None:
+    #         subtensor = bittensor.subtensor.Subtensor( self.config )
+    #     self.subtensor = subtensor
+    #     # Metagraph: Maintains a connection to the subtensor chain and hold chain state.
+    #     if metagraph == None:
+    #         metagraph = bittensor.metagraph.Metagraph(config = self.config, wallet = self.wallet, subtensor = self.subtensor)
+    #     self.metagraph = metagraph
+    #     # Nucleus: Processes requests passed to this neuron on its axon endpoint.
+    #     if nucleus == None:
+    #         nucleus = bittensor.nucleus.Nucleus(config = self.config, wallet = self.wallet )
+    #     self.nucleus = nucleus
+    #     # Axon: RPC server endpoint which serves your synapse. Responds to Forward and Backward requests.
+    #     if axon == None:
+    #         axon = bittensor.axon.Axon(config = self.config, wallet = self.wallet, nucleus = self.nucleus )
+    #     self.axon = axon
+    #     # Dendrite: RPC client makes Forward and Backward requests to downstream peers.
+    #     if dendrite == None:
+    #         dendrite = bittensor.dendrite.Dendrite(config = self.config, wallet = self.wallet )
+    #     self.dendrite = dendrite
 
-    @staticmethod   
-    def default_config() -> Munch:
-        # Parses and returns a config Munch for this object.
-        parser = argparse.ArgumentParser(); 
-        Neuron.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        return config
+    # @staticmethod   
+    # def default_config() -> Munch:
+    #     # Parses and returns a config Munch for this object.
+    #     parser = argparse.ArgumentParser(); 
+    #     Neuron.add_args(parser) 
+    #     config = bittensor.config.Config.to_config(parser); 
+    #     return config
 
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        bittensor.wallet.Wallet.add_args( parser )
-        bittensor.subtensor.Subtensor.add_args( parser )
-        bittensor.metagraph.Metagraph.add_args( parser )
-        bittensor.nucleus.Nucleus.add_args( parser )
-        bittensor.axon.Axon.add_args(parser)
-        bittensor.dendrite.Dendrite.add_args( parser )
-        bittensor.synapse.Synapse.add_args( parser )
-        try:
-            parser.add_argument('--neuron.modality', default=0, type=int, 
-                                help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
-        except:
-            pass
+    # @staticmethod   
+    # def add_args(parser: argparse.ArgumentParser):
+    #     bittensor.wallet.Wallet.add_args( parser )
+    #     bittensor.subtensor.Subtensor.add_args( parser )
+    #     bittensor.metagraph.Metagraph.add_args( parser )
+    #     bittensor.nucleus.Nucleus.add_args( parser )
+    #     bittensor.axon.Axon.add_args(parser)
+    #     bittensor.dendrite.Dendrite.add_args( parser )
+    #     bittensor.synapse.Synapse.add_args( parser )
+    #     try:
+    #         parser.add_argument('--neuron.modality', default=0, type=int, 
+    #                             help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
+    #     except:
+    #         pass
 
-    @staticmethod   
-    def check_config(config: Munch):
-        assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
+    # @staticmethod   
+    # def check_config(config: Munch):
+    #     assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
 
-    def start(self):
-        # ---- Check hotkey ----
-        logger.log('USER-ACTION', 'Loading wallet with path: {} name: {} hotkey: {}'.format(self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey))
-        try:
-            self.wallet.hotkey # Check loaded hotkey
-        except:
-            logger.log('USER-INFO', 'Failed to load hotkey under path:{} wallet name:{} hotkey:{}', self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey)
-            choice = input("Would you like to create a new hotkey ? (y/N) ")
-            if choice == "y":
-                self.wallet.create_new_hotkey()
-            else:
-                raise RuntimeError('The neuron requires a loaded hotkey')
-
-        # ---- Check coldkeypub ----
-        try:
-            self.wallet.coldkeypub
-        except:
-            logger.log('USER-INFO', 'Failed to load coldkeypub under path:{} wallet name:{}', self.config.wallet.path, self.config.wallet.name)
-            choice = input("Would you like to create a new coldkey ? (y/N) ")
-            if choice == "y":
-                self.wallet.create_new_coldkey()
-            else:
-                raise RuntimeError('The neuron requires a loaded coldkeypub')
-
-        # ---- Start the axon ----
-        self.axon.start()
-
-        # ---- Subscribe to chain ----
-        logger.log('USER-ACTION', '\nConnecting to network: {}'.format(self.config.subtensor.network))
-        self.subtensor.connect()
-
-        logger.log('USER-ACTION', '\nSubscribing:')
-        subscribe_success = self.subtensor.subscribe(
-                wallet = self.wallet,
-                ip = self.config.axon.external_ip, 
-                port = self.config.axon.external_port,
-                modality = self.config.neuron.modality,
-                wait_for_finalization = True,
-                timeout = 4 * bittensor.__blocktime__,
-        )
-        if not subscribe_success:
-            self.stop()
-            raise RuntimeError('Failed to subscribe neuron.')
+    # def start(self):
         
-        # ---- Sync graph ----
-        self.metagraph.sync()
-        print(self.metagraph)
+    #     # ---- Start the axon ----
+    #     self.axon.start()
 
-    def stop(self):
+    #     # ---- Subscribe to chain ----
+    #     logger.log('USER-ACTION', '\nConnecting to network: {}'.format(self.config.subtensor.network))
+    #     self.subtensor.connect()
 
-        logger.info('Shutting down the Axon server ...')
-        try:
-            self.axon.stop()
-            logger.info('Axon server stopped')
-        except Exception as e:
-            logger.error('Neuron: Error while stopping axon server: {} ', e)
+    #     logger.log('USER-ACTION', '\nSubscribing:')
+    #     subscribe_success = self.subtensor.subscribe(
+    #             wallet = self.wallet,
+    #             ip = self.config.axon.external_ip, 
+    #             port = self.config.axon.external_port,
+    #             modality = self.config.neuron.modality,
+    #             wait_for_finalization = True,
+    #             timeout = 4 * bittensor.__blocktime__,
+    #     )
+    #     if not subscribe_success:
+    #         self.stop()
+    #         raise RuntimeError('Failed to subscribe neuron.')
+        
+    #     # ---- Sync graph ----
+    #     self.metagraph.sync()
+    #     print(self.metagraph)
 
-    def __enter__(self):
-        bittensor.exceptions.handlers.rollbar.init() # If a bittensor.exceptions.handlers.rollbar token is present, this will enable error reporting to bittensor.exceptions.handlers.rollbar
-        logger.trace('Neuron enter')
-        self.start()
-        return self
+    #     self.run()
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        """ Defines the exit protocol from asyncio task.
+    # def run(self):
 
-        Args:
-            exc_type (Type): The type of the exception.
-            exc_value (RuntimeError): The value of the exception, typically RuntimeError. 
-            exc_traceback (traceback): The traceback that can be printed for this exception, detailing where error actually happend.
 
-        Returns:
-            Neuron: present instance of Neuron.
-        """        
-        self.stop()
-        if exc_value:
+    # def stop(self):
+    #     logger.info('Shutting down the Axon server ...')
+    #     try:
+    #         self.axon.stop()
+    #         logger.info('Axon server stopped')
+    #     except Exception as e:
+    #         logger.error('Neuron: Error while stopping axon server: {} ', e)
 
-            top_stack = StringIO()
-            tb.print_stack(file=top_stack)
-            top_lines = top_stack.getvalue().strip('\n').split('\n')[:-4]
-            top_stack.close()
-
-            full_stack = StringIO()
-            full_stack.write('Traceback (most recent call last):\n')
-            full_stack.write('\n'.join(top_lines))
-            full_stack.write('\n')
-            tb.print_tb(exc_traceback, file=full_stack)
-            full_stack.write('{}: {}'.format(exc_type.__name__, str(exc_value)))
-            sinfo = full_stack.getvalue()
-            full_stack.close()
-            # Log the combined stack
-            logger.error('Exception:{}'.format(sinfo))
-
-            if bittensor.exceptions.handlers.rollbar.is_enabled():
-                bittensor.exceptions.handlers.rollbar.send_exception()
-
-        return self
-
-    def __del__(self):
-        self.stop()
+    # def __del__(self):
+    #     self.stop()
 

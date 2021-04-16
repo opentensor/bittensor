@@ -52,6 +52,10 @@ class Synapse(nn.Module):
         if self.config.synapse.device:
             self.device = torch.device(self.config.synapse.device)
 
+        # For Forward calls: must be set manually with set_metagraph and set_dendrite.
+        self._metagraph = None
+        self._dendrite = None
+
     @staticmethod   
     def default_config() -> Munch:
          # Parses and returns a config Munch for this object.
@@ -71,6 +75,26 @@ class Synapse(nn.Module):
     @staticmethod   
     def check_config(config: Munch):
         pass
+
+    def set_metagraph ( self, metagraph: 'bittensor.metagraph.Metagraph' ):
+        self._metagraph = metagraph
+
+    def set_dendrite ( self, dendrite: 'bittensor.dendrite.Dendrite' ):
+        self._dendrite = dendrite
+
+    @property()
+    def metagraph( self ) -> 'bittensor.metagraph.Metagraph':
+        if self._metagraph == None:
+            raise RuntimeError('Router metagraph must be set before a forward call.')
+        else:
+            return self._metagraph
+
+    @property()
+    def dendrite( self ) -> 'bittensor.dendrite.Dendrite':
+        if self._dendrite == None:
+            raise RuntimeError('Router dendrite must be set before a forward call.')
+        else:
+            return self._dendrite
 
     def deepcopy(self):
         """ Returns a copy of this synapse by passing the model params to load_state_dict.

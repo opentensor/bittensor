@@ -178,7 +178,6 @@ class Miner():
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
 
-
     def configure_optimizers(self):
         """
         This long function is unfortunately doing something very simple and is being very defensive:
