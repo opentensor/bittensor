@@ -246,7 +246,6 @@ class GPT2Synapse(bittensor.synapse.Synapse):
         elif isinstance(module, nn.LayerNorm):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
-    
 
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the CLM GPT Synapse.
@@ -271,7 +270,6 @@ class GPT2Synapse(bittensor.synapse.Synapse):
             hidden = torch.nn.functional.pad(hidden, padding, "constant", 0)
             
         return hidden
-
 
     def local_forward(self, inputs: torch.LongTensor, training : bool = True) -> SimpleNamespace:
         """ Forward pass through GPT2 synapse.

@@ -548,6 +548,7 @@ class Axon(bittensor.grpc.BittensorServicer):
 
     def _serve(self):
         try:
+            logger.log('USER-SUCCESS', "Started")
             self._server.start()
         except (KeyboardInterrupt, SystemExit):
             self.stop()

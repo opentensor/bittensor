@@ -32,20 +32,22 @@ import torch
 import torch.nn.functional as F
 import bittensor
 
+from tqdm import tqdm
 from munch import Munch
 from loguru import logger
 from termcolor import colored
+from types import SimpleNamespace
 from datasets import load_dataset
 from synapses.xlm import XLMSynapse
 from typing import Tuple, List, Optional
+from torch.utils.data.dataloader import DataLoader
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
 class Miner( bittensor.neuron.Neuron ):
 
-    def __init__(self, config: Munch = None, **kwargs):
+    def __init__(self, config: Munch = None ):
         if config == None:
             config = Miner.default_config();       
-        bittensor.config.Config.update_with_kwargs(config.miner, kwargs) 
         Miner.check_config(config)
         self.config = config
 
@@ -61,8 +63,18 @@ class Miner( bittensor.neuron.Neuron ):
         self.scheduler = WarmupCosineWithHardRestartsSchedule(self.optimizer, 50, 300)
 
         # ---- Dataset ----
-        self.dataset = load_dataset('wikitext', 'wikitext-103-raw-v1')
-        self.tokenizer = bittensor.__tokenizer__()
+        self.dataset = bittensor.datasets.TextCorpus ( 
+            block_size = 20,
+            dataset = load_dataset('glue', 'cola')['train'],
+            tokenizer = bittensor.__tokenizer__()
+        )
+        self.data_loader = DataLoader(
+            self.dataset, 
+            shuffle=True,
+            batch_size=self.config.miner.batch_size_train,
+            num_workers=self.config.miner.num_workers
+        )        
+        self.tokens = 0     
         super(Miner, self).__init__( self.config )
     
     @staticmethod
@@ -78,6 +90,7 @@ class Miner( bittensor.neuron.Neuron ):
         parser.add_argument('--miner.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
         parser.add_argument('--miner.epoch_length', default=500, type=int, help='Iterations of training per epoch')
         parser.add_argument('--miner.batch_size_train', default=2, type=int, help='Training batch size.')
+        parser.add_argument('--miner.num_workers', default=1, type=int, help='Number of workers for data loader.')
         XLMSynapse.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 
@@ -94,31 +107,26 @@ class Miner( bittensor.neuron.Neuron ):
         return self.row_weights
 
     def next_training_batches(self, epoch:int ) -> List[dict]:
-        logger.info('Preparing {} batches for epoch ...', self.config.miner.epoch_length)
         batches = []
-        for _ in range( self.config.miner.epoch_length ):
-            batch_text = [] 
-            for _ in range( self.config.miner.batch_size_train ):
-                rnd_index = random.randint(0, len(self.dataset['train']))
-                batch_text.append( self.dataset['train'][rnd_index]['text'] )
-            print ( batch_text )
-            tokenized_batch = self.tokenizer( batch_text, return_tensors='pt', padding=True, truncation=True )['input_ids']
-            batch = { 'inputs': tokenized_batch }
+        for iteration, inputs in tqdm( enumerate( self.data_loader ) ):
+            batch = { 'inputs': inputs }
             batches.append( batch )
+            if iteration == self.config.miner.epoch_length:
+                break
         return batches
     
-    def training_forward( self, batch: dict ):
+    def training_forward( self, batch: dict ) -> SimpleNamespace:
         # ---- Forward pass ----
         inputs = batch['inputs'].to( self.model.device )
         output = self.model.remote_forward(
-            self.neuron,
+            neuron = self,
             inputs = inputs,
             training = True,
         )
 
         # ---- Backward pass ----
-        loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-        loss.backward() # Accumulates gradients on the model.
+        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+        output.loss.backward() # Accumulates gradients on the model.
         self.optimizer.step() # Applies accumulated gradients.
         self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
@@ -127,6 +135,7 @@ class Miner( bittensor.neuron.Neuron ):
         self.row_weights = (1 - 0.03) * self.row_weights + 0.03 * batch_weights # Moving avg update.
         self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
 
+        return output
 
 if __name__ == "__main__":
     # ---- Build and Run ----

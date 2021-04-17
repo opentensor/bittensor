@@ -39,46 +39,18 @@ import time
 import bittensor
 import torch.nn.functional as F
 
-from termcolor import colored
+from tqdm import tqdm
 from munch import Munch
 from loguru import logger
+from termcolor import colored
 from typing import Tuple, List, Optional
 
-from tqdm import tqdm
 from synapses.gpt2 import GPT2Synapse
 from torch.nn.utils import clip_grad_norm_
 from transformers import AdamW
 from torch.utils.data.dataloader import DataLoader
 from datasets import load_dataset
-
-class WikiCorpus():
-
-    def __init__(self, block_size: int, tokenizer=bittensor.__tokenizer__()):
-        self.block_size = block_size
-        self.tokenizer = tokenizer
-        self.lines = load_dataset('wikitext', 'wikitext-103-raw-v1')['train']
-
-    def __len__(self):
-        return len(self.lines) - self.block_size
-
-    def __getitem__(self, idx):
-        """ Returns a batch of sentences from text dataset.
-            Args:
-                idx: index of data input
-            Returns:
-                x
-        """
-        chunk = self.lines[idx:idx + self.block_size]['text']
-        dix = []
-        block_num=0
-        while block_num < self.block_size:
-            tokenized = self.tokenizer(chunk[block_num], padding=True, truncation=True)['input_ids']
-            for t in tokenized:
-                if block_num < self.block_size:
-                    dix.append(t)
-                    block_num += 1
-        x = torch.tensor(dix, dtype=torch.long)
-        return x
+from types import SimpleNamespace
 
 class Miner( bittensor.neuron.Neuron ):
 
@@ -100,7 +72,17 @@ class Miner( bittensor.neuron.Neuron ):
         self.lr = self.config.miner.learning_rate
 
         # ---- Dataset ----
-        self.dataset = WikiCorpus( self.model.get_block_size() )
+        self.dataset = bittensor.datasets.TextCorpus( 
+            dataset = load_dataset('glue', 'cola')['train'],
+            block_size = self.model.get_block_size(),
+            tokenizer = bittensor.__tokenizer__()
+        )
+        self.data_loader = DataLoader(
+            self.dataset, 
+            shuffle=True,
+            batch_size=self.config.miner.batch_size_train,
+            num_workers=self.config.miner.num_workers
+        )        
         self.tokens = 0
         super(Miner, self).__init__( self.config )
                 
@@ -193,31 +175,25 @@ class Miner( bittensor.neuron.Neuron ):
         return self.row_weights
 
     def next_training_batches(self, epoch:int ) -> List[dict]:
-        logger.info('Preparing batches for epoch (may take a while) ...')
         batches = []
-        loader = DataLoader(
-            self.dataset, shuffle=True,
-            batch_size=self.config.miner.batch_size_train,
-            num_workers=self.config.miner.num_workers
-        )
-        for iteration, inputs in enumerate(loader):
+        for iteration, inputs in  tqdm( enumerate( self.data_loader )) :
             batch = { 'inputs': inputs }
             batches.append( batch )
             if iteration == self.config.miner.epoch_length:
                 break
         return batches
 
-    def training_forward( self, batch: dict ):
+    def training_forward( self, batch: dict ) -> SimpleNamespace():
 
         # ---- Init for forward pass ----
         self.model.train(True)
         self.row_weights = torch.nn.functional.pad(self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel() ])
 
         # ---- Forward pass ----
-        inputs = batch['inputs'].to( self.model.device )
+        inputs = batch[ 'inputs' ].to( self.model.device )
         output = self.model.remote_forward( 
             neuron = self, 
-            inputs = batch, 
+            inputs = inputs, 
             training = True
         )
         # ---- Backward pass ----
@@ -225,16 +201,47 @@ class Miner( bittensor.neuron.Neuron ):
         output.loss.backward()
 
         # ---- Gradient Step ----
-        clip_grad_norm_(self.model.parameters(), self.config.miner.clip_gradients)
+        clip_grad_norm_( self.model.parameters(), self.config.miner.clip_gradients )
         self.optimizer.step()
         self.optimizer.zero_grad()
-        self.decay_learning_rate(batch)
+        self.decay_learning_rate( inputs )
 
         # ---- Train row weights ----
         batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
         self.row_weights = (1 - 0.03) * self.row_weights + 0.03 * batch_weights # Moving avg update.
         self.row_weights = F.normalize(self.row_weights, p = 1, dim = 0) # Ensure normalization.
         return output
+
+    def decay_learning_rate(self, batch):
+        """Decay the learning rate based on the progress thus far.
+        Adjusts the self.config.miner.learning_rate according to the
+        tokens processed so far, returns number of tokens.
+
+        Args:
+            tokens (int): Number of tokens processed so far.
+        """
+
+        if self.config.miner.lr_decay:
+            # number of tokens processed this step
+            self.tokens += (batch >= 0).sum()
+            if self.tokens < self.config.miner.warmup_tokens:
+                # linear warmup
+                lr_mult = float(self.tokens) / float(max(1, self.config.miner.warmup_tokens))
+            else:
+                # cosine learning rate decay
+                progress = float(self.tokens - self.config.miner.warmup_tokens) / float(max(1, self.config.miner.final_tokens - self.config.miner.warmup_tokens))
+                lr_mult = max(0.1, 0.5 * (1.0 + math.cos(math.pi * progress)))
+
+            self.lr = self.config.miner.learning_rate * lr_mult
+
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] = self.lr
+        else:
+            self.lr = self.config.miner.learning_rate
+
+    def reset_learning_rate(self, lr):
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = lr
 
     def get_lr(self):
         for param_group in self.optimizer.param_groups:
@@ -286,37 +293,6 @@ class Miner( bittensor.neuron.Neuron ):
         ]
         optimizer = torch.optim.AdamW(optim_groups, lr=self.config.miner.learning_rate, betas=(0.9, 0.95))
         return optimizer
-
-    def decay_learning_rate(self, batch):
-        """Decay the learning rate based on the progress thus far.
-        Adjusts the self.config.miner.learning_rate according to the
-        tokens processed so far, returns number of tokens.
-
-        Args:
-            tokens (int): Number of tokens processed so far.
-        """
-
-        if self.config.miner.lr_decay:
-            # number of tokens processed this step
-            self.tokens += (batch >= 0).sum()
-            if self.tokens < self.config.miner.warmup_tokens:
-                # linear warmup
-                lr_mult = float(self.tokens) / float(max(1, self.config.miner.warmup_tokens))
-            else:
-                # cosine learning rate decay
-                progress = float(self.tokens - self.config.miner.warmup_tokens) / float(max(1, self.config.miner.final_tokens - self.config.miner.warmup_tokens))
-                lr_mult = max(0.1, 0.5 * (1.0 + math.cos(math.pi * progress)))
-
-            self.lr = self.config.miner.learning_rate * lr_mult
-
-            for param_group in self.optimizer.param_groups:
-                param_group['lr'] = self.lr
-        else:
-            self.lr = self.config.miner.learning_rate
-
-    def reset_learning_rate(self, lr):
-        for param_group in self.optimizer.param_groups:
-            param_group['lr'] = lr
 
 
 if __name__ == "__main__":

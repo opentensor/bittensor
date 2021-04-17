@@ -37,6 +37,7 @@ import bittensor.axon
 import bittensor.config 
 import bittensor.cli
 import bittensor.executor
+import bittensor.datasets
 import bittensor.dendrite
 import bittensor.metagraph
 import bittensor.logging

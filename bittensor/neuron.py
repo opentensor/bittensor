@@ -36,10 +36,6 @@ class Neuron():
         # Wallet: Holds the hotkey keypair and coldkey pub which are user to sign messages 
         # and subscribe to the chain.
         self.wallet = bittensor.wallet.Wallet( self.config )
-        if not self.wallet.has_coldkeypub:
-            self.wallet.create_new_coldkey( n_words = 12, use_password = True )
-        if not self.wallet.has_hotkey:
-            self.wallet.create_new_hotkey( n_words = 12, use_password = False )
         
         # Subtensor: provides an interface to the subtensor chain given a wallet.
         self.subtensor = bittensor.subtensor.Subtensor( self.config )
@@ -124,8 +120,6 @@ class Neuron():
 
     @staticmethod
     def check_config(config: Munch):
-        if config.debug:  bittensor.__log_level__ = 'TRACE'; logger.debug('DEBUG is ON')
-        else: logger.info('DEBUG is OFF') 
         full_path = '{}/{}/{}'.format(config.neuron.root_dir, config.neuron.name, config.neuron.uid)
         config.neuron.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.neuron.full_path):
@@ -146,15 +140,25 @@ class Neuron():
         raise NotImplementedError()
     
     def run( self ):
+        # ---- Set debugging ----
+        if self.config.debug: bittensor.__log_level__ = 'TRACE'; logger.opt(ansi=True).log('USER-INFO', 'DEBUG is <green>ON</green>')
+        else: logger.opt(ansi=True).log('USER-INFO', 'DEBUG is <red>OFF</red>')
+
+        # ---- Load Wallets ----
+        logger.log('USER-INFO', "\nLoad wallets")
+        if not self.wallet.has_coldkeypub:
+            self.wallet.create_new_coldkey( n_words = 12, use_password = True )
+        if not self.wallet.has_hotkey:
+            self.wallet.create_new_hotkey( n_words = 12, use_password = False )
 
         # ---- Connect to chain ----
-        logger.info("Connecting to network: {}", self.subtensor.config.subtensor.network)
+        logger.opt(ansi=True).log('USER-INFO', "\nConnecting to chain: <cyan>{}</cyan>", self.config.subtensor.network)
         self.subtensor.connect()
         if not self.subtensor.is_connected():
             raise RuntimeError('Failed to connect subtensor')
         
         # ---- Subscribe to chain ----
-        logger.info("Subscribing to chain")
+        logger.log('USER-INFO', "\nSubscribing to chain")
         subscribe_success = self.subtensor.subscribe(
                 wallet = self.wallet,
                 ip = self.config.axon.external_ip, 
@@ -167,39 +171,47 @@ class Neuron():
             raise RuntimeError('Failed to subscribe neuron.')
 
         # ---- Starting axon ----
-        logger.info("Serving Axon on: {}:{}", self.axon.config.axon.local_ip, self.axon.config.axon.local_port)
+        logger.opt(ansi=True).log('USER-INFO', "\nServing Axon on: <cyan>{}:{}</cyan>", self.axon.config.axon.local_ip, self.axon.config.axon.local_port)
         self.axon.start()
         
-        # ---- Sync graph ----
-        logger.info("Syncing Metagraph")
+        # ---- Sync metagraph ----
+        logger.log('USER-INFO', "\nSyncing Metagraph")
         self.metagraph.sync()
         print(self.metagraph)
         
         # --- Run Forever ----
         while True:
+            try:
 
-            # ---- Serve ----
-            self.axon.serve( self._model )
+                # ---- Serve ----
+                self.axon.serve( self._model )
 
-            # ---- Train Model ----
-            self.training_loss = self.train()
-            self.epoch += 1
+                # ---- Train Model ----
+                self.training_loss = self.train()
+                self.epoch += 1
 
-            # ---- Set weights ----
-            self.metagraph.set_weights(
-                weights = self.get_row_weights(), 
-                wait_for_inclusion = True
-            )
+                # ---- Set weights ----
+                self.metagraph.set_weights(
+                    weights = self.get_row_weights(), 
+                    wait_for_inclusion = True
+                )
 
-            # ---- Sync metagraph ----
-            self.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                # ---- Sync metagraph ----
+                self.metagraph.sync() # Pulls the latest metagraph state (with my update.)
 
-            # ---- Update Tensorboard ----
-            self.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
-            self.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
-            self.axon.__to_tensorboard__(self.tensorboard, self.global_step)
-            self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
-            logger.info("This epoch's training loss: {}...Current best training loss: {}".format(self.training_loss, self.best_train_loss))
+                # ---- Update Tensorboard ----
+                self.dendrite.__to_tensorboard__( self.tensorboard, self.global_step )
+                self.metagraph.__to_tensorboard__( self.tensorboard, self.global_step )
+                self.axon.__to_tensorboard__( self.tensorboard, self.global_step )
+                self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step )
+                logger.info("This epoch's training loss: {}...Current best training loss: {}".format( self.training_loss, self.best_train_loss ))
+
+            # --- Catch Errors ----
+            except Exception as e:
+                logger.exception('Exception in training script with error: {}', e)
+                logger.info(traceback.print_exc())
+                logger.info('Continuing to train...')
+                time.sleep(1)
 
     # ---- Training Step logs ----
     def training_logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
@@ -211,11 +223,10 @@ class Neuron():
             'L-loss': colored('{:.5f}'.format(output.local_target_loss.item()), 'yellow'),
             'R-loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'red'),
             'D-loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
-            'lr:': colored('{:e}'.format(self.lr), 'red'),
             'nPeers': colored(self.metagraph.n, 'blue'),
             'Stake(\u03C4)': colored('{:.3f}'.format(self.metagraph.S[index]), 'green'),
-            'Rank(\u03C4)': colored('{:.6f}'.format(self.metagraph.R[index]), 'yellow'),
-            'Incentive(\u03C4/block)': colored('{:.3f}'.format(self.metagraph.I[index]), 'red'),
+            'Rank(\u03C4)': colored('{:.3f}'.format(self.metagraph.R[index]), 'yellow'),
+            'Incentive(\u03C4/block)': colored('{:.6f}'.format(self.metagraph.I[index]), 'red'),
             'Axon': self.axon.__str__(),
             'Dendrite': self.dendrite.__str__(),
         })
