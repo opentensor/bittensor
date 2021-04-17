@@ -60,7 +60,7 @@ class Config:
             
     @staticmethod
     def to_config(parser: argparse.ArgumentParser) -> Munch:
-    
+
         params = parser.parse_known_args()[0]
         config_file = None
         config = Munch()

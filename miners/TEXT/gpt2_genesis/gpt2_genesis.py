@@ -108,7 +108,7 @@ class Miner( bittensor.neuron.Neuron ):
             '--miner.lr_decay',
             default=True,
             type=bool,
-            help='learning rate decay params: linear warmup followed by cosine decay to 10% of original.'
+            help='learning rate decay params: linear warmup followed by cosine decay to 10%% of original.'
         )
         parser.add_argument(
             '--miner.warmup_tokens',
@@ -120,7 +120,7 @@ class Miner( bittensor.neuron.Neuron ):
             '--miner.final_tokens',
             default=260e9,
             type=float,
-            help='At what point we reach 10% of original LR'
+            help='At what point we reach 10%% of original LR'
         )
         parser.add_argument(
             '--miner.num_workers',

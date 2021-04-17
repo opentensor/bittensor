@@ -26,6 +26,7 @@ import random
 import time
 import torch
 
+from tqdm import tqdm
 from munch import Munch
 from termcolor import colored
 from loguru import logger
@@ -589,7 +590,13 @@ class Metagraph():
                 emit_block = last_emit[ uid ]
                 if (current_block - emit_block) < self.config.metagraph.stale_emit_filter or self.config.metagraph.stale_emit_filter < 0:
                         calls.append( self._poll_uid ( pubkey, uid ) )
-        await asyncio.gather(*calls)
+        # await asyncio.gather(*calls)
+
+        import tqdm.asyncio
+        for call in tqdm.asyncio.tqdm.as_completed( calls ):
+            await call
+
+        # responses = [await call for call in tqdm.tqdm( asyncio.as_completed( calls ), total = len(calls) )]
         print ('\n')
 
     async def _poll_uid(self, pubkey: str, uid:int):

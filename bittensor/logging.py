@@ -24,29 +24,18 @@ from loguru import logger
 
 # Filter bittensor internal messages, only from internal files.
 def bittensor_formatter(record):
-    if record["level"].name == 'USER-SUCCESS':
-        return "<green>{message}</green>\n"
-    if record["level"].name == 'USER-CRITICAL':
-        return "<red>{message}</red>\n"
-    if record["level"].name == 'USER-ACTION':
-        return "<blue>{message}</blue>\n"
-    if record["level"].name == 'USER-INFO':
-        return "<white>{message}</white>\n"
+    if bittensor.__debug_on__ == True:
+        return "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>\n"
     else:
-        return "<level>{level: <8}</level>|<level>{message}</level>\n"
+        return "<level>{message}</level>\n"
 
 def bittensor_log_filter( record ):
-    if record["level"].name == 'USER-SUCCESS':
+    if bittensor.__debug_on__ == True:
         return True
-    elif record["level"].name == 'USER-CRITICAL':
-        return True
-    elif record["level"].name == 'USER-ACTION':
-        return True
-    elif record["level"].name == 'USER-INFO':
-        return True
-    elif record["level"].no >= logger.level(bittensor.__log_level__).no:
+    elif record["level"].no >= logger.level('INFO').no:
         return True
     else:
+        print(bittensor.__debug_on__, record["level"].no)
         return False
 
 # Handler which sends messages to a rollbar server.

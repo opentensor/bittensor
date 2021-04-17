@@ -548,7 +548,7 @@ class Axon(bittensor.grpc.BittensorServicer):
 
     def _serve(self):
         try:
-            logger.log('USER-SUCCESS', "Started")
+            logger.opt(ansi=True).success("Axon Started on endpoint <cyan>{}:{}</cyan>", self.config.axon.local_ip, self.config.axon.local_port)
             self._server.start()
         except (KeyboardInterrupt, SystemExit):
             self.stop()

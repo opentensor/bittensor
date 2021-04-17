@@ -3,6 +3,7 @@ import math
 import torch
 import time
 import os
+import traceback
 
 from tqdm import tqdm
 from qqdm import qqdm, format_str
@@ -150,33 +151,33 @@ class Neuron():
         self.shutdown()
 
     def shutdown( self ):
-        logger.opt(ansi=True).log('USER-INFO', "\Stopping Axon on: <cyan>{}:{}</cyan>", self.axon.config.axon.local_ip, self.axon.config.axon.local_port)
+        logger.opt(ansi=True).info("Stopping Axon on: <cyan>{}:{}</cyan>", self.axon.config.axon.local_ip, self.axon.config.axon.local_port)
         try:
             self.axon.stop()
-            logger.log('USER-SUCCESS', "\nAxon stopped")
+            logger.success("Axon stopped")
         except Exception as e:
             logger.exception('Neuron: Error while stopping axon server: {} ', e)
 
     def startup( self ):
         # ---- Set debugging ----
-        if self.config.debug: bittensor.__log_level__ = 'TRACE'; logger.opt(ansi=True).info('DEBUG is <green>ON</green>')
+        if self.config.debug: bittensor.__debug_on__ = True; logger.opt(ansi=True).info('DEBUG is <green>ON</green>')
         else: logger.opt(ansi=True).info('DEBUG is <red>OFF</red>')
 
         # ---- Load Wallets ----
-        logger.info("\nLoad wallets")
+        logger.info('\nLoad wallet...')
         if not self.wallet.has_coldkeypub:
             self.wallet.create_new_coldkey( n_words = 12, use_password = True )
         if not self.wallet.has_hotkey:
             self.wallet.create_new_hotkey( n_words = 12, use_password = False )
 
         # ---- Connect to chain ----
-        logger.opt(ansi=True).info("\nConnecting to chain: <cyan>{}</cyan>", self.config.subtensor.network)
+        logger.info('\nConnecting to network...')
         self.subtensor.connect()
         if not self.subtensor.is_connected():
             raise RuntimeError('Failed to connect subtensor')
         
         # ---- Subscribe to chain ----
-        logger.info("\nSubscribing to chain")
+        logger.info('\nSubscribing to chain...')
         subscribe_success = self.subtensor.subscribe(
                 wallet = self.wallet,
                 ip = self.config.axon.external_ip, 
@@ -189,11 +190,11 @@ class Neuron():
             raise RuntimeError('Failed to subscribe neuron.')
 
         # ---- Starting axon ----
-        logger.opt(ansi=True).info("\nServing Axon on: <cyan>{}:{}</cyan>", self.axon.config.axon.local_ip, self.axon.config.axon.local_port)
+        logger.info('\nStarting Axon...')
         self.axon.start()
         
         # ---- Sync metagraph ----
-        logger.info("\nSyncing Metagraph")
+        logger.info('\nSyncing Metagraph...')
         self.metagraph.sync()
         print(self.metagraph)
 

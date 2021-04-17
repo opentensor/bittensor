@@ -49,7 +49,7 @@ import bittensor.synapse
 import bittensor.wallet
 
 # ---- LOGGING ----
-__log_level__ = 'INFO' 
+__debug_on__ = False 
 bittensor.logging.init_logger()
 
 # Tokenizer
