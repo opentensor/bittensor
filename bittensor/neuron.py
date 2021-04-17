@@ -138,27 +138,45 @@ class Neuron():
 
     def next_training_batches( self ) -> List[dict]:
         raise NotImplementedError()
-    
-    def run( self ):
+
+    def __del__( self ):
+        self.shutdown()
+
+    def __enter__(self):
+        self.startup()
+        return self
+
+    def __exit__( self, exc_type, exc_value, exc_traceback ):   
+        self.shutdown()
+
+    def shutdown( self ):
+        logger.opt(ansi=True).log('USER-INFO', "\Stopping Axon on: <cyan>{}:{}</cyan>", self.axon.config.axon.local_ip, self.axon.config.axon.local_port)
+        try:
+            self.axon.stop()
+            logger.log('USER-SUCCESS', "\nAxon stopped")
+        except Exception as e:
+            logger.exception('Neuron: Error while stopping axon server: {} ', e)
+
+    def startup( self ):
         # ---- Set debugging ----
-        if self.config.debug: bittensor.__log_level__ = 'TRACE'; logger.opt(ansi=True).log('USER-INFO', 'DEBUG is <green>ON</green>')
-        else: logger.opt(ansi=True).log('USER-INFO', 'DEBUG is <red>OFF</red>')
+        if self.config.debug: bittensor.__log_level__ = 'TRACE'; logger.opt(ansi=True).info('DEBUG is <green>ON</green>')
+        else: logger.opt(ansi=True).info('DEBUG is <red>OFF</red>')
 
         # ---- Load Wallets ----
-        logger.log('USER-INFO', "\nLoad wallets")
+        logger.info("\nLoad wallets")
         if not self.wallet.has_coldkeypub:
             self.wallet.create_new_coldkey( n_words = 12, use_password = True )
         if not self.wallet.has_hotkey:
             self.wallet.create_new_hotkey( n_words = 12, use_password = False )
 
         # ---- Connect to chain ----
-        logger.opt(ansi=True).log('USER-INFO', "\nConnecting to chain: <cyan>{}</cyan>", self.config.subtensor.network)
+        logger.opt(ansi=True).info("\nConnecting to chain: <cyan>{}</cyan>", self.config.subtensor.network)
         self.subtensor.connect()
         if not self.subtensor.is_connected():
             raise RuntimeError('Failed to connect subtensor')
         
         # ---- Subscribe to chain ----
-        logger.log('USER-INFO', "\nSubscribing to chain")
+        logger.info("\nSubscribing to chain")
         subscribe_success = self.subtensor.subscribe(
                 wallet = self.wallet,
                 ip = self.config.axon.external_ip, 
@@ -171,49 +189,54 @@ class Neuron():
             raise RuntimeError('Failed to subscribe neuron.')
 
         # ---- Starting axon ----
-        logger.opt(ansi=True).log('USER-INFO', "\nServing Axon on: <cyan>{}:{}</cyan>", self.axon.config.axon.local_ip, self.axon.config.axon.local_port)
+        logger.opt(ansi=True).info("\nServing Axon on: <cyan>{}:{}</cyan>", self.axon.config.axon.local_ip, self.axon.config.axon.local_port)
         self.axon.start()
         
         # ---- Sync metagraph ----
-        logger.log('USER-INFO', "\nSyncing Metagraph")
+        logger.info("\nSyncing Metagraph")
         self.metagraph.sync()
         print(self.metagraph)
-        
-        # --- Run Forever ----
-        while True:
-            try:
 
-                # ---- Serve ----
-                self.axon.serve( self._model )
+    def run( self ):
 
-                # ---- Train Model ----
-                self.training_loss = self.train()
-                self.epoch += 1
+        # --- Startup ----
+        with self:
+    
+            # --- Run Forever ----
+            while True:
+                try:
 
-                # ---- Set weights ----
-                self.metagraph.set_weights(
-                    weights = self.get_row_weights(), 
-                    wait_for_inclusion = True
-                )
+                    # ---- Serve ----
+                    self.axon.serve( self._model )
 
-                # ---- Sync metagraph ----
-                self.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                    # ---- Train Model ----
+                    self.training_loss = self.train()
+                    self.epoch += 1
 
-                # ---- Update Tensorboard ----
-                self.dendrite.__to_tensorboard__( self.tensorboard, self.global_step )
-                self.metagraph.__to_tensorboard__( self.tensorboard, self.global_step )
-                self.axon.__to_tensorboard__( self.tensorboard, self.global_step )
-                self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step )
-                logger.info("This epoch's training loss: {}...Current best training loss: {}".format( self.training_loss, self.best_train_loss ))
+                    # ---- Set weights ----
+                    self.metagraph.set_weights(
+                        weights = self.get_row_weights(), 
+                        wait_for_inclusion = True
+                    )
 
-            # --- Catch Errors ----
-            except Exception as e:
-                logger.exception('Exception in training script with error: {}', e)
-                logger.info(traceback.print_exc())
-                logger.info('Continuing to train...')
-                time.sleep(1)
+                    # ---- Sync metagraph ----
+                    self.metagraph.sync() # Pulls the latest metagraph state (with my update.)
 
-    # ---- Training Step logs ----
+                    # ---- Update Tensorboard ----
+                    self.dendrite.__to_tensorboard__( self.tensorboard, self.global_step )
+                    self.metagraph.__to_tensorboard__( self.tensorboard, self.global_step )
+                    self.axon.__to_tensorboard__( self.tensorboard, self.global_step )
+                    self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step )
+                    logger.info("This epoch's training loss: {}...Current best training loss: {}".format( self.training_loss, self.best_train_loss ))
+
+                # --- Catch Errors ----
+                except Exception as e:
+                    logger.exception('Exception in training script with error: {}', e)
+                    logger.info(traceback.print_exc())
+                    logger.info('Continuing to train...')
+                    time.sleep(1)
+
+    # ---- Training logs ----
     def training_logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
         index = self.metagraph.state.index_for_uid[self.metagraph.uid]
         progress_bar.set_infos({
@@ -248,16 +271,4 @@ class Neuron():
             training_loss /= (iteration + 1)
         run_epoch()
         return training_loss
-
-    def stop(self):
-        logger.info('Shutting down the Axon server ...')
-        try:
-            self.axon.stop()
-            logger.info('Axon server stopped')
-        except Exception as e:
-            logger.error('Neuron: Error while stopping axon server: {} ', e)
-
-    def __del__(self):
-        self.stop()
-
 

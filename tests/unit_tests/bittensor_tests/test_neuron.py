@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 def test_create_neuron():
     neuron = bittensor.neuron.Neuron()
 
-def test_boltzmann_subscribe_success():
+def test_kusanagi_subscribe_success():
     neuron = bittensor.neuron.Neuron()
     neuron.subtensor.connect = MagicMock(return_value = True)    
     neuron.subtensor.subscribe = MagicMock(return_value = True) 
@@ -19,4 +19,4 @@ def test_boltzmann_subscribe_success():
         assert True
 
 if __name__ == "__main__":
-    test_boltzmann_subscribe_success()
+    test_kusanagi_subscribe_success()

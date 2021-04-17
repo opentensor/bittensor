@@ -256,15 +256,15 @@ class Wallet():
     def _load_hotkey(self) -> 'bittensor.substrate.Keypair':
 
         if not os.path.isfile( self.hotkeyfile ):
-            print(colored("hotkeyfile  {} does not exist".format( self.hotkeyfile ), 'red'))
+            logger.critical("hotkeyfile  {} does not exist".format( self.hotkeyfile ))
             raise KeyFileError
 
         if not os.path.isfile( self.hotkeyfile ):
-            print(colored("hotkeyfile  {} is not a file".format( self.hotkeyfile ), 'red'))
+            logger.critical("hotkeyfile  {} is not a file".format( self.hotkeyfile ))
             raise KeyFileError
 
         if not os.access( self.hotkeyfile , os.R_OK):
-            print(colored("hotkeyfile  {} is not readable".format( self.hotkeyfile ), 'red'))
+            logger.critical("hotkeyfile  {} is not readable".format( self.hotkeyfile ))
             raise KeyFileError
 
         with open( self.hotkeyfile , 'rb') as file:
@@ -273,32 +273,32 @@ class Wallet():
                 # Try hotkey load.
                 if is_encrypted(data):
                     password = bittensor.utils.Cli.ask_password()
-                    print("decrypting key... (this may take a few moments)")
+                    logger.info("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
                 hotkey = load_keypair_from_data(data)
             except KeyError:
-                print(colored("Invalid password", 'red'))
+                logger.critical("Invalid password")
                 raise KeyError("Invalid password")
 
             except KeyFileError as e:
-                print(colored("Keyfile corrupt", 'red'))
+                logger.critical("Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt")
 
-            print(colored("Loaded hotkey: {}".format(hotkey.public_key), 'green'))
+            logger.success("Loaded hotkey: {}".format(hotkey.public_key))
             return hotkey
 
 
     def _load_coldkey(self) -> 'bittensor.substrate.Keypair':
         if not os.path.isfile( self.coldkeyfile ):
-            print(colored("coldkeyfile  {} does not exist".format( self.coldkeyfile ), 'red'))
+            logger.critical("coldkeyfile  {} does not exist".format( self.coldkeyfile ))
             raise KeyFileError
 
         if not os.path.isfile( self.coldkeyfile ):
-            print(colored("coldkeyfile  {} is not a file".format( self.coldkeyfile ), 'red'))
+            logger.critical("coldkeyfile  {} is not a file".format( self.coldkeyfile ))
             raise KeyFileError
 
         if not os.access( self.coldkeyfile , os.R_OK):
-            print(colored("coldkeyfile  {} is not readable".format( self.coldkeyfile ), 'red'))
+            logger.critical("coldkeyfile  {} is not readable".format( self.coldkeyfile ))
             raise KeyFileError
 
         with open( self.coldkeyfile , 'rb') as file:
@@ -307,16 +307,16 @@ class Wallet():
                 # Try key load.
                 if is_encrypted(data):
                     password = bittensor.utils.Cli.ask_password()
-                    print("decrypting key... (this may take a few moments)")
+                    logger.info("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
                 coldkey = load_keypair_from_data(data)
 
             except KeyError:
-                print(colored("Invalid password", 'red'))
+                logger.critical("Invalid password")
                 raise KeyError("Invalid password")
 
             except KeyFileError as e:
-                print(colored("Keyfile corrupt", 'red'))
+                logger.critical("Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt")
 
             print(colored("Loaded coldkey: {}".format(coldkey.public_key), 'green'))

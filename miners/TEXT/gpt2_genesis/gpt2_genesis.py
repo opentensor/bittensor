@@ -50,7 +50,7 @@ from torch.utils.data.dataloader import DataLoader
 
 class Miner( bittensor.neuron.Neuron ):
 
-    def __init__(self, config: Munch = None ):
+    def __init__( self, config: Munch = None ):
         if config == None:
             config = Miner.default_config()
         Miner.check_config(config)
@@ -91,7 +91,7 @@ class Miner( bittensor.neuron.Neuron ):
         return config
 
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
+    def add_args( parser: argparse.ArgumentParser ):
         parser.add_argument(
             '--miner.learning_rate', 
             default=3e-2, 
@@ -161,7 +161,7 @@ class Miner( bittensor.neuron.Neuron ):
         bittensor.neuron.Neuron.add_args(parser)
 
     @staticmethod
-    def check_config(config: Munch):
+    def check_config( config: Munch ):
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         config.miner.custom_dataset = os.path.expanduser(config.miner.custom_dataset)
@@ -172,7 +172,7 @@ class Miner( bittensor.neuron.Neuron ):
         self.row_weights = torch.nn.functional.pad(self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel() ])
         return self.row_weights
 
-    def next_training_batches(self, epoch:int ) -> List[dict]:
+    def next_training_batches( self, epoch:int ) -> List[ dict ]:
         batches = []
         for iteration, inputs in  tqdm( enumerate( self.data_loader ) ):
             batch = { 'inputs': inputs }
@@ -211,11 +211,11 @@ class Miner( bittensor.neuron.Neuron ):
         self.row_weights = F.normalize(self.row_weights, p = 1, dim = 0) # Ensure normalization.
         return output
 
-    def get_lr(self):
+    def get_lr( self ):
         for param_group in self.optimizer.param_groups:
             return param_group['lr']
 
-    def configure_optimizers(self):
+    def configure_optimizers( self ):
         """
         This long function is unfortunately doing something very simple and is being very defensive:
         We are separating out all parameters of the model into two buckets: those that will experience
@@ -262,7 +262,7 @@ class Miner( bittensor.neuron.Neuron ):
         optimizer = torch.optim.AdamW(optim_groups, lr=self.config.miner.learning_rate, betas=(0.9, 0.95))
         return optimizer
 
-    def decay_learning_rate(self, batch):
+    def decay_learning_rate( self, batch ):
         """Decay the learning rate based on the progress thus far.
         Adjusts the self.config.miner.learning_rate according to the
         tokens processed so far, returns number of tokens.
