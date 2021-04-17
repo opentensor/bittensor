@@ -21,6 +21,7 @@ import pandas as pd
 
 from munch import Munch
 from loguru import logger
+logger = logger.opt(ansi=True)
 from termcolor import colored
 from prettytable import PrettyTable
 

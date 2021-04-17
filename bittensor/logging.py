@@ -21,6 +21,7 @@ import sys
 import bittensor
 
 from loguru import logger
+logger = logger.opt(ansi=True)
 
 # Filter bittensor internal messages, only from internal files.
 def bittensor_formatter(record):
@@ -35,7 +36,6 @@ def bittensor_log_filter( record ):
     elif record["level"].no >= logger.level('INFO').no:
         return True
     else:
-        print(bittensor.__debug_on__, record["level"].no)
         return False
 
 # Handler which sends messages to a rollbar server.
@@ -52,12 +52,6 @@ class RollbarHandler:
 def init_logger():
     # Remove all logger sinks.
     logger.remove()
-
-    # Add custom levels.
-    logger.level("USER-SUCCESS", no=33, icon="s")
-    logger.level("USER-CRITICAL", no=34, icon="c")
-    logger.level("USER-ACTION", no=35, icon="a") 
-    logger.level("USER-INFO", no=36, icon="i") 
 
     # Add filtered sys.stdout.
     logger.add( 

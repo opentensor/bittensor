@@ -25,6 +25,7 @@ import sys
 
 from munch import Munch
 from loguru import logger
+logger = logger.opt(ansi=True)
 from termcolor import colored
 
 import bittensor
@@ -250,7 +251,7 @@ class Wallet():
         with open( self.coldkeypubfile , "r") as file:
             coldkeypub = file.readline().strip()
 
-        logger.opt(ansi=True).success("Loaded coldkey.pub: <cyan>{}</cyan>".format( coldkeypub ))
+        logger.success("Loaded coldkey.pub: <cyan>{}</cyan>".format( coldkeypub ))
         return coldkeypub
 
     def _load_hotkey(self) -> 'bittensor.substrate.Keypair':
@@ -284,7 +285,7 @@ class Wallet():
                 logger.critical("Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt")
 
-            logger.opt(ansi=True).success("Loaded hotkey: <cyan>{}</cyan>".format(hotkey.public_key))
+            logger.success("Loaded hotkey: <cyan>{}</cyan>".format(hotkey.public_key))
             return hotkey
 
 
@@ -319,7 +320,7 @@ class Wallet():
                 logger.critical("Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt")
 
-            logger.opt(ansi=True).success("Loaded coldkey: <cyan>{}</cyan>".format(coldkey.public_key))
+            logger.success("Loaded coldkey: <cyan>{}</cyan>".format(coldkey.public_key))
             return coldkey
 
     @staticmethod

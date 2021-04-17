@@ -1,5 +1,6 @@
 
 from loguru import logger
+logger = logger.opt(ansi=True)
 from munch import Munch
 
 import bittensor

@@ -23,6 +23,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from loguru import logger
+logger = logger.opt(ansi=True)
 from munch import Munch
 from typing import List, Tuple, Dict, Optional, TYPE_CHECKING
 

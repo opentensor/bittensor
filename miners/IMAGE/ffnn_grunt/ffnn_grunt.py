@@ -20,6 +20,7 @@ import bittensor
 
 from munch import Munch
 from loguru import logger
+logger = logger.opt(ansi=True)
 from torch.utils.tensorboard import SummaryWriter
 from bittensor.utils.model_utils import ModelToolbox
 from synapses.ffnn import FFNNSynapse

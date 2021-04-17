@@ -24,6 +24,7 @@ from password_strength import PasswordPolicy
 import getpass
 
 from loguru import logger
+logger = logger.opt(ansi=True)
 
 from bittensor.substrate import Keypair
 from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError

@@ -3,6 +3,7 @@ import random
 import time
 import concurrent.futures
 from loguru import logger
+logger = logger.opt(ansi=True)
 from munch import Munch
 from unittest.mock import MagicMock
 import bittensor

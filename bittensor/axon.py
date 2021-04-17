@@ -30,7 +30,6 @@ import validators
 
 from concurrent import futures
 from munch import Munch
-from loguru import logger
 from termcolor import colored
 from types import SimpleNamespace
 from typing import List
@@ -39,6 +38,9 @@ import bittensor
 import bittensor.utils.networking as net
 import bittensor.serialization as serialization
 import bittensor.utils.stats as stat_utils
+
+from loguru import logger
+logger = logger.opt(ansi=True)
 
 class Axon(bittensor.grpc.BittensorServicer):
     r"""
@@ -548,7 +550,7 @@ class Axon(bittensor.grpc.BittensorServicer):
 
     def _serve(self):
         try:
-            logger.opt(ansi=True).success("Axon Started on endpoint <cyan>{}:{}</cyan>", self.config.axon.local_ip, self.config.axon.local_port)
+            logger.success("Axon Started on endpoint <cyan>{}:{}</cyan>", self.config.axon.local_ip, self.config.axon.local_port)
             self._server.start()
         except (KeyboardInterrupt, SystemExit):
             self.stop()

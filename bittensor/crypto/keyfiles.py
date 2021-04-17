@@ -1,6 +1,7 @@
 from bittensor.substrate import Keypair
 import json
 from loguru import logger
+logger = logger.opt(ansi=True)
 
 class KeyFileError(Exception):
     pass

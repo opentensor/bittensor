@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from loguru import logger
+logger = logger.opt(ansi=True)
 import bittensor.utils.networking as net
 
 class Neuron:

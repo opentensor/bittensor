@@ -22,6 +22,7 @@ import copy
 
 from munch import Munch
 from loguru import logger
+logger = logger.opt(ansi=True)
 from typing import List, Tuple
 from termcolor import colored
 
@@ -240,7 +241,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
             # --- Attempt connection ----
             if await self.substrate.async_connect( ws_chain_endpoint, timeout = 5 ):
-                logger.opt(ansi=True).success("Connected to network:<cyan>{}</cyan> at endpoint:<cyan>{}</cyan>".format(self.config.subtensor.network, ws_chain_endpoint))
+                logger.success("Connected to network:<cyan>{}</cyan> at endpoint:<cyan>{}</cyan>".format(self.config.subtensor.network, ws_chain_endpoint))
                 return True
             
             # ---- Timeout ----
@@ -427,7 +428,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             return False
 
         if await self.async_is_subscribed( wallet, ip, port, modality ):
-            logger.opt(ansi=True).success( "Already subscribed with:\n<cyan>[\n  ip: {},\n  port: {},\n  modality: {},\n  hotkey:{},\n  coldkey: {}\n]</cyan>".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
+            logger.success( "Already subscribed with:\n<cyan>[\n  ip: {},\n  port: {},\n  modality: {},\n  hotkey:{},\n  coldkey: {}\n]</cyan>".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
             return True
 
         ip_as_int  = net.ip_to_int(ip)
@@ -447,7 +448,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         extrinsic = await self.substrate.create_signed_extrinsic(call = call, keypair = wallet.hotkey )
         result = await self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
         if result:
-            logger.opt(ansi=True).success( "Successfully subscribed with:\n<cyan>[\n  ip: {},\n  port: {},\n  modality: {},\n  hotkey:{},\n  coldkey: {}\n]</cyan>".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
+            logger.success( "Successfully subscribed with:\n<cyan>[\n  ip: {},\n  port: {},\n  modality: {},\n  hotkey:{},\n  coldkey: {}\n]</cyan>".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
         else:
             logger.error( "Failed to subscribe")
         return result

@@ -26,6 +26,7 @@ from torch.utils.tensorboard import SummaryWriter
 from bittensor.utils.model_utils import ModelToolbox
 from munch import Munch
 from loguru import logger
+logger = logger.opt(ansi=True)
 from bittensor.config import Config
 from synapses.ffnn import FFNNSynapse
 from torch.nn.utils import clip_grad_norm_

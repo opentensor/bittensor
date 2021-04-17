@@ -24,6 +24,7 @@ import msgpack
 import msgpack_numpy
 
 from loguru import logger
+logger = logger.opt(ansi=True)
 from typing import Dict, List, Any
 
 import bittensor

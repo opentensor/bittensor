@@ -30,6 +30,7 @@ from tqdm import tqdm
 from munch import Munch
 from termcolor import colored
 from loguru import logger
+logger = logger.opt(ansi=True)
 from typing import List, Tuple, List
 
 import bittensor

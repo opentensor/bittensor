@@ -8,14 +8,14 @@ import traceback
 from tqdm import tqdm
 from qqdm import qqdm, format_str
 from munch import Munch
-from loguru import logger
 from termcolor import colored
 from types import SimpleNamespace
 from typing import Tuple, List, Optional
-
 from torch.utils.tensorboard import SummaryWriter
-
 import bittensor
+
+from loguru import logger
+logger = logger.opt(ansi=True)
 
 class Neuron():
 
@@ -151,7 +151,7 @@ class Neuron():
         self.shutdown()
 
     def shutdown( self ):
-        logger.opt(ansi=True).info("Stopping Axon on: <cyan>{}:{}</cyan>", self.axon.config.axon.local_ip, self.axon.config.axon.local_port)
+        logger.info("Stopping Axon on: <cyan>{}:{}</cyan>", self.axon.config.axon.local_ip, self.axon.config.axon.local_port)
         try:
             self.axon.stop()
             logger.success("Axon stopped")
@@ -160,8 +160,8 @@ class Neuron():
 
     def startup( self ):
         # ---- Set debugging ----
-        if self.config.debug: bittensor.__debug_on__ = True; logger.opt(ansi=True).info('DEBUG is <green>ON</green>')
-        else: logger.opt(ansi=True).info('DEBUG is <red>OFF</red>')
+        if self.config.debug: bittensor.__debug_on__ = True; logger.info('DEBUG is <green>ON</green>')
+        else: logger.info('DEBUG is <red>OFF</red>')
 
         # ---- Load Wallets ----
         logger.info('\nLoad wallet...')

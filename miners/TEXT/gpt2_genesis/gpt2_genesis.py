@@ -39,6 +39,7 @@ import torch.nn.functional as F
 from tqdm import tqdm
 from munch import Munch
 from loguru import logger
+logger = logger.opt(ansi=True)
 from typing import Tuple, List, Optional
 
 from transformers import AdamW

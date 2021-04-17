@@ -22,6 +22,7 @@ import traceback
 import queue
 
 from loguru import logger
+logger = logger.opt(ansi=True)
 from munch import Munch
 from typing import List, Tuple
 

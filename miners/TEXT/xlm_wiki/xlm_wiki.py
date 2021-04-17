@@ -35,6 +35,7 @@ import bittensor
 from tqdm import tqdm
 from munch import Munch
 from loguru import logger
+logger = logger.opt(ansi=True)
 from termcolor import colored
 from types import SimpleNamespace
 from datasets import load_dataset

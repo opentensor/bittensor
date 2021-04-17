@@ -21,6 +21,7 @@ import binascii
 import json, yaml
 from typing import List, Optional, Tuple
 from loguru import logger
+logger = logger.opt(ansi=True)
 import re
 
 from autobahn.asyncio.websocket import WebSocketClientProtocol, WebSocketClientFactory

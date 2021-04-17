@@ -26,6 +26,7 @@ import validators
 import yaml
 
 from loguru import logger
+logger = logger.opt(ansi=True)
 from munch import Munch
 from importlib.machinery import SourceFileLoader
 

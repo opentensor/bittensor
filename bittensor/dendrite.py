@@ -31,6 +31,7 @@ from termcolor import colored
 from types import SimpleNamespace
 from typing import Tuple, List, Optional
 from loguru import logger
+logger = logger.opt(ansi=True)
 from munch import Munch
 
 import bittensor

@@ -8,6 +8,7 @@ import subprocess
 
 from typing import List
 from loguru import logger
+logger = logger.opt(ansi=True)
 from pytest import fixture
 
 import bittensor

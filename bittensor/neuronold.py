@@ -28,6 +28,7 @@ from io import StringIO
 from munch import Munch
 from termcolor import colored
 from loguru import logger
+logger = logger.opt(ansi=True)
 from cryptography.exceptions import InvalidSignature, InvalidKey
 from cryptography.fernet import InvalidToken
 
