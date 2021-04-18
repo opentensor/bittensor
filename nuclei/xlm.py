@@ -67,34 +67,34 @@ class XLMPooler(nn.Module):
         return pooled_output
 
 
-class XLMSynapse(bittensor.synapse.Synapse):
-    """A Bittensor Synapse training XLM 
+class XLMNucleus(bittensor.nucleus.Nucleus):
+    """A Bittensor Nucleus training XLM 
 
     Args:
-        synapse (:obj:`Synapse`): The Synapse superclass, which contains fwd and backward logic.
+        nucleus (:obj:`Nucleus`): The Nucleus superclass, which contains fwd and backward logic.
 
     """
 
     def __init__(self, config: Munch = None, **kwargs):
-        """ Initialize a new XLM synapse module.
+        """ Initialize a new XLM nucleus module.
 
         Args:
             config (:obj:`munch.Munch`, `required`): 
                     munched config class.
         """
-        super(XLMSynapse, self).__init__(config = config, **kwargs)
+        super(XLMNucleus, self).__init__(config = config, **kwargs)
         if config == None:
-            config = XLMSynapse.default_config()
-        bittensor.config.Config.update_with_kwargs(config.synapse, kwargs) 
-        XLMSynapse.check_config(config)
+            config = XLMNucleus.default_config()
+        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
+        XLMNucleus.check_config(config)
         self.config = config
         
         # Build config.
         xlm_config = XLMConfig(
             vocab_size=bittensor.__vocab_size__, 
             emb_dim=bittensor.__network_dim__,
-            n_layers=config.synapse.n_layers,
-            n_heads=config.synapse.n_heads, 
+            n_layers=config.nucleus.n_layers,
+            n_heads=config.nucleus.n_heads, 
             # More needed
         )
 
@@ -121,87 +121,87 @@ class XLMSynapse(bittensor.synapse.Synapse):
     @staticmethod
     def default_config() -> Munch:
         parser = argparse.ArgumentParser()
-        XLMSynapse.add_args(parser)
+        XLMNucleus.add_args(parser)
         config = bittensor.config.Config.to_config(parser)
         return config
     
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        """ Add custom params to the Synapse
+        """ Add custom params to the Nucleus
 
         Args:
             parser (:obj:`argparse.AgumentParser`): Argument Parser object.
 
         """
-        parser.add_argument('--synapse.emb_dim', default=bittensor.__network_dim__, type=int,
+        parser.add_argument('--nucleus.emb_dim', default=bittensor.__network_dim__, type=int,
                                 help='Dimensionality of the encoder layers and the pooler layer.')
-        parser.add_argument('--synapse.n_layers', default=12, type=int,
+        parser.add_argument('--nucleus.n_layers', default=12, type=int,
                                 help='Number of hidden layers in the Transformer encoder.')
-        parser.add_argument('--synapse.n_heads', default=16, type=int,
+        parser.add_argument('--nucleus.n_heads', default=16, type=int,
                                 help='Number of attention heads for each attention layer in the Transformer encoder.')
-        parser.add_argument('--synapse.dropout', default=0.1, type=float,
+        parser.add_argument('--nucleus.dropout', default=0.1, type=float,
                                 help='The dropout probability for all fully connected layers in the embeddings, encoder, and pooler.')
-        parser.add_argument('--synapse.attention_dropout', default=0.1, type=float,
+        parser.add_argument('--nucleus.attention_dropout', default=0.1, type=float,
                                 help='The dropout probability for the attention mechanism.')
-        parser.add_argument('--synapse.gelu_activation', default=True, type=bool, 
+        parser.add_argument('--nucleus.gelu_activation', default=True, type=bool, 
                                 help='Whether or not to use gelu for the activations instead of relu.')
-        parser.add_argument('--synapse.sinusoidal_embeddings', default=False, type=bool, 
+        parser.add_argument('--nucleus.sinusoidal_embeddings', default=False, type=bool, 
                                 help='Whether or not to use sinusoidal positional embeddings instead of absolute positional embeddings.')
-        parser.add_argument('--synapse.causal', default=False, type=bool,
+        parser.add_argument('--nucleus.causal', default=False, type=bool,
                                 help='Whether or not the model should behave in a causal manner. Causal models use a triangular attention mask in order to only attend to the left-side context instead if a bidirectional context.')
-        parser.add_argument('--synapse.asm', default=False, type=bool,
+        parser.add_argument('--nucleus.asm', default=False, type=bool,
                                 help='Whether or not to use an adaptive log softmax projection layer instead of a linear layer for the prediction layer.')
-        parser.add_argument('--synapse.n_langs', default=1, type=int,
+        parser.add_argument('--nucleus.n_langs', default=1, type=int,
                                 help='The number of languages the model handles. Set to 1 for monolingual models.')
-        parser.add_argument('--synapse.use_lang_emb', default=True, type=bool, 
+        parser.add_argument('--nucleus.use_lang_emb', default=True, type=bool, 
                                 help='Whether to use language embeddings. Some models use additional language embeddings, see the multilingual models page for information on how to use them.')
-        parser.add_argument('--synapse.max_position_embeddings', default=512, type=bool,
+        parser.add_argument('--nucleus.max_position_embeddings', default=512, type=bool,
                                 help='The maximum sequence length that this model might ever be used with. Typically set this to something large just in case (e.g., 512 or 1024 or 2048).')
-        parser.add_argument('--synapse.embed_init_std', default=pow(2048,-0.5), type=float,
+        parser.add_argument('--nucleus.embed_init_std', default=pow(2048,-0.5), type=float,
                                 help='The standard deviation of the truncated_normal_initializer for initializing the embedding matrices.')
-        parser.add_argument('--synapse.init_std', default=50257, type=int,
+        parser.add_argument('--nucleus.init_std', default=50257, type=int,
                                 help='The standard deviation of the truncated_normal_initializer for initializing all weight matrices except the embedding matrices.')
-        parser.add_argument('--synapse.layer_norm_eps', default=pow(1,-12), type=float,
+        parser.add_argument('--nucleus.layer_norm_eps', default=pow(1,-12), type=float,
                                 help='The epsilon used by the layer normalization layers.')
-        parser.add_argument('--synapse.bos_index', default=0, type=int,
+        parser.add_argument('--nucleus.bos_index', default=0, type=int,
                                 help='The index of the beginning of sentence token in the vocabulary.')
-        parser.add_argument('--synapse.eos_index', default=1, type=int,
+        parser.add_argument('--nucleus.eos_index', default=1, type=int,
                                 help='The index of the end of sentence token in the vocabulary.')
-        parser.add_argument('--synapse.pad_index', default=2, type=int,
+        parser.add_argument('--nucleus.pad_index', default=2, type=int,
                                 help='The index of the padding token in the vocabulary.')
-        parser.add_argument('--synapse.unk_index', default=3, type=int,
+        parser.add_argument('--nucleus.unk_index', default=3, type=int,
                                 help='The index of the unknown token in the vocabulary.')
-        parser.add_argument('--synapse.mask_index', default=5, type=int,
+        parser.add_argument('--nucleus.mask_index', default=5, type=int,
                                 help='The index of the masking token in the vocabulary.')
-        parser.add_argument('--synapse.is_encoder', default=True, type=bool,
+        parser.add_argument('--nucleus.is_encoder', default=True, type=bool,
                                 help='Whether or not the initialized model should be a transformer encoder or decoder as seen in Vaswani et al.')
-        parser.add_argument('--synapse.summary_type', default="first", type=str,
+        parser.add_argument('--nucleus.summary_type', default="first", type=str,
                                 help='Argument used when doing sequence summary. Used in the sequence classification and multiple choice models.')
-        parser.add_argument('--synapse.summary_use_proj', default=True, type=bool,
+        parser.add_argument('--nucleus.summary_use_proj', default=True, type=bool,
                                 help='Argument used when doing sequence summary. Used in the sequence classification and multiple choice models. Whether or not to add a projection after the vector extraction.')
-        parser.add_argument('--synapse.summary_activation', type=str, 
+        parser.add_argument('--nucleus.summary_activation', type=str, 
                                 help='Pass "tanh" for a tanh activation to the output, any other value will result in no activation.')
-        parser.add_argument('--synapse.summary_proj_to_labels', default=True, type=bool,
+        parser.add_argument('--nucleus.summary_proj_to_labels', default=True, type=bool,
                                 help='Whether the projection outputs should have config.num_labels or config.hidden_size classes.')
-        parser.add_argument('--synapse.summary_first_dropout', default=0.1, type=float,
+        parser.add_argument('--nucleus.summary_first_dropout', default=0.1, type=float,
                                 help='The dropout ratio to be used after the projection and activation.')
-        parser.add_argument('--synapse.start_n_top', default=5, type=int,
+        parser.add_argument('--nucleus.start_n_top', default=5, type=int,
                                 help=' Used in the SQuAD evaluation script.')
-        parser.add_argument('--synapse.end_n_top', default=5, type=int,
+        parser.add_argument('--nucleus.end_n_top', default=5, type=int,
                                 help='Used in the SQuAD evaluation script.')
-        parser.add_argument('--synapse.mask_token_id', default=0, type=int,
+        parser.add_argument('--nucleus.mask_token_id', default=0, type=int,
                                 help='Model agnostic parameter to identify masked tokens when generating text in an MLM context.')
-        parser.add_argument('--synapse.lang_id', default=1, type=int,
+        parser.add_argument('--nucleus.lang_id', default=1, type=int,
                                 help='The ID of the language used by the model. This parameter is used when generating text in a given language.')
         PKMRouter.add_args(parser)
         
     @staticmethod
     def check_config(config: Munch):
-        assert config.synapse.n_layers > 0, "Number of hidden layers in the Transformer encoder must be > 0"
-        assert config.synapse.n_heads > 0, "Number of attention heads for each attention layer in the Transformer encoder must be > 0"
+        assert config.nucleus.n_layers > 0, "Number of hidden layers in the Transformer encoder must be > 0"
+        assert config.nucleus.n_heads > 0, "Number of attention heads for each attention layer in the Transformer encoder must be > 0"
     
     def forward_text (self, inputs: torch.LongTensor):
-        """ Local forward inputs through the XLM Synapse.
+        """ Local forward inputs through the XLM Nucleus.
 
         Args:
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
@@ -215,7 +215,7 @@ class XLMSynapse(bittensor.synapse.Synapse):
         return hidden
     
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
-        """ Forward pass through XLM synapse.
+        """ Forward pass through XLM nucleus.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 

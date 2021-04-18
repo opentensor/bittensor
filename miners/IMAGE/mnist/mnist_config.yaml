@@ -23,5 +23,5 @@ nucleus:
   max_workers: 5
   queue_maxsize: 10000
   queue_timeout: 5
-synapse:
+nucleus:
   target_dim: 10 

@@ -27,7 +27,7 @@ from bittensor.utils.model_utils import ModelToolbox
 from munch import Munch
 from loguru import logger
 logger = logger.opt(ansi=True)
-from synapses.dpn import DPNSynapse
+from nucleuss.dpn import DPNNucleus
 from torch.nn.utils import clip_grad_norm_
 
 class Miner():
@@ -43,10 +43,10 @@ class Miner():
         self.neuron = bittensor.neuron.Neuron(self.config)
     
         # ---- Model ----
-        self.model = DPNSynapse( config ) # Feedforward neural network with PKMRouter.
+        self.model = DPNNucleus( config ) # Feedforward neural network with PKMRouter.
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        if self.config.synapse.device:
-            self.device = torch.device(self.config.synapse.device)
+        if self.config.nucleus.device:
+            self.device = torch.device(self.config.nucleus.device)
         self.model.to( self.device ) # Set model to device
         
         # ---- Optimizer ---- 
@@ -54,7 +54,7 @@ class Miner():
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10.0, gamma=0.1)
 
         # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(DPNSynapse, torch.optim.SGD)
+        self.model_toolbox = ModelToolbox(DPNNucleus, torch.optim.SGD)
 
         # ---- Dataset ----
         self.train_data = torchvision.datasets.CIFAR10(
@@ -98,7 +98,7 @@ class Miner():
         parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         bittensor.neuron.Neuron.add_args(parser)
-        DPNSynapse.add_args(parser)
+        DPNNucleus.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):

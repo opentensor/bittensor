@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-# Feed Forward NN Synapse
+# Feed Forward NN Nucleus
 """
 Simple feed forward NN for images.
 
@@ -35,21 +35,21 @@ import bittensor
 from routers.pkm import PKMRouter
 from bittensor.utils.batch_transforms import Normalize
 
-class FFNNSynapse(bittensor.synapse.Synapse):
+class FFNNNucleus(bittensor.nucleus.Nucleus):
     """ Simple feed forward NN for images.
     """
 
     def __init__(self, config: Munch, **kwargs):
-        r""" Init a new ffnn synapse module.
+        r""" Init a new ffnn nucleus module.
                 :param [config]: munch namespace config item.
                 :type [config]:  [:obj:`munch.Munch`](, `required`)
 
         """
-        super(FFNNSynapse, self).__init__(config = config, **kwargs)
+        super(FFNNNucleus, self).__init__(config = config, **kwargs)
         if config == None:
-            config = FFNNSynapse.default_config()
-        bittensor.config.Config.update_with_kwargs(config.synapse, kwargs) 
-        FFNNSynapse.check_config(config)
+            config = FFNNNucleus.default_config()
+        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
+        FFNNNucleus.check_config(config)
         self.config = config
             
         # transform_layer: transforms images to common dimension.
@@ -78,30 +78,30 @@ class FFNNSynapse(bittensor.synapse.Synapse):
         # target_layer: Maps from hidden layer to target dimension
         # [batch_size, bittensor.__network_dim__] -> [batch_size, self.target_dim]
         self.target_layer1 = nn.Linear(bittensor.__network_dim__, 256)
-        self.target_layer2 = nn.Linear(256, self.config.synapse.target_dim)
+        self.target_layer2 = nn.Linear(256, self.config.nucleus.target_dim)
 
         self.to(self.device)
 
     @staticmethod   
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
-        FFNNSynapse.add_args(parser) 
+        FFNNNucleus.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
         return config
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):    
-        parser.add_argument('--synapse.target_dim', default=10, type=int, 
+        parser.add_argument('--nucleus.target_dim', default=10, type=int, 
                             help='Final logit layer dimension. i.e. 10 for MNIST.')
         parser = PKMRouter.add_args(parser)
 
     @staticmethod   
     def check_config(config: Munch):
-        assert config.synapse.target_dim > 0, "target dimension must be greater than 0."
+        assert config.nucleus.target_dim > 0, "target dimension must be greater than 0."
         config = PKMRouter.check_config(config)
 
     def forward_image(self, images: torch.Tensor):
-        r""" Forward image inputs through the FFNN synapse .
+        r""" Forward image inputs through the FFNN nucleus .
 
                 Args:
                     inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
@@ -126,7 +126,7 @@ class FFNNSynapse(bittensor.synapse.Synapse):
         return hidden
 
     def local_forward(self, images: torch.Tensor, targets: torch.Tensor = None) -> SimpleNamespace:
-        r""" Forward pass non-sequential image inputs and targets through the FFNN Synapse. The call does not make 
+        r""" Forward pass non-sequential image inputs and targets through the FFNN Nucleus. The call does not make 
         remote queries to the network and returns only local hidden, target and losses.
 
         Args:
@@ -196,7 +196,7 @@ class FFNNSynapse(bittensor.synapse.Synapse):
 
     def remote_forward(self, neuron: bittensor.neuron.Neuron, images: torch.Tensor, targets: torch.Tensor = None) -> SimpleNamespace:
         """
-            Forward pass non-sequential image inputs and targets through the remote context of the synapse. The call
+            Forward pass non-sequential image inputs and targets through the remote context of the nucleus. The call
             makes RPC queries accross the network using the passed neuron's metagraph and dendrite.
             
             Args:
@@ -229,7 +229,7 @@ class FFNNSynapse(bittensor.synapse.Synapse):
             
         """
         # Call the local forward pass.
-        # output = bittensor.SynapseOutput
+        # output = bittensor.NucleusOutput
         output = self.local_forward( images, targets ) 
 
         # Make remote queries using the PKMRouter.

@@ -34,5 +34,5 @@ nucleus:
 neuron:
   coldkeyfile: ~/.bittensor/wallets/default/coldkeypub.txt
   hotkeyfile: ~/.bittensor/wallets/default/hotkeys/default
-synapse:
+nucleus:
   target_dim: 10

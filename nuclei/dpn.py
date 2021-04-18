@@ -18,7 +18,7 @@ DEALINGS IN THE SOFTWARE.
 '''
 
 """
-    DPN synapse
+    DPN nucleus
 
     Bittensor endpoint trained on PIL images to detect objects using DPN.
 """
@@ -34,26 +34,26 @@ import bittensor
 from routers.pkm import PKMRouter
 from bittensor.utils.batch_transforms import Normalize
 
-class DPNSynapse(bittensor.synapse.Synapse):
+class DPNNucleus(bittensor.nucleus.Nucleus):
     """ Bittensor endpoint trained on PIL images to detect objects using an DPN.
     """
 
     def __init__( self, config: Munch = None, **kwargs):
-        r""" Init a new DPN synapse module.
+        r""" Init a new DPN nucleus module.
 
             Args:
                 config (:obj: `munch.Munch`, `required`)
                     munch namespace config item.
         """
-        super(DPNSynapse, self).__init__(config = config, **kwargs)
+        super(DPNNucleus, self).__init__(config = config, **kwargs)
         if config == None:
-            config = DPNSynapse.default_config()
-        bittensor.config.Config.update_with_kwargs(config.synapse, kwargs) 
-        DPNSynapse.check_config(config)
+            config = DPNNucleus.default_config()
+        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
+        DPNNucleus.check_config(config)
         self.config = config
         
-        in_planes, out_planes = config.synapse.in_planes, config.synapse.out_planes
-        num_blocks, dense_depth = config.synapse.num_blocks, config.synapse.dense_depth
+        in_planes, out_planes = config.nucleus.in_planes, config.nucleus.out_planes
+        num_blocks, dense_depth = config.nucleus.num_blocks, config.nucleus.dense_depth
 
         # Transform Network
         """ Transform network.
@@ -97,20 +97,20 @@ class DPNSynapse(bittensor.synapse.Synapse):
         # Layers to project target down to target size passed by config
         # (number of classes)
         self.target_layer1 = nn.Linear(bittensor.__network_dim__, 128)
-        self.target_layer2 = nn.Linear(128, self.config.synapse.target_dim)
+        self.target_layer2 = nn.Linear(128, self.config.nucleus.target_dim)
 
         self.to(self.device)
 
     @staticmethod   
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
-        DPNSynapse.add_args(parser) 
+        DPNNucleus.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
         return config
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        r""" This function adds the configuration items for the DPN synapse.
+        r""" This function adds the configuration items for the DPN nucleus.
         These args are use to instantiate a Dual Path model. 
         Instantiating a configuration with the defaults will yield a "shallow" DPN-26 configuration. 
 
@@ -125,26 +125,26 @@ class DPNSynapse(bittensor.synapse.Synapse):
         """
         def to_list(arg):
             return [int(i) for i in arg.split(",")]
-        parser.add_argument('--synapse.in_planes', default='160, 320, 640, 1280', action="append", type=to_list)
-        parser.add_argument('--synapse.out_planes', default='256, 512, 1024, 2048', action="append", type=to_list)
-        parser.add_argument('--synapse.num_blocks', default='3, 6, 20, 3', action="append", type=to_list)
-        parser.add_argument('--synapse.dense_depth', default='16, 32, 32, 128', action="append", type=to_list)
-        parser.add_argument('--synapse.target_dim', default=10, type=int, help='Final logit layer dimension. i.e. 10 for CIFAR-10.')
+        parser.add_argument('--nucleus.in_planes', default='160, 320, 640, 1280', action="append", type=to_list)
+        parser.add_argument('--nucleus.out_planes', default='256, 512, 1024, 2048', action="append", type=to_list)
+        parser.add_argument('--nucleus.num_blocks', default='3, 6, 20, 3', action="append", type=to_list)
+        parser.add_argument('--nucleus.dense_depth', default='16, 32, 32, 128', action="append", type=to_list)
+        parser.add_argument('--nucleus.target_dim', default=10, type=int, help='Final logit layer dimension. i.e. 10 for CIFAR-10.')
         parser = PKMRouter.add_args(parser)
     
     @staticmethod
     def check_config(config: Munch):
-        assert isinstance(config.synapse.in_planes, list), 'synapse.in_planes must be a tuple, got {}'.format(config.synapse.in_planes)
-        assert isinstance(config.synapse.out_planes, list), 'synapse.out_planes must be a tuple, got {}'.format(config.synapse.out_planes)
-        assert isinstance(config.synapse.num_blocks, list), 'synapse.num_blocks must be a tuple, got {}'.format(config.synapse.num_blocks)
-        assert isinstance(config.synapse.dense_depth, list), 'synapse.dense_depth must be a tuple, got {}'.format(config.synapse.dense_depth)
-        assert all(isinstance(el, int) for el in config.synapse.in_planes), 'synapse.in_planes must be a tuple of ints, got {}'.format(config.synapse.in_planes)
-        assert all(isinstance(el, int) for el in config.synapse.out_planes), 'synapse.out_planes must be a tuple of ints, got {}'.format(config.synapse.out_planes)
-        assert all(isinstance(el, int) for el in config.synapse.num_blocks), 'synapse.num_blocks must be a tuple of ints, got {}'.format(config.synapse.num_blocks)
-        assert all(isinstance(el, int) for el in config.synapse.dense_depth), 'synapse.dense_depth must be a tuple of ints, got {}'.format(config.synapse.dense_depth)
+        assert isinstance(config.nucleus.in_planes, list), 'nucleus.in_planes must be a tuple, got {}'.format(config.nucleus.in_planes)
+        assert isinstance(config.nucleus.out_planes, list), 'nucleus.out_planes must be a tuple, got {}'.format(config.nucleus.out_planes)
+        assert isinstance(config.nucleus.num_blocks, list), 'nucleus.num_blocks must be a tuple, got {}'.format(config.nucleus.num_blocks)
+        assert isinstance(config.nucleus.dense_depth, list), 'nucleus.dense_depth must be a tuple, got {}'.format(config.nucleus.dense_depth)
+        assert all(isinstance(el, int) for el in config.nucleus.in_planes), 'nucleus.in_planes must be a tuple of ints, got {}'.format(config.nucleus.in_planes)
+        assert all(isinstance(el, int) for el in config.nucleus.out_planes), 'nucleus.out_planes must be a tuple of ints, got {}'.format(config.nucleus.out_planes)
+        assert all(isinstance(el, int) for el in config.nucleus.num_blocks), 'nucleus.num_blocks must be a tuple of ints, got {}'.format(config.nucleus.num_blocks)
+        assert all(isinstance(el, int) for el in config.nucleus.dense_depth), 'nucleus.dense_depth must be a tuple of ints, got {}'.format(config.nucleus.dense_depth)
     
     def forward_image ( self, images: torch.Tensor):
-        r""" Forward image inputs through the DPN synapse .
+        r""" Forward image inputs through the DPN nucleus .
 
             Args:
                 inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
@@ -169,7 +169,7 @@ class DPNSynapse(bittensor.synapse.Synapse):
         return hidden
 
     def local_forward ( self, images: torch.Tensor, targets: torch.Tensor = None ) -> SimpleNamespace:
-        r""" Forward pass non-sequential image inputs and targets through the DPN Synapse.
+        r""" Forward pass non-sequential image inputs and targets through the DPN Nucleus.
 
             Args:
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
@@ -254,7 +254,7 @@ class DPNSynapse(bittensor.synapse.Synapse):
 
     def remote_forward(self, neuron: bittensor.neuron.Neuron, images: torch.Tensor, targets: torch.Tensor = None) -> SimpleNamespace:
         """
-            Forward pass non-sequential image inputs and targets through the synapse. Makes RPC queries to downstream neurons.
+            Forward pass non-sequential image inputs and targets through the nucleus. Makes RPC queries to downstream neurons.
             
             Args:
                 neuron (:obj: `bittensor.neuron.Neuron`, `required`):
@@ -286,7 +286,7 @@ class DPNSynapse(bittensor.synapse.Synapse):
                 )
         """
         # Call the local forward pass.
-        # output = bittensor.SynapseOutput
+        # output = bittensor.NucleusOutput
         output = self.local_forward( images, targets ) 
 
         # Make remote queries using the PKMRouter.
@@ -352,7 +352,7 @@ class DPNSynapse(bittensor.synapse.Synapse):
     
     class Bottleneck(nn.Module):
         def __init__(self, last_planes, in_planes, out_planes, dense_depth, stride, first_layer):
-            super(DPNSynapse.Bottleneck, self).__init__()
+            super(DPNNucleus.Bottleneck, self).__init__()
             self.out_planes = out_planes
             self.dense_depth = dense_depth
 

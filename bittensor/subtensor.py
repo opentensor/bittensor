@@ -428,7 +428,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             return False
 
         if await self.async_is_subscribed( wallet, ip, port, modality ):
-            logger.success( "Already subscribed with:\n<cyan>[\n  ip: {},\n  port: {},\n  modality: {},\n  hotkey:{},\n  coldkey: {}\n]</cyan>".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
+            logger.success( "Already subscribed with:\n<cyan>[\n  ip: {},\n  port: {},\n  modality: {},\n  hotkey: {},\n  coldkey: {}\n]</cyan>".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
             return True
 
         ip_as_int  = net.ip_to_int(ip)
@@ -448,7 +448,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         extrinsic = await self.substrate.create_signed_extrinsic(call = call, keypair = wallet.hotkey )
         result = await self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
         if result:
-            logger.success( "Successfully subscribed with:\n<cyan>[\n  ip: {},\n  port: {},\n  modality: {},\n  hotkey:{},\n  coldkey: {}\n]</cyan>".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
+            logger.success( "Successfully subscribed with:\n<cyan>[\n  ip: {},\n  port: {},\n  modality: {},\n  hotkey: {},\n  coldkey: {}\n]</cyan>".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
         else:
             logger.error( "Failed to subscribe")
         return result

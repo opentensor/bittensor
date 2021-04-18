@@ -102,6 +102,12 @@ class Receptor(nn.Module):
         self.nounce = None # Call nounce.
         self.backoff = 0 # Number o queries to backoff.
         self.next_backoff = 1 # Next backoff level.
+        self.endpoint = neuron.address + ':' + str( neuron.port )
+        self.channel = grpc.insecure_channel(
+            self.endpoint,
+            options=[('grpc.max_send_message_length', -1),
+                     ('grpc.max_receive_message_length', -1)])
+        self.stub = bittensor.grpc.BittensorStub(self.channel)
         self.stats = SimpleNamespace(
             forward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             backward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -136,27 +142,6 @@ class Receptor(nn.Module):
                 bittensor.proto.ReturnCode.UnknownException: 0,
             }
         )
-        # Loop back if the neuron is local.
-        try:
-            external_ip = self.config.axon.external_ip
-        except:
-            pass
-        try:
-            external_ip = self.config.axon.external_ip
-        except:
-            pass
-        finally:
-            external_ip = None
-        if neuron.address == external_ip:
-            ip = "localhost:"
-            self.endpoint = ip + str(neuron.port)
-        else:
-            self.endpoint = neuron.address + ':' + str(neuron.port)
-        self.channel = grpc.insecure_channel(
-            self.endpoint,
-            options=[('grpc.max_send_message_length', -1),
-                     ('grpc.max_receive_message_length', -1)])
-        self.stub = bittensor.grpc.BittensorStub(self.channel)
 
     @staticmethod   
     def default_config() -> Munch:

@@ -17,16 +17,13 @@
 # DEALINGS IN THE SOFTWARE.
 """GPT2 Language Modelling miner
 
-This file demonstrates training the GPT2 neuron with language modelling.
+The genesis miner.
 
 Example:
-        $ python miners/TEXT/gpt2_genesis/gpt2_genesis.py
+    $ python miners/text/gpt2_genesis.py
 
-Look at the yaml config file to tweak the parameters of the model. To run with those
-default configurations, run:
-        $ cd miners/TEXT
-        $ python gpt2_genesis/gpt2_genesis.py --session.config_file gpt2_genesis/gpt2_genesis_config.yaml
-
+To run with a config file:
+    $ python miners/text/gpt2_genesis.py --config <path to config file>
 
 """
 import argparse
@@ -46,7 +43,7 @@ logger = logger.opt(ansi=True)
 from termcolor import colored
 from typing import Tuple, List, Optional
 
-from synapses.gpt2 import GPT2Synapse
+from nuclei.gpt2 import GPT2Nucleus
 from torch.nn.utils import clip_grad_norm_
 from transformers import AdamW
 from torch.utils.data.dataloader import DataLoader
@@ -66,7 +63,7 @@ class Miner( bittensor.neuron.Neuron ):
         self.row_weights = torch.ones([1])
 
         # ---- Model ----
-        self.model = GPT2Synapse( self.config )
+        self.model = GPT2Nucleus( self.config )
 
         # ---- Optimizer ----
         self.optimizer = self.configure_optimizers()
@@ -161,21 +158,23 @@ class Miner( bittensor.neuron.Neuron ):
             type=str,
             help='config file to run this neuron, if not using cmd line arguments.'
         )
-        GPT2Synapse.add_args(parser)
+        GPT2Nucleus.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
-        GPT2Synapse.check_config( config )
+        GPT2Nucleus.check_config( config )
         bittensor.neuron.Neuron.check_config( config )
 
     def get_row_weights( self ) -> torch.FloatTensor:
         self.row_weights = torch.nn.functional.pad(self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel() ])
         return self.row_weights
 
-    def next_training_batches(self, epoch:int ) -> List[dict]:
+    # ---- Get Row Weights ----
+    # Returns mechanism weights (to be submit to chain)
+    def get_epoch_batches( self, epoch:int ) -> List[ dict ]:
         batches = []
         for iteration, inputs in  tqdm( enumerate( self.data_loader )) :
             batch = { 'inputs': inputs }
@@ -184,7 +183,9 @@ class Miner( bittensor.neuron.Neuron ):
                 break
         return batches
 
-    def training_forward( self, batch: dict ) -> SimpleNamespace():
+    # ---- Training call ----
+    # Applies a training forward + backward pass for a given input batch.
+    def training_call( self, batch: dict ) -> SimpleNamespace:
 
         # ---- Init for forward pass ----
         self.model.train(True)
@@ -212,6 +213,32 @@ class Miner( bittensor.neuron.Neuron ):
         self.row_weights = (1 - 0.03) * self.row_weights + 0.03 * batch_weights # Moving avg update.
         self.row_weights = F.normalize(self.row_weights, p = 1, dim = 0) # Ensure normalization.
         return output
+
+    # ---- Forward call ----
+    # Returns the nucleus hidden representation w.r.t the passed inputs.
+    def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        output = self.model.local_forward(
+            inputs = inputs, 
+            training = False
+        )
+        return output.local_hidden
+
+    # ---- Backward call ----
+    # Returns the input gradients w.r.t the passed inputs and grads.
+    def backward_call( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        outputs_y = self.model.local_forward(
+            inputs_x = inputs, 
+            training = False
+        )
+        grads_dx = torch.autograd.grad(
+            outputs = outputs_y, 
+            inputs = inputs_x,
+            grad_outputs = grads_dy, 
+            only_inputs = True,
+            create_graph = False, 
+            retain_graph = False
+        )
+        return grads_dx
 
     def decay_learning_rate(self, batch):
         """Decay the learning rate based on the progress thus far.

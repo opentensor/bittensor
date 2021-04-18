@@ -45,25 +45,25 @@ class BertPooler(nn.Module):
         pooled_output = self.activation(pooled_output)
         return pooled_output
 
-class BertSynapseBase (bittensor.synapse.Synapse):
+class BertNucleusBase (bittensor.nucleus.Nucleus):
     def __init__(self, config: Munch, **kwargs):
-        r""" Init a new base-bert synapse.
+        r""" Init a new base-bert nucleus.
 
             Args:
                 config (:obj:`munch.Munch`, `required`): 
         """
-        super(BertSynapseBase, self).__init__( config = config, **kwargs )
+        super(BertNucleusBase, self).__init__( config = config, **kwargs )
         if config == None:
-            config = BertSynapseBase.default_config()
-        bittensor.config.Config.update_with_kwargs(config.synapse, kwargs) 
-        BertSynapseBase.check_config(config)
+            config = BertNucleusBase.default_config()
+        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
+        BertNucleusBase.check_config(config)
         self.config = config
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
                                             hidden_size=bittensor.__network_dim__, 
-                                            num_hidden_layers=config.synapse.num_hidden_layers, 
-                                            num_attention_heads=config.synapse.num_attention_heads, 
+                                            num_hidden_layers=config.nucleus.num_hidden_layers, 
+                                            num_attention_heads=config.nucleus.num_attention_heads, 
                                             intermediate_size=bittensor.__network_dim__, 
                                             is_decoder=False)
 
@@ -88,7 +88,7 @@ class BertSynapseBase (bittensor.synapse.Synapse):
     @staticmethod   
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
-        BertSynapseBase.add_args(parser) 
+        BertNucleusBase.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
         return config
 
@@ -96,11 +96,11 @@ class BertSynapseBase (bittensor.synapse.Synapse):
     def add_args( parser: argparse.ArgumentParser ):    
         r""" Add custom params to the parser.
         """
-        parser.add_argument('--synapse.num_hidden_layers', default=2, type=int, 
+        parser.add_argument('--nucleus.num_hidden_layers', default=2, type=int, 
                             help='Number of hidden layers in the Transformer encoder.')
-        parser.add_argument('--synapse.num_attention_heads', default=2, type=int, 
+        parser.add_argument('--nucleus.num_attention_heads', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
-        parser.add_argument('--synapse.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
+        parser.add_argument('--nucleus.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
         PKMRouter.add_args(parser)
 
     @staticmethod
@@ -110,7 +110,7 @@ class BertSynapseBase (bittensor.synapse.Synapse):
         pass
 
     def forward_text(self, inputs: torch.LongTensor):
-        """ Local forward inputs through the BERT NSP Synapse.
+        """ Local forward inputs through the BERT NSP Nucleus.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
@@ -208,21 +208,21 @@ class BertSynapseBase (bittensor.synapse.Synapse):
 
         return output
 
-class BertNSPSynapse (BertSynapseBase):
+class BertNSPNucleus (BertNucleusBase):
     def __init__( self, config: Munch, **kwargs):
-        r""" Init a new bert nsp synapse module.
+        r""" Init a new bert nsp nucleus module.
 
             Args:
                 config (:obj:`Munch`, `required`): 
                     BertNSP configuration class.
         """
-        super(BertNSPSynapse, self).__init__(config = config, **kwargs)
+        super(BertNSPNucleus, self).__init__(config = config, **kwargs)
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
                                             hidden_size=bittensor.__network_dim__, 
-                                            num_hidden_layers=config.synapse.num_hidden_layers, 
-                                            num_attention_heads=config.synapse.num_attention_heads, 
+                                            num_hidden_layers=config.nucleus.num_hidden_layers, 
+                                            num_attention_heads=config.nucleus.num_attention_heads, 
                                             intermediate_size=bittensor.__network_dim__, 
                                             is_decoder=False)
         
@@ -235,7 +235,7 @@ class BertNSPSynapse (BertSynapseBase):
         self.loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-1)
     
     def forward_text(self, inputs: torch.LongTensor):
-        """ Local forward inputs through the BERT NSP Synapse.
+        """ Local forward inputs through the BERT NSP Nucleus.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
@@ -268,7 +268,7 @@ class BertNSPSynapse (BertSynapseBase):
                         - 0 indicates sequence B is a continuation of sequence A,
                         - eqw1 indicates sequence B is a random sequence.
 
-        BertSynapseBase.local_forward + SimpleNamespace ( 
+        BertNucleusBase.local_forward + SimpleNamespace ( 
                     
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
                         BERT NSP Target predictions produced using local_context. 
@@ -279,7 +279,7 @@ class BertNSPSynapse (BertSynapseBase):
         """
         inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         # Call forward method from bert base.
-        output = BertSynapseBase.base_local_forward( self, inputs = inputs, attention_mask = attention_mask ) 
+        output = BertNucleusBase.base_local_forward( self, inputs = inputs, attention_mask = attention_mask ) 
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
             # local_target.shape = [batch_size, 2]
@@ -310,7 +310,7 @@ class BertNSPSynapse (BertSynapseBase):
                         - 0 indicates sequence B is a continuation of sequence A,
                         - eqw1 indicates sequence B is a random sequence.
 
-        BertSynapseBase.remote_forward + SimpleNamespace ( 
+        BertNucleusBase.remote_forward + SimpleNamespace ( 
                     remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
                         BERT NSP Target predictions produced using remote_context. 
 
@@ -319,7 +319,7 @@ class BertNSPSynapse (BertSynapseBase):
                 )
         """
         inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
-        output = BertSynapseBase.base_remote_forward( self, neuron = neuron, attention_mask = attention_mask, inputs = inputs)
+        output = BertNucleusBase.base_remote_forward( self, neuron = neuron, attention_mask = attention_mask, inputs = inputs)
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
             # local_target.shape = [batch_size, 2]
@@ -335,22 +335,22 @@ class BertNSPSynapse (BertSynapseBase):
         return output
 
         
-class BertMLMSynapse (BertSynapseBase):
+class BertMLMNucleus (BertNucleusBase):
     def __init__(self, config: Munch, **kwargs):
-        r""" Bert synapse for MLM training
+        r""" Bert nucleus for MLM training
 
             Args:
                 config (:obj:`Munch`, `required`): 
                     BertNSP configuration class.
 
         """
-        super(BertMLMSynapse, self).__init__(config = config, **kwargs)
+        super(BertMLMNucleus, self).__init__(config = config, **kwargs)
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
                                             hidden_size=bittensor.__network_dim__, 
-                                            num_hidden_layers=config.synapse.num_hidden_layers, 
-                                            num_attention_heads=config.synapse.num_attention_heads, 
+                                            num_hidden_layers=config.nucleus.num_hidden_layers, 
+                                            num_attention_heads=config.nucleus.num_attention_heads, 
                                             intermediate_size=bittensor.__network_dim__, 
                                             is_decoder=False)
       
@@ -363,7 +363,7 @@ class BertMLMSynapse (BertSynapseBase):
         self.loss_fct = torch.nn.CrossEntropyLoss()
 
     def forward_text(self, inputs: torch.LongTensor):
-        """ Local forward inputs through the BERT NSP Synapse.
+        """ Local forward inputs through the BERT NSP Nucleus.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
@@ -389,7 +389,7 @@ class BertMLMSynapse (BertSynapseBase):
                     Tokens with indices set to ``-100`` are ignored (masked), the loss is only computed for the tokens with targets
                     in ``[0, ..., config.vocab_size]``   
 
-            BertSynapseBase.local_forward + SimpleNamespace ( 
+            BertNucleusBase.local_forward + SimpleNamespace ( 
                     
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
                         BERT NSP Target predictions produced using local_context. 
@@ -400,7 +400,7 @@ class BertMLMSynapse (BertSynapseBase):
         """
         inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         # Call forward method from bert base.
-        output = BertSynapseBase.base_local_forward( self, inputs = inputs ) 
+        output = BertNucleusBase.base_local_forward( self, inputs = inputs ) 
 
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
@@ -427,7 +427,7 @@ class BertMLMSynapse (BertSynapseBase):
                     Tokens with indices set to ``-100`` are ignored (masked), the loss is only computed for the tokens with targets
                     in ``[0, ..., config.vocab_size]``   
 
-            BertSynapseBase.remote_forward + SimpleNamespace ( 
+            BertNucleusBase.remote_forward + SimpleNamespace ( 
                     
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
                         BERT NSP Target predictions produced using local_context. 
@@ -438,7 +438,7 @@ class BertMLMSynapse (BertSynapseBase):
         """
         inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         # Call forward method from bert base.
-        output = BertSynapseBase.base_remote_forward( self, neuron = neuron, inputs = inputs ) 
+        output = BertNucleusBase.base_remote_forward( self, neuron = neuron, inputs = inputs ) 
 
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.

@@ -1,3 +1,4 @@
+
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -16,261 +17,169 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import sys
+import random
 import torch
-import traceback
-import queue
+import torch.nn as nn
+import torch.optim as optim
 
 from loguru import logger
 logger = logger.opt(ansi=True)
 from munch import Munch
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Optional, TYPE_CHECKING
 
-import bittensor 
-import bittensor.config as config_utils
-import bittensor.utils.ptp as ptp
+import bittensor
 
-class Nucleus ():
-    r""" Processing core of a bittensor Neuron. Runs behind an Axon endpoint to process requests on the served synapse.
-        The nucleus uses a prioritized thread pool to process requests according in priority. Priority is set by the Axon.
+class Nucleus(nn.Module):
+    """ Bittensor nucleus class. 
+        Each model developed on the Bittensor network (see `bittensor/nucleuss <https://github.com/opentensor/bittensor/tree/master/bittensor/nucleuss>`_)
+        extends the Nucleus class. This class implements the forward_text, forward_image, and forward_tensor calls that *must* be overridden 
+        in the model nucleus subclass. This class also implements the gradient calculation and backward pass for any extending nucleus subclass. 
     """
 
-    def __init__( self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, **kwargs ):
-        r""" Initializes a new tensor processing backend
+    def __init__(self, config: Munch = None, **kwargs):
+        r""" Init nucleus module.
+
             Args:
-                config (:obj:`Munch`, `optional`): 
-                    nucleus.Nucleus.config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
-                    bittensor wallet with hotkey and coldkeypub.
-                max_workers (default=5, type=int):
-                    The maximum number of outstanding nucleuss priority queue workers.
-                    Adding additional work to the work queue past this point does not trigger additional thread creation.
-                queue_timeout (default=5, type=int):
-                    Nucleus future timeout. Work futures timout after 5 second and return a null response.
-                queue_maxsize (default=1000, type=int):
-                    The maximum number of pending tasks allowed in the threading priority queue. 
-                    Adding additional work to the work queue blocks until space becomes available.
+                config (:obj:`Munch`, `required`): 
+                    nucleus.config()
         """
+        super().__init__()
         if config == None:
             config = Nucleus.default_config()
-        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
         Nucleus.check_config(config)
         self.config = config
 
-        if wallet == None:
-            wallet = bittensor.wallet.Wallet(self.config)
-        self.wallet = wallet
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if self.config.nucleus.device:
+            self.device = torch.device(self.config.nucleus.device)
 
-        self._forward_pool = ptp.ThreadPoolExecutor(maxsize = self.config.nucleus.queue_maxsize, max_workers=self.config.nucleus.max_workers)
-        self._backward_pool = ptp.ThreadPoolExecutor(maxsize = self.config.nucleus.queue_maxsize, max_workers=self.config.nucleus.max_workers)
+        # For Forward calls: must be set manually with set_metagraph and set_dendrite.
+        self._metagraph = None
+        self._dendrite = None
 
     @staticmethod   
     def default_config() -> Munch:
+         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Nucleus.add_args(parser) 
-        config = config_utils.Config.to_config(parser); 
+        config = bittensor.config.Config.to_config(parser); 
         return config
-    
+
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
-        r""" Adds this nucleus's command line arguments to the passed parser.
-            
-                Args:
-                    parser (:obj:`argparse.ArgumentParser`, `required`): 
-                        parser argument to append args to.
-        """
-        bittensor.wallet.Wallet.add_args( parser )
-        try:
-            # Can be called twice.
-            parser.add_argument('--nucleus.max_workers', default=5, type=int, 
-                    help='''The maximum number of outstanding nucleuss priority queue workers.
-                            Adding additional work to the work queue past this point does not trigger additional thread creation.''')
-            parser.add_argument('--nucleus.queue_timeout', default=5, type=int, 
-                    help='''Nucleus future timeout. Work futures timout after 5 second and return a null response.''')
-            parser.add_argument('--nucleus.queue_maxsize', default=1000, type=int, 
-                    help=''' The maximum number of pending tasks allowed in the threading priority queue. 
-                            Adding additional work to the work queue blocks until space becomes available.''')
-        except:
+       try:
+            parser.add_argument('--nucleus.device', required=False, 
+                                    help='''Whether to use "cuda" or "cpu" when running miner''')
+       except:
             pass
 
     @staticmethod   
     def check_config(config: Munch):
-        r""" Checks the passed config items for validity.
-            Args:
-                config (:obj:`munch.Munch, `required`): 
-                    config to check.
-        """
         pass
 
-    def forward(self, synapse: 'bittensor.synapse.Synapse', inputs: torch.Tensor, mode: bittensor.proto.Modality, priority: float) -> Tuple[torch.FloatTensor, str, int]:
-        r""" Accepts a synapse object with inputs and priority, submits them to the forward work pool
-            and waits for a response from the threading future. Processing errors or timeouts result in
-            error codes which propagate back to the calling Axon.
+    def deepcopy(self):
+        """ Returns a copy of this nucleus by passing the model params to load_state_dict.
 
-                Args:
-                    synapse (:obj:`bittensor.synapse.synapse.Synapse`, `required`): 
-                        synapse to pass to the worker. Note: the synapse.call_forward must be thread safe. 
-                    inputs (:obj:`torch.Tensor`, `required`): 
-                        tensor inputs to be passed to synapse.call_forward
-                    mode (:obj:`bittensor.proto.Modality`, `required`):
-                        input modality enum signaling between IMAGE, TEXT or TENSOR inputs.
-                    priority (`float`, `required`):
-                        processing priority, a unique number from amongst current calls and less than sys.maxsize.
-                        calls are processed in this order.
-                        NOTE: priority must be unique amongst current calls.
-                Returns:
-                    outputs (:obj:`torch.FloatTensor`, `required`): 
-                        response from the synapse.call_forward call or None in the case of errors.
-                    message: (str, `required`): 
-                        message associated with forward call, potentially error, or 'success'.
-                    code: (:obj:`bittensor.proto.ReturnCode, `required`)
-                        return code associated with forward call i.e. Success of Timeout.
-
+            Returns:
+                nucleus_copy (:obj:`self.__class__`, `required`): 
+                    Deep copy nucleus object.
         """
-        # Build future request.
-        call_params = [synapse, inputs, mode]
-        try:
-            future = self._forward_pool.submit( fn = self._forward, call_params = call_params, priority = priority)
-        except queue.Full:
-            code = bittensor.proto.ReturnCode.NucleusFull
-            message = 'processing queue is full. try Backoff.'
-            return None, message, code
-        except Exception as e:
-            message = 'Unknown error on nucleus submit with error {}'.format(e)
-            logger.error(message)
-            code = bittensor.proto.ReturnCode.UnknownException
-            return None, message, code
+        NucleusClass = self.__class__
+        nucleus_copy = NucleusClass(self.config)
+        nucleus_copy.load_state_dict(self.state_dict())
+        return nucleus_copy
 
-        # Try to get response or error on timeout.
-        try:
-            outputs = future.result (timeout = self.config.nucleus.queue_timeout)
-            tensor = outputs[0]
-            message = outputs[1]
-            code = outputs[2]
-        # Catch all Exception.
-        # Errors in the synapse call are caught in _backward and returned with the corresponding code.
-        except Exception as e:
-            tensor = None
-            message = 'timeout with error {}'.format(e)
-            code = bittensor.proto.ReturnCode.NucleusTimeout
-        return tensor, message, code
-
-    def backward(self, synapse: 'bittensor.synapse.Synapse', inputs_x: torch.Tensor, grads_dy: torch.FloatTensor, mode: bittensor.proto.Modality, priority: float) -> Tuple[torch.FloatTensor, str, int]:
-        r""" Accepts a synapse object with tensor inputs, grad inputs, and priority. 
-            Submits inputs to the backward work pool for processing and waits waits for a response.
-            Processing errors or timeouts result in error codes which propagate back to the calling Axon.
-
-                Args:
-                    synapse (:obj:`bittensor.synapse.synapse.Synapse`, `required`): 
-                        synapse to pass to the worker. Note: the synapse.call_backward must be thread safe. 
-                    inputs_x (:obj:`torch.Tensor`, `required`): 
-                        tensor inputs from a previous call to be passed to synapse.call_backward
-                    grads_dy (:obj:`torch.Tensor`, `required`): 
-                        gradients associated wiht inputs for backward call.
-                    mode (:obj:`bittensor.proto.Modality`, `required`):
-                        input modality enum signaling between IMAGE, TEXT or TENSOR inputs.
-                    priority (`float`, `required`):
-                        processing priority, a unique number from amongst current calls and less than sys.maxsize.
-                        calls are processed in this order.
-                        NOTE: priority must be unique amongst current calls.
-                
-                Returns:
-                    outputs (:obj:`torch.FloatTensor`, `required`): 
-                        response from the synapse.call_backward call (i.e. inputs_dx) or None in the case of errors.
-                    message: (str, `required`): 
-                        message associated with forward call, potentially error, or 'success'.
-                    code: (:obj:`bittensor.proto.ReturnCode, `required`)
-                        return code associated with forward call i.e. Success of Timeout.
-
-        """
-        # Build call params and submit the task to the pool.
-        call_params = [synapse, inputs_x, grads_dy, mode]
-        future = self._backward_pool.submit( fn =  self._backward, call_params = call_params, priority = priority )
-        # Recieve respoonse from the future or fail.
-        try:
-            outputs = future.result (timeout = self.config.nucleus.queue_timeout)
-            tensor = outputs[0]
-            message = outputs[1]
-            code = outputs[2]
-        # Catch all exception which returns a timeout code. 
-        # Errors in the synapse call are caught in _backward and returned with the corresponding code.
-        except Exception as e:
-            tensor = None
-            message = 'timeout with error {}'.format(e)
-            code = bittensor.proto.ReturnCode.NucleusTimeout
-        return tensor, message, code
-
-    def _forward(self, call_params: List) -> Tuple[torch.FloatTensor, str, int]:
-        r""" Actual processing function for the forward call. The passed synapse.call_forward must be thread safe.
-
-                Args:
-                    call_params (:obj:`List[bittensor.synapse.Synapse, inputs, mode]`, `required`): 
-                        call params containing the synapse to be called and inputs with modality.
-                Returns:
-                    outputs (:obj:`torch.FloatTensor`, `required`): 
-                        response from the synapse.call_backward call (i.e. inputs_dx) or None in the case of errors.
-                    message: (str, `required`): 
-                        message associated with forward call, potentially error, or 'success'.
-                    code: (:obj:`bittensor.proto.ReturnCode, `required`)
-                        return code associated with forward call i.e. Success of Timeout.
-
-        """
-        synapse = call_params[0]
-        inputs = call_params[1]
-        mode = call_params[2]
-        try:
-            tensor = synapse.call_forward(inputs, mode)
-            message = 'success'
-            code = bittensor.proto.ReturnCode.Success
-                
-        except NotImplementedError:
-            tensor = None
-            message = 'modality not implemented'
-            code = bittensor.proto.ReturnCode.NotImplemented
-
-        except Exception as e:
-            tensor = None
-            message = 'Unknown error when calling synapse.Synapse forward with errr {}, {}'.format(e, traceback.format_exc())
-            code = bittensor.proto.ReturnCode.UnknownException
-
-        return [tensor, message, code]
-
-    def _backward(self, call_params: List):
-        r""" Actual processing function for the backward call. The passed synapse.call_backward must be thread safe.
+    def forward_text(self, text: torch.LongTensor) -> torch.FloatTensor:
+        r"""Forward tokenized text inputs through this nucleus.
 
             Args:
-                call_params (:obj:`List[bittensor.synapse.Synapse, inputs_x, grads_dy]`, `required`): 
-                    call params containing the synapse to be called and inputs with grads.
+                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                    Batch_size length list of tokenized sentences.
+            
             Returns:
-                outputs (:obj:`torch.FloatTensor`, `required`): 
-                    response from the synapse.call_backward call (i.e. inputs_dx) or None in the case of errors.
-                message: (str, `required`): 
-                    message associated with forward call, potentially error, or 'success'.
-                code: (:obj:`bittensor.proto.ReturnCode, `required`)
-                    return code associated with forward call i.e. Success of Timeout.
+                outputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Output representations produced by this nucleus for passed text.
         """
-       
-        synapse = call_params[0]
-        inputs_x = call_params[1]
-        grads_dy = call_params[2]
-        mode = call_params[3]
-        try:
-            tensor = synapse.grad(inputs_x, grads_dy, modality = mode)
-            message = 'success'
-            code = bittensor.proto.ReturnCode.Success
-        except Exception as e:
-            tensor = None
-            message = 'Unknown error when calling synapse.Synapse backward with errr {}'.format(e)
-            code = bittensor.proto.ReturnCode.UnknownException
-        return [tensor, message, code]
+        raise NotImplementedError('Must be overriden in nucleus implementation')
 
-    def __del__(self):
-        """ Calls nucleus stop for clean threadpool closure """
-        self.stop()
+    def forward_image(self, images: torch.FloatTensor) -> torch.FloatTensor:
+        r"""Forward sequential image inputs through this nucleus.
 
-    def stop(self):
-        """ Safely shutsdown the forward and backward pool thread """
-        self._forward_pool.shutdown()
-        self._backward_pool.shutdown()
+            Args:
+                inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
+                    Sequenced Image tensors i.e. created using PIL.toTensor() and an added sequence dimension.
+            
+            Returns:
+                outputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                    Output representations produced by this nucleus for passed images.
+        """
+        raise NotImplementedError('Must be overriden in nucleus implementation')
 
+    def forward_tensor(self, tensors: torch.FloatTensor) -> torch.FloatTensor:
+        r"""Forward raw float encoded tensors through this nucleus.
+
+            Args:
+                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Sequenced float tensors to be passed through this nucleus.
+            
+            Returns:
+                output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Output representations produced by this nucleus for passed tensors.
+        """
+        raise NotImplementedError('Must be overriden in nucleus implementation')
+
+    def call_forward(self, inputs: torch.Tensor, modality: bittensor.proto.Modality, no_grad=True) -> torch.FloatTensor:
+        """
+        Apply forward pass to the bittensor.nucleus given inputs and modality.
+        """
+        if no_grad:
+            with torch.no_grad():
+                if modality == bittensor.proto.Modality.TEXT:
+                    outputs = self.forward_text(inputs)
+                elif modality == bittensor.proto.Modality.IMAGE:
+                    outputs = self.forward_image(inputs)
+                elif modality == bittensor.proto.Modality.TENSOR:
+                    outputs = self.forward_tensor(inputs)
+                else:
+                    raise NotImplementedError
+        else:
+            if modality == bittensor.proto.Modality.TEXT:
+                outputs = self.forward_text(inputs)
+            elif modality == bittensor.proto.Modality.IMAGE:
+                outputs = self.forward_image(inputs)
+            elif modality == bittensor.proto.Modality.TENSOR:
+                outputs = self.forward_tensor(inputs)
+            else:
+                raise NotImplementedError
+
+        return outputs
+
+    def grad(self, inputs_x: torch.Tensor, grads_dy: torch.Tensor, modality: bittensor.proto.Modality) -> torch.Tensor:
+        """
+            Returns gradients for the inputs given outputs and output grads.
+        """
+        with torch.enable_grad():
+            outputs_y = self.call_forward(inputs = inputs_x.to(self.device), modality = modality, no_grad=False)
+            grads_dx = torch.autograd.grad(
+                outputs = outputs_y.to(self.device), 
+                inputs = inputs_x.to(self.device), 
+                grad_outputs = grads_dy.to(self.device), 
+                only_inputs = True,
+                create_graph = False, 
+                retain_graph = False
+            )
+        return grads_dx[0]
+
+    def backward(self, inputs_x: torch.Tensor, grads_dy: torch.Tensor, modality: bittensor.proto.Modality):
+        """
+        Apply a backward pass to the nn.module given grads and inputs.
+        """
+        with torch.enable_grad():
+            outputs_y = self.call_forward(inputs = inputs_x.to(self.device), modality = modality, no_grad=False)
+            torch.autograd.backward(
+                tensors = [outputs_y.to(self.device)], 
+                grad_tensors = [grads_dy.to(self.device)], 
+                create_graph = False, 
+                retain_graph=False
+            )
 

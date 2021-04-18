@@ -46,7 +46,6 @@ import bittensor.neuron
 import bittensor.nucleus
 import bittensor.receptor
 import bittensor.subtensor
-import bittensor.synapse
 import bittensor.wallet
 
 # ---- LOGGING ----

@@ -9,16 +9,16 @@ import bittensor
 import bittensor.serialization as serialization
 
 axon = bittensor.axon.Axon()
-synapse = bittensor.synapse.Synapse()
+nucleus = bittensor.nucleus.Nucleus()
 
 def test_serve():
-    assert axon.synapse == None
+    assert axon.nucleus == None
     for _ in range(0, 10):
-        axon.serve(synapse)
-    assert axon.synapse != None
+        axon.serve(nucleus)
+    assert axon.nucleus != None
 
 def test_forward_not_implemented():
-    axon.serve(synapse)
+    axon.serve(nucleus)
     axon.nucleus.forward = MagicMock(return_value=[None, 'not implemented', bittensor.proto.ReturnCode.NotImplemented])
     x = torch.rand(3, 3, bittensor.__network_dim__)
 
@@ -35,17 +35,17 @@ def test_forward_not_implemented():
 
 
 def test_forward_not_serving():
-    axon.synapse = None
+    axon.nucleus = None
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version__,
         public_key = axon.wallet.hotkey.public_key,
     )
     response = axon.Forward(request, None)
-    assert response.return_code == bittensor.proto.ReturnCode.NotServingSynapse
+    assert response.return_code == bittensor.proto.ReturnCode.NotServingNucleus
 
 
 def test_empty_forward_request():
-    axon.serve(synapse)
+    axon.serve(nucleus)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version__,
         public_key = axon.wallet.hotkey.public_key,
@@ -55,7 +55,7 @@ def test_empty_forward_request():
 
 
 def test_forward_deserialization_error():
-    axon.serve(synapse)
+    axon.serve(nucleus)
     x = dict()
     y = dict()  # Not tensors that can be deserialized.
     request = bittensor.proto.TensorMessage(
@@ -68,7 +68,7 @@ def test_forward_deserialization_error():
 
 
 def test_forward_success():
-    axon.synapse = synapse
+    axon.nucleus = nucleus
     x = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
     x_serialized = serializer.serialize(x, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
@@ -88,17 +88,17 @@ def test_forward_success():
 
 
 def test_backward_not_serving():
-    axon.synapse = None
+    axon.nucleus = None
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version__,
         public_key = axon.wallet.hotkey.public_key,
     )
     response = axon.Backward(request, None)
-    assert response.return_code == bittensor.proto.ReturnCode.NotServingSynapse
+    assert response.return_code == bittensor.proto.ReturnCode.NotServingNucleus
 
 
 def test_empty_backward_request():
-    axon.serve(synapse)
+    axon.serve(nucleus)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version__,
         public_key = axon.wallet.hotkey.public_key,
@@ -108,7 +108,7 @@ def test_empty_backward_request():
 
 
 def test_single_item_backward_request():
-    axon.serve(synapse)
+    axon.serve(nucleus)
     x = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
     x_serialized = serializer.serialize(x, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
@@ -123,7 +123,7 @@ def test_single_item_backward_request():
 
 
 def test_backward_deserialization_error():
-    axon.serve(synapse)
+    axon.serve(nucleus)
     x = dict()
     y = dict()  # Not tensors that can be deserialized.
     request = bittensor.proto.TensorMessage(
@@ -136,7 +136,7 @@ def test_backward_deserialization_error():
 
 
 def test_backward_success():
-    axon.serve(synapse)
+    axon.serve(nucleus)
     x = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
     x_serialized = serializer.serialize(x, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)

@@ -23,7 +23,7 @@ from loguru import logger
 logger = logger.opt(ansi=True)
 from torch.utils.tensorboard import SummaryWriter
 from bittensor.utils.model_utils import ModelToolbox
-from synapses.ffnn import FFNNSynapse
+from nucleuss.ffnn import FFNNNucleus
 
 class Miner():
 
@@ -38,7 +38,7 @@ class Miner():
         self.neuron = bittensor.neuron.Neuron(config)
 
         # ---- Build FFNN Model ----
-        self.model = FFNNSynapse( self.config )
+        self.model = FFNNNucleus( self.config )
         self.model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         self.neuron.axon.serve( self.model )
 
@@ -46,7 +46,7 @@ class Miner():
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum)
 
         # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(FFNNSynapse, torch.optim.SGD)
+        self.model_toolbox = ModelToolbox(FFNNNucleus, torch.optim.SGD)
 
         # ---- Logging ----
         self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
@@ -72,7 +72,7 @@ class Miner():
         parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
         bittensor.neuron.Neuron.add_args(parser)
-        FFNNSynapse.add_args(parser)
+        FFNNNucleus.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):

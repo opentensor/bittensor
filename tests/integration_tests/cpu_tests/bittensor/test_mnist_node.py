@@ -22,7 +22,7 @@ logger = logger.opt(ansi=True)
 import bittensor
 from bittensor.neuron import Neuron
 from bittensor.config import Config
-from synapses.ffnn import FFNNSynapse
+from nucleuss.ffnn import FFNNNucleus
 
 class Session():
 
@@ -35,7 +35,7 @@ class Session():
         self.neuron = Neuron(self.config)
     
         # ---- Model ----
-        self.model = FFNNSynapse( config ) # Feedforward neural network with PKMRouter.
+        self.model = FFNNNucleus( config ) # Feedforward neural network with PKMRouter.
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to( self.device ) # Set model to device
         
@@ -73,7 +73,7 @@ class Session():
         parser.add_argument('--session.name', default='mnist', type=str, help='Trials for this session go in session.root / session.name')
         parser.add_argument('--session.uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in session.root_dir / session.name / session.uid')
         Neuron.add_args(parser)
-        FFNNSynapse.add_args(parser)
+        FFNNNucleus.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
@@ -86,7 +86,7 @@ class Session():
         config.miner.full_path = full_path
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
-        FFNNSynapse.check_config(config)
+        FFNNNucleus.check_config(config)
         Neuron.check_config(config)
 
     # --- Main loop ----
