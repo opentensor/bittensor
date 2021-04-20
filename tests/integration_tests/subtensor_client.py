@@ -52,20 +52,20 @@ def connect( port:int ):
     subtensor.connect()
     return subtensor
 
-async def add_stake( port:int, wallet:bittensor.wallet.Wallet, amount: Balance ):
-    subtensor = connect( port )
-    await subtensor.is_connected()
-
-    # Get the uid of the new neuron
-    uid = await subtensor.get_uid_for_pubkey( wallet.hotkey.public_key )
-    assert uid is not None
-
-    # Get the amount of stake, should be 0
-    result = await subtensor.get_stake_for_uid( uid )
-    assert int(result) == int(Balance(0))
-
-    # Add stake to new neuron
-    await subtensor.add_stake( wallet = wallet, amount = amount, hotkey_id = hotkeypair.public_key )
+# async def add_stake( port:int, wallet:bittensor.wallet.Wallet, amount: Balance ):
+#     subtensor = connect( port )
+#     await subtensor.is_connected()
+#
+#     # Get the uid of the new neuron
+#     uid = await subtensor.get_uid_for_pubkey( wallet.hotkey.public_key )
+#     assert uid is not None
+#
+#     # Get the amount of stake, should be 0
+#     result = await subtensor.get_stake_for_uid( uid )
+#     assert int(result) == int(Balance(0))
+#
+#     # Add stake to new neuron
+#     await subtensor.add_stake( wallet = wallet, amount = amount, hotkey_id = hotkeypair.public_key )
 
 def generate_wallet( name:str = 'pytest' ):
     wallet = bittensor.wallet.Wallet(
@@ -90,11 +90,10 @@ def subscribe( subtensor, wallet):
         wait_for_finalization = True,
         timeout = 6 * bittensor.__blocktime__,
     )
-    assert subtensor.async_is_subscribed (
+    assert subtensor.is_subscribed (
         wallet = wallet,
         ip = "8.8.8.8",
         port = 6666, 
-        modality = bittensor.proto.Modality.TEXT,
     )
 
 '''
@@ -256,18 +255,18 @@ def test_set_weights_success(setup_chain):
     w_uids = [uidA, uidB]
     w_vals = [pow(2, 31)-1, pow(2,31)-1]
     subtensorA.set_weights(
-        wallet = self.wallet, 
-        destinations = w_uids, 
+        destinations = w_uids,
         values = w_vals, 
         wait_for_finalization=True, 
-        timeout = 4 * bittensor.__blocktime__
+        timeout = 4 * bittensor.__blocktime__,
+        wallet=walletA
     )
     subtensorB.set_weights (
-        wallet = self.wallet, 
-        destinations = w_uids, 
+        destinations = w_uids,
         values = w_vals, 
         wait_for_finalization=True, 
-        timeout = 4 * bittensor.__blocktime__
+        timeout = 4 * bittensor.__blocktime__,
+        wallet=walletB
     )
 
     result_uids = subtensorA.weight_uids_for_uid(uidA)

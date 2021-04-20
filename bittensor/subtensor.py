@@ -311,7 +311,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             else:
                 return False
 
-    def is_subscribed(self, wallet: 'bittensor.wallet.Wallet', ip: str, port: int, modality: int, coldkey: str ) -> bool:
+    def is_subscribed(self, wallet: 'bittensor.wallet.Wallet', ip: str, port: int ) -> bool:
         r""" Returns true if the bittensor endpoint is already subscribed with the wallet and metadata.
         Args:
             wallet (bittensor.wallet.Wallet):
@@ -327,9 +327,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_is_subscribed( wallet, ip, port, modality, coldkey ))
+        return loop.run_until_complete(self.async_is_subscribed( wallet, ip, port ))
             
-    async def async_is_subscribed( self, wallet: 'bittensor.wallet.Wallet', ip: str, port: int, modality: int ) -> bool:
+    async def async_is_subscribed( self, wallet: 'bittensor.wallet.Wallet', ip: str, port: int ) -> bool:
         r""" Returns true if the bittensor endpoint is already subscribed with the wallet and metadata.
         Args:
             wallet (bittensor.wallet.Wallet):
@@ -426,7 +426,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         if not await self.async_check_connection():
             return False
 
-        if await self.async_is_subscribed( wallet, ip, port, modality ):
+        if await self.async_is_subscribed( wallet, ip, port ):
             logger.log('USER-SUCCESS', "Already subscribed with [ip: {}, port: {}, modality: {}, hotkey:{}, coldkey: {}]".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
             return True
 
