@@ -19,7 +19,7 @@
 
 import bittensor
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
  
 if __name__ == '__main__':
     config = bittensor.cli.CLI.default_config(); 

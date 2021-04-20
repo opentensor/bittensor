@@ -27,12 +27,16 @@ To run with a config file:
 
 """
 import argparse
+import copy
+import math
 import os
 import random
+import sys
 import torch
 import torch.nn.functional as F
 import bittensor
 
+from qqdm import qqdm, format_str
 from tqdm import tqdm
 from munch import Munch
 from termcolor import colored
@@ -44,15 +48,16 @@ from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
 from nuclei.bert import BertNSPNucleus
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 
+class Miner( bittensor.neuron.BasicNeuron ):
 
-class Miner( bittensor.neuron.Neuron ):
-
-    def __init__( self, config: Munch = None ):
+    def __init__( self, config: Munch = None, **kwargs ):
 
         if config == None:
             config = Miner.default_config();       
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
+        logger.info( bittensor.config.Config.toString( config ) )
         Miner.check_config( config )
         self.config = config
 
@@ -88,8 +93,9 @@ class Miner( bittensor.neuron.Neuron ):
         parser.add_argument('--miner.clip_gradients', default=0.8, type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.')
         parser.add_argument('--miner.epoch_length', default=500, type=int, help='Iterations of training per epoch')
         parser.add_argument('--miner.batch_size_train', default=1, type=int, help='Training batch size.')
+        parser.add_argument('--miner.n_epochs', default=-1, type=int, help='Miner runs for this many epochs, or forever if < 0')
         BertNSPNucleus.add_args( parser )
-        bittensor.neuron.Neuron.add_args( parser )
+        bittensor.neuron.BasicNeuron.add_args( parser )
 
     @staticmethod
     def check_config(config: Munch):
@@ -97,17 +103,122 @@ class Miner( bittensor.neuron.Neuron ):
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         BertNSPNucleus.check_config( config )
-        bittensor.neuron.Neuron.check_config( config )
+        bittensor.neuron.BasicNeuron.check_config( config )
+
+    def should_reload(self) -> bool:
+        r""" This function is called by neuron.run() after every epoch.
+            If the function returns True the model state is saved to neuron.full_path.
+            Returns:
+                should_reload (bool):
+                    False by default. Does not reload the model after each epoch.
+        """
+        if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
+            return True
+
+    def should_save( self ) -> bool:
+        r""" This function is called by neuron.run() after every epoch.
+            If this function returns True, the model is saved to disk and can be reloaded later.
+            Returns:
+                should_save (bool):
+                    True by default. Saves model after each epoch.
+        """
+        if self.epoch_loss < self.best_epoch_loss:
+            self.best_epoch_loss = self.epoch_loss
+            return True
+        else:
+            return False
+
+    def get_state_dict( self ) -> dict:
+        r""" This function is called by neuron.save_model() on save.
+            The function must return a state dict which will be passed to neuron.reload_from_state_dict.       
+            Returns:
+                state_dict (:obj:`dict`): 
+                    Dictionary containing run state information such as the model parameters.
+        """
+        return {
+            'model_state': self.model.state_dict(), 
+            'optimizer_state': self.optimizer.state_dict(),
+        }
+
+    def reload_from_state_dict( self, state_dict: dict):
+        r""" This function is called by neuron.reload_model() on reload.
+            The function must reload the training state from the passed state_dict. 
+            Args:
+                state_dict (:obj:`dict`): 
+                    Dictionary containing run state information such as the model parameters. Output 
+                    of get_state_dict.
+        """
+        self.model.load_state_dict( state_dict['model_state'] )
+        self.optimizer.load_state_dict( state_dict['optimizer_state'] )
     
+    # ---- Axon Forward call ----
+    def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" This function is called by neuron.forward_loop which can be overridden by the base class.
+            The arguments reflect an RPC request from another neuron in the network, the response tensor
+            from this function is processed and returned to the caller.
+            
+            Args:
+                pubkey ( str, `required`): 
+                    The public key of the caller.
+                inputs ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
+            
+            Returns:
+                outputs (:obj:`torch.FloatTensor`): 
+                    The model's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
+        """
+        output = self.model.local_forward (
+            inputs = inputs        
+        )
+        return output.local_hidden
+
+    # ---- Axon Backward call ----
+    def backward_call( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" This function is called by neuron.backward_loop which can be overridden by the base class.
+            The arguments reflect an RPC backward request from another neuron in the network, the response tensor
+            should be the gradients of the miner's model w.r.t to the inputs and the passed output grads.
+            
+            Args:
+                pubkey ( str, `required`): 
+                    The public key of the caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs from previous forward call.
+                grads_dy ( :obj:`torch.Tensor`, `required`):
+                    torch grads of forward output.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
+            
+            Returns:
+                outputs (:obj:`torch.FloatTensor`): 
+                    The gradients w.r.t to the inputs [batch_size, sequence_len, __network_dim__]
+        """
+        # This function is null because the inputs are int64s without gradients. 
+        return None
+
     # ---- Get Row Weights ----
-    # Returns mechanism weights (to be submit to chain)
     def get_row_weights( self ) -> torch.FloatTensor:
+        r""" This function is called after each training epoch to recieve. Returns row_weights
+            to submit to chain.
+            Returns:
+                row_weights ( torch.FloatTensor, shape=(self.metagraph.n) ): 
+                    torch row_weights matching the metagraph size.
+                    weight values should be normalized and be in range [0,1].
+        """
         self.row_weights = torch.nn.functional.pad( self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel()] )
+        self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
         return self.row_weights
 
     # ---- Get Batches ----
     # Returns a list of batches for the next training epoch.
     def get_epoch_batches( self, epoch:int ) -> List[ dict ]:
+        r""" Returns training batches for an epoch.
+            Returns:
+                batches ( List[dict], shape=(self.config.miner.epoch_length) ): 
+                    List of batches as dictionary containing tokenized sentences
+                    'inputs' = torch.LongTensor.
+        """
         logger.info('Preparing {} batches for epoch ...', self.config.miner.epoch_length)
         batches = []
         for _ in  tqdm( range( self.config.miner.epoch_length ) ):
@@ -115,8 +226,16 @@ class Miner( bittensor.neuron.Neuron ):
         return batches
     
     # ---- Training call ----
-    # Applies a training forward + backward pass for a given input batch.
     def training_call( self, batch: dict ) -> SimpleNamespace:
+        """ Run a single training batch through the model and apply a gradient update.
+            Args:
+                batch ( dict, `required`): 
+                    training batch dictionary as returned from get_epoch_batches            
+            Returns:
+                outputs ( SimpleNamespace ): 
+                    SimpleNamespace output as returned by a nucleus forward call.
+                    Must include fields local_loss, remote_loss, distillation_loss
+        """
         # ---- Forward pass ----
         inputs = batch['inputs'].to( self.model.device )
         attention_mask = batch['attention_mask'].to( self.model.device )
@@ -142,32 +261,95 @@ class Miner( bittensor.neuron.Neuron ):
 
         return output
 
-    # ---- Forward call ----
-    # Returns the nucleus hidden representation w.r.t the passed inputs.
-    def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        output = self.model.local_forward(
-            inputs = inputs
-        )
-        return output.local_hidden
+    # ---- Training logs ----
+    def training_logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
+        index = self.metagraph.state.index_for_uid[self.metagraph.uid]
+        progress_bar.set_infos({
+            'GS': colored('{}'.format(self.global_step), 'red'),
+            'LS': colored('{}'.format(iteration), 'blue'),
+            'Epoch': colored('{}'.format(self.epoch+1), 'green'),
+            'Loss': colored('{:.5f}'.format(self.epoch_loss), 'yellow'),
+            'L-loss': colored('{:.5f}'.format(output.local_target_loss.item()), 'red'),
+            'R-loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'blue'),
+            'D-loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
+            'nPeers': colored(self.metagraph.n, 'yellow'),
+            'Stake(\u03C4)': colored('{:.3f}'.format(self.metagraph.S[index]), 'green'),
+            'Rank(\u03C4)': colored('{:.3f}'.format(self.metagraph.R[index]), 'blue'),
+            'Incentive(\u03C4/block)': colored('{:.6f}'.format(self.metagraph.I[index]), 'red'),
+            'Axon': self.axon.__str__(),
+            'Dendrite': self.dendrite.__str__(),
+        })
+        self.tensorboard.add_scalar('R-loss', output.remote_target_loss.item(), self.global_step)
+        self.tensorboard.add_scalar('L-loss', output.local_target_loss.item(), self.global_step)
+        self.tensorboard.add_scalar('D-loss', output.distillation_loss.item(), self.global_step)
 
-    # ---- Backward call ----
-    # Returns the input gradients w.r.t the passed inputs and grads.
-    def backward_call( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        outputs_y = self.model.local_forward(
-            inputs_x = inputs        
-        )
-        grads_dx = torch.autograd.grad(
-            outputs = outputs_y, 
-            inputs = inputs_x,
-            grad_outputs = grads_dy, 
-            only_inputs = True,
-            create_graph = False, 
-            retain_graph = False
-        )
-        return grads_dx
+    # --- To Tensorboard ----
+    def epoch_to_tensorboard(self):
+        r""" This function is called by neuron.run() after each epoch.
+            The subclass may override this function to send custom data to tensorboard after every epoch.
+        """
+        self.axon.__to_tensorboard__( self.tensorboard, self.global_step )
+        self.dendrite.__to_tensorboard__( self.tensorboard, self.global_step )
+        self.metagraph.__to_tensorboard__( self.tensorboard, self.global_step )
+        self.tensorboard.add_scalar('neuron/epoch_loss', self.epoch_loss, self.global_step )
+        self.tensorboard.add_scalar('neuron/best_epoch_loss', self.best_epoch_loss, self.global_step )
+
+    # --- Run Epoch ----
+    def run_next_training_epoch( self ):
+        r""" Called by neuron.run(), runs a training epoch of length self.config.miner.epoch_length
+        """
+        total_training_loss = 0.0
+        training_batches = self.get_epoch_batches( epoch = self.epoch )
+        progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
+        for iteration, (training_batch) in progress_bar:
+            output = self.training_call( batch = training_batch )
+            total_training_loss += output.loss.item()
+            self.epoch_loss = total_training_loss / (iteration + 1) 
+            self.global_step += 1
+            self.training_logs( progress_bar, iteration = iteration, output = output )
+        self.scheduler.step()
+ 
+    # --- Run Neuron ----
+    def run( self ):
+        # --- Run startup ----
+        with self:
+
+            # --- Run state ----
+            self.epoch = 0
+            self.global_step = 0
+            self.best_epoch_loss = math.inf
+
+            # ---- Save model ----
+            self.save_model()
+
+            # --- Run forever, or n_epochs ----
+            for self.epoch in range( self.epoch, sys.maxsize if self.config.miner.n_epochs < 0 else self.config.miner.n_epochs ):
+
+                # ---- Train ----
+                self.run_next_training_epoch()
+
+                # ---- Optionally Reload ----
+                if self.should_reload():
+                    self.reload_model()
+
+                # ---- Optionally Save ----
+                elif self.should_save():
+                    self.save_model()
+
+                # ---- Metagraph ----
+                self.metagraph.sync() # Pulls the latest metagraph state.
+
+                # ---- Set weights ----
+                self.metagraph.set_weights(
+                    weights = self.get_row_weights(), 
+                    wait_for_inclusion = True
+                )
+
+                # ---- Update Tensorboard ----
+                self.epoch_to_tensorboard()
+
 
 if __name__ == "__main__":
     # ---- Build and Run ----
     miner = Miner()
-    logger.info(bittensor.config.Config.toString(miner.config))
     miner.run()

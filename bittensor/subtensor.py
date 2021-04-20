@@ -22,7 +22,7 @@ import copy
 
 from munch import Munch
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 from typing import List, Tuple
 from termcolor import colored
 
@@ -51,7 +51,8 @@ class Subtensor:
             self, 
             config: 'Munch' = None,
             network: str = None,
-            chain_endpoint: str = None
+            chain_endpoint: str = None,
+            **kwargs
         ):
         r""" Initializes a subtensor chain interface.
             Args:
@@ -68,6 +69,7 @@ class Subtensor:
         """
         if config == None:
             config = Subtensor.default_config()
+        config = copy.deepcopy(config) ; bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
         config.subtensor.network = network if network != None else config.subtensor.network
         config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else config.subtensor.chain_endpoint
         Subtensor.check_config(config)

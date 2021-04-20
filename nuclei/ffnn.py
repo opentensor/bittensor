@@ -29,7 +29,7 @@ import torch.nn.functional as F
 from types import SimpleNamespace
 from munch import Munch
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 
 import bittensor
 from routers.pkm import PKMRouter

@@ -17,7 +17,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from munch import Munch
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 
 import bittensor
 from bittensor.neuron import Neuron

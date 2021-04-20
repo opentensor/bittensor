@@ -18,7 +18,7 @@
 import sys
 import random
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 
 import bittensor.bittensor_pb2 as proto
 import bittensor.bittensor_pb2_grpc as grpc

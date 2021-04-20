@@ -20,7 +20,7 @@ import argparse
 import bittensor
 
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 from munch import Munch
 
 class CLI:

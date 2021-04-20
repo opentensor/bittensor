@@ -15,13 +15,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 import argparse
+import copy
 import sys
 import os
 import pandas as pd
 
 from munch import Munch
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 from termcolor import colored
 from prettytable import PrettyTable
 
@@ -53,6 +54,7 @@ class Executor:
         # config for the wallet, metagraph sub-objects.
         if config == None:
             config = Executor.default_config()
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
         Executor.check_config( config )
         self.config = config
 

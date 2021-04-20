@@ -17,13 +17,14 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import copy
 import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 from munch import Munch
 from typing import List, Tuple, Dict, Optional, TYPE_CHECKING
 
@@ -46,6 +47,7 @@ class Nucleus(nn.Module):
         super().__init__()
         if config == None:
             config = Nucleus.default_config()
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
         Nucleus.check_config(config)
         self.config = config
 

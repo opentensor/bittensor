@@ -21,7 +21,7 @@ import sys
 import bittensor
 
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 
 # Filter bittensor internal messages, only from internal files.
 def bittensor_formatter(record):

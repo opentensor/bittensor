@@ -1,6 +1,6 @@
 import os
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 import asyncio
 import rollbar
 from pathlib import Path

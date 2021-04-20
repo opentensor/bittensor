@@ -30,7 +30,7 @@ from tqdm import tqdm
 from munch import Munch
 from termcolor import colored
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 from typing import List, Tuple, List
 
 import bittensor
@@ -195,7 +195,8 @@ class Metagraph():
             config: 'Munch' = None, 
             wallet: 'bittensor.wallet.Wallet' = None,
             subtensor: 'bittensor.subtensor.Subtensor' = None,
-            **kwargs,
+            stale_emit_filter: int = None,
+            **kwargs
         ):
         r""" Initializes a new Metagraph chain interface.
             Args:
@@ -211,7 +212,8 @@ class Metagraph():
         """
         if config == None:
             config = Metagraph.default_config()
-        bittensor.config.Config.update_with_kwargs(config.metagraph, kwargs) 
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
+        config.metagraph.stale_emit_filter = stale_emit_filter if stale_emit_filter != None else config.metagraph.stale_emit_filter
         Metagraph.check_config(config)
         self.config = config
 
@@ -610,7 +612,6 @@ class Metagraph():
             w_vals = await self.subtensor.async_weight_vals_for_uid( uid )
             neuron = await self.subtensor.async_get_neuron_for_uid ( uid )
             self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], modality = neuron['modality'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
-            print(colored('.', 'green'), end ="")
 
         except Exception as e:
             print(colored('x', 'red'), end ="")

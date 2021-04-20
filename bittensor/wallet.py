@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import copy
 import json
 import os
 import re
@@ -25,7 +26,7 @@ import sys
 
 from munch import Munch
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 from termcolor import colored
 
 import bittensor
@@ -48,7 +49,8 @@ class Wallet():
             config: Munch = None,
             name: str = None,
             path: str = None,
-            hotkey: str = None
+            hotkey: str = None,
+            **kwargs
         ):
         r""" Init bittensor wallet object containing a hot and coldkey.
 
@@ -63,6 +65,7 @@ class Wallet():
         """
         if config == None:
             config = Wallet.default_config()
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
         config.wallet.name = name if name != None else config.wallet.name
         config.wallet.path = path if path != None else config.wallet.path
         config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey

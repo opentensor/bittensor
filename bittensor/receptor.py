@@ -39,7 +39,7 @@ import bittensor.serialization as serialization
 from bittensor.exceptions.handlers import rollbar
 
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 
 # dummy tensor that triggers autograd in a RemoteExpert
 DUMMY = torch.empty(0, requires_grad=True)

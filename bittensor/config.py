@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import copy
 import munch
 import os
 import pathlib
@@ -26,7 +27,7 @@ import validators
 import yaml
 
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 from munch import Munch
 from importlib.machinery import SourceFileLoader
 
@@ -56,8 +57,12 @@ class Config:
 
     @staticmethod
     def update_with_kwargs(config:Munch, kwargs ):
-        for key,val in kwargs.items():
-            config[key] = val
+        for key, val in kwargs.items():
+            prefix = key.split('_')[0]
+            variable = '_'.join(key.split('_')[1:])
+            if prefix in config and type(config[prefix]) == type(Munch()):
+                print ('setting config {}.{} = {}'.format(prefix, variable, val))
+                config[prefix][variable] = val
             
     @staticmethod
     def to_config(parser: argparse.ArgumentParser) -> Munch:

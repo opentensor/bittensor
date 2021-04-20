@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import copy
 import grpc
 import pandas as pd
 import random
@@ -41,7 +42,7 @@ import bittensor.serialization as serialization
 import bittensor.utils.stats as stat_utils
 
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 
 class Axon(bittensor.grpc.BittensorServicer):
     r"""
@@ -55,7 +56,8 @@ class Axon(bittensor.grpc.BittensorServicer):
             local_ip: str =  None,
             max_workers: int = None, 
             forward_processing_timeout:int = None,
-            backward_processing_timeout:int = None
+            backward_processing_timeout:int = None,
+            **kwargs
         ):
         r""" Initializes a new Axon tensor processing endpoint.
             
@@ -64,17 +66,17 @@ class Axon(bittensor.grpc.BittensorServicer):
                     axon.Axon.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                local_port (default=8091, type=int): 
+                axon_local_port (default=8091, type=int): 
                     The port this axon endpoint is served on. i.e. 8091
-                local_ip (default='127.0.0.1', type=str): 
+                axon_local_ip (default='127.0.0.1', type=str): 
                     The local ip this axon binds to. ie. 0.0.0.0
-                max_workers (default=10, type=int): 
+                axon_max_workers (default=10, type=int): 
                     The maximum number connection handler threads working simultaneously on this endpoint. 
                         The grpc server distributes new worker threads to service requests up to this number.
-                forward_processing_timeout (default=5, type=int):
+                axon_forward_processing_timeout (default=5, type=int):
                     Length of time allocated to the miner forward process for computing and returning responses
                         back to the axon.
-                backward_processing_timeout (default=5, type=int):
+                axon_backward_processing_timeout (default=5, type=int):
                     Length of time allocated to the miner backward process for computing and returning responses
                         back to the axon.
         """
@@ -82,6 +84,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         # config for the wallet and nucleus sub-objects.
         if config == None:
             config = Axon.default_config()
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
         config.axon.local_port = local_port if local_port != None else config.axon.local_port
         config.axon.local_ip = local_ip if local_ip != None else config.axon.local_ip
         config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
@@ -124,7 +127,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Axon.add_args(parser) 
-        config = bittensor.Config.to_config(parser); 
+        config = bittensor.config.Config.to_config(parser); 
         return config
 
     @staticmethod   

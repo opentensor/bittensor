@@ -21,10 +21,15 @@ import binascii
 import json, yaml
 from typing import List, Optional, Tuple
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 import re
 
 from autobahn.asyncio.websocket import WebSocketClientProtocol, WebSocketClientFactory
+
+# Turn off autobahn logging.
+import logging
+for key in logging.Logger.manager.loggerDict.keys():
+    logging.getLogger(key).setLevel(logging.CRITICAL)
 
 from scalecodec import ScaleBytes, GenericCall
 from scalecodec.base import ScaleDecoder, RuntimeConfiguration, RuntimeConfigurationObject

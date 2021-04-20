@@ -8,7 +8,7 @@ __author__ = 'Brian Quinlan (brian@sweetapp.com)'
 import atexit
 from concurrent.futures import _base
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 import itertools
 import queue
 import random

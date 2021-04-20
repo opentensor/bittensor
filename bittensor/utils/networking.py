@@ -22,7 +22,7 @@ import requests
 import urllib
 
 from loguru import logger
-logger = logger.opt(ansi=True)
+logger = logger.opt(colors=True)
 
 def int_to_ip(int_val: int) -> str:
     r""" Maps an integer to a unique ip-string 
