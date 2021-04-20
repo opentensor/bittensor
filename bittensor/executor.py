@@ -54,7 +54,7 @@ class Executor:
         # config for the wallet, metagraph sub-objects.
         if config == None:
             config = Executor.default_config()
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         Executor.check_config( config )
         self.config = config
 

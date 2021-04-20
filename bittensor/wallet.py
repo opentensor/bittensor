@@ -65,7 +65,7 @@ class Wallet():
         """
         if config == None:
             config = Wallet.default_config()
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         config.wallet.name = name if name != None else config.wallet.name
         config.wallet.path = path if path != None else config.wallet.path
         config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey

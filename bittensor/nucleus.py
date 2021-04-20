@@ -47,7 +47,7 @@ class Nucleus(nn.Module):
         super().__init__()
         if config == None:
             config = Nucleus.default_config()
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         Nucleus.check_config(config)
         self.config = config
 

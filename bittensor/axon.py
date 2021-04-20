@@ -84,7 +84,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         # config for the wallet and nucleus sub-objects.
         if config == None:
             config = Axon.default_config()
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         config.axon.local_port = local_port if local_port != None else config.axon.local_port
         config.axon.local_ip = local_ip if local_ip != None else config.axon.local_ip
         config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers

@@ -62,7 +62,7 @@ class Miner( bittensor.neuron.BasicNeuron ):
         # ---- Load Config ----
         if config == None:
             config = Miner.default_config();   
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         logger.info( bittensor.config.Config.toString( config ) )
         Miner.check_config( config )
         self.config = config
@@ -323,8 +323,8 @@ class Miner( bittensor.neuron.BasicNeuron ):
         progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
         for iteration, (training_batch) in progress_bar:
             output = self.training_call( batch = training_batch )
-            total_training_loss += output.loss.item()
-            self.epoch_loss = total_training_loss / (iteration + 1) 
+            total_epoch_loss += output.loss.item()
+            self.epoch_loss = total_epoch_loss / (iteration + 1) 
             self.global_step += 1
             self.training_logs( progress_bar, iteration = iteration, output = output )
         self.scheduler.step()

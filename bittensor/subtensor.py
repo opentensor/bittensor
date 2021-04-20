@@ -69,7 +69,7 @@ class Subtensor:
         """
         if config == None:
             config = Subtensor.default_config()
-        config = copy.deepcopy(config) ; bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
+        config = copy.deepcopy(config) ; bittensor.config.Config.update_with_kwargs(config, kwargs )
         config.subtensor.network = network if network != None else config.subtensor.network
         config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else config.subtensor.chain_endpoint
         Subtensor.check_config(config)

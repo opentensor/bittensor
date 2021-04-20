@@ -55,7 +55,7 @@ class Neuron():
         # This object can be instantiated by calling Neuron.default_config()
         if config == None:
             config = Neuron.default_config()
-        config = copy.deepcopy(config) ; bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
+        config = copy.deepcopy(config) ; bittensor.config.Config.update_with_kwargs(config, kwargs )
         Neuron.check_config(config)
         self.config = config
         
@@ -227,12 +227,7 @@ class Neuron():
         # ---- Sync metagraph ----
         logger.info('\nSyncing Metagraph...')
         self.metagraph.sync()
-        total_peers = torch.max( self.metagraph.uids )
-        peers_online = torch.numel(torch.where( self.metagraph.block - self.metagraph.lastemit < 1000 )[0])
-        logger.info('Chain block:<green>{}</green>\n'.format(self.metagraph.block))
-        logger.info('Tao staked:<green>\u03C4{}</green>\n'.format(torch.sum(self.metagraph.S)))
-        logger.info('Subscribed peers:<green>{}</green>\n'.format(total_peers))
-        logger.info('Active peers:<green>{}</green>\n'.format(peers_online))
+        logger.info( self.metagraph )
 
     def shutdown(self):
         logger.info('\nTearing down axon...')
@@ -251,7 +246,7 @@ class BasicNeuron( Neuron ):
     ):
         if config == None:
             config = BasicNeuron.default_config()
-        config = copy.deepcopy( config ); bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
+        config = copy.deepcopy( config ); bittensor.config.Config.update_with_kwargs(config, kwargs )
         BasicNeuron.check_config( config )
         self.config = config
         super(BasicNeuron, self).__init__( self.config )

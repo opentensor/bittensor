@@ -212,7 +212,7 @@ class Metagraph():
         """
         if config == None:
             config = Metagraph.default_config()
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         config.metagraph.stale_emit_filter = stale_emit_filter if stale_emit_filter != None else config.metagraph.stale_emit_filter
         Metagraph.check_config(config)
         self.config = config
@@ -839,6 +839,14 @@ class Metagraph():
         return weight_uids, weight_vals
 
     def __str__(self):
+        if self.n != 0:
+            peers_online = torch.numel(torch.where( self.block - self.lastemit < 1000 )[0])
+        else:
+            peers_online = 0
+        peers_online = torch.numel(torch.where( self.block - self.lastemit < 1000 )[0])
+        return '\nMetagraph: block:<green>{}</green>, inflation_rate:<green>{}</green>, staked:<green>\u03C4{}</green>, subscribed:<green>{}</green>, active:<green>{}</green>\n'.format(self.block, self.tau.item(), torch.sum(self.S), self.n, peers_online)
+
+    def __full_str__(self):
         uids = self.state.uids.tolist()
         rows = [self.S.tolist(), self.R.tolist(), self.I.tolist(), self.incentive.tolist(), self.row.tolist(), self.col.tolist()]
         for i in range(self.n):

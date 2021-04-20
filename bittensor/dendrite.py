@@ -81,7 +81,7 @@ class Dendrite(nn.Module):
         # config for you wallet and metagraph.
         if config == None:
             config = Dendrite.default_config()
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs( copy.deepcopy(config), kwargs )
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         config.receptor.pass_gradients = receptor_pass_gradients if receptor_pass_gradients != None else config.receptor.pass_gradients
         config.receptor.timeout = receptor_timeout if receptor_timeout != None else config.receptor.timeout
         config.receptor.do_backoff = receptor_do_backoff if receptor_do_backoff != None else config.receptor.do_backoff
