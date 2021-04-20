@@ -222,7 +222,7 @@ class Miner( bittensor.neuron.BasicNeuron ):
                 outputs (:obj:`torch.FloatTensor`): 
                     The gradients w.r.t to the inputs [batch_size, sequence_len, __network_dim__]
         """
-        # This function is null because the inputs are int64s without gradients. 
+        # Don't process backward requests.
         return None
 
     # ---- Get Row Weights ----
@@ -282,7 +282,7 @@ class Miner( bittensor.neuron.BasicNeuron ):
         progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
         for iteration, (training_batch) in progress_bar:
             output = self.training_call( batch = training_batch )
-            total_epoch_loss += output.local_loss.item()
+            total_epoch_loss += output.local_target_loss.item()
             self.epoch_loss = total_epoch_loss / (iteration + 1) 
             self.global_step += 1
             self.training_logs( progress_bar, iteration = iteration, output = output )

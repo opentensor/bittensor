@@ -263,7 +263,7 @@ class Miner( bittensor.neuron.BasicNeuron ):
         progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
         for iteration, (training_batch) in progress_bar:
             output = self.training_call( batch = training_batch )
-            total_epoch_loss += output.local_loss.item()
+            total_epoch_loss += output.local_target_loss.item()
             self.epoch_loss = total_epoch_loss / (iteration + 1) 
             self.global_step += 1
             self.training_logs( progress_bar, iteration = iteration, output = output )
