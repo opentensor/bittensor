@@ -55,10 +55,6 @@ class Nucleus(nn.Module):
         if self.config.nucleus.device:
             self.device = torch.device(self.config.nucleus.device)
 
-        # For Forward calls: must be set manually with set_metagraph and set_dendrite.
-        self._metagraph = None
-        self._dendrite = None
-
     @staticmethod   
     def default_config() -> Munch:
          # Parses and returns a config Munch for this object.

@@ -66,17 +66,17 @@ class Axon(bittensor.grpc.BittensorServicer):
                     axon.Axon.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                axon_local_port (default=8091, type=int): 
+                local_port (default=8091, type=int): 
                     The port this axon endpoint is served on. i.e. 8091
-                axon_local_ip (default='127.0.0.1', type=str): 
+                local_ip (default='127.0.0.1', type=str): 
                     The local ip this axon binds to. ie. 0.0.0.0
-                axon_max_workers (default=10, type=int): 
+                max_workers (default=10, type=int): 
                     The maximum number connection handler threads working simultaneously on this endpoint. 
                         The grpc server distributes new worker threads to service requests up to this number.
-                axon_forward_processing_timeout (default=5, type=int):
+                forward_processing_timeout (default=5, type=int):
                     Length of time allocated to the miner forward process for computing and returning responses
                         back to the axon.
-                axon_backward_processing_timeout (default=5, type=int):
+                backward_processing_timeout (default=5, type=int):
                     Length of time allocated to the miner backward process for computing and returning responses
                         back to the axon.
         """

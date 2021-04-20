@@ -599,9 +599,6 @@ class Metagraph():
         for call in tqdm.asyncio.tqdm.as_completed( calls ):
             await call
 
-        # responses = [await call for call in tqdm.tqdm( asyncio.as_completed( calls ), total = len(calls) )]
-        print ('\n')
-
     async def _poll_uid(self, pubkey: str, uid:int):
         r""" Polls info info for a specfic public key.
         """
