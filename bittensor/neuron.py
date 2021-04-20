@@ -400,37 +400,6 @@ class BasicNeuron( Neuron ):
                     logger.success("Backward thread joined.")
                 else:
                     logger.error('Failed join backward thread.')
-
-
-    # ---- Subclass Training call ----
-    def training_call( self, batch: dict ) -> SimpleNamespace:
-        r""" This function is called by neuron.run_next_training_epoch() for each batch 
-            retrieved by neuron.get_epoch_batches(). It should run a single training batch 
-            through the model and apply a gradient update and return a SimpleNamespace object.
-            This object will be passed to neuron.training_logs()
-            Args:
-                batch ( dict, `required`): 
-                    training batch dictionary as returned from get_epoch_batches            
-            Returns:
-                outputs ( SimpleNamespace ): 
-                    SimpleNamespace output as returned by a nucleus forward call.
-                    Must include fields local_loss, remote_loss, distillation_loss
-        """
-        raise NotImplementedError
-
-    # --- Run Epoch ----
-    def run_next_training_epoch( self ):
-        r""" Called by neuron.run(), runs a training epoch of length self.config.miner.epoch_length
-        """
-        total_epoch_loss = 0.0
-        training_batches = self.get_epoch_batches( epoch = self.epoch )
-        progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
-        for iteration, (training_batch) in progress_bar:
-            output = self.training_call( batch = training_batch )
-            total_epoch_loss += output.loss.item()
-            self.epoch_loss = total_epoch_loss / (iteration + 1) 
-            self.global_step += 1
-            self.training_logs( progress_bar, iteration = iteration, output = output )
                 
     def epoch_to_tensorboard(self):
         r""" This function is called by neuron.run() after each epoch.
@@ -512,14 +481,14 @@ class BasicNeuron( Neuron ):
         try:
             state_dict = self.get_state_dict()
             logger.info( 'Saving model to: <cyan>{}/model.torch</cyan>'.format( self.config.neuron.full_path ))
-            torch.save( state_dict, "{}/model-loss{}.torch".format( self.config.neuron.full_path, self.epoch_loss ))
+            torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path, self.epoch_loss ))
             self.last_saved_loss = self.epoch_loss
             logger.success('Saved model' )
         except Exception as e:
              logger.error('Failed to save model with error:{}', e)
 
     def reload_model( self ):
-        r""" This function is called by neuron.run() if neuron.should_reload() returns True.
+        r""" Called by neuron.run() if neuron.should_reload() returns True.
         """
         try:
             state_dict = torch.load("{}/model.torch".format( self.config.neuron.full_path ))
@@ -527,11 +496,9 @@ class BasicNeuron( Neuron ):
         except Exception as e:
             logger.error('Failed to reload model with error: {}', e)
 
-
     # ---- Subclass Get Row Weights ----
     def get_row_weights( self ) -> torch.FloatTensor:
-        r""" This function is called after each training epoch to recieve row_weights.
-            The passed row_weights are then submitted to chain.
+        r""" Called after each training epoch to recieve row_weights. The returned row_weights are submitted to chain.
             Returns:
                 row_weights ( torch.FloatTensor, shape=(self.metagraph.n) ): 
                     torch row_weights matching the metagraph size.
@@ -539,7 +506,12 @@ class BasicNeuron( Neuron ):
         """
         raise NotImplementedError
 
-    # ---- Subclass Get epoch batches ----
+    def should_run( self, epoch:int ) -> bool:
+        r""" Called by neuron.run() every epoch, if the response is false, training stops.
+        """
+        return True
+
+     # ---- Subclass Get epoch batches ----
     def get_epoch_batches( self, epoch:int ) -> List[ dict ]:
         r""" Returns training batches for an epoch.
             Returns:
@@ -548,11 +520,36 @@ class BasicNeuron( Neuron ):
                     'inputs' = torch.LongTensor.
         """
         raise NotImplementedError
-
-    def should_run( self, epoch:int ) -> bool:
-        r""" Called by neuron.run() every epoch, if the response is false, training stops.
+    
+    # ---- Subclass Training call ----
+    def training_call( self, batch: dict ) -> SimpleNamespace:
+        r""" Called neuron.run_next_training_epoch() for each training batch. 
+            Subclasses should override this function with a specific training forward. 
+            Args:
+                batch ( dict, `required`): 
+                    training batch dictionary as returned from get_epoch_batches            
+            Returns:
+                outputs ( SimpleNamespace ): 
+                    SimpleNamespace output as returned by a nucleus forward call.
+                    Must include fields local_loss, remote_loss, distillation_loss
         """
-        return True
+        raise NotImplementedError
+
+    # --- Run Epoch ----
+    def run_next_training_epoch( self, training_batches: List[dict] ) -> float:
+        r""" Called by neuron.run(), calls training_call for passed batches.
+            Args:
+                training_batches (List[dict]):
+                    Training batches as returned by get_epoch_batches.
+        """
+        total_epoch_loss = 0.0
+        progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
+        for iteration, (training_batch) in progress_bar:
+            output = self.training_call( batch = training_batch )
+            total_epoch_loss += output.loss.item()
+            self.epoch_loss = total_epoch_loss / (iteration + 1) 
+            self.global_step += 1
+            self.training_logs( progress_bar, iteration = iteration, output = output )
 
     # --- Run Neuron ----
     def run( self ):
@@ -574,7 +571,9 @@ class BasicNeuron( Neuron ):
                 self.epoch += 1
 
                 # ---- Train ----
-                self.run_next_training_epoch()
+                self.run_next_training_epoch( 
+                    training_batches = self.get_epoch_batches( self.epoch ) 
+                )
 
                 # ---- Save or Reload model ----
                 if self.should_save():
@@ -583,14 +582,14 @@ class BasicNeuron( Neuron ):
                 if self.should_reload():
                     self.reload_model()
 
-                # ---- Metagraph ----
-                self.metagraph.sync() # Pulls the latest metagraph state.
-
                 # ---- Set weights ----
                 self.metagraph.set_weights(
                     weights = self.get_row_weights(), 
                     wait_for_inclusion = True
                 )
+
+                # ---- Metagraph ----
+                self.metagraph.sync() # Pulls the latest metagraph state.
 
                 # ---- Update Tensorboard ----
                 self.epoch_to_tensorboard()

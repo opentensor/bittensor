@@ -17,5 +17,7 @@ def test_run_gpt2():
     miner.metagraph.set_weights = MagicMock()   
     miner.metagraph.sync = MagicMock() 
     miner.training_logs = MagicMock() 
+    miner.save_model()
+    miner.reload_model()
     miner.run()
 test_run_gpt2()

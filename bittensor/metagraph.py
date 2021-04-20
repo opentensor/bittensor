@@ -841,7 +841,7 @@ class Metagraph():
         else:
             peers_online = 0
         peers_online = torch.numel(torch.where( self.block - self.lastemit < 1000 )[0])
-        return '\nMetagraph: block:<green>{}</green>, inflation_rate:<green>{}</green>, staked:<green>\u03C4{}</green>, subscribed:<green>{}</green>, active:<green>{}</green>\n'.format(self.block, self.tau.item(), torch.sum(self.S), self.n, peers_online)
+        return '<green>Metagraph:</green> block:<cyan>{}</cyan>, inflation_rate:<cyan>{}</cyan>, staked:<green>\u03C4{}</green>/<cyan>\u03C4{}</cyan>, active:<green>{}</green>/<cyan>{}</cyan>\n'.format(self.block, self.tau.item(), torch.sum(self.S), self.block/2, peers_online, self.n)
 
     def __full_str__(self):
         uids = self.state.uids.tolist()
@@ -858,7 +858,7 @@ class Metagraph():
         for i in range(self.n):
             df = df.rename(index={df.index[i + 6]: uids[i]})
         df.rename_axis(colored('[uid]', 'red'), axis=1)
-        return '\nMetagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.uid, self.tau.item(), self.block, self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
+        return 'Metagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.uid, self.tau.item(), self.block, self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
 
     def __to_tensorboard__(self, tensorboard, global_step):
         tensorboard.add_scalar('Metagraph/neurons', self.n, global_step)

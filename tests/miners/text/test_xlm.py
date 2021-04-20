@@ -17,6 +17,8 @@ def test_run_xlm_clm():
     miner.metagraph.set_weights = MagicMock()   
     miner.metagraph.sync = MagicMock()  
     miner.training_logs = MagicMock()
+    miner.save_model()
+    miner.reload_model()
     miner.run()
 
 test_run_xlm_clm()
