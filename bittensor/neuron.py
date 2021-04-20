@@ -287,24 +287,23 @@ class BasicNeuron( Neuron ):
     def run_next_forward_call( self ):
         try:
             # ---- Pull request ----
-            logger.debug('<white>Forward</white>: waiting for query ... ', self.axon)
             pong, pubkey, inputs, modality = self.axon.next_forward_item( timeout = 1.0 )
             if None not in [ pong, pubkey, inputs, modality]:
-                logger.debug('Recieved Forward Query: <white>from</white>:<cyan>{}</cyan>, <white>inputs</white>:<cyan>{}</cyan>', pubkey, inputs.shape)
+                logger.debug('<white>Axon Forward Request</white> ---> <white>from</white>:<cyan>{}</cyan>, <white>inputs</white>:<cyan>{}</cyan>', pubkey, inputs.shape)
                 outputs = self.forward_call ( 
                     pubkey = pubkey,
                     inputs = inputs,
                     modality = modality
                 )
                 pong.send( outputs.detach() )
-                logger.debug('Sent forward response: to:<cyan>{}</cyan>, outputs.shape:<cyan>{}</cyan>', pubkey, outputs.shape)
+                logger.debug('<white>Axon Forward Response</white> ---> <white>to</white>:<cyan>{}</cyan>, <white>outputs</white>:<cyan>{}</cyan>', pubkey, outputs.shape)
         except Exception as e:
             logger.exception('Error in forward thread with error {}', e)
 
     # ---- Forward loop -----
     def forward_loop ( self ): 
         # ---- Loop until event is set -----
-        logger.success('Forward thread started.\n')
+        logger.success('Forward thread started.')
         while not self.quit_forward.is_set():
             with self.get_forward_lock():
                 self.run_next_forward_call()
@@ -344,12 +343,11 @@ class BasicNeuron( Neuron ):
     def run_next_backward_call( self ):
         try:
             # ---- Pull request ----
-            logger.debug('<white>Backward</white>: waiting for query ... ',)
             pong, pubkey, inputs_x, grads_dy, modality = self.axon.next_backward_item( timeout = 1.0 )
 
             # ---- Process Backward request -----
             if None not in [ pong, pubkey, inputs_x, grads_dy, modality ]:
-                logger.debug('Recieved Backward Query: <white>from</white>:<cyan>{}</cyan>, <white>inputs</white>:<cyan>{}</cyan>', pubkey, inputs.shape)
+                logger.debug(' <white>Axon Backward Request</white> ---> <white>from</white>:<cyan>{}</cyan>, <white>inputs</white>:<cyan>{}</cyan>', pubkey, inputs.shape)
                 outputs = self.backward_call ( 
                     pubkey = pubkey,
                     inputs_x = inputs,
@@ -357,7 +355,7 @@ class BasicNeuron( Neuron ):
                     modality = modality
                 )
                 pong.send( outputs.detach() )
-                logger.debug('Sent backward response: <white>to</white>:<cyan>{}</cyan>, <white>outputs</white>:<cyan>{}</cyan>', pubkey, outputs.shape)
+                logger.debug('<white>Axon Backward Response</white> <--- <white>to</white>:<cyan>{}</cyan>, <white>outputs</white>:<cyan>{}</cyan>', pubkey, outputs.shape)
 
         except Exception as e:
             logger.exception('Error in backward thread with error {}', e)
@@ -365,7 +363,7 @@ class BasicNeuron( Neuron ):
     # ---- Backward loop -----
     def backward_loop ( self ): 
         # ---- Loop until event is set -----
-        logger.success('Backward thread started.\n')
+        logger.success('Backward thread started.')
         while not self.quit_forward.is_set():
             with self.get_backward_lock():
                 self.run_next_backward_call()

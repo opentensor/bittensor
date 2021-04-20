@@ -311,7 +311,7 @@ class _ReceptorCall(torch.autograd.Function):
                 start_time = time.time()
                 ctx.caller.stats.forward_qps.update(1)
                 ctx.caller.stats.forward_bytes_out.update(sys.getsizeof(request))
-                logger.debug('<green><-- Forward Request</green>, <white>endpoint</white>:{}, <white>inputs</white>:{}, <white>mode</white>:{}', caller.endpoint, inputs.shape, mode)
+                logger.debug('<white>Dendrite</white> <green>Forward Request</white> ---> <white>from</white>:{}, <white>inputs</white>:{}, <white>mode</white>:{}', caller.endpoint, inputs.shape, mode)
                 response = ctx.caller.stub.Forward(request, timeout=caller.config.receptor.timeout)
                 ctx.caller.stats.forward_bytes_in.update(sys.getsizeof(response))
                 ctx.caller.stats.forward_elapsed_time.update((time.time() - start_time))
@@ -326,16 +326,16 @@ class _ReceptorCall(torch.autograd.Function):
                 try:
                     bittensor_code = response.return_code
                 except:
-                    logger.debug('<white>--> Forward Response</white>, <white>code</white>:<yellow>UnknownException</yellow>, <white>endpoint</white>:{}, message:<red>{}</red>', caller.endpoint, response_message)
+                    logger.debug('<white>Dendrite</white> <green>Forward Response</white> <--- <white>code</white>:<yellow>UnknownException</yellow>, <white>endpoint</white>:{}, message:<red>{}</red>', caller.endpoint, inputs.shape, mode)
                     return zeros, torch.tensor(bittensor_code)
 
                 # ---- Catch bittensor errors ----
                 if bittensor_code == bittensor.proto.ReturnCode.UnknownException:
-                    logger.debug('<white>--> Forward Response</white>, <white>code</white>:<yellow>UnknownException</yellow>, <white>endpoint</white>:{}, message:<red>{}</red>', caller.endpoint, response_message)
+                    logger.debug('<white>Dendrite</white> <green>Forward Response</white> <--- <white>code</white>:<yellow>UnknownException</yellow>, <white>endpoint</white>:{}, message:<red>{}</red>', caller.endpoint, response_message)
                     return zeros, torch.tensor(bittensor_code)
 
                 elif bittensor_code != bittensor.proto.ReturnCode.Success:
-                    logger.debug('<white>--> Forward Response</white>, <white>code</white>:<yellow>{}</yellow>, <white>endpoint</white>:{}, message:<red>{}</red>', caller.endpoint, bittensor_code, response_message)
+                    logger.debug('<white>Dendrite</white> <green>Forward Response</white> <--- <white>code</white>:<yellow>{}</yellow>, <white>endpoint</white>:{}, message:<red>{}</red>', caller.endpoint, bittensor_code, response_message)
                     return zeros, torch.tensor(bittensor_code)
 
             # ---- Catch GRPC Errors ----
@@ -343,25 +343,25 @@ class _ReceptorCall(torch.autograd.Function):
                 grpc_code = rpc_error_call.code()
 
                 if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
-                    logger.debug('<white>--> Forward Response</white>, <white>code</white>:<yellow>Timeout</yellow>, <white>endpoint</white>:{}', caller.endpoint )
+                    logger.debug('<white>Dendrite</white> <green>Forward Response</white> <--- <white>code</white>:<yellow>Timeout</yellow>, <white>endpoint</white>:{}', caller.endpoint )
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.Timeout)
 
                 elif grpc_code == grpc.StatusCode.UNAVAILABLE:
-                    logger.debug('<white>--> Forward Response</white>, <white>code</white>:<yellow>Unavailable</yellow>, <white>endpoint</white>:{}', caller.endpoint )
+                    logger.debug('<white>Dendrite</white> <green>Forward Response</white> <--- <white>code</white>:<yellow>Unavailable</yellow>, <white>endpoint</white>:{}', caller.endpoint )
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.Unavailable)
 
                 else:
-                    logger.debug('<white>--> Forward Response</white>, <white>code</white>:<red>UnknownException</red>, <white>endpoint</white>:{} ', caller.endpoint )
+                    logger.debug('<white>Dendrite</white> <green>Forward Response</white> <--- <white>code</white>:<red>UnknownException</red>, <white>endpoint</white>:{} ', caller.endpoint )
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
             # ---- Catch Unknown Errors ----
             except Exception as e:
-                logger.debug('<white>--> Forward Response</white>, <white>code</white>:<red>UnknownException</red>, <white>endpoint</white>:{}, <white>message</white>:<red>{}</red>', caller.endpoint. e)
+                logger.debug('<white>Dendrite</white> <green>Forward Response</white> <--- <white>code</white>:<red>UnknownException</red>, <white>endpoint</white>:{}, <white>message</white>:<red>{}</red>', caller.endpoint. e)
                 return zeros, torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
             # ---- Check tensor response length ----
             if len(response.tensors) == 0:
-                logger.debug('<white>--> Forward Response</white> <white>code</white>:<yellow>EmptyResponse</yellow>, <white>endpoint</white>:{}', caller.endpoint )
+                logger.debug('<white>Dendrite</white> <green>Forward Response</white> <--- <white>code</white>:<yellow>EmptyResponse</yellow>, <white>endpoint</white>:{}', caller.endpoint )
                 return zeros, torch.tensor(bittensor.proto.ReturnCode.EmptyResponse)
 
             # ---- Deserialize response ----
@@ -371,14 +371,14 @@ class _ReceptorCall(torch.autograd.Function):
                 outputs = deserializer.deserialize( outputs, to_type = bittensor.proto.TensorType.TORCH )
 
             except Exception as e:
-                logger.debug('<white>--> Forward Response</white>, <white>code</white>:<red>ResponseDeserializationException</red>, <white>endpoint</white>:{}, message:<red>{}</red> ]', caller.endpoint, e)
+                logger.debug('<white>Dendrite</white> <green>Forward Response</white> <--- <white>code</white>:<red>ResponseDeserializationException</red>, <white>endpoint</white>:{}, message:<red>{}</red> ]', caller.endpoint, e)
                 return zeros, torch.tensor(bittensor.proto.ReturnCode.ResponseDeserializationException)
         
             # ---- Check response shape ----
             if  outputs.size(0) != inputs.size(0) \
                 or outputs.size(1) != inputs.size(1) \
                 or outputs.size(2) != bittensor.__network_dim__:
-                    logger.debug('<white>--> Forward Response</white> <white>code</white>:<red>ResponseShapeException</red>, <white>endpoint</white>:{}, <white>shape</white>:{}, <white>expected</white>:{}', caller.endpoint, list(outputs.shape), [inputs.size(0), inputs.size(1), bittensor.__network_dim__])
+                    logger.debug('<white>Dendrite</white> <green>Forward Response</white> <--- <white>code</white>:<red>ResponseShapeException</red>, <white>endpoint</white>:{}, <white>shape</white>:{}, <white>expected</white>:{}', caller.endpoint, list(outputs.shape), [inputs.size(0), inputs.size(1), bittensor.__network_dim__])
                     return zeros, torch.tensor(bittensor.proto.ReturnCode.ResponseShapeException)
 
             # ---- Safe catch NaNs and replace with 0.0 ----
@@ -386,11 +386,11 @@ class _ReceptorCall(torch.autograd.Function):
         
         # ---- Catch all ----
         except Exception as e:
-            logger.error('<white>--> Forward Response</white> <white>code</white>:<red>UnknownException</red>, <white>endpoint</white>:{}, <white>message</white>:<red>{}</red>', caller.endpoint, e)
+            logger.error('<white>Dendrite</white> <green>Forward Response</white> <--- <white>code</white>:<red>UnknownException</red>, <white>endpoint</white>:{}, <white>message</white>:<red>{}</red>', caller.endpoint, e)
             return zeros, torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
         # ---- Return ----
-        logger.debug('<green> --> Forward Response</green>, <white>code</white>:<green>Success</green>, <white>endpoint</white>:{}, <white>outputs</white>:{}', caller.endpoint, inputs.shape)
+        logger.debug('<white>Dendrite</white> <green>Forward Response</white> <--- <white>code</white>:<green>Success</green>, <white>endpoint</white>:{}, <white>outputs</white>:{}', caller.endpoint, inputs.shape)
         return outputs, torch.tensor(response.return_code)
 
     @staticmethod
@@ -460,6 +460,7 @@ class _ReceptorCall(torch.autograd.Function):
                 try:
                     ctx.caller.stats.backward_qps.update(1)
                     ctx.caller.stats.backwar_bytes_out.update(sys.getsizeof(request))
+                    logger.debug('<white>Dendrite</white> <green>Backward Request</white> ---> <white>from</white>:{}, <white>grads</white>:{}', ctx.caller.endpoint, grads.shape)
                     ctx.caller.stub.Backward.future(request, timeout=ctx.caller.config.receptor.timeout)
                     ctx.caller.stats.backwar_bytes_in.update(0.0) # responses are dropped.
 
