@@ -18,6 +18,7 @@ import argparse
 import asyncio
 import random
 import time
+import copy
 
 from munch import Munch
 from loguru import logger
@@ -45,13 +46,16 @@ class Subtensor:
         }
     }
 
-    def __init__(self, config: 'Munch' = None, wallet: 'bittensor.wallet.Wallet' = None, **kwargs):
+    def __init__(
+            self, 
+            config: 'Munch' = None,
+            network: str = None,
+            chain_endpoint: str = None
+        ):
         r""" Initializes a subtensor chain interface.
             Args:
                 config (:obj:`Munch`, `optional`): 
                     metagraph.Metagraph.config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
-                    bittensor wallet with hotkey and coldkeypub.
                 network (default='akira', type=str)
                     The subtensor network flag. The likely choices are:
                             -- akira (testing network)
@@ -63,13 +67,10 @@ class Subtensor:
         """
         if config == None:
             config = Subtensor.default_config()
-        bittensor.config.Config.update_with_kwargs(config.subtensor, kwargs) 
+        config.subtensor.network = network if network != None else config.subtensor.network
+        config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else config.subtensor.chain_endpoint
         Subtensor.check_config(config)
-        self.config = config
-
-        if wallet == None:
-            wallet = bittensor.wallet.Wallet( self.config )
-        self.wallet = wallet
+        self.config = copy.deepcopy(config)
 
         self.substrate = SubstrateWSInterface(
             address_type = 42,
@@ -87,7 +88,6 @@ class Subtensor:
     
     @staticmethod   
     def add_args(parser: argparse.ArgumentParser):
-        bittensor.wallet.Wallet.add_args( parser )
         try:
             parser.add_argument('--subtensor.network', default='kusanagi', type=str, 
                                 help='''The subtensor network flag. The likely choices are:
@@ -185,7 +185,7 @@ class Subtensor:
             return await self.async_connect()
         return True
 
-    def connect(self, timeout: int = 10, failure = True ) -> bool:
+    def connect( self, timeout: int = 10, failure = True ) -> bool:
         r""" Attempts to connect the substrate interface backend. 
         If the connection fails, attemps another endpoint until a timeout.
         Args:
@@ -201,7 +201,7 @@ class Subtensor:
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_connect(timeout, failure))
 
-    async def async_connect(self, timeout: int = 10, failure = True ) -> bool:
+    async def async_connect( self, timeout: int = 10, failure = True ) -> bool:
         r""" Attempts to connect the substrate interface backend. 
         If the connection fails, attemps another endpoint until a timeout.
         Args:
@@ -230,7 +230,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             # ---- Get next endpoint ----
             ws_chain_endpoint = self.endpoint_for_network( blacklist = attempted_endpoints )
             if ws_chain_endpoint == None:
-                print(colored("No more endpoints available for subtensor.network: {}, attempted: {}".format(self.config.subtensor.network, attempted_endpoints), 'red'))
+                logger.log('USER-CRITICAL', "No more endpoints available for subtensor.network: {}, attempted: {}".format(self.config.subtensor.network, attempted_endpoints))
                 connection_error_message()
                 if failure:
                     raise RuntimeError('Unable to connect to network {}. Make sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
@@ -240,33 +240,17 @@ To run a local node (See: docs/running_a_validator.md) \n
 
             # --- Attempt connection ----
             if await self.substrate.async_connect( ws_chain_endpoint, timeout = 5 ):
-                print(colored("Successfully connected to endpoint: {}".format(ws_chain_endpoint), 'green'))
+                logger.log('USER-SUCCESS', "Successfully connected to endpoint: {}".format(ws_chain_endpoint))
                 return True
             
             # ---- Timeout ----
             elif (time.time() - start_time) > timeout:
-                print(colored("Error while connecting to the chain endpoint {}".format(ws_chain_endpoint), 'red'))
+                logger.log('USER-CRITICAL', "Error while connecting to the chain endpoint {}".format(ws_chain_endpoint))
                 connection_error_message()
                 if failure:
                     raise RuntimeError('Unable to connect to network {}. Make sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
                 else:
                     return False
-
-    def is_subscribed(self, ip: str, port: int, modality: int, coldkey: str) -> bool:
-        r""" Returns true if the bittensor endpoint is already subscribed.
-        Args:
-            ip (str):
-                endpoint host port i.e. 192.122.31.4
-            port (int):
-                endpoint port number i.e. 9221
-            modality (int):
-                int encoded endpoint modality i.e 0 for TEXT
-            coldkeypub (str):
-                string encoded coldekey pub.
-        """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_is_subscribed( ip, port, modality, coldkey))
 
     async def _submit_and_check_extrinsic(
             self, 
@@ -326,10 +310,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return True
             else:
                 return False
-            
-    async def async_is_subscribed(self, ip: str, port: int, modality: int, coldkey: str) -> bool:
-        r""" Returns true if the bittensor endpoint is already subscribed.
+
+    def is_subscribed(self, wallet: 'bittensor.wallet.Wallet', ip: str, port: int, modality: int, coldkey: str ) -> bool:
+        r""" Returns true if the bittensor endpoint is already subscribed with the wallet and metadata.
         Args:
+            wallet (bittensor.wallet.Wallet):
+                bittensor wallet object.
             ip (str):
                 endpoint host port i.e. 192.122.31.4
             port (int):
@@ -339,7 +325,25 @@ To run a local node (See: docs/running_a_validator.md) \n
             coldkeypub (str):
                 string encoded coldekey pub.
         """
-        uid = await self.async_get_uid_for_pubkey(self.wallet.hotkey.public_key)
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        return loop.run_until_complete(self.async_is_subscribed( wallet, ip, port, modality, coldkey ))
+            
+    async def async_is_subscribed( self, wallet: 'bittensor.wallet.Wallet', ip: str, port: int, modality: int ) -> bool:
+        r""" Returns true if the bittensor endpoint is already subscribed with the wallet and metadata.
+        Args:
+            wallet (bittensor.wallet.Wallet):
+                bittensor wallet object.
+            ip (str):
+                endpoint host port i.e. 192.122.31.4
+            port (int):
+                endpoint port number i.e. 9221
+            modality (int):
+                int encoded endpoint modality i.e 0 for TEXT
+            coldkeypub (str):
+                string encoded coldekey pub.
+        """
+        uid = await self.async_get_uid_for_pubkey( wallet.hotkey.public_key )
         if uid != None:
             neuron = await self.async_get_neuron_for_uid( uid )
             if neuron['ip'] == net.ip_to_int(ip) and neuron['port'] == port:
@@ -351,24 +355,24 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     def subscribe(
             self, 
+            wallet: 'bittensor.wallet.Wallet',
             ip: str, 
             port: int, 
             modality: int, 
-            coldkeypub: str, 
             wait_for_inclusion: bool = False,
             wait_for_finalization = True,
             timeout: int = 3 * bittensor.__blocktime__,
         ) -> bool:
         r""" Subscribes an bittensor endpoint to the substensor chain.
         Args:
+            wallet (bittensor.wallet.Wallet):
+                bittensor wallet object.
             ip (str):
                 endpoint host port i.e. 192.122.31.4
             port (int):
                 endpoint port number i.e. 9221
             modality (int):
                 int encoded endpoint modality i.e 0 for TEXT
-            coldkeypub (str):
-                string encoded coldekey pub.
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true, 
                 or returns false if the extrinsic fails to enter the block within the timeout.   
@@ -384,28 +388,28 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_subscribe(ip, port, modality, coldkeypub, wait_for_inclusion, wait_for_finalization, timeout))
+        return loop.run_until_complete(self.async_subscribe( wallet, ip, port, modality, wait_for_inclusion, wait_for_finalization, timeout ))
 
     async def async_subscribe(
             self, 
+            wallet: 'bittensor.wallet.Wallet',
             ip: str, 
             port: int, 
             modality: int, 
-            coldkeypub: str, 
             wait_for_inclusion: bool = False,
             wait_for_finalization:bool = True,
             timeout: int = 3 * bittensor.__blocktime__,
         ) -> bool:
         r""" Subscribes an bittensor endpoint to the substensor chain.
         Args:
+            wallet (bittensor.wallet.Wallet):
+                bittensor wallet object.
             ip (str):
                 endpoint host port i.e. 192.122.31.4
             port (int):
                 endpoint port number i.e. 9221
             modality (int):
                 int encoded endpoint modality i.e 0 for TEXT
-            coldkeypub (str):
-                string encoded coldekey pub.
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true, 
                 or returns false if the extrinsic fails to enter the block within the timeout.   
@@ -422,8 +426,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         if not await self.async_check_connection():
             return False
 
-        if await self.async_is_subscribed( ip, port, modality, coldkeypub ):
-            print(colored('Already subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub), 'green'))
+        if await self.async_is_subscribed( wallet, ip, port, modality ):
+            logger.log('USER-SUCCESS', "Already subscribed with [ip: {}, port: {}, modality: {}, hotkey:{}, coldkey: {}]".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
             return True
 
         ip_as_int  = net.ip_to_int(ip)
@@ -432,25 +436,26 @@ To run a local node (See: docs/running_a_validator.md) \n
             'port': port, 
             'ip_type': 4,
             'modality': modality,
-            'coldkey': coldkeypub,
+            'coldkey': wallet.coldkeypub,
         }
         call = await self.substrate.compose_call(
             call_module='SubtensorModule',
             call_function='subscribe',
             call_params=params
         )
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.hotkey)
-        result = await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
+        # TODO (const): hotkey should be an argument here not assumed. Either that or the coldkey pub should also be assumed.
+        extrinsic = await self.substrate.create_signed_extrinsic(call = call, keypair = wallet.hotkey )
+        result = await self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
         if result:
-            print(colored('Successfully subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub), 'green'))
+            logger.log('USER-SUCCESS', "Successfully subscribed with [ip: {}, port: {}, modality: {}, hotkey:{}, coldkey: {}]".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
         else:
-            print(colored('Failed to subscribe', 'red'))
+            logger.log('USER-CRITICAL', "Failed to subscribe")
         return result
             
-
        
     def add_stake(
             self, 
+            wallet: 'bittensor.wallet.Wallet',
             amount: Balance, 
             hotkey_id: int, 
             wait_for_inclusion: bool = False,
@@ -459,6 +464,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Adds the specified amount of stake to passed hotkey uid.
         Args:
+            wallet (bittensor.wallet.Wallet):
+                bittensor wallet object.
             amount (bittensor.utils.balance.Balance):
                 amount to stake as bittensor balance
             hotkey_id (int):
@@ -478,10 +485,11 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_add_stake(amount, hotkey_id, wait_for_inclusion, wait_for_finalization, timeout))
+        return loop.run_until_complete(self.async_add_stake( wallet, amount, hotkey_id, wait_for_inclusion, wait_for_finalization, timeout ))
 
     async def async_add_stake(
             self, 
+            wallet: 'bittensor.wallet.Wallet',
             amount: Balance, 
             hotkey_id: int, 
             wait_for_inclusion: bool = False,
@@ -490,6 +498,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Adds the specified amount of stake to passed hotkey uid.
         Args:
+            wallet (bittensor.wallet.Wallet):
+                bittensor wallet object.
             amount (bittensor.utils.balance.Balance):
                 amount to stake as bittensor balance
             hotkey_id (int):
@@ -516,11 +526,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 'ammount_staked': amount.rao
             }
         )
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.coldkey)
-        return await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
+        extrinsic = await self.substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
+        return await self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
 
     def transfer(
             self, 
+            wallet: 'bittensor.wallet.Wallet',
             dest:str, 
             amount: Balance, 
             wait_for_inclusion: bool = False,
@@ -529,6 +540,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Transfers funds from this wallet to the destination public key address
         Args:
+            wallet (bittensor.wallet.Wallet):
+                bittensor wallet object.
             dest (str):
                 destination public key address of reciever. 
             amount (bittensor.utils.balance.Balance):
@@ -548,10 +561,11 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_transfer(dest, amount, wait_for_inclusion, wait_for_finalization, timeout))
+        return loop.run_until_complete(self.async_transfer(wallet, dest, amount, wait_for_inclusion, wait_for_finalization, timeout))
 
     async def async_transfer(
             self, 
+            wallet: 'bittensor.wallet.Wallet',
             dest:str, 
             amount: Balance, 
             wait_for_inclusion: bool = False,
@@ -560,6 +574,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Transfers funds from this wallet to the destination public key address
         Args:
+            wallet (bittensor.wallet.Wallet):
+                bittensor wallet object.
             dest (str):
                 destination public key address of reciever. 
             amount (bittensor.utils.balance.Balance):
@@ -586,11 +602,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 'value': amount.rao
             }
         )
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair = self.wallet.coldkey)
-        return await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
+        extrinsic = await self.substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
+        return await self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
 
     def unstake(
             self, 
+            wallet: 'bittensor.wallet.Wallet',
             amount: Balance, 
             hotkey_id: int, 
             wait_for_inclusion:bool = False, 
@@ -599,6 +616,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Removes stake into the wallet coldkey from the specified hotkey uid.
         Args:
+            wallet (bittensor.wallet.Wallet):
+                bittensor wallet object.
             amount (bittensor.utils.balance.Balance):
                 amount to stake as bittensor balance
             hotkey_id (int):
@@ -618,10 +637,11 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_unstake(amount, hotkey_id, wait_for_inclusion, wait_for_finalization, timeout))
+        return loop.run_until_complete(self.async_unstake( wallet, amount, hotkey_id, wait_for_inclusion, wait_for_finalization, timeout ))
 
     async def async_unstake(
             self, 
+            wallet: 'bittensor.wallet.Wallet',
             amount: Balance, 
             hotkey_id: int, 
             wait_for_inclusion:bool = False, 
@@ -630,6 +650,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Removes stake into the wallet coldkey from the specified hotkey uid.
         Args:
+            wallet (bittensor.wallet.Wallet):
+                bittensor wallet object.
             amount (bittensor.utils.balance.Balance):
                 amount to stake as bittensor balance
             hotkey_id (int):
@@ -653,11 +675,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             call_function='remove_stake',
             call_params={'ammount_unstaked': amount.rao, 'hotkey': hotkey_id}
         )
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.coldkey)
-        return await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
+        extrinsic = await self.substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
+        return await self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
 
     def set_weights(
             self, 
+            wallet: 'bittensor.wallet.Wallet',
             destinations, 
             values, 
             wait_for_inclusion:bool = False, 
@@ -666,6 +689,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Sets the given weights and values on chain for wallet hotkey account.
         Args:
+            wallet (bittensor.wallet.Wallet):
+                bittensor wallet object.
             destinations (List[int]):
                 uint64 uids of destination neurons.
             values (List[int]):
@@ -685,10 +710,11 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_set_weights(destinations, values, wait_for_inclusion, wait_for_finalization, timeout))
+        return loop.run_until_complete(self.async_set_weights( wallet, destinations, values, wait_for_inclusion, wait_for_finalization, timeout ))
 
     async def async_set_weights(
             self, 
+            wallet: 'bittensor.wallet.Wallet',
             destinations, 
             values, 
             wait_for_inclusion:bool = False, 
@@ -697,6 +723,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Sets the given weights and values on chain for wallet hotkey account.
         Args:
+            wallet (bittensor.wallet.Wallet):
+                bittensor wallet object.
             destinations (List[int]):
                 uint64 uids of destination neurons.
             values (List[int]):
@@ -720,10 +748,10 @@ To run a local node (See: docs/running_a_validator.md) \n
             call_function='set_weights',
             call_params = {'dests': destinations, 'weights': values}
         )
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair = self.wallet.hotkey)
-        return await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
+        extrinsic = await self.substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+        return await self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
 
-    def get_balance(self, address) -> Balance:
+    def get_balance(self, address: str) -> Balance:
         r""" Returns the token balance for the passed ss58_address address
         Args:
             address (Substrate address format, default = 42):

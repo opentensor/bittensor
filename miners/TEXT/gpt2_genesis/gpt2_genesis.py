@@ -141,27 +141,117 @@ class Miner():
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        parser.add_argument('--miner.learning_rate', default=3e-2, type=float, help='Training initial learning rate.')
-        parser.add_argument('--miner.weight_decay', default=0.25, help='Model parameter weight decay.')
-        parser.add_argument('--miner.lr_decay', default=True, help='learning rate decay params: linear warmup followed by cosine decay to 10% of original.')
-        parser.add_argument('--miner.warmup_tokens', default=375e6, help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)')
-        parser.add_argument('--miner.final_tokens', default=260e9, help='At what point we reach 10% of original LR')
-        parser.add_argument('--miner.num_workers', default=1, help='Number of workers for data loader.')
-        parser.add_argument('--miner.clip_gradients', default=1.0, type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.')
-        parser.add_argument('--miner.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
-        parser.add_argument('--miner.epoch_length', default=500, type=int, help='Iterations of training per epoch')
-        parser.add_argument('--miner.batch_size_train', default=2, type=int, help='Training batch size.')
-        parser.add_argument('--miner.root_dir', default='~/.bittensor/miners/', type=str,  help='Root path to load and save data associated with each miner')
-        parser.add_argument('--miner.name', default='gpt2-genesis', type=str, help='Trials for this miner go in miner.root / miner.name')
-        parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
-        parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
-        parser.add_argument('--miner.custom_dataset', default="~/.bittensor/bittensor/miners/TEXT/gpt2_genesis/genesis_dataset/", type=str, help='Custom datasets to train on.')
-        parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
+        parser.add_argument(
+            '--miner.learning_rate', 
+            default=3e-2, 
+            type=float, 
+            help='Training initial learning rate.'
+        )
+        parser.add_argument(
+            '--miner.weight_decay', 
+            default=0.25, 
+            type=float, 
+            help='Model parameter weight decay.'
+        )
+        parser.add_argument(
+            '--miner.lr_decay',
+            default=True,
+            type=bool,
+            help='learning rate decay params: linear warmup followed by cosine decay to 10%% of original.'
+        )
+        parser.add_argument(
+            '--miner.warmup_tokens',
+            default=375e6,
+            type=float,
+            help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)'
+        )
+        parser.add_argument(
+            '--miner.final_tokens',
+            default=260e9,
+            type=float,
+            help='At what point we reach 10%% of original LR'
+        )
+        parser.add_argument(
+            '--miner.num_workers',
+            default=1,
+            type=int,
+            help='Number of workers for data loader.'
+        )
+        parser.add_argument(
+            '--miner.clip_gradients',
+            default=1.0,
+            type=float,
+            help='Implement gradient clipping to avoid exploding loss on smaller architectures.'
+        )
+        parser.add_argument(
+            '--miner.n_epochs', 
+            default=int(sys.maxsize), 
+            type=int, 
+            help='Number of training epochs.'
+        )
+        parser.add_argument(
+            '--miner.epoch_length', 
+            default=500, 
+            type=int, 
+            help='Iterations of training per epoch'
+        )
+        parser.add_argument(
+            '--miner.batch_size_train', 
+            default=2, 
+            type=int, 
+            help='Training batch size.'
+        )
+        parser.add_argument (
+            '--miner.root_dir',
+            default='~/.bittensor/miners/',
+            type=str,
+            help='Root path to load and save data associated with each miner'
+        )
+        parser.add_argument (
+            '--miner.name',
+            default='gpt2-genesis',
+            type=str,
+            help='Trials for this miner go in miner.root / miner.name'
+        )
+        parser.add_argument (
+            '--miner.trial_uid',
+            default=str(time.time()).split('.')[0],
+            type=str,
+            help='Saved models go in miner.root_dir / miner.name / miner.uid'
+        )
+        parser.add_argument (
+            '--miner.record_log',
+            default=False,
+            type=bool,
+            help='Record all logs when running this miner')
+        parser.add_argument (
+            '--miner.custom_dataset',
+            default="~/.bittensor/bittensor/miners/TEXT/gpt2_genesis/genesis_dataset/",
+            type=str,
+            help='Custom datasets to train on.'
+        )
+        parser.add_argument (
+            '--miner.config_file',
+            type=str,
+            help='config file to run this neuron, if not using cmd line arguments.'
+        )
+        parser.add_argument (
+            '--debug', 
+            dest='debug', 
+            action='store_true', 
+            help='''Turn on bittensor debugging information'''
+        )
+        parser.set_defaults ( 
+            debug=False 
+        )
+
         GPT2Synapse.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
+        if config.debug:  bittensor.__log_level__ = 'TRACE'; logger.debug('DEBUG is ON')
+        else: logger.info('DEBUG is OFF') 
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         config.miner.custom_dataset = os.path.expanduser(config.miner.custom_dataset)
@@ -342,36 +432,44 @@ class Miner():
             pbar = qqdm(enumerate(dataset), total=len(dataset), desc=format_str('blue', f'Epoch Progress'))
 
             for it, (batch) in pbar:
+
+                # ---- Forward pass ----
                 batch = batch.to(self.model.device)
                 output = self.model.remote_forward(self.neuron, batch, training=True)
+
+                # ---- Backward pass ----
                 loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
                 loss.backward()
 
+                # ---- Gradient Step ----
                 clip_grad_norm_(self.model.parameters(), self.config.miner.clip_gradients)
                 self.optimizer.step()
                 self.optimizer.zero_grad()
-
                 self.decay_learning_rate(batch)
-
                 losses.append(loss.item())
 
-                 # ---- Train row weights ----
+                # ---- Train row weights ----
                 batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
                 self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
                 self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
 
+                # ---- Logging ----
+                index = self.neuron.metagraph.state.index_for_uid[self.neuron.metagraph.uid]
                 pbar.set_infos({
                     'GS': colored('{}'.format(self.global_step), 'red'),
                     'LS': colored('{}'.format(it), 'blue'),
                     'Epoch': colored('{}'.format(self.epoch+1), 'green'),
-                    'Local loss': colored('{:.5f}'.format(output.local_target_loss.item()), 'red'),
-                    'Remote loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'blue'),
-                    'Distillation loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
-                    'Learning Rate:': colored('{:e}'.format(self.lr), 'white'),
+                    'L-loss': colored('{:.5f}'.format(output.local_target_loss.item()), 'red'),
+                    'R-loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'blue'),
+                    'D-loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
+                    'lr:': colored('{:e}'.format(self.lr), 'white'),
+                    'nPeers': self.neuron.metagraph.n,
+                    'Stake(\u03C4)': float(self.neuron.metagraph.S[index]),
+                    'Rank(\u03C4)': float(self.neuron.metagraph.R[index]),
+                    'Incentive(\u03C4/block)': float(self.neuron.metagraph.I[index]),
                     'Axon': self.neuron.axon.__str__(),
                     'Dendrite': self.neuron.dendrite.__str__(),
                 })
-
                 self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
                 self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
                 self.tensorboard.add_scalar('Neuron/Dloss', output.distillation_loss.item(), self.global_step)

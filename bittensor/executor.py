@@ -49,197 +49,68 @@ class Executor:
                 metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
                     bittensor metagraph object.
         """
+        # config for the wallet, metagraph sub-objects.
         if config == None:
             config = Executor.default_config()
-        bittensor.config.Config.update_with_kwargs(config, kwargs) 
-        Executor.check_config(config)
+        Executor.check_config( config )
         self.config = config
 
         if wallet == None:
-            wallet = bittensor.wallet.Wallet( self.config )
+            wallet = bittensor.wallet.Wallet( config = self.config )
+        self.config.wallet = wallet.config.wallet
         self.wallet = wallet
 
-        # Only load subtensor if we need it.
-        if self.config.command in ["transfer", "unstake", "stake", "overview", "save_state"]:
-            if subtensor == None:
-                subtensor = bittensor.subtensor.Subtensor( self.config, self.wallet )
-            self.subtensor = subtensor
+        if subtensor == None:
+            subtensor = bittensor.subtensor.Subtensor( config = self.config )
+        self.config.subtensor = subtensor.config.subtensor
+        self.subtensor = subtensor
 
-        if self.config.command in ["overview", "save_state"]:
-            if metagraph == None:
-                metagraph = bittensor.metagraph.Metagraph( self.config, self.wallet, self.subtensor)
-            self.metagraph = metagraph
-            
+        if metagraph == None:
+            metagraph = bittensor.metagraph.Metagraph( subtensor = self.subtensor )
+        self.metagraph = metagraph
+        self.metagraph.subtensor = subtensor     
 
     @staticmethod
     def default_config () -> Munch:
-         # Build top level parser.
-        parser = argparse.ArgumentParser(description="Bittensor cli", usage="bittensor-cli <command> <command args>", add_help=True)
-        parser._positionals.title = "commands"
-        parser.add_argument("--debug", default=False, help="Turn on debugging information", action="store_true")
+        parser = argparse.ArgumentParser(); 
         Executor.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
         return config
 
     @staticmethod   
     def add_args (parser: argparse.ArgumentParser):
-        cmd_parsers = parser.add_subparsers(dest='command')
-
-        overview_parser = cmd_parsers.add_parser('overview', 
-            help='''Show account overview.''')
-        save_state_parser = cmd_parsers.add_parser('save_state', 
-            help='''Saves the metagraph state to a json file.''')
-        transfer_parser = cmd_parsers.add_parser('transfer', 
-            help='''Transfer Tao between accounts.''')
-
-        unstake_parser = cmd_parsers.add_parser('unstake', 
-            help='''Unstake from hotkey accounts.''')
-        stake_parser = cmd_parsers.add_parser('stake', 
-            help='''Stake to your hotkey accounts.''')
-
-        regen_coldkey_parser = cmd_parsers.add_parser('regen_coldkey',
-            help='''Regenerates a coldkey from a passed mnemonic''')
-        regen_hotkey_parser = cmd_parsers.add_parser('regen_hotkey',
-            help='''Regenerates a hotkey from a passed mnemonic''')
-
-        new_coldkey_parser = cmd_parsers.add_parser('new_coldkey', 
-            help='''Creates a new hotkey (for running a miner) under the specified path. ''')
-        new_hotkey_parser = cmd_parsers.add_parser('new_hotkey', 
-            help='''Creates a new coldkey (for containing balance) under the specified path. ''')
-            
-        # Fill arguments for the regen coldkey command.
-        regen_coldkey_parser.add_argument("--mnemonic", required=True, nargs="+", 
-            help='Mnemonic used to regen your key i.e. horse cart dog ...') 
-        regen_coldkey_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
-        regen_coldkey_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
-        regen_coldkey_parser.set_defaults(use_password=True)
-        bittensor.wallet.Wallet.add_args( regen_coldkey_parser )
-
-        # Fill arguments for the regen hotkey command.
-        regen_hotkey_parser.add_argument("--mnemonic", required=True, nargs="+", 
-            help='Mnemonic used to regen your key i.e. horse cart dog ...') 
-        bittensor.wallet.Wallet.add_args( regen_hotkey_parser )
-
-        # Fill arguments for the new coldkey command.
-        new_coldkey_parser.add_argument('--n_words', type=int, choices=[12,15,18,21,24], default=12, 
-            help='''The number of words representing the mnemonic. i.e. horse cart dog ... x 24''')
-        new_coldkey_parser.add_argument('--use_password', dest='use_password', action='store_true', help='''Set protect the generated bittensor key with a password.''')
-        new_coldkey_parser.add_argument('--no_password', dest='use_password', action='store_false', help='''Set off protects the generated bittensor key with a password.''')
-        new_coldkey_parser.set_defaults(use_password=True)
-        bittensor.wallet.Wallet.add_args( new_coldkey_parser )
-
-        # Fill arguments for the new hotkey command.
-        new_hotkey_parser.add_argument('--n_words', type=int, choices=[12,15,18,21,24], default=12, 
-            help='''The number of words representing the mnemonic. i.e. horse cart dog ... x 24''')
-        bittensor.wallet.Wallet.add_args( new_hotkey_parser )
-
-        # Fill arguments for the overview command
-        bittensor.subtensor.Subtensor.add_args( overview_parser )
-        bittensor.metagraph.Metagraph.add_args( overview_parser )
-
-        # Fill argument for the save_state command
-        bittensor.subtensor.Subtensor.add_args( save_state_parser )
-        bittensor.metagraph.Metagraph.add_args( save_state_parser )
-
-        # Fill arguments for unstake command. 
-        unstake_parser.add_argument('--all', dest="unstake_all", action='store_true')
-        unstake_parser.add_argument('--uid', dest="uid", type=int, required=False)
-        unstake_parser.add_argument('--amount', dest="amount", type=float, required=False)
-        bittensor.wallet.Wallet.add_args( unstake_parser )
-        bittensor.subtensor.Subtensor.add_args( unstake_parser )
-
-        # Fill arguments for stake command.
-        stake_parser.add_argument('--uid', dest="uid", type=int, required=False)
-        stake_parser.add_argument('--amount', dest="amount", type=float, required=False)
-        bittensor.wallet.Wallet.add_args( stake_parser )
-        bittensor.subtensor.Subtensor.add_args( stake_parser )
-
-        # Fill arguments for transfer
-        transfer_parser.add_argument('--dest', dest="dest", type=str, required=True)
-        transfer_parser.add_argument('--amount', dest="amount", type=float, required=True)
-        bittensor.wallet.Wallet.add_args( transfer_parser )
-        bittensor.subtensor.Subtensor.add_args( transfer_parser )
-
-        # Hack to print formatted help
-        if len(sys.argv) == 1:
-    	    parser.print_help()
-    	    sys.exit(0)
+        bittensor.wallet.Wallet.add_args( parser )
+        bittensor.subtensor.Subtensor.add_args( parser )
         
     @staticmethod   
     def check_config (config: Munch):
-        if config.command == "transfer":
-            if not config.dest:
-                print(colored("The --dest argument is required for this command", 'red'))
-                quit()
-            if not config.amount:
-                print(colored("The --amount argument is required for this command", 'red'))
-                quit()
-        elif config.command == "unstake":
-            if not config.unstake_all:
-                if config.uid is None:
-                    print(colored("The --uid argument is required for this command", 'red'))
-                    quit()
-                if not config.amount:
-                    print(colored("The --amount argument is required for this command", 'red'))
-                    quit()
-        elif config.command == "stake":
-            if config.uid is None:
-                print(colored("The --uid argument is required for this command", 'red'))
-                quit()
-            if config.amount is None:
-                print(colored("The --amount argument is required for this command", 'red'))
-                quit()
-
-    def run_command(self):
-        if self.config.command == "transfer":
-            self.transfer()
-        elif self.config.command == "unstake":
-            if self.config.unstake_all:
-                self.unstake_all()
-            else:
-                self.unstake()
-        elif self.config.command == "stake":
-            self.stake()
-        elif self.config.command == "overview":
-            self.overview()
-        elif self.config.command == "save_state":
-            self.save_state()
-        elif self.config.command == "new_coldkey":
-            self.create_new_coldkey()
-        elif self.config.command == "new_hotkey":
-            self.create_new_hotkey()
-        elif self.config.command == "regen_coldkey":
-            self.regenerate_coldkey()
-        elif self.config.command == "regen_hotkey":
-            self.regenerate_hotkey()
-        else:
-            print(colored("The command {} not implemented".format( self.config.command ), 'red'))
-            quit()
+        bittensor.wallet.Wallet.check_config(config)
+        bittensor.subtensor.Subtensor.check_config(config)
             
-    def regenerate_coldkey ( self ):
+    def regenerate_coldkey ( self, mnemonic: str, use_password: bool ):
         r""" Regenerates a colkey under this wallet.
         """
-        self.wallet.regenerate_coldkey( self.config.mnemonic, self.config.use_password )
+        self.wallet.regenerate_coldkey( mnemonic = mnemonic, use_password = use_password )
 
-    def regenerate_hotkey ( self ):
+    def regenerate_hotkey ( self, mnemonic: str, use_password: bool ):
         r""" Regenerates a hotkey under this wallet.
         """
-        self.wallet.regenerate_hotkey( self.config.mnemonic )
+        self.wallet.regenerate_hotkey( mnemonic = mnemonic, use_password = use_password )
 
-    def create_new_coldkey ( self ):
+    def create_new_coldkey ( self, n_words: int, use_password: bool ):
         r""" Creates a new coldkey under this wallet.
         """
-        self.wallet.create_new_coldkey( self.config.n_words, self.config.use_password )   
+        self.wallet.create_new_coldkey( n_words = n_words, use_password = use_password )   
 
-    def create_new_hotkey ( self ):  
+    def create_new_hotkey ( self, n_words: int, use_password: bool ):  
         r""" Creates a new hotkey under this wallet.
         """
-        self.wallet.create_new_hotkey( self.config.n_words )  
+        self.wallet.create_new_hotkey( n_words = n_words, use_password = use_password  )  
 
     def _associated_neurons( self ) -> Neurons:
         r""" Returns a list of neurons associate with this wallet's coldkey.
         """
-        print(colored("Retrieving all nodes associated with cold key : {}".format( self.wallet.coldkeypub ), 'white'))
+        logger.log('USER-ACTION', "Retrieving all nodes associated with cold key : {}".format( self.wallet.coldkeypub ))
         neurons = self.subtensor.neurons()
         neurons = Neurons.from_list( neurons )
         result = filter(lambda x : x.coldkey == self.wallet.coldkey.public_key, neurons )# These are the neurons associated with the provided cold key
@@ -259,125 +130,130 @@ class Executor:
         balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
         neurons = self._associated_neurons()
 
-        print("BALANCE: %s : [%s]" % ( self.wallet.coldkey.ss58_address, balance ))
-        print()
-        print("--===[[ STAKES ]]===--")
-        t = PrettyTable(["UID", "IP", "STAKE (\u03C4) ", "RANK  (\u03C4)", "INCENTIVE  (\u03C4) ", "HOTKEY"])
+        logger.log('USER-SUCCESS', "BALANCE: %s : [\u03C4%s]" % ( self.wallet.coldkey.ss58_address, balance.tao ))
+        logger.log('USER-INFO', "")
+        logger.log('USER-INFO', "--===[[ Neurons ]]===--")
+        t = PrettyTable(["UID", "IP", "STAKE (\u03C4) ", "RANK  (\u03C4)", "INCENTIVE  (\u03C4/block) ", "LastEmit (blocks)", "HOTKEY"])
         t.align = 'l'
         total_stake = 0.0
         for neuron in neurons:
-            index = self.metagraph.state.index_for_uid[ neuron.uid ]
-            stake = float(self.metagraph.S[index])
-            rank = float(self.metagraph.R[index])
-            incentive = float(self.metagraph.I[index])
-            t.add_row([neuron.uid, neuron.ip, stake, rank, incentive, neuron.hotkey])
+            rank = float(self.metagraph.R[self.metagraph.state.index_for_uid[neuron.uid]])
+            incentive = float(self.metagraph.I[self.metagraph.state.index_for_uid[neuron.uid]])
+            lastemit = int(self.metagraph.block - self.metagraph.lastemit[self.metagraph.state.index_for_uid[neuron.uid]])
+            t.add_row([neuron.uid, neuron.ip, neuron.stake.__float__(), rank, incentive, lastemit, neuron.hotkey])
             total_stake += neuron.stake.__float__()
-        print(t.get_string())
-        print("Total stake: ", total_stake)
-
-    def save_state( self ):
-        self.subtensor.connect()
-        self.metagraph.sync()
-        filepath = os.path.expanduser('~/.bittensor/metagraph-at-block{}.txt'.format(self.metagraph.block))
-        print ('Saving metagraph.state to file: {}'.format( filepath ))
-        self.metagraph.state.write_to_file( filepath )
+        logger.log('USER-INFO', t.get_string())
+        logger.log('USER-SUCCESS', "Total stake: {}", total_stake)
 
     def unstake_all ( self ):
         r""" Unstaked from all hotkeys associated with this wallet's coldkey.
         """
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
-        self.wallet.assert_hotkey()
         self.subtensor.connect()
         neurons = self._associated_neurons()
         for neuron in neurons:
             neuron.stake = self.subtensor.get_stake_for_uid( neuron.uid )
-            result = self.subtensor.unstake( neuron.stake, neuron.hotkey, wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
+            result = self.subtensor.unstake( 
+                wallet = self.wallet, 
+                amount = neuron.stake, 
+                hotkey_id = neuron.hotkey, 
+                wait_for_finalization = True, 
+                timeout = bittensor.__blocktime__ * 5 
+            )
             if result:
-                print(colored("Unstaked: {} Tao from uid: {} to coldkey.pub: {}".format( neuron.stake, neuron.uid, self.wallet.coldkey.public_key ) , 'green'))
+                logger.log('USER-SUCCESS', "Unstaked: \u03C4{} from uid: {} to coldkey.pub: {}".format( neuron.stake, neuron.uid, self.wallet.coldkey.public_key ))
             else:
-                print(colored("Unstaking transaction failed", 'red'))
+                logger.log('USER-CRITICAL', "Unstaking transaction failed")
 
-    def unstake( self ):
+    def unstake( self, amount_tao: int, uid: int ):
         r""" Unstaked token of amount to from uid.
         """
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
-        self.wallet.assert_hotkey()
         self.subtensor.connect()
-        amount = Balance.from_float( self.config.amount )
+        unstaking_balance = Balance.from_float( amount_tao )
         neurons = self._associated_neurons()
-        neuron = neurons.get_by_uid( self.config.uid )
+        neuron = neurons.get_by_uid( uid )
         if not neuron:
-            print(colored("Neuron with uid: {} is not associated with coldkey.pub: {}".format( self.config.uid, self.wallet.coldkey.public_key), 'red'))
+            logger.log('USER-CRITICAL', "Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
             quit()
 
         neuron.stake = self.subtensor.get_stake_for_uid(neuron.uid)
-        if amount > neuron.stake:
-            print(colored("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format( self.config.uid, neuron.stake, amount), 'red'))
+        if unstaking_balance > neuron.stake:
+            logger.log('USER-CRITICAL', "Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format( uid, neuron.stake, unstaking_balance))
             quit()
 
-        print(colored("Requesting unstake of {} rao for hotkey: {} to coldkey: {}".format(amount.rao, neuron.hotkey, self.wallet.coldkey.public_key), 'blue'))
-        print(colored("Waiting for finalization...", 'white'))
-        result = self.subtensor.unstake(amount, neuron.hotkey, wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
+        logger.log('USER-ACTION', "Requesting unstake of \u03C4{} from hotkey: {} to coldkey: {}".format(unstaking_balance.tao, neuron.hotkey, self.wallet.coldkey.public_key))
+        logger.log('USER-INFO', "Waiting for finalization...")
+        result = self.subtensor.unstake (
+            wallet = self.wallet, 
+            amount = unstaking_balance, 
+            hotkey_id = neuron.hotkey, 
+            wait_for_finalization = True, 
+            timeout = bittensor.__blocktime__ * 5
+        )
         if result:
-            print(colored("Unstaked:{} from uid:{} to coldkey.pub:{}".format(amount.tao, neuron.uid, self.wallet.coldkey.public_key), 'green'))
+            logger.log('USER-SUCCESS', "Unstaked: \u03C4{} from uid:{} to coldkey.pub:{}".format(unstaking_balance.tao, neuron.uid, self.wallet.coldkey.public_key))
         else:
-            print(colored("Unstaking transaction failed", 'red'))
+            logger.log('USER-CRITICAL', "Unstaking transaction failed")
 
-    def stake( self ):
+    def stake( self, amount_tao: int, uid: int ):
         r""" Stakes token of amount to hotkey uid.
         """
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
-        self.wallet.assert_hotkey()
         self.subtensor.connect()
-        amount = Balance.from_float( self.config.amount )
-        balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
-        if balance < amount:
-            print(colored("Not enough balance ({}) to stake {}".format(balance, amount), 'red'))
+        staking_balance = Balance.from_float( amount_tao )
+        account_balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
+        if account_balance < staking_balance:
+            logger.log('USER-CRITICAL', "Not enough balance (\u03C4{}) to stake \u03C4{}".format(account_balance, staking_balance))
             quit()
 
         neurons = self._associated_neurons()
-        neuron = neurons.get_by_uid( self.config.uid )
+        neuron = neurons.get_by_uid( uid )
         if not neuron:
-            print(colored("Neuron with uid: {} is not associated with coldkey.pub: {}".format(self.config.uid, self.wallet.coldkey.public_key), 'red'))
+            logger.log('USER-CRITICAL', "Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key ))
             quit()
 
-        print(colored("Adding stake of {} rao from coldkey {} to hotkey {}".format(amount.rao, self.wallet.coldkey.public_key, neuron.hotkey), 'blue'))
-        print(colored("Waiting for finalization...", 'white'))
-        result = self.subtensor.add_stake( amount, neuron.hotkey, wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
-        if result:
-            print(colored("Staked: {} Tao to uid: {} from coldkey.pub: {}".format(amount.tao, self.config.uid, self.wallet.coldkey.public_key), 'green'))
+        logger.log('USER-ACTION', "Adding stake of \u03C4{} from coldkey {} to hotkey {}".format( staking_balance.tao, self.wallet.coldkey.public_key, neuron.hotkey))
+        logger.log('USER-INFO', "Waiting for finalization...")
+        result = self.subtensor.add_stake ( 
+            wallet = self.wallet, 
+            amount = staking_balance, 
+            hotkey_id = neuron.hotkey, 
+            wait_for_finalization = True, 
+            timeout = bittensor.__blocktime__ * 5
+        )
+        if result: 
+            logger.log('USER-SUCCESS', "Staked: \u03C4{} to uid: {} from coldkey.pub: {}".format( staking_balance.tao, uid, self.wallet.coldkey.public_key ))
         else:
-            print(colored("Stake transaction failed", 'red'))
+            logger.log('USER-CRITICAL', "Stake transaction failed")
 
-    def transfer( self ):
+    def transfer( self, amount_tao: int, destination: str):
         r""" Transfers token of amount to dest.
             
         """
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
-        self.wallet.assert_hotkey()
         self.subtensor.connect()
-        amount = Balance.from_float( self.config.amount )
-        balance = self.subtensor.get_balance(self.wallet.coldkey.ss58_address)
-        if balance < amount:
-            print(colored("Not enough balance ({}) to transfer {}".format(balance, amount), 'red'))
+        transfer_balance = Balance.from_float( amount_tao )
+        acount_balance = self.subtensor.get_balance(self.wallet.coldkey.ss58_address)
+        if acount_balance < transfer_balance:
+            logger.log('USER-CRITICAL', "Not enough balance (\u03C4{}) to transfer \u03C4{}".format(acount_balance, transfer_balance))
             quit()
 
-        print(colored("Requesting transfer of {}, from coldkey: {} to dest: {}".format(amount.rao, self.wallet.coldkey.public_key, self.config.dest), 'blue'))
-        print(colored("Waiting for finalization...", 'white'))
-        result = self.subtensor.transfer(self.config.dest, amount,  wait_for_finalization = True, timeout = bittensor.__blocktime__ * 5)
+        logger.log('USER-ACTION', "Requesting transfer of \u03C4{}, from coldkey: {} to destination: {}".format(transfer_balance.tao, self.wallet.coldkey.public_key, destination))
+        logger.log('USER-INFO', "Waiting for finalization...")
+        result = self.subtensor.transfer( 
+            wallet = self.wallet, 
+            dest = destination, 
+            amount = transfer_balance,  
+            wait_for_finalization = True, 
+            timeout = bittensor.__blocktime__ * 5 
+        )
         if result:
-            print(colored("Transfer finalized with amount: {} Tao to dest: {} from coldkey.pub: {}".format(amount.tao, self.config.dest, self.wallet.coldkey.public_key), 'green'))
+            logger.log('USER-SUCCESS', "Transfer finalized with amount: \u03C4{} to destination: {} from coldkey.pub: {}".format(transfer_balance.tao, destination, self.wallet.coldkey.public_key))
         else:
-            print(colored("Transfer failed", 'red'))
+            logger.log('USER-CRITICAL', "Transfer failed")
  
-
-if __name__ == "__main__":
-    # ---- Build and Run ----
-    config = Executor.default_config(); 
-    logger.info(bittensor.config.Config.toString(config))
-    executor = Executor( config )
-    executor.run_command()
