@@ -43,6 +43,7 @@ import bittensor.dendrite
 import bittensor.metagraph
 import bittensor.logging
 import bittensor.neuron
+import bittensor.miner
 import bittensor.nucleus
 import bittensor.receptor
 import bittensor.subtensor
