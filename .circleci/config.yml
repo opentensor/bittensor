@@ -125,7 +125,8 @@ workflows:
             - "Run Integration Tests"
           filters:
               branches:
-                only:
-                  - master
+                ignore:
+                    - /^((?!master).)*
+
 
 
