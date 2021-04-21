@@ -126,7 +126,7 @@ workflows:
           filters:
               branches:
                 ignore:
-                  - develop
+                    - /^((?!master).)*
 
 
 
