@@ -125,7 +125,9 @@ workflows:
             - "Run Integration Tests"
           filters:
               branches:
+                only:
+                  - master
                 ignore:
-                  - decouple_metagraph_from_objects
+                  - develop
 
 
