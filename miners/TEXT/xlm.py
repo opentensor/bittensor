@@ -63,8 +63,8 @@ class XLMMiner( bittensor.miner.BasicMiner ):
         if config == None:
             config = XLMMiner.default_config();   
         config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
-        logger.info( bittensor.config.Config.toString( config ) )
         XLMMiner.check_config( config )
+        logger.info( bittensor.config.Config.toString( config ) )
         self.config = config
 
         # ---- Row Weights ----
@@ -198,7 +198,7 @@ class XLMMiner( bittensor.miner.BasicMiner ):
                 outputs (:obj:`torch.FloatTensor`): 
                     The gradients w.r.t to the inputs [batch_size, sequence_len, __network_dim__]
         """
-        # Don't process backward requests.
+        # Not processing backward requests
         return None
 
     # ---- Get Row Weights ----

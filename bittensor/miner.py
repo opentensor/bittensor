@@ -62,7 +62,7 @@ class Miner( bittensor.neuron.Neuron ):
             logger.add (
                 filepath,
                 format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
-                rotation="50 MB",
+                rotation="25 MB",
                 retention="10 days"
             )
         super(Miner, self).__init__( self.config )
@@ -74,11 +74,21 @@ class Miner( bittensor.neuron.Neuron ):
         Miner.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
         return config
+
     
     @staticmethod
     def check_config(config: Munch):
         bittensor.neuron.Neuron.check_config( config )
-        full_path = '{}/{}/{}'.format(config.miner.root_dir, config.wallet.name + "-" + config.wallet.hotkey, config.miner.uid)
+        os.listdir(".")
+        miner_path = os.path.expanduser('{}/{}'.format(config.miner.root_dir, config.wallet.name + "-" + config.wallet.hotkey))
+        max_trial_uid = 0
+        for name in os.listdir(miner_path):
+            try:
+                max_trial_uid = max( int(name.split('-')[1]), max_trial_uid )
+            except:
+                pass
+        config.miner.uid = str(max_trial_uid + 1)
+        full_path = '{}/{}'.format(miner_path, "trial-" + config.miner.uid)
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
@@ -95,9 +105,9 @@ class Miner( bittensor.neuron.Neuron ):
             )
             parser.add_argument (
                 '--miner.uid',
-                default=str(time.time()).split('.')[0],
+                default=-1,
                 type=str,
-                help='Saved state goes into miner.root_dir / (wallet.name  + wallet.hotkey) / miner.uid'
+                help='if miner.uid < 0, defaults to next larget trial-uid value. Saved state goes into miner.root_dir / (wallet.name  + wallet.hotkey) / miner.uid'
             )
             parser.add_argument (
                 '--miner.record_log',
@@ -336,8 +346,8 @@ class BasicMiner( Miner ):
         
      # ---- Subclass Forward call ----
     def forward_call( self, pubkey:str, inputs:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Called by neuron.forward_loop which can be overridden by the child class.
-            The arguments reflect an RPC request from another neuron in the network, the response tensor
+        r""" Called by miner.forward_loop which can be overridden by the child class.
+            The arguments reflect an RPC request from another miner in the network, the response tensor
             should be the hidden units of the local nucleus of shape [batch_size, sequence_len, __network_dim__].
             
             Args:
@@ -356,8 +366,8 @@ class BasicMiner( Miner ):
 
     # ---- Subclass Backward call ----
     def backward_call( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Called by neuron.backward_loop which can be overridden in the child class.
-            Arguments reflect an RPC backward request from another neuron in the network, the response tensor
+        r""" Called by miner.backward_loop which can be overridden in the child class.
+            Arguments reflect an RPC backward request from another miner in the network, the response tensor
             should be the gradients of the miner's nucleus w.r.t to the inputs and the passed output grads.
             
             Args:
@@ -524,22 +534,22 @@ class BasicMiner( Miner ):
             return False
 
     def save_state( self ):
-        r""" This function is called by neuron.run() if neuron.should_save() returns True.
+        r""" This function is called by miner.run() if miner.should_save() returns True.
         """
         try:
             state_dict = self.get_state_dict()
-            logger.info( 'Saving model to: <cyan>{}/model.torch</cyan>'.format( self.config.neuron.full_path ))
-            torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path, self.epoch_loss ))
+            logger.info( 'Saving model to: <cyan>{}/model.torch</cyan>'.format( self.config.miner.full_path ))
+            torch.save( state_dict, "{}/model.torch".format( self.config.miner.full_path, self.epoch_loss ))
             self.last_saved_loss = self.epoch_loss
             logger.success('Saved model' )
         except Exception as e:
              logger.error('Failed to save model with error:{}', e)
 
     def reload_state( self ):
-        r""" Called by neuron.run() if neuron.should_reload() returns True.
+        r""" Called by miner.run() if miner.should_reload() returns True.
         """
         try:
-            state_dict = torch.load("{}/model.torch".format( self.config.neuron.full_path ))
+            state_dict = torch.load("{}/model.torch".format( self.config.miner.full_path ))
             reload_from_state_dict( state_dict )
         except Exception as e:
             logger.error('Failed to reload model with error: {}', e)
@@ -605,9 +615,9 @@ class BasicMiner( Miner ):
             self.training_logs( progress_bar, iteration = iteration, output = output )
         self.scheduler.step()
 
-    # --- Run Neuron ----
+    # --- Run Miner ----
     def run( self ):
-        r""" Neuron main loop.
+        r""" Miner main loop.
         """
         # --- Run state ----
         self.epoch = -1
