@@ -50,11 +50,7 @@ import bittensor.subtensor
 import bittensor.wallet
 
 # ---- LOGGING ----
-<<<<<<< HEAD
 __debug_on__ = False 
-=======
-__log_level__ = 'INFO' 
->>>>>>> 842cc372da95fb700d5828388b57cbe469e846db
 bittensor.logging.init_logger()
 
 # Tokenizer

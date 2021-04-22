@@ -533,10 +533,9 @@ class BasicMiner( Miner ):
         """
         try:
             state_dict = self.get_state_dict()
-            logger.info( 'Saving model to: <cyan>{}/model.torch</cyan>'.format( self.config.miner.full_path ))
             torch.save( state_dict, "{}/model.torch".format( self.config.miner.full_path, self.epoch_loss ))
             self.last_saved_loss = self.epoch_loss
-            logger.success('Saved model' )
+            logger.info( 'Saved model to: <cyan>{}/model.torch</cyan>'.format( self.config.miner.full_path ))
         except Exception as e:
              logger.error('Failed to save model with error:{}', e)
 
