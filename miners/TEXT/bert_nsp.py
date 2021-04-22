@@ -57,8 +57,8 @@ class Miner( bittensor.miner.BasicMiner ):
         if config == None:
             config = Miner.default_config();       
         config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
-        logger.info( bittensor.config.Config.toString( config ) )
         Miner.check_config( config )
+        logger.info( bittensor.config.Config.toString( config ) )
         self.config = config
 
         # ---- Row Weights ----
@@ -216,6 +216,19 @@ class Miner( bittensor.miner.BasicMiner ):
         self.row_weights = torch.nn.functional.pad( self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel()] )
         self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
         return self.row_weights
+
+    # ---- Get Batches ----
+    def get_epoch_batches( self, epoch:int ) -> List[ dict ]:
+        r""" Returns training batches for an epoch.
+            Returns:
+                batches ( List[dict], shape=(self.config.miner.epoch_length) ): 
+                    List of batches as dictionary containing tokenized sentences
+                    'inputs' = torch.LongTensor.
+        """
+        batches = []
+        for _ in  tqdm( range( self.config.miner.epoch_length ) ):
+            batches.append( self.corpus.next_batch( self.config.miner.batch_size_train ) )
+        return batches
     
     # ---- Training call ----
     def training_call( self, batch: dict ) -> SimpleNamespace:

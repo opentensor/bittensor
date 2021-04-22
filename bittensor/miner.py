@@ -396,21 +396,19 @@ class BasicMiner( Miner ):
             # ---- Pull request ----
             pong, pubkey, inputs, modality = self.axon.next_forward_item( timeout = 1.0 )
             if None not in [ pong, pubkey, inputs, modality]:
-                logger.debug('<white>Axon Forward Request</white> ---> <white>from</white>:<cyan>{}</cyan>, <white>inputs</white>:<cyan>{}</cyan>', pubkey, inputs.shape)
                 outputs = self.forward_call ( 
                     pubkey = pubkey,
                     inputs = inputs,
                     modality = modality
                 )
                 pong.send( outputs.detach() )
-                logger.debug('<white>Axon Forward Response</white> ---> <white>to</white>:<cyan>{}</cyan>, <white>outputs</white>:<cyan>{}</cyan>', pubkey, outputs.shape)
         except Exception as e:
             logger.exception('Error in forward thread with error {}', e)
 
     # ---- Forward loop -----
     def forward_loop ( self ): 
         # ---- Loop until event is set -----
-        logger.success('Forward serving started.')
+        logger.success('<white>Forward loop:</white> Started.')
         while not self.quit_forward.is_set():
             with self.get_forward_lock():
                 self.run_next_forward_call()
@@ -454,7 +452,6 @@ class BasicMiner( Miner ):
 
             # ---- Process Backward request -----
             if None not in [ pong, pubkey, inputs_x, grads_dy, modality ]:
-                logger.debug(' <white>Axon Backward Request</white> ---> <white>from</white>:<cyan>{}</cyan>, <white>inputs</white>:<cyan>{}</cyan>', pubkey, inputs.shape)
                 outputs = self.backward_call ( 
                     pubkey = pubkey,
                     inputs_x = inputs,
@@ -462,7 +459,6 @@ class BasicMiner( Miner ):
                     modality = modality
                 )
                 pong.send( outputs.detach() )
-                logger.debug('<white>Axon Backward Response</white> <--- <white>to</white>:<cyan>{}</cyan>, <white>outputs</white>:<cyan>{}</cyan>', pubkey, outputs.shape)
 
         except Exception as e:
             logger.exception('Error in backward thread with error {}', e)
@@ -470,7 +466,7 @@ class BasicMiner( Miner ):
     # ---- Backward loop -----
     def backward_loop ( self ): 
         # ---- Loop until event is set -----
-        logger.success('Backward serving started.')
+        logger.success('<white>Backward loop:</white> Started')
         while not self.quit_forward.is_set():
             with self.get_backward_lock():
                 self.run_next_backward_call()
@@ -560,7 +556,7 @@ class BasicMiner( Miner ):
 
     def epoch_logs(self):
         r""" Called by miner.run() after each epoch.
-            Sends neuron state to tensorboard.
+            Sends miner state to tensorboard.
         """
         self.axon.__to_tensorboard__( self.tensorboard, self.global_step )
         self.dendrite.__to_tensorboard__( self.tensorboard, self.global_step )

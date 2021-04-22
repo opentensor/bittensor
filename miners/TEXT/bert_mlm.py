@@ -57,8 +57,8 @@ class Miner( bittensor.miner.BasicMiner ):
         if config == None:
             config = Miner.default_config();       
         config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
-        logger.info( bittensor.config.Config.toString( config ) )
         Miner.check_config( config )
+        logger.info( bittensor.config.Config.toString( config ) )
         self.config = config
 
         # ---- Row Weights ----
