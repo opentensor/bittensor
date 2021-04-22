@@ -13,6 +13,17 @@ from pytest import fixture
 import bittensor
 from bittensor.utils.balance import Balance
 
+from bittensor.wallet import Wallet
+from bittensor.substrate import Keypair
+
+class WalletStub(Wallet):
+    def __init__(self, coldkey_pair: 'Keypair', hotkey_pair: 'Keypair'):
+        self._hotkey = hotkey_pair
+        self._coldkey = coldkey_pair
+        self._coldkeypub = coldkey_pair.public_key
+
+
+
 @pytest.fixture(scope="session", autouse=True)
 def initialize_tests():
     # Kill any running process before running tests
@@ -67,19 +78,15 @@ def connect( port:int ):
 #     # Add stake to new neuron
 #     await subtensor.add_stake( wallet = wallet, amount = amount, hotkey_id = hotkeypair.public_key )
 
-def generate_wallet( name:str = 'pytest' ):
-    wallet = bittensor.wallet.Wallet(
-        path = '/tmp/pytest',
-        name = name,
-        hotkey = 'pytest'
-    )
-    if not wallet.has_coldkey:
-        wallet.create_new_coldkey(use_password=False)
-    if not wallet.has_hotkey:
-        wallet.create_new_hotkey(use_password=False)
-    assert wallet.has_coldkey
-    assert wallet.has_hotkey
-    return wallet
+def generate_wallet(coldkey_pair : 'Keypair' = None, hotkey_pair: 'Keypair' = None):
+    if not coldkey_pair:
+        coldkey_pair = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+
+    if not hotkey_pair:
+        hotkey_pair = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+
+    return WalletStub(coldkey_pair=coldkey_pair, hotkey_pair=hotkey_pair)
+
     
 def subscribe( subtensor, wallet):
     subtensor.subscribe(
@@ -203,8 +210,8 @@ def test_get_last_emit_data_for_uid__no_uid(setup_chain):
     assert result is None
 
 def test_get_neurons(setup_chain):
-    walletA = generate_wallet('A')
-    walletB = generate_wallet('B')
+    walletA = generate_wallet()
+    walletB = generate_wallet()
 
     subtensorA = connect(setup_chain)
     subtensorB = connect(setup_chain)
@@ -238,8 +245,8 @@ def test_get_neurons(setup_chain):
     assert elem[1]['uid'] == elem[0]
 
 def test_set_weights_success(setup_chain):
-    walletA = generate_wallet('A')
-    walletB = generate_wallet('B')
+    walletA = generate_wallet()
+    walletB = generate_wallet()
 
     subtensorA = connect(setup_chain)
     subtensorB = connect(setup_chain)
