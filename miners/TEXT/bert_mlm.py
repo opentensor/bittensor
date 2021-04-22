@@ -51,7 +51,7 @@ from nuclei.bert import BertMLMNucleus
 from loguru import logger
 logger = logger.opt(colors=True)
 
-class Miner( bittensor.miner.BasicMiner() ):
+class Miner( bittensor.miner.BasicMiner ):
 
     def __init__(self, config: Munch = None, **kwargs ):
         if config == None:
@@ -109,7 +109,7 @@ class Miner( bittensor.miner.BasicMiner() ):
         BertMLMNucleus.check_config( config )
         bittensor.miner.BasicMiner.check_config( config )
 
-      # ---- Axon Forward call ----
+    # ---- Axon Forward call ----
     def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
         r""" Called by miner.forward_loop which can be overridden by the child class.
             The arguments reflect an RPC request from another miner in the network, the response tensor
