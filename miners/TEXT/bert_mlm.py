@@ -81,7 +81,7 @@ class Miner( bittensor.miner.BasicMiner ):
                 mlm_probability=0.15
             )   
         )
-        super(Miner, self).__init__( self.config )
+        super(Miner, self).__init__( self.config, **kwargs)
         
     @staticmethod
     def default_config() -> Munch:

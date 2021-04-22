@@ -23,6 +23,6 @@ logger = logger.opt(colors=True)
  
 if __name__ == '__main__':
     config = bittensor.cli.CLI.default_config(); 
-    logger.info(bittensor.config.Config.toString(config))
     cli = bittensor.cli.CLI( config )
+    logger.info(bittensor.config.Config.toString(config))
     cli.run_command()

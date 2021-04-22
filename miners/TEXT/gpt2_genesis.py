@@ -87,7 +87,7 @@ class Miner( bittensor.miner.BasicMiner ):
             num_workers=self.config.miner.num_dataloader_workers
         )        
         self.tokens = 0
-        super(Miner, self).__init__( self.config )
+        super(Miner, self).__init__( self.config, **kwargs)
                 
     @staticmethod
     def default_config() -> Munch:

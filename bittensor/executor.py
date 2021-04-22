@@ -30,26 +30,17 @@ import bittensor
 from bittensor.utils.neurons import Neuron, Neurons
 from bittensor.utils.balance import Balance
 
-class Executor:
+class Executor ( bittensor.neuron.Neuron ):
 
     def __init__(   
             self, 
             config: 'Munch' = None, 
-            wallet: 'bittensor.wallet.Wallet' = None,
-            subtensor: 'bittensor.subtensor.Subtensor' = None,
-            metagraph: 'bittensor.metagraph.Metagraph' = None,
             **kwargs,
         ):
         r""" Initializes a new Metagraph chain interface.
             Args:
                 config (:obj:`Munch`, `optional`): 
                     neuron.Neuron.config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
-                    bittensor wallet with hotkey and coldkeypub.
-                subtensor (:obj:`bittensor.subtensor.Subtensor`, `optional`):
-                    subtensor interface utility.
-                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
-                    bittensor metagraph object.
         """
         # config for the wallet, metagraph sub-objects.
         if config == None:
@@ -57,21 +48,7 @@ class Executor:
         config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         Executor.check_config( config )
         self.config = config
-
-        if wallet == None:
-            wallet = bittensor.wallet.Wallet( config = self.config )
-        self.config.wallet = wallet.config.wallet
-        self.wallet = wallet
-
-        if subtensor == None:
-            subtensor = bittensor.subtensor.Subtensor( config = self.config )
-        self.config.subtensor = subtensor.config.subtensor
-        self.subtensor = subtensor
-
-        if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph( subtensor = self.subtensor )
-        self.metagraph = metagraph
-        self.metagraph.subtensor = subtensor     
+        super(Executor, self).__init__( self.config, **kwargs )
 
     @staticmethod
     def default_config () -> Munch:
@@ -82,13 +59,11 @@ class Executor:
 
     @staticmethod   
     def add_args (parser: argparse.ArgumentParser):
-        bittensor.wallet.Wallet.add_args( parser )
-        bittensor.subtensor.Subtensor.add_args( parser )
+        bittensor.neuron.Neuron.add_args(parser)
         
     @staticmethod   
     def check_config (config: Munch):
-        bittensor.wallet.Wallet.check_config(config)
-        bittensor.subtensor.Subtensor.check_config(config)
+        bittensor.neuron.Neuron.check_config( config )
             
     def regenerate_coldkey ( self, mnemonic: str, use_password: bool ):
         r""" Regenerates a colkey under this wallet.
@@ -128,8 +103,8 @@ class Executor:
         """
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
-        self.subtensor.connect()
-        self.metagraph.sync()
+        self.connect_to_chain()
+        self.sync_metagraph()
         balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
         neurons = self._associated_neurons()
 
@@ -154,7 +129,7 @@ class Executor:
         """
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
-        self.subtensor.connect()
+        self.connect_to_chain()
         neurons = self._associated_neurons()
         for neuron in neurons:
             neuron.stake = self.subtensor.get_stake_for_uid( neuron.uid )
@@ -175,7 +150,7 @@ class Executor:
         """
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
-        self.subtensor.connect()
+        self.connect_to_chain()
         unstaking_balance = Balance.from_float( amount_tao )
         neurons = self._associated_neurons()
         neuron = neurons.get_by_uid( uid )

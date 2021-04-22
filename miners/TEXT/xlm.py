@@ -89,7 +89,7 @@ class Miner( bittensor.miner.BasicMiner ):
             batch_size=self.config.miner.batch_size_train,
             num_workers=self.config.miner.num_data_loader_workers
         )        
-        super(Miner, self).__init__( self.config )
+        super(Miner, self).__init__( self.config, **kwargs)
     
     @staticmethod
     def default_config() -> Munch:

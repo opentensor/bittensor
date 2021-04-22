@@ -77,7 +77,7 @@ class Miner( bittensor.miner.BasicMiner ):
             dataset = load_dataset('glue', 'cola')['train'],
             tokenizer = bittensor.__tokenizer__() 
         )
-        super(Miner, self).__init__( self.config )
+        super(Miner, self).__init__( self.config, **kwargs)
 
     @staticmethod
     def default_config() -> Munch:
@@ -226,7 +226,7 @@ class Miner( bittensor.miner.BasicMiner ):
                     'inputs' = torch.LongTensor.
         """
         batches = []
-        for _ in  tqdm( range( self.config.miner.epoch_length ) ):
+        for _ in tqdm( range( self.config.miner.epoch_length ) ):
             batches.append( self.corpus.next_batch( self.config.miner.batch_size_train ) )
         return batches
     

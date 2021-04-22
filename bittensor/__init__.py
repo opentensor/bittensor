@@ -34,15 +34,15 @@ __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __s
 __blocktime__ = 6
 
 # Load components.
+import bittensor.neuron
 import bittensor.axon
 import bittensor.config 
-import bittensor.cli
 import bittensor.executor
+import bittensor.cli
 import bittensor.datasets
 import bittensor.dendrite
 import bittensor.metagraph
 import bittensor.logging
-import bittensor.neuron
 import bittensor.miner
 import bittensor.nucleus
 import bittensor.receptor

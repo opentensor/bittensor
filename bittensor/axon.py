@@ -547,7 +547,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             return None, bittensor.proto.ReturnCode.RequestShapeException, message
  
         # ---- Make nucleus backward call. ----
-        logger.debug('<white>Axon</white> <green>Backward Request</green> ---> <white>from</white>:<cyan>{}</cyan>, <white>inputs</white>:<cyan>{}</cyan>', pubkey, inputs.shape)
+        logger.debug('<white>Axon</white> <green>Backward Request</green> ---> <white>from</white>:<cyan>{}</cyan>, <white>grads_dy</white>:<cyan>{}</cyan>', request.public_key, grads_dy.shape)
         outputs, code, message = self.enqueue_backward_to_nucleus( 
             public_key = request.public_key, 
             inputs_x = inputs_x, 
