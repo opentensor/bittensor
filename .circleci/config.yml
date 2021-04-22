@@ -117,5 +117,15 @@ workflows:
       - "Run Integration Tests":
               requires:
                 - "Build Bittensor"
+      - "Push image to DockerHub":
+          requires:
+            - "Build Bittensor"
+            - "Run Unit Tests"
+            - "Run Miners"
+            - "Run Integration Tests"
+          filters:
+              branches:
+                only:
+                  - master
 
 
