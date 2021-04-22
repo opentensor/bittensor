@@ -55,6 +55,7 @@ class Miner( bittensor.neuron.Neuron ):
             config = Miner.default_config()
         config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         Miner.check_config(config)
+
         self.config = config
         self.tensorboard = SummaryWriter( log_dir = self.config.miner.full_path )
         if self.config.miner.record_log == True:
@@ -74,7 +75,6 @@ class Miner( bittensor.neuron.Neuron ):
         Miner.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
         return config
-
     
     @staticmethod
     def check_config(config: Munch):
@@ -153,15 +153,11 @@ class Miner( bittensor.neuron.Neuron ):
         self._connect_to_chain()
         self._subscribe_to_chain()
         self._init_axon()
-        self._init_metagraph()
+        self._sync_metagraph()
 
     def shutdown ( self ):
         self._teardown_axon()
 
-    def start ( self ):
-        with self:
-            self.run()
-    
     def run ( self ):
         raise NotImplementedError
     
@@ -236,12 +232,11 @@ class Miner( bittensor.neuron.Neuron ):
         logger.info('\nStarting Axon...')
         self.axon.start()
         
-    def _init_metagraph( self ):
+    def _sync_metagraph( self ):
         # ---- Sync metagraph ----
         logger.info('\nSyncing Metagraph...')
         self.metagraph.sync()
         logger.info( self.metagraph )
-
 
 class BasicMiner( Miner ):
 
@@ -261,7 +256,7 @@ class BasicMiner( Miner ):
         config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         BasicMiner.check_config(config)
         self.config = config
-        super(Miner, self).__init__( self.config )
+        super(BasicMiner, self).__init__( self.config )
 
     @staticmethod   
     def default_config() -> Munch:
@@ -415,7 +410,7 @@ class BasicMiner( Miner ):
     # ---- Forward loop -----
     def forward_loop ( self ): 
         # ---- Loop until event is set -----
-        logger.success('Forward thread started.')
+        logger.success('Forward serving started.')
         while not self.quit_forward.is_set():
             with self.get_forward_lock():
                 self.run_next_forward_call()
@@ -475,7 +470,7 @@ class BasicMiner( Miner ):
     # ---- Backward loop -----
     def backward_loop ( self ): 
         # ---- Loop until event is set -----
-        logger.success('Backward thread started.')
+        logger.success('Backward serving started.')
         while not self.quit_forward.is_set():
             with self.get_backward_lock():
                 self.run_next_backward_call()
@@ -564,7 +559,7 @@ class BasicMiner( Miner ):
         if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.get_nucleus().parameters()]))):
             return True
 
-    def epoch_to_tensorboard(self):
+    def epoch_logs(self):
         r""" Called by miner.run() after each epoch.
             Sends neuron state to tensorboard.
         """
@@ -613,43 +608,45 @@ class BasicMiner( Miner ):
             self.epoch_loss = total_epoch_loss / (iteration + 1) 
             self.global_step += 1
             self.training_logs( progress_bar, iteration = iteration, output = output )
-        self.scheduler.step()
+
+    def run_post_epoch( self ):
+        pass
 
     # --- Run Miner ----
     def run( self ):
         r""" Miner main loop.
         """
-        # --- Run state ----
-        self.epoch = -1
-        self.epoch_loss = math.inf
-        self.global_step = 0
-        
-        # ---- Save miner state ----
-        self.save_state()
+        with self:
+            # --- Run state ----
+            self.epoch = -1
+            self.epoch_loss = math.inf
+            self.global_step = 0        
+            self.save_state()
 
-        # --- Run until ----
-        while self.should_run( self.epoch ):
-            self.epoch += 1
+            # --- Run until ----
+            while self.should_run( self.epoch ):
+                self.epoch += 1
 
-            # ---- Train ----
-            self.run_next_training_epoch( 
-                training_batches = self.get_epoch_batches( self.epoch ) 
-            )
+                # ---- Train ----
+                self.run_next_training_epoch( 
+                    training_batches = self.get_epoch_batches( self.epoch ) 
+                )
+                self.run_post_epoch()
 
-            # ---- Save or Reload state ----
-            if self.should_save():
-                self.save_state()
-            elif self.should_reload():
-                self.reload_state()
+                # ---- Save or Reload state ----
+                if self.should_save():
+                    self.save_state()
+                elif self.should_reload():
+                    self.reload_state()
 
-            # ---- Set weights ----
-            self.metagraph.set_weights(
-                weights = self.get_row_weights(), 
-                wait_for_inclusion = True
-            )
+                # ---- Set weights ----
+                self.metagraph.set_weights(
+                    weights = self.get_row_weights(), 
+                    wait_for_inclusion = True
+                )
 
-            # ---- Metagraph ----
-            self.metagraph.sync() # Pulls the latest metagraph state.
+                # ---- Metagraph ----
+                self._sync_metagraph()
 
-            # ---- Update Tensorboard ----
-            self.epoch_to_tensorboard()
+                # ---- Update Tensorboard ----
+                self.epoch_logs()

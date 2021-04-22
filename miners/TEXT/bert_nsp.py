@@ -50,15 +50,15 @@ from nuclei.bert import BertNSPNucleus
 from loguru import logger
 logger = logger.opt(colors=True)
 
-class BertNSPMiner( bittensor.miner.BasicMiner ):
+class Miner( bittensor.miner.BasicMiner ):
 
     def __init__( self, config: Munch = None, **kwargs ):
 
         if config == None:
-            config = BertNSPMiner.default_config();       
+            config = Miner.default_config();       
         config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         logger.info( bittensor.config.Config.toString( config ) )
-        BertNSPMiner.check_config( config )
+        Miner.check_config( config )
         self.config = config
 
         # ---- Row Weights ----
@@ -77,12 +77,12 @@ class BertNSPMiner( bittensor.miner.BasicMiner ):
             dataset = load_dataset('glue', 'cola')['train'],
             tokenizer = bittensor.__tokenizer__() 
         )
-        super(BertNSPMiner, self).__init__( self.config )
+        super(Miner, self).__init__( self.config )
 
     @staticmethod
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
-        BertNSPMiner.add_args(parser) 
+        Miner.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
         return config
 
@@ -104,6 +104,38 @@ class BertNSPMiner( bittensor.miner.BasicMiner ):
         BertNSPNucleus.check_config( config )
         bittensor.neuron.BasicNeuron.check_config( config )
 
+    def should_run( self, epoch: int ) -> bool:
+        r""" Called by miner.run() every epoch, if the response is false, training stops.
+        """
+        if self.config.miner.n_epochs < 0:
+            return True
+        elif epoch < self.config.miner.n_epochs:
+            return True
+        else:
+            return False
+
+    def should_save( self ) -> bool:
+        r""" Called by miner.run() after every epoch.
+            If this function returns True, the model is saved to disk and can be reloaded later.
+            Returns:
+                should_save (bool):
+                    True by default. Saves model after each epoch.
+        """
+        if self.epoch_loss < self.last_saved_loss:
+            return True
+        else:
+            return False
+
+    def should_reload(self) -> bool:
+        r""" Called by miner.run() after every epoch.
+            If the function returns True the model state dict is saved to miner.full_path.
+            Returns:
+                should_reload (bool):
+                    False by default. Does not reload the model after each epoch.
+        """
+        if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.nucleus.parameters()]))):
+            return True
+
     def get_state_dict( self ) -> dict:
         r""" Called by neuron.save_model().
             Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
@@ -112,7 +144,7 @@ class BertNSPMiner( bittensor.miner.BasicMiner ):
                     Dictionary containing run state information such as the model parameters.
         """
         return {
-            'model_state': self.nucleus.state_dict(), 
+            'nucleus_state': self.nucleus.state_dict(), 
             'optimizer_state': self.optimizer.state_dict(),
         }
 
@@ -124,7 +156,7 @@ class BertNSPMiner( bittensor.miner.BasicMiner ):
                     Dictionary containing run state information such as the model parameters. Output 
                     of get_state_dict.
         """
-        self.nucleus.load_state_dict( state_dict['model_state'] )
+        self.nucleus.load_state_dict( state_dict['nucleus_state'] )
         self.optimizer.load_state_dict( state_dict['optimizer_state'] )
 
     # ---- Axon Forward call ----
@@ -184,21 +216,6 @@ class BertNSPMiner( bittensor.miner.BasicMiner ):
         self.row_weights = torch.nn.functional.pad( self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel()] )
         self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
         return self.row_weights
-
-    # ---- Get Batches ----
-    # Returns a list of batches for the next training epoch.
-    def get_epoch_batches( self, epoch:int ) -> List[ dict ]:
-        r""" Returns training batches for an epoch.
-            Returns:
-                batches ( List[dict], shape=(self.config.miner.epoch_length) ): 
-                    List of batches as dictionary containing tokenized sentences
-                    'inputs' = torch.LongTensor.
-        """
-        logger.info('Preparing {} batches for epoch ...', self.config.miner.epoch_length)
-        batches = []
-        for _ in  tqdm( range( self.config.miner.epoch_length ) ):
-            batches.append( self.corpus.next_batch( self.config.miner.batch_size_train ) )
-        return batches
     
     # ---- Training call ----
     def training_call( self, batch: dict ) -> SimpleNamespace:
@@ -238,5 +255,5 @@ class BertNSPMiner( bittensor.miner.BasicMiner ):
 
 if __name__ == "__main__":
     # ---- Build and Run ----
-    miner = BertNSPMiner()
-    miner.start()
+    miner = Miner()
+    miner.run()

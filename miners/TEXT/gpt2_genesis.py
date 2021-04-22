@@ -52,13 +52,14 @@ from torch.utils.data.dataloader import DataLoader
 from datasets import load_dataset
 from types import SimpleNamespace
 
-class GPT2Miner( bittensor.miner.BasicMiner ):
+class Miner( bittensor.miner.BasicMiner ):
 
     def __init__(self, config: Munch = None, **kwargs ):
+
         if config == None:
-            config = GPT2Miner.default_config()
+            config = Miner.default_config()
         config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
-        GPT2Miner.check_config( config )
+        Miner.check_config( config )
         logger.info( bittensor.config.Config.toString( config ) )
         self.config = config
 
@@ -86,12 +87,12 @@ class GPT2Miner( bittensor.miner.BasicMiner ):
             num_workers=self.config.miner.num_dataloader_workers
         )        
         self.tokens = 0
-        super(GPT2Miner, self).__init__( self.config )
+        super(Miner, self).__init__( self.config )
                 
     @staticmethod
     def default_config() -> Munch:
         parser = argparse.ArgumentParser()
-        GPT2Miner.add_args(parser)
+        Miner.add_args(parser)
         config = bittensor.config.Config.to_config(parser)
         return config
 
@@ -261,6 +262,38 @@ class GPT2Miner( bittensor.miner.BasicMiner ):
         optimizer = torch.optim.AdamW(optim_groups, lr=self.config.miner.learning_rate, betas=(0.9, 0.95))
         return optimizer
 
+    def should_run( self, epoch: int ) -> bool:
+        r""" Called by miner.run() every epoch, if the response is false, training stops.
+        """
+        if self.config.miner.n_epochs < 0:
+            return True
+        elif epoch < self.config.miner.n_epochs:
+            return True
+        else:
+            return False
+
+    def should_save( self ) -> bool:
+        r""" Called by miner.run() every epoch.
+            If this function returns True, the model is saved to disk and can be reloaded later.
+            Returns:
+                should_save (bool):
+                    True by default. Saves model after each epoch.
+        """
+        if self.epoch_loss < self.last_saved_loss:
+            return True
+        else:
+            return False
+
+    def should_reload(self) -> bool:
+        r""" Called by miner.run() after every epoch.
+            If the function returns True the model state dict is loaded from to miner.full_path.
+            Returns:
+                should_reload (bool):
+                    False by default. Does not reload the model after each epoch.
+        """
+        if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.nucleus.parameters()]))):
+            return True
+
     def get_state_dict( self ) -> dict:
         r""" Called by neuron.save_model().
             Returns a state dict which can be passed to neuron.reload_from_state_dict on reload.
@@ -396,8 +429,7 @@ class GPT2Miner( bittensor.miner.BasicMiner ):
         self.row_weights = F.normalize(self.row_weights, p = 1, dim = 0) # Ensure normalization.
         return output
 
-  
 if __name__ == "__main__":
     # ---- Build and Run ----
-    miner = GPT2Miner()
-    miner.start()
+    miner = Miner()
+    miner.run()

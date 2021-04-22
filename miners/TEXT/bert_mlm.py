@@ -51,14 +51,14 @@ from nuclei.bert import BertMLMNucleus
 from loguru import logger
 logger = logger.opt(colors=True)
 
-class BertMLMMiner( bittensor.miner.BasicMiner() ):
+class Miner( bittensor.miner.BasicMiner() ):
 
     def __init__(self, config: Munch = None, **kwargs ):
         if config == None:
-            config = BertMLMMiner.default_config();       
+            config = Miner.default_config();       
         config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         logger.info( bittensor.config.Config.toString( config ) )
-        BertMLMMiner.check_config( config )
+        Miner.check_config( config )
         self.config = config
 
         # ---- Row Weights ----
@@ -86,7 +86,7 @@ class BertMLMMiner( bittensor.miner.BasicMiner() ):
     @staticmethod
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
-        BertMLMMiner.add_args(parser) 
+        Miner.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
         return config
 
@@ -109,62 +109,7 @@ class BertMLMMiner( bittensor.miner.BasicMiner() ):
         BertMLMNucleus.check_config( config )
         bittensor.miner.BasicMiner.check_config( config )
 
-    def should_run( self, epoch: int ) -> bool:
-        r""" Called by miner.run() every epoch, if the response is false, training stops.
-        """
-        if self.config.miner.n_epochs < 0:
-            return True
-        elif epoch < self.config.miner.n_epochs:
-            return True
-        else:
-            return False
-
-    def should_save( self ) -> bool:
-        r""" Called by miner.run() after every epoch.
-            If this function returns True, the model is saved to disk and can be reloaded later.
-            Returns:
-                should_save (bool):
-                    True by default. Saves model after each epoch.
-        """
-        if self.epoch_loss < self.last_saved_loss:
-            return True
-        else:
-            return False
-
-    def should_reload(self) -> bool:
-        r""" Called by miner.run() after every epoch.
-            If the function returns True the model state dict is saved to miner.full_path.
-            Returns:
-                should_reload (bool):
-                    False by default. Does not reload the model after each epoch.
-        """
-        if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.nucleus.parameters()]))):
-            return True
-
-    def get_state_dict( self ) -> dict:
-        r""" Called by miner.save_state().
-            Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
-            Returns:
-                state_dict (:obj:`dict`): 
-                    Dictionary containing run state information such as the model parameters.
-        """
-        return {
-            'nucleus_state': self.nucleus.state_dict(), 
-            'optimizer_state': self.optimizer.state_dict(),
-        }
-
-    def reload_from_state_dict( self, state_dict: dict):
-        r""" Called by miner.reload_state().
-            Reloads the training state from the passed state_dict. 
-            Args:
-                state_dict (:obj:`dict`): 
-                    Dictionary containing run state information such as the model parameters. Output 
-                    of get_state_dict.
-        """
-        self.nucleus.load_state_dict( state_dict['nucleus_state'] )
-        self.optimizer.load_state_dict( state_dict['optimizer_state'] )
-
-    # ---- Axon Forward call ----
+      # ---- Axon Forward call ----
     def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
         r""" Called by miner.forward_loop which can be overridden by the child class.
             The arguments reflect an RPC request from another miner in the network, the response tensor
@@ -209,6 +154,61 @@ class BertMLMMiner( bittensor.miner.BasicMiner() ):
         """
         # This function is null because the inputs are int64s without gradients. 
         return None
+   
+    def should_run( self, epoch: int ) -> bool:
+        r""" Called by miner.run() every epoch, if the response is false, training stops.
+        """
+        if self.config.miner.n_epochs < 0:
+            return True
+        elif epoch < self.config.miner.n_epochs:
+            return True
+        else:
+            return False
+
+    def should_save( self ) -> bool:
+        r""" Called by miner.run() after every epoch.
+            If this function returns True, the model is saved to disk and can be reloaded later.
+            Returns:
+                should_save (bool):
+                    True by default. Saves model after each epoch.
+        """
+        if self.epoch_loss < self.last_saved_loss:
+            return True
+        else:
+            return False
+
+    def should_reload(self) -> bool:
+        r""" Called by miner.run() after every epoch.
+            If the function returns True the model state dict is saved to miner.full_path.
+            Returns:
+                should_reload (bool):
+                    False by default. Does not reload the model after each epoch.
+        """
+        if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.nucleus.parameters()]))):
+            return True
+
+    def get_state_dict( self ) -> dict:
+        r""" Called by neuron.save_model().
+            Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
+            Returns:
+                state_dict (:obj:`dict`): 
+                    Dictionary containing run state information such as the model parameters.
+        """
+        return {
+            'nucleus_state': self.nucleus.state_dict(), 
+            'optimizer_state': self.optimizer.state_dict(),
+        }
+
+    def reload_from_state_dict( self, state_dict: dict):
+        r""" Called by miner.reload_model().
+            Reloads the training state from the passed state_dict. 
+            Args:
+                state_dict (:obj:`dict`): 
+                    Dictionary containing run state information such as the model parameters. Output 
+                    of get_state_dict.
+        """
+        self.nucleus.load_state_dict( state_dict['nucleus_state'] )
+        self.optimizer.load_state_dict( state_dict['optimizer_state'] )
 
     # ---- Get Row Weights ----
     def get_row_weights( self ) -> torch.FloatTensor:
@@ -221,57 +221,6 @@ class BertMLMMiner( bittensor.miner.BasicMiner() ):
         self.row_weights = torch.nn.functional.pad( self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel()] )
         self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
         return self.row_weights
-
-    def epoch_to_tensorboard(self):
-        r""" Called by miner.run() after each epoch.
-            Sends miner state to tensorboard.
-        """
-        self.axon.__to_tensorboard__( self.tensorboard, self.global_step )
-        self.dendrite.__to_tensorboard__( self.tensorboard, self.global_step )
-        self.metagraph.__to_tensorboard__( self.tensorboard, self.global_step )
-
-    # ---- Training logs ----
-    def training_logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
-        r""" Called by miner.run_training_epoch() after each training step.
-            The function populates and displays the passed progress bar.
-        """
-        index = self.metagraph.state.index_for_uid[self.metagraph.uid]
-        progress_bar.set_infos({
-            'GS': colored('{}'.format(self.global_step), 'red'),
-            'LS': colored('{}'.format(iteration), 'blue'),
-            'Epoch': colored('{}'.format(self.epoch+1), 'green'),
-            'Epoch-loss': colored('{:.4f}'.format(self.epoch_loss), 'yellow'),
-            'Saved-loss': colored('{:.4f}'.format(self.last_saved_loss), 'red'),
-            'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
-            'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
-            'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
-            'nPeers': colored(self.metagraph.n, 'red'),
-            'Stake(\u03C4)': colored('{:.3f}'.format(self.metagraph.S[index]), 'green'),
-            'Rank(\u03C4)': colored('{:.3f}'.format(self.metagraph.R[index]), 'blue'),
-            'Incentive(\u03C4/block)': colored('{:.6f}'.format(self.metagraph.I[index]), 'yellow'),
-            'Axon': self.axon.__str__(),
-            'Dendrite': self.dendrite.__str__(),
-        })
-        self.tensorboard.add_scalar('R-loss', output.remote_target_loss.item(), self.global_step)
-        self.tensorboard.add_scalar('L-loss', output.local_target_loss.item(), self.global_step)
-        self.tensorboard.add_scalar('D-loss', output.distillation_loss.item(), self.global_step)
-
-    # --- Run Epoch ----
-    def run_next_training_epoch( self, training_batches: List[dict] ) -> float:
-        r""" Called by miner.run(), calls training_call for passed batches.
-            Args:
-                training_batches (List[dict]):
-                    Training batches as returned by get_epoch_batches.
-        """
-        total_epoch_loss = 0.0
-        progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
-        for iteration, (training_batch) in progress_bar:
-            output = self.training_call( batch = training_batch )
-            total_epoch_loss += output.local_target_loss.item()
-            self.epoch_loss = total_epoch_loss / (iteration + 1) 
-            self.global_step += 1
-            self.training_logs( progress_bar, iteration = iteration, output = output )
-        self.scheduler.step()
 
     # ---- Get Batches ----
     # Returns a list of batches for the next training epoch.
@@ -314,6 +263,7 @@ class BertMLMMiner( bittensor.miner.BasicMiner() ):
         clip_grad_norm_( self.nucleus.parameters(), self.config.miner.clip_gradients ) # clip model gradients
         self.optimizer.step() # Applies accumulated gradients.
         self.optimizer.zero_grad() # Zeros out gradients for next accummulation
+        self.scheduler.step()
 
         # ---- Train row weights ----
         batch_weights = torch.mean(output.router.weights, axis = 0).to( self.nucleus.device ) # Average over batch.
@@ -322,47 +272,6 @@ class BertMLMMiner( bittensor.miner.BasicMiner() ):
 
         return output
 
-    # --- Run Neuron ----
-    def run( self ):
-        r""" Neuron main loop.
-        """
-        # --- Run startup ----
-        with self:
-
-            # --- Run state ----
-            self.epoch = -1
-            self.epoch_loss = math.inf
-            self.global_step = 0
-            
-            # ---- Save model ----
-            self.save_model()
-
-            # --- Run until ----
-            while self.should_run( self.epoch ):
-                self.epoch += 1
-
-                # ---- Train ----
-                self.run_next_training_epoch( 
-                    training_batches = self.get_epoch_batches( self.epoch ) 
-                )
-
-                # ---- Save or Reload model ----
-                if self.should_save():
-                    self.save_model()
-                elif self.should_reload():
-                    self.reload_model()
-
-                # ---- Set weights ----
-                self.metagraph.set_weights(
-                    weights = self.get_row_weights(), 
-                    wait_for_inclusion = True
-                )
-
-                # ---- Metagraph ----
-                self.metagraph.sync() # Pulls the latest metagraph state.
-
-                # ---- Update Tensorboard ----
-                self.epoch_to_tensorboard()
 
 if __name__ == "__main__":
     # ---- Build and Run ----

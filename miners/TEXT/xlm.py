@@ -52,7 +52,7 @@ from typing import Tuple, List, Optional
 from torch.utils.data.dataloader import DataLoader
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
-class XLMMiner( bittensor.miner.BasicMiner ):
+class Miner( bittensor.miner.BasicMiner ):
 
     def __init__( 
             self, 
@@ -61,9 +61,9 @@ class XLMMiner( bittensor.miner.BasicMiner ):
         ):
         # ---- Load Config ----
         if config == None:
-            config = XLMMiner.default_config();   
+            config = Miner.default_config();   
         config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
-        XLMMiner.check_config( config )
+        Miner.check_config( config )
         logger.info( bittensor.config.Config.toString( config ) )
         self.config = config
 
@@ -90,12 +90,12 @@ class XLMMiner( bittensor.miner.BasicMiner ):
             batch_size=self.config.miner.batch_size_train,
             num_workers=self.config.miner.num_data_loader_workers
         )        
-        super(bittensor.miner.BasicMiner, self).__init__( self.config )
+        super(Miner, self).__init__( self.config )
     
     @staticmethod
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
-        XLMMiner.add_args( parser ) 
+        Miner.add_args( parser ) 
         config = bittensor.config.Config.to_config( parser ); 
         return config
     
@@ -123,21 +123,44 @@ class XLMMiner( bittensor.miner.BasicMiner ):
         XLMNucleus.check_config( config )
         bittensor.miner.BasicMiner.check_config( config )
 
-    def get_nucleus() -> bittensor.nucleus.Nucleus:
-        r""" Called by miner.should_reload().
-            Should return a bittensor.nucleus object.
-            Returns:
-                nucleus (bittensor.nucleus.Nucleus):
-                    Mine nucleus object.
+    def should_run( self, epoch: int ) -> bool:
+        r""" Called by miner.run() every epoch, if the response is false, training stops.
         """
-        return self.nucleus
+        if self.config.miner.n_epochs < 0:
+            return True
+        elif epoch < self.config.miner.n_epochs:
+            return True
+        else:
+            return False
+
+    def should_save( self ) -> bool:
+        r""" Called by miner.run() after every epoch.
+            If this function returns True, the model is saved to disk and can be reloaded later.
+            Returns:
+                should_save (bool):
+                    True by default. Saves model after each epoch.
+        """
+        if self.epoch_loss < self.last_saved_loss:
+            return True
+        else:
+            return False
+
+    def should_reload(self) -> bool:
+        r""" Called by miner.run() after every epoch.
+            If the function returns True the model state dict is saved to miner.full_path.
+            Returns:
+                should_reload (bool):
+                    False by default. Does not reload the model after each epoch.
+        """
+        if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.nucleus.parameters()]))):
+            return True
 
     def get_state_dict( self ) -> dict:
-        r""" Called by neuron.save_state().
-            Returns a state dict which can be passed to neuron.reload_from_state_dict on reload.
+        r""" Called by neuron.save_model().
+            Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
             Returns:
                 state_dict (:obj:`dict`): 
-                    Dictionary containing run state information such as the nucleus parameters.
+                    Dictionary containing run state information such as the model parameters.
         """
         return {
             'nucleus_state': self.nucleus.state_dict(), 
@@ -145,11 +168,11 @@ class XLMMiner( bittensor.miner.BasicMiner ):
         }
 
     def reload_from_state_dict( self, state_dict: dict):
-        r""" Called by neuron.reload_state().
+        r""" Called by miner.reload_model().
             Reloads the training state from the passed state_dict. 
             Args:
                 state_dict (:obj:`dict`): 
-                    Dictionary containing run state information such as the nucleus parameters. Output 
+                    Dictionary containing run state information such as the model parameters. Output 
                     of get_state_dict.
         """
         self.nucleus.load_state_dict( state_dict['nucleus_state'] )
@@ -253,7 +276,7 @@ class XLMMiner( bittensor.miner.BasicMiner ):
         output.loss.backward() # Accumulates gradients on the nucleus.
         self.optimizer.step() # Applies accumulated gradients.
         self.optimizer.zero_grad() # Zeros out gradients for next accummulation
-        self.scheduler.step()
+        
 
         # ---- Train row weights ----
         batch_weights = torch.mean(output.router.weights, axis = 0).to( self.nucleus.device ) # Average over batch.
@@ -263,8 +286,7 @@ class XLMMiner( bittensor.miner.BasicMiner ):
         # ---- Update global loss ----
         return output
 
-
 if __name__ == "__main__":
     # ---- Build and Run ----
-    miner = XLMMiner()
-    miner.start()
+    miner = Miner()
+    miner.run()
