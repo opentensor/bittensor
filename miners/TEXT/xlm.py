@@ -19,13 +19,13 @@
 
 """XLM Language Modelling miner
 
-This file demonstrates training the XLM neuron with language modelling.
+This file demonstrates training the XLM miner with language modelling.
 
 Example:
     $ python miners/text/xlm.py
 
-To run with a config file:
-    $ python miners/text/xlm.py --config <path to config file>
+To run with a config file and debug
+    $ python miners/text/xlm.py --debug --config <path to config file>
 
 """
 
@@ -68,7 +68,6 @@ class Miner( bittensor.miner.BasicMiner ):
         self.config = config
 
         # ---- Row Weights ----
-        # Neuron specific mechanism weights.
         self.row_weights = torch.ones([1])
 
         # ---- Nucleus ----
@@ -180,8 +179,8 @@ class Miner( bittensor.miner.BasicMiner ):
 
     # ---- Axon Forward call ----
     def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Called by neuron.forward_loop which can be overridden by the child class.
-            The arguments reflect an RPC request from another neuron in the network, the response tensor
+        r""" Called by miner.forward_loop which can be overridden by the child class.
+            The arguments reflect an RPC request from another miner in the network, the response tensor
             should be the hidden units of the local nucleus of shape [batch_size, sequence_len, __network_dim__].
             
             Args:
@@ -203,8 +202,8 @@ class Miner( bittensor.miner.BasicMiner ):
 
     # ---- Axon Backward call ----
     def backward_call( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Called by neuron.backward_loop which can be overridden in the child class.
-            Arguments reflect an RPC backward request from another neuron in the network, the response tensor
+        r""" Called by miner.backward_loop which can be overridden in the child class.
+            Arguments reflect an RPC backward request from another miner in the network, the response tensor
             should be the gradients of the miner's nucleus w.r.t to the inputs and the passed output grads.
             
             Args:
