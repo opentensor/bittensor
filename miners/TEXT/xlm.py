@@ -156,7 +156,7 @@ class Miner( bittensor.miner.BasicMiner ):
             return True
 
     def get_state_dict( self ) -> dict:
-        r""" Called by neuron.save_model().
+        r""" Called by miner.save_model().
             Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
             Returns:
                 state_dict (:obj:`dict`): 

@@ -64,7 +64,7 @@ class Miner( bittensor.miner.BasicMiner ):
         self.config = config
 
         # ---- Row Weights ----
-        # Neuron specific mechanism weights.
+        # Miner specific mechanism weights.
         self.row_weights = torch.ones([1])
 
         # ---- Nucleus ----
@@ -161,7 +161,7 @@ class Miner( bittensor.miner.BasicMiner ):
         parser.add_argument (
             '--miner.config_file',
             type=str,
-            help='config file to run this neuron, if not using cmd line arguments.'
+            help='config file to run this miner, if not using cmd line arguments.'
         )
         parser.add_argument (
             '--config',
@@ -295,8 +295,8 @@ class Miner( bittensor.miner.BasicMiner ):
             return True
 
     def get_state_dict( self ) -> dict:
-        r""" Called by neuron.save_model().
-            Returns a state dict which can be passed to neuron.reload_from_state_dict on reload.
+        r""" Called by miner.save_model().
+            Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
             Returns:
                 state_dict (:obj:`dict`): 
                     Dictionary containing run state information such as the model parameters.
@@ -307,7 +307,7 @@ class Miner( bittensor.miner.BasicMiner ):
         }
 
     def reload_from_state_dict( self, state_dict: dict):
-        r""" Called by neuron.reload_model().
+        r""" Called by miner.reload_model().
             Reloads the training state from the passed state_dict. 
             Args:
                 state_dict (:obj:`dict`): 
@@ -319,8 +319,8 @@ class Miner( bittensor.miner.BasicMiner ):
 
     # ---- Axon Forward call ----
     def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Called by neuron.forward_loop which can be overridden by the child class.
-            The arguments reflect an RPC request from another neuron in the network, the response tensor
+        r""" Called by miner.forward_loop which can be overridden by the child class.
+            The arguments reflect an RPC request from another miner in the network, the response tensor
             should be the hidden units of the local model of shape [batch_size, sequence_len, __network_dim__].
             
             Args:
@@ -342,8 +342,8 @@ class Miner( bittensor.miner.BasicMiner ):
 
     # ---- Axon Backward call ----
     def backward_call( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Called by neuron.backward_loop which can be overridden in the child class.
-            Arguments reflect an RPC backward request from another neuron in the network, the response tensor
+        r""" Called by miner.backward_loop which can be overridden in the child class.
+            Arguments reflect an RPC backward request from another miner in the network, the response tensor
             should be the gradients of the miner's model w.r.t to the inputs and the passed output grads.
             
             Args:

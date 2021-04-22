@@ -15,9 +15,9 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
-"""BERT Next Sentence Prediction Neuron.
+"""BERT Next Sentence Prediction miner.
 
-This file demonstrates training the BERT neuron with next sentence prediction.
+This file demonstrates training the BERT miner with next sentence prediction.
 
 Example:
     $ python miners/text/bert_nsp.py
@@ -62,7 +62,7 @@ class Miner( bittensor.miner.BasicMiner ):
         self.config = config
 
         # ---- Row Weights ----
-        # Neuron specific mechanism weights.
+        # miner specific mechanism weights.
         self.row_weights = torch.ones([1])
 
         # ---- Nucleus ----
@@ -102,7 +102,7 @@ class Miner( bittensor.miner.BasicMiner ):
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         BertNSPNucleus.check_config( config )
-        bittensor.neuron.BasicNeuron.check_config( config )
+        bittensor.miner.BasicMiner.check_config( config )
 
     def should_run( self, epoch: int ) -> bool:
         r""" Called by miner.run() every epoch, if the response is false, training stops.
@@ -137,7 +137,7 @@ class Miner( bittensor.miner.BasicMiner ):
             return True
 
     def get_state_dict( self ) -> dict:
-        r""" Called by neuron.save_model().
+        r""" Called by miner.save_state().
             Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
             Returns:
                 state_dict (:obj:`dict`): 
@@ -149,7 +149,7 @@ class Miner( bittensor.miner.BasicMiner ):
         }
 
     def reload_from_state_dict( self, state_dict: dict):
-        r""" Called by miner.reload_model().
+        r""" Called by miner.reload_state().
             Reloads the training state from the passed state_dict. 
             Args:
                 state_dict (:obj:`dict`): 
@@ -162,7 +162,7 @@ class Miner( bittensor.miner.BasicMiner ):
     # ---- Axon Forward call ----
     def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
         r""" Called by miner.forward_loop which can be overridden by the child class.
-            The arguments reflect an RPC request from another neuron in the network, the response tensor
+            The arguments reflect an RPC request from another miner in the network, the response tensor
             should be the hidden units of the local model of shape [batch_size, sequence_len, __network_dim__].
             
             Args:

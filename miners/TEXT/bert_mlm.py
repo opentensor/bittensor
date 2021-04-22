@@ -97,7 +97,6 @@ class Miner( bittensor.miner.BasicMiner ):
         parser.add_argument('--miner.clip_gradients', default=0.8, type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.')
         parser.add_argument('--miner.epoch_length', default=500, type=int, help='Iterations of training per epoch')
         parser.add_argument('--miner.batch_size_train', default=1, type=int, help='Training batch size.')
-        parser.add_argument('--miner.n_epochs', default=-1, type=int, help='Miner runs for this many epochs, or forever if < 0')
         BertMLMNucleus.add_args( parser )
         bittensor.miner.BasicMiner.add_args( parser )
 
@@ -188,7 +187,7 @@ class Miner( bittensor.miner.BasicMiner ):
             return True
 
     def get_state_dict( self ) -> dict:
-        r""" Called by neuron.save_model().
+        r""" Called by miner.save_model().
             Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
             Returns:
                 state_dict (:obj:`dict`): 
