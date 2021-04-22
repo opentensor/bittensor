@@ -8,7 +8,10 @@ import subprocess
 
 from typing import List
 from loguru import logger
+<<<<<<< HEAD
 logger = logger.opt(colors=True)
+=======
+>>>>>>> 842cc372da95fb700d5828388b57cbe469e846db
 from pytest import fixture
 
 import bittensor

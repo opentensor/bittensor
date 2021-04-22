@@ -19,10 +19,17 @@
 
 import bittensor
 from loguru import logger
+<<<<<<< HEAD
 logger = logger.opt(colors=True)
  
 if __name__ == '__main__':
     config = bittensor.cli.CLI.default_config(); 
     logger.info(bittensor.config.Config.toString(config))
+=======
+ 
+if __name__ == '__main__':
+    config = bittensor.cli.CLI.default_config(); 
+    logger.log('USER-INFO', bittensor.config.Config.toString(config))
+>>>>>>> 842cc372da95fb700d5828388b57cbe469e846db
     cli = bittensor.cli.CLI( config )
     cli.run_command()

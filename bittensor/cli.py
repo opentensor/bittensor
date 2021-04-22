@@ -126,14 +126,22 @@ class CLI:
     def check_config (config: Munch):
         if config.command == "transfer":
             if not config.dest:
+<<<<<<< HEAD
                 logger.critical("The --dest argument is required for this command")
                 quit()
             if not config.amount:
                 logger.critical("The --amount argument is required for this command")
+=======
+                logger.log('USER-CRITICAL', "The --dest argument is required for this command")
+                quit()
+            if not config.amount:
+                logger.log('USER-CRITICAL', "The --amount argument is required for this command")
+>>>>>>> 842cc372da95fb700d5828388b57cbe469e846db
                 quit()
         elif config.command == "unstake":
             if not config.unstake_all:
                 if config.uid is None:
+<<<<<<< HEAD
                     logger.critical("The --uid argument is required for this command")
                     quit()
                 if not config.amount:
@@ -145,6 +153,19 @@ class CLI:
                 quit()
             if config.amount is None:
                 logger.critical("The --amount argument is required for this command")
+=======
+                    logger.log('USER-CRITICAL', "The --uid argument is required for this command")
+                    quit()
+                if not config.amount:
+                    logger.log('USER-CRITICAL', "The --amount argument is required for this command")
+                    quit()
+        elif config.command == "stake":
+            if config.uid is None:
+                logger.log('USER-CRITICAL', "The --uid argument is required for this command")
+                quit()
+            if config.amount is None:
+                logger.log('USER-CRITICAL', "The --amount argument is required for this command")
+>>>>>>> 842cc372da95fb700d5828388b57cbe469e846db
                 quit()
 
     def run_command(self):
@@ -169,5 +190,9 @@ class CLI:
         elif self.config.command == "regen_hotkey":
             self.executor.regenerate_hotkey( mnemonic=self.config.mnemonic, use_password=self.config.use_password )
         else:
+<<<<<<< HEAD
             logger.critical("The command {} not implemented".format( self.config.command ))
+=======
+            logger.log('USER-CRITICAL', "The command {} not implemented".format( self.config.command ))
+>>>>>>> 842cc372da95fb700d5828388b57cbe469e846db
             quit()
