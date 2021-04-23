@@ -318,13 +318,6 @@ def test_get_active(setup_chain):
     assert len(elem[0][2:]) == 64
     assert isinstance(elem[1], int)
 
-def test_get_stake_for_uid___unknown_uid(setup_chain):
-    wallet = generate_wallet()
-    subtensor = connect(setup_chain)
-    subtensor.is_connected()
-    result = subtensor.get_stake_for_uid(999999999)
-    assert int(result) == 0
-
 def test_get_neuron_for_uid(setup_chain):
     wallet = generate_wallet()
     subtensor = connect(setup_chain)
