@@ -352,7 +352,6 @@ def test_get_last_emit_data_for_uid__success(setup_chain):
     assert result < current_block
 
 def test_get_last_emit_data_for_uid__no_uid(setup_chain):
-    wallet = generate_wallet()
     subtensor = connect(setup_chain)
     subtensor.is_connected()
     result = subtensor.get_last_emit_data_for_uid( 999999 )
@@ -429,12 +428,3 @@ def test_set_weights_success(setup_chain):
     result_vals = subtensorA.weight_vals_for_uid(uidA)
     assert result_uids == w_uids
     assert result_vals == w_vals
-
-def test_get_stake_for_uid___has_no_stake(setup_chain):
-    wallet = generate_wallet()
-    subtensor = connect(setup_chain)
-    subtensor.is_connected()
-    subscribe(subtensor, wallet)
-    uid = subtensor.get_uid_for_pubkey(wallet.hotkey.public_key)
-    result = subtensor.get_stake_for_uid(uid)
-    assert int(result) == 0
