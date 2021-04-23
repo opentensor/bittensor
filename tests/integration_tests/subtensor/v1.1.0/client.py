@@ -20,7 +20,7 @@ from bittensor.substrate import Keypair
 BLOCK_REWARD = 500_000_000
 TRANSACTION_FEE = 100
 TRANSACTION_FEE_ADD_STAKE = 100 * 145  # Fee per byte * extrinsic length
-TRANSACTION_FEE_UNSTAKE = 100 * 290
+TRANSACTION_FEE_UNSTAKE = 100 * 145
 TRANSACTION_FEE_TRANSFER = 100 * 139
 
 class WalletStub(Wallet):
@@ -201,23 +201,34 @@ def test_unstake_success(setup_chain):
     subscribe(subtensor, wallet)
 
     # Get the balance for the cold key, we use this for later comparison
-    balance = subtensor.get_balance(coldkeypair.public_key)
+    balance_pre = int(subtensor.get_balance(coldkeypair.public_key))
 
     add_stake(subtensor, wallet, Balance(4000))
 
+    # Determine the cost of the add_stake transaction
+    balance_post = int(subtensor.get_balance(coldkeypair.public_key))
+    transaction_fee_add_stake = balance_pre - balance_post - 4000
+
+    logger.error("Trans_fee add_stake: {}", transaction_fee_add_stake)
+
+    # unstake incurs a transaction fee that is added to the block reward
     result = subtensor.unstake(amount=Balance(3000), wallet=wallet, hotkey_id=hotkey_pair.public_key, wait_for_finalization=True, timeout=30)
     assert result is True
 
-    # We have staked 4000, but unstaked 3000, so the balance should be 1000 less than before the staking operation
-    new_balance = subtensor.get_balance(coldkeypair.ss58_address)
-    assert int(new_balance) == int(balance) - (1000 + TRANSACTION_FEE_UNSTAKE)
+    transaction_fee_unstake = balance_post - int(subtensor.get_balance(coldkeypair.public_key)) + 3000
+    logger.error("Trans_fee add_stake: {}", transaction_fee_unstake)
+
+    assert int(transaction_fee_unstake) == TRANSACTION_FEE_UNSTAKE
+
+    # At this point, the unstake transaction fee is in the transaction_fee_pool, and will make it into the block
+    # reward the next block. However, in order to get this reward into the hotkey account of the neuron,
+    # and emit needs to take place. This is why the expectation does not include the unstake transaction fee
 
     uid = subtensor.get_uid_for_pubkey(hotkey_pair.public_key)
     stake = subtensor.get_stake_for_uid(uid)
+    expectation = 1000 + (3 * BLOCK_REWARD) + TRANSACTION_FEE_ADD_STAKE
 
-    # When staked, this node will receive the full block reward.
-    # We need to ignore this effect, hence the mod operator
-    assert int(stake) % BLOCK_REWARD == 1000
+    assert int(stake) == expectation
 
 
 '''
