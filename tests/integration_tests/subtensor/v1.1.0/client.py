@@ -147,76 +147,76 @@ def subscribe( subtensor, wallet):
 
 
 
-'''
-add_stake() tests
-'''
-
-def test_add_stake_success(setup_chain):
-    coldkeypair = Keypair.create_from_uri("//Alice")
-    hotkeypair = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-
-    wallet = generate_wallet(coldkey_pair=coldkeypair, hotkey_pair=hotkeypair)
-    subtensor = connect(setup_chain)
-    subtensor.is_connected()
-
-    # Subscibe the hotkey using Alice's cold key, which has TAO
-    subscribe(subtensor, wallet)
-
-    uid = subtensor.get_uid_for_pubkey(hotkeypair.public_key)
-    assert uid is not None
-
-    #Verify the node has 0 stake
-    result = subtensor.get_stake_for_uid(uid)
-    assert int(result) == int(Balance(0))
-
-    # Get balance
-    balance_pre = subtensor.get_balance(coldkeypair.ss58_address)
-
-    # Timeout is 30, because 3 * blocktime does not work.
-    result = subtensor.add_stake(wallet, Balance(4000), hotkeypair.public_key, wait_for_finalization=True, timeout=30)
-    assert result == True
-
-    # Check if the amount of stake ends up in the hotkey account
-    result = subtensor.get_stake_for_uid(uid)
-    assert int(result) == int(Balance(4000))
-
-    # Check if the balances had reduced by the amount of stake + the transaction fee for the staking operation
-    balance_post = subtensor.get_balance(coldkeypair.ss58_address)
-    assert int(balance_post) == int(balance_pre) - (4000 + TRANSACTION_FEE_ADD_STAKE)
-
-
-'''
-unstake() tests
-'''
-
-def test_unstake_success(setup_chain):
-    coldkeypair = Keypair.create_from_uri('//Alice')
-    hotkey_pair = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-    wallet = generate_wallet(coldkey_pair=coldkeypair, hotkey_pair=hotkey_pair)
-
-    subtensor = connect(setup_chain)
-    subtensor.is_connected()
-
-    subscribe(subtensor, wallet)
-
-    # Get the balance for the cold key, we use this for later comparison
-    balance = subtensor.get_balance(coldkeypair.public_key)
-
-    add_stake(subtensor, wallet, Balance(4000))
-
-    result = subtensor.unstake(amount=Balance(3000), wallet=wallet, hotkey_id=hotkey_pair.public_key, wait_for_finalization=True, timeout=30)
-    assert result is True
-
-    # We have staked 4000, but unstaked 3000, so the balance should be 1000 less than before the staking operation
-    new_balance = subtensor.get_balance(coldkeypair.ss58_address)
-    assert int(new_balance) == int(balance) - (1000 + TRANSACTION_FEE_UNSTAKE)
-
-    uid = subtensor.get_uid_for_pubkey(hotkey_pair.public_key)
-    stake = subtensor.get_stake_for_uid(uid)
-
-    # When staked, this node will receive the full block reward.
-    # We need to ignore this effect, hence the mod operator
-    assert int(stake) % BLOCK_REWARD == 1000
+# '''
+# add_stake() tests
+# '''
+#
+# def test_add_stake_success(setup_chain):
+#     coldkeypair = Keypair.create_from_uri("//Alice")
+#     hotkeypair = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+#
+#     wallet = generate_wallet(coldkey_pair=coldkeypair, hotkey_pair=hotkeypair)
+#     subtensor = connect(setup_chain)
+#     subtensor.is_connected()
+#
+#     # Subscibe the hotkey using Alice's cold key, which has TAO
+#     subscribe(subtensor, wallet)
+#
+#     uid = subtensor.get_uid_for_pubkey(hotkeypair.public_key)
+#     assert uid is not None
+#
+#     #Verify the node has 0 stake
+#     result = subtensor.get_stake_for_uid(uid)
+#     assert int(result) == int(Balance(0))
+#
+#     # Get balance
+#     balance_pre = subtensor.get_balance(coldkeypair.ss58_address)
+#
+#     # Timeout is 30, because 3 * blocktime does not work.
+#     result = subtensor.add_stake(wallet, Balance(4000), hotkeypair.public_key, wait_for_finalization=True, timeout=30)
+#     assert result == True
+#
+#     # Check if the amount of stake ends up in the hotkey account
+#     result = subtensor.get_stake_for_uid(uid)
+#     assert int(result) == int(Balance(4000))
+#
+#     # Check if the balances had reduced by the amount of stake + the transaction fee for the staking operation
+#     balance_post = subtensor.get_balance(coldkeypair.ss58_address)
+#     assert int(balance_post) == int(balance_pre) - (4000 + TRANSACTION_FEE_ADD_STAKE)
+#
+#
+# '''
+# unstake() tests
+# '''
+#
+# def test_unstake_success(setup_chain):
+#     coldkeypair = Keypair.create_from_uri('//Alice')
+#     hotkey_pair = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+#     wallet = generate_wallet(coldkey_pair=coldkeypair, hotkey_pair=hotkey_pair)
+#
+#     subtensor = connect(setup_chain)
+#     subtensor.is_connected()
+#
+#     subscribe(subtensor, wallet)
+#
+#     # Get the balance for the cold key, we use this for later comparison
+#     balance = subtensor.get_balance(coldkeypair.public_key)
+#
+#     add_stake(subtensor, wallet, Balance(4000))
+#
+#     result = subtensor.unstake(amount=Balance(3000), wallet=wallet, hotkey_id=hotkey_pair.public_key, wait_for_finalization=True, timeout=30)
+#     assert result is True
+#
+#     # We have staked 4000, but unstaked 3000, so the balance should be 1000 less than before the staking operation
+#     new_balance = subtensor.get_balance(coldkeypair.ss58_address)
+#     assert int(new_balance) == int(balance) - (1000 + TRANSACTION_FEE_UNSTAKE)
+#
+#     uid = subtensor.get_uid_for_pubkey(hotkey_pair.public_key)
+#     stake = subtensor.get_stake_for_uid(uid)
+#
+#     # When staked, this node will receive the full block reward.
+#     # We need to ignore this effect, hence the mod operator
+#     assert int(stake) % BLOCK_REWARD == 1000
 
 #
 # '''
@@ -405,26 +405,26 @@ def test_unstake_success(setup_chain):
 #     subtensorA.is_connected()
 #     subtensorB.is_connected()
 #
-#     subscribe( subtensorA, walletA )
-#     subscribe( subtensorB, walletB )
+#     subscribe(subtensorA, walletA)
+#     subscribe(subtensorB, walletB)
 #
 #     uidA = subtensorA.get_uid_for_pubkey(walletA.hotkey.public_key)
 #     uidB = subtensorB.get_uid_for_pubkey(walletB.hotkey.public_key)
 #
 #     w_uids = [uidA, uidB]
-#     w_vals = [pow(2, 31)-1, pow(2,31)-1]
+#     w_vals = [pow(2, 31) - 1, pow(2, 31) - 1]
 #     subtensorA.set_weights(
-#         destinations = w_uids,
-#         values = w_vals,
+#         destinations=w_uids,
+#         values=w_vals,
 #         wait_for_finalization=True,
-#         timeout = 4 * bittensor.__blocktime__,
+#         timeout=4 * bittensor.__blocktime__,
 #         wallet=walletA
 #     )
-#     subtensorB.set_weights (
-#         destinations = w_uids,
-#         values = w_vals,
+#     subtensorB.set_weights(
+#         destinations=w_uids,
+#         values=w_vals,
 #         wait_for_finalization=True,
-#         timeout = 4 * bittensor.__blocktime__,
+#         timeout=4 * bittensor.__blocktime__,
 #         wallet=walletB
 #     )
 #
@@ -432,4 +432,58 @@ def test_unstake_success(setup_chain):
 #     result_vals = subtensorA.weight_vals_for_uid(uidA)
 #     assert result_uids == w_uids
 #     assert result_vals == w_vals
-#
+
+
+def test_set_weights_success_transaction_fee(setup_chain):
+    coldkeyA = Keypair.create_from_uri('//Alice')
+    coldkeyB = Keypair.create_from_uri('//Bob')
+
+    walletA = generate_wallet(coldkey_pair=coldkeyA)
+    walletB = generate_wallet(coldkey_pair=coldkeyB)
+
+    subtensorA = connect(setup_chain)
+    subtensorB = connect(setup_chain)
+    subtensorA.is_connected()
+    subtensorB.is_connected()
+
+    subscribe(subtensorA, walletA)  # Sets a self weight of 1
+    subscribe(subtensorB, walletB)  # Sets a self weight of 1
+
+    uidA = subtensorA.get_uid_for_pubkey(walletA.hotkey.public_key)
+    uidB = subtensorB.get_uid_for_pubkey(walletB.hotkey.public_key)
+
+    stake = 4000
+    transaction_fee = 14355
+
+    # Add stake to the hotkey account, so we can do tests on the transaction fees of the set_weights function
+    # Keep in mind, this operation incurs transaction fees that are appended to the block_reward
+    subtensorA.add_stake(wallet=walletA, amount=Balance(stake), hotkey_id=walletA.hotkey.public_key,
+                         wait_for_finalization=True, timeout=30)
+
+
+
+    # At this point both neurons have equal stake, with self-weight set, so they receive each 50% of the block reward
+
+    blocknr_pre = subtensorA.get_current_block()
+
+    w_uids = [uidA, uidB]
+    w_vals = [0, 1]
+    subtensorA.set_weights(
+        destinations=w_uids,
+        values=w_vals,
+        wait_for_finalization=True,
+        timeout=4 * bittensor.__blocktime__,
+        wallet=walletA
+    )
+
+    blocknr_post = subtensorA.get_current_block()
+    blocks_passed = blocknr_post - blocknr_pre
+
+    logger.error(blocks_passed)
+
+    # Check the stakes
+    stakeA = subtensorA.get_stake_for_uid(uidA)
+
+    expectation = int(stake + (0.99 * BLOCK_REWARD * 3) + 0.99 * TRANSACTION_FEE_ADD_STAKE)
+
+    assert int(stakeA) == expectation  # 1_485_018_355
