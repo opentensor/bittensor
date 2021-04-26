@@ -100,6 +100,9 @@ jobs:
       - run:
           name: "Run integration tests for subtensor v1.0.1"
           command: "export PYTHONUNBUFFERED=1; export NODE_SUBTENSOR_BIN=/subtensor/v1.0.1/node-subtensor; pytest -n 8 ./tests/integration_tests/subtensor/v1.0.1/*"
+      - run:
+          name: "Run integration tests for subtensor v1.1.0"
+          command: "export PYTHONUNBUFFERED=1; export NODE_SUBTENSOR_BIN=/subtensor/v1.1.0/node-subtensor; pytest -n 8 ./tests/integration_tests/subtensor/v1.1.0/*"
 
 
   "Push image to DockerHub":
