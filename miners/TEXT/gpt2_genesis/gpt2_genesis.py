@@ -80,8 +80,12 @@ class Miner():
         # The Genesis Dataset:
         # The dataset used to train Adam and his first 100 children.
         # Here block size = sequence length.
-        dataset = GenesisTextDataloader(self.config.miner.batch_size_train, self.model.get_block_size())#AdamCorpus(self.model.get_block_size())
-        self.dataloader = dataset.dataloader()
+        dataset = GenesisTextDataloader(self.config.miner.batch_size_train, self.model.get_block_size())
+
+        # Set up the dataloader
+        self.dataloader = dataset.dataloader(self.config.miner.epoch_length)
+        logger.info("LENGTH: {}".format(len(self.dataloader)))
+
         self.tokens = 0
 
         # ---- Logging ----
@@ -353,15 +357,11 @@ class Miner():
             self.model.train(True)
             losses = []
 
-            # Re-create dataloader every time we call train
-            # This way, since epoch_length < len(dataset), we can
-            # make sure that the dataset is randomly shuffled each time
             # we train for an epoch.
             logger.info("Preparing dataset batch...")
+            
             pbar = qqdm(enumerate(self.dataloader), total=len(self.dataloader), desc=format_str('blue', f'Epoch Progress'))
-
             for it, (batch) in pbar:
-
                 # ---- Forward pass ----
                 batch = batch.to(self.model.device)
                 output = self.model.remote_forward(self.neuron, batch, training=True)
