@@ -17,6 +17,9 @@ RUN apt-get update
 RUN apt-get install python3.7 python3.7-dev -y
 RUN python3.7 -m pip install --upgrade pip
 
+RUN rm /usr/bin/python3
+RUN ln -s //usr/bin/python3.7 /usr/bin/python3
+
 # add Bittensor code to docker image
 RUN mkdir /bittensor
 RUN mkdir /home/.bittensor
