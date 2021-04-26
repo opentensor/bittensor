@@ -15,6 +15,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
+
 """GPT2 Language Modelling miner
 
 This file demonstrates training the GPT2 neuron with language modelling.
@@ -49,46 +50,7 @@ from synapses.gpt2 import GPT2Synapse
 from torch.nn.utils import clip_grad_norm_
 from transformers import AdamW
 from qqdm import qqdm, format_str
-from torch.utils.data.dataloader import DataLoader
-from datasets import load_dataset
-
-
-
-class AdamCorpus():
-
-    def __init__(self, block_size: int, tokenizer=bittensor.__tokenizer__()):
-        self.block_size = block_size
-        self.tokenizer = tokenizer
-        self.lines = load_dataset('glue', 'cola')['train']
-
-
-    def __len__(self):
-        return len(self.lines) - self.block_size
-
-    def __getitem__(self, idx):
-        """ Returns a batch of sentences from text dataset.
-
-            Args:
-                idx: index of data input
-
-            Returns:
-                x
-        """
-
-        chunk = self.lines[idx:idx + self.block_size]['sentence']
-
-        dix = []
-        block_num=0
-        while block_num < self.block_size:
-            tokenized = self.tokenizer(chunk[block_num], padding=True, truncation=True)['input_ids']
-            for t in tokenized:
-                if block_num < self.block_size:
-                    dix.append(t)
-                    block_num += 1
-
-
-        x = torch.tensor(dix, dtype=torch.long)
-        return x
+from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
 
 class Miner():
 
@@ -118,7 +80,8 @@ class Miner():
         # The Genesis Dataset:
         # The dataset used to train Adam and his first 100 children.
         # Here block size = sequence length.
-        self.dataset = AdamCorpus(self.model.get_block_size())
+        dataset = GenesisTextDataloader(self.config.miner.batch_size_train, self.model.get_block_size())#AdamCorpus(self.model.get_block_size())
+        self.dataloader = dataset.dataloader()
         self.tokens = 0
 
         # ---- Logging ----
@@ -171,12 +134,7 @@ class Miner():
             type=float,
             help='At what point we reach 10%% of original LR'
         )
-        parser.add_argument(
-            '--miner.num_workers',
-            default=1,
-            type=int,
-            help='Number of workers for data loader.'
-        )
+
         parser.add_argument(
             '--miner.clip_gradients',
             default=1.0,
@@ -224,12 +182,7 @@ class Miner():
             default=False,
             type=bool,
             help='Record all logs when running this miner')
-        parser.add_argument (
-            '--miner.custom_dataset',
-            default="~/.bittensor/bittensor/miners/TEXT/gpt2_genesis/genesis_dataset/",
-            type=str,
-            help='Custom datasets to train on.'
-        )
+
         parser.add_argument (
             '--miner.config_file',
             type=str,
@@ -254,7 +207,6 @@ class Miner():
         else: logger.info('DEBUG is OFF') 
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
-        config.miner.custom_dataset = os.path.expanduser(config.miner.custom_dataset)
         full_path = '{}/{}/{}'.format(config.miner.root_dir, config.miner.name, config.miner.trial_uid)
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
@@ -390,28 +342,6 @@ class Miner():
         else:
             self.lr = self.config.miner.learning_rate
 
-
-    def shuffle_dataset_epoch_length(self):
-        """Shuffles the miner's dataset so we get a shuffled, randomized dataset
-        of length miner.epoch_length
-
-        Returns:
-            [list] : shuffled dataset of length miner.epoch_length
-        """
-
-        shuffled_dataset = []
-        loader = DataLoader(self.dataset, shuffle=True,
-                        batch_size=self.config.miner.batch_size_train,
-                        num_workers=self.config.miner.num_workers)
-
-
-        for it, batch in enumerate(loader):
-            shuffled_dataset.append(batch)
-            if it == self.config.miner.epoch_length:
-                break
-
-        return shuffled_dataset
-
     def get_lr(self):
         for param_group in self.optimizer.param_groups:
             return param_group['lr']
@@ -428,8 +358,7 @@ class Miner():
             # make sure that the dataset is randomly shuffled each time
             # we train for an epoch.
             logger.info("Preparing dataset batch...")
-            dataset = self.shuffle_dataset_epoch_length()
-            pbar = qqdm(enumerate(dataset), total=len(dataset), desc=format_str('blue', f'Epoch Progress'))
+            pbar = qqdm(enumerate(self.dataloader), total=len(self.dataloader), desc=format_str('blue', f'Epoch Progress'))
 
             for it, (batch) in pbar:
 
