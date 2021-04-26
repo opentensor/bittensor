@@ -31,6 +31,6 @@ RUN pip install -e .
 
 WORKDIR /subtensor/v1.0.1
 RUN wget https://github.com/opentensor/subtensor/releases/download/v1.0.1/subtensor-v1.0.1-x86_64-unknown-linux-gnu.tar.gz
-RUN tar -xzf subtensor-v1.0.1-unknown-linux-gnu-x86_64.tar.gz
+RUN tar -xzf subtensor-v1.0.1-x86_64-unknown-linux-gnu.tar.gz
 
 EXPOSE 8091
