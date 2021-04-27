@@ -403,7 +403,7 @@ class Miner():
                     'L-loss': colored('{:.5f}'.format(output.local_target_loss.item()), 'red'),
                     'R-loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'blue'),
                     'D-loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
-                    'lr:': colored('{:e}'.format(self.lr), 'white'),
+                    'lr': colored('{:e}'.format(self.lr), 'white'),
                     'nPeers': self.neuron.metagraph.n,
                     'Stake(\u03C4)': float(self.neuron.metagraph.S[index]),
                     'Rank(\u03C4)': float(self.neuron.metagraph.R[index]),
