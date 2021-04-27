@@ -98,15 +98,15 @@ class Neuron:
         self.metagraph = metagraph
         # Nucleus: Processes requests passed to this neuron on its axon endpoint.
         if nucleus == None:
-            nucleus = bittensor.nucleus.Nucleus(config = self.config, wallet = self.wallet, metagraph = self.metagraph)
+            nucleus = bittensor.nucleus.Nucleus(config = self.config, wallet = self.wallet )
         self.nucleus = nucleus
         # Axon: RPC server endpoint which serves your synapse. Responds to Forward and Backward requests.
         if axon == None:
-            axon = bittensor.axon.Axon(config = self.config, wallet = self.wallet, nucleus = self.nucleus, metagraph = self.metagraph)
+            axon = bittensor.axon.Axon(config = self.config, wallet = self.wallet, nucleus = self.nucleus )
         self.axon = axon
         # Dendrite: RPC client makes Forward and Backward requests to downstream peers.
         if dendrite == None:
-            dendrite = bittensor.dendrite.Dendrite(config = self.config, wallet = self.wallet, metagraph = self.metagraph)
+            dendrite = bittensor.dendrite.Dendrite(config = self.config, wallet = self.wallet )
         self.dendrite = dendrite
 
     @staticmethod   
@@ -137,13 +137,12 @@ class Neuron:
         assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
 
     def start(self):
-        print(colored('', 'white'))
         # ---- Check hotkey ----
-        print(colored('Loading wallet with path: {} name: {} hotkey: {}'.format(self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey), 'white'))
+        logger.log('USER-ACTION', 'Loading wallet with path: {} name: {} hotkey: {}'.format(self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey))
         try:
             self.wallet.hotkey # Check loaded hotkey
         except:
-            logger.info('Failed to load hotkey under path:{} wallet name:{} hotkey:{}', self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey)
+            logger.log('USER-INFO', 'Failed to load hotkey under path:{} wallet name:{} hotkey:{}', self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey)
             choice = input("Would you like to create a new hotkey ? (y/N) ")
             if choice == "y":
                 self.wallet.create_new_hotkey()
@@ -154,7 +153,7 @@ class Neuron:
         try:
             self.wallet.coldkeypub
         except:
-            logger.info('Failed to load coldkeypub under path:{} wallet name:{}', self.config.wallet.path, self.config.wallet.name)
+            logger.log('USER-INFO', 'Failed to load coldkeypub under path:{} wallet name:{}', self.config.wallet.path, self.config.wallet.name)
             choice = input("Would you like to create a new coldkey ? (y/N) ")
             if choice == "y":
                 self.wallet.create_new_coldkey()
@@ -165,10 +164,10 @@ class Neuron:
         self.axon.start()
 
         # ---- Subscribe to chain ----
-        print(colored('\nConnecting to network: {}'.format(self.config.subtensor.network), 'white'))
+        logger.log('USER-ACTION', '\nConnecting to network: {}'.format(self.config.subtensor.network))
         self.subtensor.connect()
 
-        print(colored('\nSubscribing:', 'white'))
+        logger.log('USER-ACTION', '\nSubscribing:')
         subscribe_success = self.subtensor.subscribe(
                 wallet = self.wallet,
                 ip = self.config.axon.external_ip, 

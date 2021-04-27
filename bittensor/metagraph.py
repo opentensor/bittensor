@@ -590,8 +590,10 @@ class Metagraph():
                 emit_block = last_emit[ uid ]
                 if (current_block - emit_block) < self.config.metagraph.stale_emit_filter or self.config.metagraph.stale_emit_filter < 0:
                         calls.append( self._poll_uid ( pubkey, uid ) )
-        await asyncio.gather(*calls)
-        print ('\n')
+        
+        import tqdm.asyncio
+        for call in tqdm.asyncio.tqdm.as_completed( calls ):
+            await call
 
     async def _poll_uid(self, pubkey: str, uid:int):
         r""" Polls info info for a specfic public key.
@@ -603,10 +605,8 @@ class Metagraph():
             w_vals = await self.subtensor.async_weight_vals_for_uid( uid )
             neuron = await self.subtensor.async_get_neuron_for_uid ( uid )
             self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], modality = neuron['modality'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
-            print(colored('.', 'green'), end ="")
 
         except Exception as e:
-            print(colored('x', 'red'), end ="")
             logger.trace('error while polling uid: {} with error: {}', uid, e )
             #traceback.print_exc()
 
