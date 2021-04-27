@@ -6,8 +6,6 @@ from munch import Munch
 
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-from torch.utils.data.dataloader import DataLoader
-from torch.utils.data import Subset
 
 
 
@@ -22,6 +20,9 @@ class BittensorDataLoader():
         self.dag_get = 'https://ipfs.infura.io:5001/api/v0/dag/get'
         # Used to retrieve file contents
         self.file_cat = 'https://ipfs.infura.io:5001/api/v0/cat'
+
+        # Used when current corpus has been exhausted
+        self.refresh_corpus = False
         
     @staticmethod   
     def default_config() -> Munch:
@@ -34,7 +35,7 @@ class BittensorDataLoader():
     def add_args(parser: argparse.ArgumentParser):
         """ Add model params
         """
-        parser.add_argument('--dataloader.max_file_size', default=1e+9, type=int, 
+        parser.add_argument('--dataloader.max_file_size', default=5e+6, type=int, 
                                 help='Maximum text file size (in bytes) to load into memory.')
         parser.add_argument('--dataloader.num_workers', default=1, type=int, 
                                 help='Number of workers for data loader.')
@@ -96,42 +97,6 @@ class BittensorDataLoader():
         
         return directory
     
-    
-    def dataloader(self, epoch_length=None):
-        """ Creates a torch dataloader out of a subclass of this class.
-
-        Args:
-            epoch_length (int, optional): The epoch length of the miner. If this length is not set or if it is larger than the dataset, 
-            then a dataloader for the entire dataset is returned. Otherwise, a dataloader for a subset of the dataset of epoch_length 
-            is returned. Defaults to None.
-
-        Returns:
-            torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
-        """
-        # If epoch_length is set then we just need a slice of 
-        # the dataset we downloaded of length epoch_length. 
-        if epoch_length and epoch_length < len(self):
-            
-            # Set up upper bound of indices to fit the batch size we want. 
-            idx_bound = epoch_length * self.batch_size
-
-            # Collect enough random indices to batch together using batch_size into epoch_length batches
-            random_start = random.randint(0, len(self) - idx_bound)
-            indices = list(range(random_start, random_start + idx_bound))
-            
-            subset = Subset(self, indices)
-
-            # Set up dataloader
-            return DataLoader(subset,
-                            batch_size=self.batch_size,
-                            num_workers=self.config.dataloader.num_workers)
-        
-        # If epoch_length is not set or it is higher than the total size of the dataset,
-        #  then just shuffle dataset and return the whole thing.
-        return DataLoader(self,
-                            shuffle=True,
-                            batch_size=self.batch_size,
-                            num_workers=self.config.dataloader.num_workers)
     
     def __len__(self):
         """ Returns length of the dataset that the dataloader is processing
