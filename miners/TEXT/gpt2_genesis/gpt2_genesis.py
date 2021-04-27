@@ -15,6 +15,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
+
 """GPT2 Language Modelling miner
 
 This file demonstrates training the GPT2 neuron with language modelling.
@@ -49,46 +50,8 @@ from synapses.gpt2 import GPT2Synapse
 from torch.nn.utils import clip_grad_norm_
 from transformers import AdamW
 from qqdm import qqdm, format_str
-from torch.utils.data.dataloader import DataLoader
-from datasets import load_dataset
+from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
 
-
-
-class AdamCorpus():
-
-    def __init__(self, block_size: int, tokenizer=bittensor.__tokenizer__()):
-        self.block_size = block_size
-        self.tokenizer = tokenizer
-        self.lines = load_dataset('glue', 'cola')['train']
-
-
-    def __len__(self):
-        return len(self.lines) - self.block_size
-
-    def __getitem__(self, idx):
-        """ Returns a batch of sentences from text dataset.
-
-            Args:
-                idx: index of data input
-
-            Returns:
-                x
-        """
-
-        chunk = self.lines[idx:idx + self.block_size]['sentence']
-
-        dix = []
-        block_num=0
-        while block_num < self.block_size:
-            tokenized = self.tokenizer(chunk[block_num], padding=True, truncation=True)['input_ids']
-            for t in tokenized:
-                if block_num < self.block_size:
-                    dix.append(t)
-                    block_num += 1
-
-
-        x = torch.tensor(dix, dtype=torch.long)
-        return x
 
 class Miner():
 
@@ -113,12 +76,16 @@ class Miner():
         self.lr = self.config.miner.learning_rate
         self.training_loss = math.inf
         self.best_train_loss = math.inf
+        self.rloss = math.inf
+        self.lloss = math.inf
+        self.dloss = math.inf
 
         # ---- Dataset ----
         # The Genesis Dataset:
         # The dataset used to train Adam and his first 100 children.
         # Here block size = sequence length.
-        self.dataset = AdamCorpus(self.model.get_block_size())
+        self.dataset = GenesisTextDataloader(self.config.miner.batch_size_train, self.model.get_block_size())
+
         self.tokens = 0
 
         # ---- Logging ----
@@ -171,12 +138,7 @@ class Miner():
             type=float,
             help='At what point we reach 10%% of original LR'
         )
-        parser.add_argument(
-            '--miner.num_workers',
-            default=1,
-            type=int,
-            help='Number of workers for data loader.'
-        )
+
         parser.add_argument(
             '--miner.clip_gradients',
             default=1.0,
@@ -224,12 +186,7 @@ class Miner():
             default=False,
             type=bool,
             help='Record all logs when running this miner')
-        parser.add_argument (
-            '--miner.custom_dataset',
-            default="~/.bittensor/bittensor/miners/TEXT/gpt2_genesis/genesis_dataset/",
-            type=str,
-            help='Custom datasets to train on.'
-        )
+
         parser.add_argument (
             '--miner.config_file',
             type=str,
@@ -254,7 +211,6 @@ class Miner():
         else: logger.info('DEBUG is OFF') 
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
-        config.miner.custom_dataset = os.path.expanduser(config.miner.custom_dataset)
         full_path = '{}/{}/{}'.format(config.miner.root_dir, config.miner.name, config.miner.trial_uid)
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
@@ -336,12 +292,15 @@ class Miner():
                     continue
 
                 # ---- Emitting weights ----
-                self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
+                try:
+                    self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
 
-                # ---- Sync metagraph ----
-                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                    # ---- Sync metagraph ----
+                    self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                except:
+                    logger.error("Failed to set weights and sync metagraph! Could be  a connection  ")
+                
                 self.row = self.neuron.metagraph.row.to(self.model.device)
-
                 # ---- Update Tensorboard ----
                 self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
                 self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
@@ -355,12 +314,15 @@ class Miner():
                             {
                                 'epoch': self.epoch,
                                 'model_state_dict': self.model.state_dict(),
-                                'loss': self.best_train_loss,
+                                'loss': self.best_train_loss/3,
                                 'optimizer_state_dict': self.optimizer.state_dict(),
+                                'rloss' : self.rloss,
+                                'lloss': self.lloss,
+                                'dloss': self.dloss,
                             }
                         )
                         self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
-                logger.info("This epoch's training loss: {}...Current best training loss: {}".format(self.training_loss, self.best_train_loss))
+                logger.info("This epoch's training losses: L-Loss: {:.2f} | R-Loss: {:.2f} | D-Loss: {:.2f} | avg: {:.2f} ... Current best average training loss: {:.2f}".format(self.lloss, self.rloss, self.dloss, self.training_loss/3, self.best_train_loss/3))
 
 
     def decay_learning_rate(self, batch):
@@ -390,28 +352,6 @@ class Miner():
         else:
             self.lr = self.config.miner.learning_rate
 
-
-    def shuffle_dataset_epoch_length(self):
-        """Shuffles the miner's dataset so we get a shuffled, randomized dataset
-        of length miner.epoch_length
-
-        Returns:
-            [list] : shuffled dataset of length miner.epoch_length
-        """
-
-        shuffled_dataset = []
-        loader = DataLoader(self.dataset, shuffle=True,
-                        batch_size=self.config.miner.batch_size_train,
-                        num_workers=self.config.miner.num_workers)
-
-
-        for it, batch in enumerate(loader):
-            shuffled_dataset.append(batch)
-            if it == self.config.miner.epoch_length:
-                break
-
-        return shuffled_dataset
-
     def get_lr(self):
         for param_group in self.optimizer.param_groups:
             return param_group['lr']
@@ -422,17 +362,16 @@ class Miner():
         def run_epoch():
             self.model.train(True)
             losses = []
+            rlosses = []
+            llosses = []
+            dlosses = []
 
-            # Re-create dataloader every time we call train
-            # This way, since epoch_length < len(dataset), we can
-            # make sure that the dataset is randomly shuffled each time
             # we train for an epoch.
             logger.info("Preparing dataset batch...")
-            dataset = self.shuffle_dataset_epoch_length()
-            pbar = qqdm(enumerate(dataset), total=len(dataset), desc=format_str('blue', f'Epoch Progress'))
-
+            # Set up the dataloader
+            dataloader = self.dataset.dataloader(self.config.miner.epoch_length)
+            pbar = qqdm(enumerate(dataloader), total=len(dataloader), desc=format_str('blue', f'Epoch Progress'))
             for it, (batch) in pbar:
-
                 # ---- Forward pass ----
                 batch = batch.to(self.model.device)
                 output = self.model.remote_forward(self.neuron, batch, training=True)
@@ -446,7 +385,12 @@ class Miner():
                 self.optimizer.step()
                 self.optimizer.zero_grad()
                 self.decay_learning_rate(batch)
+
+                # Add losses up
                 losses.append(loss.item())
+                llosses.append(output.local_target_loss.item())
+                rlosses.append(output.remote_target_loss.item())
+                dlosses.append(output.distillation_loss.item())
 
                 # ---- Train row weights ----
                 batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
@@ -462,7 +406,7 @@ class Miner():
                     'L-loss': colored('{:.5f}'.format(output.local_target_loss.item()), 'red'),
                     'R-loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'blue'),
                     'D-loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
-                    'lr:': colored('{:e}'.format(self.lr), 'white'),
+                    'lr': colored('{:e}'.format(self.lr), 'white'),
                     'nPeers': self.neuron.metagraph.n,
                     'Stake(\u03C4)': float(self.neuron.metagraph.S[index]),
                     'Rank(\u03C4)': float(self.neuron.metagraph.R[index]),
@@ -477,6 +421,10 @@ class Miner():
 
 
             avg_loss = sum(losses) / len(losses)
+            self.rloss = sum(rlosses) / len(rlosses)
+            self.lloss = sum(llosses) / len(llosses)
+            self.dloss = sum(dlosses) / len(dlosses)
+
             self.training_loss = avg_loss
 
         run_epoch()

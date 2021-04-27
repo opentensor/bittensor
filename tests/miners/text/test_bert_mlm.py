@@ -7,10 +7,6 @@ import torch
 import numpy
 from bert_mlm.bert_mlm import Miner
 
-class AsyncMock(MagicMock):
-    async def __call__(self, *args, **kwargs):
-        return super(AsyncMock, self).__call__(*args, **kwargs)
-
 def test_run_bert_mlm():
     miner = Miner(
         epoch_length = 1,
