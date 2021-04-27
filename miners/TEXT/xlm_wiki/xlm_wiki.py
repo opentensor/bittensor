@@ -46,7 +46,7 @@ from datasets import load_dataset
 from torch.utils.tensorboard import SummaryWriter
 
 
-class Miner():
+class Miner( bittensor.neuron.Neuron ):
     """
     Initializes, trains, and tests models created inside of 'bittensor/synapses'. 
     During instantiation, this class takes a config as a [Munch](https://github.com/Infinidat/munch) object. 
@@ -58,9 +58,6 @@ class Miner():
         bittensor.config.Config.update_with_kwargs(config.miner, kwargs) 
         Miner.check_config(config)
         self.config = config
-
-        # ---- Neuron ----
-        self.neuron = bittensor.neuron.Neuron(self.config)
 
         # ---- Model ----
         self.model = XLMSynapse( self.config )
@@ -90,6 +87,7 @@ class Miner():
                 rotation="250 MB",
                 retention="10 days"
             )
+        super( Miner, self ).__init__( self.config, **kwargs )
     
     @staticmethod
     def default_config() -> Munch:
@@ -114,15 +112,11 @@ class Miner():
         parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
         parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
-        parser.add_argument('--debug', dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
-        parser.set_defaults( debug=False )
         XLMSynapse.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
-        if config.debug:  bittensor.__log_level__ = 'TRACE'; logger.debug('DEBUG is ON')
-        else: logger.info('DEBUG is OFF') 
         assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
         assert config.miner.batch_size_train > 0, "batch_size_train must be a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
@@ -135,10 +129,10 @@ class Miner():
     def run (self):
 
         # ---- Subscribe ----
-        with self.neuron:
+        with self:
 
             # ---- Weights ----
-            self.row = self.neuron.metagraph.row.to(self.model.device)
+            self.row = self.metagraph.row.to(self.model.device)
 
             # --- Run state ---
             self.global_step = 0
@@ -148,7 +142,7 @@ class Miner():
             for self.epoch in range(self.config.miner.n_epochs):
                 try:
                     # ---- Serve ----
-                    self.neuron.axon.serve( self.model )
+                    self.axon.serve( self.model )
 
                     # ---- Train Model ----
                     self.train()
@@ -161,21 +155,21 @@ class Miner():
                         continue
 
                     # ---- Emitting weights ----
-                    self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
+                    self.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
 
                     # ---- Sync metagraph ----
-                    self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                    self.row = self.neuron.metagraph.row.to(self.model.device)
+                    self.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                    self.row = self.metagraph.row.to(self.model.device)
 
                     # --- Epoch logs ----
-                    print(self.neuron.axon.__full_str__())
-                    print(self.neuron.dendrite.__full_str__())
-                    print(self.neuron.metagraph)
+                    print(self.axon.__full_str__())
+                    print(self.dendrite.__full_str__())
+                    print(self.metagraph)
 
                     # ---- Update Tensorboard ----
-                    self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
-                    self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
-                    self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
+                    self.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
+                    self.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
+                    self.axon.__to_tensorboard__(self.tensorboard, self.global_step)
                 
                     # ---- Save best loss and model ----
                     if self.training_loss and self.epoch % 10 == 0 and self.training_loss < self.best_train_loss:
@@ -203,7 +197,7 @@ class Miner():
             # ---- Forward pass ----
             inputs = nextbatch(self.dataset, self.config.miner.batch_size_train, bittensor.__tokenizer__())
             output = self.model.remote_forward(
-                self.neuron,
+                self,
                 inputs.to(self.model.device),
                 training = True,
             )
@@ -227,8 +221,8 @@ class Miner():
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
                     colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
                     colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
-                    self.neuron.axon,
-                    self.neuron.dendrite)
+                    self.axon,
+                    self.dendrite)
             logger.info('Codes: {}', output.router.return_codes.tolist())
             
             self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)

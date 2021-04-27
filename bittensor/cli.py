@@ -147,8 +147,8 @@ class CLI ( bittensor.executor.Executor ):
                 quit()
 
     def run_command(self):
-        self.init_logging()
         self.init_debugging()
+        self.init_logging()
         if self.config.command == "transfer":
             self.transfer( amount_tao=self.config.amount, destination=self.config.dest)
         elif self.config.command == "unstake":

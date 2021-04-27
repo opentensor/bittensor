@@ -313,7 +313,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             else:
                 return False
 
-    def is_subscribed(self, wallet: 'bittensor.wallet.Wallet', ip: str, port: int, modality: int, coldkey: str ) -> bool:
+    def is_subscribed(self, wallet: 'bittensor.wallet.Wallet', ip: str, port: int, modality: int ) -> bool:
         r""" Returns true if the bittensor endpoint is already subscribed with the wallet and metadata.
         Args:
             wallet (bittensor.wallet.Wallet):
@@ -329,7 +329,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_is_subscribed( wallet, ip, port, modality, coldkey ))
+        return loop.run_until_complete(self.async_is_subscribed( wallet, ip, port, modality ))
             
     async def async_is_subscribed( self, wallet: 'bittensor.wallet.Wallet', ip: str, port: int, modality: int ) -> bool:
         r""" Returns true if the bittensor endpoint is already subscribed with the wallet and metadata.
@@ -342,8 +342,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 endpoint port number i.e. 9221
             modality (int):
                 int encoded endpoint modality i.e 0 for TEXT
-            coldkeypub (str):
-                string encoded coldekey pub.
         """
         uid = await self.async_get_uid_for_pubkey( wallet.hotkey.public_key )
         if uid != None:
@@ -428,7 +426,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         if not await self.async_check_connection():
             return False
 
-        if await self.async_is_subscribed( ip, port, modality, coldkeypub ):
+        if await self.async_is_subscribed( wallet, ip, port, modality ):
             logger.success( "Already subscribed with:\n<cyan>[\n  ip: {},\n  port: {},\n  modality: {},\n  hotkey: {},\n  coldkey: {}\n]</cyan>".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
             return True
 

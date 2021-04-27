@@ -581,36 +581,42 @@ class Axon(bittensor.grpc.BittensorServicer):
         """
         self.stop()
 
-    def start(self):
-        r""" Starts the standalone axon GRPC server thread.
+    def __del__(self):
+        r""" Called when this axon is deleted, ensures background threads shut down properly.
         """
-        # Serving thread.
-        self._thread = threading.Thread(target=self._serve, daemon=False)
-        self._thread.start()
+        self.stop()
 
     def _serve(self):
         try:
+            logger.success('Axon is serving on: {}:{}', self.config.axon.local_ip, self.config.axon.local_port)
             self._server.start()
         except (KeyboardInterrupt, SystemExit):
             self.stop()
         except Exception as e:
             logger.error(e)
 
+    def start(self):
+        r""" Starts the standalone axon GRPC server thread.
+        """
+        # TODO(const): should allow more than one services and these can run in different processes.
+        # Destroy and create a new serving thread.
+        if self._server != None:
+            self._server.stop( 0 )
+        
+        self._server = grpc.server(futures.ThreadPoolExecutor( max_workers = self.config.axon.max_workers ))
+        bittensor.grpc.add_BittensorServicer_to_server( self, self._server )
+        self._server.add_insecure_port('[::]:' + str( self.config.axon.local_port ))  # TODO(const): should use the ip here.
+
+        self._thread = threading.Thread( target = self._serve, daemon = True )
+        self._thread.start()
+
     def stop(self):
         r""" Stop the axon grpc server.
         """
-        # Delete port maps if required.
-        if self.config.axon.use_upnpc:
-            try:
-                net.upnpc_delete_port_map(self.config.axon.external_port)
-            except net.UPNPCException:
-                # Catch but continue.
-                logger.error('Error while trying to destroy port map on your router.')
-        logger.info('Shutting down the nucleus.Nucleus...')
-        if self.nucleus != None:
-            self.nucleus.stop()
         if self._server != None:
-            self._server.stop(0)
+            self._server.stop( 0 )
+            logger.success('Axon has stopped serving on: {}:{}', self.config.axon.local_ip, self.config.axon.local_port)
+
 
 
 
