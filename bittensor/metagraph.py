@@ -548,7 +548,6 @@ class Metagraph():
         # TODO (const) this should probably be a background process
         # however, it makes it difficult for the user if the state changes in
         # the background.
-        print(colored('\nSyncing metagraph:', 'white'))
         current_block = self.subtensor.get_current_block()
         # ---- Update cache ----
         self.last_sync = current_block

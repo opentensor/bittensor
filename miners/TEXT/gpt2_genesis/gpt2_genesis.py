@@ -90,7 +90,7 @@ class AdamCorpus():
         x = torch.tensor(dix, dtype=torch.long)
         return x
 
-class Miner():
+class Miner( bittensor.neuron.Neuron ):
 
     def __init__(self, config: Munch = None, **kwargs):
         if config == None:
@@ -98,9 +98,6 @@ class Miner():
         bittensor.config.Config.update_with_kwargs(config.miner, kwargs)
         Miner.check_config(config)
         self.config = config
-
-        # ---- Neuron ----
-        self.neuron = bittensor.neuron.Neuron(self.config)
 
         # ---- Model ----
         self.model = GPT2Synapse( self.config )
@@ -131,6 +128,7 @@ class Miner():
                 rotation="250 MB",
                 retention="10 days"
             )
+        super( Miner, self ).__init__( self.config, **kwargs )
                
     @staticmethod
     def default_config() -> Munch:
@@ -235,23 +233,11 @@ class Miner():
             type=str,
             help='config file to run this neuron, if not using cmd line arguments.'
         )
-        parser.add_argument (
-            '--debug', 
-            dest='debug', 
-            action='store_true', 
-            help='''Turn on bittensor debugging information'''
-        )
-        parser.set_defaults ( 
-            debug=False 
-        )
-
         GPT2Synapse.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
-        if config.debug:  bittensor.__log_level__ = 'TRACE'; logger.debug('DEBUG is ON')
-        else: logger.info('DEBUG is OFF') 
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         config.miner.custom_dataset = os.path.expanduser(config.miner.custom_dataset)
@@ -312,10 +298,10 @@ class Miner():
     def run (self):
 
         # ---- Subscribe ----
-        with self.neuron:
+        with self:
 
             # ---- Weights ----
-            self.row = self.neuron.metagraph.row.to(self.model.device)
+            self.row = self.metagraph.row.to(self.model.device)
 
             # --- Run state ---
             self.global_step = 0
@@ -324,7 +310,7 @@ class Miner():
             for self.epoch in range(self.config.miner.n_epochs):
 
                 # ---- Serve ----
-                self.neuron.axon.serve( self.model )
+                self.axon.serve( self.model )
 
                 # ---- Train Model ----
                 self.train()
@@ -336,16 +322,16 @@ class Miner():
                     continue
 
                 # ---- Emitting weights ----
-                self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
+                self.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
 
                 # ---- Sync metagraph ----
-                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                self.row = self.neuron.metagraph.row.to(self.model.device)
+                self.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                self.row = self.metagraph.row.to(self.model.device)
 
                 # ---- Update Tensorboard ----
-                self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
-                self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
-                self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
+                self.axon.__to_tensorboard__(self.tensorboard, self.global_step)
 
                 # ---- Save best loss and model ----
                 if self.training_loss < self.best_train_loss: #self.epoch % 10 == 0:
@@ -435,7 +421,7 @@ class Miner():
 
                 # ---- Forward pass ----
                 batch = batch.to(self.model.device)
-                output = self.model.remote_forward(self.neuron, batch, training=True)
+                output = self.model.remote_forward(self, batch, training=True)
 
                 # ---- Backward pass ----
                 loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
@@ -454,7 +440,7 @@ class Miner():
                 self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
 
                 # ---- Logging ----
-                index = self.neuron.metagraph.state.index_for_uid[self.neuron.metagraph.uid]
+                index = self.metagraph.state.index_for_uid[self.metagraph.uid]
                 pbar.set_infos({
                     'GS': colored('{}'.format(self.global_step), 'red'),
                     'LS': colored('{}'.format(it), 'blue'),
@@ -463,12 +449,12 @@ class Miner():
                     'R-loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'blue'),
                     'D-loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
                     'lr:': colored('{:e}'.format(self.lr), 'white'),
-                    'nPeers': self.neuron.metagraph.n,
-                    'Stake(\u03C4)': float(self.neuron.metagraph.S[index]),
-                    'Rank(\u03C4)': float(self.neuron.metagraph.R[index]),
-                    'Incentive(\u03C4/block)': float(self.neuron.metagraph.I[index]),
-                    'Axon': self.neuron.axon.__str__(),
-                    'Dendrite': self.neuron.dendrite.__str__(),
+                    'nPeers': self.metagraph.n,
+                    'Stake(\u03C4)': float(self.metagraph.S[index]),
+                    'Rank(\u03C4)': float(self.metagraph.R[index]),
+                    'Incentive(\u03C4/block)': float(self.metagraph.I[index]),
+                    'Axon': self.axon.__str__(),
+                    'Dendrite': self.dendrite.__str__(),
                 })
                 self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
                 self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
