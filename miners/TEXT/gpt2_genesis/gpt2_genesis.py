@@ -307,12 +307,12 @@ class Miner():
                             {
                                 'epoch': self.epoch,
                                 'model_state_dict': self.model.state_dict(),
-                                'loss': self.best_train_loss,
+                                'loss': self.best_train_loss/3,
                                 'optimizer_state_dict': self.optimizer.state_dict(),
                             }
                         )
                         self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
-                logger.info("This epoch's training loss: {}...Current best training loss: {}".format(self.training_loss, self.best_train_loss))
+                logger.info("This epoch's average training loss (L-Loss, R-Loss, D-Loss): {}... Current best average training loss: {}".format(self.training_loss/3, self.best_train_loss/3))
 
 
     def decay_learning_rate(self, batch):
