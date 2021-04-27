@@ -80,7 +80,7 @@ class Miner():
         # The Genesis Dataset:
         # The dataset used to train Adam and his first 100 children.
         # Here block size = sequence length.
-        dataset = GenesisTextDataloader(self.config.miner.batch_size_train, self.model.get_block_size())
+        self.dataset = GenesisTextDataloader(self.config.miner.batch_size_train, self.model.get_block_size())
 
         # Set up the dataloader
         self.dataloader = dataset.dataloader(self.config.miner.epoch_length)
@@ -359,8 +359,9 @@ class Miner():
 
             # we train for an epoch.
             logger.info("Preparing dataset batch...")
-            
-            pbar = qqdm(enumerate(self.dataloader), total=len(self.dataloader), desc=format_str('blue', f'Epoch Progress'))
+            # Set up the dataloader
+            dataloader = self.dataset.dataloader(self.config.miner.epoch_length)
+            pbar = qqdm(enumerate(dataloader), total=len(dataloader), desc=format_str('blue', f'Epoch Progress'))
             for it, (batch) in pbar:
                 # ---- Forward pass ----
                 batch = batch.to(self.model.device)
