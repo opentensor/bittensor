@@ -292,12 +292,15 @@ class Miner():
                     continue
 
                 # ---- Emitting weights ----
-                self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
+                try:
+                    self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
 
-                # ---- Sync metagraph ----
-                self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                    # ---- Sync metagraph ----
+                    self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                except:
+                    logger.error("Failed to set weights and sync metagraph! Could be  a connection  ")
+                
                 self.row = self.neuron.metagraph.row.to(self.model.device)
-
                 # ---- Update Tensorboard ----
                 self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
                 self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
