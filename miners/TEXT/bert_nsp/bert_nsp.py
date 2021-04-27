@@ -193,11 +193,7 @@ class Miner( bittensor.neuron.Neuron ):
                     # ---- Sync metagraph ----
                     self.metagraph.sync() # Pulls the latest metagraph state (with my update.)
                     self.row = self.metagraph.row
-
-                    # --- Epoch logs ----
-                    print(self.axon.__full_str__())
-                    print(self.dendrite.__full_str__())
-                    print(self.metagraph)
+                    logger.info(self.metagraph)
 
                     # ---- Update Tensorboard ----
                     self.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
