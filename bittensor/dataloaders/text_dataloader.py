@@ -74,7 +74,7 @@ class GenesisTextDataloader(BittensorDataLoader):
                 total_dataset_size = int(random_dataset_file['Size'])
 
                 # Make sure the file we chose satisfies our maximum file size requirement
-                while total_dataset_size <= self.config.dataloader.max_file_size:
+                while total_dataset_size <= self.config.dataloader.max_corpus_size:
 
                     # Find file hash
                     random_dataset_file_hash = random_dataset_file['Cid']['/']
