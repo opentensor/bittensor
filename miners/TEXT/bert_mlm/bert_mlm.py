@@ -78,7 +78,7 @@ def mlm_batch(data, batch_size, tokenizer, collator):
     return collated_batch['input_ids'], collated_batch['labels']
 
 
-class Miner():
+class Miner( bittensor.neuron.Neuron ):
 
     def __init__(self, config: Munch = None, **kwargs):
         if config == None:
@@ -86,9 +86,6 @@ class Miner():
         bittensor.config.Config.update_with_kwargs(config.miner, kwargs) 
         Miner.check_config(config)
         self.config = config
-
-        # ---- Neuron ----
-        self.neuron = bittensor.neuron.Neuron(self.config)
 
         # ---- Model ----
         self.model = BertMLMSynapse( self.config )
@@ -119,7 +116,9 @@ class Miner():
                 rotation="250 MB",
                 retention="10 days"
             )
-                
+
+        super( Miner, self ).__init__( self.config, **kwargs )
+
     @staticmethod
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
@@ -129,8 +128,6 @@ class Miner():
 
     @staticmethod
     def check_config(config: Munch):
-        if config.debug:  bittensor.__log_level__ = 'TRACE'; logger.debug('DEBUG is ON')
-        else: logger.info('DEBUG is OFF') 
         assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
@@ -156,8 +153,6 @@ class Miner():
         parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
         parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
-        parser.add_argument('--debug', dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
-        parser.set_defaults( debug=False )
         BertMLMSynapse.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 
@@ -165,10 +160,10 @@ class Miner():
     def run (self):
 
         # ---- Subscribe ----
-        with self.neuron:
+        with self:
 
             # ---- Weights ----
-            self.row = self.neuron.metagraph.row
+            self.row = self.metagraph.row
 
             # --- Run state ---
             self.global_step = 0
@@ -178,7 +173,7 @@ class Miner():
             for self.epoch in range(self.config.miner.n_epochs):
                 try:
                     # ---- Serve ----
-                    self.neuron.axon.serve( self.model )
+                    self.axon.serve( self.model )
 
                     # ---- Train Model ----
                     self.train()
@@ -191,21 +186,17 @@ class Miner():
                         continue
 
                     # ---- Emitting weights ----
-                    self.neuron.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
+                    self.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
 
                     # ---- Sync metagraph ----
-                    self.neuron.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                    self.row = self.neuron.metagraph.row
-
-                    # --- Epoch logs ----
-                    print(self.neuron.axon.__full_str__())
-                    print(self.neuron.dendrite.__full_str__())
-                    print(self.neuron.metagraph)
+                    self.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                    self.row = self.metagraph.row
+                    logger.info(self.metagraph)
 
                     # ---- Update Tensorboard ----
-                    self.neuron.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
-                    self.neuron.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
-                    self.neuron.axon.__to_tensorboard__(self.tensorboard, self.global_step)
+                    self.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
+                    self.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
+                    self.axon.__to_tensorboard__(self.tensorboard, self.global_step)
                 
                     # ---- Save best loss and model ----
                     if self.training_loss and self.epoch % 10 == 0:
@@ -236,7 +227,7 @@ class Miner():
             # ---- Forward pass ----
             inputs, targets = mlm_batch(self.dataset, self.config.miner.batch_size_train, bittensor.__tokenizer__(), self.data_collator)
             output = self.model.remote_forward (
-                    self.neuron,
+                    self,
                     inputs = inputs.to(self.model.device), 
                     targets = targets.to(self.model.device)
             )
@@ -261,8 +252,8 @@ class Miner():
                     colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
                     colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
                     colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
-                    self.neuron.axon,
-                    self.neuron.dendrite)
+                    self.axon,
+                    self.dendrite)
             logger.info('Codes: {}', output.router.return_codes.tolist())
             
             self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
