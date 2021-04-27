@@ -82,10 +82,6 @@ class Miner():
         # Here block size = sequence length.
         self.dataset = GenesisTextDataloader(self.config.miner.batch_size_train, self.model.get_block_size())
 
-        # Set up the dataloader
-        self.dataloader = dataset.dataloader(self.config.miner.epoch_length)
-        logger.info("LENGTH: {}".format(len(self.dataloader)))
-
         self.tokens = 0
 
         # ---- Logging ----
