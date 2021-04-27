@@ -4,7 +4,7 @@ import pytest
 import os
 
 wallet = bittensor.wallet.Wallet (
-    path = 'pytest',
+    path = '/tmp/pytest',
     name = 'pytest',
     hotkey = 'pytest',
 )
@@ -42,7 +42,9 @@ def test_create_coldkey():
     )
     assert os.path.isfile(executor.wallet.coldkeyfile) 
     os.remove(executor.wallet.coldkeyfile)
+    os.remove(executor.wallet.coldkeypubfile)
     assert not os.path.isfile(executor.wallet.coldkeyfile) 
+    assert not os.path.isfile(executor.wallet.coldkeypubfile) 
 
 def test_regenerate_coldkey():
     executor.wallet.config.wallet.coldkey = 'pytest3'
@@ -52,7 +54,9 @@ def test_regenerate_coldkey():
     )
     assert os.path.isfile(executor.wallet.coldkeyfile) 
     os.remove(executor.wallet.coldkeyfile)
+    os.remove(executor.wallet.coldkeypubfile)
     assert not os.path.isfile(executor.wallet.coldkeyfile) 
+    assert not os.path.isfile(executor.wallet.coldkeypubfile) 
 
 def test_regenerate_hotkey():
     executor.wallet.config.wallet.coldkey = 'pytest4'

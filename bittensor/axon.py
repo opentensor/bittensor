@@ -51,7 +51,6 @@ class Axon(bittensor.grpc.BittensorServicer):
             config: Munch = None, 
             wallet: 'bittensor.wallet.Wallet' = None,
             nucleus: 'bittensor.nucleus.Nucleus' = None,
-            metagraph: 'bittensor.metagraph.Metagraph' = None,
             **kwargs
         ):
         r""" Initializes a new Axon tensor processing endpoint.
@@ -63,8 +62,6 @@ class Axon(bittensor.grpc.BittensorServicer):
                     bittensor wallet with hotkey and coldkeypub.
                 nucleus (:obj:`bittensor.nucleus.Nucleus`, `optional`):
                     backend processing nucleus.
-                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
-                    bittensor network metagraph.
                 local_port (default=8091, type=int): 
                     The port this axon endpoint is served on. i.e. 8091
                 local_ip (default='127.0.0.1', type=str): 
@@ -87,7 +84,7 @@ class Axon(bittensor.grpc.BittensorServicer):
                         Gradients passed from other peers accumulate on this endpoint and queue in axon.gradients.
         """
         # Config: Holds all config items for this items and those that are recursively defined. For instance,
-        # config for the wallet, metagraph, and nucleus sub-objects.
+        # config for the wallet and nucleus sub-objects.
         if config == None:
             config = Axon.default_config()
         bittensor.config.Config.update_with_kwargs(config.axon, kwargs) 
@@ -100,17 +97,11 @@ class Axon(bittensor.grpc.BittensorServicer):
             wallet = bittensor.wallet.Wallet( config = self.config )
         self.wallet = wallet
         
-        # Metagraph: Maintains a connection to the subtensor chain which updates with a sync() call.
-        # The metagraph can be queried for the latest information about stake and weight matrix state.
-        if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph( config = self.config, wallet = self.wallet )
-        self.metagraph = metagraph
-
         # Nucleus: Request processing object. The Axon servicer passes requests to this
         # object to perform the actual computation. Can be ripped out and replaced with various
         # computational objects.
         if nucleus == None:
-            nucleus = bittensor.nucleus.Nucleus( config = self.config, wallet = self.wallet, metagraph = self.metagraph )
+            nucleus = bittensor.nucleus.Nucleus( config = self.config, wallet = self.wallet )
         self.nucleus = nucleus
 
         # Server: by default the axon serves an RPC server in its own thread using GPRC.
@@ -141,9 +132,9 @@ class Axon(bittensor.grpc.BittensorServicer):
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_out_bytes= stat_utils.timed_rolling_avg(0.0, 0.01),
-            in_bytes_per_uid = {},
-            out_bytes_per_uid = {},
-            qps_per_uid = {},
+            in_bytes_per_pubkey = {},
+            out_bytes_per_pubkey = {},
+            qps_per_pubkey = {},
         )
 
     @staticmethod   
@@ -161,8 +152,8 @@ class Axon(bittensor.grpc.BittensorServicer):
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
                     parser argument to append args to.
         """
+        bittensor.wallet.Wallet.add_args( parser )
         bittensor.nucleus.Nucleus.add_args(parser)
-        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
         try:
             parser.add_argument('--axon.local_port', default=8091, type=int, 
                 help='''The port this axon endpoint is served on. i.e. 8091''')
@@ -551,12 +542,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         if request.public_key in self.priority:
             call_priority = self.priority[request.public_key]
         else:
-            try:
-                uid = self.metagraph.state.uid_for_pubkey[request.public_key]
-                idx = int(self.metagraph.uids_to_indices(torch.tensor([uid])).item())
-                call_priority = self.metagraph.incentive[idx]
-            except Exception as e:
-                call_priority = 0.0
+            call_priority = 0.0
         call_priority += random.random() * 0.0001
         return call_priority
 
@@ -567,17 +553,14 @@ class Axon(bittensor.grpc.BittensorServicer):
         out_bytes = sys.getsizeof(response)
         self.stats.total_in_bytes.update(in_bytes)
         self.stats.total_out_bytes.update(out_bytes)
-        if request.public_key in self.metagraph.state.uid_for_pubkey:
-            # ---- Check we have a stats column for this peer
-            request_uid = self.metagraph.state.uid_for_pubkey[request.public_key]
-            if request_uid in self.stats.in_bytes_per_uid:
-                self.stats.in_bytes_per_uid[request_uid].update(in_bytes)
-                self.stats.out_bytes_per_uid[request_uid].update(out_bytes)
-                self.stats.qps_per_uid[request_uid].update(1)
-            else:
-                self.stats.in_bytes_per_uid[request_uid] = stat_utils.timed_rolling_avg(in_bytes, 0.01)
-                self.stats.out_bytes_per_uid[request_uid] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
-                self.stats.qps_per_uid[request_uid] = stat_utils.timed_rolling_avg(1, 0.01)
+        if request.public_key in self.stats.in_bytes_per_pubkey:
+            self.stats.in_bytes_per_pubkey[request.public_key].update(in_bytes)
+            self.stats.out_bytes_per_pubkey[request.public_key].update(out_bytes)
+            self.stats.qps_per_pubkey[request.public_key].update(1)
+        else:
+            self.stats.in_bytes_per_pubkey[request.public_key] = stat_utils.timed_rolling_avg(in_bytes, 0.01)
+            self.stats.out_bytes_per_pubkey[request.public_key] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
+            self.stats.qps_per_pubkey[request.public_key] = stat_utils.timed_rolling_avg(1, 0.01)
 
 
     def __str__(self):
@@ -592,18 +575,6 @@ class Axon(bittensor.grpc.BittensorServicer):
         tensorboard.add_scalar("Axon/total_in_bytes", total_in_bytes, global_step)
         tensorboard.add_scalar("Axon/total_in_bytes", total_out_bytes, global_step)
         tensorboard.add_scalar("Axon/Queries/Sec", self.stats.qps.value, global_step)
-
-    def __full_str__(self):
-        uids = list(self.stats.in_bytes_per_uid.keys())
-        bytes_in = [avg.value * (8/1000) for avg in self.stats.in_bytes_per_uid.values()]
-        bytes_out = [avg.value * (8/1000) for avg in self.stats.out_bytes_per_uid.values()]
-        qps = [qps.value for qps in self.stats.qps_per_uid.values()]
-        rows = [bytes_out, bytes_in, qps]
-        df = pd.DataFrame(rows, columns=uids)
-        df = df.rename(index={df.index[0]: colored('\u290A kB/s', 'green')})
-        df = df.rename(index={df.index[1]: colored('\u290B kB/s', 'red')})
-        df = df.rename(index={df.index[2]: colored('Q/s', 'blue')})
-        return '\nAxon:\n' + df.to_string(max_rows=5000, max_cols=25, line_width=1000, float_format = lambda x: '%.2f' % x, col_space=1, justify='left')
 
     def __del__(self):
         r""" Called when this axon is deleted, ensures background threads shut down properly.

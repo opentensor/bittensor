@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import copy
 import grpc
 import sys
 import os
@@ -53,7 +54,16 @@ class Receptor(nn.Module):
     """ Encapsulates a grpc connection to an axon endpoint as a standard auto-grad torch.nn.Module.
     """
 
-    def __init__(self, neuron: bittensor.proto.Neuron, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, **kwargs):
+    def __init__(
+            self, 
+            neuron: bittensor.proto.Neuron, 
+            config: Munch = None, 
+            wallet: 'bittensor.wallet.Wallet' = None,
+            pass_gradients: bool = None,
+            timeout: int = None,
+            do_backoff: bool = None,
+            max_backoff:int = None
+        ):
         r""" Initializes a receptor grpc connection.
             Args:
                 neuron (:obj:`bittensor.proto.Neuron`, `required`):
@@ -77,9 +87,12 @@ class Receptor(nn.Module):
         super().__init__()
         if config == None:
             config = Receptor.default_config()
-        bittensor.config.Config.update_with_kwargs(config.receptor, kwargs) 
+        config.receptor.pass_gradients = pass_gradients if pass_gradients != None else config.receptor.pass_gradients
+        config.receptor.timeout = timeout if timeout != None else config.receptor.timeout
+        config.receptor.do_backoff = do_backoff if do_backoff != None else config.receptor.do_backoff
+        config.receptor.max_backoff = max_backoff if max_backoff != None else config.receptor.max_backoff
         Receptor.check_config( config )
-        self.config = config # Configuration information.
+        self.config = copy.deepcopy(config) # Configuration information.
 
         if wallet == None:
             wallet = bittensor.wallet.Wallet( self.config )
@@ -164,7 +177,7 @@ class Receptor(nn.Module):
             parser.add_argument('--receptor.pass_gradients', default=True, type=bool, 
                 help='''Switch to true if the neuron passes gradients to downstream peers.
                         By default the backward call i.e. loss.backward() triggers passing gradients on the wire.''')
-            parser.add_argument('--receptor.timeout', default=0.5, type=float, 
+            parser.add_argument('--receptor.timeout', default=3, type=float, 
                 help='''The per request RPC timeout. a.k.a the maximum request time.''')
             parser.add_argument('--receptor.do_backoff', default=True, type=bool, 
                 help='''Neurons who return non successful return codes are
@@ -250,6 +263,7 @@ class Receptor(nn.Module):
         return outputs, code
 
 class _ReceptorCall(torch.autograd.Function):
+
     @staticmethod
     def forward(ctx, caller: Receptor, dummy: torch.Tensor, inputs: torch.Tensor, mode: bittensor.proto.Modality) -> Tuple[torch.Tensor, int]:  
         r""" Internal autograd-friendly Forward RPC call to a remote neuron (calls the Forward method on an Axon terminal.)

@@ -129,6 +129,8 @@ class Miner():
 
     @staticmethod
     def check_config(config: Munch):
+        if config.debug:  bittensor.__log_level__ = 'TRACE'; logger.debug('DEBUG is ON')
+        else: logger.info('DEBUG is OFF') 
         assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
@@ -154,6 +156,8 @@ class Miner():
         parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
         parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
         parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
+        parser.add_argument('--debug', dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
+        parser.set_defaults( debug=False )
         BertMLMSynapse.add_args(parser)
         bittensor.neuron.Neuron.add_args(parser)
 
