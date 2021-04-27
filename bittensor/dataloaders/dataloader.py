@@ -35,7 +35,7 @@ class BittensorDataLoader():
     def add_args(parser: argparse.ArgumentParser):
         """ Add model params
         """
-        parser.add_argument('--dataloader.max_file_size', default=5e+6, type=int, 
+        parser.add_argument('--dataloader.max_file_size', default=1e+6, type=int, 
                                 help='Maximum text file size (in bytes) to load into memory.')
         parser.add_argument('--dataloader.num_workers', default=1, type=int, 
                                 help='Number of workers for data loader.')
