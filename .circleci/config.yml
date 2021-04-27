@@ -83,6 +83,9 @@ jobs:
           name: "Run Localized CPU Integration tests"
           command: pytest ./tests/integration_tests/cpu_tests -k 'not MnistNode'
       - run:
+          name: "Run dataloader tests:"
+          command: pytest ./tests/integration_tests/test_dataloader_ipfs.py
+      - run:
           name: "Code Coverage"
           command: codecov
 
@@ -125,8 +128,8 @@ workflows:
             - "Run Integration Tests"
           filters:
               branches:
-                ignore:
-                    - /^((?!master).)*
+                only:
+                    - /master.*/
 
 
 

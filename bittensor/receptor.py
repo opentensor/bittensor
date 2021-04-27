@@ -349,7 +349,7 @@ class _ReceptorCall(torch.autograd.Function):
                     return zeros, torch.tensor(bittensor_code)
 
                 elif bittensor_code != bittensor.proto.ReturnCode.Success:
-                    logger.debug('<white>Dendrite</white> <green>Forward Response</green> <--- <white>code</white>:<yellow>{}</yellow>, <white>from</white>:{}, message:<red>{}</red>', caller.endpoint, bittensor_code, response_message)
+                    logger.debug('<white>Dendrite</white> <green>Forward Response</green> <--- <white>code</white>:<yellow>{}</yellow>, <white>from</white>:{}, message:<red>{}</red>', bittensor_code, caller.endpoint,response_message)
                     return zeros, torch.tensor(bittensor_code)
 
             # ---- Catch GRPC Errors ----
