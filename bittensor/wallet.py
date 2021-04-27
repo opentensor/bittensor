@@ -49,12 +49,8 @@ class Wallet():
             config: Munch = None,
             name: str = None,
             path: str = None,
-<<<<<<< HEAD
             hotkey: str = None,
             **kwargs
-=======
-            hotkey: str = None
->>>>>>> 3d2b36aad27cb178949bb87f768ab2def54995ac
         ):
         r""" Init bittensor wallet object containing a hot and coldkey.
 
@@ -69,10 +65,7 @@ class Wallet():
         """
         if config == None:
             config = Wallet.default_config()
-<<<<<<< HEAD
         config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
-=======
->>>>>>> 3d2b36aad27cb178949bb87f768ab2def54995ac
         config.wallet.name = name if name != None else config.wallet.name
         config.wallet.path = path if path != None else config.wallet.path
         config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey
@@ -370,11 +363,7 @@ class Wallet():
         # Encrypt
         if use_password:
             password = cli_utils.input_password()
-<<<<<<< HEAD
             logger.info("Encrypting coldkey ... (this might take a few moments)")
-=======
-            print("Encrypting coldkey ... (this might take a few moments)")
->>>>>>> 3d2b36aad27cb178949bb87f768ab2def54995ac
             coldkey_json_data = json.dumps( self._coldkey.toDict() ).encode()
             coldkey_data = encrypt(coldkey_json_data, password)
             del coldkey_json_data
@@ -401,11 +390,7 @@ class Wallet():
         # Encrypt
         if use_password:
             password = cli_utils.input_password()
-<<<<<<< HEAD
             logger.info("Encrypting hotkey ... (this might take a few moments)")
-=======
-            print("Encrypting hotkey ... (this might take a few moments)")
->>>>>>> 3d2b36aad27cb178949bb87f768ab2def54995ac
             hotkey_json_data = json.dumps( self._hotkey.toDict() ).encode()
             hotkey_data = encrypt(hotkey_json_data, password)
             del hotkey_json_data
@@ -459,11 +444,7 @@ class Wallet():
         # Encrypt
         if use_password:
             password = cli_utils.input_password()
-<<<<<<< HEAD
             logger.info("Encrypting hotkey ... (this might take a few moments)")
-=======
-            print("Encrypting hotkey ... (this might take a few moments)")
->>>>>>> 3d2b36aad27cb178949bb87f768ab2def54995ac
             hotkey_json_data = json.dumps( self._hotkey.toDict() ).encode()
             hotkey_data = encrypt(hotkey_json_data, password)
             del hotkey_json_data
@@ -511,11 +492,7 @@ class Wallet():
         # Encrypt
         if use_password:
             password = cli_utils.input_password()
-<<<<<<< HEAD
             logger.info("Encrypting hotkey ... (this might take a few moments)")
-=======
-            print("Encrypting hotkey ... (this might take a few moments)")
->>>>>>> 3d2b36aad27cb178949bb87f768ab2def54995ac
             hotkey_json_data = json.dumps( self._hotkey.toDict() ).encode()
             hotkey_data = encrypt(hotkey_json_data, password)
             del hotkey_json_data
