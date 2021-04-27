@@ -19,23 +19,23 @@ import sys
 import argparse
 import bittensor
 
-from loguru import logger
 from munch import Munch
 
-class CLI:
-    def __init__(self, config):
+from loguru import logger
+logger = logger.opt(colors=True)
+
+class CLI ( bittensor.executor.Executor ):
+    def __init__(self, config: Munch, **kwargs):
         if config == None:
             config = CLI.default_config()
         CLI.check_config( config )
         self.config = config
-        self.executor = bittensor.executor.Executor( self.config )
+        super(CLI, self).__init__( self.config, **kwargs )
 
     @staticmethod   
     def default_config () -> Munch:
         # Build top level parser.
         parser = argparse.ArgumentParser(description="Bittensor cli", usage="bittensor-cli <command> <command args>", add_help=True)
-        parser.add_argument('--debug', dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
-        parser.set_defaults( debug=True )
         parser._positionals.title = "commands"
         CLI.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
@@ -125,48 +125,49 @@ class CLI:
     def check_config (config: Munch):
         if config.command == "transfer":
             if not config.dest:
-                logger.log('USER-CRITICAL', "The --dest argument is required for this command")
+                logger.critical("The --dest argument is required for this command")
                 quit()
             if not config.amount:
-                logger.log('USER-CRITICAL', "The --amount argument is required for this command")
+                logger.critical("The --amount argument is required for this command")
                 quit()
         elif config.command == "unstake":
             if not config.unstake_all:
                 if config.uid is None:
-                    logger.log('USER-CRITICAL', "The --uid argument is required for this command")
+                    logger.critical("The --uid argument is required for this command")
                     quit()
                 if not config.amount:
-                    logger.log('USER-CRITICAL', "The --amount argument is required for this command")
+                    logger.critical("The --amount argument is required for this command")
                     quit()
         elif config.command == "stake":
             if config.uid is None:
-                logger.log('USER-CRITICAL', "The --uid argument is required for this command")
+                logger.critical("The --uid argument is required for this command")
                 quit()
             if config.amount is None:
-                logger.log('USER-CRITICAL', "The --amount argument is required for this command")
+                logger.critical("The --amount argument is required for this command")
                 quit()
 
     def run_command(self):
-        bittensor.BITTENSOR_LOGGING_LEVEL = 'TRACE' if self.config.debug else 'SUCCESS'
+        self.init_logging()
+        self.init_debugging()
         if self.config.command == "transfer":
-            self.executor.transfer( amount_tao=self.config.amount, destination=self.config.dest)
+            self.transfer( amount_tao=self.config.amount, destination=self.config.dest)
         elif self.config.command == "unstake":
             if self.config.unstake_all:
-                self.executor.unstake_all()
+                self.unstake_all()
             else:
-                self.executor.unstake( amount_tao =self.config.amount, uid=self.config.uid )
+                self.unstake( amount_tao =self.config.amount, uid=self.config.uid )
         elif self.config.command == "stake":
-            self.executor.stake( amount_tao=self.config.amount, uid=self.config.uid )
+            self.stake( amount_tao=self.config.amount, uid=self.config.uid )
         elif self.config.command == "overview":
-            self.executor.overview()
+            self.overview()
         elif self.config.command == "new_coldkey":
-            self.executor.create_new_coldkey( n_words=self.config.n_words, use_password=self.config.use_password )
+            self.create_new_coldkey( n_words=self.config.n_words, use_password=self.config.use_password )
         elif self.config.command == "new_hotkey":
-            self.executor.create_new_hotkey( n_words=self.config.n_words, use_password=self.config.use_password )
+            self.create_new_hotkey( n_words=self.config.n_words, use_password=self.config.use_password )
         elif self.config.command == "regen_coldkey":
-            self.executor.regenerate_coldkey( mnemonic=self.config.mnemonic, use_password=self.config.use_password )
+            self.regenerate_coldkey( mnemonic=self.config.mnemonic, use_password=self.config.use_password )
         elif self.config.command == "regen_hotkey":
-            self.executor.regenerate_hotkey( mnemonic=self.config.mnemonic, use_password=self.config.use_password )
+            self.regenerate_hotkey( mnemonic=self.config.mnemonic, use_password=self.config.use_password )
         else:
-            logger.log('USER-CRITICAL', "The command {} not implemented".format( self.config.command ))
+            logger.critical("The command {} not implemented".format( self.config.command ))
             quit()

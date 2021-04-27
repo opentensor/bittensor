@@ -27,11 +27,13 @@ import traceback as tb
 from io import StringIO
 from munch import Munch
 from termcolor import colored
-from loguru import logger
 from cryptography.exceptions import InvalidSignature, InvalidKey
 from cryptography.fernet import InvalidToken
 
 import bittensor
+
+from loguru import logger
+logger = logger.opt(colors=True)
 
 class FailedConnectToChain(Exception):
     pass
@@ -137,9 +139,8 @@ class Neuron:
         assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
 
     def start(self):
-        print(colored('', 'white'))
         # ---- Check hotkey ----
-        print(colored('Loading wallet with path: {} name: {} hotkey: {}'.format(self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey), 'white'))
+        logger.info('\nLoading wallet...')
         try:
             self.wallet.hotkey # Check loaded hotkey
         except:
@@ -165,10 +166,10 @@ class Neuron:
         self.axon.start()
 
         # ---- Subscribe to chain ----
-        print(colored('\nConnecting to network: {}'.format(self.config.subtensor.network), 'white'))
+        logger.info('\nConnecting to network: <cyan>{}</cyan> ...', self.config.subtensor.network)
         self.subtensor.connect()
 
-        print(colored('\nSubscribing:', 'white'))
+        logger.info('\nSubscribing to chain...')
         subscribe_success = self.subtensor.subscribe(
                 self.config.axon.external_ip, 
                 self.config.axon.external_port,
@@ -179,6 +180,7 @@ class Neuron:
         )
         if not subscribe_success:
             self.stop()
+            logger.critical('Failed to subscribe neuron.')
             raise RuntimeError('Failed to subscribe neuron.')
         
         # ---- Sync graph ----

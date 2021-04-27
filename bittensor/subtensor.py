@@ -20,7 +20,6 @@ import random
 import time
 
 from munch import Munch
-from loguru import logger
 from typing import List, Tuple
 from termcolor import colored
 
@@ -30,6 +29,9 @@ from bittensor.substrate import SubstrateWSInterface, Keypair
 from bittensor.substrate.exceptions import SubstrateRequestException
 from bittensor.utils.neurons import Neuron, Neurons
 from bittensor.utils.balance import Balance
+
+from loguru import logger
+logger = logger.opt(colors=True)
 
 class Subtensor:
     """
@@ -218,7 +220,7 @@ class Subtensor:
         while True:
             def connection_error_message():
                 print('''
-Check that your internet connection is working and the chain endpoints are available: {}
+Check that your internet connection is working and the chain endpoints are available: <cyan>{}</cyan>
 The subtensor.network should likely be one of the following choices:
     -- local - (your locally running node)
     -- akira - (testnet)
@@ -230,25 +232,25 @@ To run a local node (See: docs/running_a_validator.md) \n
             # ---- Get next endpoint ----
             ws_chain_endpoint = self.endpoint_for_network( blacklist = attempted_endpoints )
             if ws_chain_endpoint == None:
-                print(colored("No more endpoints available for subtensor.network: {}, attempted: {}".format(self.config.subtensor.network, attempted_endpoints), 'red'))
+                logger.error("No more endpoints available for subtensor.network: <cyan>{}</cyan>, attempted: <cyan>{}</cyan>".format(self.config.subtensor.network, attempted_endpoints))
                 connection_error_message()
                 if failure:
-                    raise RuntimeError('Unable to connect to network {}. Make sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
+                    logger.critical('Unable to connect to network:<cyan>{}</cyan>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
                 else:
                     return False
             attempted_endpoints.append(ws_chain_endpoint)
 
             # --- Attempt connection ----
             if await self.substrate.async_connect( ws_chain_endpoint, timeout = 5 ):
-                print(colored("Successfully connected to endpoint: {}".format(ws_chain_endpoint), 'green'))
+                logger.success("Connected to network:<cyan>{}</cyan> at endpoint:<cyan>{}</cyan>".format(self.config.subtensor.network, ws_chain_endpoint))
                 return True
             
             # ---- Timeout ----
             elif (time.time() - start_time) > timeout:
-                print(colored("Error while connecting to the chain endpoint {}".format(ws_chain_endpoint), 'red'))
+                logger.error( "Error while connecting to network:<cyan>{}</cyan> at endpoint: <cyan>{}</cyan>".format(self.config.subtensor.network, ws_chain_endpoint))
                 connection_error_message()
                 if failure:
-                    raise RuntimeError('Unable to connect to network {}. Make sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
+                    raise RuntimeError('Unable to connect to network:<cyan>{}</cyan>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
                 else:
                     return False
 
@@ -423,7 +425,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             return False
 
         if await self.async_is_subscribed( ip, port, modality, coldkeypub ):
-            print(colored('Already subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub), 'green'))
+            logger.success( "Already subscribed with:\n<cyan>[\n  ip: {},\n  port: {},\n  modality: {},\n  hotkey: {},\n  coldkey: {}\n]</cyan>".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
             return True
 
         ip_as_int  = net.ip_to_int(ip)
@@ -443,13 +445,11 @@ To run a local node (See: docs/running_a_validator.md) \n
         extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=self.wallet.hotkey)
         result = await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
         if result:
-            print(colored('Successfully subscribed with [ip: {}, port: {}, modality: {}, coldkey: {}]'.format(ip, port, modality, coldkeypub), 'green'))
+            logger.success( "Successfully subscribed with:\n<cyan>[\n  ip: {},\n  port: {},\n  modality: {},\n  hotkey: {},\n  coldkey: {}\n]</cyan>".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
         else:
-            print(colored('Failed to subscribe', 'red'))
+            logger.error( "Failed to subscribe")
         return result
             
-
-       
     def add_stake(
             self, 
             amount: Balance, 

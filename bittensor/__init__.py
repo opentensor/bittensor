@@ -35,12 +35,12 @@ __blocktime__ = 6
 # Load components.
 import bittensor.axon
 import bittensor.config 
-import bittensor.cli
+import bittensor.neuron
 import bittensor.executor
+import bittensor.cli
 import bittensor.dendrite
 import bittensor.metagraph
 import bittensor.logging
-import bittensor.neuron
 import bittensor.nucleus
 import bittensor.receptor
 import bittensor.subtensor
@@ -48,7 +48,7 @@ import bittensor.synapse
 import bittensor.wallet
 
 # ---- LOGGING ----
-__log_level__ = 'SUCCESS' 
+__debug_on__ = False 
 bittensor.logging.init_logger()
 
 # Tokenizer

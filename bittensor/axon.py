@@ -30,7 +30,6 @@ import validators
 
 from concurrent import futures
 from munch import Munch
-from loguru import logger
 from termcolor import colored
 from types import SimpleNamespace
 from typing import List
@@ -39,6 +38,9 @@ import bittensor
 import bittensor.utils.networking as net
 import bittensor.serialization as serialization
 import bittensor.utils.stats as stat_utils
+
+from loguru import logger
+logger = logger.opt(colors=True)
 
 class Axon(bittensor.grpc.BittensorServicer):
     r"""
@@ -302,12 +304,14 @@ class Axon(bittensor.grpc.BittensorServicer):
         # ---- Check synapse exists ----
         if self.synapse == None:
             message = "Remote axon not serving a synapse"
+            logger.debug('<white>Axon</white> <red>Forward Request</red> --->x <white>code</white>:<yellow>NotServingSynapse</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
             code = bittensor.proto.ReturnCode.NotServingSynapse
             return None, message, code
 
         # ---- Check Empty request ----
         if len(request.tensors) == 0:
             message = "Forward request contains {} tensors, expected 1 tensor in the forward call".format(len(request.tensors))
+            logger.debug('<white>Axon</white> <red>Forward Request</red> --->x <white>code</white>:<yellow>EmptyRequest</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
             code = bittensor.proto.ReturnCode.EmptyRequest
             return None, message, code
 
@@ -317,38 +321,43 @@ class Axon(bittensor.grpc.BittensorServicer):
             deserializer = serialization.get_serializer( serialzer_type = inputs.serializer )
             x = deserializer.deserialize(inputs, to_type = bittensor.proto.TensorType.TORCH)
         except Exception as e:
-            message  = "Forward request deserialization failed with error {}".format(e)
+            message = "Request deserialization exception: {}".format(str(e))
+            logger.debug('<white>Axon</white> <red>Forward Request</red> --->x <white>code</white>:<yellow>RequestDeserializationException</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
             code = bittensor.proto.ReturnCode.RequestDeserializationException
             return None, message, code
 
         # ---- Check shape and modality ----
         if x.shape[0] < 1:
-            message = "Froward request batch dim exception with batch_size = {} ".format(x.shape[0])
+            message = "Forward request batch dim exception with batch_size = {} ".format(torch_inputs.shape[0])
+            logger.debug('<white>Axon</white> <red>Forward Request</red> --->x <white>code</white>:<yellow>RequestShapeException</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
             code = bittensor.proto.ReturnCode.RequestShapeException
             return None, message, code
 
         if x.shape[1] < 1:
-            message = "Forward request sequence dim exception with sequence_dim = {} ".format(x.shape[1])
+            message = "Forward request sequence dim exception with sequence_dim = {} ".format(torch_inputs.shape[1])
+            logger.debug('<white>Axon</white> <red>Forward Request</red> --->x <white>code</white>:<yellow>RequestShapeException</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
             code =  bittensor.proto.ReturnCode.RequestShapeException
             return None, message, code
 
         if inputs.modality == bittensor.proto.Modality.TEXT:
             if len(x.shape) != 2:
-                message = "Forward text input shape exception with len(request.shape) = {} must have rank 2.".format(len(x.shape))
+                message = "Forward text input shape exception with len(request.shape) = {} must have rank 2.".format(len(torch_inputs.shape))
+                logger.debug('<white>Axon</white> <red>Forward Request</red> --->x <white>code</white>:<yellow>RequestShapeException</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
                 code =  bittensor.proto.ReturnCode.RequestShapeException
                 return None, message, code
             
         if inputs.modality == bittensor.proto.Modality.IMAGE:
             if len(x.shape) != 5:
-                message =  "Forward image input shape exception for len(shape) = {}  must have rank 5".format(len(x.shape))
+                message =  "Forward image input shape exception for len(shape) = {}  must have rank 5".format(len(torch_inputs.shape))
+                logger.debug('<white>Axon</white> <red>Forward Request</red> --->x <white>code</white>:<yellow>RequestShapeException</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
                 code =  bittensor.proto.ReturnCode.RequestShapeException
                 return None, message, code
 
         if inputs.modality == bittensor.proto.Modality.TENSOR:
             if len(x.shape) != 3:
-                message = "Forward message tensor input shape exception len(shape) = {} must have rank 3".format(len(x.shape))
-                code = bittensor.proto.ReturnCode.RequestShapeException
-                return None, message, code
+                message = "Forward message tensor input shape exception len(shape) = {} must have rank 3".format(len(torch_inputs.shape))
+                logger.debug('<white>Axon</white> <red>Forward Request</red> --->x <white>code</white>:<yellow>RequestShapeException</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
+                return None, message, bittensor.proto.ReturnCode.RequestShapeException
 
         # --- Get call priority ----
         call_priority = self.get_call_priority(request)
@@ -382,6 +391,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             return None, message, code
 
         # ---- Return successful response ----
+        logger.debug('<white>Axon</white> <green>Forward Response</green> <--- <white>to</white>:<cyan>{}</cyan>, <white>outputs</white>:<cyan>{}</cyan>', request.public_key, outputs.shape)
         return outputs_serialized, message, code
 
 
@@ -412,6 +422,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             modality_x = inputs_x.modality
         else:
             message = "During backward: There are {} tensors in the request, expected 2.".format(len(request.tensors))
+            logger.debug('<white>Axon</white> <red>Backward Request</red> --->x <white>code</white>:<yellow>InvalidRequest</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
             code =  bittensor.proto.ReturnCode.InvalidRequest
             return None, message, code
 
@@ -422,9 +433,39 @@ class Axon(bittensor.grpc.BittensorServicer):
             grads_dy = serializer.deserialize( grads_dy, to_type = bittensor.proto.TensorType.TORCH )
                 
         except Exception as e:
-            message = "Backward request deserialization failed with unknown error {}".format(e)
+            message = "Request serialization exception with error: {}".format(str(e))
+            logger.debug('<white>Axon</white> <red>Backward Request</red> --->x <white>code</white>:<yellow>RequestDeserializationException</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
             code =  bittensor.proto.ReturnCode.RequestDeserializationException
             return None, message, code
+
+        # ---- Check shapes ----
+        if modality_x == bittensor.proto.Modality.TEXT:
+            if len(inputs_x.shape) != 2:
+                message = "Forward text input shape exception with len(request.shape) = {} must have rank 2.".format(len(inputs_x.shape))
+                logger.debug('<white>Axon</white> <red>Backward Request</red> --->x <white>code</white>:<yellow>RequestShapeException</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
+                return None, message, bittensor.proto.ReturnCode.RequestShapeException
+            
+        if modality_x == bittensor.proto.Modality.IMAGE:
+            if len(inputs_x.shape) != 5:
+                message =  "Forward image input shape exception for len(shape) = {}  must have rank 5".format(len(inputs_x.shape))
+                logger.debug('<white>Axon</white> <red>Backward Request</red> --->x <white>code</white>:<yellow>RequestShapeException</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
+                return None, message, bittensor.proto.ReturnCode.RequestShapeException
+
+        if modality_x == bittensor.proto.Modality.TENSOR:
+            if len(inputs_x.shape) != 3:
+                message = "Forward message tensor input shape exception len(shape) = {} must have rank 3".format(len(inputs_x.shape))
+                logger.debug('<white>Axon</white> <red>Backward Request</red> --->x <white>code</white>:<yellow>RequestShapeException</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
+                return None, message, bittensor.proto.ReturnCode.RequestShapeException
+
+        if len(grads_dy.shape) != 3:
+            message = "Passed gradients must have rank 3 but got {}".format(len(grads_dy.shape))
+            logger.debug('<white>Axon</white> <red>Backward Request</red> --->x <white>code</white>:<yellow>RequestShapeException</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
+            return None, message, bittensor.proto.ReturnCode.RequestShapeException
+
+        if grads_dy.shape[0] != inputs_x.shape[0] or grads_dy.shape[1] != inputs_x.shape[1]:
+            message = "Passed gradients must same first and second dimension as passed inputs got shapes {} and {}".format(grads_dy.shape, inputs_x.shape)
+            logger.debug('<white>Axon</white> <red>Backward Request</red> --->x <white>code</white>:<yellow>RequestShapeException</yellow>, <white>from</white>:<cyan>{}</cyan>, <white>message</white>:<red>{}</red>', request.public_key, message)
+            return None, message, bittensor.proto.ReturnCode.RequestShapeException
 
         # --- Get call priority ----
         try:
@@ -463,6 +504,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             return None, message, code
 
         # ---- Finaly return ----
+        logger.debug('<white>Axon</white> <green>Backward Response</green> <--- <white>code</white>:<green>Success</green>, <white>to</white>:<cyan>{}</cyan>, <white>outputs</white>:<cyan>{}</cyan>', request.public_key, outputs.shape)
         return outputs_serialized, message, code
 
     def serve(self, synapse: 'bittensor.synapse.Synapse'):

@@ -21,30 +21,19 @@ import sys
 import bittensor
 
 from loguru import logger
+logger = logger.opt(colors=True)
 
 # Filter bittensor internal messages, only from internal files.
 def bittensor_formatter(record):
-    if record["level"].name == 'USER-SUCCESS':
-        return "<green>{message}</green>\n"
-    if record["level"].name == 'USER-CRITICAL':
-        return "<red>{message}</red>\n"
-    if record["level"].name == 'USER-ACTION':
-        return "<blue>{message}</blue>\n"
-    if record["level"].name == 'USER-INFO':
-        return "<white>{message}</white>\n"
-    else:
+    if bittensor.__debug_on__ == True:
         return "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>\n"
+    else:
+        return "<level>{message}</level>\n"
 
 def bittensor_log_filter( record ):
-    if record["level"].name == 'USER-SUCCESS':
+    if bittensor.__debug_on__ == True:
         return True
-    elif record["level"].name == 'USER-CRITICAL':
-        return True
-    elif record["level"].name == 'USER-ACTION':
-        return True
-    elif record["level"].name == 'USER-INFO':
-        return True
-    elif record["level"].no >= logger.level(bittensor.__log_level__).no:
+    elif record["level"].no >= logger.level('INFO').no:
         return True
     else:
         return False
@@ -63,12 +52,6 @@ class RollbarHandler:
 def init_logger():
     # Remove all logger sinks.
     logger.remove()
-
-    # Add custom levels.
-    logger.level("USER-SUCCESS", no=33, icon="s")
-    logger.level("USER-CRITICAL", no=34, icon="c")
-    logger.level("USER-ACTION", no=35, icon="a") 
-    logger.level("USER-INFO", no=36, icon="i") 
 
     # Add filtered sys.stdout.
     logger.add( 
@@ -89,7 +72,6 @@ def init_logger():
         # Rollbar is enabled.
         logger.info("Error reporting enabled using {}:{}", rollbar_token, rollbar_env)
         rollbar.init(rollbar_token, rollbar_env)
-        set_runtime_status("OK")
         logger.add (
             sink = rollbar_handler,
             level = 'WARNING',
