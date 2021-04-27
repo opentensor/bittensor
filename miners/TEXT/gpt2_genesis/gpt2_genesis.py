@@ -52,6 +52,7 @@ from transformers import AdamW
 from qqdm import qqdm, format_str
 from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
 
+
 class Miner():
 
     def __init__(self, config: Munch = None, **kwargs):
@@ -75,6 +76,9 @@ class Miner():
         self.lr = self.config.miner.learning_rate
         self.training_loss = math.inf
         self.best_train_loss = math.inf
+        self.rloss = math.inf
+        self.lloss = math.inf
+        self.dloss = math.inf
 
         # ---- Dataset ----
         # The Genesis Dataset:
@@ -309,10 +313,13 @@ class Miner():
                                 'model_state_dict': self.model.state_dict(),
                                 'loss': self.best_train_loss/3,
                                 'optimizer_state_dict': self.optimizer.state_dict(),
+                                'rloss' : self.rloss,
+                                'lloss': self.lloss,
+                                'dloss': self.dloss,
                             }
                         )
                         self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
-                logger.info("This epoch's average training loss (L-Loss, R-Loss, D-Loss): {}... Current best average training loss: {}".format(self.training_loss/3, self.best_train_loss/3))
+                logger.info("This epoch's training losses: L-Loss: {:.2f} | R-Loss: {:.2f} | D-Loss: {:.2f} | avg: {:.2f} ... Current best average training loss: {:.2f}".format(self.lloss, self.rloss, self.dloss, self.training_loss/3, self.best_train_loss/3))
 
 
     def decay_learning_rate(self, batch):
@@ -352,6 +359,9 @@ class Miner():
         def run_epoch():
             self.model.train(True)
             losses = []
+            rlosses = []
+            llosses = []
+            dlosses = []
 
             # we train for an epoch.
             logger.info("Preparing dataset batch...")
@@ -372,7 +382,12 @@ class Miner():
                 self.optimizer.step()
                 self.optimizer.zero_grad()
                 self.decay_learning_rate(batch)
+
+                # Add losses up
                 losses.append(loss.item())
+                llosses.append(output.local_target_loss.item())
+                rlosses.append(output.remote_target_loss.item())
+                dlosses.append(output.distillation_loss.item())
 
                 # ---- Train row weights ----
                 batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
@@ -403,6 +418,10 @@ class Miner():
 
 
             avg_loss = sum(losses) / len(losses)
+            self.rloss = sum(rlosses) / len(rlosses)
+            self.lloss = sum(llosses) / len(llosses)
+            self.dloss = sum(dlosses) / len(dlosses)
+
             self.training_loss = avg_loss
 
         run_epoch()
