@@ -95,7 +95,8 @@ def subscribe( subtensor, wallet):
     assert subtensor.is_subscribed (
         wallet = wallet,
         ip = "8.8.8.8",
-        port = 6666, 
+        port = 6666,
+        modality=0
     )
 
 '''
