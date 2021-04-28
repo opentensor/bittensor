@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import copy
 import json
 import os
 import re
@@ -25,6 +26,7 @@ import sys
 
 from munch import Munch
 from loguru import logger
+logger = logger.opt(colors=True)
 from termcolor import colored
 
 import bittensor
@@ -47,7 +49,8 @@ class Wallet():
             config: Munch = None,
             name: str = None,
             path: str = None,
-            hotkey: str = None
+            hotkey: str = None,
+            **kwargs
         ):
         r""" Init bittensor wallet object containing a hot and coldkey.
 
@@ -62,6 +65,7 @@ class Wallet():
         """
         if config == None:
             config = Wallet.default_config()
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         config.wallet.name = name if name != None else config.wallet.name
         config.wallet.path = path if path != None else config.wallet.path
         config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey
@@ -231,15 +235,15 @@ class Wallet():
 
     def _load_coldkeypub(self) -> str:
         if not os.path.isfile( self.coldkeypubfile ):
-            print(colored("coldkeypubfile  {} does not exist".format( self.coldkeypubfile ), 'red'))
+            logger.critical("coldkeypubfile  {} does not exist".format( self.coldkeypubfile ))
             raise KeyFileError
 
         if not os.path.isfile( self.coldkeypubfile ):
-            print(colored("coldkeypubfile  {} is not a file".format( self.coldkeypubfile ), 'red'))
+            logger.critical("coldkeypubfile  {} is not a file".format( self.coldkeypubfile ))
             raise KeyFileError
 
         if not os.access( self.coldkeypubfile , os.R_OK):
-            print(colored("coldkeypubfile  {} is not readable".format( self.coldkeypubfile ), 'red'))
+            logger.critical("coldkeypubfile  {} is not readable".format( self.coldkeypubfile ))
             raise KeyFileError
 
         with open( self.coldkeypubfile, "r") as file:
@@ -250,21 +254,21 @@ class Wallet():
         with open( self.coldkeypubfile , "r") as file:
             coldkeypub = file.readline().strip()
 
-        print(colored("Loaded coldkey.pub: {}".format( coldkeypub ), 'green'))
+        logger.success("Loaded coldkey.pub: <cyan>{}</cyan>".format( coldkeypub ))
         return coldkeypub
 
     def _load_hotkey(self) -> 'bittensor.substrate.Keypair':
 
         if not os.path.isfile( self.hotkeyfile ):
-            print(colored("hotkeyfile  {} does not exist".format( self.hotkeyfile ), 'red'))
+            logger.critical("hotkeyfile  {} does not exist".format( self.hotkeyfile ))
             raise KeyFileError
 
         if not os.path.isfile( self.hotkeyfile ):
-            print(colored("hotkeyfile  {} is not a file".format( self.hotkeyfile ), 'red'))
+            logger.critical("hotkeyfile  {} is not a file".format( self.hotkeyfile ))
             raise KeyFileError
 
         if not os.access( self.hotkeyfile , os.R_OK):
-            print(colored("hotkeyfile  {} is not readable".format( self.hotkeyfile ), 'red'))
+            logger.critical("hotkeyfile  {} is not readable".format( self.hotkeyfile ))
             raise KeyFileError
 
         with open( self.hotkeyfile , 'rb') as file:
@@ -273,32 +277,32 @@ class Wallet():
                 # Try hotkey load.
                 if is_encrypted(data):
                     password = bittensor.utils.Cli.ask_password()
-                    print("decrypting key... (this may take a few moments)")
+                    logger.info("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
                 hotkey = load_keypair_from_data(data)
             except KeyError:
-                print(colored("Invalid password", 'red'))
+                logger.critical("Invalid password")
                 raise KeyError("Invalid password")
 
             except KeyFileError as e:
-                print(colored("Keyfile corrupt", 'red'))
+                logger.critical("Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt")
 
-            print(colored("Loaded hotkey: {}".format(hotkey.public_key), 'green'))
+            logger.success("Loaded hotkey: <cyan>{}</cyan>".format(hotkey.public_key))
             return hotkey
 
 
     def _load_coldkey(self) -> 'bittensor.substrate.Keypair':
         if not os.path.isfile( self.coldkeyfile ):
-            print(colored("coldkeyfile  {} does not exist".format( self.coldkeyfile ), 'red'))
+            logger.critical("coldkeyfile  {} does not exist".format( self.coldkeyfile ))
             raise KeyFileError
 
         if not os.path.isfile( self.coldkeyfile ):
-            print(colored("coldkeyfile  {} is not a file".format( self.coldkeyfile ), 'red'))
+            logger.critical("coldkeyfile  {} is not a file".format( self.coldkeyfile ))
             raise KeyFileError
 
         if not os.access( self.coldkeyfile , os.R_OK):
-            print(colored("coldkeyfile  {} is not readable".format( self.coldkeyfile ), 'red'))
+            logger.critical("coldkeyfile  {} is not readable".format( self.coldkeyfile ))
             raise KeyFileError
 
         with open( self.coldkeyfile , 'rb') as file:
@@ -307,19 +311,19 @@ class Wallet():
                 # Try key load.
                 if is_encrypted(data):
                     password = bittensor.utils.Cli.ask_password()
-                    print("decrypting key... (this may take a few moments)")
+                    logger.info("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
                 coldkey = load_keypair_from_data(data)
 
             except KeyError:
-                print(colored("Invalid password", 'red'))
+                logger.critical("Invalid password")
                 raise KeyError("Invalid password")
 
             except KeyFileError as e:
-                print(colored("Keyfile corrupt", 'red'))
+                logger.critical("Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt")
 
-            print(colored("Loaded coldkey: {}".format(coldkey.public_key), 'green'))
+            logger.success("Loaded coldkey: <cyan>{}</cyan>".format(coldkey.public_key))
             return coldkey
 
     @staticmethod
@@ -359,7 +363,7 @@ class Wallet():
         # Encrypt
         if use_password:
             password = cli_utils.input_password()
-            print("Encrypting coldkey ... (this might take a few moments)")
+            logger.info("Encrypting coldkey ... (this might take a few moments)")
             coldkey_json_data = json.dumps( self._coldkey.toDict() ).encode()
             coldkey_data = encrypt(coldkey_json_data, password)
             del coldkey_json_data
@@ -386,7 +390,7 @@ class Wallet():
         # Encrypt
         if use_password:
             password = cli_utils.input_password()
-            print("Encrypting hotkey ... (this might take a few moments)")
+            logger.info("Encrypting hotkey ... (this might take a few moments)")
             hotkey_json_data = json.dumps( self._hotkey.toDict() ).encode()
             hotkey_data = encrypt(hotkey_json_data, password)
             del hotkey_json_data
@@ -413,7 +417,7 @@ class Wallet():
         # Encrypt
         if use_password:
             password = cli_utils.input_password()
-            print("Encrypting coldkey ... (this might take a few moments)")
+            logger.info("Encrypting coldkey ... (this might take a few moments)")
             coldkey_json_data = json.dumps( self._coldkey.toDict() ).encode()
             coldkey_data = encrypt(coldkey_json_data, password)
             del coldkey_json_data
@@ -440,7 +444,7 @@ class Wallet():
         # Encrypt
         if use_password:
             password = cli_utils.input_password()
-            print("Encrypting hotkey ... (this might take a few moments)")
+            logger.info("Encrypting hotkey ... (this might take a few moments)")
             hotkey_json_data = json.dumps( self._hotkey.toDict() ).encode()
             hotkey_data = encrypt(hotkey_json_data, password)
             del hotkey_json_data
@@ -464,7 +468,7 @@ class Wallet():
         # Encrypt
         if use_password:
             password = cli_utils.input_password()
-            print("Encrypting key ... (this might take a few moments)")
+            logger.info("Encrypting key ... (this might take a few moments)")
             json_data = json.dumps( self._coldkey.toDict() ).encode()
             coldkey_data = encrypt(json_data, password)
             del json_data
@@ -488,7 +492,7 @@ class Wallet():
         # Encrypt
         if use_password:
             password = cli_utils.input_password()
-            print("Encrypting hotkey ... (this might take a few moments)")
+            logger.info("Encrypting hotkey ... (this might take a few moments)")
             hotkey_json_data = json.dumps( self._hotkey.toDict() ).encode()
             hotkey_data = encrypt(hotkey_json_data, password)
             del hotkey_json_data

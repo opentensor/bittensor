@@ -548,7 +548,6 @@ class Metagraph():
         # TODO (const) this should probably be a background process
         # however, it makes it difficult for the user if the state changes in
         # the background.
-        print(colored('\nSyncing metagraph:', 'white'))
         current_block = self.subtensor.get_current_block()
         # ---- Update cache ----
         self.last_sync = current_block
@@ -590,8 +589,10 @@ class Metagraph():
                 emit_block = last_emit[ uid ]
                 if (current_block - emit_block) < self.config.metagraph.stale_emit_filter or self.config.metagraph.stale_emit_filter < 0:
                         calls.append( self._poll_uid ( pubkey, uid ) )
-        await asyncio.gather(*calls)
-        print ('\n')
+        
+        import tqdm.asyncio
+        for call in tqdm.asyncio.tqdm.as_completed( calls ):
+            await call
 
     async def _poll_uid(self, pubkey: str, uid:int):
         r""" Polls info info for a specfic public key.
@@ -603,10 +604,8 @@ class Metagraph():
             w_vals = await self.subtensor.async_weight_vals_for_uid( uid )
             neuron = await self.subtensor.async_get_neuron_for_uid ( uid )
             self.cache.add_or_update(pubkey = pubkey, ip = neuron['ip'], port = neuron['port'], uid = neuron['uid'], ip_type = neuron['ip_type'], modality = neuron['modality'], lastemit = lastemit, stake = stake.rao, w_uids = w_uids, w_vals = w_vals)
-            print(colored('.', 'green'), end ="")
 
         except Exception as e:
-            print(colored('x', 'red'), end ="")
             logger.trace('error while polling uid: {} with error: {}', uid, e )
             #traceback.print_exc()
 
@@ -831,6 +830,14 @@ class Metagraph():
         return weight_uids, weight_vals
 
     def __str__(self):
+        if self.n != 0:
+            peers_online = torch.numel(torch.where( self.block - self.lastemit < 1000 )[0])
+        else:
+            peers_online = 0
+        peers_online = torch.numel(torch.where( self.block - self.lastemit < 1000 )[0])
+        return '<green>Metagraph:</green> block:<cyan>{}</cyan>, inflation_rate:<cyan>{}</cyan>, staked:<green>\u03C4{}</green>/<cyan>\u03C4{}</cyan>, active:<green>{}</green>/<cyan>{}</cyan>\n'.format(self.block, self.tau.item(), torch.sum(self.S), self.block/2, peers_online, self.n)
+
+    def __full_str__(self):
         uids = self.state.uids.tolist()
         rows = [self.S.tolist(), self.R.tolist(), self.I.tolist(), self.incentive.tolist(), self.row.tolist(), self.col.tolist()]
         for i in range(self.n):
@@ -845,7 +852,7 @@ class Metagraph():
         for i in range(self.n):
             df = df.rename(index={df.index[i + 6]: uids[i]})
         df.rename_axis(colored('[uid]', 'red'), axis=1)
-        return '\nMetagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.uid, self.tau.item(), self.block, self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
+        return 'Metagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.uid, self.tau.item(), self.block, self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
 
     def __to_tensorboard__(self, tensorboard, global_step):
         tensorboard.add_scalar('Metagraph/neurons', self.n, global_step)

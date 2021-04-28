@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import copy
 import asyncio
 import grpc
 import math
@@ -46,34 +47,50 @@ class Dendrite(nn.Module):
         called during associated Forward operation.
     """
 
-    def __init__(self, config: Munch = None, wallet: 'bittensor.wallet.Wallet' = None, metagraph: 'bittensor.metagraph.Metagraph' = None, **kwargs):
+    def __init__(
+            self, 
+            config: Munch = None, 
+            wallet: 'bittensor.wallet.Wallet' = None,
+            receptor_pass_gradients: bool = None,
+            receptor_timeout: int = None,
+            receptor_do_backoff: bool = None,
+            receptor_max_backoff:int = None
+        ):
         r""" Initializes a new Dendrite entry point.
             Args:
                 config (:obj:`Munch`, `optional`): 
                     dendrite.Dendrite.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
-                    bittensor network metagraph.
+                receptor_pass_gradients (default=True, type=bool)
+                    Switch to true if the neuron passes gradients to downstream peers.
+                        By default the backward call i.e. loss.backward() triggers passing gradients on the wire.
+                receptor_timeout (default=0.5, type=float):
+                    The per request RPC timeout. a.k.a the maximum request time.
+                receptor_do_backoff (default=True, type=bool)
+                    Neurons who return non successful return codes are
+                        periodically not called with a multiplicative backoff.
+                        The backoff doubles until max_backoff and then halves on ever sequential successful request.
+                receptor_max_backoff (default=100, type=int)
+                    The backoff doubles until this saturation point.
         """
         super().__init__()
         # Config: Holds all config items for this items and those that are recursively defined. Specifically
         # config for you wallet and metagraph.
         if config == None:
             config = Dendrite.default_config()
+        config.receptor.pass_gradients = receptor_pass_gradients if receptor_pass_gradients != None else config.receptor.pass_gradients
+        config.receptor.timeout = receptor_timeout if receptor_timeout != None else config.receptor.timeout
+        config.receptor.do_backoff = receptor_do_backoff if receptor_do_backoff != None else config.receptor.do_backoff
+        config.receptor.max_backoff = receptor_max_backoff if receptor_max_backoff != None else config.receptor.max_backoff
         Dendrite.check_config( config )
-        self.config = config
+        self.config = copy.deepcopy(config)
 
         # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
         # and subscribe to the chain.
         if wallet == None:
             wallet = bittensor.wallet.Wallet(self.config)
         self.wallet = wallet
-
-        # Metagraph: Maintains a connection to the subtensor chain and can be queried for the latest state.
-        if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph(self.config, self.wallet)
-        self.metagraph = metagraph
 
         # Receptors: Holds a set map of publickey -> receptor objects. Receptors encapsulate a TCP connection between
         # this dendrite and an upstream neuron (i.e. a peer we call for representations)
@@ -96,8 +113,7 @@ class Dendrite(nn.Module):
         pass
 
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        bittensor.metagraph.Metagraph.add_args(parser) # Also adds for wallet.
+    def add_args( parser: argparse.ArgumentParser ):
         bittensor.receptor.Receptor.add_args(parser)
         return parser
 
