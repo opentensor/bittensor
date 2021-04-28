@@ -52,12 +52,7 @@ from transformers import AdamW
 from qqdm import qqdm, format_str
 from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
 
-
-<<<<<<< HEAD:miners/gpt2_genesis.py
 class Miner( bittensor.miner.Miner ):
-=======
-class Miner( bittensor.neuron.Neuron ):
->>>>>>> 2bd62712ca4c5755ac2f7a70065b77f79eb2dc81:miners/TEXT/gpt2_genesis/gpt2_genesis.py
 
     def __init__(self, config: Munch = None, **kwargs):
         if config == None:
@@ -87,20 +82,6 @@ class Miner( bittensor.neuron.Neuron ):
         # Here block size = sequence length.
         self.dataset = GenesisTextDataloader(self.config.miner.batch_size_train, self.model.get_block_size())
         self.tokens = 0
-<<<<<<< HEAD:miners/gpt2_genesis.py
-=======
-
-        # ---- Logging ----
-        self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
-        if self.config.miner.record_log == True:
-            filepath = self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),
-            logger.add (
-                filepath,
-                format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
-                rotation="250 MB",
-                retention="10 days"
-            )
->>>>>>> 2bd62712ca4c5755ac2f7a70065b77f79eb2dc81:miners/TEXT/gpt2_genesis/gpt2_genesis.py
         super( Miner, self ).__init__( self.config, **kwargs )
                
     @staticmethod
@@ -166,39 +147,7 @@ class Miner( bittensor.neuron.Neuron ):
             type=int, 
             help='Training batch size.'
         )
-<<<<<<< HEAD:miners/gpt2_genesis.py
         parser.add_argument('--miner.name', default='gpt2_genesis', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
-=======
-        parser.add_argument (
-            '--miner.root_dir',
-            default='~/.bittensor/miners/',
-            type=str,
-            help='Root path to load and save data associated with each miner'
-        )
-        parser.add_argument (
-            '--miner.name',
-            default='gpt2-genesis',
-            type=str,
-            help='Trials for this miner go in miner.root / miner.name'
-        )
-        parser.add_argument (
-            '--miner.trial_uid',
-            default=str(time.time()).split('.')[0],
-            type=str,
-            help='Saved models go in miner.root_dir / miner.name / miner.uid'
-        )
-        parser.add_argument (
-            '--miner.record_log',
-            default=False,
-            type=bool,
-            help='Record all logs when running this miner')
-
-        parser.add_argument (
-            '--miner.config_file',
-            type=str,
-            help='config file to run this neuron, if not using cmd line arguments.'
-        )
->>>>>>> 2bd62712ca4c5755ac2f7a70065b77f79eb2dc81:miners/TEXT/gpt2_genesis/gpt2_genesis.py
         GPT2Synapse.add_args(parser)
         bittensor.miner.Miner.add_args(parser)
 

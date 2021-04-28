@@ -14,7 +14,8 @@ def test_run_bert_mlm():
     miner.subtensor.connect = MagicMock(return_value = True) 
     miner.subtensor.is_connected = MagicMock(return_value = True)         
     miner.subtensor.subscribe = MagicMock(return_value = True)  
-    miner.metagraph.set_weights = MagicMock()   
+    miner.metagraph.set_weights = MagicMock() 
+    miner.metagraph.sync = MagicMock(return_value = True)   
     miner.run()
 
 test_run_bert_mlm()

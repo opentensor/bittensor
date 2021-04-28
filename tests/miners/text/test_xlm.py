@@ -15,6 +15,7 @@ def test_run_xlm_clm():
     miner.subtensor.is_connected = MagicMock(return_value = True)    
     miner.subtensor.subscribe = MagicMock(return_value = True) 
     miner.metagraph.set_weights = MagicMock(return_value = True) 
+    miner.metagraph.sync = MagicMock(return_value = True) 
     miner.run()
 
 test_run_xlm_clm()

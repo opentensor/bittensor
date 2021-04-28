@@ -46,11 +46,7 @@ from datasets import load_dataset
 from torch.utils.tensorboard import SummaryWriter
 
 
-<<<<<<< HEAD:miners/xlm.py
 class Miner( bittensor.miner.Miner ):
-=======
-class Miner( bittensor.neuron.Neuron ):
->>>>>>> 2bd62712ca4c5755ac2f7a70065b77f79eb2dc81:miners/TEXT/xlm_wiki/xlm_wiki.py
     """
     Initializes, trains, and tests models created inside of 'bittensor/synapses'. 
     During instantiation, this class takes a config as a [Munch](https://github.com/Infinidat/munch) object. 
@@ -81,19 +77,6 @@ class Miner( bittensor.neuron.Neuron ):
         if self.config.synapse.device:
             self.device = torch.device(self.config.synapse.device)
 
-<<<<<<< HEAD:miners/xlm.py
-=======
-        # ---- Logging ----
-        self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
-        if self.config.miner.record_log == True:
-            filepath = f"{self.config.miner.full_path}/{self.config.miner.name}_ {self.config.miner.trial_uid}.log"
-            logger.add (
-                filepath,
-                format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
-                rotation="250 MB",
-                retention="10 days"
-            )
->>>>>>> 2bd62712ca4c5755ac2f7a70065b77f79eb2dc81:miners/TEXT/xlm_wiki/xlm_wiki.py
         super( Miner, self ).__init__( self.config, **kwargs )
     
     @staticmethod
@@ -110,19 +93,7 @@ class Miner( bittensor.neuron.Neuron ):
         parser.add_argument('--miner.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
         parser.add_argument('--miner.epoch_length', default=500, type=int, help='Iterations of training per epoch')
         parser.add_argument('--miner.batch_size_train', default=1, type=int, help='Training batch size.')
-<<<<<<< HEAD:miners/xlm.py
         parser.add_argument('--miner.name', default='xlm', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
-=======
-        parser.add_argument('--miner.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
-        parser.add_argument('--miner.log_interval', default=10, type=int, help='Batches before we log miner info.')
-        parser.add_argument('--miner.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
-        parser.add_argument('--miner.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
-        parser.add_argument('--miner.root_dir', default='~/.bittensor/miners/', type=str,  help='Root path to load and save data associated with each miner')
-        parser.add_argument('--miner.name', default='xlm_wiki', type=str, help='Trials for this miner go in miner.root / miner.name')
-        parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
-        parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
-        parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
->>>>>>> 2bd62712ca4c5755ac2f7a70065b77f79eb2dc81:miners/TEXT/xlm_wiki/xlm_wiki.py
         XLMSynapse.add_args(parser)
         bittensor.miner.Miner.add_args(parser)
 
