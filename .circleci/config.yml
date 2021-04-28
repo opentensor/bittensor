@@ -3,7 +3,7 @@ version: 2.1
 executors:
     bittensor-executor:
         docker:
-          - image: bittensor/bittensor:subtensor_tests
+          - image: bittensor/bittensor:latest
 
 orbs:
   python: circleci/python@1.3.2
