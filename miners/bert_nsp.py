@@ -132,6 +132,8 @@ class Miner( bittensor.miner.Miner ):
         assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
+        BertNSPSynapse.check_config( config )
+        bittensor.miner.Miner.check_config( config )
 
     # --- Main loop ----
     def run (self):
