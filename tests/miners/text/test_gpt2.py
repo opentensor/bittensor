@@ -1,10 +1,9 @@
-import os, sys, time
+import os, sys
 from unittest.mock import MagicMock
-import bittensor
-import torch
-import numpy
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append("miners/TEXT/")
 
-from miners.text.gpt2_genesis.gpt2_genesis import Miner
+from gpt2_genesis.gpt2_genesis import Miner
 
 def test_run_gpt2():
     miner = Miner(

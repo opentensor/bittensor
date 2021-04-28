@@ -1,10 +1,9 @@
-import os, sys, time
+import os, sys
 from unittest.mock import MagicMock
-import bittensor
-import torch
-import numpy
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append("miners/TEXT/")
 
-from miners.text.xlm_wiki.xlm_wiki import Miner
+from xlm_wiki.xlm_wiki import Miner
         
 def test_run_xlm_clm():
     miner = Miner(
