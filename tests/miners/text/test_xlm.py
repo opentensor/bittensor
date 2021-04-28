@@ -1,9 +1,10 @@
-import os, sys
+import os, sys, time
 from unittest.mock import MagicMock
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append("miners/TEXT/")
+import bittensor
+import torch
+import numpy
 
-from xlm_wiki.xlm_wiki import Miner
+from miners.xlm import Miner
         
 def test_run_xlm_clm():
     miner = Miner(
@@ -14,6 +15,7 @@ def test_run_xlm_clm():
     miner.subtensor.is_connected = MagicMock(return_value = True)    
     miner.subtensor.subscribe = MagicMock(return_value = True) 
     miner.metagraph.set_weights = MagicMock(return_value = True) 
+    miner.metagraph.sync = MagicMock(return_value = True) 
     miner.run()
 
 test_run_xlm_clm()
