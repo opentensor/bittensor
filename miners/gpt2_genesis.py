@@ -15,19 +15,15 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
-
 """GPT2 Language Modelling miner
 
-This file demonstrates training the GPT2 neuron with language modelling.
+The genesis miner.
 
 Example:
-        $ python miners/TEXT/gpt2_genesis/gpt2_genesis.py
+    $ python miners/gpt2_genesis.py
 
-Look at the yaml config file to tweak the parameters of the model. To run with those
-default configurations, run:
-        $ cd miners/TEXT
-        $ python gpt2_genesis/gpt2_genesis.py --session.config_file gpt2_genesis/gpt2_genesis_config.yaml
-
+To run with a config file:
+    $ python miners/gpt2_genesis.py --config <path to config file>
 
 """
 import argparse
@@ -79,7 +75,6 @@ class Miner( bittensor.miner.Miner ):
         # ---- Dataset ----
         # The Genesis Dataset:
         # The dataset used to train Adam and his first 100 children.
-        # Here block size = sequence length.
         self.dataset = GenesisTextDataloader(self.config.miner.batch_size_train, self.model.get_block_size())
         self.tokens = 0
         super( Miner, self ).__init__( self.config, **kwargs )
@@ -148,13 +143,16 @@ class Miner( bittensor.miner.Miner ):
             help='Training batch size.'
         )
         parser.add_argument('--miner.name', default='gpt2_genesis', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
-        GPT2Synapse.add_args(parser)
-        bittensor.miner.Miner.add_args(parser)
+        GPT2Synapse.add_args( parser )
+        bittensor.miner.Miner.add_args( parser )
+        GenesisTextDataloader.add_args( parser )
 
     @staticmethod
     def check_config(config: Munch):
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
+        bittensor.miner.Miner.check_config( config )
+        GenesisTextDataloader.check_config( config )
 
     def configure_optimizers(self):
         """

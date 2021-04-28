@@ -20,13 +20,10 @@
 This file demonstrates training the BERT neuron with masked language modelling.
 
 Example:
-        $ python miners/TEXT/bert_mlm/bert_mlm.py
+    $ python miners/bert_mlm.py
 
-Look at the yaml config file to tweak the parameters of the model. To run with those 
-default configurations, run:
-        $ cd miners/TEXT
-        $ python bert_mlm/bert_mlm.py --session.config_file bert_mlm/bert_mlm_config.yaml
-
+To run with a config file:
+    $ python miners/bert_mlm.py --config <path to config file>
 
 """
 import argparse
@@ -119,6 +116,8 @@ class Miner( bittensor.miner.Miner ):
         assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
+        BertMLMSynapse.check_config( config )
+        bittensor.miner.Miner.check_config( config )
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -130,7 +129,7 @@ class Miner( bittensor.miner.Miner ):
         parser.add_argument('--miner.batch_size_train', default=1, type=int, help='Training batch size.')
         parser.add_argument('--miner.name', default='bert_mlm', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
         BertMLMSynapse.add_args(parser)
-        bittensor.neuron.Neuron.add_args(parser)
+        bittensor.miner.Miner.add_args(parser)
 
     # --- Main loop ----
     def run (self):
