@@ -16,6 +16,5 @@ def test_run_bert_nsp():
     miner.subtensor.subscribe = MagicMock(return_value = True)  
     miner.metagraph.set_weights = MagicMock()  
     miner.metagraph.sync = MagicMock(return_value = True) 
-    miner.metagraph.row = torch.tensor()  
     miner.run()
 test_run_bert_nsp()
