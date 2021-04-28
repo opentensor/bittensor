@@ -64,8 +64,8 @@ class Config:
         params = parser.parse_known_args()[0]
         config_file = None
         config = Munch()
-        if 'miner.config_file' in vars(params).keys():
-            config_file = vars(params)['miner.config_file']
+        if 'config' in vars(params).keys():
+            config_file = vars(params)['config']
         
         if config_file:
             config = Config.load_from_relative_path(config_file)

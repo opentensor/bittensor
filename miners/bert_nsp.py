@@ -86,7 +86,7 @@ def nsp_batch(data, batch_size, tokenizer):
     return tokenized, torch.tensor(batch_labels, dtype=torch.long)
 
 
-class Miner( bittensor.neuron.Neuron ):
+class Miner( bittensor.miner.Miner ):
 
     def __init__(self, config: Munch = None, **kwargs):
         if config == None:
@@ -108,17 +108,6 @@ class Miner( bittensor.neuron.Neuron ):
         # ---- Dataset ----
         # Dataset: News headlines
         self.dataset = load_dataset('ag_news')['train']
-
-        # ---- Logging ----
-        self.tensorboard = SummaryWriter(log_dir = self.config.miner.full_path)
-        if self.config.miner.record_log == True:
-            filepath = self.config.miner.full_path + "/{}_{}.log".format(self.config.miner.name, self.config.miner.trial_uid),
-            logger.add (
-                filepath,
-                format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
-                rotation="250 MB",
-                retention="10 days"
-            )
         super( Miner, self ).__init__( self.config, **kwargs )
 
     @staticmethod
@@ -136,27 +125,15 @@ class Miner( bittensor.neuron.Neuron ):
         parser.add_argument('--miner.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
         parser.add_argument('--miner.epoch_length', default=500, type=int, help='Iterations of training per epoch')
         parser.add_argument('--miner.batch_size_train', default=1, type=int, help='Training batch size.')
-        parser.add_argument('--miner.sync_interval', default=100, type=int, help='Batches before we sync with chain and emit new weights.')
-        parser.add_argument('--miner.log_interval', default=10, type=int, help='Batches before we log miner info.')
-        parser.add_argument('--miner.accumulation_interval', default=1, type=int, help='Batches before we apply acummulated gradients.')
-        parser.add_argument('--miner.apply_remote_gradients', default=False, type=bool, help='If true, neuron applies gradients which accumulate from remotes calls.')
-        parser.add_argument('--miner.root_dir', default='~/.bittensor/miners/', type=str,  help='Root path to load and save data associated with each miner')
-        parser.add_argument('--miner.name', default='bert-nsp', type=str, help='Trials for this miner go in miner.root / miner.name')
-        parser.add_argument('--miner.trial_uid', default=str(time.time()).split('.')[0], type=str, help='Saved models go in miner.root_dir / miner.name / miner.uid')
-        parser.add_argument('--miner.record_log', default=False, help='Record all logs when running this miner')
-        parser.add_argument('--miner.config_file', type=str, help='config file to run this neuron, if not using cmd line arguments.')
+        parser.add_argument('--miner.name', default='bert_nsp', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
         BertNSPSynapse.add_args(parser)
-        bittensor.neuron.Neuron.add_args(parser)
+        bittensor.miner.Miner.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
         assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
-        full_path = '{}/{}/{}'.format(config.miner.root_dir, config.miner.name, config.miner.trial_uid)
-        config.miner.full_path = os.path.expanduser(full_path)
-        if not os.path.exists(config.miner.full_path):
-            os.makedirs(config.miner.full_path)
 
     # --- Main loop ----
     def run (self):

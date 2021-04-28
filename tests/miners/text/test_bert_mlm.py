@@ -4,7 +4,7 @@ import bittensor
 import torch
 import numpy
 
-from miners.text.bert_mlm.bert_mlm import Miner
+from miners.bert_mlm import Miner
 
 def test_run_bert_mlm():
     miner = Miner(

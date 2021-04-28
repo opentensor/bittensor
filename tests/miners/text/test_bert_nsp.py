@@ -4,7 +4,7 @@ import bittensor
 import torch
 import numpy
 
-from miners.text.bert_nsp.bert_nsp import Miner
+from miners.bert_nsp import Miner
 
 def test_run_bert_nsp():
     miner = Miner(
