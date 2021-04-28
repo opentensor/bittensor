@@ -490,7 +490,7 @@ def test_set_weights_success_transaction_fee(setup_chain):
     blocknr_post = subtensorA.get_current_block()
     blocks_passed = blocknr_post - blocknr_pre
 
-    logger.error(blocks_passed)
+    #logger.error(blocks_passed)
 
     # Check the stakes
     stakeA = subtensorA.get_stake_for_uid(uidA)
