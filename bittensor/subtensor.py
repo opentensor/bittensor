@@ -451,7 +451,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         else:
             logger.error( "Failed to subscribe")
         return result
-            
+
     def add_stake(
             self, 
             wallet: 'bittensor.wallet.Wallet',
