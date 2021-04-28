@@ -91,6 +91,7 @@ class Miner( bittensor.neuron.Neuron ):
         else: 
             logger.info('logging is <red>OFF</red>')
 
+<<<<<<< HEAD
 class BaseMiner( Miner ):
 
     def __init__( 
@@ -318,3 +319,8 @@ class BaseMiner( Miner ):
 
                 # ---- Update Tensorboard ----
                 self.epoch_logs()
+=======
+
+
+    
+>>>>>>> 7c8cf09cc865d112c1d6e0ab0996169c2802c4ff

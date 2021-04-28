@@ -116,8 +116,11 @@ class Miner( bittensor.miner.Miner ):
         assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
+<<<<<<< HEAD:miners/bert_mlm.py
         BertMLMSynapse.check_config( config )
         bittensor.miner.Miner.check_config( config )
+=======
+>>>>>>> 7c8cf09cc865d112c1d6e0ab0996169c2802c4ff:miners/TEXT/bert_mlm/bert_mlm.py
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):

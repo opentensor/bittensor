@@ -143,16 +143,24 @@ class Miner( bittensor.miner.Miner ):
             help='Training batch size.'
         )
         parser.add_argument('--miner.name', default='gpt2_genesis', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
+<<<<<<< HEAD:miners/gpt2_genesis.py
         GPT2Synapse.add_args( parser )
         bittensor.miner.Miner.add_args( parser )
         GenesisTextDataloader.add_args( parser )
+=======
+        GPT2Synapse.add_args(parser)
+        bittensor.miner.Miner.add_args(parser)
+>>>>>>> 7c8cf09cc865d112c1d6e0ab0996169c2802c4ff:miners/TEXT/gpt2_genesis/gpt2_genesis.py
 
     @staticmethod
     def check_config(config: Munch):
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
+<<<<<<< HEAD:miners/gpt2_genesis.py
         bittensor.miner.Miner.check_config( config )
         GenesisTextDataloader.check_config( config )
+=======
+>>>>>>> 7c8cf09cc865d112c1d6e0ab0996169c2802c4ff:miners/TEXT/gpt2_genesis/gpt2_genesis.py
 
     def configure_optimizers(self):
         """

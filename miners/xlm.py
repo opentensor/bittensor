@@ -19,215 +19,200 @@
 
 """XLM Language Modelling miner
 
-This file demonstrates training the XLM miner with language modelling.
+This file demonstrates training the XLM neuron with language modelling.
 
 Example:
-    $ python miners/text/xlm.py
-
-To run with a config file and debug
-    $ python miners/text/xlm.py --debug --config <path to config file>
+        $ python miners/TEXT/xlm_wiki.py
 
 """
-
 import argparse
-import copy
-import os
 import math
-import random
-import torch
+import os
 import sys
+import time
+import torch
 import torch.nn.functional as F
+import traceback
+import time
 import bittensor
 
-from tqdm import tqdm
-from munch import Munch
 from termcolor import colored
-from types import SimpleNamespace
-from synapses.xlm import XLMSynapse
-from typing import Tuple, List, Optional
-from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
-from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
-
+from synapses.xlm import XLMSynapse, nextbatch
+from bittensor.utils.model_utils import ModelToolbox
+from munch import Munch
 from loguru import logger
-logger = logger.opt(colors=True)
+from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
+from datasets import load_dataset
+from torch.utils.tensorboard import SummaryWriter
 
-class Miner( bittensor.miner.BaseMiner ):
 
-    def __init__( 
-            self, 
-            config: Munch = None,
-            **kwargs
-        ):
-        # ---- Load Config ----
+class Miner( bittensor.miner.Miner ):
+    """
+    Initializes, trains, and tests models created inside of 'bittensor/synapses'. 
+    During instantiation, this class takes a config as a [Munch](https://github.com/Infinidat/munch) object. 
+    """
+
+    def __init__(self, config: Munch = None, **kwargs):
         if config == None:
-            config = Miner.default_config();   
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
-        Miner.check_config( config )
-        logger.info( bittensor.config.Config.toString( config ) )
+            config = Miner.default_config();       
+        bittensor.config.Config.update_with_kwargs(config.miner, kwargs) 
+        Miner.check_config(config)
         self.config = config
 
-        # ---- Row Weights ----
-        self.row_weights = torch.ones([1])
-
-        # ---- Nucleus ----
-        self.synapse = XLMSynapse( self.config )
+        # ---- Model ----
+        self.model = XLMSynapse( self.config )
 
         # ---- Optimizer ----
-        self.optimizer = torch.optim.SGD(self.synapse.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum)
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum)
         self.scheduler = WarmupCosineWithHardRestartsSchedule(self.optimizer, 50, 300)
 
+        # ---- Model Load/Save tools ----
+        self.model_toolbox = ModelToolbox(XLMSynapse, torch.optim.SGD)
+
         # ---- Dataset ----
-        self.dataset = GenesisTextDataloader( self.config.miner.batch_size_train, 20 )
-        super(Miner, self).__init__( self.config, **kwargs )
+        # Dataset: 74 million sentences pulled from books.
+        self.dataset = load_dataset('amazon_reviews_multi', 'en')['train']
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if self.config.synapse.device:
+            self.device = torch.device(self.config.synapse.device)
+
+        super( Miner, self ).__init__( self.config, **kwargs )
     
     @staticmethod
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
-        Miner.add_args( parser ) 
-        config = bittensor.config.Config.to_config( parser ); 
+        Miner.add_args(parser) 
+        config = bittensor.config.Config.to_config(parser); 
         return config
     
     @staticmethod
-    def add_args( parser: argparse.ArgumentParser ):
+    def add_args(parser: argparse.ArgumentParser):
         parser.add_argument('--miner.learning_rate', default=0.01, type=float, help='Training initial learning rate.')
         parser.add_argument('--miner.momentum', default=0.98, type=float, help='Training initial momentum for SGD.')
+        parser.add_argument('--miner.n_epochs', default=int(sys.maxsize), type=int, help='Number of training epochs.')
         parser.add_argument('--miner.epoch_length', default=500, type=int, help='Iterations of training per epoch')
-        parser.add_argument('--miner.n_epochs', default=-1, type=int, help='Number of training epochs, if < 0 runs for ever.')
         parser.add_argument('--miner.batch_size_train', default=1, type=int, help='Training batch size.')
         parser.add_argument('--miner.name', default='xlm', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
-        XLMSynapse.add_args( parser )
-        bittensor.miner.BaseMiner.add_args( parser )
-        GenesisTextDataloader.add_args( parser )
+        XLMSynapse.add_args(parser)
+        bittensor.miner.Miner.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
         assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
         assert config.miner.batch_size_train > 0, "batch_size_train must be a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
-        XLMSynapse.check_config( config )
-        bittensor.miner.BaseMiner.check_config( config )
-        GenesisTextDataloader.check_config( config )
+    
+    # --- Main loop ----
+    def run (self):
 
-    def should_run( self, epoch: int ) -> bool:
-        r""" Called by miner.run() every epoch, if the response is false, training stops.
-        """
-        if self.config.miner.n_epochs < 0:
-            return True
-        elif epoch < self.config.miner.n_epochs:
-            return True
-        else:
-            return False
+        # ---- Subscribe ----
+        with self:
 
-    def should_save( self ) -> bool:
-        r""" Called by miner.run() after every epoch.
-            If this function returns True, the model is saved to disk and can be reloaded later.
-            Returns:
-                should_save (bool):
-                    True by default. Saves model after each epoch.
-        """
-        if self.epoch_loss < self.last_saved_loss:
-            return True
-        else:
-            return False
+            # ---- Weights ----
+            self.row = self.metagraph.row.to(self.model.device)
 
-    def should_reload(self) -> bool:
-        r""" Called by miner.run() after every epoch.
-            If the function returns True the model state dict is saved to miner.full_path.
-            Returns:
-                should_reload (bool):
-                    False by default. Does not reload the model after each epoch.
-        """
-        if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.synapse.parameters()]))):
-            return True
+            # --- Run state ---
+            self.global_step = 0
+            self.best_train_loss = math.inf
 
-    def get_state_dict( self ) -> dict:
-        r""" Called by miner.save_model().
-            Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
-            Returns:
-                state_dict (:obj:`dict`): 
-                    Dictionary containing run state information such as the model parameters.
-        """
-        return {
-            'synapse_state': self.synapse.state_dict(), 
-            'optimizer_state': self.optimizer.state_dict(),
-        }
+            # --- Loop for epochs ---
+            for self.epoch in range(self.config.miner.n_epochs):
+                try:
+                    # ---- Serve ----
+                    self.axon.serve( self.model )
 
-    def reload_from_state_dict( self, state_dict: dict):
-        r""" Called by miner.reload_model().
-            Reloads the training state from the passed state_dict. 
-            Args:
-                state_dict (:obj:`dict`): 
-                    Dictionary containing run state information such as the model parameters. Output 
-                    of get_state_dict.
-        """
-        self.synapse.load_state_dict( state_dict['synapse_state'] )
-        self.optimizer.load_state_dict( state_dict['optimizer_state'] )
+                    # ---- Train Model ----
+                    self.train()
+                    self.scheduler.step()
+                    
+                    # If model has borked for some reason, we need to make sure it doesn't emit weights
+                    # Instead, reload into previous version of model
+                    if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
+                        self.model, self.optimizer = self.model_toolbox.load_model(self.config)
+                        continue
 
-    # ---- Get Row Weights ----
-    def get_row_weights( self ) -> torch.FloatTensor:
-        r""" Called after each training epoch. Returns row_weights to be set on chain.
-            Returns:
-                row_weights ( torch.FloatTensor, shape=(self.metagraph.n) ): 
-                    torch row_weights matching the metagraph size.
-                    weight values should be normalized and be in range [0,1].
-        """
-        self.row_weights = torch.nn.functional.pad( self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel()] )
-        self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
-        return self.row_weights
+                    # ---- Emitting weights ----
+                    self.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
 
-    # ---- Get epoch batches ----
-    def get_epoch_batches( self, epoch:int ) -> List[ dict ]:
-        r""" Returns training batches for each epoch.
-            Returns:
-                batches ( List[dict], shape=(self.config.miner.epoch_length) ): 
-                    List of batches as dictionary containing tokenized sentences
-                    'inputs' = torch.LongTensor.
-        """
-        batches = []
-        epoch_data = self.dataset.dataloader( self.config.miner.epoch_length )
-        for iteration, inputs in tqdm( enumerate( epoch_data ) ):
-            batch = { 'inputs': inputs }
-            batches.append( batch )
-            if iteration == self.config.miner.epoch_length:
-                break
-        return batches
+                    # ---- Sync metagraph ----
+                    self.metagraph.sync() # Pulls the latest metagraph state (with my update.)
+                    self.row = self.metagraph.row.to(self.model.device)
+                    logger.info(self.metagraph)
 
-    # ---- Training call ----
-    def training_call( self, batch: dict ) -> SimpleNamespace:
-        r""" Runs a single training batch through the nucleus and applies a gradient update.
-            Args:
-                batch ( dict, `required`): 
-                    training batch dictionary as returned from get_epoch_batches            
-            Returns:
-                outputs ( SimpleNamespace ): 
-                    SimpleNamespace output as returned by a nucleus forward call.
-                    Must include fields local_loss, remote_loss, distillation_loss
-        """
-        # ---- Forward pass ----
-        inputs = batch['inputs'].to( self.synapse.device )
-        output = self.synapse.remote_forward(
-            neuron = self,
-            inputs = inputs,
-            training = True,
-        )
+                    # ---- Update Tensorboard ----
+                    self.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
+                    self.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
+                    self.axon.__to_tensorboard__(self.tensorboard, self.global_step)
+                
+                    # ---- Save best loss and model ----
+                    if self.training_loss and self.epoch % 10 == 0 and self.training_loss < self.best_train_loss:
+                        self.best_train_loss = self.training_loss / 10 # update best train loss
+                        self.model_toolbox.save_model(
+                            self.config.miner.full_path,
+                            {
+                                'epoch': self.epoch, 
+                                'model_state_dict': self.model.state_dict(), 
+                                'loss': self.best_train_loss,
+                                'optimizer_state_dict': self.optimizer.state_dict(),
+                            }
+                        )
+                        self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
+                    
+                # --- Catch Errors ----
+                except Exception as e:
+                    logger.error('Exception in training script with error: {}, {}', e, traceback.format_exc())
+                    logger.info('Continuing to train.')
+    
+    # ---- Train Epoch ----
+    def train(self):
+        self.training_loss = 0.0
+        for local_step in range(self.config.miner.epoch_length):
+            # ---- Forward pass ----
+            inputs = nextbatch(self.dataset, self.config.miner.batch_size_train, bittensor.__tokenizer__())
+            output = self.model.remote_forward(
+                self,
+                inputs.to(self.model.device),
+                training = True,
+            )
 
-        # ---- Backward pass ----
-        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-        output.loss.backward() # Accumulates gradients on the nucleus.
-        self.optimizer.step() # Applies accumulated gradients.
-        self.optimizer.zero_grad() # Zeros out gradients for next accummulation
-        
+            # ---- Backward pass ----
+            loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+            loss.backward() # Accumulates gradients on the model.
+            self.optimizer.step() # Applies accumulated gradients.
+            self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
-        # ---- Train row weights ----
-        batch_weights = torch.mean(output.router.weights, axis = 0).to( self.synapse.device ) # Average over batch.
-        self.row_weights = (1 - 0.03) * self.row_weights + 0.03 * batch_weights # Moving avg update.
-        self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
+            # ---- Train row weights ----
+            batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
+            self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
+            self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
 
-        # ---- Update global loss ----
-        return output
+            # ---- Step logs ----
+            logger.info('GS: {} LS: {} Epoch: {}\tLocal Target Loss: {}\tRemote Target Loss: {}\tDistillation Loss: {}\tAxon: {}\tDendrite: {}',
+                    colored('{}'.format(self.global_step), 'red'),
+                    colored('{}'.format(local_step), 'blue'),
+                    colored('{}'.format(self.epoch), 'green'),
+                    colored('{:.4f}'.format(output.local_target_loss.item()), 'green'),
+                    colored('{:.4f}'.format(output.remote_target_loss.item()), 'blue'),
+                    colored('{:.4f}'.format(output.distillation_loss.item()), 'red'),
+                    self.axon,
+                    self.dendrite)
+            logger.info('Codes: {}', output.router.return_codes.tolist())
+            
+            self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('Neuron/Dloss', output.distillation_loss.item(), self.global_step)
+
+            # ---- Step increments ----
+            self.global_step += 1
+            self.training_loss += output.local_target_loss.item()
+
+            # --- Memory clean up ----
+            torch.cuda.empty_cache()
+            del output
 
 if __name__ == "__main__":
     # ---- Build and Run ----
     miner = Miner()
+    logger.info(bittensor.config.Config.toString(miner.config))
     miner.run()
-
