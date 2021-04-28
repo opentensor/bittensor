@@ -4,7 +4,7 @@ import bittensor
 import torch
 import numpy
 
-from miners.text.xlm_wiki.xlm_wiki import Miner
+from miners.xlm import Miner
         
 def test_run_xlm_clm():
     miner = Miner(

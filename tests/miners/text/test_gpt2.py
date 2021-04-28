@@ -4,7 +4,7 @@ import bittensor
 import torch
 import numpy
 
-from miner.gpt2_genesis import Miner
+from miners.gpt2_genesis import Miner
 
 def test_run_gpt2():
     miner = Miner(
