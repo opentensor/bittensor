@@ -1,4 +1,4 @@
-import os, sys, time
+import os, sys
 from unittest.mock import MagicMock
 import bittensor
 import torch
