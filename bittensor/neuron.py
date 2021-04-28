@@ -280,7 +280,7 @@ class Neuron:
             sinfo = full_stack.getvalue()
             full_stack.close()
             # Log the combined stack
-            logger.error('Exception:{}'.format(sinfo))
+            logger.opt(ansi=False).error('Exception:{}'.format(sinfo))
 
             if bittensor.exceptions.handlers.rollbar.is_enabled():
                 bittensor.exceptions.handlers.rollbar.send_exception()
