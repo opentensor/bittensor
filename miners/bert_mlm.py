@@ -20,13 +20,10 @@
 This file demonstrates training the BERT neuron with masked language modelling.
 
 Example:
-        $ python miners/TEXT/bert_mlm/bert_mlm.py
+    $ python miners/bert_mlm.py
 
-Look at the yaml config file to tweak the parameters of the model. To run with those 
-default configurations, run:
-        $ cd miners/TEXT
-        $ python bert_mlm/bert_mlm.py --session.config_file bert_mlm/bert_mlm_config.yaml
-
+To run with a config file:
+    $ python miners/bert_mlm.py --config <path to config file>
 
 """
 import argparse
