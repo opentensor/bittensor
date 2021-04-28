@@ -37,7 +37,7 @@ def test_networks():
 #     )
 #     subtensor.connect(timeout = 1, failure=False)
 
-# subtensor = bittensor.subtensor.Subtensor( 
+# subtensor = bittensor.subtensor.Subtensor(
 #     network = 'kusanagi'
 # )
 # def test_connect_success( ):
@@ -110,7 +110,7 @@ def test_networks():
 #     assert (type(weight_vals[0][1]) == list)
 #     assert (type(weight_vals[0][1][0]) == int)
 
-# def test_get_weight_uids(): 
+# def test_get_weight_uids():
 #     weight_uids = subtensor.get_weight_vals()
 #     assert (type(weight_uids) == list)
 #     assert (type(weight_uids[0][0]) == int)
