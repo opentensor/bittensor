@@ -217,7 +217,6 @@ class Miner( bittensor.miner.BaseMiner ):
         self.optimizer.step() # Applies accumulated gradients.
         self.optimizer.zero_grad() # Zeros out gradients for next accummulation
         
-
         # ---- Train row weights ----
         batch_weights = torch.mean(output.router.weights, axis = 0).to( self.synapse.device ) # Average over batch.
         self.row_weights = (1 - 0.03) * self.row_weights + 0.03 * batch_weights # Moving avg update.
