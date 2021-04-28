@@ -83,16 +83,7 @@ def nsp_batch(data, batch_size, tokenizer):
     tokenized = tokenizer(batch_inputs, text_pair = batch_next, return_tensors='pt', padding=True)
     return tokenized, torch.tensor(batch_labels, dtype=torch.long)
 
-
-<<<<<<< HEAD:miners/bert_nsp.py
 class Miner( bittensor.miner.Miner ):
-=======
-<<<<<<< HEAD:miners/bert_nsp.py
-class Miner( bittensor.miner.Miner ):
-=======
-class Miner( bittensor.neuron.Neuron ):
->>>>>>> 2bd62712ca4c5755ac2f7a70065b77f79eb2dc81:miners/TEXT/bert_nsp/bert_nsp.py
->>>>>>> 7c8cf09cc865d112c1d6e0ab0996169c2802c4ff:miners/TEXT/bert_nsp/bert_nsp.py
 
     def __init__(self, config: Munch = None, **kwargs):
         if config == None:
