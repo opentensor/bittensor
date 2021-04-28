@@ -157,7 +157,15 @@ class Neuron:
             )
         except argparse.ArgumentError:
             pass
-
+        try:
+            parser.add_argument(
+                '--config', 
+                type=str, 
+                help='If set, arguments are overridden by passed file. '
+            )
+        except argparse.ArgumentError:
+            pass
+        
     @staticmethod   
     def check_config(config: Munch):
         assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
@@ -176,7 +184,7 @@ class Neuron:
                 rotation="25 MB",
                 retention="10 days"
             )
-            logger.info('Logging is <green>ON</green> with sink: <cyan>{}</cyan>', "~/.bittensor/bittensor_output.log")
+            logger.info('logging is <green>ON</green> with sink: <cyan>{}</cyan>', "~/.bittensor/bittensor_output.log")
         else: 
             logger.info('logging is <red>OFF</red>')
 
@@ -226,7 +234,7 @@ class Neuron:
         logger.info('\nTearing down axon...')
         self.axon.stop()
 
-    def start(self):
+    def start( self ):        
         self.init_logging()
         self.init_debugging()
         self.init_wallet()

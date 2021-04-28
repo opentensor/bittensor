@@ -1,10 +1,10 @@
 import os, sys
 from unittest.mock import MagicMock
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append("miners/TEXT/")
+import bittensor
+import torch
+import numpy
 
-from bert_nsp.bert_nsp import Miner
-
+from miners.bert_nsp import Miner
 
 def test_run_bert_nsp():
     miner = Miner(
@@ -14,6 +14,8 @@ def test_run_bert_nsp():
     miner.subtensor.connect = MagicMock(return_value = True)
     miner.subtensor.is_connected = MagicMock(return_value = True)    
     miner.subtensor.subscribe = MagicMock(return_value = True)  
-    miner.metagraph.set_weights = MagicMock()   
+    miner.metagraph.set_weights = MagicMock()  
+    miner.metagraph.sync = MagicMock(return_value = True) 
+    miner.metagraph.row = torch.tensor()  
     miner.run()
 test_run_bert_nsp()

@@ -444,7 +444,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             call_params=params
         )
         # TODO (const): hotkey should be an argument here not assumed. Either that or the coldkey pub should also be assumed.
-        extrinsic = await self.substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
+        extrinsic = await self.substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey)
         result = await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
         if result:
             logger.success( "Successfully subscribed with:\n<cyan>[\n  ip: {},\n  port: {},\n  modality: {},\n  hotkey: {},\n  coldkey: {}\n]</cyan>".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
