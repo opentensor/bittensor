@@ -119,7 +119,7 @@ class GenesisTextDataloader(BittensorDataLoader):
 
         # If epoch_length is set then we just need a slice of 
         # the dataset we downloaded of length epoch_length. 
-        if epoch_length and epoch_length < len(self):
+        if epoch_length and epoch_length < len(self.data):
             
             # Set up upper bound of indices to fit the batch size we want. 
             idx_bound = epoch_length * self.batch_size
