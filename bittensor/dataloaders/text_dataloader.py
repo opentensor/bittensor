@@ -174,7 +174,7 @@ class GenesisTextDataloader(BittensorDataLoader):
 
         dix = []
         block_num=0
-        while block_num < self.block_size:
+        while block_num < self.block_size and len(self) >= self.block_size:
             tokenized = self.tokenizer(chunk[block_num], padding=True, truncation=True)['input_ids']
             for t in tokenized:
                 if block_num < self.block_size:
