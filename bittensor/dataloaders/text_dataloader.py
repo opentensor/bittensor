@@ -113,7 +113,7 @@ class GenesisTextDataloader(BittensorDataLoader):
         """
 
         # If we've exhausted the dataset, retrieve another corpus.
-        if self.refresh_corpus or len(self) < self.block_size:
+        if self.refresh_corpus or len(self.data) < self.block_size:
             self.data = self.construct_text_corpus()
             self.refresh_corpus = False
 
