@@ -37,7 +37,7 @@ class BittensorDataLoader():
         """
         parser.add_argument('--dataloader.max_corpus_size', default=1e+6, type=int, 
                                 help='Maximum amount of data to download from IPFS into memory for training.')
-        parser.add_argument('--dataloader.num_workers', default=1, type=int, 
+        parser.add_argument('--dataloader.num_workers', default=0, type=int, 
                                 help='Number of workers for data loader.')
 
     
