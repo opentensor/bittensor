@@ -231,8 +231,9 @@ class Neuron:
             quit()
 
     def teardown_axon(self):
-        logger.info('\nTearing down axon...')
-        self.axon.stop()
+        if self.axon:
+            logger.info('\nTearing down axon...')
+            self.axon.stop()
 
     def start( self ):        
         self.init_logging()

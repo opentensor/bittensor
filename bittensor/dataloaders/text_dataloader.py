@@ -113,7 +113,7 @@ class GenesisTextDataloader(BittensorDataLoader):
         """
 
         # If we've exhausted the dataset, retrieve another corpus.
-        if self.refresh_corpus:
+        if self.refresh_corpus or len(self) < self.block_size:
             self.data = self.construct_text_corpus()
             self.refresh_corpus = False
 
@@ -174,7 +174,7 @@ class GenesisTextDataloader(BittensorDataLoader):
 
         dix = []
         block_num=0
-        while block_num < self.block_size and len(chunk) >= self.block_size:
+        while block_num < self.block_size and len(chunk) > self.block_size:
             tokenized = self.tokenizer(chunk[block_num], padding=True, truncation=True)['input_ids']
             for t in tokenized:
                 if block_num < self.block_size:
