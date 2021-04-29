@@ -122,21 +122,27 @@ class GenesisTextDataloader(BittensorDataLoader):
         if epoch_length and epoch_length < len(self.data):
             
             # Set up upper bound of indices to fit the batch size we want. 
-            idx_bound = epoch_length * self.batch_size
-
-            # Collect enough random indices to batch together using batch_size into epoch_length batches
-            random_start = random.randint(0, len(self) - idx_bound)
-            indices = list(range(random_start, random_start + idx_bound))
-            
-            subset = Subset(self, indices)
-            
-            # Clear out these indices from our current corpus
-            try:
-                del self.data[random_start: random_start + idx_bound]
-            except Exception:
-                # There is too little data left over for us to delete according to our epoch_length, 
-                # let's get more data!
+            idx_bound = epoch_length * self.batch_size 
+            if idx_bound < len(self):
+                # Collect enough random indices to batch together using batch_size into epoch_length batches
+                random_start = random.randint(0, len(self) - idx_bound)
+                indices = list(range(random_start, random_start + idx_bound))
+                
+                subset = Subset(self, indices)
+                
+                # Clear out these indices from our current corpus
+                try:
+                    del self.data[random_start: random_start + idx_bound]
+                except Exception:
+                    # There is too little data left over for us to delete according to our epoch_length, 
+                    # let's get more data!
+                    self.refresh_corpus = True
+            else:
                 self.refresh_corpus = True
+                return DataLoader(self,
+                            shuffle=True,
+                            batch_size=self.batch_size,
+                            num_workers=self.config.dataloader.num_workers)
 
 
             # Set up dataloader
@@ -169,12 +175,11 @@ class GenesisTextDataloader(BittensorDataLoader):
             Returns:
                 x
         """
-
         chunk = self.data[idx:idx + self.block_size]
 
         dix = []
         block_num=0
-        while block_num < self.block_size and len(chunk) > self.block_size:
+        while block_num < self.block_size and len(chunk) > block_num:
             tokenized = self.tokenizer(chunk[block_num], padding=True, truncation=True)['input_ids']
             for t in tokenized:
                 if block_num < self.block_size:
