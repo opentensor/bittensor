@@ -18,17 +18,10 @@
 
 
 import argparse
-import json
-import os
-import re
-import stat
 import traceback as tb
 
 from io import StringIO
 from munch import Munch
-from termcolor import colored
-from cryptography.exceptions import InvalidSignature, InvalidKey
-from cryptography.fernet import InvalidToken
 
 import bittensor
 
@@ -231,9 +224,8 @@ class Neuron:
             quit()
 
     def teardown_axon(self):
-        if self.axon:
-            logger.info('\nTearing down axon...')
-            self.axon.stop()
+        logger.info('\nTearing down axon...')
+        self.axon.stop()
 
     def start( self ):        
         self.init_logging()
@@ -289,5 +281,6 @@ class Neuron:
         return self
 
     def __del__(self):
-        self.stop()
+        #self.stop()
+        pass
 
