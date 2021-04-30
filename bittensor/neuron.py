@@ -18,17 +18,10 @@
 
 
 import argparse
-import json
-import os
-import re
-import stat
 import traceback as tb
 
 from io import StringIO
 from munch import Munch
-from termcolor import colored
-from cryptography.exceptions import InvalidSignature, InvalidKey
-from cryptography.fernet import InvalidToken
 
 import bittensor
 
@@ -288,5 +281,6 @@ class Neuron:
         return self
 
     def __del__(self):
-        self.stop()
+        #self.stop()
+        pass
 
