@@ -16,7 +16,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-
 import argparse
 import json
 import os
@@ -24,28 +23,21 @@ import re
 import stat
 import traceback as tb
 
+import threading
 from io import StringIO
-from munch import Munch
 from termcolor import colored
+import multiprocessing as mp
+import bittensor.utils.networking as net
 from cryptography.exceptions import InvalidSignature, InvalidKey
 from cryptography.fernet import InvalidToken
 
-import bittensor
+from munch import Munch
+from typing import Tuple, List, Optional
 
+import bittensor
 from loguru import logger
 logger = logger.opt(colors=True)
 
-class FailedConnectToChain(Exception):
-    pass
-
-class FailedSubscribeToChain(Exception):
-    pass
-
-class FailedToEnterNeuron(Exception):
-    pass
-
-class FailedToPollChain(Exception):
-    pass
 
 class Neuron:
     def __init__(self, 
@@ -98,13 +90,9 @@ class Neuron:
         if metagraph == None:
             metagraph = bittensor.metagraph.Metagraph(config = self.config, wallet = self.wallet, subtensor = self.subtensor)
         self.metagraph = metagraph
-        # Nucleus: Processes requests passed to this neuron on its axon endpoint.
-        if nucleus == None:
-            nucleus = bittensor.nucleus.Nucleus(config = self.config, wallet = self.wallet )
-        self.nucleus = nucleus
         # Axon: RPC server endpoint which serves your synapse. Responds to Forward and Backward requests.
         if axon == None:
-            axon = bittensor.axon.Axon(config = self.config, wallet = self.wallet, nucleus = self.nucleus )
+            axon = bittensor.axon.Axon(config = self.config, wallet = self.wallet )
         self.axon = axon
         # Dendrite: RPC client makes Forward and Backward requests to downstream peers.
         if dendrite == None:
@@ -124,7 +112,6 @@ class Neuron:
         bittensor.wallet.Wallet.add_args( parser )
         bittensor.subtensor.Subtensor.add_args( parser )
         bittensor.metagraph.Metagraph.add_args( parser )
-        bittensor.nucleus.Nucleus.add_args( parser )
         bittensor.axon.Axon.add_args(parser)
         bittensor.dendrite.Dendrite.add_args( parser )
         bittensor.synapse.Synapse.add_args( parser )
@@ -133,6 +120,18 @@ class Neuron:
                                 help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
         except:
             pass
+        try:
+            parser.add_argument(
+                '--use_upnpc', 
+                dest='use_upnpc', 
+                action='store_true', 
+                help='''Turns on port forwarding on your router using upnpc.'''
+            )
+            parser.set_defaults ( 
+                use_upnpc=False 
+            )
+        except argparse.ArgumentError:
+            pass      
         try:
             parser.add_argument(
                 '--record_log', 
@@ -170,6 +169,32 @@ class Neuron:
     def check_config(config: Munch):
         assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
 
+    def __exit__ ( self, exc_type, exc_value, exc_traceback ): 
+        self.shutdown()
+
+    def __del__ ( self ):
+        self.shutdown()
+
+    def __enter__ ( self ):
+        self.startup()
+
+    def startup ( self ):
+        self.init_logging()
+        self.init_debugging()
+        self.init_external_ports_and_addresses()
+        self.init_wallet()
+        self.connect_to_chain()
+        self.subscribe_to_chain()
+        self.init_axon()
+        self.sync_metagraph()
+
+    def shutdown ( self ):
+        self.teardown_axon()
+
+    def teardown_axon(self):
+        logger.info('\nTearing down axon...')
+        self.axon.stop()
+
     def init_debugging( self ):
         # ---- Set debugging ----
         if self.config.debug: bittensor.__debug_on__ = True; logger.info('debug is <green>ON</green>')
@@ -187,6 +212,28 @@ class Neuron:
             logger.info('logging is <green>ON</green> with sink: <cyan>{}</cyan>', "~/.bittensor/bittensor_output.log")
         else: 
             logger.info('logging is <red>OFF</red>')
+
+    def init_external_ports_and_addresses ( self ):
+        # ---- Punch holes for UPNPC ----
+        if self.config.use_upnpc: 
+            logger.info('upnpc is <green>ON</green>')
+            try:
+                self.external_port = net.upnpc_create_port_map( local_port = self.config.axon.local_port )
+            except net.UPNPCException as upnpc_exception:
+                logger.critical('Failed to hole-punch with upnpc')
+                quit()
+        else: 
+            logger.info('upnpc is <red>OFF</red>')
+            self.external_port = self.config.axon.local_port
+
+        # ---- Get external ip ----
+        logger.info('\nFinding external ip...')
+        try:
+            self.external_ip = net.get_external_ip()
+        except net.ExternalIPNotFound as external_port_exception:
+            logger.critical('Unable to attain your external ip. Check your internet connection.')
+            quit()
+        logger.success('Found external ip: <cyan>{}</cyan>', self.external_ip)
 
     def init_wallet( self ):
         # ---- Load Wallets ----
@@ -220,8 +267,8 @@ class Neuron:
         logger.info('\nSubscribing to chain...')
         subscribe_success = self.subtensor.subscribe(
                 wallet = self.wallet,
-                ip = self.config.axon.external_ip, 
-                port = self.config.axon.external_port,
+                ip = self.external_ip, 
+                port = self.external_port,
                 modality = bittensor.proto.Modality.TEXT,
                 wait_for_finalization = True,
                 timeout = 4 * bittensor.__blocktime__,
@@ -229,64 +276,3 @@ class Neuron:
         if not subscribe_success:
             logger.critical('Failed to subscribe neuron.')
             quit()
-
-    def teardown_axon(self):
-        logger.info('\nTearing down axon...')
-        self.axon.stop()
-
-    def start( self ):        
-        self.init_logging()
-        self.init_debugging()
-        self.init_wallet()
-        self.connect_to_chain()
-        self.subscribe_to_chain()
-        self.init_axon()
-        self.sync_metagraph()
-
-    def stop(self):
-        self.teardown_axon()
-
-    def __enter__(self):
-        bittensor.exceptions.handlers.rollbar.init() # If a bittensor.exceptions.handlers.rollbar token is present, this will enable error reporting to bittensor.exceptions.handlers.rollbar
-        logger.trace('Neuron enter')
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        """ Defines the exit protocol from asyncio task.
-
-        Args:
-            exc_type (Type): The type of the exception.
-            exc_value (RuntimeError): The value of the exception, typically RuntimeError. 
-            exc_traceback (traceback): The traceback that can be printed for this exception, detailing where error actually happend.
-
-        Returns:
-            Neuron: present instance of Neuron.
-        """        
-        self.stop()
-        if exc_value:
-
-            top_stack = StringIO()
-            tb.print_stack(file=top_stack)
-            top_lines = top_stack.getvalue().strip('\n').split('\n')[:-4]
-            top_stack.close()
-
-            full_stack = StringIO()
-            full_stack.write('Traceback (most recent call last):\n')
-            full_stack.write('\n'.join(top_lines))
-            full_stack.write('\n')
-            tb.print_tb(exc_traceback, file=full_stack)
-            full_stack.write('{}: {}'.format(exc_type.__name__, str(exc_value)))
-            sinfo = full_stack.getvalue()
-            full_stack.close()
-            # Log the combined stack
-            logger.opt(ansi=False).error('Exception:{}'.format(sinfo))
-
-            if bittensor.exceptions.handlers.rollbar.is_enabled():
-                bittensor.exceptions.handlers.rollbar.send_exception()
-
-        return self
-
-    def __del__(self):
-        self.stop()
-

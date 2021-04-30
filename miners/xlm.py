@@ -39,6 +39,7 @@ import sys
 import torch.nn.functional as F
 import bittensor
 
+from qqdm import qqdm, format_str
 from tqdm import tqdm
 from munch import Munch
 from termcolor import colored
@@ -69,7 +70,7 @@ class Miner( bittensor.miner.BaseMiner ):
         # ---- Row Weights ----
         self.row_weights = torch.ones([1])
 
-        # ---- Nucleus ----
+        # ---- Synapse ----
         self.synapse = XLMSynapse( self.config )
 
         # ---- Optimizer ----
@@ -107,6 +108,52 @@ class Miner( bittensor.miner.BaseMiner ):
         XLMSynapse.check_config( config )
         bittensor.miner.BaseMiner.check_config( config )
         GenesisTextDataloader.check_config( config )
+
+    # ---- Axon Forward call ----
+    def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" Called by miner.forward_loop which can be overridden by the child class.
+            The arguments reflect an RPC request from another miner in the network, the response tensor
+            should be the hidden units of the local synapse of shape [batch_size, sequence_len, __network_dim__].
+            
+            Args:
+                pubkey ( str, `required`): 
+                    The public key of the caller.
+                inputs ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
+            
+            Returns:
+                outputs (:obj:`torch.FloatTensor`): 
+                    The synapse's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
+        """
+        output = self.synapse.local_forward (
+            inputs = inputs        
+        )
+        return output.local_hidden
+
+    # ---- Axon Backward call ----
+    def backward_call( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" Called by miner.backward_loop which can be overridden in the child class.
+            Arguments reflect an RPC backward request from another miner in the network, the response tensor
+            should be the gradients of the miner's synapse w.r.t to the inputs and the passed output grads.
+            
+            Args:
+                pubkey ( str, `required`): 
+                    The public key of the caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs from previous forward call.
+                grads_dy ( :obj:`torch.Tensor`, `required`):
+                    torch grads of forward output.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
+            
+            Returns:
+                outputs (:obj:`torch.FloatTensor`): 
+                    The gradients w.r.t to the inputs [batch_size, sequence_len, __network_dim__]
+        """
+        # Not processing backward requests
+        return None
 
     def should_run( self, epoch: int ) -> bool:
         r""" Called by miner.run() every epoch, if the response is false, training stops.
@@ -175,36 +222,54 @@ class Miner( bittensor.miner.BaseMiner ):
         self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
         return self.row_weights
 
-    # ---- Get epoch batches ----
-    def get_epoch_batches( self, epoch:int ) -> List[ dict ]:
-        r""" Returns training batches for each epoch.
-            Returns:
-                batches ( List[dict], shape=(self.config.miner.epoch_length) ): 
-                    List of batches as dictionary containing tokenized sentences
-                    'inputs' = torch.LongTensor.
+    # ---- Epcoch ending logs ---
+    def epoch_logs(self):
+        r""" Called by miner.run() after each epoch.
+            Sends miner state to tensorboard.
         """
-        batches = []
-        epoch_data = self.dataset.dataloader( self.config.miner.epoch_length )
-        for iteration, inputs in tqdm( enumerate( epoch_data ) ):
-            batch = { 'inputs': inputs }
-            batches.append( batch )
-            if iteration == self.config.miner.epoch_length:
-                break
-        return batches
+        self.axon.__to_tensorboard__( self.tensorboard, self.global_step )
+        self.dendrite.__to_tensorboard__( self.tensorboard, self.global_step )
+        self.metagraph.__to_tensorboard__( self.tensorboard, self.global_step )
+
+    # ---- Training logs ----
+    def training_logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
+        r""" Called by miner.run_training_epoch() after each training step.
+            The function populates and displays the passed progress bar.
+        """
+        index = self.metagraph.state.index_for_uid[self.metagraph.uid]
+        progress_bar.set_infos({
+            'GS': colored('{}'.format(self.global_step), 'red'),
+            'LS': colored('{}'.format(iteration), 'blue'),
+            'Epoch': colored('{}'.format(self.epoch+1), 'green'),
+            'Epoch-loss': colored('{:.4f}'.format(self.epoch_loss), 'yellow'),
+            'Saved-loss': colored('{:.4f}'.format(self.last_saved_loss), 'red'),
+            'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
+            'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
+            'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
+            'nPeers': colored(self.metagraph.n, 'red'),
+            'Stake(\u03C4)': colored('{:.3f}'.format(self.metagraph.S[index]), 'green'),
+            'Rank(\u03C4)': colored('{:.3f}'.format(self.metagraph.R[index]), 'blue'),
+            'Incentive(\u03C4/block)': colored('{:.6f}'.format(self.metagraph.I[index]), 'yellow'),
+            'Axon': self.axon.__str__(),
+            'Dendrite': self.dendrite.__str__(),
+        })
+        self.tensorboard.add_scalar('R-loss', output.remote_target_loss.item(), self.global_step)
+        self.tensorboard.add_scalar('L-loss', output.local_target_loss.item(), self.global_step)
+        self.tensorboard.add_scalar('D-loss', output.distillation_loss.item(), self.global_step)
 
     # ---- Training call ----
     def training_call( self, batch: dict ) -> SimpleNamespace:
-        r""" Runs a single training batch through the nucleus and applies a gradient update.
+        r""" Runs a single training batch through the synapse and applies a gradient update.
             Args:
                 batch ( dict, `required`): 
                     training batch dictionary as returned from get_epoch_batches            
             Returns:
                 outputs ( SimpleNamespace ): 
-                    SimpleNamespace output as returned by a nucleus forward call.
+                    SimpleNamespace output as returned by a synapse forward call.
                     Must include fields local_loss, remote_loss, distillation_loss
         """
         # ---- Forward pass ----
-        inputs = batch['inputs'].to( self.synapse.device )
+        inputs = batch['inputs'].to(self.synapse.device)
         output = self.synapse.remote_forward(
             neuron = self,
             inputs = inputs,
@@ -213,10 +278,10 @@ class Miner( bittensor.miner.BaseMiner ):
 
         # ---- Backward pass ----
         output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-        output.loss.backward() # Accumulates gradients on the nucleus.
+        output.loss.backward() # Accumulates gradients on the synapse.
         self.optimizer.step() # Applies accumulated gradients.
         self.optimizer.zero_grad() # Zeros out gradients for next accummulation
-        
+
         # ---- Train row weights ----
         batch_weights = torch.mean(output.router.weights, axis = 0).to( self.synapse.device ) # Average over batch.
         self.row_weights = (1 - 0.03) * self.row_weights + 0.03 * batch_weights # Moving avg update.
@@ -224,6 +289,75 @@ class Miner( bittensor.miner.BaseMiner ):
 
         # ---- Update global loss ----
         return output
+
+    # --- Run Epoch ----
+    def run_epoch( self ):
+        r""" Called by miner.run(), calls training_call for passed batches.
+        """
+        # --- Init Epoch ----
+        total_epoch_loss = 0.0
+        training_batches = self.dataset.dataloader( self.config.miner.epoch_length )
+        progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
+        for iteration, (inputs) in progress_bar:
+
+            # ---- Forward / Backward ----
+            output = self.training_call( batch = { 'inputs': inputs }  )
+
+            # ---- Update training state ----
+            total_epoch_loss += output.local_target_loss.item()
+            self.epoch_loss = total_epoch_loss / (iteration + 1) 
+            self.global_step += 1
+            self.training_logs( progress_bar, iteration = iteration, output = output )
+
+        self.epoch += 1
+
+    # --- Run Miner ----
+    def run( self ):
+        r""" Miner main loop.
+        """
+        # ---- Setup ----
+        with self:
+
+            # --- Run state ----
+            self.epoch = -1
+            self.epoch_loss = math.inf
+            self.global_step = 0        
+            self.save_state()
+
+            # --- Run until ----
+            while self.should_run( self.epoch ):
+                try:
+                    # ---- Train ----
+                    self.run_epoch()
+
+                    # ---- Save or Reload state ----
+                    if self.should_save():
+                        self.save_state()
+                    elif self.should_reload():
+                        self.reload_state()
+
+                    # ---- Set weights ----
+                    self.metagraph.set_weights(
+                        weights = self.get_row_weights(), 
+                        wait_for_inclusion = True
+                    )
+
+                    # ---- Metagraph ----
+                    self.sync_metagraph()
+
+                    # ---- Update Tensorboard ----
+                    self.epoch_logs() 
+                
+                except KeyboardInterrupt:
+                    # User ended.
+                    break
+
+                except Exception as e:
+                    # Unintended.
+                    logger.exception('Uncaught Error in run loop: {}', e )
+                    logger.info('Reload and continue.')
+                    self.reload_state()
+                    continue
 
 if __name__ == "__main__":
     # ---- Build and Run ----

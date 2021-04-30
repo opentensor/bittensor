@@ -26,56 +26,57 @@ To run with a config file:
     $ python miners/gpt2_genesis.py --config <path to config file>
 
 """
+
 import argparse
-import math
+import copy
 import os
-import sys
-import time
+import math
+import random
 import torch
-import time
-import bittensor
+import sys
 import torch.nn.functional as F
+import bittensor
 
-
-from termcolor import colored
-from munch import Munch
-from loguru import logger
-from torch.utils.tensorboard import SummaryWriter
-from bittensor.utils.model_utils import ModelToolbox
-from synapses.gpt2 import GPT2Synapse
-from torch.nn.utils import clip_grad_norm_
-from transformers import AdamW
 from qqdm import qqdm, format_str
+from tqdm import tqdm
+from munch import Munch
+from termcolor import colored
+from transformers import AdamW
+from types import SimpleNamespace
+from synapses.gpt2 import GPT2Synapse
+from typing import Tuple, List, Optional
+from torch.nn.utils import clip_grad_norm_
 from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
+from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
-class Miner( bittensor.miner.Miner ):
+from loguru import logger
+logger = logger.opt(colors=True)
+
+class Miner( bittensor.miner.BaseMiner ):
 
     def __init__(self, config: Munch = None, **kwargs):
+        # ---- Load Config ----
         if config == None:
-            config = Miner.default_config()
-        bittensor.config.Config.update_with_kwargs(config.miner, kwargs)
-        Miner.check_config(config)
+            config = Miner.default_config();   
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
+        Miner.check_config( config )
+        logger.info( bittensor.config.Config.toString( config ) )
         self.config = config
 
-        # ---- Model ----
-        self.model = GPT2Synapse( self.config )
+        # ---- Row Weights ----
+        self.row_weights = torch.ones([1])
 
-        # ---- Model Load/Save tools ----
-        self.model_toolbox = ModelToolbox(GPT2Synapse, AdamW)
+        # ---- Model ----
+        self.synapse = GPT2Synapse( self.config )
 
         # ---- Optimizer ----
         self.optimizer = self.configure_optimizers()
         self.lr = self.config.miner.learning_rate
-        self.training_loss = math.inf
-        self.best_train_loss = math.inf
-        self.rloss = math.inf
-        self.lloss = math.inf
-        self.dloss = math.inf
 
         # ---- Dataset ----
         # The Genesis Dataset:
         # The dataset used to train Adam and his first 100 children.
-        self.dataset = GenesisTextDataloader(self.config.miner.batch_size_train, self.model.get_block_size())
+        self.dataset = GenesisTextDataloader(self.config.miner.batch_size_train, self.synapse.get_block_size())
         self.tokens = 0
         super( Miner, self ).__init__( self.config, **kwargs )
                
@@ -144,17 +145,267 @@ class Miner( bittensor.miner.Miner ):
         )
         parser.add_argument('--miner.name', default='gpt2_genesis', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
         GPT2Synapse.add_args( parser )
-        bittensor.miner.Miner.add_args( parser )
+        bittensor.miner.BaseMiner.add_args( parser )
         GenesisTextDataloader.add_args( parser )
 
     @staticmethod
     def check_config(config: Munch):
-        if config.debug:  bittensor.__log_level__ = 'TRACE'; logger.debug('DEBUG is ON')
-        else: logger.info('DEBUG is OFF') 
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
-        bittensor.miner.Miner.check_config( config )
+        bittensor.miner.BaseMiner.check_config( config )
         GenesisTextDataloader.check_config( config )
+
+    # ---- Axon Forward call ----
+    def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" Called by miner.forward_loop which can be overridden by the child class.
+            The arguments reflect an RPC request from another miner in the network, the response tensor
+            should be the hidden units of the local synapse of shape [batch_size, sequence_len, __network_dim__].
+            
+            Args:
+                pubkey ( str, `required`): 
+                    The public key of the caller.
+                inputs ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
+            
+            Returns:
+                outputs (:obj:`torch.FloatTensor`): 
+                    The synapse's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
+        """
+        output = self.synapse.local_forward (
+            inputs = inputs        
+        )
+        return output.local_hidden
+
+    # ---- Axon Backward call ----
+    def backward_call( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" Called by miner.backward_loop which can be overridden in the child class.
+            Arguments reflect an RPC backward request from another miner in the network, the response tensor
+            should be the gradients of the miner's synapse w.r.t to the inputs and the passed output grads.
+            
+            Args:
+                pubkey ( str, `required`): 
+                    The public key of the caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs from previous forward call.
+                grads_dy ( :obj:`torch.Tensor`, `required`):
+                    torch grads of forward output.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
+            
+            Returns:
+                outputs (:obj:`torch.FloatTensor`): 
+                    The gradients w.r.t to the inputs [batch_size, sequence_len, __network_dim__]
+        """
+        # Not processing backward requests
+        return None
+
+    def should_run( self, epoch: int ) -> bool:
+        r""" Called by miner.run() every epoch, if the response is false, training stops.
+        """
+        if self.config.miner.n_epochs < 0:
+            return True
+        elif epoch < self.config.miner.n_epochs:
+            return True
+        else:
+            return False
+
+    def should_save( self ) -> bool:
+        r""" Called by miner.run() after every epoch.
+            If this function returns True, the model is saved to disk and can be reloaded later.
+            Returns:
+                should_save (bool):
+                    True by default. Saves model after each epoch.
+        """
+        if self.epoch_loss < self.last_saved_loss:
+            return True
+        else:
+            return False
+
+    def should_reload(self) -> bool:
+        r""" Called by miner.run() after every epoch.
+            If the function returns True the model state dict is saved to miner.full_path.
+            Returns:
+                should_reload (bool):
+                    False by default. Does not reload the model after each epoch.
+        """
+        if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.synapse.parameters()]))):
+            return True
+
+    def get_state_dict( self ) -> dict:
+        r""" Called by miner.save_model().
+            Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
+            Returns:
+                state_dict (:obj:`dict`): 
+                    Dictionary containing run state information such as the model parameters.
+        """
+        return {
+            'synapse_state': self.synapse.state_dict(), 
+            'optimizer_state': self.optimizer.state_dict(),
+        }
+
+    def reload_from_state_dict( self, state_dict: dict):
+        r""" Called by miner.reload_model().
+            Reloads the training state from the passed state_dict. 
+            Args:
+                state_dict (:obj:`dict`): 
+                    Dictionary containing run state information such as the model parameters. Output 
+                    of get_state_dict.
+        """
+        self.synapse.load_state_dict( state_dict['synapse_state'] )
+        self.optimizer.load_state_dict( state_dict['optimizer_state'] )
+
+    # ---- Get Row Weights ----
+    def get_row_weights( self ) -> torch.FloatTensor:
+        r""" Called after each training epoch. Returns row_weights to be set on chain.
+            Returns:
+                row_weights ( torch.FloatTensor, shape=(self.metagraph.n) ): 
+                    torch row_weights matching the metagraph size.
+                    weight values should be normalized and be in range [0,1].
+        """
+        self.row_weights = torch.nn.functional.pad( self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel()] )
+        self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
+        return self.row_weights
+
+    # ---- Epcoch ending logs ---
+    def epoch_logs(self):
+        r""" Called by miner.run() after each epoch.
+            Sends miner state to tensorboard.
+        """
+        self.axon.__to_tensorboard__( self.tensorboard, self.global_step )
+        self.dendrite.__to_tensorboard__( self.tensorboard, self.global_step )
+        self.metagraph.__to_tensorboard__( self.tensorboard, self.global_step )
+
+    # ---- Training logs ----
+    def training_logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
+        r""" Called by miner.run_training_epoch() after each training step.
+            The function populates and displays the passed progress bar.
+        """
+        index = self.metagraph.state.index_for_uid[self.metagraph.uid]
+        progress_bar.set_infos({
+            'GS': colored('{}'.format(self.global_step), 'red'),
+            'LS': colored('{}'.format(iteration), 'blue'),
+            'Epoch': colored('{}'.format(self.epoch+1), 'green'),
+            'Epoch-loss': colored('{:.4f}'.format(self.epoch_loss), 'yellow'),
+            'Saved-loss': colored('{:.4f}'.format(self.last_saved_loss), 'red'),
+            'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
+            'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
+            'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
+            'nPeers': colored(self.metagraph.n, 'red'),
+            'Stake(\u03C4)': colored('{:.3f}'.format(self.metagraph.S[index]), 'green'),
+            'Rank(\u03C4)': colored('{:.3f}'.format(self.metagraph.R[index]), 'blue'),
+            'Incentive(\u03C4/block)': colored('{:.6f}'.format(self.metagraph.I[index]), 'yellow'),
+            'Axon': self.axon.__str__(),
+            'Dendrite': self.dendrite.__str__(),
+        })
+        self.tensorboard.add_scalar('R-loss', output.remote_target_loss.item(), self.global_step)
+        self.tensorboard.add_scalar('L-loss', output.local_target_loss.item(), self.global_step)
+        self.tensorboard.add_scalar('D-loss', output.distillation_loss.item(), self.global_step)
+
+    # ---- Training call ----
+    def training_call( self, batch: dict ) -> SimpleNamespace:
+        r""" Runs a single training batch through the synapse and applies a gradient update.
+            Args:
+                batch ( dict, `required`): 
+                    training batch dictionary as returned from get_epoch_batches            
+            Returns:
+                outputs ( SimpleNamespace ): 
+                    SimpleNamespace output as returned by a synapse forward call.
+                    Must include fields local_loss, remote_loss, distillation_loss
+        """
+        # ---- Forward pass ----
+        inputs = batch['inputs'].to(self.synapse.device)
+        output = self.synapse.remote_forward(
+            neuron = self,
+            inputs = inputs,
+            training = True,
+        )
+
+        # ---- Backward pass ----
+        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+        output.loss.backward() # Accumulates gradients on the synapse.
+        clip_grad_norm_(self.synapse.parameters(), self.config.miner.clip_gradients)
+        self.optimizer.step() # Applies accumulated gradients.
+        self.optimizer.zero_grad() # Zeros out gradients for next accummulation
+        self.decay_learning_rate( inputs )
+
+        # ---- Train row weights ----
+        batch_weights = torch.mean(output.router.weights, axis = 0).to( self.synapse.device ) # Average over batch.
+        self.row_weights = (1 - 0.03) * self.row_weights + 0.03 * batch_weights # Moving avg update.
+        self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
+
+        # ---- Update global loss ----
+        return output
+
+    # --- Run Epoch ----
+    def run_epoch( self ):
+        r""" Called by miner.run(), calls training_call for passed batches.
+        """
+        # --- Init Epoch ----
+        total_epoch_loss = 0.0
+        training_batches = self.dataset.dataloader( self.config.miner.epoch_length )
+        progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
+        for iteration, (inputs) in progress_bar:
+
+            # ---- Forward / Backward ----
+            output = self.training_call( batch = { 'inputs': inputs } )
+
+            # ---- Update training state ----
+            total_epoch_loss += output.local_target_loss.item()
+            self.epoch_loss = total_epoch_loss / (iteration + 1) 
+            self.global_step += 1
+            self.training_logs( progress_bar, iteration = iteration, output = output )
+
+        self.epoch += 1
+
+    # --- Run Miner ----
+    def run( self ):
+        r""" Miner main loop.
+        """
+        # ---- Setup ----
+        with self:
+
+            # --- Run state ----
+            self.epoch = -1
+            self.epoch_loss = math.inf
+            self.global_step = 0        
+            self.save_state()
+
+            # --- Run until ----
+            while self.should_run( self.epoch ):
+                try:
+                    # ---- Train ----
+                    self.run_epoch()
+
+                    # ---- Save or Reload state ----
+                    if self.should_save():
+                        self.save_state()
+                    elif self.should_reload():
+                        self.reload_state()
+
+                    # ---- Set weights ----
+                    self.metagraph.set_weights(
+                        weights = self.get_row_weights(), 
+                        wait_for_inclusion = True
+                    )
+
+                    # ---- Metagraph ----
+                    self.sync_metagraph()
+
+                    # ---- Update Tensorboard ----
+                    self.epoch_logs() 
+                
+                except KeyboardInterrupt:
+                    # User ended.
+                    break
+
+                except Exception as e:
+                    # Unintended exception.
+                    logger.exception('Uncaught Error in run loop: {}', e )
+                    logger.info('Reload and continue.')
+                    self.reload_state()
+                    continue
 
     def configure_optimizers(self):
         """
@@ -170,7 +421,7 @@ class Miner( bittensor.miner.Miner ):
         no_decay = set()
         whitelist_weight_modules = (torch.nn.Linear, )
         blacklist_weight_modules = (torch.nn.LayerNorm, torch.nn.Embedding, torch.nn.Tanh)
-        for mn, m in self.model.named_modules():
+        for mn, m in self.synapse.named_modules():
             for pn, p in m.named_parameters():
                 fpn = '%s.%s' % (mn, pn) if mn else pn # full param name
 
@@ -188,7 +439,7 @@ class Miner( bittensor.miner.Miner ):
         no_decay.add('pos_emb')
 
         # validate that we considered every parameter
-        param_dict = {pn: p for pn, p in self.model.named_parameters()}
+        param_dict = {pn: p for pn, p in self.synapse.named_parameters()}
         inter_params = decay & no_decay
         union_params = decay | no_decay
         assert len(inter_params) == 0, "parameters %s made it into both decay/no_decay sets!" % (str(inter_params), )
@@ -202,67 +453,6 @@ class Miner( bittensor.miner.Miner ):
         ]
         optimizer = torch.optim.AdamW(optim_groups, lr=self.config.miner.learning_rate, betas=(0.9, 0.95))
         return optimizer
-
-    # --- Main loop ----
-    def run (self):
-
-        # ---- Subscribe ----
-        with self:
-
-            # ---- Weights ----
-            self.row = self.metagraph.row.to(self.model.device)
-
-            # --- Run state ---
-            self.global_step = 0
-
-            # --- Loop for epochs ---
-            for self.epoch in range(self.config.miner.n_epochs):
-
-                # ---- Serve ----
-                self.axon.serve( self.model )
-
-                # ---- Train Model ----
-                self.train()
-
-                # If model has borked for some reason, we need to make sure it doesn't emit weights
-                # Instead, reload into previous version of model
-                if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.model.parameters()]))):
-                    self.model, self.optimizer = self.model_toolbox.load_model(self.config)
-                    continue
-
-                # ---- Emitting weights ----
-                try:
-                    self.metagraph.set_weights(self.row, wait_for_inclusion = True) # Sets my row-weights on the chain.
-
-                    # ---- Sync metagraph ----
-                    self.metagraph.sync() # Pulls the latest metagraph state (with my update.)
-                except:
-                    logger.error("Failed to set weights and sync metagraph! Could be  a connection  ")
-                
-                self.row = self.metagraph.row.to(self.model.device)
-                # ---- Update Tensorboard ----
-                self.dendrite.__to_tensorboard__(self.tensorboard, self.global_step)
-                self.metagraph.__to_tensorboard__(self.tensorboard, self.global_step)
-                self.axon.__to_tensorboard__(self.tensorboard, self.global_step)
-
-                # ---- Save best loss and model ----
-                if self.training_loss < self.best_train_loss: #self.epoch % 10 == 0:
-                        self.best_train_loss = self.training_loss  # update best train loss
-                        self.model_toolbox.save_model(
-                            self.config.miner.full_path,
-                            {
-                                'epoch': self.epoch,
-                                'model_state_dict': self.model.state_dict(),
-                                'loss': self.best_train_loss/3,
-                                'optimizer_state_dict': self.optimizer.state_dict(),
-                                'rloss' : self.rloss,
-                                'lloss': self.lloss,
-                                'dloss': self.dloss,
-                            }
-                        )
-                        self.tensorboard.add_scalar('Neuron/Train_loss', self.training_loss, self.global_step)
-                logger.info("This epoch's training losses: L-Loss: {:.2f} | R-Loss: {:.2f} | D-Loss: {:.2f} | avg: {:.2f} ... Current best average training loss: {:.2f}".format(self.lloss, self.rloss, self.dloss, self.training_loss/3, self.best_train_loss/3))
-
 
     def decay_learning_rate(self, batch):
         """Decay the learning rate based on the progress thus far.
@@ -295,82 +485,8 @@ class Miner( bittensor.miner.Miner ):
         for param_group in self.optimizer.param_groups:
             return param_group['lr']
 
-    # ---- Train Epoch ----
-    def train(self):
-
-        def run_epoch():
-            self.model.train(True)
-            losses = []
-            rlosses = []
-            llosses = []
-            dlosses = []
-
-            # we train for an epoch.
-            logger.info("Preparing dataset batch...")
-            # Set up the dataloader
-            dataloader = self.dataset.dataloader(self.config.miner.epoch_length)
-            pbar = qqdm(enumerate(dataloader), total=len(dataloader), desc=format_str('blue', f'Epoch Progress'))
-            for it, (batch) in pbar:
-                # ---- Forward pass ----
-                batch = batch.to(self.model.device)
-                output = self.model.remote_forward(self, batch, training=True)
-
-                # ---- Backward pass ----
-                loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-                loss.backward()
-
-                # ---- Gradient Step ----
-                clip_grad_norm_(self.model.parameters(), self.config.miner.clip_gradients)
-                self.optimizer.step()
-                self.optimizer.zero_grad()
-                self.decay_learning_rate(batch)
-
-                # Add losses up
-                losses.append(loss.item())
-                llosses.append(output.local_target_loss.item())
-                rlosses.append(output.remote_target_loss.item())
-                dlosses.append(output.distillation_loss.item())
-
-                # ---- Train row weights ----
-                batch_weights = torch.mean(output.router.weights, axis = 0).to(self.model.device) # Average over batch.
-                self.row = (1 - 0.03) * self.row + 0.03 * batch_weights # Moving avg update.
-                self.row = F.normalize(self.row, p = 1, dim = 0) # Ensure normalization.
-
-                # ---- Logging ----
-                index = self.metagraph.state.index_for_uid[self.metagraph.uid]
-                pbar.set_infos({
-                    'GS': colored('{}'.format(self.global_step), 'red'),
-                    'LS': colored('{}'.format(it), 'blue'),
-                    'Epoch': colored('{}'.format(self.epoch+1), 'green'),
-                    'L-loss': colored('{:.5f}'.format(output.local_target_loss.item()), 'red'),
-                    'R-loss': colored('{:.5f}'.format(output.remote_target_loss.item()), 'blue'),
-                    'D-loss': colored('{:.5f}'.format(output.distillation_loss.item()), 'green'),
-                    'lr': colored('{:e}'.format(self.lr), 'white'),
-                    'nPeers': self.metagraph.n,
-                    'Stake(\u03C4)': float(self.metagraph.S[index]),
-                    'Rank(\u03C4)': float(self.metagraph.R[index]),
-                    'Incentive(\u03C4/block)': float(self.metagraph.I[index]),
-                    'Axon': self.axon.__str__(),
-                    'Dendrite': self.dendrite.__str__(),
-                })
-                self.tensorboard.add_scalar('Neuron/Rloss', output.remote_target_loss.item(), self.global_step)
-                self.tensorboard.add_scalar('Neuron/Lloss', output.local_target_loss.item(), self.global_step)
-                self.tensorboard.add_scalar('Neuron/Dloss', output.distillation_loss.item(), self.global_step)
-                self.global_step += 1
-
-
-            avg_loss = sum(losses) / len(losses)
-            self.rloss = sum(rlosses) / len(rlosses)
-            self.lloss = sum(llosses) / len(llosses)
-            self.dloss = sum(dlosses) / len(dlosses)
-
-            self.training_loss = avg_loss
-
-        run_epoch()
-
 
 if __name__ == "__main__":
     # ---- Build and Run ----
     miner = Miner()
-    logger.info(bittensor.config.Config.toString(miner.config))
     miner.run()

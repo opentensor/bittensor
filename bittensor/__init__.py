@@ -42,7 +42,6 @@ import bittensor.cli
 import bittensor.dendrite
 import bittensor.metagraph
 import bittensor.logging
-import bittensor.nucleus
 import bittensor.receptor
 import bittensor.subtensor
 import bittensor.synapse
