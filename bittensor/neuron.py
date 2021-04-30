@@ -27,11 +27,13 @@ import traceback as tb
 from io import StringIO
 from munch import Munch
 from termcolor import colored
-from loguru import logger
 from cryptography.exceptions import InvalidSignature, InvalidKey
 from cryptography.fernet import InvalidToken
 
 import bittensor
+
+from loguru import logger
+logger = logger.opt(colors=True)
 
 class FailedConnectToChain(Exception):
     pass
@@ -131,67 +133,118 @@ class Neuron:
                                 help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
         except:
             pass
-
+        try:
+            parser.add_argument(
+                '--record_log', 
+                dest='record_log', 
+                action='store_true', 
+                help='''Turns on logging to file.'''
+            )
+            parser.set_defaults ( 
+                record_log=True 
+            )
+        except argparse.ArgumentError:
+            pass
+        try:
+            parser.add_argument (
+                '--debug', 
+                dest='debug', 
+                action='store_true', 
+                help='''Turn on bittensor debugging information'''
+            )
+            parser.set_defaults ( 
+                debug=False 
+            )
+        except argparse.ArgumentError:
+            pass
+        try:
+            parser.add_argument(
+                '--config', 
+                type=str, 
+                help='If set, arguments are overridden by passed file. '
+            )
+        except argparse.ArgumentError:
+            pass
+        
     @staticmethod   
     def check_config(config: Munch):
         assert config.neuron.modality == bittensor.proto.Modality.TEXT, 'Only TEXT modalities are allowed at this time.'
 
-    def start(self):
-        # ---- Check hotkey ----
-        logger.log('USER-ACTION', 'Loading wallet with path: {} name: {} hotkey: {}'.format(self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey))
-        try:
-            self.wallet.hotkey # Check loaded hotkey
-        except:
-            logger.log('USER-INFO', 'Failed to load hotkey under path:{} wallet name:{} hotkey:{}', self.config.wallet.path, self.config.wallet.name, self.config.wallet.hotkey)
-            choice = input("Would you like to create a new hotkey ? (y/N) ")
-            if choice == "y":
-                self.wallet.create_new_hotkey()
-            else:
-                raise RuntimeError('The neuron requires a loaded hotkey')
+    def init_debugging( self ):
+        # ---- Set debugging ----
+        if self.config.debug: bittensor.__debug_on__ = True; logger.info('debug is <green>ON</green>')
+        else: logger.info('debug is <red>OFF</red>')
 
-        # ---- Check coldkeypub ----
-        try:
-            self.wallet.coldkeypub
-        except:
-            logger.log('USER-INFO', 'Failed to load coldkeypub under path:{} wallet name:{}', self.config.wallet.path, self.config.wallet.name)
-            choice = input("Would you like to create a new coldkey ? (y/N) ")
-            if choice == "y":
-                self.wallet.create_new_coldkey()
-            else:
-                raise RuntimeError('The neuron requires a loaded coldkeypub')
+    def init_logging ( self ):
+        if self.config.record_log == True:
+            filepath = "~/.bittensor/bittensor_output.log"
+            logger.add (
+                filepath,
+                format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
+                rotation="25 MB",
+                retention="10 days"
+            )
+            logger.info('logging is <green>ON</green> with sink: <cyan>{}</cyan>', "~/.bittensor/bittensor_output.log")
+        else: 
+            logger.info('logging is <red>OFF</red>')
 
-        # ---- Start the axon ----
+    def init_wallet( self ):
+        # ---- Load Wallets ----
+        logger.info('\nLoading wallet...')
+        if not self.wallet.has_coldkeypub:
+            self.wallet.create_new_coldkey( n_words = 12, use_password = True )
+        if not self.wallet.has_hotkey:
+            self.wallet.create_new_hotkey( n_words = 12, use_password = False )
+
+    def init_axon( self ):
+        # ---- Starting axon ----
+        logger.info('\nStarting Axon...')
         self.axon.start()
+        
+    def sync_metagraph( self ):
+        # ---- Sync metagraph ----
+        logger.info('\nSyncing Metagraph...')
+        self.metagraph.sync()
+        logger.info( self.metagraph )
 
-        # ---- Subscribe to chain ----
-        logger.log('USER-ACTION', '\nConnecting to network: {}'.format(self.config.subtensor.network))
+    def connect_to_chain ( self ):
+        # ---- Connect to chain ----
+        logger.info('\nConnecting to network...')
         self.subtensor.connect()
+        if not self.subtensor.is_connected():
+            logger.critical('Failed to connect subtensor to network:<cyan>{}</cyan>', self.subtensor.config.subtensor.network)
+            quit()
 
-        logger.log('USER-ACTION', '\nSubscribing:')
+    def subscribe_to_chain( self ):
+        # ---- Subscribe to chain ----
+        logger.info('\nSubscribing to chain...')
         subscribe_success = self.subtensor.subscribe(
                 wallet = self.wallet,
                 ip = self.config.axon.external_ip, 
                 port = self.config.axon.external_port,
-                modality = self.config.neuron.modality,
+                modality = bittensor.proto.Modality.TEXT,
                 wait_for_finalization = True,
                 timeout = 4 * bittensor.__blocktime__,
         )
         if not subscribe_success:
-            self.stop()
-            raise RuntimeError('Failed to subscribe neuron.')
-        
-        # ---- Sync graph ----
-        self.metagraph.sync()
-        print(self.metagraph)
+            logger.critical('Failed to subscribe neuron.')
+            quit()
+
+    def teardown_axon(self):
+        logger.info('\nTearing down axon...')
+        self.axon.stop()
+
+    def start( self ):        
+        self.init_logging()
+        self.init_debugging()
+        self.init_wallet()
+        self.connect_to_chain()
+        self.subscribe_to_chain()
+        self.init_axon()
+        self.sync_metagraph()
 
     def stop(self):
-
-        logger.info('Shutting down the Axon server ...')
-        try:
-            self.axon.stop()
-            logger.info('Axon server stopped')
-        except Exception as e:
-            logger.error('Neuron: Error while stopping axon server: {} ', e)
+        self.teardown_axon()
 
     def __enter__(self):
         bittensor.exceptions.handlers.rollbar.init() # If a bittensor.exceptions.handlers.rollbar token is present, this will enable error reporting to bittensor.exceptions.handlers.rollbar
@@ -227,7 +280,7 @@ class Neuron:
             sinfo = full_stack.getvalue()
             full_stack.close()
             # Log the combined stack
-            logger.error('Exception:{}'.format(sinfo))
+            logger.opt(ansi=False).error('Exception:{}'.format(sinfo))
 
             if bittensor.exceptions.handlers.rollbar.is_enabled():
                 bittensor.exceptions.handlers.rollbar.send_exception()

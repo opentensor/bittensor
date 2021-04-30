@@ -12,6 +12,7 @@ def test_create_neuron():
 def test_boltzmann_subscribe_success():
     neuron = bittensor.neuron.Neuron()
     neuron.subtensor.connect = MagicMock(return_value = True)    
+    neuron.subtensor.is_connected = MagicMock(return_value = True)    
     neuron.subtensor.subscribe = MagicMock(return_value = True) 
     neuron.metagraph.set_weights = MagicMock()   
     neuron.metagraph.sync = MagicMock()  

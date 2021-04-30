@@ -222,7 +222,7 @@ class GPT2Synapse(bittensor.synapse.Synapse):
                             help='GPT embedding dropout probability.')
 
         parser.add_argument('--synapse.resid_pdrop', default=0.1, type=float, 
-                            help='GPT residual dropout probabilit.')
+                            help='GPT residual dropout probability.')
         
         parser.add_argument('--synapse.attn_pdrop', default=0.1, type=float, 
                             help='GPT attention dropout probability.')
