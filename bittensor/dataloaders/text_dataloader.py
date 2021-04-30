@@ -113,36 +113,44 @@ class GenesisTextDataloader(BittensorDataLoader):
         """
 
         # If we've exhausted the dataset, retrieve another corpus.
-        if self.refresh_corpus:
+        if self.refresh_corpus or len(self.data) < self.block_size:
             self.data = self.construct_text_corpus()
             self.refresh_corpus = False
 
         # If epoch_length is set then we just need a slice of 
         # the dataset we downloaded of length epoch_length. 
-        if epoch_length and epoch_length < len(self):
+        if epoch_length and epoch_length < len(self.data):
             
             # Set up upper bound of indices to fit the batch size we want. 
-            idx_bound = epoch_length * self.batch_size
-
-            # Collect enough random indices to batch together using batch_size into epoch_length batches
-            random_start = random.randint(0, len(self) - idx_bound)
-            indices = list(range(random_start, random_start + idx_bound))
-            
-            subset = Subset(self, indices)
-            
-            # Clear out these indices from our current corpus
-            try:
-                del self.data[random_start: random_start + idx_bound]
-            except Exception:
-                # There is too little data left over for us to delete according to our epoch_length, 
-                # let's get more data!
+            idx_bound = epoch_length * self.batch_size 
+            if idx_bound < len(self):
+                # Collect enough random indices to batch together using batch_size into epoch_length batches
+                random_start = random.randint(0, len(self) - idx_bound)
+                indices = list(range(random_start, random_start + idx_bound))
+                
+                subset = Subset(self, indices)
+                
+                # Clear out these indices from our current corpus
+                try:
+                    del self.data[random_start: random_start + idx_bound]
+                except Exception:
+                    # There is too little data left over for us to delete according to our epoch_length, 
+                    # let's get more data!
+                    self.refresh_corpus = True
+            else:
                 self.refresh_corpus = True
+                return DataLoader(self,
+                            shuffle=True,
+                            batch_size=self.batch_size,
+                            num_workers=self.config.dataloader.num_workers,
+                            collate_fn=self.collate_fn)
 
 
             # Set up dataloader
             return DataLoader(subset,
                             batch_size=self.batch_size,
-                            num_workers=self.config.dataloader.num_workers)
+                            num_workers=self.config.dataloader.num_workers,
+                            collate_fn=self.collate_fn)
         
         # If epoch_length is not set or it is higher than the total size of the dataset,
         #  then just shuffle dataset and return the whole thing.
@@ -150,7 +158,8 @@ class GenesisTextDataloader(BittensorDataLoader):
         return DataLoader(self,
                             shuffle=True,
                             batch_size=self.batch_size,
-                            num_workers=self.config.dataloader.num_workers)
+                            num_workers=self.config.dataloader.num_workers,
+                            collate_fn=self.collate_fn)
 
     def __len__(self):
         """Returns length of dataset minus the block size
@@ -169,18 +178,24 @@ class GenesisTextDataloader(BittensorDataLoader):
             Returns:
                 x
         """
-
         chunk = self.data[idx:idx + self.block_size]
 
         dix = []
         block_num=0
-        while block_num < self.block_size:
+        while block_num < self.block_size and len(chunk) > block_num:
             tokenized = self.tokenizer(chunk[block_num], padding=True, truncation=True)['input_ids']
             for t in tokenized:
                 if block_num < self.block_size:
                     dix.append(t)
                     block_num += 1
 
+        if len(dix) == 0:
+            return None
 
         x = torch.tensor(dix, dtype=torch.long)
         return x    
+
+    def collate_fn(self, batch):
+        batch = list(filter(lambda x: x is not None, batch))
+        return torch.utils.data.dataloader.default_collate(batch)
+    
