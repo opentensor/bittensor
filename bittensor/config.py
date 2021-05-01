@@ -63,11 +63,9 @@ class Config:
 
         params = parser.parse_known_args()[0]
         config_file = None
-        print ('load')
         config = Munch()
         if 'config' in vars(params).keys():
             config_file = vars(params)['config']
-            print (config_file)
         
         if config_file:
             config = Config.load_from_relative_path(config_file)

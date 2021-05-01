@@ -447,17 +447,16 @@ class BaseMiner( Miner ):
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(self.metagraph.I[index]), 'yellow'),
             'Axon': self.axon.__str__(),
             'Dendrite': self.dendrite.__str__(),
-        }
+        } 
         for uid, code in list(zip(self.metagraph.uids.tolist(), output.router.return_codes.tolist())):
             if int(code) == 0:
                 info[colored(str(uid), 'green')] = ''
             elif int(code) == 5:
                 info[str(uid)] = ''
             else:
-                info[colored(str(uid), 'red')] = ''
+                info[colored(str(uid), 'red')] = colored(str(code), 'red')
 
-        progress_bar1.set_infos( info1 )
-        progress_bar2.set_infos( info2 )
+        progress_bar.set_infos( info )
         self.tensorboard.add_scalar('R-loss', output.remote_target_loss.item(), self.global_step)
         self.tensorboard.add_scalar('L-loss', output.local_target_loss.item(), self.global_step)
         self.tensorboard.add_scalar('D-loss', output.distillation_loss.item(), self.global_step)

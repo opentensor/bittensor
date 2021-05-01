@@ -8,6 +8,9 @@ from bittensor.dataloaders.dataloader import BittensorDataLoader
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Subset
 
+from loguru import logger
+logger = logger.opt(colors=True)
+
 class GenesisTextDataloader(BittensorDataLoader):
     
     def __init__(
@@ -81,7 +84,7 @@ class GenesisTextDataloader(BittensorDataLoader):
 
                     # Retrieve file contents
                     file_contents = self.retrieve_text_file(random_dataset_file_hash)
-                    logger.info("Adding {} to the training corpus...".format(filename))
+                    logger.info("<green>Added:</green> <cyan>{}</cyan>".format(filename))
                     data_corpus.extend(file_contents.text.split())
 
                     # Retrieve next file descriptor
