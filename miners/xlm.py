@@ -195,6 +195,7 @@ class Miner( bittensor.miner.BaseMiner ):
                     Dictionary containing run state information such as the model parameters.
         """
         return {
+            'row_weights': self.row_weights,
             'synapse_state': self.synapse.state_dict(), 
             'optimizer_state': self.optimizer.state_dict(),
         }
@@ -207,6 +208,7 @@ class Miner( bittensor.miner.BaseMiner ):
                     Dictionary containing run state information such as the model parameters. Output 
                     of get_state_dict.
         """
+        self.row_weights = state_dict['row_weights']
         self.synapse.load_state_dict( state_dict['synapse_state'] )
         self.optimizer.load_state_dict( state_dict['optimizer_state'] )
 
@@ -222,40 +224,14 @@ class Miner( bittensor.miner.BaseMiner ):
         self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
         return self.row_weights
 
-    # ---- Epcoch ending logs ---
-    def epoch_logs(self):
-        r""" Called by miner.run() after each epoch.
-            Sends miner state to tensorboard.
+    # ---- Get Batches ----
+    def get_epoch_batches( self, epoch:int ) -> List[dict]:
+        r""" Returns training batches for each epoch.
+            Returns:
+                batches ( List[dict], shape=(self.config.miner.epoch_length) ): 
+                    List of batches as dictionary inputs.
         """
-        self.axon.__to_tensorboard__( self.tensorboard, self.global_step )
-        self.dendrite.__to_tensorboard__( self.tensorboard, self.global_step )
-        self.metagraph.__to_tensorboard__( self.tensorboard, self.global_step )
-
-    # ---- Training logs ----
-    def training_logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
-        r""" Called by miner.run_training_epoch() after each training step.
-            The function populates and displays the passed progress bar.
-        """
-        index = self.metagraph.state.index_for_uid[self.metagraph.uid]
-        progress_bar.set_infos({
-            'GS': colored('{}'.format(self.global_step), 'red'),
-            'LS': colored('{}'.format(iteration), 'blue'),
-            'Epoch': colored('{}'.format(self.epoch+1), 'green'),
-            'Epoch-loss': colored('{:.4f}'.format(self.epoch_loss), 'yellow'),
-            'Saved-loss': colored('{:.4f}'.format(self.last_saved_loss), 'red'),
-            'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
-            'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
-            'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
-            'nPeers': colored(self.metagraph.n, 'red'),
-            'Stake(\u03C4)': colored('{:.3f}'.format(self.metagraph.S[index]), 'green'),
-            'Rank(\u03C4)': colored('{:.3f}'.format(self.metagraph.R[index]), 'blue'),
-            'Incentive(\u03C4/block)': colored('{:.6f}'.format(self.metagraph.I[index]), 'yellow'),
-            'Axon': self.axon.__str__(),
-            'Dendrite': self.dendrite.__str__(),
-        })
-        self.tensorboard.add_scalar('R-loss', output.remote_target_loss.item(), self.global_step)
-        self.tensorboard.add_scalar('L-loss', output.local_target_loss.item(), self.global_step)
-        self.tensorboard.add_scalar('D-loss', output.distillation_loss.item(), self.global_step)
+        return self.dataset.dataloader( self.config.miner.epoch_length )
 
     # ---- Training call ----
     def training_call( self, batch: dict ) -> SimpleNamespace:
@@ -289,75 +265,6 @@ class Miner( bittensor.miner.BaseMiner ):
 
         # ---- Update global loss ----
         return output
-
-    # --- Run Epoch ----
-    def run_epoch( self ):
-        r""" Called by miner.run(), calls training_call for passed batches.
-        """
-        # --- Init Epoch ----
-        total_epoch_loss = 0.0
-        training_batches = self.dataset.dataloader( self.config.miner.epoch_length )
-        progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
-        for iteration, (inputs) in progress_bar:
-
-            # ---- Forward / Backward ----
-            output = self.training_call( batch = { 'inputs': inputs }  )
-
-            # ---- Update training state ----
-            total_epoch_loss += output.local_target_loss.item()
-            self.epoch_loss = total_epoch_loss / (iteration + 1) 
-            self.global_step += 1
-            self.training_logs( progress_bar, iteration = iteration, output = output )
-
-        self.epoch += 1
-
-    # --- Run Miner ----
-    def run( self ):
-        r""" Miner main loop.
-        """
-        # ---- Setup ----
-        with self:
-
-            # --- Run state ----
-            self.epoch = -1
-            self.epoch_loss = math.inf
-            self.global_step = 0        
-            self.save_state()
-
-            # --- Run until ----
-            while self.should_run( self.epoch ):
-                try:
-                    # ---- Train ----
-                    self.run_epoch()
-
-                    # ---- Save or Reload state ----
-                    if self.should_save():
-                        self.save_state()
-                    elif self.should_reload():
-                        self.reload_state()
-
-                    # ---- Set weights ----
-                    self.metagraph.set_weights(
-                        weights = self.get_row_weights(), 
-                        wait_for_inclusion = True
-                    )
-
-                    # ---- Metagraph ----
-                    self.sync_metagraph()
-
-                    # ---- Update Tensorboard ----
-                    self.epoch_logs() 
-                
-                except KeyboardInterrupt:
-                    # User ended.
-                    break
-
-                except Exception as e:
-                    # Unintended.
-                    logger.exception('Uncaught Error in run loop: {}', e )
-                    logger.info('Reload and continue.')
-                    self.reload_state()
-                    continue
 
 if __name__ == "__main__":
     # ---- Build and Run ----

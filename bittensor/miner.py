@@ -125,6 +125,15 @@ class BaseMiner( Miner ):
     @staticmethod   
     def add_args( parser: argparse.ArgumentParser ):
         Miner.add_args( parser )
+        parser.add_argument (
+                '--resume', 
+                dest='resume', 
+                action='store_true', 
+                help='''Resume training from last save state.'''
+            )
+        parser.set_defaults ( 
+            resume=False 
+        )
 
     def startup( self ):
         super().startup()
@@ -150,7 +159,7 @@ class BaseMiner( Miner ):
         raise NotImplementedError()
 
     # ---- Get epoch batches ----
-    def get_training_batches( self, epoch:int ) -> List[ dict ]:
+    def get_epoch_batches( self, epoch:int ) -> List[ dict ]:
         r""" Returns training batches for each epoch.
             Returns:
                 batches ( List[dict], shape=(self.config.miner.epoch_length) ): 
@@ -378,9 +387,11 @@ class BaseMiner( Miner ):
         """
         try:
             state_dict = self.get_state_dict()
+            state_dict['epoch'] = self.epoch
+            state_dict['epoch_loss'] = self.epoch_loss
+            state_dict['global_step'] = self.global_step
             torch.save( state_dict, "{}/model.torch".format( self.config.miner.full_path, self.epoch_loss ))
-            self.last_saved_loss = self.epoch_loss
-            logger.info( 'Saved model to: <cyan>{}/model.torch</cyan>'.format( self.config.miner.full_path ))
+            logger.success( 'Saved model to: <cyan>{}/model.torch</cyan>\n'.format( self.config.miner.full_path ))
         except Exception as e:
              logger.exception('Failed to save model with error:{}', e)
 
@@ -390,6 +401,10 @@ class BaseMiner( Miner ):
         try:
             state_dict = torch.load("{}/model.torch".format( self.config.miner.full_path ))
             self.reload_from_state_dict( state_dict )
+            self.epoch = state_dict['epoch']
+            self.epoch_loss = state_dict['epoch_loss']
+            self.global_step = state_dict['global_step']
+            logger.success( 'Reloaded model from: <cyan>{}/model.torch</cyan>\n'.format( self.config.miner.full_path ))
         except Exception as e:
             logger.exception('Failed to reload model with error: {}', e)
 
@@ -417,7 +432,7 @@ class BaseMiner( Miner ):
             The function populates and displays the passed progress bar.
         """
         index = self.metagraph.state.index_for_uid[self.metagraph.uid]
-        progress_bar.set_infos({
+        info = {
             'GS': colored('{}'.format(self.global_step), 'red'),
             'LS': colored('{}'.format(iteration), 'blue'),
             'Epoch': colored('{}'.format(self.epoch+1), 'green'),
@@ -432,49 +447,66 @@ class BaseMiner( Miner ):
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(self.metagraph.I[index]), 'yellow'),
             'Axon': self.axon.__str__(),
             'Dendrite': self.dendrite.__str__(),
-        })
+        }
+        for uid, code in list(zip(self.metagraph.uids.tolist(), output.router.return_codes.tolist())):
+            if int(code) == 0:
+                info[colored(str(uid), 'green')] = ''
+            elif int(code) == 5:
+                info[str(uid)] = ''
+            else:
+                info[colored(str(uid), 'red')] = ''
+
+        progress_bar1.set_infos( info1 )
+        progress_bar2.set_infos( info2 )
         self.tensorboard.add_scalar('R-loss', output.remote_target_loss.item(), self.global_step)
         self.tensorboard.add_scalar('L-loss', output.local_target_loss.item(), self.global_step)
         self.tensorboard.add_scalar('D-loss', output.distillation_loss.item(), self.global_step)
 
     # --- Run Epoch ----
-    def train( self ):
+    def run_epoch( self ):
         r""" Called by miner.run(), calls training_call for passed batches.
-            Args:
-                training_batches (List[dict]):
-                    Training batches as returned by get_epoch_batches.
         """
+        # --- Init Epoch ----
         total_epoch_loss = 0.0
-        training_batchs = self.get_training_batches( self.epoch )
+        training_batches = self.dataset.dataloader( self.config.miner.epoch_length )
         progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
-        for iteration, (training_batch) in progress_bar:
-            output = self.training_call( batch = training_batch )
-            total_epoch_loss += output.local_target_loss.item()
-            self.epoch_loss = total_epoch_loss / (iteration + 1) 
-            self.global_step += 1
-            self.training_logs( progress_bar, iteration = iteration, output = output )
+        for iteration, (inputs) in progress_bar:
 
+            # ---- Forward / Backward ----
+            output = self.training_call( batch = { 'inputs': inputs } )
+            total_epoch_loss += output.local_target_loss.item()
+
+            # ---- Update training state ----
+            self.training_logs( progress_bar, iteration = iteration, output = output )
+            self.global_step += 1
+
+        self.epoch_loss = total_epoch_loss / (iteration + 1) 
+        self.epoch += 1
 
     # --- Run Miner ----
     def run( self ):
         r""" Miner main loop.
         """
         # ---- Setup ----
-        with self:
+        with self:  
 
-            # --- Run state ----
-            self.epoch = -1
+            # --- Setup run state ----
+            self.epoch = 0
+            self.global_step = 0 
             self.epoch_loss = math.inf
-            self.global_step = 0        
-            self.save_state()
+            self.last_saved_loss = math.inf
+
+            # ---- Optionally reload ----
+            if self.config.resume:   
+                self.reload_state()
+            else:
+                self.save_state()  
 
             # --- Run until ----
             while self.should_run( self.epoch ):
                 try:
-                    self.epoch += 1
-
                     # ---- Train ----
-                    self.train()
+                    self.run_epoch()
 
                     # ---- Save or Reload state ----
                     if self.should_save():
@@ -499,7 +531,7 @@ class BaseMiner( Miner ):
                     break
 
                 except Exception as e:
-                    # Unintended.
+                    # Unintended exception.
                     logger.exception('Uncaught Error in run loop: {}', e )
                     logger.info('Reload and continue.')
                     self.reload_state()
