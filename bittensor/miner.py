@@ -427,7 +427,7 @@ class BaseMiner( Miner ):
         self.metagraph.__to_tensorboard__( self.tensorboard, self.global_step )
 
     # ---- Training logs ----
-    def training_logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
+    def training_logs( self, progress_bar, iteration:int, output: SimpleNamespace, prev_row_weights: List[float], next_row_weights: List[float] ):
         r""" Called by miner.run_training_epoch() after each training step.
             The function populates and displays the passed progress bar.
         """
@@ -448,13 +448,14 @@ class BaseMiner( Miner ):
             'Axon': self.axon.__str__(),
             'Dendrite': self.dendrite.__str__(),
         } 
-        for uid, code in list(zip(self.metagraph.uids.tolist(), output.router.return_codes.tolist())):
-            if int(code) == 0:
-                info[colored(str(uid), 'green')] = ''
-            elif int(code) == 5:
-                info[str(uid)] = ''
+        for idx, (uid, code) in enumerate(list(zip(self.metagraph.uids.tolist(), output.router.return_codes.tolist()))):
+            weight_dif = next_row_weights[idx] - prev_row_weights[idx]
+            if weight_dif > 0:
+                info[colored(str(uid), 'green')] = colored('{:.4f}'.format(next_row_weights[idx]), 'green')
+            elif weight_dif == 0:
+                info[str(uid)] = colored('{:.4f}'.format(next_row_weights[idx]), 'white')
             else:
-                info[colored(str(uid), 'red')] = colored(str(code), 'red')
+                info[colored(str(uid), 'red')] = colored('{:.4f}'.format(next_row_weights[idx]), 'red')
 
         progress_bar.set_infos( info )
         self.tensorboard.add_scalar('R-loss', output.remote_target_loss.item(), self.global_step)
@@ -472,11 +473,13 @@ class BaseMiner( Miner ):
         for iteration, (inputs) in progress_bar:
 
             # ---- Forward / Backward ----
+            prev_row_weights = self.get_row_weights().tolist()
             output = self.training_call( batch = { 'inputs': inputs } )
+            next_row_weights = self.get_row_weights().tolist()
             total_epoch_loss += output.local_target_loss.item()
 
             # ---- Update training state ----
-            self.training_logs( progress_bar, iteration = iteration, output = output )
+            self.training_logs( progress_bar, iteration = iteration, output = output, prev_row_weights = prev_row_weights, next_row_weights = next_row_weights )
             self.global_step += 1
 
         self.epoch_loss = total_epoch_loss / (iteration + 1) 
@@ -529,10 +532,10 @@ class BaseMiner( Miner ):
                     # User ended.
                     break
 
-                except Exception as e:
-                    # Unintended exception.
-                    logger.exception('Uncaught Error in run loop: {}', e )
-                    logger.info('Reload and continue.')
-                    self.reload_state()
-                    continue
+                # except Exception as e:
+                #     # Unintended exception.
+                #     logger.exception('Uncaught Error in run loop: {}', e )
+                #     logger.info('Reload and continue.')
+                #     self.reload_state()
+                #     continue
 

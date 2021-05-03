@@ -65,7 +65,7 @@ class GenesisTextDataloader(BittensorDataLoader):
             string: Contents of the text file. 
         """
         try:
-            logger.info("Retrieving a dataset file from the IPFS gateway...")
+            logger.info("Retrieving a dataset files from the IPFS gateway...")
             directory = self.retrieve_directory(self.genesis_text_dataset_hash)
             data_corpus = []
 
@@ -92,6 +92,7 @@ class GenesisTextDataloader(BittensorDataLoader):
                     filename = random_dataset_file['Name']
                     total_dataset_size += int(random_dataset_file['Size'])
                 
+                logger.info('')
                 return data_corpus
                 
 
