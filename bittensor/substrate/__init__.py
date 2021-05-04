@@ -25,6 +25,11 @@ import re
 
 from autobahn.asyncio.websocket import WebSocketClientProtocol, WebSocketClientFactory
 
+# --- Removes logging from autobahn for message level < CRITICAL
+import logging
+for key in logging.Logger.manager.loggerDict.keys():
+    logging.getLogger(key).setLevel(logging.CRITICAL)
+
 from scalecodec import ScaleBytes, GenericCall
 from scalecodec.base import ScaleDecoder, RuntimeConfiguration, RuntimeConfigurationObject
 from scalecodec.block import ExtrinsicsDecoder, EventsDecoder, LogDigest, Extrinsic

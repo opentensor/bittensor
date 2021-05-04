@@ -64,11 +64,12 @@ class Config:
         params = parser.parse_known_args()[0]
         config_file = None
         config = Munch()
-        if 'miner.config_file' in vars(params).keys():
-            config_file = vars(params)['miner.config_file']
+        if 'config' in vars(params).keys():
+            config_file = vars(params)['config']
         
         if config_file:
             config = Config.load_from_relative_path(config_file)
+            print (config)
 
         # 3. Splits params on dot syntax i.e neuron.axon_port
         for arg_key, arg_val in params.__dict__.items():
