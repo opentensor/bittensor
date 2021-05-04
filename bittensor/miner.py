@@ -86,6 +86,12 @@ class Miner( bittensor.neuron.Neuron ):
                 action='store_true',
                 help='Turn on bittensor logging to tensorboard'
             )
+            parser.add_argument (
+                '--miner.no_tensorboard',
+                dest='use_tensorboard',
+                action='store_false',
+                help='Turn on bittensor logging to tensorboard'
+            )
             parser.set_defaults ( 
                 use_tensorboard=True 
             )
