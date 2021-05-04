@@ -10,7 +10,7 @@ def test_run_gpt2():
     miner = Miner(
         n_epochs = 1,
         epoch_length = 2,
-        name = 'pytest_xlm'
+        name = 'pytest_gpt2'
     )
     miner.subtensor.connect = MagicMock(return_value = True)  
     miner.subtensor.is_connected = MagicMock(return_value = True)      
