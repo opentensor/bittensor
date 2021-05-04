@@ -307,9 +307,12 @@ class Miner( bittensor.miner.BaseMiner ):
         self.decay_learning_rate( inputs )
 
         # ---- Train row weights ----
+        print( output.router.weights ) 
+
         batch_weights = torch.mean(output.router.weights, axis = 0).to( self.synapse.device ) # Average over batch.
         self.row_weights = (1 - 0.03) * self.row_weights + 0.03 * batch_weights # Moving avg update.
         self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
+        print( self.row_weights ) 
 
         # ---- Update global loss ----
         return output
