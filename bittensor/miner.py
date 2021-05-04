@@ -20,6 +20,9 @@ from typing import Tuple, List, Optional
 from torch.utils.tensorboard import SummaryWriter
 import bittensor
 
+from datetime import datetime
+from tensorboard import program
+
 from loguru import logger
 logger = logger.opt(colors=True)
 
@@ -44,7 +47,6 @@ class Miner( bittensor.neuron.Neuron ):
         config = copy.deepcopy( config ); bittensor.config.Config.update_with_kwargs( config, kwargs )
         Miner.check_config( config )
         self.config = config
-        self.tensorboard = SummaryWriter( log_dir = self.config.miner.full_path )
         super( Miner, self ).__init__( self.config, **kwargs )
 
     @staticmethod   
@@ -75,6 +77,20 @@ class Miner( bittensor.neuron.Neuron ):
                 help='Root path to load and save data associated with each miner'
             )
         except argparse.ArgumentError:
+            logger.warning('argument miner.root_dir was parsed twice')
+            pass
+        try:
+            parser.add_argument (
+                '--miner.use_tensorboard',
+                dest='use_tensorboard',
+                action='store_true',
+                help='Turn on bittensor logging to tensorboard'
+            )
+            parser.set_defaults ( 
+                use_tensorboard=True 
+            )
+        except argparse.ArgumentError:
+            logger.warning('argument miner.root_dir was parsed twice')
             pass
     
     def init_logging ( self ):
@@ -87,9 +103,31 @@ class Miner( bittensor.neuron.Neuron ):
                 rotation="25 MB",
                 retention="10 days"
             )
-            logger.info('logging is <green>ON</green> with sink: <cyan>{}</cyan>', filepath)
+            logger.info('LOGGING is <green>ON</green> with sink: <cyan>{}</cyan>', filepath)
         else: 
-            logger.info('logging is <red>OFF</red>')
+            logger.info('LOGGING is <red>OFF</red>')
+
+    def init_tensorboad( self ):
+        if self.config.use_tensorboard == True:
+            event_file_dir = self.config.miner.full_path + '/tensorboard-' + '-'.join(str(datetime.now()).split())
+            self.tensorboard = SummaryWriter( log_dir = event_file_dir )
+            self._tensorboard_program = program.TensorBoard()
+            self._tensorboard_program.configure(argv=[None, '--logdir', event_file_dir ])
+            self._tensorbaord_url = self._tensorboard_program.launch()
+            logger.info('TENSORBOARD is <green>ON</green> with entrypoint: <cyan>http://localhost:6006/</cyan>', )
+        else: 
+            logger.info('TENSORBOARD is <red>OFF</red>')
+
+    def startup( self ):
+        self.init_logging()
+        self.init_tensorboad()
+        self.init_debugging()
+        self.init_external_ports_and_addresses()
+        self.init_wallet()
+        self.connect_to_chain()
+        self.subscribe_to_chain()
+        self.init_axon()
+        self.sync_metagraph()
 
 class BaseMiner( Miner ):
 
@@ -447,6 +485,7 @@ class BaseMiner( Miner ):
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(self.metagraph.I[index]), 'yellow'),
             'Axon': self.axon.__str__(),
             'Dendrite': self.dendrite.__str__(),
+            '\n': '\n',
         } 
         for idx, (uid, code) in enumerate(list(zip(self.metagraph.uids.tolist(), output.router.return_codes.tolist()))):
             weight_dif = next_row_weights[idx] - prev_row_weights[idx]

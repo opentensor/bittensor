@@ -197,8 +197,8 @@ class Neuron:
 
     def init_debugging( self ):
         # ---- Set debugging ----
-        if self.config.debug: bittensor.__debug_on__ = True; logger.info('debug is <green>ON</green>')
-        else: logger.info('debug is <red>OFF</red>')
+        if self.config.debug: bittensor.__debug_on__ = True; logger.info('DEBUG is <green>ON</green>')
+        else: logger.info('DEBUG is <red>OFF</red>')
 
     def init_logging ( self ):
         if self.config.record_log == True:
@@ -209,21 +209,21 @@ class Neuron:
                 rotation="25 MB",
                 retention="10 days"
             )
-            logger.info('logging is <green>ON</green> with sink: <cyan>{}</cyan>', "~/.bittensor/bittensor_output.log")
+            logger.info('LOGGING is <green>ON</green> with sink: <cyan>{}</cyan>', "~/.bittensor/bittensor_output.log")
         else: 
-            logger.info('logging is <red>OFF</red>')
+            logger.info('LOGGING is <red>OFF</red>')
 
     def init_external_ports_and_addresses ( self ):
         # ---- Punch holes for UPNPC ----
         if self.config.use_upnpc: 
-            logger.info('upnpc is <green>ON</green>')
+            logger.info('UPNPC is <green>ON</green>')
             try:
                 self.external_port = net.upnpc_create_port_map( local_port = self.config.axon.local_port )
             except net.UPNPCException as upnpc_exception:
                 logger.critical('Failed to hole-punch with upnpc')
                 quit()
         else: 
-            logger.info('upnpc is <red>OFF</red>')
+            logger.info('UPNPC is <red>OFF</red>')
             self.external_port = self.config.axon.local_port
 
         # ---- Get external ip ----
