@@ -475,7 +475,16 @@ class BaseMiner( Miner ):
         r""" Called by miner.run_training_epoch() after each training step.
             The function populates and displays the passed progress bar.
         """
-        index = self.metagraph.state.index_for_uid[self.metagraph.uid]
+        try:
+            index = self.metagraph.state.index_for_uid[self.metagraph.uid]
+            stake = self.metagraph.S[index]
+            rank = self.metagraph.R[index]
+            incentive = self.metagraph.I[index]
+        except:
+            stake = 0.0
+            rank = 0.0
+            incentive = 0.0
+            pass
         info = {
             'GS': colored('{}'.format(self.global_step), 'red'),
             'LS': colored('{}'.format(iteration), 'blue'),
@@ -486,9 +495,9 @@ class BaseMiner( Miner ):
             'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
             'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
             'nPeers': colored(self.metagraph.n, 'red'),
-            'Stake(\u03C4)': colored('{:.3f}'.format(self.metagraph.S[index]), 'green'),
-            'Rank(\u03C4)': colored('{:.3f}'.format(self.metagraph.R[index]), 'blue'),
-            'Incentive(\u03C4/block)': colored('{:.6f}'.format(self.metagraph.I[index]), 'yellow'),
+            'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
+            'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
+            'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
             'Axon': self.axon.__str__(),
             'Dendrite': self.dendrite.__str__(),
             '\n': '\n',

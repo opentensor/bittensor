@@ -62,7 +62,7 @@ class Miner( bittensor.miner.BaseMiner ):
         # ---- Load Config ----
         if config == None:
             config = Miner.default_config();   
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
+        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs( config.miner, kwargs )
         Miner.check_config( config )
         logger.info( bittensor.config.Config.toString( config ) )
         self.config = config
