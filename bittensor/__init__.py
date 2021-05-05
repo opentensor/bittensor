@@ -18,6 +18,8 @@
 import sys
 import random
 from loguru import logger
+import nest_asyncio
+nest_asyncio.apply()
 
 import bittensor.bittensor_pb2 as proto
 import bittensor.bittensor_pb2_grpc as grpc
