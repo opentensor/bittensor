@@ -25,7 +25,7 @@ This is the fastest way to get an answer is the development team is active on Di
 
 ## What should I know before I get started?
 Bittensor is still in the Alpha stages, and as such you will likely run into some problems in deploying your model or installing Bittensor itself. If you run into an issue 
-or resolve an issue yourself, feel free to create a pull request with a fix or with a fix to the documentation. The documentation repository can be found [here](https://github.com/opentensor/opentensor.github.io). 
+or resolve an issue yourself, feel free to create a pull request with a fix or with a fix to the documentation. The documentation repository can be found [here](https://app.gitbook.com/@opentensor/s/bittensor/). 
 
 Additionally, note that the entire implementation of Bittensor cnosists of two separate repositories: [The core Bittensor code](https://github.com/opentensor/bittensor) and the Bittensor Blockchain [subtensor](https://github.com/opentensor/subtensor).
 
@@ -41,7 +41,7 @@ Before creating bug reports, please check [this list](#before-submitting-a-bug-r
 
 #### Before Submitting A Bug Report
 
-* **Check the [debugging guide](https://opentensor.github.io/bittensor/debugging.html).** You might be able to find the cause of the problem and fix things yourself. Most importantly, check if you can reproduce the problem in the latest version of Bittensor by updating to the latest Master branch changes.
+* **Check the [debugging guide](https://app.gitbook.com/@opentensor/s/bittensor/getting-started/debugging).** You might be able to find the cause of the problem and fix things yourself. Most importantly, check if you can reproduce the problem in the latest version of Bittensor by updating to the latest Master branch changes.
 * **Check the [Discord Server](https://discord.gg/7wvFuPJZgq)** and ask in #running-a-node channel or #contributions.
 * **Determine which repository the problem should be reported in**: if it has to do with your ML model, then it's likely [Bittensor](https://github.com/opentensor/bittensor). If you are having problems with your emissions or Blockchain, then it is in [subtensor](https://github.com/opentensor/subtensor) 
 
@@ -73,7 +73,7 @@ Include details about your configuration and environment:
 * **What's the name and version of the OS you're using**?
 * **Are you running Bittensor in a virtual machine?** If so, which VM software are you using and which operating systems and versions are used for the host and the guest?
 * **Are you running Bittensor in a dockerized container?** If so, have you made sure that your docker container contains your latest changes and is up to date with Master branch?
-* **Are you using [local configuration files](https://opentensor.github.io/getting-started/configuration.html)** `config.yaml` to customize your Bittensor experiment? If so, provide the contents of that config file, preferably in a [code block](https://help.github.com/articles/markdown-basics/#multiple-lines) or with a link to a [gist](https://gist.github.com/).
+* **Are you using [local configuration files](https://app.gitbook.com/@opentensor/s/bittensor/getting-started/configuration)** `config.yaml` to customize your Bittensor experiment? If so, provide the contents of that config file, preferably in a [code block](https://help.github.com/articles/markdown-basics/#multiple-lines) or with a link to a [gist](https://gist.github.com/).
 
 ### Suggesting Enhancements
 
@@ -83,7 +83,7 @@ Before creating enhancement suggestions, please check [this list](#before-submit
 
 #### Before Submitting An Enhancement Suggestion
 
-* **Check the [debugging guide](https://opentensor.github.io/bittensor/debugging.html).** for tips — you might discover that the enhancement is already available. Most importantly, check if you're using the latest version of Bittensor by pulling the latest changes from the Master branch and if you can get the desired behavior by changing [Bittensor's config settings](https://opentensor.github.io/getting-started/configuration.html).
+* **Check the [debugging guide](https://app.gitbook.com/@opentensor/s/bittensor/getting-started/debugging).** for tips — you might discover that the enhancement is already available. Most importantly, check if you're using the latest version of Bittensor by pulling the latest changes from the Master branch and if you can get the desired behavior by changing [Bittensor's config settings](https://app.gitbook.com/@opentensor/s/bittensor/getting-started/configuration).
 * **Determine which repository the problem should be reported in: if it has to do with your ML model, then it's likely [Bittensor](https://github.com/opentensor/bittensor). If you are having problems with your emissions or Blockchain, then it is in [subtensor](https://github.com/opentensor/subtensor) 
 
 #### How Do I Submit A (Good) Enhancement Suggestion?
@@ -109,7 +109,7 @@ Unsure where to begin contributing to Bittensor? You can start by looking throug
 
 Both issue lists are sorted by total number of comments. While not perfect, number of comments is a reasonable proxy for impact a given change will have.
 
-If you want to read about using Bittensor or developing models in Bittensor, the [Bittensor Documentation](https://opentensor.github.io) is free and available online. You can find the source to the manual in [opentensor/opentensor.github.io](http://github.com/opentensor/opentensor.github.io).
+If you want to read about using Bittensor or developing models in Bittensor, the [Bittensor Documentation](https://app.gitbook.com/@opentensor/s/bittensor/) is free and available online. 
 
 ### Pull Requests
 
