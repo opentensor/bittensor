@@ -3,11 +3,13 @@ from munch import Munch
 import pytest
 import os
 
-wallet = bittensor.wallet.Wallet (
+wallet =  bittensor.wallet.Wallet(
     path = '/tmp/pytest',
     name = 'pytest',
     hotkey = 'pytest',
-)
+) 
+wallet.create_new_coldkey(use_password=False, overwrite = True)
+wallet.create_new_hotkey(use_password=False, overwrite = True)
 subtensor = bittensor.subtensor.Subtensor (
     network = 'boltzmann'
 )

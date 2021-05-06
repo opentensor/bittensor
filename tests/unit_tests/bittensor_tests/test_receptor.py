@@ -1,3 +1,4 @@
+import os
 import grpc
 import torchvision.transforms as transforms
 import torch
@@ -10,8 +11,14 @@ from unittest.mock import MagicMock
 import bittensor.serialization as serialization
 from munch import Munch
 
-config = bittensor.receptor.Receptor.default_config()
-wallet = bittensor.wallet.Wallet( config )
+wallet =  bittensor.wallet.Wallet(
+    path = '/tmp/pytest',
+    name = 'pytest',
+    hotkey = 'pytest',
+) 
+wallet.create_new_coldkey(use_password=False, overwrite = True)
+wallet.create_new_hotkey(use_password=False, overwrite = True)
+
 neuron = bittensor.proto.Neuron(
     version = bittensor.__version__,
     public_key = wallet.hotkey.public_key,
@@ -20,7 +27,6 @@ neuron = bittensor.proto.Neuron(
 )
 receptor = bittensor.receptor.Receptor( 
     neuron = neuron, 
-    config = config, 
     wallet = wallet,
     do_backoff = False
 )
