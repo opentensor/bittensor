@@ -222,6 +222,22 @@ class BaseMiner( Miner ):
         """
         raise NotImplementedError()
 
+    def set_mechanism_weights( self ):
+        r""" Called after every training epoch, sets the row_weights into the incentive mechanism on chain.
+        """
+        row_weights = self.get_row_weights()
+        uids = self.metagraph.uids
+        did_set = self.subtensor.set_weights(
+            wallet = self.wallet,
+            uids = uids,
+            weights = row_weights, 
+            wait_for_inclusion = True
+        )
+        if did_set:
+            logger.success('Successfully set weights with row:\n {}', row_weights.tolist())
+        else:
+            logger.warning('Failed to set weights on chain.')
+
     def get_state_dict( self ) -> dict:
         r""" Called by miner.save_state().
             Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
@@ -569,11 +585,8 @@ class BaseMiner( Miner ):
                     elif self.should_reload():
                         self.reload_state()
 
-                    # ---- Set weights ----
-                    self.metagraph.set_weights(
-                        weights = self.get_row_weights(), 
-                        wait_for_inclusion = True
-                    )
+                    # ---- Set weights on chain ----
+                    self.set_mechanism_weights()
 
                     # ---- Metagraph ----
                     self.sync_metagraph()

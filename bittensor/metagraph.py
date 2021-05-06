@@ -319,6 +319,9 @@ class Metagraph():
                 pending_queries.append( self.fill_uid( uid = uid ) )
         for query in tqdm.asyncio.tqdm.as_completed( pending_queries ):
             await query
+
+        # Update last sync value.
+        self.last_sync = chain_block
         print ('\n')
 
     # Function which fills weights and neuron info for a uid.
