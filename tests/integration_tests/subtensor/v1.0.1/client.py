@@ -2,6 +2,7 @@ import os
 import time
 import pytest
 import random
+import torch
 import subprocess
 
 from typing import List
