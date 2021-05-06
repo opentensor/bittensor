@@ -444,8 +444,8 @@ def test_set_weights_success(setup_chain):
 
     result_uids = subtensorA.weight_uids_for_uid(uidA)
     result_vals = subtensorA.weight_vals_for_uid(uidA)
-    assert result_uids == w_uids
-    assert result_vals == w_vals
+    assert result_uids == w_uids.tolist()
+    assert result_vals == w_vals.tolist()
 
 
 def test_set_weights_success_transaction_fee(setup_chain):
@@ -479,11 +479,11 @@ def test_set_weights_success_transaction_fee(setup_chain):
 
     blocknr_pre = subtensorA.get_current_block()
 
-    w_uids = [uidA, uidB]
-    w_vals = [0, 1]
+    w_uids = torch.tensor([uidA, uidB])
+    w_vals = torch.tensor([0, 1])
     subtensorA.set_weights(
-        destinations=w_uids,
-        values=w_vals,
+        uids = w_uids,
+        weights = w_vals,
         wait_for_finalization=True,
         timeout=4 * bittensor.__blocktime__,
         wallet=walletA
