@@ -20,9 +20,12 @@ from typing import Tuple, List, Optional
 from torch.utils.tensorboard import SummaryWriter
 import bittensor
 
+<<<<<<< HEAD
 from datetime import datetime
 from tensorboard import program
 
+=======
+>>>>>>> 993a5268483758f6d64654eff3275012ae4f7681
 from loguru import logger
 logger = logger.opt(colors=True)
 
@@ -47,6 +50,10 @@ class Miner( bittensor.neuron.Neuron ):
         config = copy.deepcopy( config ); bittensor.config.Config.update_with_kwargs( config, kwargs )
         Miner.check_config( config )
         self.config = config
+<<<<<<< HEAD
+=======
+        self.tensorboard = SummaryWriter( log_dir = self.config.miner.full_path )
+>>>>>>> 993a5268483758f6d64654eff3275012ae4f7681
         super( Miner, self ).__init__( self.config, **kwargs )
 
     @staticmethod   
@@ -77,6 +84,7 @@ class Miner( bittensor.neuron.Neuron ):
                 help='Root path to load and save data associated with each miner'
             )
         except argparse.ArgumentError:
+<<<<<<< HEAD
             logger.warning('argument miner.root_dir was parsed twice')
             pass
         try:
@@ -97,6 +105,8 @@ class Miner( bittensor.neuron.Neuron ):
             )
         except argparse.ArgumentError:
             logger.warning('argument miner.root_dir was parsed twice')
+=======
+>>>>>>> 993a5268483758f6d64654eff3275012ae4f7681
             pass
     
     def init_logging ( self ):
@@ -109,6 +119,7 @@ class Miner( bittensor.neuron.Neuron ):
                 rotation="25 MB",
                 retention="10 days"
             )
+<<<<<<< HEAD
             logger.info('LOGGING is <green>ON</green> with sink: <cyan>{}</cyan>', filepath)
         else: 
             logger.info('LOGGING is <red>OFF</red>')
@@ -134,6 +145,11 @@ class Miner( bittensor.neuron.Neuron ):
         self.subscribe_to_chain()
         self.init_axon()
         self.sync_metagraph()
+=======
+            logger.info('logging is <green>ON</green> with sink: <cyan>{}</cyan>', filepath)
+        else: 
+            logger.info('logging is <red>OFF</red>')
+>>>>>>> 993a5268483758f6d64654eff3275012ae4f7681
 
 class BaseMiner( Miner ):
 
@@ -169,6 +185,7 @@ class BaseMiner( Miner ):
     @staticmethod   
     def add_args( parser: argparse.ArgumentParser ):
         Miner.add_args( parser )
+<<<<<<< HEAD
         parser.add_argument (
                 '--resume', 
                 dest='resume', 
@@ -188,6 +205,8 @@ class BaseMiner( Miner ):
         super().shutdown()
         self.stop_forward_loop()
         self.stop_backward_loop()
+=======
+>>>>>>> 993a5268483758f6d64654eff3275012ae4f7681
 
     # ---- Training call ----
     def training_call( self, batch: dict ) -> SimpleNamespace:
@@ -240,6 +259,7 @@ class BaseMiner( Miner ):
                     of get_state_dict.
         """
         raise NotImplementedError()
+<<<<<<< HEAD
 
        # ---- Subclass Forward call ----
     def forward_call( self, pubkey:str, inputs:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
@@ -402,6 +422,8 @@ class BaseMiner( Miner ):
                     logger.success("Backward thread joined.")
                 else:
                     logger.error('Failed join backward thread.')
+=======
+>>>>>>> 993a5268483758f6d64654eff3275012ae4f7681
         
 
     def should_run( self, epoch: int ) -> bool:
@@ -431,6 +453,7 @@ class BaseMiner( Miner ):
         """
         try:
             state_dict = self.get_state_dict()
+<<<<<<< HEAD
             state_dict['epoch'] = self.epoch
             state_dict['epoch_loss'] = self.epoch_loss
             state_dict['global_step'] = self.global_step
@@ -438,12 +461,20 @@ class BaseMiner( Miner ):
             logger.success( 'Saved model to: <cyan>{}/model.torch</cyan>\n'.format( self.config.miner.full_path ))
         except Exception as e:
              logger.exception('Failed to save model with error:{}', e)
+=======
+            torch.save( state_dict, "{}/model.torch".format( self.config.miner.full_path, self.epoch_loss ))
+            self.last_saved_loss = self.epoch_loss
+            logger.info( 'Saved model to: <cyan>{}/model.torch</cyan>'.format( self.config.miner.full_path ))
+        except Exception as e:
+             logger.error('Failed to save model with error:{}', e)
+>>>>>>> 993a5268483758f6d64654eff3275012ae4f7681
 
     def reload_state( self ):
         r""" Called by miner.run() if miner.should_reload() returns True.
         """
         try:
             state_dict = torch.load("{}/model.torch".format( self.config.miner.full_path ))
+<<<<<<< HEAD
             self.reload_from_state_dict( state_dict )
             self.epoch = state_dict['epoch']
             self.epoch_loss = state_dict['epoch_loss']
@@ -451,6 +482,11 @@ class BaseMiner( Miner ):
             logger.success( 'Reloaded model from: <cyan>{}/model.torch</cyan>\n'.format( self.config.miner.full_path ))
         except Exception as e:
             logger.exception('Failed to reload model with error: {}', e)
+=======
+            reload_from_state_dict( state_dict )
+        except Exception as e:
+            logger.error('Failed to reload model with error: {}', e)
+>>>>>>> 993a5268483758f6d64654eff3275012ae4f7681
 
     def should_reload(self) -> bool:
         r""" Called by miner.run() after every epoch.
@@ -471,6 +507,7 @@ class BaseMiner( Miner ):
         self.metagraph.__to_tensorboard__( self.tensorboard, self.global_step )
 
     # ---- Training logs ----
+<<<<<<< HEAD
     def training_logs( self, progress_bar, iteration:int, output: SimpleNamespace, prev_row_weights: List[float], next_row_weights: List[float] ):
         r""" Called by miner.run_training_epoch() after each training step.
             The function populates and displays the passed progress bar.
@@ -486,6 +523,14 @@ class BaseMiner( Miner ):
             incentive = 0.0
             pass
         info = {
+=======
+    def training_logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
+        r""" Called by miner.run_training_epoch() after each training step.
+            The function populates and displays the passed progress bar.
+        """
+        index = self.metagraph.state.index_for_uid[self.metagraph.uid]
+        progress_bar.set_infos({
+>>>>>>> 993a5268483758f6d64654eff3275012ae4f7681
             'GS': colored('{}'.format(self.global_step), 'red'),
             'LS': colored('{}'.format(iteration), 'blue'),
             'Epoch': colored('{}'.format(self.epoch+1), 'green'),
@@ -495,6 +540,7 @@ class BaseMiner( Miner ):
             'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
             'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
             'nPeers': colored(self.metagraph.n, 'red'),
+<<<<<<< HEAD
             'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
@@ -512,11 +558,20 @@ class BaseMiner( Miner ):
                 info[colored(str(uid), 'red')] = colored('{:.4f}'.format(next_row_weights[idx]), 'red')
 
         progress_bar.set_infos( info )
+=======
+            'Stake(\u03C4)': colored('{:.3f}'.format(self.metagraph.S[index]), 'green'),
+            'Rank(\u03C4)': colored('{:.3f}'.format(self.metagraph.R[index]), 'blue'),
+            'Incentive(\u03C4/block)': colored('{:.6f}'.format(self.metagraph.I[index]), 'yellow'),
+            'Axon': self.axon.__str__(),
+            'Dendrite': self.dendrite.__str__(),
+        })
+>>>>>>> 993a5268483758f6d64654eff3275012ae4f7681
         self.tensorboard.add_scalar('R-loss', output.remote_target_loss.item(), self.global_step)
         self.tensorboard.add_scalar('L-loss', output.local_target_loss.item(), self.global_step)
         self.tensorboard.add_scalar('D-loss', output.distillation_loss.item(), self.global_step)
 
     # --- Run Epoch ----
+<<<<<<< HEAD
     def run_epoch( self ):
         r""" Called by miner.run(), calls training_call for passed batches.
         """
@@ -538,11 +593,28 @@ class BaseMiner( Miner ):
 
         self.epoch_loss = total_epoch_loss / (iteration + 1) 
         self.epoch += 1
+=======
+    def run_next_training_epoch( self, training_batches: List[dict] ) -> float:
+        r""" Called by miner.run(), calls training_call for passed batches.
+            Args:
+                training_batches (List[dict]):
+                    Training batches as returned by get_epoch_batches.
+        """
+        total_epoch_loss = 0.0
+        progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
+        for iteration, (training_batch) in progress_bar:
+            output = self.training_call( batch = training_batch )
+            total_epoch_loss += output.local_target_loss.item()
+            self.epoch_loss = total_epoch_loss / (iteration + 1) 
+            self.global_step += 1
+            self.training_logs( progress_bar, iteration = iteration, output = output )
+>>>>>>> 993a5268483758f6d64654eff3275012ae4f7681
 
     # --- Run Miner ----
     def run( self ):
         r""" Miner main loop.
         """
+<<<<<<< HEAD
         # ---- Setup ----
         with self:  
 
@@ -593,3 +665,38 @@ class BaseMiner( Miner ):
                 #     self.reload_state()
                 #     continue
 
+=======
+        with self:
+            # --- Run state ----
+            self.epoch = -1
+            self.epoch_loss = math.inf
+            self.global_step = 0        
+            self.save_state()
+
+            # --- Run until ----
+            while self.should_run( self.epoch ):
+                self.epoch += 1
+
+                # ---- Train ----
+                self.run_next_training_epoch( 
+                    training_batches = self.get_epoch_batches( self.epoch ) 
+                )
+
+                # ---- Save or Reload state ----
+                if self.should_save():
+                    self.save_state()
+                elif self.should_reload():
+                    self.reload_state()
+
+                # ---- Set weights ----
+                self.metagraph.set_weights(
+                    weights = self.get_row_weights(), 
+                    wait_for_inclusion = True
+                )
+
+                # ---- Metagraph ----
+                self.sync_metagraph()
+
+                # ---- Update Tensorboard ----
+                self.epoch_logs()
+>>>>>>> 993a5268483758f6d64654eff3275012ae4f7681
