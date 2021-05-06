@@ -500,7 +500,6 @@ class BaseMiner( Miner ):
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
             'Axon': self.axon.__str__(),
             'Dendrite': self.dendrite.__str__(),
-            '\n': '\n',
         } 
         for idx, (uid, code) in enumerate(list(zip(self.metagraph.uids.tolist(), output.router.return_codes.tolist()))):
             weight_dif = next_row_weights[idx] - prev_row_weights[idx]

@@ -353,7 +353,7 @@ class Metagraph():
         else:
             peers_online = 0
         peers_online = torch.numel(torch.where( self.block - self.lastemit < 1000 )[0])
-        return '<green>Metagraph:</green> block:<cyan>{}</cyan>, inflation_rate:<cyan>{}</cyan>, staked:<green>\u03C4{}</green>/<cyan>\u03C4{}</cyan>, active:<green>{}</green>/<cyan>{}</cyan>\n'.format(self.block, self.tau.item(), torch.sum(self.S), self.block/2, peers_online, self.n)
+        return '<green>Metagraph:</green> block:<cyan>{}</cyan>, inflation_rate:<cyan>{}</cyan>, staked:<green>\u03C4{}</green>/<cyan>\u03C4{}</cyan>, active:<green>{}</green>/<cyan>{}</cyan>\n'.format(self.block, self.tau, torch.sum(self.S), self.block/2, peers_online, self.n)
 
     def __full_str__(self):
         uids = self._metagraph.uids.tolist()
