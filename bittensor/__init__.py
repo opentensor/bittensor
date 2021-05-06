@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-
 import bittensor.bittensor_pb2 as proto
 import bittensor.bittensor_pb2_grpc as grpc
 
