@@ -2,23 +2,22 @@ import argparse
 import copy
 import math
 import torch
-import time
-import sys
 import os
-import traceback
 
 import threading
 import multiprocessing as mp
-import bittensor.utils.networking as net
 
-from tqdm import tqdm
+
 from munch import Munch
 from termcolor import colored
 from types import SimpleNamespace
 from qqdm import qqdm, format_str
-from typing import Tuple, List, Optional
+from typing import List
 from torch.utils.tensorboard import SummaryWriter
 import bittensor
+
+from datetime import datetime
+from tensorboard import program
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -44,7 +43,6 @@ class Miner( bittensor.neuron.Neuron ):
         config = copy.deepcopy( config ); bittensor.config.Config.update_with_kwargs( config, kwargs )
         Miner.check_config( config )
         self.config = config
-        self.tensorboard = SummaryWriter( log_dir = self.config.miner.full_path )
         super( Miner, self ).__init__( self.config, **kwargs )
 
     @staticmethod   
@@ -75,6 +73,26 @@ class Miner( bittensor.neuron.Neuron ):
                 help='Root path to load and save data associated with each miner'
             )
         except argparse.ArgumentError:
+            logger.warning('argument miner.root_dir was parsed twice')
+            pass
+        try:
+            parser.add_argument (
+                '--miner.use_tensorboard',
+                dest='use_tensorboard',
+                action='store_true',
+                help='Turn on bittensor logging to tensorboard'
+            )
+            parser.add_argument (
+                '--miner.no_tensorboard',
+                dest='use_tensorboard',
+                action='store_false',
+                help='Turn off bittensor logging to tensorboard'
+            )
+            parser.set_defaults ( 
+                use_tensorboard=True 
+            )
+        except argparse.ArgumentError:
+            logger.warning('argument miner.root_dir was parsed twice')
             pass
     
     def init_logging ( self ):
@@ -87,9 +105,31 @@ class Miner( bittensor.neuron.Neuron ):
                 rotation="25 MB",
                 retention="10 days"
             )
-            logger.info('logging is <green>ON</green> with sink: <cyan>{}</cyan>', filepath)
+            logger.info('LOGGING is <green>ON</green> with sink: <cyan>{}</cyan>', filepath)
         else: 
-            logger.info('logging is <red>OFF</red>')
+            logger.info('LOGGING is <red>OFF</red>')
+
+    def init_tensorboad( self ):
+        if self.config.use_tensorboard == True:
+            event_file_dir = self.config.miner.full_path + '/tensorboard-' + '-'.join(str(datetime.now()).split())
+            self.tensorboard = SummaryWriter( log_dir = event_file_dir )
+            self._tensorboard_program = program.TensorBoard()
+            self._tensorboard_program.configure(argv=[None, '--logdir', event_file_dir ])
+            self._tensorbaord_url = self._tensorboard_program.launch()
+            logger.info('TENSORBOARD is <green>ON</green> with entrypoint: <cyan>http://localhost:6006/</cyan>', )
+        else: 
+            logger.info('TENSORBOARD is <red>OFF</red>')
+
+    def startup( self ):
+        self.init_logging()
+        self.init_tensorboad()
+        self.init_debugging()
+        self.init_external_ports_and_addresses()
+        self.init_wallet()
+        self.connect_to_chain()
+        self.subscribe_to_chain()
+        self.init_axon()
+        self.sync_metagraph()
 
 class BaseMiner( Miner ):
 
@@ -125,6 +165,25 @@ class BaseMiner( Miner ):
     @staticmethod   
     def add_args( parser: argparse.ArgumentParser ):
         Miner.add_args( parser )
+        parser.add_argument (
+                '--resume', 
+                dest='resume', 
+                action='store_true', 
+                help='''Resume training from last save state.'''
+            )
+        parser.set_defaults ( 
+            resume=False 
+        )
+
+    def startup( self ):
+        super().startup()
+        self.start_forward_loop()
+        self.start_backward_loop()
+    
+    def shutdown(self):
+        super().shutdown()
+        self.stop_forward_loop()
+        self.stop_backward_loop()
 
     # ---- Training call ----
     def training_call( self, batch: dict ) -> SimpleNamespace:
@@ -177,6 +236,168 @@ class BaseMiner( Miner ):
                     of get_state_dict.
         """
         raise NotImplementedError()
+
+       # ---- Subclass Forward call ----
+    def forward_call( self, pubkey:str, inputs:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" Called by miner.forward_loop which can be overridden by the child class.
+            The arguments reflect an RPC request from another miner in the network, the response tensor
+            should be the hidden units of the local nucleus of shape [batch_size, sequence_len, __network_dim__].
+            
+            Args:
+                pubkey ( str, `required`): 
+                    The public key of the caller.
+                inputs ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
+            
+            Returns:
+                outputs (:obj:`torch.FloatTensor`): 
+                    The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
+        """
+        raise NotImplementedError()
+
+    # ---- Subclass Backward call ----
+    def backward_call( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" Called by miner.backward_loop which can be overridden in the child class.
+            Arguments reflect an RPC backward request from another miner in the network, the response tensor
+            should be the gradients of the miner's nucleus w.r.t to the inputs and the passed output grads.
+            
+            Args:
+                pubkey ( str, `required`): 
+                    The public key of the caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs from previous forward call.
+                grads_dy ( :obj:`torch.Tensor`, `required`):
+                    torch grads of forward output.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
+            
+            Returns:
+                outputs (:obj:`torch.FloatTensor`): 
+                    The gradients w.r.t to the inputs [batch_size, sequence_len, __network_dim__]
+        """
+        raise NotImplementedError()
+
+    def get_nucleus() -> 'bittensor.nucleus.Nucleus':
+        r""" Called by miner.should_reload().
+            Should return a bittensor.nucleus object.
+            Returns:
+                nucleus (bittensor.nucleus.Nucleus):
+                    Mine nucleus object.
+        """
+        raise NotImplementedError()
+
+    # ---- Runs the forward call -----
+    def run_next_forward_call( self ):
+        try:
+            # ---- Pull request ----
+            pong, pubkey, inputs, modality = self.axon.next_forward_item( timeout = 1.0 )
+            if None not in [ pong, pubkey, inputs, modality]:
+                outputs = self.forward_call ( 
+                    pubkey = pubkey,
+                    inputs = inputs,
+                    modality = modality
+                )
+                pong.send( outputs.detach() )
+        except Exception as e:
+            logger.exception('Error in forward thread with error {}', e)
+
+    # ---- Forward loop -----
+    def forward_loop ( self ): 
+        # ---- Loop until event is set -----
+        logger.success('<white>Forward loop:</white> Started.')
+        while not self.quit_forward.is_set():
+            with self.get_forward_lock():
+                self.run_next_forward_call()
+
+    # ---- Start up forward loop -----
+    def start_forward_loop( self ):
+        if not hasattr(self, 'forward_thread'):
+            self.forward_thread = threading.Thread( target = self.forward_loop, name = 'forward', daemon=True )
+        if not hasattr(self, 'quit_forward'):
+            self.quit_forward = mp.Event()
+        if not hasattr(self, 'lock_forward'):
+            self.lock_forward = mp.Lock()
+        if self.quit_forward.is_set():
+            self.quit_forward.clear()
+        if not self.forward_thread.is_alive():
+            self.forward_thread.start()
+
+    # ---- Get Backward lock ----
+    def get_forward_lock( self ):
+        if not hasattr(self, 'forward_lock'):
+            self.forward_lock = mp.Lock()
+        return self.forward_lock
+
+    # ---- Stop forward loop -----
+    def stop_forward_loop( self ):
+        if hasattr(self, 'quit_forward'):
+            self.quit_forward.set()
+        if hasattr(self, 'forward_thread'):
+            if self.forward_thread.is_alive():
+                self.forward_thread.join( timeout = 10 )
+                if not self.forward_thread.is_alive():
+                    logger.success("Forward thread joined.")
+                else:
+                    logger.error('Failed join forward thread.')
+    
+    # ---- Runs the backward call -----
+    def run_next_backward_call( self ):
+        try:
+            # ---- Pull request ----
+            pong, pubkey, inputs_x, grads_dy, modality = self.axon.next_backward_item( timeout = 1.0 )
+
+            # ---- Process Backward request -----
+            if None not in [ pong, pubkey, inputs_x, grads_dy, modality ]:
+                outputs = self.backward_call ( 
+                    pubkey = pubkey,
+                    inputs_x = inputs,
+                    grads_dy = grads_dy,
+                    modality = modality
+                )
+                pong.send( outputs.detach() )
+        except Exception as e:
+            logger.exception('Error in backward thread with error {}', e)
+
+    # ---- Backward loop -----
+    def backward_loop ( self ): 
+        # ---- Loop until event is set -----
+        logger.success('<white>Backward loop:</white> Started')
+        while not self.quit_forward.is_set():
+            with self.get_backward_lock():
+                self.run_next_backward_call()
+
+    # ---- Start up backward loop -----
+    def start_backward_loop( self ):
+        if not hasattr(self, 'backward_thread'):
+            self.backward_thread = threading.Thread( target = self.backward_loop, name = 'backward', daemon=True )
+        if not hasattr(self, 'quit_backward'):
+            self.quit_backward = mp.Event()
+        if not hasattr(self, 'lock_backward'):
+            self.lock_backward = mp.Lock()
+        if not self.quit_backward.is_set():
+            self.quit_backward.clear()
+        if not self.backward_thread.is_alive():
+            self.backward_thread.start()
+
+    # ---- Get Backward lock ----
+    def get_backward_lock( self ):
+        if not hasattr(self, 'backward_lock'):
+            self.backward_lock = mp.Lock()
+        return self.backward_lock
+
+    # ---- Stop backward loop -----
+    def stop_backward_loop( self ):
+        if hasattr(self, 'quit_backward'):
+            self.quit_backward.set()
+        if hasattr(self, 'backward_thread'):
+            if self.backward_thread.is_alive():
+                self.backward_thread.join( timeout = 10 )
+                if not self.backward_thread.is_alive():
+                    logger.success("Backward thread joined.")
+                else:
+                    logger.error('Failed join backward thread.')
         
 
     def should_run( self, epoch: int ) -> bool:
@@ -206,20 +427,26 @@ class BaseMiner( Miner ):
         """
         try:
             state_dict = self.get_state_dict()
+            state_dict['epoch'] = self.epoch
+            state_dict['epoch_loss'] = self.epoch_loss
+            state_dict['global_step'] = self.global_step
             torch.save( state_dict, "{}/model.torch".format( self.config.miner.full_path, self.epoch_loss ))
-            self.last_saved_loss = self.epoch_loss
-            logger.info( 'Saved model to: <cyan>{}/model.torch</cyan>'.format( self.config.miner.full_path ))
+            logger.success( 'Saved model to: <cyan>{}/model.torch</cyan>\n'.format( self.config.miner.full_path ))
         except Exception as e:
-             logger.error('Failed to save model with error:{}', e)
+             logger.exception('Failed to save model with error:{}', e)
 
     def reload_state( self ):
         r""" Called by miner.run() if miner.should_reload() returns True.
         """
         try:
             state_dict = torch.load("{}/model.torch".format( self.config.miner.full_path ))
-            reload_from_state_dict( state_dict )
+            self.reload_from_state_dict( state_dict )
+            self.epoch = state_dict['epoch']
+            self.epoch_loss = state_dict['epoch_loss']
+            self.global_step = state_dict['global_step']
+            logger.success( 'Reloaded model from: <cyan>{}/model.torch</cyan>\n'.format( self.config.miner.full_path ))
         except Exception as e:
-            logger.error('Failed to reload model with error: {}', e)
+            logger.exception('Failed to reload model with error: {}', e)
 
     def should_reload(self) -> bool:
         r""" Called by miner.run() after every epoch.
@@ -240,12 +467,21 @@ class BaseMiner( Miner ):
         self.metagraph.__to_tensorboard__( self.tensorboard, self.global_step )
 
     # ---- Training logs ----
-    def training_logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
+    def training_logs( self, progress_bar, iteration:int, output: SimpleNamespace, prev_row_weights: List[float], next_row_weights: List[float] ):
         r""" Called by miner.run_training_epoch() after each training step.
             The function populates and displays the passed progress bar.
         """
-        index = self.metagraph.state.index_for_uid[self.metagraph.uid]
-        progress_bar.set_infos({
+        try:
+            index = self.metagraph.state.index_for_uid[self.metagraph.uid]
+            stake = self.metagraph.S[index]
+            rank = self.metagraph.R[index]
+            incentive = self.metagraph.I[index]
+        except:
+            stake = 0.0
+            rank = 0.0
+            incentive = 0.0
+            pass
+        info = {
             'GS': colored('{}'.format(self.global_step), 'red'),
             'LS': colored('{}'.format(iteration), 'blue'),
             'Epoch': colored('{}'.format(self.epoch+1), 'green'),
@@ -255,66 +491,101 @@ class BaseMiner( Miner ):
             'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
             'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
             'nPeers': colored(self.metagraph.n, 'red'),
-            'Stake(\u03C4)': colored('{:.3f}'.format(self.metagraph.S[index]), 'green'),
-            'Rank(\u03C4)': colored('{:.3f}'.format(self.metagraph.R[index]), 'blue'),
-            'Incentive(\u03C4/block)': colored('{:.6f}'.format(self.metagraph.I[index]), 'yellow'),
+            'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
+            'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
+            'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
             'Axon': self.axon.__str__(),
             'Dendrite': self.dendrite.__str__(),
-        })
+            '\n': '\n',
+        } 
+        for idx, (uid, code) in enumerate(list(zip(self.metagraph.uids.tolist(), output.router.return_codes.tolist()))):
+            weight_dif = next_row_weights[idx] - prev_row_weights[idx]
+            if weight_dif > 0:
+                info[colored(str(uid), 'green')] = colored('{:.4f}'.format(next_row_weights[idx]), 'green')
+            elif weight_dif == 0:
+                info[str(uid)] = colored('{:.4f}'.format(next_row_weights[idx]), 'white')
+            else:
+                info[colored(str(uid), 'red')] = colored('{:.4f}'.format(next_row_weights[idx]), 'red')
+
+        progress_bar.set_infos( info )
         self.tensorboard.add_scalar('R-loss', output.remote_target_loss.item(), self.global_step)
         self.tensorboard.add_scalar('L-loss', output.local_target_loss.item(), self.global_step)
         self.tensorboard.add_scalar('D-loss', output.distillation_loss.item(), self.global_step)
 
     # --- Run Epoch ----
-    def run_next_training_epoch( self, training_batches: List[dict] ) -> float:
+    def run_epoch( self ):
         r""" Called by miner.run(), calls training_call for passed batches.
-            Args:
-                training_batches (List[dict]):
-                    Training batches as returned by get_epoch_batches.
         """
+        # --- Init Epoch ----
         total_epoch_loss = 0.0
+        training_batches = self.dataset.dataloader( self.config.miner.epoch_length )
         progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
-        for iteration, (training_batch) in progress_bar:
-            output = self.training_call( batch = training_batch )
+        for iteration, (inputs) in progress_bar:
+
+            # ---- Forward / Backward ----
+            prev_row_weights = self.get_row_weights().tolist()
+            output = self.training_call( batch = { 'inputs': inputs } )
+            next_row_weights = self.get_row_weights().tolist()
             total_epoch_loss += output.local_target_loss.item()
-            self.epoch_loss = total_epoch_loss / (iteration + 1) 
+
+            # ---- Update training state ----
+            self.training_logs( progress_bar, iteration = iteration, output = output, prev_row_weights = prev_row_weights, next_row_weights = next_row_weights )
             self.global_step += 1
-            self.training_logs( progress_bar, iteration = iteration, output = output )
+
+        self.epoch_loss = total_epoch_loss / (iteration + 1) 
+        self.epoch += 1
 
     # --- Run Miner ----
     def run( self ):
         r""" Miner main loop.
         """
-        with self:
-            # --- Run state ----
-            self.epoch = -1
+        # ---- Setup ----
+        with self:  
+
+            # --- Setup run state ----
+            self.epoch = 0
+            self.global_step = 0 
             self.epoch_loss = math.inf
-            self.global_step = 0        
-            self.save_state()
+            self.last_saved_loss = math.inf
+
+            # ---- Optionally reload ----
+            if self.config.resume:   
+                self.reload_state()
+            else:
+                self.save_state()  
 
             # --- Run until ----
             while self.should_run( self.epoch ):
-                self.epoch += 1
+                try:
+                    # ---- Train ----
+                    self.run_epoch()
 
-                # ---- Train ----
-                self.run_next_training_epoch( 
-                    training_batches = self.get_epoch_batches( self.epoch ) 
-                )
+                    # ---- Save or Reload state ----
+                    if self.should_save():
+                        self.save_state()
+                    elif self.should_reload():
+                        self.reload_state()
 
-                # ---- Save or Reload state ----
-                if self.should_save():
-                    self.save_state()
-                elif self.should_reload():
-                    self.reload_state()
+                    # ---- Set weights ----
+                    self.metagraph.set_weights(
+                        weights = self.get_row_weights(), 
+                        wait_for_inclusion = True
+                    )
 
-                # ---- Set weights ----
-                self.metagraph.set_weights(
-                    weights = self.get_row_weights(), 
-                    wait_for_inclusion = True
-                )
+                    # ---- Metagraph ----
+                    self.sync_metagraph()
 
-                # ---- Metagraph ----
-                self.sync_metagraph()
+                    # ---- Update Tensorboard ----
+                    self.epoch_logs() 
+                
+                except KeyboardInterrupt:
+                    # User ended.
+                    break
 
-                # ---- Update Tensorboard ----
-                self.epoch_logs()
+                # except Exception as e:
+                #     # Unintended exception.
+                #     logger.exception('Uncaught Error in run loop: {}', e )
+                #     logger.info('Reload and continue.')
+                #     self.reload_state()
+                #     continue
+

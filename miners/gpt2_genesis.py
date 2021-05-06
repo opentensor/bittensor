@@ -28,11 +28,8 @@ To run with a config file:
 """
 import argparse
 import math
-import os
 import sys
-import time
 import torch
-import time
 import bittensor
 import torch.nn.functional as F
 
@@ -40,7 +37,6 @@ import torch.nn.functional as F
 from termcolor import colored
 from munch import Munch
 from loguru import logger
-from torch.utils.tensorboard import SummaryWriter
 from bittensor.utils.model_utils import ModelToolbox
 from synapses.gpt2 import GPT2Synapse
 from torch.nn.utils import clip_grad_norm_
