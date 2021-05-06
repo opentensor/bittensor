@@ -1,7 +1,6 @@
 import argparse
 import bittensor
 import requests
-import random
 from munch import Munch
 
 from requests.adapters import HTTPAdapter

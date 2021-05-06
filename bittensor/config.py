@@ -27,10 +27,7 @@ import yaml
 
 from loguru import logger
 from munch import Munch
-from importlib.machinery import SourceFileLoader
 
-from bittensor.crypto import KeyError
-from bittensor.crypto.keyfiles import KeyFileError
 
 class InvalidConfigFile(Exception):
     pass
@@ -63,6 +60,7 @@ class Config:
 
         params = parser.parse_known_args()[0]
         config_file = None
+        print ('load')
         config = Munch()
         if 'config' in vars(params).keys():
             config_file = vars(params)['config']

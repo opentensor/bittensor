@@ -2,21 +2,17 @@ import argparse
 import copy
 import math
 import torch
-import time
-import sys
 import os
-import traceback
 
 import threading
 import multiprocessing as mp
-import bittensor.utils.networking as net
 
-from tqdm import tqdm
+
 from munch import Munch
 from termcolor import colored
 from types import SimpleNamespace
 from qqdm import qqdm, format_str
-from typing import Tuple, List, Optional
+from typing import List
 from torch.utils.tensorboard import SummaryWriter
 import bittensor
 

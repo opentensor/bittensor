@@ -1,9 +1,4 @@
-import os, sys, time
 from unittest.mock import MagicMock
-import bittensor
-import torch
-import numpy
-
 from miners.xlm import Miner
         
 def test_run_xlm_clm():

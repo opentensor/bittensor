@@ -31,21 +31,15 @@ To run with a config file and debug
 
 import argparse
 import copy
-import os
-import math
-import random
 import torch
-import sys
 import torch.nn.functional as F
 import bittensor
 
-from qqdm import qqdm, format_str
-from tqdm import tqdm
 from munch import Munch
-from termcolor import colored
+
 from types import SimpleNamespace
 from synapses.xlm import XLMSynapse
-from typing import Tuple, List, Optional
+from typing import List
 from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 

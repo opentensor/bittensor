@@ -1,9 +1,5 @@
-import os, sys
-from unittest.mock import MagicMock
-import bittensor
-import torch
-import numpy
 
+from unittest.mock import MagicMock
 from miners.gpt2_genesis import Miner
 
 def test_run_gpt2():
