@@ -426,7 +426,7 @@ def test_set_weights_success(setup_chain):
     uidB = subtensorB.get_uid_for_pubkey(walletB.hotkey.public_key)
 
     w_uids = torch.tensor([uidA, uidB])
-    w_vals = torch.tensor([pow(2, 31) - 1, pow(2, 31) - 1])
+    w_vals = torch.tensor([pow(2, 31) - 1, pow(2, 31)])
     subtensorA.set_weights(
         uids = w_uids,
         weights = w_vals,
