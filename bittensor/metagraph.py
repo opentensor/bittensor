@@ -40,7 +40,7 @@ from bittensor.crypto.keyfiles import KeyFileError
 
 MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
 
-class ChainState():
+class MetagraphCache():
     """
     Describes and maintains the current state of the subtensor blockchain. 
     """
@@ -53,44 +53,6 @@ class ChainState():
         self.weight_uids = []
         self.weight_vals = []
         self.neurons = []
-        self.index_for_uid = {}
-        self.index_for_pubkey = {}
-        self.pubkey_for_index = {}
-
-    def add_or_update(self, pubkey:str, ip: int, port: int, uid: int, ip_type: int, modality: int, lastemit: int, stake: int, w_uids: List[int], w_vals: List[int]):
-        address_str = net.int_to_ip(ip)
-        neuron = bittensor.proto.Neuron(
-            version = bittensor.__version__,
-            public_key = pubkey,
-            address = address_str,
-            port = int(port),
-            ip_type = int(ip_type),
-            modality = int(modality),
-            uid = int(uid),
-        )
-        if pubkey in self.index_for_pubkey:
-            index = self.index_for_pubkey[pubkey]
-            if self.uids[index] == uid:
-                self.neurons[index] = neuron
-                self.stake[index] = float(stake) / 1000000000 
-                self.lastemit[index] = int(lastemit)
-                self.weight_uids[index] = list(w_uids)
-                self.weight_vals[index] = list(w_vals)
-                self.uids[index] = int(uid)
-            else:
-                raise ValueError('received inconsistent uid - pubey pairing with uid{}, pubkey{} and expected uid {}'.format(uid, pubkey, self.uids[index]))
-        else:
-            index = self.n
-            self.n += 1
-            self.index_for_pubkey[pubkey] = index
-            self.pubkey_for_index[index] = pubkey
-            self.neurons.append(neuron)
-            self.stake.append(float(stake) / 1000000000)
-            self.lastemit.append(int(lastemit))
-            self.weight_uids.append(list(w_uids))
-            self.weight_vals.append(list(w_vals))
-            self.uids.append( uid )
-            self.index_for_uid[uid] = index
 
 # Static network state object.
 class TorchChainState():
@@ -127,26 +89,21 @@ class TorchChainState():
         self.stake = torch.tensor([])
         self.lastemit = torch.tensor([])
         self.weights = torch.tensor([[]])
-        self.public_keys = []
         self.neurons = []
 
-    def write_to_file(self, filepath: str ):
-        json_data = {
-            'n': self.n,
-            'block': self.block,
-            'tau': self.tau,
-            'uids': self.uids.tolist(),
-            'stake': self.stake.tolist(),
-            'lastemit': self.lastemit.tolist(),
-            'weights': self.weights.tolist(),
-            'public_keys': self.public_keys,
-            'neurons': [ {'uid': n.uid, 'ip': n.address, 'port': n.port, 'ip_type': n.ip_type, 'modality': n.modality, 'hotkey': n.public_key} for n in self.neurons]
-        }
-        with open( filepath, 'w') as fp:
-            json.dump(json_data, fp)
+    def to_cache() -> MetagraphCache:
+        cache = MetagraphCache()
+        cache.n = self.n
+        cache.block = self.block 
+        cache.tau = self.tau
+        cache.uids = self.uids.tolist()
+        cache.stake = self.stake.tolist()
+        cache.lastemit = self.lastemit.tolist()
+        cache.weights = self.weights.tolist()
+        cache.neurons = self.neurons
 
     @staticmethod
-    def from_cache(cache: ChainState):
+    def from_cache( cache: MetagraphCache ):
         r""" Deep copies from the chain state.
         """
         # Deep copies chain state into metagraph state.
@@ -154,25 +111,19 @@ class TorchChainState():
         state.n = cache.n
         state.tau = torch.tensor([0.5], dtype = torch.float32)
         state.neurons = copy.deepcopy(cache.neurons)
-        state.indices = torch.tensor(range(state.n), dtype=torch.int64)
         state.uids = torch.tensor(copy.deepcopy(cache.uids), dtype=torch.int64)
         state.lastemit = torch.tensor(copy.deepcopy(cache.lastemit), dtype=torch.int64)
         state.stake = torch.tensor(copy.deepcopy(cache.stake), dtype=torch.float32)
-        for idx, (uid, n) in enumerate(list(zip(cache.uids, cache.neurons))):
-            state.uid_for_pubkey[n.public_key] = uid
-            state.index_for_uid[uid] = idx
         weights_numpy = numpy.zeros( (state.n, state.n) )
         for i in range(state.n):
-            uids = cache.weight_uids[i]
-            vals = cache.weight_vals[i]
-            val_sum = sum(vals)
-            for uid, val in list(zip(uids, vals)):
-                if uid in cache.index_for_uid:
-                    j = cache.index_for_uid[uid]
-                    if val_sum != 0:
-                        weights_numpy[i, j] = float(val) / float(val_sum)
-                    else:
-                        weights_numpy[i, j] = 0
+            dests = cache.weight_uids[i]
+            weights = cache.weight_vals[i]
+            weight_sum = sum(weights)
+            for uid_j, weight in list(zip(dests, weights)):
+                if weight_sum != 0:
+                    weights_numpy[uid_i, uid_j] = float(weight) / float(weight_sum)
+                else:
+                    weights_numpy[uid_i, uid_j] = 0
         state.W = torch.tensor(weights_numpy, dtype=torch.float32)
         return state
 
@@ -377,65 +328,54 @@ class Metagraph():
     def sync(self):
         r""" Synchronizes the local self.state with the chain state.
         """
-        # TODO (const) this should probably be a background process
-        # however, it makes it difficult for the user if the state changes in
-        # the background.
-        current_block = self.subtensor.get_current_block()
-        # ---- Update cache ----
-        self._sync_cache()
-        self.last_sync_block = current_block
-
-        # --- Update torch state
-        self.state = TorchChainState.from_cache(self.cache)
-        self.state.block = current_block
-
-    def _sync_cache(self):
-        r""" Synchronizes the local self.state with the chain state.
-        """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        loop.run_until_complete(self._async_sync_cache())
+        loop.run_until_complete(self._async_sync_metagraph())
 
-    async def _async_sync_cache(self):
-        r""" Async: Makes calls to chain updating local chain cache with newest info.
-        """
-        # Make asyncronous calls to chain filling local state cache.
-        calls = []
-        current_block = await self.subtensor.async_get_current_block()
-        active = dict( await self.subtensor.async_get_active() )
-        last_emit = dict( await self.subtensor.async_get_last_emit() )
-        stake = dict( await self.subtensor.async_get_stake() )
+    async def _sync( self ):
 
-        for pubkey, uid in active.items():
-            if last_emit[ uid ] > self.last_sync_block:
-                calls.append( self._poll_uid ( pubkey, uid, stake[uid], last_emit[uid] ) )
+        # Query chain info.
+        chain_lastemit = dict( await self.subtensor.async_get_last_emit() ) #  List[Tuple[uid, lastemit]]
+        chain_stake = dict( await self.subtensor.async_get_stake() ) #  List[Tuple[uid, stake]]
+        chain_block = int( await self.subtensor.async_get_current_block())
 
+        # Fill pending queries.
+        pending_queries = []
+        for uid, lastemit in chain_lastemit.items():
+            if lastemit > self.last_sync:
+                pending_queries.append( self.fill_uid( uid = uid ) )
+        
+        # Make queries.
         for call in tqdm.asyncio.tqdm.as_completed( calls ):
             await call
+        print ('\n')
+        return next_cache
 
-    async def _poll_uid(self, pubkey: str, uid:int, stake_amount:int, last_emit: int ) -> bool:
-        r""" Polls info info for a specfic public key.
-        """
-        try:
-            w_uids = await self.subtensor.async_weight_uids_for_uid( uid )
-            w_vals = await self.subtensor.async_weight_vals_for_uid( uid )
-            neuron = await self.subtensor.async_get_neuron_for_uid ( uid )
-            self.cache.add_or_update(
-                pubkey = pubkey, 
-                ip = neuron['ip'], 
-                port = neuron['port'], 
+    # Function which fills weights and neuron info for a uid.
+    async def fill_uid ( self, uid: int ) -> bool:
+        #try:
+        weight_uids = await self.subtensor.async_weight_uids_for_uid( uid ) 
+        weight_vals = await self.subtensor.async_weight_vals_for_uid( uid ) 
+        neuron = await self.subtensor.async_get_neuron_for_uid( uid )
+        neuron_proto = bittensor.proto.Neuron(
+                version = bittensor.__version__,
+                public_key = neuron['hotkey'],
+                address = bittensor.utils.networking.int_to_ip(int(neuron['ip'])),
+                port = neuron['port'],
                 uid = neuron['uid'], 
-                p_type = neuron['ip_type'], 
-                modality = neuron['modality'], 
-                lastemit = last_emit, 
-                stake = stake_amount, 
-                w_uids = w_uids, 
-                w_vals = w_vals
-            )
-
-        except Exception as e:
-            logger.trace('error while polling uid: {} with error: {}', uid, e )
-            #traceback.print_exc()
+                modality = neuron['modality'],
+                ip_type = neuron['ip_type']          
+        )
+        self._metagraph.neurons[ uid ] = neuron_proto
+        uid_row = torch.zeros( [ self._metagraph.n ] )
+        for uid_j, val in list(zip( weight_uids, weight_vals )):
+            uid_row[uid_j] = float(val)
+        self._metagraph.weights[ uid ] = uid_row
+        return True
+        # except Exception as e:
+        #     print ()
+        #     print(colored('x', 'red'), end ="")
+        #     return False
 
     def __str__(self):
         if self.n != 0:
