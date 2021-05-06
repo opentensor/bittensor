@@ -40,22 +40,9 @@ from bittensor.crypto.keyfiles import KeyFileError
 
 MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
 
-class MetagraphCache():
-    """
-    Describes and maintains the current state of the subtensor blockchain. 
-    """
-    def __init__(self):
-        # Cached values.
-        self.n = 0
-        self.uids = []
-        self.stake = []
-        self.lastemit = []
-        self.weight_uids = []
-        self.weight_vals = []
-        self.neurons = []
 
 # Static network state object.
-class TorchChainState():
+class _MetagraphState():
     """ Maintains the chain state as a torch object.
 
         Args:
@@ -91,42 +78,6 @@ class TorchChainState():
         self.weights = torch.tensor([[]])
         self.neurons = []
 
-    def to_cache() -> MetagraphCache:
-        cache = MetagraphCache()
-        cache.n = self.n
-        cache.block = self.block 
-        cache.tau = self.tau
-        cache.uids = self.uids.tolist()
-        cache.stake = self.stake.tolist()
-        cache.lastemit = self.lastemit.tolist()
-        cache.weights = self.weights.tolist()
-        cache.neurons = self.neurons
-
-    @staticmethod
-    def from_cache( cache: MetagraphCache ):
-        r""" Deep copies from the chain state.
-        """
-        # Deep copies chain state into metagraph state.
-        state = TorchChainState()
-        state.n = cache.n
-        state.tau = torch.tensor([0.5], dtype = torch.float32)
-        state.neurons = copy.deepcopy(cache.neurons)
-        state.uids = torch.tensor(copy.deepcopy(cache.uids), dtype=torch.int64)
-        state.lastemit = torch.tensor(copy.deepcopy(cache.lastemit), dtype=torch.int64)
-        state.stake = torch.tensor(copy.deepcopy(cache.stake), dtype=torch.float32)
-        weights_numpy = numpy.zeros( (state.n, state.n) )
-        for i in range(state.n):
-            dests = cache.weight_uids[i]
-            weights = cache.weight_vals[i]
-            weight_sum = sum(weights)
-            for uid_j, weight in list(zip(dests, weights)):
-                if weight_sum != 0:
-                    weights_numpy[uid_i, uid_j] = float(weight) / float(weight_sum)
-                else:
-                    weights_numpy[uid_i, uid_j] = 0
-        state.W = torch.tensor(weights_numpy, dtype=torch.float32)
-        return state
-
 class Metagraph():
     """
     Maintains the chain state as a torch object.
@@ -154,10 +105,8 @@ class Metagraph():
             subtensor = bittensor.subtensor.Subtensor( self.config )
         self.subtensor = subtensor
 
-        # Chain state as cache and torch object.
-        self.last_sync_block = 0
-        self.cache = ChainState()
-        self.state = TorchChainState.from_cache(self.cache)
+        self.last_sync = 0
+        self._metagraph = _MetagraphState()
 
     @staticmethod
     def default_config() -> Munch:
@@ -183,7 +132,7 @@ class Metagraph():
                 tau (:obj:`torchFloatTensor` of shape :obj:`(1)`):
                     Current chain inflation rate.
         """
-        return self.state.tau
+        return self._metagraph.tau
 
     @property
     def n(self) -> int:
@@ -194,7 +143,7 @@ class Metagraph():
                     number of known neurons.
 
         """
-        return self.state.n
+        return self._metagraph.n
 
     @property
     def block(self) -> int:
@@ -204,7 +153,7 @@ class Metagraph():
                 block (:obj:`int`):
                     local chain state block number.
         """
-        return self.state.block
+        return self._metagraph.block
 
     @property
     def lastemit(self) -> torch.LongTensor:
@@ -214,7 +163,7 @@ class Metagraph():
                 lastemit (:obj:`int`):
                     last emit time.
         """
-        return self.state.lastemit
+        return self._metagraph.lastemit
 
     @property
     def uids(self) -> torch.LongTensor:
@@ -223,7 +172,7 @@ class Metagraph():
                 uids (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                     unique id for each neuron.
         """
-        return self.state.uids
+        return self._metagraph.uids
 
     @property
     def stake(self) -> torch.FloatTensor:
@@ -234,7 +183,7 @@ class Metagraph():
                     stake of each known neuron.
 
         """
-        return self.state.stake
+        return self._metagraph.stake
 
     @property
     def S(self) -> torch.FloatTensor:
@@ -244,7 +193,7 @@ class Metagraph():
                 S (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     Stake of each known neuron.
         """
-        return self.state.stake
+        return self._metagraph.stake
 
     @property
     def I(self) -> torch.FloatTensor:
@@ -256,7 +205,7 @@ class Metagraph():
         """
         I =  (self.tau * self.ranks) / torch.sum(self.ranks)
         I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
-        return I.view(self.state.n)
+        return I.view(self._metagraph.n)
 
     @property
     def ranks(self) -> torch.FloatTensor:
@@ -270,9 +219,9 @@ class Metagraph():
         if self.W.shape[0] == 0:
             return torch.tensor([])
         else:
-            S = self.S.view(self.state.n, 1)
-            W = torch.transpose(self.W.view(self.state.n, self.state.n), 0, 1)
-            R = torch.matmul(W, S).view(self.state.n)
+            S = self.S.view(self._metagraph.n, 1)
+            W = torch.transpose(self.W.view(self._metagraph.n, self._metagraph.n), 0, 1)
+            R = torch.matmul(W, S).view(self._metagraph.n)
         return R
 
     @property
@@ -294,7 +243,7 @@ class Metagraph():
                     Endpoint information for each neuron.
 
         """
-        return self.state.neurons
+        return self._metagraph.neurons
 
     @property
     def public_keys(self) -> List[str]:
@@ -305,7 +254,7 @@ class Metagraph():
                     Public keys of each neuron.
 
         """
-        return self.state.public_keys
+        return self._metagraph.public_keys
 
     @property
     def W(self) -> torch.FloatTensor:
@@ -314,7 +263,7 @@ class Metagraph():
                 W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
                     Weight matrix.
         """
-        return self.state.W
+        return self._metagraph.weights
 
     @property
     def weights(self) -> torch.FloatTensor:
@@ -323,33 +272,54 @@ class Metagraph():
                 W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
                     Weight matrix.
         """
-        return self.state.W
+        return self._metagraph.weights
+
+    @property
+    def public_keys( self ) -> List[str]:
+        r""" Returns neuron public keys.
+            Returns:
+                public_keys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
+                    Neuron public keys.
+        """
+        return [neuron.public_key for neuron in self.neurons]
 
     def sync(self):
-        r""" Synchronizes the local self.state with the chain state.
+        r""" Synchronizes the local self._metagraph with the chain state.
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        loop.run_until_complete(self._async_sync_metagraph())
+        loop.run_until_complete(self._async_sync())
 
-    async def _sync( self ):
+    async def _async_sync( self ):
 
         # Query chain info.
-        chain_lastemit = dict( await self.subtensor.async_get_last_emit() ) #  List[Tuple[uid, lastemit]]
-        chain_stake = dict( await self.subtensor.async_get_stake() ) #  List[Tuple[uid, stake]]
-        chain_block = int( await self.subtensor.async_get_current_block())
+        chain_lastemit = dict( await self.subtensor.async_get_last_emit() ) #  Optional[ List[Tuple[uid, lastemit]] ]
+        chain_stake = dict( await self.subtensor.async_get_stake() ) #  Optional[ List[Tuple[uid, stake]] ]
+        chain_block = int( await self.subtensor.async_get_current_block()) #  Optional[ int ]
 
-        # Fill pending queries.
+        # Update state.
+        new_size = len(chain_stake)
+        old_size = self._metagraph.n
+        self._metagraph.n = new_size
+        self._metagraph.block = chain_block
+        self._metagraph.neurons = self._metagraph.neurons + [ None for _ in range(new_size - old_size) ]
+        self._metagraph.uids = torch.tensor( range(new_size) )
+        self._metagraph.stake = torch.tensor([ (float(chain_stake[uid])/1000000000) for uid in range(new_size)])
+        self._metagraph.lastemit = torch.tensor([ chain_lastemit[uid] for uid in range(new_size)])
+
+        # Fill new weights
+        old_weights = self._metagraph.weights
+        self._metagraph.weights = torch.zeros([new_size, new_size])
+        self._metagraph.weights[:old_size, :old_size] = old_weights
+        
+        # Fill updates from queries.
         pending_queries = []
         for uid, lastemit in chain_lastemit.items():
             if lastemit > self.last_sync:
                 pending_queries.append( self.fill_uid( uid = uid ) )
-        
-        # Make queries.
-        for call in tqdm.asyncio.tqdm.as_completed( calls ):
-            await call
+        for query in tqdm.asyncio.tqdm.as_completed( pending_queries ):
+            await query
         print ('\n')
-        return next_cache
 
     # Function which fills weights and neuron info for a uid.
     async def fill_uid ( self, uid: int ) -> bool:
@@ -366,11 +336,11 @@ class Metagraph():
                 modality = neuron['modality'],
                 ip_type = neuron['ip_type']          
         )
-        self._metagraph.neurons[ uid ] = neuron_proto
-        uid_row = torch.zeros( [ self._metagraph.n ] )
+        self._metagraph.neurons[uid] = neuron_proto
+        row = torch.zeros( [ self._metagraph.n ] )
         for uid_j, val in list(zip( weight_uids, weight_vals )):
-            uid_row[uid_j] = float(val)
-        self._metagraph.weights[ uid ] = uid_row
+            row[ uid_j ] = float(val)
+        self._metagraph.weights[ uid ] = row
         return True
         # except Exception as e:
         #     print ()
@@ -386,7 +356,7 @@ class Metagraph():
         return '<green>Metagraph:</green> block:<cyan>{}</cyan>, inflation_rate:<cyan>{}</cyan>, staked:<green>\u03C4{}</green>/<cyan>\u03C4{}</cyan>, active:<green>{}</green>/<cyan>{}</cyan>\n'.format(self.block, self.tau.item(), torch.sum(self.S), self.block/2, peers_online, self.n)
 
     def __full_str__(self):
-        uids = self.state.uids.tolist()
+        uids = self._metagraph.uids.tolist()
         rows = [self.S.tolist(), self.R.tolist(), self.I.tolist(), self.incentive.tolist(), self.row.tolist(), self.col.tolist()]
         for i in range(self.n):
             rows.append(self.W[i, :].tolist())

@@ -805,10 +805,10 @@ To run a local node (See: docs/running_a_validator.md) \n
         return await self.substrate.async_get_block_number(None)
 
     def get_active(self) -> List[Tuple[str, int]]:
-        r""" Returns a list of (publickey, uid) pairs one for each active peer on chain.
+        r""" Returns a list of (public key, uid) pairs one for each active peer on chain.
         Returns:
             active (List[Tuple[str, int]]):
-                List of active peers (publickey, uid) pairs.
+                List of active peers.
         """
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
