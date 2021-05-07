@@ -473,7 +473,6 @@ def test_set_weights_success_transaction_fee(setup_chain):
     subtensorA.add_stake(wallet=walletA, amount=Balance(stake), hotkey_id=walletA.hotkey.public_key,
                          wait_for_finalization=True, timeout=30)
 
-
     # At this point both neurons have equal stake, with self-weight set, so they receive each 50% of the block reward
 
     blocknr_pre = subtensorA.get_current_block()
@@ -488,62 +487,7 @@ def test_set_weights_success_transaction_fee(setup_chain):
         wallet=walletA
     )
 
-    logger.error(result)
-
-    blocknr_post = subtensorA.get_current_block()
-    blocks_passed = blocknr_post - blocknr_pre
-
-    # Check the stakes
-    stakeA = subtensorA.get_stake_for_uid(uidA)
-
-    transaction_fee = 0
-    expectation = int(BLOCK_REWARD * blocks_passed) - transaction_fee + stake
-
-    assert int(stakeA) == expectation
-
-
-def test_set_weights_success_transaction_fee(setup_chain):
-    coldkeyA = Keypair.create_from_uri('//Alice')
-    coldkeyB = Keypair.create_from_uri('//Bob')
-
-    walletA = generate_wallet(coldkey_pair=coldkeyA)
-    walletB = generate_wallet(coldkey_pair=coldkeyB)
-
-    subtensorA = connect(setup_chain)
-    subtensorB = connect(setup_chain)
-    subtensorA.is_connected()
-    subtensorB.is_connected()
-
-    subscribe(subtensorA, walletA)  # Sets a self weight of 1
-    subscribe(subtensorB, walletB)  # Sets a self weight of 1
-
-    uidA = subtensorA.get_uid_for_pubkey(walletA.hotkey.public_key)
-    uidB = subtensorB.get_uid_for_pubkey(walletB.hotkey.public_key)
-
-    stake = 4000
-
-
-    # Add stake to the hotkey account, so we can do tests on the transaction fees of the set_weights function
-    # Keep in mind, this operation incurs transaction fees that are appended to the block_reward
-    subtensorA.add_stake(wallet=walletA, amount=Balance(stake), hotkey_id=walletA.hotkey.public_key,
-                         wait_for_finalization=True, timeout=30)
-
-
-    # At this point both neurons have equal stake, with self-weight set, so they receive each 50% of the block reward
-
-    blocknr_pre = subtensorA.get_current_block()
-
-    w_uids = [uidA, uidB]
-    w_vals = [0, 1]
-    result = subtensorA.set_weights(
-        destinations=w_uids,
-        values=w_vals,
-        wait_for_finalization=True,
-        timeout=4 * bittensor.__blocktime__,
-        wallet=walletA
-    )
-
-    logger.error(result)
+    assert result == True
 
     blocknr_post = subtensorA.get_current_block()
     blocks_passed = blocknr_post - blocknr_pre
@@ -576,12 +520,13 @@ def test_set_weights_v1_1_0_success_transaction_fee(setup_chain):
     uidB = subtensorB.get_uid_for_pubkey(walletB.hotkey.public_key)
 
     stake = 4000
-    transaction_fee = 1000;
+    transaction_fee = 1000
 
     # Add stake to the hotkey account, so we can do tests on the transaction fees of the set_weights function
     # Keep in mind, this operation incurs transaction fees that are appended to the block_reward
     subtensorA.add_stake(wallet=walletA, amount=Balance(stake), hotkey_id=walletA.hotkey.public_key,
                          wait_for_finalization=True, timeout=30)
+
 
     # At this point both neurons have equal stake, with self-weight set, so they receive each 50% of the block reward
 
@@ -598,7 +543,7 @@ def test_set_weights_v1_1_0_success_transaction_fee(setup_chain):
         wallet=walletA
     )
 
-    logger.error(result)
+    assert result == True
 
     blocknr_post = subtensorA.get_current_block()
     blocks_passed = blocknr_post - blocknr_pre
@@ -606,8 +551,10 @@ def test_set_weights_v1_1_0_success_transaction_fee(setup_chain):
     # Check the stakes
     stakeA = subtensorA.get_stake_for_uid(uidA)
 
-    transaction_fee = 0
-    expectation = int(BLOCK_REWARD * blocks_passed) - transaction_fee + stake + TRANSACTION_FEE_ADD_STAKE
+    total_block_reward = BLOCK_REWARD * blocks_passed
+    total_received_trans_fees = (TRANSACTION_FEE_ADD_STAKE + transaction_fee)
+
+    expectation = total_block_reward + total_received_trans_fees + stake - transaction_fee
 
     assert int(stakeA) == expectation
 
