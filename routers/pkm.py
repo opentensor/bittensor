@@ -186,9 +186,10 @@ class PKMRouter():
         
         # neurons: List[bittensor.proto.Neuron]: endpoint information for filtered keys.
         # neurons.shape = n_uids * [ bittensor.proto.Neuron ]
+        # TODO(const): switch to tokenized representation.
         neurons = []
         for uid in filtered_uids:
-            neurons.append( neuron.metagraph.neurons[uid] )
+            neurons.append( neuron.metagraph.neuron_endpoints[ uid ] )
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]

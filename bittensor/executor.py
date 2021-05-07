@@ -25,7 +25,7 @@ from termcolor import colored
 from prettytable import PrettyTable
 
 import bittensor
-from bittensor.utils.neurons import Neuron, Neurons
+from bittensor.utils.neurons import NeuronEndpoint, NeuronEndpoints
 from bittensor.utils.balance import Balance
 
 from loguru import logger
@@ -86,45 +86,39 @@ class Executor ( bittensor.neuron.Neuron ):
         """
         self.wallet.create_new_hotkey( n_words = n_words, use_password = use_password, overwrite = overwrite )  
 
-    def _associated_neurons( self ) -> Neurons:
-        r""" Returns a list of neurons associate with this wallet's coldkey.
-        """
-        logger.info("Retrieving all nodes associated with cold key : {}".format( self.wallet.coldkeypub ))
-        neurons = self.subtensor.neurons()
-        neurons = Neurons.from_list( neurons )
-        result = filter(lambda x : x.coldkey == self.wallet.coldkey.public_key, neurons )# These are the neurons associated with the provided cold key
-        associated_neurons = Neurons(result)
-        # Load stakes
-        for neuron in associated_neurons:
-            neuron.stake = self.subtensor.get_stake_for_uid(neuron.uid)
-        return associated_neurons
-
     def overview ( self ): 
         r""" Prints an overview for the wallet's colkey.
         """
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
         self.connect_to_chain()
+        self.load_metagraph()
         self.sync_metagraph()
+        self.save_metagraph()
         balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
-        neurons = self._associated_neurons()
-
-        logger.success( "BALANCE: %s : [\u03C4%s]" % ( self.wallet.coldkey.ss58_address, balance.tao ))
-        logger.info("")
+        
+        owned_neurons = [] 
+        neuron_endpoints = self.metagraph.neuron_endpoints
+        for uid, cold in enumerate(self.metagraph.coldkeys):
+            if cold == self.wallet.coldkey.public_key:
+                owned_neurons.append( neuron_endpoints[uid] )
+                
         logger.opt(raw=True).info("--===[[ Neurons ]]===--\n")
         t = PrettyTable(["UID", "IP", "STAKE (\u03C4) ", "RANK  (\u03C4)", "INCENTIVE  (\u03C4/block) ", "LastEmit (blocks)", "HOTKEY"])
         t.align = 'l'
         total_stake = 0.0
-        for neuron in neurons:
-            index = self.metagraph.state.index_for_uid[neuron.uid]
-            rank = float(self.metagraph.R[index])
-            incentive = float(self.metagraph.I[index])
-            lastemit = int(self.metagraph.block - self.metagraph.lastemit[index])
-            t.add_row([neuron.uid, neuron.ip, neuron.stake.__float__(), rank, incentive, lastemit, neuron.hotkey])
-            total_stake += neuron.stake.__float__()
+        for neuron in owned_neurons:
+            uid = neuron.uid
+            stake = self.metagraph.S[ uid ].item()
+            rank = self.metagraph.R[ uid ].item()
+            incentive = self.metagraph.I[ uid ].item()
+            lastemit = int(self.metagraph.block - self.metagraph.lastemit[ uid ])
+            t.add_row([neuron.uid, neuron.ip, stake, rank, incentive, lastemit, neuron.hotkey])
+            total_stake += stake
         logger.opt(raw=True).info(t.get_string() + '\n')
-        logger.success( "Total stake: {}", total_stake)
-
+        logger.success( "Total staked: \u03C4{}", total_stake)
+        logger.success( "Total balance: \u03C4{}", balance.tao)
+        
     def unstake_all ( self ):
         r""" Unstaked from all hotkeys associated with this wallet's coldkey.
         """

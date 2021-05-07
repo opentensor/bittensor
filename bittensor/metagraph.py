@@ -22,6 +22,7 @@ import pandas as pd
 import json
 import math
 import numpy
+import os
 import random
 import time
 import torch
@@ -35,78 +36,49 @@ from typing import List, Tuple, List
 import bittensor
 import bittensor.config as config_utils
 import bittensor.utils.networking as net
+import bittensor.utils.weight_utils as weight_utils
 from bittensor.subtensor import Subtensor
 from bittensor.crypto.keyfiles import KeyFileError
 
-MAX_INT_WEIGHT = 4294967295 # Max weight value on chain.
+class Metagraph( torch.nn.Module ):
+    r""" Maintains chain state as a torch object.
 
+        Interface:
+            tau (:obj:`torch.FloatTensor` of shape :obj:`(1)`): 
+                Current, per block, token inflation rate.
 
-# Static network state object.
-class _MetagraphState():
-    """ Maintains the chain state as a torch object.
-
-        Args:
-            tau (:obj:`int`): 
-                current, per block, token inflation rate.
-
-            block (:obj:`int`):
-                state block number.
+            block (:obj:`torch.LongTensor` of shape :obj:`(1)`):
+                State block number.
 
             uids (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
-                UIDs for each neuron ordered by index.
+                UIDs for each neuron.
             
             stake (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
-                Stake balance for each neuron ordered by index.
+                Stake balance for each neuron ordered by uid.
                 
             lastemit (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
-                Last emission call for each neuron ordered by index.
+                Last emission call for each neuron ordered by uid.
 
             weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n, metagraph.n)`):
-                Full weight matrix on chain.
+                Full weight matrix on chain ordered by uid.
 
-            neurons (List[bittensor.proto.Neuron]) 
-                List of endpoints on the network.
+            neurons (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n, -1)`) 
+                Tokenized endpoints information.
 
     """
-    def __init__(self):
-        self.tau = 0.5
-        self.block = 0
-        self.n = 0
-        self.uids = torch.tensor([])
-        self.stake = torch.tensor([])
-        self.lastemit = torch.tensor([])
-        self.weights = torch.tensor([[]])
-        self.neurons = []
-
-class Metagraph():
-    """
-    Maintains the chain state as a torch object.
-    """
-    def __init__(   
-            self, 
-            config: 'Munch' = None, 
-            subtensor: 'bittensor.subtensor.Subtensor' = None,
-            **kwargs,
-        ):
-        r""" Initializes a new Metagraph chain interface.
-            Args:
-                config (:obj:`Munch`, `optional`): 
-                    metagraph.Metagraph.config()
-                subtensor (:obj:`bittensor.subtensor.Subtensor`, `optional`):
-                    subtensor interface utility.
+    def __init__( self ):
+        r""" Initializes a new Metagraph torch chain interface object.
         """
-        if config == None:
-            config = Metagraph.default_config()
-        # bittensor.config.Config.update_with_kwargs(config.metagraph, kwargs) 
-        Metagraph.check_config(config)
-        self.config = config
-
-        if subtensor == None:
-            subtensor = bittensor.subtensor.Subtensor( self.config )
-        self.subtensor = subtensor
-
-        self.last_sync = 0
-        self._metagraph = _MetagraphState()
+        super(Metagraph, self).__init__()
+        # State.
+        self.n = torch.nn.Parameter( torch.tensor( [0], dtype = torch.int64), requires_grad=False )
+        self.tau = torch.nn.Parameter( torch.tensor( [0.5], dtype = torch.float32), requires_grad=False )
+        self.block = torch.nn.Parameter( torch.tensor( [0], dtype = torch.int64), requires_grad=False )
+        self.uids = torch.nn.Parameter( torch.tensor( [], dtype = torch.int64), requires_grad=False )
+        self.stake = torch.nn.Parameter( torch.tensor( [], dtype = torch.float32), requires_grad=False )
+        self.lastemit = torch.nn.Parameter( torch.tensor( [], dtype = torch.int64), requires_grad=False )
+        self.weights = torch.nn.ParameterList()
+        self.neurons = torch.nn.ParameterList()
 
     @staticmethod
     def default_config() -> Munch:
@@ -125,67 +97,6 @@ class Metagraph():
         pass
 
     @property
-    def tau(self) -> torch.FloatTensor:
-        r""" tau: the chain per block inflation rate.
-            
-            Returns:
-                tau (:obj:`torchFloatTensor` of shape :obj:`(1)`):
-                    Current chain inflation rate.
-        """
-        return self._metagraph.tau
-
-    @property
-    def n(self) -> int:
-        r""" Return the number of known neurons on chain.
-            
-            Returns:
-                n (int):
-                    number of known neurons.
-
-        """
-        return self._metagraph.n
-
-    @property
-    def block(self) -> int:
-        r""" Return the block number.
-
-             Returns:
-                block (:obj:`int`):
-                    local chain state block number.
-        """
-        return self._metagraph.block
-
-    @property
-    def lastemit(self) -> torch.LongTensor:
-        r""" Returns neuron last update block.
-            
-            Returns:
-                lastemit (:obj:`int`):
-                    last emit time.
-        """
-        return self._metagraph.lastemit
-
-    @property
-    def uids(self) -> torch.LongTensor:
-        r""" Returns uids of each neuron. Uids are synonymous with indices.
-            Returns:
-                uids (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
-                    unique id for each neuron.
-        """
-        return self._metagraph.uids
-
-    @property
-    def stake(self) -> torch.FloatTensor:
-        r""" Returns neuron stake values.
-            
-            Returns:
-                stake (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
-                    stake of each known neuron.
-
-        """
-        return self._metagraph.stake
-
-    @property
     def S(self) -> torch.FloatTensor:
         r""" Returns neurons stake values.
              
@@ -193,7 +104,7 @@ class Metagraph():
                 S (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     Stake of each known neuron.
         """
-        return self._metagraph.stake
+        return self.stake
 
     @property
     def I(self) -> torch.FloatTensor:
@@ -205,7 +116,7 @@ class Metagraph():
         """
         I =  (self.tau * self.ranks) / torch.sum(self.ranks)
         I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
-        return I.view(self._metagraph.n)
+        return I.view(self.n)
 
     @property
     def ranks(self) -> torch.FloatTensor:
@@ -216,12 +127,12 @@ class Metagraph():
                     Rank of each neuron.
 
         """
-        if self.W.shape[0] == 0:
+        if self.n.item() == 0:
             return torch.tensor([])
         else:
-            S = self.S.view(self._metagraph.n, 1)
-            W = torch.transpose(self.W.view(self._metagraph.n, self._metagraph.n), 0, 1)
-            R = torch.matmul(W, S).view(self._metagraph.n)
+            S = self.S.view(self.n, 1)
+            Wt = torch.transpose(self.W, 0, 1)
+            R = torch.matmul(Wt, S).view(self.n)
         return R
 
     @property
@@ -235,120 +146,146 @@ class Metagraph():
         return self.ranks
 
     @property
-    def neurons(self) -> List[bittensor.proto.Neuron]:
-        r""" Return neuron endpoint information for each neuron.
-            
-            Returns:
-                neurons (:obj:`List[bittensor.proto.Neuron]` of shape :obj:`(metagraph.n)`):
-                    Endpoint information for each neuron.
-
-        """
-        return self._metagraph.neurons
-
-    @property
-    def public_keys(self) -> List[str]:
-        r""" Return the ordered public keys for state neurons.
-        
-            Returns:
-                public_keys (:obj:`List[str]` of shape :obj:`(metagraph.n)`):
-                    Public keys of each neuron.
-
-        """
-        return self._metagraph.public_keys
-
-    @property
     def W(self) -> torch.FloatTensor:
         r""" Return full weight matrix from chain.
              Returns:
                 W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
                     Weight matrix.
         """
-        return self._metagraph.weights
+        return torch.stack( [row for row in self.weights], axis = 0 )
 
     @property
-    def weights(self) -> torch.FloatTensor:
-        r""" Return full weight matrix from chain.
-             Returns:
-                W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
-                    Weight matrix.
-        """
-        return self._metagraph.weights
-
-    @property
-    def public_keys( self ) -> List[str]:
-        r""" Returns neuron public keys.
+    def hotkeys( self ) -> List[str]:
+        r""" Returns hotkeys for each neuron.
             Returns:
-                public_keys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
-                    Neuron public keys.
+                hotkeys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
+                    Neuron hotkeys.
         """
-        return [neuron.public_key for neuron in self.neurons]
+        return [ neuron.hotkey for neuron in self.neuron_endpoints ]
 
-    def sync(self):
-        r""" Synchronizes the local self._metagraph with the chain state.
+    @property
+    def coldkeys( self ) -> List[str]:
+        r""" Returns coldkeys for each neuron.
+            Returns:
+                coldkeys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
+                    Neuron coldkeys.
         """
+        return [ neuron.coldkey for neuron in self.neuron_endpoints ]
+
+    @property
+    def modalities( self ) -> List[str]:
+        r""" Returns the modality for each neuron.
+            Returns:
+                coldkeys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
+                    Neuron coldkeys.
+        """
+        return [ neuron.modality for neuron in self.neuron_endpoints ]
+
+    @property
+    def addresses( self ) -> List[str]:
+        r""" Returns ip addresses for each neuron.
+            Returns:
+                coldkeys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
+                    Neuron address.
+        """
+        return [ net.ip__str__( neuron.ip_type, neuron.ip, neuron.port ) for neuron in self.neuron_endpoints ]
+
+    @property
+    def neuron_endpoints(self) -> List[ bittensor.utils.neurons.NeuronEndpoint ]:
+        r""" Return neuron endpoint information for each neuron.
+            
+            Returns:
+                neurons (:obj:`List[ bittensor.utils.neurons.NeuronEndpoint ]` of shape :obj:`(metagraph.n)`):
+                    Endpoint information for each neuron.
+
+        """
+        return [ bittensor.utils.neurons.NeuronEndpoint.from_tensor( neuron_tensor ) for neuron_tensor in self.neurons ]
+
+    def load_from_path(self, path:str ):
+        full_path = os.path.expanduser(path)
+        metastate = torch.load( full_path )
+        self.load_from_state_dict( metastate )
+
+    def save_to_path(self, path:str ):
+        full_path = os.path.expanduser(path)
+        metastate = self.state_dict()
+        torch.save(metastate, full_path)
+
+    def load_from_state_dict(self, state_dict:dict ):
+        self.n = torch.nn.Parameter( state_dict['n'], requires_grad=False )
+        self.tau = torch.nn.Parameter( state_dict['tau'], requires_grad=False )
+        self.block = torch.nn.Parameter( state_dict['block'], requires_grad=False )
+        self.uids = torch.nn.Parameter( state_dict['uids'], requires_grad=False )
+        self.stake = torch.nn.Parameter( state_dict['stake'], requires_grad=False )
+        self.lastemit = torch.nn.Parameter( state_dict['lastemit'], requires_grad=False )
+        self.weights = torch.nn.ParameterList([torch.nn.Parameter( state_dict['weights.' + str(i)], requires_grad=False )  for i in range(self.n.item()) ])
+        self.neurons = torch.nn.ParameterList([torch.nn.Parameter( state_dict['neurons.' + str(i)], requires_grad=False )  for i in range(self.n.item()) ])
+
+    def sync(self, subtensor: 'bittensor.subtensor.Subtensor' = None):
+        r""" Synchronizes this metagraph with the chain state.
+        """
+        # Defaults to base subtensor connection.
+        if subtensor == None:
+            subtensor = bittensor.subtensor.Subtensor()
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        loop.run_until_complete(self._async_sync())
+        loop.run_until_complete(self._async_sync(subtensor))
 
-    async def _async_sync( self ):
+    async def _async_sync( self, subtensor: 'bittensor.subtensor.Subtensor'):
 
         # Query chain info.
-        chain_lastemit = dict( await self.subtensor.async_get_last_emit() ) #  Optional[ List[Tuple[uid, lastemit]] ]
-        chain_stake = dict( await self.subtensor.async_get_stake() ) #  Optional[ List[Tuple[uid, stake]] ]
-        chain_block = int( await self.subtensor.async_get_current_block()) #  Optional[ int ]
+        chain_lastemit = dict( await subtensor.async_get_last_emit() ) #  Optional[ List[Tuple[uid, lastemit]] ]
+        chain_stake = dict( await subtensor.async_get_stake() ) #  Optional[ List[Tuple[uid, stake]] ]
+        chain_block = int( await subtensor.async_get_current_block()) #  Optional[ int ]
 
-        # Update state.
+        # Build new state.
         new_size = len(chain_stake)
-        old_size = self._metagraph.n
-        self._metagraph.n = new_size
-        self._metagraph.block = chain_block
-        self._metagraph.neurons = self._metagraph.neurons + [ None for _ in range(new_size - old_size) ]
-        self._metagraph.uids = torch.tensor( range(new_size) )
-        self._metagraph.stake = torch.tensor([ (float(chain_stake[uid])/1000000000) for uid in range(new_size)])
-        self._metagraph.lastemit = torch.tensor([ chain_lastemit[uid] for uid in range(new_size)])
+        old_size = self.n.item() 
+        old_block = self.block.item()
+        new_n = torch.tensor([new_size], dtype = torch.int64)
+        new_block = torch.tensor([chain_block], dtype = torch.int64)
+        new_uids = torch.tensor( range(new_size) ,  dtype = torch.int64)
+        new_stake = torch.tensor([ (float(chain_stake[uid])/1000000000) for uid in range(new_size)],  dtype = torch.float32)
+        new_lastemit = torch.tensor([ chain_lastemit[uid] for uid in range(new_size)], dtype = torch.int64)
 
-        # Fill new weights
-        old_weights = self._metagraph.weights
-        self._metagraph.weights = torch.zeros([new_size, new_size])
-        self._metagraph.weights[:old_size, :old_size] = old_weights
-        
-        # Fill updates from queries.
+        # Set params.3
+        self.n = torch.nn.Parameter( new_n, requires_grad=False )
+        self.block = torch.nn.Parameter( new_block, requires_grad=False )
+        self.uids = torch.nn.Parameter( new_uids, requires_grad=False )
+        self.stake = torch.nn.Parameter( new_stake, requires_grad=False )
+        self.lastemit = torch.nn.Parameter( new_lastemit, requires_grad=False )
+
+        # Create buffers
+        for _ in range( new_size - old_size ):
+            self.weights.append( torch.nn.Parameter( torch.tensor([], dtype = torch.float32), requires_grad=False ) )
+            self.neurons.append( torch.nn.Parameter( torch.tensor([], dtype = torch.int64), requires_grad=False ) )
+
+        # Fill buffers.
         pending_queries = []
         for uid, lastemit in chain_lastemit.items():
-            if lastemit > self.last_sync:
-                pending_queries.append( self.fill_uid( uid = uid ) )
+            if lastemit > old_block:
+                pending_queries.append( self.fill_uid( subtensor = subtensor, uid = uid ) )
         for query in tqdm.asyncio.tqdm.as_completed( pending_queries ):
             await query
 
-        # Update last sync value.
-        self.last_sync = chain_block
-        print ('\n')
-
     # Function which fills weights and neuron info for a uid.
-    async def fill_uid ( self, uid: int ) -> bool:
-        #try:
-        weight_uids = await self.subtensor.async_weight_uids_for_uid( uid ) 
-        weight_vals = await self.subtensor.async_weight_vals_for_uid( uid ) 
-        neuron = await self.subtensor.async_get_neuron_for_uid( uid )
-        neuron_proto = bittensor.proto.Neuron(
-                version = bittensor.__version__,
-                public_key = neuron['hotkey'],
-                address = bittensor.utils.networking.int_to_ip(int(neuron['ip'])),
-                port = neuron['port'],
-                uid = neuron['uid'], 
-                modality = neuron['modality'],
-                ip_type = neuron['ip_type']          
-        )
-        self._metagraph.neurons[uid] = neuron_proto
-        row = torch.zeros( [ self._metagraph.n ] )
-        for uid_j, val in list(zip( weight_uids, weight_vals )):
-            row[ uid_j ] = float(val)
-        self._metagraph.weights[ uid ] = row
+    async def fill_uid ( self, subtensor: 'bittensor.subtensor.Subtensor', uid: int ) -> bool:
+        # TODO(const): try catch block with retry.
+
+        # Fill row from weights.
+        weight_uids = await subtensor.async_weight_uids_for_uid( uid ) 
+        weight_vals = await subtensor.async_weight_vals_for_uid( uid ) 
+        row_weights = weight_utils.convert_weight_uids_and_vals_to_tensor( self.n.item(), weight_uids, weight_vals )
+        self.weights[ uid ] = torch.nn.Parameter( row_weights, requires_grad=False )
+        
+        # Fill Neuron info.
+        neuron = await subtensor.async_get_neuron_for_uid( uid )
+        neuron_obj = bittensor.utils.neurons.NeuronEndpoint.from_dict(neuron)
+        neuron_tensor = neuron_obj.to_tensor()
+        self.neurons[ uid ] = torch.nn.Parameter( neuron_tensor, requires_grad=False )
+
+        # Return.
         return True
-        # except Exception as e:
-        #     print ()
-        #     print(colored('x', 'red'), end ="")
-        #     return False
 
     def __str__(self):
         if self.n != 0:
@@ -356,27 +293,10 @@ class Metagraph():
         else:
             peers_online = 0
         peers_online = torch.numel(torch.where( self.block - self.lastemit < 1000 )[0])
-        return '<green>Metagraph:</green> block:<cyan>{}</cyan>, inflation_rate:<cyan>{}</cyan>, staked:<green>\u03C4{}</green>/<cyan>\u03C4{}</cyan>, active:<green>{}</green>/<cyan>{}</cyan>\n'.format(self.block, self.tau, torch.sum(self.S), self.block/2, peers_online, self.n)
-
-    def __full_str__(self):
-        uids = self._metagraph.uids.tolist()
-        rows = [self.S.tolist(), self.R.tolist(), self.I.tolist(), self.incentive.tolist(), self.row.tolist(), self.col.tolist()]
-        for i in range(self.n):
-            rows.append(self.W[i, :].tolist())
-        df = pd.DataFrame(rows, columns=uids)
-        df = df.rename(index={df.index[0]: 'S'})
-        df = df.rename(index={df.index[1]: 'R'})
-        df = df.rename(index={df.index[2]: 'I'})
-        df = df.rename(index={df.index[3]: 'incentive'})
-        df = df.rename(index={df.index[4]: 'row'})
-        df = df.rename(index={df.index[5]: 'col'})
-        for i in range(self.n):
-            df = df.rename(index={df.index[i + 6]: uids[i]})
-        df.rename_axis(colored('[uid]', 'red'), axis=1)
-        return 'Metagraph:\nuid: {}, inflation_rate: {} block: {} n_neurons: {} \n'.format(self.uid, self.tau, self.block, self.n) + df.to_string(na_rep = '', max_rows=5000, max_cols=25, min_rows=25, line_width=1000, float_format = lambda x: '%.3f' % x, col_space=1, justify='left')
+        return '<green>Metagraph:</green> block:<cyan>{}</cyan>, inflation_rate:<cyan>{}</cyan>, staked:<green>\u03C4{}</green>/<cyan>\u03C4{}</cyan>, active:<green>{}</green>/<cyan>{}</cyan>'.format(self.block.item(), self.tau.item(), torch.sum(self.S), self.block.item()/2, peers_online, self.n.item())
 
     def __to_tensorboard__(self, tensorboard, global_step):
-        tensorboard.add_scalar('Metagraph/neurons', self.n, global_step)
-        tensorboard.add_scalar('Metagraph/inflation_rate', self.tau, global_step)
+        tensorboard.add_scalar('Metagraph/neurons', self.n.item(), global_step)
+        tensorboard.add_scalar('Metagraph/inflation_rate', self.tau.item(), global_step)
 
 

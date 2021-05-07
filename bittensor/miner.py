@@ -492,10 +492,10 @@ class BaseMiner( Miner ):
             The function populates and displays the passed progress bar.
         """
         try:
-            self_uid = self.metagraph.public_keys.index( self.wallet.hotkey.public_key )
-            stake = self.metagraph.S[ self_uid ]
-            rank = self.metagraph.R[ self_uid ]
-            incentive = self.metagraph.I[ self_uid ]
+            self_uid = self.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
+            stake = self.metagraph.S[ self_uid ].item()
+            rank = self.metagraph.R[ self_uid ].item()
+            incentive = self.metagraph.I[ self_uid ].item()
         except:
             stake = 0.0
             rank = 0.0
@@ -590,6 +590,7 @@ class BaseMiner( Miner ):
 
                     # ---- Metagraph ----
                     self.sync_metagraph()
+                    self.save_metagraph()
 
                     # ---- Update Tensorboard ----
                     self.epoch_logs() 

@@ -30,7 +30,7 @@ import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.substrate import SubstrateWSInterface, Keypair
 from bittensor.substrate.exceptions import SubstrateRequestException
-from bittensor.utils.neurons import Neuron, Neurons
+from bittensor.utils.neurons import NeuronEndpoints, NeuronEndpoint
 from bittensor.utils.balance import Balance
 
 from loguru import logger

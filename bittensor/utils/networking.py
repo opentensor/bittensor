@@ -55,8 +55,8 @@ def ip_to_int(str_val: str) -> int:
     """
     return int(netaddr.IPAddress(str_val))
 
-def ip__str__(ip_type, ip_str):
-    return "/ipv%i/%s" % (ip_type, ip_str)
+def ip__str__(ip_type:int, ip_str:str, port:int):
+    return "/ipv%i/%s:%i" % (ip_type, ip_str, port)
 
 class ExternalIPNotFound(Exception):
     """ Raised if we cannot attain your external ip from CURL/URLLIB/IPIFY/AWS """
