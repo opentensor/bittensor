@@ -143,12 +143,16 @@ class cli_utils():
             os.makedirs(path)
 
     @staticmethod
-    def validate_create_path( keyfile ):
+    def validate_create_path( keyfile, overwrite: bool = False ):
         keyfile = os.path.expanduser(keyfile)
         if os.path.isfile(keyfile):
             if os.access(keyfile, os.W_OK):
-                if cli_utils.may_overwrite( keyfile ):
+                if overwrite:
                     return keyfile
+
+                elif cli_utils.may_overwrite( keyfile ):
+                    return keyfile
+
                 else:
                     quit()
             else:

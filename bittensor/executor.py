@@ -66,25 +66,25 @@ class Executor ( bittensor.neuron.Neuron ):
     def check_config (config: Munch):
         bittensor.neuron.Neuron.check_config( config )
             
-    def regenerate_coldkey ( self, mnemonic: str, use_password: bool ):
+    def regenerate_coldkey ( self, mnemonic: str, use_password: bool, overwrite: bool = False ):
         r""" Regenerates a colkey under this wallet.
         """
-        self.wallet.regenerate_coldkey( mnemonic = mnemonic, use_password = use_password )
+        self.wallet.regenerate_coldkey( mnemonic = mnemonic, use_password = use_password, overwrite = overwrite )
 
-    def regenerate_hotkey ( self, mnemonic: str, use_password: bool ):
+    def regenerate_hotkey ( self, mnemonic: str, use_password: bool, overwrite: bool = False):
         r""" Regenerates a hotkey under this wallet.
         """
-        self.wallet.regenerate_hotkey( mnemonic = mnemonic, use_password = use_password )
+        self.wallet.regenerate_hotkey( mnemonic = mnemonic, use_password = use_password, overwrite = overwrite )
 
-    def create_new_coldkey ( self, n_words: int, use_password: bool ):
+    def create_new_coldkey ( self, n_words: int, use_password: bool, overwrite: bool = False ):
         r""" Creates a new coldkey under this wallet.
         """
-        self.wallet.create_new_coldkey( n_words = n_words, use_password = use_password )   
+        self.wallet.create_new_coldkey( n_words = n_words, use_password = use_password, overwrite = overwrite)   
 
-    def create_new_hotkey ( self, n_words: int, use_password: bool ):  
+    def create_new_hotkey ( self, n_words: int, use_password: bool, overwrite: bool = False ):  
         r""" Creates a new hotkey under this wallet.
         """
-        self.wallet.create_new_hotkey( n_words = n_words, use_password = use_password  )  
+        self.wallet.create_new_hotkey( n_words = n_words, use_password = use_password, overwrite = overwrite )  
 
     def _associated_neurons( self ) -> Neurons:
         r""" Returns a list of neurons associate with this wallet's coldkey.

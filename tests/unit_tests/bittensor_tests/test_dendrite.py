@@ -6,7 +6,15 @@ import time
 from munch import Munch
 import bittensor
 
-dendrite = bittensor.dendrite.Dendrite()
+wallet =  bittensor.wallet.Wallet(
+    path = '/tmp/pytest',
+    name = 'pytest',
+    hotkey = 'pytest',
+) 
+wallet.create_new_coldkey(use_password=False, overwrite = True)
+wallet.create_new_hotkey(use_password=False, overwrite = True)
+
+dendrite = bittensor.dendrite.Dendrite( wallet = wallet )
 dendrite.config.receptor.do_backoff = False
 neuron_pb2 = bittensor.proto.Neuron(
     version = bittensor.__version__,

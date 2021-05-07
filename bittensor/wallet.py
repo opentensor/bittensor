@@ -348,14 +348,14 @@ class Wallet():
         path = os.path.expanduser(path)
         return os.path.exists(path)
 
-    def create_coldkey_from_uri(self, uri:str, use_password: bool = True):
+    def create_coldkey_from_uri(self, uri:str, use_password: bool = True, overwrite:bool = False):
          # Create directory 
         dir_path = os.path.expanduser(os.path.join(self.config.wallet.path, self.config.wallet.name))
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
 
         # Create Key
-        cli_utils.validate_create_path( self.coldkeyfile  )
+        cli_utils.validate_create_path( self.coldkeyfile, overwrite = overwrite)
         self._coldkey = Keypair.create_from_uri( uri )
         cli_utils.display_mnemonic_msg( self._coldkey  )
         cli_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
@@ -374,7 +374,7 @@ class Wallet():
         cli_utils.save_keys( self.coldkeyfile, coldkey_data )
         cli_utils.set_file_permissions( self.coldkeyfile )
 
-    def create_hotkey_from_uri( self, uri:str, use_password: bool = True):  
+    def create_hotkey_from_uri( self, uri:str, use_password: bool = True, overwrite:bool = False):  
         # Create directory 
         dir_path = os.path.expanduser(
             os.path.join(self.config.wallet.path, self.config.wallet.name, "hotkeys")
@@ -383,7 +383,7 @@ class Wallet():
             os.makedirs( dir_path )
 
         # Create
-        cli_utils.validate_create_path( self.hotkeyfile )
+        cli_utils.validate_create_path( self.hotkeyfile, overwrite = overwrite)
         self._hotkey = Keypair.create_from_uri( uri )
         cli_utils.display_mnemonic_msg( self._hotkey )
 
@@ -402,14 +402,14 @@ class Wallet():
         cli_utils.set_file_permissions( self.hotkeyfile )
 
 
-    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True ):    
+    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False):    
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self.config.wallet.path, self.config.wallet.name))
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
 
         # Create Key
-        cli_utils.validate_create_path( self.coldkeyfile  )
+        cli_utils.validate_create_path( self.coldkeyfile, overwrite = overwrite  )
         self._coldkey = cli_utils.gen_new_key( n_words )
         cli_utils.display_mnemonic_msg( self._coldkey  )
         cli_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
@@ -428,7 +428,7 @@ class Wallet():
         cli_utils.save_keys( self.coldkeyfile, coldkey_data )
         cli_utils.set_file_permissions( self.coldkeyfile )
 
-    def create_new_hotkey( self, n_words:int = 12, use_password: bool = True):  
+    def create_new_hotkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False):  
         # Create directory 
         dir_path = os.path.expanduser(
             os.path.join(self.config.wallet.path, self.config.wallet.name, "hotkeys")
@@ -437,7 +437,7 @@ class Wallet():
             os.makedirs( dir_path )
 
         # Create
-        cli_utils.validate_create_path( self.hotkeyfile )
+        cli_utils.validate_create_path( self.hotkeyfile, overwrite = overwrite )
         self._hotkey = cli_utils.gen_new_key( n_words )
         cli_utils.display_mnemonic_msg( self._hotkey )
 
@@ -455,13 +455,14 @@ class Wallet():
         cli_utils.save_keys( self.hotkeyfile, hotkey_data )
         cli_utils.set_file_permissions( self.hotkeyfile )
 
-    def regenerate_coldkey( self, mnemonic: str, use_password: bool):
+    def regenerate_coldkey( self, mnemonic: str, use_password: bool,  overwrite:bool = False):
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self.config.wallet.path, self.config.wallet.name))
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
 
         # Regenerate
+        cli_utils.validate_create_path( self.coldkeyfile, overwrite = overwrite)
         self._coldkey = cli_utils.validate_generate_mnemonic( mnemonic )
         cli_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
         
@@ -479,14 +480,14 @@ class Wallet():
         cli_utils.save_keys( self.coldkeyfile, coldkey_data ) 
         cli_utils.set_file_permissions( self.coldkeyfile )
 
-    def regenerate_hotkey( self, mnemonic: str, use_password: bool = True):
+    def regenerate_hotkey( self, mnemonic: str, use_password: bool = True, overwrite:bool = False):
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self.config.wallet.path, self.config.wallet.name, "hotkeys"))
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
 
         # Regenerate
-        cli_utils.validate_create_path( self.hotkeyfile )
+        cli_utils.validate_create_path( self.hotkeyfile, overwrite = overwrite)
         self._hotkey = cli_utils.validate_generate_mnemonic( mnemonic )
 
         # Encrypt

@@ -186,7 +186,9 @@ class PKMRouter():
         
         # neurons: List[bittensor.proto.Neuron]: endpoint information for filtered keys.
         # neurons.shape = n_uids * [ bittensor.proto.Neuron ]
-        neurons = neuron.metagraph.uids_to_neurons(filtered_uids)
+        neurons = []
+        for uid in filtered_uids:
+            neurons.append( neuron.metagraph.neurons[uid] )
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
@@ -235,7 +237,7 @@ class PKMRouter():
 
         # indices: (torch.LongTensor): indices of uids queried during this forward call.
         # indices = [batch_size, metagraph.n]
-        indices = neuron.metagraph.uids_to_indices(filtered_uids)
+        indices = filtered_uids
 
         # weights: (torch.LongTensor): weights scattered onto uids per example.
         # weights.shape = [batch_size, metagraph.n]

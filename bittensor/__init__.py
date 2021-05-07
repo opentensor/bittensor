@@ -16,6 +16,10 @@
 # DEALINGS IN THE SOFTWARE.
 
 
+# Nest Asyncio for colab support.
+import nest_asyncio
+nest_asyncio.apply()
+
 import bittensor.bittensor_pb2 as proto
 import bittensor.bittensor_pb2_grpc as grpc
 
