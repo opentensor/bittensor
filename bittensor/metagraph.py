@@ -18,30 +18,20 @@
 import argparse
 import asyncio
 import copy
-import pandas as pd
-import json
-import math
-import numpy
 import os
-import random
-import time
 import torch
 import tqdm.asyncio
 
-from munch import Munch
-from termcolor import colored
 from loguru import logger
 from typing import List, Tuple, List
 
 import bittensor
-import bittensor.config as config_utils
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.subtensor import Subtensor
-from bittensor.crypto.keyfiles import KeyFileError
 
 class Metagraph( torch.nn.Module ):
-    r""" Maintains chain state as a torch object.
+    r""" Maintains chain state as a torch.nn.Module.
 
         Interface:
             tau (:obj:`torch.FloatTensor` of shape :obj:`(1)`): 
@@ -63,7 +53,7 @@ class Metagraph( torch.nn.Module ):
                 Full weight matrix on chain ordered by uid.
 
             neurons (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n, -1)`) 
-                Tokenized endpoints information.
+                Tokenized endpoint information.
 
     """
     def __init__( self ):
@@ -79,22 +69,6 @@ class Metagraph( torch.nn.Module ):
         self.lastemit = torch.nn.Parameter( torch.tensor( [], dtype = torch.int64), requires_grad=False )
         self.weights = torch.nn.ParameterList()
         self.neurons = torch.nn.ParameterList()
-
-    @staticmethod
-    def default_config() -> Munch:
-        # Parses and returns a config Munch for this object.
-        parser = argparse.ArgumentParser(); 
-        Metagraph.add_args(parser) 
-        config = config_utils.Config.to_config(parser); 
-        return config
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        bittensor.subtensor.Subtensor.add_args( parser )
-        
-    @staticmethod   
-    def check_config(config: Munch):
-        pass
 
     @property
     def S(self) -> torch.FloatTensor:
@@ -202,22 +176,47 @@ class Metagraph( torch.nn.Module ):
         return [ bittensor.utils.neurons.NeuronEndpoint.from_tensor( neuron_tensor ) for neuron_tensor in self.neurons ]
 
     def load( self, network:str = 'kusanagi' ):
+        r""" Loads this metagraph object's state_dict from bittensor root dir.
+            Args: 
+                network: (:obj:`str`, required):
+                    Name of state_dict to load, defaults to kusanagi
+        """
         self.load_from_path( path = '~/.bittensor/' + str(network) + '.pt')
 
     def save( self, network:str = 'kusanagi' ):
+        r""" Saves this metagraph object's state_dict under bittensor root dir.
+            Args: 
+                network: (:obj:`str`, required):
+                    Name of state_dict, defaults to kusanagi
+        """
         self.save_to_path( path = '~/.bittensor/' + str(network) + '.pt')
 
     def load_from_path(self, path:str ):
+        r""" Loads this metagraph object with state_dict under the specified path.
+            Args: 
+                path: (:obj:`str`, required):
+                    Path to load state_dict.
+        """
         full_path = os.path.expanduser(path)
         metastate = torch.load( full_path )
         self.load_from_state_dict( metastate )
 
     def save_to_path(self, path:str ):
+        r""" Saves this metagraph object's state_dict to the specified path.
+            Args: 
+                path: (:obj:`str`, required):
+                    Path to save state_dict.
+        """
         full_path = os.path.expanduser(path)
         metastate = self.state_dict()
         torch.save(metastate, full_path)
 
     def load_from_state_dict(self, state_dict:dict ):
+        r""" Loads this metagraph object from passed state_dict.
+            Args: 
+                state_dict: (:obj:`dict`, required):
+                    Metagraph state_dict. Must be same as that created by save_to_path.
+        """
         self.n = torch.nn.Parameter( state_dict['n'], requires_grad=False )
         self.tau = torch.nn.Parameter( state_dict['tau'], requires_grad=False )
         self.block = torch.nn.Parameter( state_dict['block'], requires_grad=False )
@@ -229,6 +228,9 @@ class Metagraph( torch.nn.Module ):
 
     def sync(self, subtensor: 'bittensor.subtensor.Subtensor' = None):
         r""" Synchronizes this metagraph with the chain state.
+            Args: 
+                subtensor: (:obj:`bittensor.subtensor.Subtensor`, optional):
+                    Subtensor chain interface obbject. If None, creates default connection to kusanagi.
         """
         # Defaults to base subtensor connection.
         if subtensor == None:
@@ -238,6 +240,13 @@ class Metagraph( torch.nn.Module ):
         loop.run_until_complete(self._async_sync(subtensor))
 
     async def _async_sync( self, subtensor: 'bittensor.subtensor.Subtensor'):
+        r""" Uses the passed subtensor interface to update the metagraph chain state to reflect 
+            the latest info on chain.
+
+            Args: 
+                subtensor: (:obj:`bittensor.subtensor.Subtensor`, optional):
+                    Subtensor chain interface obbject. If None, creates default connection to kusanagi.
+        """
 
         # Query chain info.
         chain_lastemit = dict( await subtensor.async_get_last_emit() ) #  Optional[ List[Tuple[uid, lastemit]] ]
@@ -254,7 +263,7 @@ class Metagraph( torch.nn.Module ):
         new_stake = torch.tensor([ (float(chain_stake[uid])/1000000000) for uid in range(new_size)],  dtype = torch.float32)
         new_lastemit = torch.tensor([ chain_lastemit[uid] for uid in range(new_size)], dtype = torch.int64)
 
-        # Set params.3
+        # Set params.
         self.n = torch.nn.Parameter( new_n, requires_grad=False )
         self.block = torch.nn.Parameter( new_block, requires_grad=False )
         self.uids = torch.nn.Parameter( new_uids, requires_grad=False )
@@ -280,6 +289,13 @@ class Metagraph( torch.nn.Module ):
 
     # Function which fills weights and neuron info for a uid.
     async def fill_uid ( self, subtensor: 'bittensor.subtensor.Subtensor', uid: int ) -> bool:
+        r""" Uses the passed subtensor interface to update chain state for the passed uid.
+            the latest info on chain.
+            
+            Args: 
+                subtensor: (:obj:`bittensor.subtensor.Subtensor`, optional):
+                    Subtensor chain interface obbject. If None, creates default connection to kusanagi.
+        """
         # TODO(const): try catch block with retry.
 
         # Fill row from weights.
