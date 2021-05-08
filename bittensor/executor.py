@@ -128,7 +128,7 @@ class Executor ( bittensor.neuron.Neuron ):
                 code_to_string = code_utils.code_to_string(code.item())
                 code_color = code_utils.code_to_color(code.item()) 
                 code_str =  '[' + str(code_color) + ']' + code_to_string 
-                query_time = '[' + str(code_color) + ']' + "(" + '{:.3}'.format(end_time - start_time) + "s)"
+                query_time = '[' + str(code_color) + ']' + "" + '{:.3}'.format(end_time - start_time) + "s"
 
                 if code.item() == 0:
                     total_success += 1
@@ -153,24 +153,26 @@ class Executor ( bittensor.neuron.Neuron ):
         total_stake = '{:.7}'.format(total_stake)
         total_rank = '{:.7}'.format(total_rank)
         total_incentive = '{:.7}'.format(total_incentive)
-        total_time = '{:.3}'.format(total_time / total_neurons) if total_time != 0 else '0.0s'
+        total_time = '{:.3}s'.format(total_time / total_neurons) if total_time != 0 else '0.0s'
         total_success = '[bold green]' + str(total_success) + '/[bold red]' +  str(total_neurons - total_success)
                 
         console = Console()
         table = Table(show_footer=False)
+        table_centered = Align.center(table)
         table.title = (
-            "[bold white]Coldkey:" + str(self.wallet.coldkeypub)
+            "[bold white]Coldkey.pub:" + str(self.wallet.coldkeypub)
         )
-        table.add_column("[overline dim white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
-        table.add_column("[overline dim white]IP", justify='left', style='dim purple', no_wrap=True) 
-        table.add_column("[overline dim white]STAKE (\u03C4)", str(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline dim white]RANK (\u03C4)", str(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline dim white]INCENTIVE (\u03C4/day)", str(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline dim white]LastEmit (blocks)", justify='right', no_wrap=True)
-        table.add_column("[overline dim white]Query (sec)", str(total_time), footer_style = "overline white", justify='right', no_wrap=True)
-        table.add_column("[overline dim white]Query (code)", str(total_success), footer_style = "overline white", justify='right', no_wrap=True)
-        table.add_column("[overline dim white]HOTKEY", style='dim blue', no_wrap=False)
+        table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
+        table.add_column("[overline white]IP", justify='left', style='dim blue', no_wrap=True) 
+        table.add_column("[overline white]STAKE (\u03C4)", str(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]RANK (\u03C4)", str(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]INCENTIVE (\u03C4/day)", str(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]LastEmit (blocks)", justify='right', no_wrap=True)
+        table.add_column("[overline white]Query (sec)", str(total_time), footer_style = "overline white", justify='right', no_wrap=True)
+        table.add_column("[overline white]Query (code)", str(total_success), footer_style = "overline white", justify='right', no_wrap=True)
+        table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)
         table.show_footer = True
+        table.caption = "[bold white]Coldkey Balance: [bold green]\u03C4" + str(balance.tao)
 
         console.clear()
         for row in TABLE_DATA:
