@@ -281,9 +281,9 @@ class Dendrite(nn.Module):
         for (inputs_i, neuron_i) in list(zip(inputs, neurons)):
 
             # ---- Find receptor or create one ---- 
-            if neuron_i.public_key not in self._receptors:
-                self._receptors[neuron_i.public_key] = bittensor.receptor.Receptor(neuron_i, self.config, self.wallet)
-            receptor = self._receptors[neuron_i.public_key]
+            if neuron_i.hotkey not in self._receptors:
+                self._receptors[neuron_i.hotkey] = bittensor.receptor.Receptor(neuron_i, self.config, self.wallet)
+            receptor = self._receptors[neuron_i.hotkey]
 
             # ---- Append async calls ---- 
             calls.append( loop.run_in_executor(None, receptor.forward, inputs_i, mode) )

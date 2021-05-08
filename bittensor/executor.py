@@ -18,13 +18,21 @@ import argparse
 import copy
 import sys
 import os
-import pandas as pd
+import time
+import torch
 
 from munch import Munch
-from termcolor import colored
-from prettytable import PrettyTable
+from tqdm import tqdm
+from rich import box
+from rich.align import Align
+from rich.console import Console
+from rich.live import Live
+from rich.measure import Measurement
+from rich.table import Table
+from rich.text import Text
 
 import bittensor
+import bittensor.utils.codes as code_utils
 from bittensor.utils.neurons import NeuronEndpoint, NeuronEndpoints
 from bittensor.utils.balance import Balance
 
@@ -101,22 +109,78 @@ class Executor ( bittensor.neuron.Neuron ):
         for uid, cold in enumerate(self.metagraph.coldkeys):
             if cold == self.wallet.coldkeypub:
                 owned_neurons.append( neuron_endpoints[uid] )
-                
-        logger.opt(raw=True).info("--===[[ Neurons ]]===--\n")
-        t = PrettyTable(["UID", "IP", "STAKE (\u03C4) ", "RANK  (\u03C4)", "INCENTIVE  (\u03C4/block) ", "LastEmit (blocks)", "HOTKEY"])
-        t.align = 'l'
-        total_stake = 0.0
-        for neuron in owned_neurons:
+
+        TABLE_DATA = []
+
+        total_stake = 0
+        total_rank = 0
+        total_incentive = 0
+        total_success = 0
+        total_time = 0.0
+        logger.info('\nRunning queries ...')
+        for neuron in tqdm(owned_neurons):
+
+            # Make query and get response.
+            if self.wallet.has_hotkey:
+                start_time = time.time()
+                result, code = self.dendrite.forward_text( neurons = [neuron], x = [torch.zeros((1,1), dtype=torch.int64)] )
+                end_time = time.time()
+                code_to_string = code_utils.code_to_string(code.item())
+                code_color = code_utils.code_to_color(code.item()) 
+                code_str =  '[' + str(code_color) + ']' + code_to_string 
+                query_time = '[' + str(code_color) + ']' + "(" + '{:.3}'.format(end_time - start_time) + "s)"
+
+                if code.item() == 0:
+                    total_success += 1
+                    total_time += end_time - start_time
+            else:
+                code_str = '[N/A]'
+                query_time = '[N/A]'
+
             uid = neuron.uid
             stake = self.metagraph.S[ uid ].item()
             rank = self.metagraph.R[ uid ].item()
             incentive = self.metagraph.I[ uid ].item()
             lastemit = int(self.metagraph.block - self.metagraph.lastemit[ uid ])
-            t.add_row([neuron.uid, neuron.ip, stake, rank, incentive, lastemit, neuron.hotkey])
+            lastemit = "[bold green]" + str(lastemit) if lastemit < 3000 else "[bold red]" + str(lastemit)
+            row = [str(neuron.uid), neuron.ip + ':' + str(neuron.port), '{:.5}'.format(stake),'{:.5}'.format(rank),  '{:.5}'.format(incentive * 14400), str(lastemit), query_time, code_str, neuron.hotkey]
+            TABLE_DATA.append(row)
             total_stake += stake
-        logger.opt(raw=True).info(t.get_string() + '\n')
-        logger.success( "Total staked: \u03C4{}", total_stake)
-        logger.success( "Total balance: \u03C4{}", balance.tao)
+            total_rank += rank
+            total_incentive += incentive * 14400
+            
+        total_neurons = len(owned_neurons)
+        total_stake = '{:.7}'.format(total_stake)
+        total_rank = '{:.7}'.format(total_rank)
+        total_incentive = '{:.7}'.format(total_incentive)
+        total_time = '{:.3}'.format(total_time / total_neurons) if total_time != 0 else '0.0s'
+        total_success = '[bold green]' + str(total_success) + '/[bold red]' +  str(total_neurons - total_success)
+                
+        console = Console()
+        table = Table(show_footer=False)
+        table.title = (
+            "[bold white]Coldkey:" + str(self.wallet.coldkeypub)
+        )
+        table.add_column("[overline dim white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
+        table.add_column("[overline dim white]IP", justify='left', style='dim purple', no_wrap=True) 
+        table.add_column("[overline dim white]STAKE (\u03C4)", str(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline dim white]RANK (\u03C4)", str(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline dim white]INCENTIVE (\u03C4/day)", str(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline dim white]LastEmit (blocks)", justify='right', no_wrap=True)
+        table.add_column("[overline dim white]Query (sec)", str(total_time), footer_style = "overline white", justify='right', no_wrap=True)
+        table.add_column("[overline dim white]Query (code)", str(total_success), footer_style = "overline white", justify='right', no_wrap=True)
+        table.add_column("[overline dim white]HOTKEY", style='dim blue', no_wrap=False)
+        table.show_footer = True
+
+        console.clear()
+        for row in TABLE_DATA:
+            table.add_row(*row)
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        console = Console()
+        console.print(table)
+
 
     def unstake_all ( self ):
         r""" Unstaked from all hotkeys associated with this wallet's coldkey.

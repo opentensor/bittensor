@@ -16,20 +16,23 @@ def test_print_empty():
     metagraph = bittensor.metagraph.Metagraph()
     print (metagraph)
 
-def test_sync( ):
+def test_load_sync_save():
     metagraph = bittensor.metagraph.Metagraph()
+    metagraph.load()
     metagraph.sync()
-    assert type(metagraph.n) == type(0)
-    assert type(metagraph.W) == type(torch.tensor([]))
-    assert type(metagraph.S) == type(torch.tensor([]))
-    assert type(metagraph.R) == type(torch.tensor([]))
-    assert type(metagraph.I) == type(torch.tensor([]))
-    assert type(metagraph.weights) == type(torch.tensor([]))
-    assert type(metagraph.uids) == type(torch.tensor([]))
-    assert type(metagraph.public_keys) == type([])
-    assert type(metagraph.neurons) == type([])
+    metagraph.save()
 
-
+def test_state_dict():
+    metagraph = bittensor.metagraph.Metagraph()
+    metagraph.load()
+    state = metagraph.state_dict()
+    assert 'uids' in state
+    assert 'stake' in state
+    assert 'lastemit' in state
+    assert 'block' in state
+    assert 'tau' in state
+    assert 'weights.0' in state
+    assert 'neurons.0' in state
 
 
 

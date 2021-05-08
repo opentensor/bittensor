@@ -8,17 +8,7 @@ wallet =  bittensor.wallet.Wallet(
     name = 'pytest',
     hotkey = 'pytest',
 ) 
-subtensor = bittensor.subtensor.Subtensor (
-    network = 'boltzmann'
-)
-metagraph = bittensor.metagraph.Metagraph (
-    subtensor = subtensor
-)
-executor = bittensor.executor.Executor( 
-    wallet = wallet,
-    subtensor = subtensor,
-    metagraph = metagraph,  
-)
+executor = bittensor.executor.Executor( wallet = wallet )
 
 def test_create_hotkey():
     executor.create_new_hotkey(

@@ -16,55 +16,61 @@ wallet.create_new_hotkey(use_password=False, overwrite = True)
 
 dendrite = bittensor.dendrite.Dendrite( wallet = wallet )
 dendrite.config.receptor.do_backoff = False
-neuron_pb2 = bittensor.proto.Neuron(
-    version = bittensor.__version__,
-    public_key = dendrite.wallet.hotkey.public_key,
-    address = '0.0.0.0',
+neuron_obj = bittensor.utils.neurons.NeuronEndpoint(
+    uid = 0,
+    ip = '0.0.0.0',
+    ip_type = 4,
     port = 12345,
+    hotkey = dendrite.wallet.hotkey.public_key,
+    coldkey = dendrite.wallet.coldkey.public_key,
+    modality = 0
 )
 
 def test_dendrite_forward_tensor_shape_error():
     x = torch.rand(3, 3, 3)
     with pytest.raises(ValueError):
-        dendrite.forward_tensor( [neuron_pb2], [x])
+        dendrite.forward_tensor( [neuron_obj], [x])
 
 def test_dendrite_forward_image_shape_error():
     x = torch.rand(3, 3, 3)
     with pytest.raises(ValueError):
-        dendrite.forward_image( [neuron_pb2], [x])
+        dendrite.forward_image( [neuron_obj], [x])
 
 def test_dendrite_forward_text_shape_error():
     x = torch.rand(3, 3, 3)
     with pytest.raises(ValueError):
-        dendrite.forward_image( [neuron_pb2], [x])
+        dendrite.forward_image( [neuron_obj], [x])
 
 def test_dendrite_forward_text():
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, ops = dendrite.forward_text( [neuron_pb2], [x])
+    out, ops = dendrite.forward_text( [neuron_obj], [x])
     assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
     assert list(out[0].shape) == [2, 4, bittensor.__network_dim__]
 
 def test_dendrite_forward_image():
     x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ])
-    out, ops = dendrite.forward_image( [neuron_pb2], [x])
+    out, ops = dendrite.forward_image( [neuron_obj], [x])
     assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
     assert list(out[0].shape) == [1, 1, bittensor.__network_dim__]
 
 def test_dendrite_forward_tensor():
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = dendrite.forward_tensor( [neuron_pb2], [x])
+    out, ops = dendrite.forward_tensor( [neuron_obj], [x])
     assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
 
 def test_dendrite_backoff():
-    _dendrite = bittensor.dendrite.Dendrite()
+    _dendrite = bittensor.dendrite.Dendrite( wallet = wallet )
     _dendrite.config.receptor.do_backoff = True
     _dendrite.config.receptor.max_backoff = 1
-    _neuron_pb2 = bittensor.proto.Neuron(
-        version = bittensor.__version__,
-        public_key = _dendrite.wallet.hotkey.public_key,
-        address = '0.0.0.0',
+    _neuron_obj = bittensor.utils.neurons.NeuronEndpoint(
+        uid = 0,
+        ip = '0.0.0.0',
+        ip_type = 4,
         port = 12345,
+        hotkey = _dendrite.wallet.hotkey.public_key,
+        coldkey = _dendrite.wallet.coldkey.public_key,
+        modality = 0
     )
     
     # Add a quick sleep here, it appears that this test is intermittent, likely based on the asyncio operations of past tests.
@@ -74,25 +80,25 @@ def test_dendrite_backoff():
     time.sleep(5)
     # Normal call.
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = _dendrite.forward_tensor( [_neuron_pb2], [x])
+    out, ops = _dendrite.forward_tensor( [_neuron_obj], [x])
     assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
 
     # Backoff call.
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = _dendrite.forward_tensor( [_neuron_pb2], [x])
+    out, ops = _dendrite.forward_tensor( [_neuron_obj], [x])
     assert ops[0].item() == bittensor.proto.ReturnCode.Backoff
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
 
     # Normal call.
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = _dendrite.forward_tensor( [_neuron_pb2], [x])
+    out, ops = _dendrite.forward_tensor( [_neuron_obj], [x])
     assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
 
     # Backoff call.
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = _dendrite.forward_tensor( [_neuron_pb2], [x])
+    out, ops = _dendrite.forward_tensor( [_neuron_obj], [x])
     assert ops[0].item() == bittensor.proto.ReturnCode.Backoff
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
 
