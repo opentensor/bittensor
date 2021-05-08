@@ -222,6 +222,22 @@ class BaseMiner( Miner ):
         """
         raise NotImplementedError()
 
+    def set_mechanism_weights( self ):
+        r""" Called after every training epoch, sets the row_weights into the incentive mechanism on chain.
+        """
+        row_weights = self.get_row_weights()
+        uids = self.metagraph.uids
+        did_set = self.subtensor.set_weights(
+            wallet = self.wallet,
+            uids = uids,
+            weights = row_weights, 
+            wait_for_inclusion = True
+        )
+        if did_set:
+            logger.success('Successfully set weights with row:\n {}', row_weights.tolist())
+        else:
+            logger.warning('Failed to set weights on chain.')
+
     def get_state_dict( self ) -> dict:
         r""" Called by miner.save_state().
             Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
@@ -476,10 +492,10 @@ class BaseMiner( Miner ):
             The function populates and displays the passed progress bar.
         """
         try:
-            index = self.metagraph.state.index_for_uid[self.metagraph.uid]
-            stake = self.metagraph.S[index]
-            rank = self.metagraph.R[index]
-            incentive = self.metagraph.I[index]
+            self_uid = self.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
+            stake = self.metagraph.S[ self_uid ].item()
+            rank = self.metagraph.R[ self_uid ].item()
+            incentive = self.metagraph.I[ self_uid ].item()
         except:
             stake = 0.0
             rank = 0.0
@@ -500,7 +516,6 @@ class BaseMiner( Miner ):
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
             'Axon': self.axon.__str__(),
             'Dendrite': self.dendrite.__str__(),
-            '\n': '\n',
         } 
         for idx, (uid, code) in enumerate(list(zip(self.metagraph.uids.tolist(), output.router.return_codes.tolist()))):
             weight_dif = next_row_weights[idx] - prev_row_weights[idx]
@@ -570,14 +585,12 @@ class BaseMiner( Miner ):
                     elif self.should_reload():
                         self.reload_state()
 
-                    # ---- Set weights ----
-                    self.metagraph.set_weights(
-                        weights = self.get_row_weights(), 
-                        wait_for_inclusion = True
-                    )
+                    # ---- Set weights on chain ----
+                    self.set_mechanism_weights()
 
                     # ---- Metagraph ----
                     self.sync_metagraph()
+                    self.save_metagraph()
 
                     # ---- Update Tensorboard ----
                     self.epoch_logs() 

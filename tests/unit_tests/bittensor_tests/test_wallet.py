@@ -1,10 +1,18 @@
 import bittensor
+import os
 
-the_wallet = None
+the_wallet = bittensor.wallet.Wallet(
+    path = '/tmp/pytest',
+    name = 'pytest',
+    hotkey = 'pytest',
+) 
 
 def test_create_wallet():
-    global the_wallet
-    the_wallet = bittensor.wallet.Wallet() 
+    the_wallet.create_new_coldkey( use_password=False, overwrite = True )
+    the_wallet.create_new_hotkey( use_password=False, overwrite = True )
+    assert os.path.isfile(the_wallet.coldkeyfile)
+    assert os.path.isfile(the_wallet.hotkeyfile)
+    assert os.path.isfile(the_wallet.coldkeypubfile)
 
 def test_wallet_config():
     config = bittensor.wallet.Wallet.default_config()

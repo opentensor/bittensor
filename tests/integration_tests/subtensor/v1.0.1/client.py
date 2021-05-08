@@ -2,6 +2,7 @@ import os
 import time
 import pytest
 import random
+import torch
 import subprocess
 
 from typing import List
@@ -406,24 +407,24 @@ def test_set_weights_success(setup_chain):
     uidA = subtensorA.get_uid_for_pubkey(walletA.hotkey.public_key)
     uidB = subtensorB.get_uid_for_pubkey(walletB.hotkey.public_key)
 
-    w_uids = [uidA, uidB]
-    w_vals = [pow(2, 31)-1, pow(2,31)-1]
+    w_uids = torch.tensor([uidA, uidB])
+    w_vals = torch.tensor([pow(2, 31) - 1, pow(2, 31)])
     subtensorA.set_weights(
-        destinations = w_uids,
-        values = w_vals,
+        uids = w_uids,
+        weights = w_vals,
         wait_for_finalization=True,
-        timeout = 4 * bittensor.__blocktime__,
+        timeout=4 * bittensor.__blocktime__,
         wallet=walletA
     )
-    subtensorB.set_weights (
-        destinations = w_uids,
-        values = w_vals,
+    subtensorB.set_weights(
+        uids = w_uids,
+        weights = w_vals,
         wait_for_finalization=True,
-        timeout = 4 * bittensor.__blocktime__,
+        timeout=4 * bittensor.__blocktime__,
         wallet=walletB
     )
 
     result_uids = subtensorA.weight_uids_for_uid(uidA)
     result_vals = subtensorA.weight_vals_for_uid(uidA)
-    assert result_uids == w_uids
-    assert result_vals == w_vals
+    assert result_uids == w_uids.tolist()
+    assert result_vals == w_vals.tolist()
