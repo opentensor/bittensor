@@ -29,7 +29,7 @@ class GenesisTextDataloader(BittensorDataLoader):
 
         self.config = config
         self.block_size = block_size
-        self.tokenizer = bittensor.__tokenizer__()
+        self.tokenizer = bittensor.__tokenizer__
         self.batch_size = batch_size
         
         # Retrieve a random slice of the genesis dataset

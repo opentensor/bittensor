@@ -133,7 +133,9 @@ class Miner( bittensor.neuron.Neuron ):
         self.connect_to_chain()
         self.subscribe_to_chain()
         self.init_axon()
+        self.load_metagraph()
         self.sync_metagraph()
+        self.save_metagraph()
 
 class BaseMiner( Miner ):
 
@@ -510,7 +512,7 @@ class BaseMiner( Miner ):
             'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
             'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
             'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
-            'nPeers': colored(self.metagraph.n, 'red'),
+            'nPeers': colored(self.metagraph.n.item(), 'red'),
             'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
