@@ -89,18 +89,17 @@ class Executor ( bittensor.neuron.Neuron ):
     def overview ( self ): 
         r""" Prints an overview for the wallet's colkey.
         """
-        self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
         self.connect_to_chain()
         self.load_metagraph()
         self.sync_metagraph()
         self.save_metagraph()
-        balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
-        
+        balance = self.subtensor.get_balance( self.wallet.coldkeypub )
+
         owned_neurons = [] 
         neuron_endpoints = self.metagraph.neuron_endpoints
         for uid, cold in enumerate(self.metagraph.coldkeys):
-            if cold == self.wallet.coldkey.public_key:
+            if cold == self.wallet.coldkeypub:
                 owned_neurons.append( neuron_endpoints[uid] )
                 
         logger.opt(raw=True).info("--===[[ Neurons ]]===--\n")
@@ -118,7 +117,7 @@ class Executor ( bittensor.neuron.Neuron ):
         logger.opt(raw=True).info(t.get_string() + '\n')
         logger.success( "Total staked: \u03C4{}", total_stake)
         logger.success( "Total balance: \u03C4{}", balance.tao)
-        
+
     def unstake_all ( self ):
         r""" Unstaked from all hotkeys associated with this wallet's coldkey.
         """

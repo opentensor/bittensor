@@ -201,6 +201,12 @@ class Metagraph( torch.nn.Module ):
         """
         return [ bittensor.utils.neurons.NeuronEndpoint.from_tensor( neuron_tensor ) for neuron_tensor in self.neurons ]
 
+    def load( self, network:str = 'kusanagi' ):
+        self.load_from_path( path = '~/.bittensor/' + str(network) + '.pt')
+
+    def save( self, network:str = 'kusanagi' ):
+        self.save_to_path( path = '~/.bittensor/' + str(network) + '.pt')
+
     def load_from_path(self, path:str ):
         full_path = os.path.expanduser(path)
         metastate = torch.load( full_path )
@@ -254,6 +260,10 @@ class Metagraph( torch.nn.Module ):
         self.uids = torch.nn.Parameter( new_uids, requires_grad=False )
         self.stake = torch.nn.Parameter( new_stake, requires_grad=False )
         self.lastemit = torch.nn.Parameter( new_lastemit, requires_grad=False )
+
+        # Extend weights matrix.
+        for idx in range( old_size ):
+            self.weights[idx] =  torch.nn.Parameter( torch.cat( [self.weights[idx], torch.zeros([new_size - len(self.weights[idx])], dtype = torch.float32)]))
 
         # Create buffers
         for _ in range( new_size - old_size ):
