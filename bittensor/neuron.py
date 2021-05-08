@@ -250,7 +250,6 @@ class Neuron:
 
     def load_metagraph( self ):
         # ---- Sync metagraph ----
-        print ('check kusanagi pt')
         path = os.path.expanduser('~/.bittensor/' + str(self.config.subtensor.network) + '.pt')
         if os.path.isfile(path):
             logger.info('\nLoading Metagraph...')
