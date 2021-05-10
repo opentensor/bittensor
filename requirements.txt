@@ -31,6 +31,7 @@ pytest-xdist==2.2.0
 pytest-asyncio>=0.14.0
 pytorch_transformers
 pyyaml
+rich
 rollbar
 requests~=2.25.0
 scalecodec~=0.10.59
