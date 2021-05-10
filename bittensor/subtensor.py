@@ -243,7 +243,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             attempted_endpoints.append(ws_chain_endpoint)
 
             # --- Attempt connection ----
-            if await self.substrate.async_connect( ws_chain_endpoint, timeout = 5 ):
+            if await self.substrate.async_connect( ws_chain_endpoint, timeout = 2 ):
                 logger.success("Connected to network:<cyan>{}</cyan> at endpoint:<cyan>{}</cyan>".format(self.config.subtensor.network, ws_chain_endpoint))
                 return True
             
