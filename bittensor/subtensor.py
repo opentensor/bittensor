@@ -83,9 +83,9 @@ class Subtensor:
     @staticmethod
     def default_config() -> Munch:
         # Parses and returns a config Munch for this object.
-        parser = argparse.ArgumentParser(); 
+        parser = argparse.ArgumentParser()
         Subtensor.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config.Config.to_config(parser)
         return config
     
     @staticmethod   
