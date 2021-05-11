@@ -15,25 +15,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import bittensor
 import argparse
-import json
-import os
-import re
-import stat
-import traceback as tb
-
-import threading
-from io import StringIO
-from termcolor import colored
-import multiprocessing as mp
 import bittensor.utils.networking as net
-from cryptography.exceptions import InvalidSignature, InvalidKey
-from cryptography.fernet import InvalidToken
 
 from munch import Munch
-from typing import Tuple, List, Optional
-
-import bittensor
 from loguru import logger
 logger = logger.opt(colors=True)
 
