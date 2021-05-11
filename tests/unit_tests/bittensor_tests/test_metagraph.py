@@ -18,8 +18,9 @@ def test_print_empty():
 
 def test_load_sync_save():
     metagraph = bittensor.metagraph.Metagraph()
-    metagraph.load()
     metagraph.sync()
+    metagraph.save()
+    metagraph.load()
     metagraph.save()
 
 def test_state_dict():

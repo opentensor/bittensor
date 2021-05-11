@@ -603,10 +603,3 @@ class BaseMiner( Miner ):
                     # User ended.
                     break
 
-                # except Exception as e:
-                #     # Unintended exception.
-                #     logger.exception('Uncaught Error in run loop: {}', e )
-                #     logger.info('Reload and continue.')
-                #     self.reload_state()
-                #     continue
-

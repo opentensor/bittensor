@@ -54,8 +54,8 @@ def setup_chain():
 
     proc = subprocess.Popen([path, '--dev', '--port', str(port+1), '--ws-port', str(port), '--rpc-port', str(port + 2), '--tmp'], close_fds=True, shell=False)
 
-    # Wait 2 seconds for the node to come up
-    time.sleep(2)
+    # Wait 4 seconds for the node to come up
+    time.sleep(4)
 
     yield port
 
@@ -467,7 +467,61 @@ def test_set_weights_success_transaction_fee(setup_chain):
     uidB = subtensorB.get_uid_for_pubkey(walletB.hotkey.public_key)
 
     stake = 4000
-    transaction_fee = 14355
+
+
+    # Add stake to the hotkey account, so we can do tests on the transaction fees of the set_weights function
+    # Keep in mind, this operation incurs transaction fees that are appended to the block_reward
+    subtensorA.add_stake(wallet=walletA, amount=Balance(stake), hotkey_id=walletA.hotkey.public_key,
+                         wait_for_finalization=True, timeout=30)
+
+    # At this point both neurons have equal stake, with self-weight set, so they receive each 50% of the block reward
+
+    blocknr_pre = subtensorA.get_current_block()
+
+    w_uids = torch.tensor([uidA, uidB])
+    w_vals = torch.tensor([0, 1])
+    result = subtensorA.set_weights(
+        uids = w_uids,
+        weights = w_vals,
+        wait_for_finalization=True,
+        timeout=4 * bittensor.__blocktime__,
+        wallet=walletA
+    )
+
+    assert result == True
+
+    blocknr_post = subtensorA.get_current_block()
+    blocks_passed = blocknr_post - blocknr_pre
+
+    # Check the stakes
+    stakeA = subtensorA.get_stake_for_uid(uidA)
+
+    transaction_fee = 0
+    expectation = int(BLOCK_REWARD * blocks_passed) - transaction_fee + stake + TRANSACTION_FEE_ADD_STAKE
+
+    assert int(stakeA) == expectation
+
+
+def test_set_weights_v1_1_0_success_transaction_fee(setup_chain):
+    coldkeyA = Keypair.create_from_uri('//Alice')
+    coldkeyB = Keypair.create_from_uri('//Bob')
+
+    walletA = generate_wallet(coldkey_pair=coldkeyA)
+    walletB = generate_wallet(coldkey_pair=coldkeyB)
+
+    subtensorA = connect(setup_chain)
+    subtensorB = connect(setup_chain)
+    subtensorA.is_connected()
+    subtensorB.is_connected()
+
+    subscribe(subtensorA, walletA)  # Sets a self weight of 1
+    subscribe(subtensorB, walletB)  # Sets a self weight of 1
+
+    uidA = subtensorA.get_uid_for_pubkey(walletA.hotkey.public_key)
+    uidB = subtensorB.get_uid_for_pubkey(walletB.hotkey.public_key)
+
+    stake = 4000
+    transaction_fee = 1000
 
     # Add stake to the hotkey account, so we can do tests on the transaction fees of the set_weights function
     # Keep in mind, this operation incurs transaction fees that are appended to the block_reward
@@ -479,24 +533,29 @@ def test_set_weights_success_transaction_fee(setup_chain):
 
     blocknr_pre = subtensorA.get_current_block()
 
-    w_uids = torch.tensor([uidA, uidB])
-    w_vals = torch.tensor([0, 1])
-    subtensorA.set_weights(
-        uids = w_uids,
-        weights = w_vals,
+    w_uids = [uidA, uidB]
+    w_vals = [0, 1]
+    result = subtensorA.set_weights_v1_1_0(
+        destinations=w_uids,
+        values=w_vals,
+        transaction_fee=transaction_fee,
         wait_for_finalization=True,
         timeout=4 * bittensor.__blocktime__,
         wallet=walletA
     )
 
+    assert result == True
+
     blocknr_post = subtensorA.get_current_block()
     blocks_passed = blocknr_post - blocknr_pre
-
-    #logger.error(blocks_passed)
 
     # Check the stakes
     stakeA = subtensorA.get_stake_for_uid(uidA)
 
-    expectation = int(stake + (0.99 * BLOCK_REWARD * 3) + 0.99 * TRANSACTION_FEE_ADD_STAKE)
+    total_block_reward = BLOCK_REWARD * blocks_passed
+    total_received_trans_fees = (TRANSACTION_FEE_ADD_STAKE + transaction_fee)
 
-    assert int(stakeA) == expectation  # 1_485_018_355
+    expectation = total_block_reward + total_received_trans_fees + stake - transaction_fee
+
+    assert int(stakeA) == expectation
+

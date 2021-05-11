@@ -226,20 +226,22 @@ class Metagraph( torch.nn.Module ):
         self.weights = torch.nn.ParameterList([torch.nn.Parameter( state_dict['weights.' + str(i)], requires_grad=False )  for i in range(self.n.item()) ])
         self.neurons = torch.nn.ParameterList([torch.nn.Parameter( state_dict['neurons.' + str(i)], requires_grad=False )  for i in range(self.n.item()) ])
 
-    def sync(self, subtensor: 'bittensor.subtensor.Subtensor' = None):
+    def sync(self, subtensor: 'bittensor.subtensor.Subtensor' = None, force: bool = False ):
         r""" Synchronizes this metagraph with the chain state.
             Args: 
                 subtensor: (:obj:`bittensor.subtensor.Subtensor`, optional):
                     Subtensor chain interface obbject. If None, creates default connection to kusanagi.
+                force (bool):
+                    force syncs all nodes on the graph.
         """
         # Defaults to base subtensor connection.
         if subtensor == None:
             subtensor = bittensor.subtensor.Subtensor()
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        loop.run_until_complete(self._async_sync(subtensor))
+        loop.run_until_complete(self._async_sync(subtensor, force))
 
-    async def _async_sync( self, subtensor: 'bittensor.subtensor.Subtensor'):
+    async def _async_sync( self, subtensor: 'bittensor.subtensor.Subtensor', force: bool = False):
         r""" Uses the passed subtensor interface to update the metagraph chain state to reflect 
             the latest info on chain.
 
@@ -282,7 +284,7 @@ class Metagraph( torch.nn.Module ):
         # Fill buffers.
         pending_queries = []
         for uid, lastemit in chain_lastemit.items():
-            if lastemit > old_block:
+            if lastemit > old_block or force == True:
                 pending_queries.append( self.fill_uid( subtensor = subtensor, uid = uid ) )
         for query in tqdm.asyncio.tqdm.as_completed( pending_queries ):
             await query

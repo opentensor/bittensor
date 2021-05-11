@@ -190,18 +190,27 @@ class Executor ( bittensor.neuron.Neuron ):
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
         self.connect_to_chain()
-        neurons = self._associated_neurons()
+        self.load_metagraph()
+        self.sync_metagraph()
+        self.save_metagraph()
+
+        neurons = [] 
+        neuron_endpoints = self.metagraph.neuron_endpoints
+        for uid, cold in enumerate(self.metagraph.coldkeys):
+            if cold == self.wallet.coldkeypub:
+                owned_neurons.append( neuron_endpoints[uid] )
+
         for neuron in neurons:
-            neuron.stake = self.subtensor.get_stake_for_uid( neuron.uid )
+            stake = self.metagraph.S[ neuron.uid ].item()
             result = self.subtensor.unstake( 
                 wallet = self.wallet, 
-                amount = neuron.stake, 
+                amount = stake, 
                 hotkey_id = neuron.hotkey, 
                 wait_for_finalization = True, 
                 timeout = bittensor.__blocktime__ * 5 
             )
             if result:
-                logger.success( "Unstaked: \u03C4{} from uid: {} to coldkey.pub: {}".format( neuron.stake, neuron.uid, self.wallet.coldkey.public_key ))
+                logger.success( "Unstaked: \u03C4{} from uid: {} to coldkey.pub: {}".format( stake, neuron.uid, self.wallet.coldkey.public_key ))
             else:
                 logger.critical("Unstaking transaction failed")
 
@@ -211,16 +220,28 @@ class Executor ( bittensor.neuron.Neuron ):
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
         self.connect_to_chain()
-        unstaking_balance = Balance.from_float( amount_tao )
-        neurons = self._associated_neurons()
-        neuron = neurons.get_by_uid( uid )
-        if not neuron:
-            logger.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
+        self.load_metagraph()
+        self.sync_metagraph()
+        self.save_metagraph()
+
+        neuron = None 
+        neuron_endpoints = self.metagraph.neuron_endpoints
+        for neuron_uid, cold in enumerate(self.metagraph.coldkeys):
+            if neuron_uid == uid:
+                if cold != self.wallet.coldkeypub:
+                    logger.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
+                    quit()
+                else:
+                    neuron = neuron_endpoints[neuron_uid]
+        if neuron == None:
+            logger.critical("No Neuron with uid: {} associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
             quit()
 
-        neuron.stake = self.subtensor.get_stake_for_uid(neuron.uid)
-        if unstaking_balance > neuron.stake:
-            logger.critical("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format( uid, neuron.stake, unstaking_balance))
+
+        unstaking_balance = Balance.from_float( amount_tao )
+        stake = self.subtensor.get_stake_for_uid(neuron.uid)
+        if unstaking_balance > stake:
+            logger.critical("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format( uid, stake, unstaking_balance))
             quit()
 
         logger.info("Requesting unstake of \u03C4{} from hotkey: {} to coldkey: {}".format(unstaking_balance.tao, neuron.hotkey, self.wallet.coldkey.public_key))
@@ -243,16 +264,27 @@ class Executor ( bittensor.neuron.Neuron ):
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
         self.subtensor.connect()
+        self.load_metagraph()
+        self.sync_metagraph()
+        self.save_metagraph()
         staking_balance = Balance.from_float( amount_tao )
         account_balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
         if account_balance < staking_balance:
             logger.critical("Not enough balance (\u03C4{}) to stake \u03C4{}".format(account_balance, staking_balance))
             quit()
 
-        neurons = self._associated_neurons()
-        neuron = neurons.get_by_uid( uid )
-        if not neuron:
-            logger.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key ))
+        neuron = None 
+        neuron_endpoints = self.metagraph.neuron_endpoints
+        for neuron_uid, cold in enumerate(self.metagraph.coldkeys):
+            if neuron_uid == uid:
+                if cold != self.wallet.coldkeypub:
+                    logger.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
+                    quit()
+                else:
+                    neuron = neuron_endpoints[neuron_uid]
+                    
+        if neuron == None:
+            logger.critical("No Neuron with uid: {} associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
             quit()
 
         logger.info("Adding stake of \u03C4{} from coldkey {} to hotkey {}".format( staking_balance.tao, self.wallet.coldkey.public_key, neuron.hotkey))
