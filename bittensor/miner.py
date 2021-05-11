@@ -626,11 +626,11 @@ class BaseMiner( Miner ):
                     # User ended.
                     break
 
-                except Exception as e:
-                    logger.error('Unknown exception: {}', e)
-                    if self.config.restart_on_failure:
-                        logger.info('Restarting from last saved state.')
-                        self.reload_state()
-                        continue
+                # except Exception as e:
+                #     logger.error('Unknown exception: {}', e)
+                #     if self.config.restart_on_failure:
+                #         logger.info('Restarting from last saved state.')
+                #         self.reload_state()
+                #         continue
 
 

@@ -144,6 +144,8 @@ class GPT2Nucleus(bittensor.nucleus.Nucleus):
         GPT2Nucleus.check_config(config)
         self.config = config
 
+        self.routing_function = None
+
         gpt_config = GPTConfig(
             vocab_size = bittensor.__vocab_size__,
             n_embd=bittensor.__network_dim__,
@@ -368,7 +370,7 @@ class GPT2Nucleus(bittensor.nucleus.Nucleus):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len (or block_size), bittensor.__network_dim__]
-        output.router = self.route_text( inputs.to(self.device), pooled )
+        output.router = self.routing_function( inputs.to(self.device), pooled )
         remote_context = output.router.response.to(self.device)
         
         # distillation_loss : distillation loss between local_context and remote_context

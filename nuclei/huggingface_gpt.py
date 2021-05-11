@@ -277,7 +277,7 @@ class GPT2LMNucleus(bittensor.nucleus.Nucleus):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.router = self.route_text( inputs.to(self.device), pooled )
+        output.router = self.route_text( nucleus = self, inputs = inputs.to(self.device), query = pooled )
         remote_context = output.router.response
 
         # distillation_loss: distillation loss between local_context and remote_context

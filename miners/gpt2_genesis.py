@@ -44,6 +44,7 @@ from termcolor import colored
 from transformers import AdamW
 from types import SimpleNamespace
 from nuclei.gpt2 import GPT2Nucleus
+from routers.pkm import PKMRouter
 from typing import Tuple, List, Optional
 from torch.nn.utils import clip_grad_norm_
 from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
@@ -55,6 +56,7 @@ logger = logger.opt(colors=True)
 class Miner( bittensor.miner.BaseMiner ):
 
     def __init__(self, config: Munch = None, **kwargs):
+
         # ---- Load Config ----
         if config == None:
             config = Miner.default_config();   
@@ -62,9 +64,14 @@ class Miner( bittensor.miner.BaseMiner ):
         Miner.check_config( config )
         logger.info( bittensor.config.Config.toString( config ) )
         self.config = config
+        super( Miner, self ).__init__( self.config, **kwargs )
 
-        # ---- synapse ----
+        # ---- router ----
+        self.router = PKMRouter( self.config, query_dim = bittensor.__network_dim__ )
+
+        # ---- nucleus ----
         self.nucleus = GPT2Nucleus( self.config )
+        self.nucleus.routing_function = self.route_text 
 
         # ---- Row Weights ----
         self.row_weights = torch.ones([1]).to(self.nucleus.device)
@@ -78,7 +85,6 @@ class Miner( bittensor.miner.BaseMiner ):
         # The dataset used to train Adam and his first 100 children.
         self.dataset = GenesisTextDataloader(self.config.miner.batch_size_train, self.nucleus.get_block_size())
         self.tokens = 0
-        super( Miner, self ).__init__( self.config, **kwargs )
                
     @staticmethod
     def default_config() -> Munch:
@@ -145,6 +151,7 @@ class Miner( bittensor.miner.BaseMiner ):
         )
         parser.add_argument('--miner.name', default='gpt2_genesis', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
         GPT2Nucleus.add_args( parser )
+        PKMRouter.add_args( parser )
         bittensor.miner.BaseMiner.add_args( parser )
         GenesisTextDataloader.add_args( parser )
 
@@ -154,6 +161,8 @@ class Miner( bittensor.miner.BaseMiner ):
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         bittensor.miner.BaseMiner.check_config( config )
         GenesisTextDataloader.check_config( config )
+        GPT2Nucleus.check_config( config )
+        PKMRouter.check_config( config )
 
     # ---- Axon Forward call ----
     def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
@@ -202,6 +211,36 @@ class Miner( bittensor.miner.BaseMiner ):
         # Not processing backward requests
         return None
 
+    def route_text( self, text: torch.LongTensor, query: torch.FloatTensor ) -> SimpleNamespace:
+        r""" Routing function for a bittensor nucleus. Accepts tokenized text inputs and a query. Routes text inputs to neurons
+            based on that query. This function must be overridden by a miner class and assigned to the nucleus.
+
+            Args:
+                text (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_dim)`, `required`): 
+                    tensor of tokenized sentences.
+                
+                query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dim)`, `required`): 
+                    Context tensor used to select which neurons query for each example.
+            
+            Returns:
+                SimpleNamespace {
+                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                        Joined responses from each queried neuron.
+
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each neuron per example.
+
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                        dendrite call return codes.
+                }
+                
+        """
+        outputs = self.router.forward_text( self.metagraph, self.dendrite, text, query )
+        return outputs
+
     def should_run( self, epoch: int ) -> bool:
         r""" Called by miner.run() every epoch, if the response is false, training stops.
         """
@@ -243,6 +282,7 @@ class Miner( bittensor.miner.BaseMiner ):
         """
         return {
             'row_weights': self.row_weights,
+            'router_state': self.router.state_dict(),
             'nucleus_state': self.nucleus.state_dict(), 
             'optimizer_state': self.optimizer.state_dict(),
         }
@@ -257,7 +297,10 @@ class Miner( bittensor.miner.BaseMiner ):
         """
         self.row_weights = state_dict['row_weights']
         self.nucleus.load_state_dict( state_dict['nucleus_state'] )
+        self.router.load_state_dict( state_dict['router_state'])
         self.optimizer.load_state_dict( state_dict['optimizer_state'] )
+        self.nucleus.routing_function = self.route_text # Reassign the routing function.
+        self.configure_optimizers() # Reinit the optimizer.
 
     # ---- Get Row Weights ----
     def get_row_weights( self ) -> torch.FloatTensor:
@@ -308,7 +351,7 @@ class Miner( bittensor.miner.BaseMiner ):
         self.decay_learning_rate( inputs )
 
         # ---- Train row weights ----
-        batch_weights = torch.mean(output.router.weights, axis = 0).to( self.synapse.device ) # Average over batch.
+        batch_weights = torch.mean(output.router.weights, axis = 0).to( self.nucleus.device ) # Average over batch.
         self.row_weights = (1 - 0.03) * self.row_weights + 0.03 * batch_weights # Moving avg update.
         self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
 
@@ -356,9 +399,11 @@ class Miner( bittensor.miner.BaseMiner ):
 
         # create the pytorch optimizer object
         optim_groups = [
+            {"params": self.router.parameters()},
             {"params": [param_dict[pn] for pn in sorted(list(decay))], "weight_decay": self.config.miner.weight_decay},
             {"params": [param_dict[pn] for pn in sorted(list(no_decay))], "weight_decay": 0.0},
         ]
+        print ( optim_groups )
         optimizer = torch.optim.AdamW(optim_groups, lr=self.config.miner.learning_rate, betas=(0.9, 0.95))
         return optimizer
 
