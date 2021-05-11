@@ -63,11 +63,11 @@ class Miner( bittensor.miner.BaseMiner ):
         logger.info( bittensor.config.Config.toString( config ) )
         self.config = config
 
-        # ---- nucleus ----
-        self.nucleus = GPT2Nucleus( self.config )
+        # ---- synapse ----
+        self.synapse = GPT2Synapse( self.config )
 
         # ---- Row Weights ----
-        self.row_weights = torch.ones([1]).to(self.nucleus.device)
+        self.row_weights = torch.ones([1]).to(self.synapse.device)
 
         # ---- Optimizer ----
         self.optimizer = self.configure_optimizers()
@@ -173,8 +173,8 @@ class Miner( bittensor.miner.BaseMiner ):
                 outputs (:obj:`torch.FloatTensor`): 
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
-        inputs = inputs.to(self.nucleus.device)
-        output = self.nucleus.local_forward (
+        inputs = inputs.to(self.synapse.device)
+        output = self.synapse.local_forward (
             inputs = inputs        
         )
         return output.local_hidden
