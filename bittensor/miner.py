@@ -324,6 +324,8 @@ class BaseMiner( Miner ):
                 pong.send( outputs.detach() )
         except Exception as e:
             logger.exception('Error in forward thread with error {}', e)
+            traceback.print_exc()
+            sys.exit()
 
     # ---- Forward loop -----
     def forward_loop ( self ): 
