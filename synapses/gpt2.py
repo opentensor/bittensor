@@ -362,6 +362,9 @@ class GPT2Synapse(bittensor.synapse.Synapse):
                         Outputs from the pkm dendrite.
             )
         """
+        # Send inputs to appropriate device
+        inputs = inputs.to(self.device)
+
         inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         # Run local model
         # output = SimpleNamespace

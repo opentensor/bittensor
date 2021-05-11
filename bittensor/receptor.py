@@ -56,7 +56,7 @@ class Receptor(nn.Module):
 
     def __init__(
             self, 
-            neuron: bittensor.proto.Neuron, 
+            neuron: 'bittensor.utils.neurons.NeuronEndpoint', 
             config: Munch = None, 
             wallet: 'bittensor.wallet.Wallet' = None,
             pass_gradients: bool = None,
@@ -66,7 +66,7 @@ class Receptor(nn.Module):
         ):
         r""" Initializes a receptor grpc connection.
             Args:
-                neuron (:obj:`bittensor.proto.Neuron`, `required`):
+                neuron (:obj:`bittensor.utils.neurons.NeuronEndpoint`, `required`):
                     neuron endpoint descriptor proto.
                 config (:obj:`Munch`, `optional`): 
                     receptor.Receptor.config()
@@ -147,11 +147,11 @@ class Receptor(nn.Module):
             pass
         finally:
             external_ip = None
-        if neuron.address == external_ip:
+        if self.neuron.ip == external_ip:
             ip = "localhost:"
-            self.endpoint = ip + str(neuron.port)
+            self.endpoint = ip + str(self.neuron.port)
         else:
-            self.endpoint = neuron.address + ':' + str(neuron.port)
+            self.endpoint = self.neuron.ip + ':' + str(self.neuron.port)
         self.channel = grpc.insecure_channel(
             self.endpoint,
             options=[('grpc.max_send_message_length', -1),
