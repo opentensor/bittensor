@@ -14,9 +14,7 @@ import torch
 import torch.nn as nn
 from munch import Munch
 
-
 from torch.nn import functional as F
-from routers.pkm import PKMRouter
 from types import SimpleNamespace
 
 class GPTPooler(nn.Module):
@@ -178,9 +176,6 @@ class GPT2Nucleus(bittensor.nucleus.Nucleus):
         # pooler_layer: pools the hidden units for use by the pkm dendrite rpc query.
         self.pooler = GPTPooler(gpt_config)
 
-        # Router: (PKM layer) queries network using pooled embeddings as context.
-        self.router = PKMRouter(config, query_dim = bittensor.__network_dim__)
-
         # Hidden layer
         self.hidden_layer = nn.Linear( bittensor.__network_dim__, bittensor.__network_dim__ )
 
@@ -227,8 +222,6 @@ class GPT2Nucleus(bittensor.nucleus.Nucleus):
         parser.add_argument('--nucleus.attn_pdrop', default=0.1, type=float, 
                             help='GPT attention dropout probability.')
         
-        PKMRouter.add_args(parser)
-
     @staticmethod
     def check_config(config: Munch):
         pass
@@ -375,7 +368,7 @@ class GPT2Nucleus(bittensor.nucleus.Nucleus):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len (or block_size), bittensor.__network_dim__]
-        output.router = self.router.forward_text(neuron, inputs.to(self.device), pooled)
+        output.router = self.route_text( inputs.to(self.device), pooled )
         remote_context = output.router.response.to(self.device)
         
         # distillation_loss : distillation loss between local_context and remote_context

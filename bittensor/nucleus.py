@@ -84,6 +84,88 @@ class Nucleus(nn.Module):
         nucleus_copy.load_state_dict(self.state_dict())
         return nucleus_copy
 
+    def route_image(self, images: torch.FloatTensor, query: torch.FloatTensor) -> SimpleNamespace:
+        r""" Forwards images to connected neurons using the passed context to learn connectivity.
+
+            Args:
+                images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
+                    Image tensors to forward.
+                
+                query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, context_dim)`, `required`): 
+                    query tensor used to select which neurons query for each example.
+            
+            Returns:
+                SimpleNamespace {
+                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                        Joined responses from each queried neuron.
+
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each neuron per example.
+
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                        dendrite call return codes.
+                }
+        """
+        raise NotImplementedError('Function must be overloaded')
+
+    def route_text(self, text: torch.LongTensor, query: torch.FloatTensor) -> SimpleNamespace:
+        r""" Forwards text to connected neurons using the passed context to learn connectivity.
+
+            Args:
+                text (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_dim)`, `required`): 
+                    tensor of tokenized sentences.
+                
+                query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dim)`, `required`): 
+                    Context tensor used to select which neurons query for each example.
+            
+            Returns:
+                SimpleNamespace {
+                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                        Joined responses from each queried neuron.
+
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each neuron per example.
+
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                        dendrite call return codes.
+                }
+                
+        """
+        raise NotImplementedError('Function must be overloaded')
+
+    def route_tensor(self, tensors: torch.FloatTensor, query: torch.FloatTensor) -> SimpleNamespace:
+        r""" Forwards tensors to connected neurons using the passed context to learn connectivity.
+
+            Args:
+                tensors (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                    tensors sent to connected neurons.
+                
+                query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dim)`, `required`): 
+                    Query tensor used to select which neurons query for each example.
+            
+            Returns:
+                SimpleNamespace {
+                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                        Joined responses from each queried neuron.
+
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
+                        weights for each neuron per example.
+
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
+                        number of requests sent to each uid in this batch.
+
+                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                        dendrite call return codes.
+                }
+        """
+        raise NotImplementedError('Function must be overloaded')
+
     def forward_text(self, text: torch.LongTensor) -> torch.FloatTensor:
         r"""Forward tokenized text inputs through this nucleus.
 

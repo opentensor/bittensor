@@ -29,7 +29,6 @@ from transformers import BertModel, BertConfig
 from types import SimpleNamespace
 
 import bittensor
-from routers.pkm import PKMRouter
 
 class BertPooler(nn.Module):
     def __init__(self, config):
@@ -67,10 +66,6 @@ class BertNucleusBase (bittensor.nucleus.Nucleus):
                                             intermediate_size=bittensor.__network_dim__, 
                                             is_decoder=False)
 
-        # dendrite: (PKM layer) queries network using pooled embeddings as context.
-        # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.router = PKMRouter( config, query_dim = bittensor.__network_dim__ )
-
         # encoder_layer: encodes tokenized sequences to network dim.
         # [batch_size, sequence_len] -> [batch_size, sequence_len, bittensor.__network_dim__]
         self.transformer = BertModel( huggingface_config, add_pooling_layer=True )
@@ -101,7 +96,6 @@ class BertNucleusBase (bittensor.nucleus.Nucleus):
         parser.add_argument('--nucleus.num_attention_heads', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
         parser.add_argument('--nucleus.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
-        PKMRouter.add_args(parser)
 
     @staticmethod
     def check_config( config: Munch ):    
@@ -195,7 +189,7 @@ class BertNucleusBase (bittensor.nucleus.Nucleus):
 
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.router = self.router.forward_text( neuron = neuron, text = inputs, query = output.local_pooled )
+        output.router = self.route_text(text = inputs, query = output.local_pooled )
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]

@@ -31,7 +31,6 @@ from munch import Munch
 from loguru import logger
 
 import bittensor
-from routers.pkm import PKMRouter
 from bittensor.utils.batch_transforms import Normalize
 
 class FFNNNucleus(bittensor.nucleus.Nucleus):
@@ -69,10 +68,6 @@ class FFNNNucleus(bittensor.nucleus.Nucleus):
         # [batch_size, transform_dim + bittensor.__network_dim__] = [batch_size, bittensor.__network_dim__]
         self.hidden_layer1 = nn.Linear(self.transform_dim + bittensor.__network_dim__, bittensor.__network_dim__)
         self.hidden_layer2 = nn.Linear(bittensor.__network_dim__, bittensor.__network_dim__)
-
-        # dendrite: (PKM layer) queries network using pooled embeddings as context.
-        # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.router = PKMRouter(config, query_dim = bittensor.__network_dim__)
 
         # target_layer: Maps from hidden layer to target dimension
         # [batch_size, bittensor.__network_dim__] -> [batch_size, self.target_dim]

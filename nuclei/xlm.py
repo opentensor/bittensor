@@ -104,9 +104,6 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
         # pooler layer: pools the hidden units for use by the pkm dendrite rpc query.
         self.pooler = XLMPooler(xlm_config)
 
-        # router: (PKM layer) queries network using embeddings as context
-        self.router = PKMRouter(config, query_dim = bittensor.__network_dim__)
-
         # hidden layer: transforms context and encoding to network dimension hidden units.
         self.hidden_layer = nn.Linear( bittensor.__network_dim__, bittensor.__network_dim__ )
 
@@ -308,7 +305,7 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.router = self.router.forward_text(neuron, inputs.to(self.device), pooled)
+        output.router = self.route_text( inputs.to(self.device), pooled )
         remote_context = output.router.response
 
         # Distillation loss: distillation loss between local_context and remote_context

@@ -106,10 +106,6 @@ class GPT2LMNucleus(bittensor.nucleus.Nucleus):
         # [batch_size, bittensor.__network_dim__, sequence_len] -> [batch_size, bittensor.__network_dim__]
         self.pooler = GPT2Pooler(huggingface_config)
 
-        # router: (PKM layer) queries network using pooled embeddings as context.
-        # [batch_size, bittensor.__network_dim__] -> topk * [batch_size, bittensor.__network_dim__]
-        self.router = PKMRouter(config, query_dim = bittensor.__network_dim__)
-
         # hidden_layer: transforms context and encoding to network_dim hidden units.
         # [batch_size, sequence_dim, 2 * bittensor.__network_dim__] -> [batch_size, sequence_len, bittensor.__network_dim__]
         self.hidden_layer = nn.Linear( bittensor.__network_dim__, bittensor.__network_dim__ )
@@ -167,8 +163,6 @@ class GPT2LMNucleus(bittensor.nucleus.Nucleus):
                             help='Stale neurons are filtered after this many blocks.')
         parser.add_argument('--nucleus.gradient_checkpointing', default=True, type=bool, 
                             help='Stale neurons are filtered after this many blocks.')
-
-        PKMRouter.add_args(parser)
 
     @staticmethod
     def check_config(config: Munch):
@@ -283,7 +277,7 @@ class GPT2LMNucleus(bittensor.nucleus.Nucleus):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.router = self.router.forward_text(neuron, inputs.to(self.device), pooled)
+        output.router = self.route_text( inputs.to(self.device), pooled )
         remote_context = output.router.response
 
         # distillation_loss: distillation loss between local_context and remote_context

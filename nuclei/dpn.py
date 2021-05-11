@@ -75,10 +75,6 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
         self.transform_layer4 = self._make_layer(in_planes[3], out_planes[3], num_blocks[3], dense_depth[3], stride=2)
         self.transform_dim = (out_planes[3] * 4)+(((num_blocks[3]+1) * 4)*dense_depth[3])
         
-        # dendrite: (PKM layer) queries network using pooled embeddings as context.
-        # [batch_size, -1] -> topk * [batch_size, bittensor.__network_dim__]
-        self.router = PKMRouter(config, query_dim = self.transform_dim)
-
         # Context layers.
         """
             Distillation model for remote context. This layer takes input 
@@ -130,7 +126,6 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
         parser.add_argument('--nucleus.num_blocks', default='3, 6, 20, 3', action="append", type=to_list)
         parser.add_argument('--nucleus.dense_depth', default='16, 32, 32, 128', action="append", type=to_list)
         parser.add_argument('--nucleus.target_dim', default=10, type=int, help='Final logit layer dimension. i.e. 10 for CIFAR-10.')
-        parser = PKMRouter.add_args(parser)
     
     @staticmethod
     def check_config(config: Munch):
@@ -293,7 +288,7 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         images = torch.unsqueeze(images, 1)
-        output.router = self.router.forward_image( neuron, images, output.transform )
+        output.router = self.route_image( images, output.transform )
         remote_context = torch.squeeze( output.router.response, 1 ).to(self.device)
 
         # Distill the local context to match the remote context.
