@@ -331,6 +331,11 @@ class BaseMiner( Miner ):
                     modality = modality
                 )
                 pong.send( outputs.detach() )
+
+        except BrokenPipeError:
+            logger.info('Failed to process forward request before timeout')
+            pass
+
         except Exception as e:
             logger.exception('Error in forward thread with error {}', e)
             traceback.print_exc()
@@ -390,6 +395,11 @@ class BaseMiner( Miner ):
                     modality = modality
                 )
                 pong.send( outputs.detach() )
+
+        except BrokenPipeError:
+            logger.info('Failed to process backward request before timeout')
+            pass
+
         except Exception as e:
             logger.exception('Error in backward thread with error {}', e)
 
