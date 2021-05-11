@@ -1,4 +1,3 @@
-
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -16,25 +15,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
-import json
 import os
-import re
-import stat
-import traceback as tb
-
-import threading
-from io import StringIO
-from termcolor import colored
-import multiprocessing as mp
+import bittensor
+import argparse
 import bittensor.utils.networking as net
-from cryptography.exceptions import InvalidSignature, InvalidKey
-from cryptography.fernet import InvalidToken
 
 from munch import Munch
-from typing import Tuple, List, Optional
-
-import bittensor
 from loguru import logger
 logger = logger.opt(colors=True)
 
@@ -88,7 +74,7 @@ class Neuron:
         self.subtensor = subtensor
         # Metagraph: Maintains a connection to the subtensor chain and hold chain state.
         if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph(config = self.config, wallet = self.wallet, subtensor = self.subtensor)
+            metagraph = bittensor.metagraph.Metagraph()
         self.metagraph = metagraph
         # Axon: RPC server endpoint which serves your synapse. Responds to Forward and Backward requests.
         if axon == None:
@@ -111,7 +97,6 @@ class Neuron:
     def add_args(parser: argparse.ArgumentParser):
         bittensor.wallet.Wallet.add_args( parser )
         bittensor.subtensor.Subtensor.add_args( parser )
-        bittensor.metagraph.Metagraph.add_args( parser )
         bittensor.axon.Axon.add_args(parser)
         bittensor.dendrite.Dendrite.add_args( parser )
         bittensor.synapse.Synapse.add_args( parser )
@@ -186,7 +171,9 @@ class Neuron:
         self.connect_to_chain()
         self.subscribe_to_chain()
         self.init_axon()
+        self.load_metagraph()
         self.sync_metagraph()
+        self.save_metagraph()
 
     def shutdown ( self ):
         self.teardown_axon()
@@ -247,12 +234,34 @@ class Neuron:
         # ---- Starting axon ----
         logger.info('\nStarting Axon...')
         self.axon.start()
+
+    def load_metagraph( self ):
+        # ---- Sync metagraph ----
+        path = os.path.expanduser('~/.bittensor/' + str(self.config.subtensor.network) + '.pt')
+        if os.path.isfile(path):
+            logger.info('\nLoading Metagraph...')
+            try:
+                path = '~/.bittensor/' + str(self.config.subtensor.network) + '.pt'
+                self.metagraph.load_from_path( path = path )
+                logger.success('Loaded metagraph from: <cyan>{}</cyan>', path)
+            except:
+                logger.error('Failed to load metagraph from path: <cyan>{}</cyan>', path)    
         
     def sync_metagraph( self ):
         # ---- Sync metagraph ----
         logger.info('\nSyncing Metagraph...')
-        self.metagraph.sync()
+        self.metagraph.sync( subtensor = self.subtensor )
         logger.info( self.metagraph )
+
+    def save_metagraph( self ):
+        # ---- Sync metagraph ----
+        logger.info('\nSaving Metagraph...')
+        try:
+            path = '~/.bittensor/' + str(self.config.subtensor.network) + '.pt'
+            self.metagraph.save_to_path( path = path )
+            logger.success('Saved metagraph to: <cyan>{}</cyan>', path)  
+        except:
+            logger.error('Failed to save metagraph to path: <cyan>{}</cyan>', path)    
 
     def connect_to_chain ( self ):
         # ---- Connect to chain ----

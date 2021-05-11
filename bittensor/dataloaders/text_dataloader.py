@@ -29,7 +29,7 @@ class GenesisTextDataloader(BittensorDataLoader):
 
         self.config = config
         self.block_size = block_size
-        self.tokenizer = bittensor.__tokenizer__()
+        self.tokenizer = bittensor.__tokenizer__
         self.batch_size = batch_size
         
         # Retrieve a random slice of the genesis dataset
@@ -65,7 +65,7 @@ class GenesisTextDataloader(BittensorDataLoader):
             string: Contents of the text file. 
         """
         try:
-            logger.info("Retrieving a dataset files from the IPFS gateway...")
+            logger.info("Retrieving a dataset file from the IPFS gateway...")
             directory = self.retrieve_directory(self.genesis_text_dataset_hash)
             data_corpus = []
 
@@ -92,7 +92,6 @@ class GenesisTextDataloader(BittensorDataLoader):
                     filename = random_dataset_file['Name']
                     total_dataset_size += int(random_dataset_file['Size'])
                 
-                logger.info('')
                 return data_corpus
                 
 
@@ -117,30 +116,37 @@ class GenesisTextDataloader(BittensorDataLoader):
         """
 
         # If we've exhausted the dataset, retrieve another corpus.
-        if self.refresh_corpus:
+        if self.refresh_corpus or len(self.data) < self.block_size:
             self.data = self.construct_text_corpus()
             self.refresh_corpus = False
 
         # If epoch_length is set then we just need a slice of 
         # the dataset we downloaded of length epoch_length. 
-        if epoch_length and epoch_length < len(self):
+        if epoch_length and epoch_length < len(self.data):
             
             # Set up upper bound of indices to fit the batch size we want. 
-            idx_bound = epoch_length * self.batch_size
-
-            # Collect enough random indices to batch together using batch_size into epoch_length batches
-            random_start = random.randint(0, len(self) - idx_bound)
-            indices = list(range(random_start, random_start + idx_bound))
-            
-            subset = Subset(self, indices)
-            
-            # Clear out these indices from our current corpus
-            try:
-                del self.data[random_start: random_start + idx_bound]
-            except Exception:
-                # There is too little data left over for us to delete according to our epoch_length, 
-                # let's get more data!
+            idx_bound = epoch_length * self.batch_size 
+            if idx_bound < len(self):
+                # Collect enough random indices to batch together using batch_size into epoch_length batches
+                random_start = random.randint(0, len(self) - idx_bound)
+                indices = list(range(random_start, random_start + idx_bound))
+                
+                subset = Subset(self, indices)
+                
+                # Clear out these indices from our current corpus
+                try:
+                    del self.data[random_start: random_start + idx_bound]
+                except Exception:
+                    # There is too little data left over for us to delete according to our epoch_length, 
+                    # let's get more data!
+                    self.refresh_corpus = True
+            else:
                 self.refresh_corpus = True
+                return DataLoader(self,
+                            shuffle=True,
+                            batch_size=self.batch_size,
+                            num_workers=self.config.dataloader.num_workers,
+                            collate_fn=self.collate_fn)
 
 
             # Set up dataloader
@@ -173,18 +179,19 @@ class GenesisTextDataloader(BittensorDataLoader):
             Returns:
                 x
         """
-
         chunk = self.data[idx:idx + self.block_size]
 
         dix = []
         block_num=0
-        while block_num < self.block_size:
+        while block_num < self.block_size and len(chunk) > block_num:
             tokenized = self.tokenizer(chunk[block_num], padding=True, truncation=True)['input_ids']
             for t in tokenized:
                 if block_num < self.block_size:
                     dix.append(t)
                     block_num += 1
 
+        if len(dix) == 0:
+            return None
 
         x = torch.tensor(dix, dtype=torch.long)
         return x    

@@ -18,14 +18,22 @@ import argparse
 import copy
 import sys
 import os
-import pandas as pd
+import time
+import torch
 
 from munch import Munch
-from termcolor import colored
-from prettytable import PrettyTable
+from tqdm import tqdm
+from rich import box
+from rich.align import Align
+from rich.console import Console
+from rich.live import Live
+from rich.measure import Measurement
+from rich.table import Table
+from rich.text import Text
 
 import bittensor
-from bittensor.utils.neurons import Neuron, Neurons
+import bittensor.utils.codes as code_utils
+from bittensor.utils.neurons import NeuronEndpoint, NeuronEndpoints
 from bittensor.utils.balance import Balance
 
 from loguru import logger
@@ -66,64 +74,115 @@ class Executor ( bittensor.neuron.Neuron ):
     def check_config (config: Munch):
         bittensor.neuron.Neuron.check_config( config )
             
-    def regenerate_coldkey ( self, mnemonic: str, use_password: bool ):
+    def regenerate_coldkey ( self, mnemonic: str, use_password: bool, overwrite: bool = False ):
         r""" Regenerates a colkey under this wallet.
         """
-        self.wallet.regenerate_coldkey( mnemonic = mnemonic, use_password = use_password )
+        self.wallet.regenerate_coldkey( mnemonic = mnemonic, use_password = use_password, overwrite = overwrite )
 
-    def regenerate_hotkey ( self, mnemonic: str, use_password: bool ):
+    def regenerate_hotkey ( self, mnemonic: str, use_password: bool, overwrite: bool = False):
         r""" Regenerates a hotkey under this wallet.
         """
-        self.wallet.regenerate_hotkey( mnemonic = mnemonic, use_password = use_password )
+        self.wallet.regenerate_hotkey( mnemonic = mnemonic, use_password = use_password, overwrite = overwrite )
 
-    def create_new_coldkey ( self, n_words: int, use_password: bool ):
+    def create_new_coldkey ( self, n_words: int, use_password: bool, overwrite: bool = False ):
         r""" Creates a new coldkey under this wallet.
         """
-        self.wallet.create_new_coldkey( n_words = n_words, use_password = use_password )   
+        self.wallet.create_new_coldkey( n_words = n_words, use_password = use_password, overwrite = overwrite)   
 
-    def create_new_hotkey ( self, n_words: int, use_password: bool ):  
+    def create_new_hotkey ( self, n_words: int, use_password: bool, overwrite: bool = False ):  
         r""" Creates a new hotkey under this wallet.
         """
-        self.wallet.create_new_hotkey( n_words = n_words, use_password = use_password  )  
-
-    def _associated_neurons( self ) -> Neurons:
-        r""" Returns a list of neurons associate with this wallet's coldkey.
-        """
-        logger.info("Retrieving all nodes associated with cold key : {}".format( self.wallet.coldkeypub ))
-        neurons = self.subtensor.neurons()
-        neurons = Neurons.from_list( neurons )
-        result = filter(lambda x : x.coldkey == self.wallet.coldkey.public_key, neurons )# These are the neurons associated with the provided cold key
-        associated_neurons = Neurons(result)
-        # Load stakes
-        for neuron in associated_neurons:
-            neuron.stake = self.subtensor.get_stake_for_uid(neuron.uid)
-        return associated_neurons
+        self.wallet.create_new_hotkey( n_words = n_words, use_password = use_password, overwrite = overwrite )  
 
     def overview ( self ): 
         r""" Prints an overview for the wallet's colkey.
         """
-        self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
         self.connect_to_chain()
+        self.load_metagraph()
         self.sync_metagraph()
-        balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
-        neurons = self._associated_neurons()
+        self.save_metagraph()
+        balance = self.subtensor.get_balance( self.wallet.coldkeypub )
 
-        logger.success( "BALANCE: %s : [\u03C4%s]" % ( self.wallet.coldkey.ss58_address, balance.tao ))
-        logger.info("")
-        logger.opt(raw=True).info("--===[[ Neurons ]]===--\n")
-        t = PrettyTable(["UID", "IP", "STAKE (\u03C4) ", "RANK  (\u03C4)", "INCENTIVE  (\u03C4/block) ", "LastEmit (blocks)", "HOTKEY"])
-        t.align = 'l'
-        total_stake = 0.0
-        for neuron in neurons:
-            index = self.metagraph.state.index_for_uid[neuron.uid]
-            rank = float(self.metagraph.R[index])
-            incentive = float(self.metagraph.I[index])
-            lastemit = int(self.metagraph.block - self.metagraph.lastemit[index])
-            t.add_row([neuron.uid, neuron.ip, neuron.stake.__float__(), rank, incentive, lastemit, neuron.hotkey])
-            total_stake += neuron.stake.__float__()
-        logger.opt(raw=True).info(t.get_string() + '\n')
-        logger.success( "Total stake: {}", total_stake)
+        owned_neurons = [] 
+        neuron_endpoints = self.metagraph.neuron_endpoints
+        for uid, cold in enumerate(self.metagraph.coldkeys):
+            if cold == self.wallet.coldkeypub:
+                owned_neurons.append( neuron_endpoints[uid] )
+
+        TABLE_DATA = []
+
+        total_stake = 0
+        total_rank = 0
+        total_incentive = 0
+        total_success = 0
+        total_time = 0.0
+        logger.info('\nRunning queries ...')
+        for neuron in tqdm(owned_neurons):
+
+            # Make query and get response.
+            if self.wallet.has_hotkey:
+                start_time = time.time()
+                result, code = self.dendrite.forward_text( neurons = [neuron], x = [torch.zeros((1,1), dtype=torch.int64)] )
+                end_time = time.time()
+                code_to_string = code_utils.code_to_string(code.item())
+                code_color = code_utils.code_to_color(code.item()) 
+                code_str =  '[' + str(code_color) + ']' + code_to_string 
+                query_time = '[' + str(code_color) + ']' + "" + '{:.3}'.format(end_time - start_time) + "s"
+
+                if code.item() == 0:
+                    total_success += 1
+                    total_time += end_time - start_time
+            else:
+                code_str = '[N/A]'
+                query_time = '[N/A]'
+
+            uid = neuron.uid
+            stake = self.metagraph.S[ uid ].item()
+            rank = self.metagraph.R[ uid ].item()
+            incentive = self.metagraph.I[ uid ].item()
+            lastemit = int(self.metagraph.block - self.metagraph.lastemit[ uid ])
+            lastemit = "[bold green]" + str(lastemit) if lastemit < 3000 else "[bold red]" + str(lastemit)
+            row = [str(neuron.uid), neuron.ip + ':' + str(neuron.port), '{:.5}'.format(stake),'{:.5}'.format(rank),  '{:.5}'.format(incentive * 14400), str(lastemit), query_time, code_str, neuron.hotkey]
+            TABLE_DATA.append(row)
+            total_stake += stake
+            total_rank += rank
+            total_incentive += incentive * 14400
+            
+        total_neurons = len(owned_neurons)
+        total_stake = '{:.7}'.format(total_stake)
+        total_rank = '{:.7}'.format(total_rank)
+        total_incentive = '{:.7}'.format(total_incentive)
+        total_time = '{:.3}s'.format(total_time / total_neurons) if total_time != 0 else '0.0s'
+        total_success = '[bold green]' + str(total_success) + '/[bold red]' +  str(total_neurons - total_success)
+                
+        console = Console()
+        table = Table(show_footer=False)
+        table_centered = Align.center(table)
+        table.title = (
+            "[bold white]Coldkey.pub:" + str(self.wallet.coldkeypub)
+        )
+        table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
+        table.add_column("[overline white]IP", justify='left', style='dim blue', no_wrap=True) 
+        table.add_column("[overline white]STAKE (\u03C4)", str(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]RANK (\u03C4)", str(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]INCENTIVE (\u03C4/day)", str(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]LastEmit (blocks)", justify='right', no_wrap=True)
+        table.add_column("[overline white]Query (sec)", str(total_time), footer_style = "overline white", justify='right', no_wrap=True)
+        table.add_column("[overline white]Query (code)", str(total_success), footer_style = "overline white", justify='right', no_wrap=True)
+        table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)
+        table.show_footer = True
+        table.caption = "[bold white]Coldkey Balance: [bold green]\u03C4" + str(balance.tao)
+
+        console.clear()
+        for row in TABLE_DATA:
+            table.add_row(*row)
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        console = Console()
+        console.print(table)
+
 
     def unstake_all ( self ):
         r""" Unstaked from all hotkeys associated with this wallet's coldkey.
@@ -131,18 +190,27 @@ class Executor ( bittensor.neuron.Neuron ):
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
         self.connect_to_chain()
-        neurons = self._associated_neurons()
+        self.load_metagraph()
+        self.sync_metagraph()
+        self.save_metagraph()
+
+        neurons = [] 
+        neuron_endpoints = self.metagraph.neuron_endpoints
+        for uid, cold in enumerate(self.metagraph.coldkeys):
+            if cold == self.wallet.coldkeypub:
+                owned_neurons.append( neuron_endpoints[uid] )
+
         for neuron in neurons:
-            neuron.stake = self.subtensor.get_stake_for_uid( neuron.uid )
+            stake = self.metagraph.S[ neuron.uid ].item()
             result = self.subtensor.unstake( 
                 wallet = self.wallet, 
-                amount = neuron.stake, 
+                amount = stake, 
                 hotkey_id = neuron.hotkey, 
                 wait_for_finalization = True, 
                 timeout = bittensor.__blocktime__ * 5 
             )
             if result:
-                logger.success( "Unstaked: \u03C4{} from uid: {} to coldkey.pub: {}".format( neuron.stake, neuron.uid, self.wallet.coldkey.public_key ))
+                logger.success( "Unstaked: \u03C4{} from uid: {} to coldkey.pub: {}".format( stake, neuron.uid, self.wallet.coldkey.public_key ))
             else:
                 logger.critical("Unstaking transaction failed")
 
@@ -152,16 +220,28 @@ class Executor ( bittensor.neuron.Neuron ):
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
         self.connect_to_chain()
-        unstaking_balance = Balance.from_float( amount_tao )
-        neurons = self._associated_neurons()
-        neuron = neurons.get_by_uid( uid )
-        if not neuron:
-            logger.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
+        self.load_metagraph()
+        self.sync_metagraph()
+        self.save_metagraph()
+
+        neuron = None 
+        neuron_endpoints = self.metagraph.neuron_endpoints
+        for neuron_uid, cold in enumerate(self.metagraph.coldkeys):
+            if neuron_uid == uid:
+                if cold != self.wallet.coldkeypub:
+                    logger.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
+                    quit()
+                else:
+                    neuron = neuron_endpoints[neuron_uid]
+        if neuron == None:
+            logger.critical("No Neuron with uid: {} associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
             quit()
 
-        neuron.stake = self.subtensor.get_stake_for_uid(neuron.uid)
-        if unstaking_balance > neuron.stake:
-            logger.critical("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format( uid, neuron.stake, unstaking_balance))
+
+        unstaking_balance = Balance.from_float( amount_tao )
+        stake = self.subtensor.get_stake_for_uid(neuron.uid)
+        if unstaking_balance > stake:
+            logger.critical("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format( uid, stake, unstaking_balance))
             quit()
 
         logger.info("Requesting unstake of \u03C4{} from hotkey: {} to coldkey: {}".format(unstaking_balance.tao, neuron.hotkey, self.wallet.coldkey.public_key))
@@ -184,16 +264,27 @@ class Executor ( bittensor.neuron.Neuron ):
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
         self.subtensor.connect()
+        self.load_metagraph()
+        self.sync_metagraph()
+        self.save_metagraph()
         staking_balance = Balance.from_float( amount_tao )
         account_balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
         if account_balance < staking_balance:
             logger.critical("Not enough balance (\u03C4{}) to stake \u03C4{}".format(account_balance, staking_balance))
             quit()
 
-        neurons = self._associated_neurons()
-        neuron = neurons.get_by_uid( uid )
-        if not neuron:
-            logger.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key ))
+        neuron = None 
+        neuron_endpoints = self.metagraph.neuron_endpoints
+        for neuron_uid, cold in enumerate(self.metagraph.coldkeys):
+            if neuron_uid == uid:
+                if cold != self.wallet.coldkeypub:
+                    logger.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
+                    quit()
+                else:
+                    neuron = neuron_endpoints[neuron_uid]
+                    
+        if neuron == None:
+            logger.critical("No Neuron with uid: {} associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
             quit()
 
         logger.info("Adding stake of \u03C4{} from coldkey {} to hotkey {}".format( staking_balance.tao, self.wallet.coldkey.public_key, neuron.hotkey))

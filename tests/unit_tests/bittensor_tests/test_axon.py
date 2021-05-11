@@ -6,8 +6,14 @@ from munch import Munch
 from unittest.mock import MagicMock
 import bittensor
 import bittensor.serialization as serialization
-
-axon = bittensor.axon.Axon()
+wallet =  bittensor.wallet.Wallet(
+    path = '/tmp/pytest',
+    name = 'pytest',
+    hotkey = 'pytest',
+) 
+wallet.create_new_coldkey(use_password=False, overwrite = True)
+wallet.create_new_hotkey(use_password=False, overwrite = True)
+axon = bittensor.axon.Axon(wallet = wallet)
 
 def test_forward_success():
     axon.enqueue_forward_to_nucleus = MagicMock(

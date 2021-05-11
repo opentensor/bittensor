@@ -133,7 +133,9 @@ class Miner( bittensor.neuron.Neuron ):
         self.connect_to_chain()
         self.subscribe_to_chain()
         self.init_axon()
+        self.load_metagraph()
         self.sync_metagraph()
+        self.save_metagraph()
 
 class BaseMiner( Miner ):
 
@@ -170,13 +172,22 @@ class BaseMiner( Miner ):
     def add_args( parser: argparse.ArgumentParser ):
         Miner.add_args( parser )
         parser.add_argument (
-                '--resume', 
+                '--miner.resume', 
                 dest='resume', 
                 action='store_true', 
                 help='''Resume training from last save state.'''
             )
         parser.set_defaults ( 
             resume=False 
+        )
+        parser.add_argument (
+                '--miner.restart_on_failure', 
+                dest='restart_on_failure', 
+                action='store_true', 
+                help='''Restart miner on unknown error.'''
+            )
+        parser.set_defaults ( 
+            restart_on_failure=False 
         )
 
     def startup( self ):
@@ -221,6 +232,22 @@ class BaseMiner( Miner ):
                     weight values should be normalized and be in range [0,1].
         """
         raise NotImplementedError()
+
+    def set_mechanism_weights( self ):
+        r""" Called after every training epoch, sets the row_weights into the incentive mechanism on chain.
+        """
+        row_weights = self.get_row_weights()
+        uids = self.metagraph.uids
+        did_set = self.subtensor.set_weights(
+            wallet = self.wallet,
+            uids = uids,
+            weights = row_weights, 
+            wait_for_inclusion = True
+        )
+        if did_set:
+            logger.success('Successfully set weights with row:\n {}', row_weights.tolist())
+        else:
+            logger.warning('Failed to set weights on chain.')
 
     def get_state_dict( self ) -> dict:
         r""" Called by miner.save_state().
@@ -306,6 +333,8 @@ class BaseMiner( Miner ):
                 pong.send( outputs.detach() )
         except Exception as e:
             logger.exception('Error in forward thread with error {}', e)
+            traceback.print_exc()
+            sys.exit()
 
     # ---- Forward loop -----
     def forward_loop ( self ): 
@@ -476,10 +505,10 @@ class BaseMiner( Miner ):
             The function populates and displays the passed progress bar.
         """
         try:
-            index = self.metagraph.state.index_for_uid[self.metagraph.uid]
-            stake = self.metagraph.S[index]
-            rank = self.metagraph.R[index]
-            incentive = self.metagraph.I[index]
+            self_uid = self.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
+            stake = self.metagraph.S[ self_uid ].item()
+            rank = self.metagraph.R[ self_uid ].item()
+            incentive = self.metagraph.I[ self_uid ].item()
         except:
             stake = 0.0
             rank = 0.0
@@ -494,13 +523,12 @@ class BaseMiner( Miner ):
             'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
             'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
             'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
-            'nPeers': colored(self.metagraph.n, 'red'),
+            'nPeers': colored(self.metagraph.n.item(), 'red'),
             'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
             'Axon': self.axon.__str__(),
             'Dendrite': self.dendrite.__str__(),
-            '\n': '\n',
         } 
         for idx, (uid, code) in enumerate(list(zip(self.metagraph.uids.tolist(), output.router.return_codes.tolist()))):
             weight_dif = next_row_weights[idx] - prev_row_weights[idx]
@@ -553,11 +581,15 @@ class BaseMiner( Miner ):
             self.last_saved_loss = math.inf
 
             # ---- Optionally reload ----
-            if self.config.resume:   
-                self.reload_state()
+            if self.config.resume: 
+                try:  
+                    self.reload_state()
+                except:
+                    logger.warning("Failed to reload state. Starting from scratch.")
+                    self.save_state()
             else:
                 self.save_state()  
-
+        
             # --- Run until ----
             while self.should_run( self.epoch ):
                 try:
@@ -570,14 +602,12 @@ class BaseMiner( Miner ):
                     elif self.should_reload():
                         self.reload_state()
 
-                    # ---- Set weights ----
-                    self.metagraph.set_weights(
-                        weights = self.get_row_weights(), 
-                        wait_for_inclusion = True
-                    )
+                    # ---- Set weights on chain ----
+                    self.set_mechanism_weights()
 
                     # ---- Metagraph ----
                     self.sync_metagraph()
+                    self.save_metagraph()
 
                     # ---- Update Tensorboard ----
                     self.epoch_logs() 
@@ -586,10 +616,11 @@ class BaseMiner( Miner ):
                     # User ended.
                     break
 
-                # except Exception as e:
-                #     # Unintended exception.
-                #     logger.exception('Uncaught Error in run loop: {}', e )
-                #     logger.info('Reload and continue.')
-                #     self.reload_state()
-                #     continue
+                except Exception as e:
+                    logger.error('Unknown exception: {}', e)
+                    if self.config.restart_on_failure:
+                        logger.info('Restarting from last saved state.')
+                        self.reload_state()
+                        continue
+
 
