@@ -63,11 +63,11 @@ class Miner( bittensor.miner.BaseMiner ):
         logger.info( bittensor.config.Config.toString( config ) )
         self.config = config
 
-        # ---- synapse ----
-        self.synapse = GPT2Synapse( self.config )
+        # ---- nucleus ----
+        self.nucleus = GPT2Nucleus( self.config )
 
         # ---- Row Weights ----
-        self.row_weights = torch.ones([1]).to(self.synapse.device)
+        self.row_weights = torch.ones([1]).to(self.nucleus.device)
 
         # ---- Optimizer ----
         self.optimizer = self.configure_optimizers()
@@ -173,8 +173,8 @@ class Miner( bittensor.miner.BaseMiner ):
                 outputs (:obj:`torch.FloatTensor`): 
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
-        inputs = inputs.to(self.synapse.device)
-        output = self.synapse.local_forward (
+        inputs = inputs.to(self.nucleus.device)
+        output = self.nucleus.local_forward (
             inputs = inputs        
         )
         return output.local_hidden
@@ -308,7 +308,7 @@ class Miner( bittensor.miner.BaseMiner ):
         self.decay_learning_rate( inputs )
 
         # ---- Train row weights ----
-        batch_weights = torch.mean(output.router.weights, axis = 0).to( self.synapse.device ) # Average over batch.
+        batch_weights = torch.mean(output.router.weights, axis = 0).to( self.nucleus.device ) # Average over batch.
         self.row_weights = (1 - 0.03) * self.row_weights + 0.03 * batch_weights # Moving avg update.
         self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
 
