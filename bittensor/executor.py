@@ -204,7 +204,7 @@ class Executor ( bittensor.neuron.Neuron ):
             stake = self.metagraph.S[ neuron.uid ].item()
             result = self.subtensor.unstake( 
                 wallet = self.wallet, 
-                amount = stake, 
+                amount = Balance(stake), 
                 hotkey_id = neuron.hotkey, 
                 wait_for_finalization = True, 
                 timeout = bittensor.__blocktime__ * 5 
