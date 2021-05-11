@@ -572,12 +572,19 @@ class BaseMiner( Miner ):
             self.last_saved_loss = math.inf
 
             # ---- Optionally reload ----
-            if self.config.resume:   
-                self.reload_state()
+            if self.config.resume: 
+                try:  
+                    self.reload_state()
+                except:
+                    logger.warning("Failed to reload state. Starting from scratch.")
+                    self.save_state()
             else:
                 self.save_state()  
-
+        
             # --- Run until ----
+            self.sync_metagraph()
+            self.metagraph.to(self.synapse.device)
+
             while self.should_run( self.epoch ):
                 try:
                     # ---- Train ----

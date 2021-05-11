@@ -69,6 +69,7 @@ class Metagraph( torch.nn.Module ):
         self.lastemit = torch.nn.Parameter( torch.tensor( [], dtype = torch.int64), requires_grad=False )
         self.weights = torch.nn.ParameterList()
         self.neurons = torch.nn.ParameterList()
+        self.cached_endpoints = None
 
     @property
     def S(self) -> torch.FloatTensor:
@@ -173,7 +174,11 @@ class Metagraph( torch.nn.Module ):
                     Endpoint information for each neuron.
 
         """
-        return [ bittensor.utils.neurons.NeuronEndpoint.from_tensor( neuron_tensor ) for neuron_tensor in self.neurons ]
+        if self.cached_endpoints != None:
+            return self.cached_endpoints
+        else:
+            self.cached_endpoints = [ bittensor.utils.neurons.NeuronEndpoint.from_tensor( neuron_tensor ) for neuron_tensor in self.neurons ]
+            return self.cached_endpoints
 
     def load( self, network:str = 'kusanagi' ):
         r""" Loads this metagraph object's state_dict from bittensor root dir.
@@ -181,7 +186,12 @@ class Metagraph( torch.nn.Module ):
                 network: (:obj:`str`, required):
                     Name of state_dict to load, defaults to kusanagi
         """
-        self.load_from_path( path = '~/.bittensor/' + str(network) + '.pt')
+        metagraph_path = '~/.bittensor/' + str(network) + '.pt'
+        metagraph_path = os.path.expanduser(metagraph_path)
+        if os.path.isfile(metagraph_path):
+            self.load_from_path( path = metagraph_path)
+        else:
+            logger.warning('Did not load metagrpah from path: {}, file does not exist. Run metagraph.save() first.', metagraph_path)
 
     def save( self, network:str = 'kusanagi' ):
         r""" Saves this metagraph object's state_dict under bittensor root dir.
@@ -225,6 +235,7 @@ class Metagraph( torch.nn.Module ):
         self.lastemit = torch.nn.Parameter( state_dict['lastemit'], requires_grad=False )
         self.weights = torch.nn.ParameterList([torch.nn.Parameter( state_dict['weights.' + str(i)], requires_grad=False )  for i in range(self.n.item()) ])
         self.neurons = torch.nn.ParameterList([torch.nn.Parameter( state_dict['neurons.' + str(i)], requires_grad=False )  for i in range(self.n.item()) ])
+        self.cached_endpoints = None
 
     def sync(self, subtensor: 'bittensor.subtensor.Subtensor' = None, force: bool = False ):
         r""" Synchronizes this metagraph with the chain state.
@@ -288,6 +299,8 @@ class Metagraph( torch.nn.Module ):
                 pending_queries.append( self.fill_uid( subtensor = subtensor, uid = uid ) )
         for query in tqdm.asyncio.tqdm.as_completed( pending_queries ):
             await query
+            
+        self.cached_endpoints = None
 
     # Function which fills weights and neuron info for a uid.
     async def fill_uid ( self, subtensor: 'bittensor.subtensor.Subtensor', uid: int ) -> bool:
