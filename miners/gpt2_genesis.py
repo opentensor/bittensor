@@ -173,6 +173,7 @@ class Miner( bittensor.miner.BaseMiner ):
                 outputs (:obj:`torch.FloatTensor`): 
                     The synapse's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
+        inputs = inputs.to(self.synapse.device)
         output = self.synapse.local_forward (
             inputs = inputs        
         )
