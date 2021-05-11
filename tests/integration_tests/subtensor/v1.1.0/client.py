@@ -480,7 +480,7 @@ def test_set_weights_success_transaction_fee(setup_chain):
 
     w_uids = torch.tensor([uidA, uidB])
     w_vals = torch.tensor([0, 1])
-    subtensorA.set_weights(
+    result = subtensorA.set_weights(
         uids = w_uids,
         weights = w_vals,
         wait_for_finalization=True,
