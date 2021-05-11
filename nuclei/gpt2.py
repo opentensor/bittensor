@@ -1,4 +1,4 @@
-"""GPT Synapse
+"""GPT Nucleus
     - Initial stem consists of a combination of token encodings and positional encoding. 
     - Basically, a uniform sequence of Transformer blocks.
         - Each transformer is a sequential combination of a 1-hidden layer MLP block and a self-attention block.
@@ -129,10 +129,10 @@ class CausalSelfAttention(nn.Module):
         y = self.resid_drop(self.proj(y))
         return y
 
-class GPT2Synapse(bittensor.synapse.Synapse):
+class GPT2Nucleus(bittensor.nucleus.Nucleus):
 
     def __init__(self, config, **kwargs):
-        super(GPT2Synapse, self).__init__(config = config, **kwargs)
+        super(GPT2Nucleus, self).__init__(config = config, **kwargs)
         """The full GPT language model, with context of a block size.
             Args:
                 config (:obj: `munch.Munch`, `required`):
@@ -140,21 +140,21 @@ class GPT2Synapse(bittensor.synapse.Synapse):
         """
 
         if config == None:
-            config = GPT2Synapse.default_config()
+            config = GPT2Nucleus.default_config()
         
-        bittensor.config.Config.update_with_kwargs(config.synapse, kwargs)
-        GPT2Synapse.check_config(config)
+        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs)
+        GPT2Nucleus.check_config(config)
         self.config = config
 
         gpt_config = GPTConfig(
             vocab_size = bittensor.__vocab_size__,
             n_embd=bittensor.__network_dim__,
-            n_head=config.synapse.n_head,
-            n_layer=config.synapse.n_layer,
-            block_size=config.synapse.block_size,
-            embd_pdrop=config.synapse.embd_pdrop,
-            resid_pdrop=config.synapse.resid_pdrop,
-            attn_pdrop=config.synapse.attn_pdrop
+            n_head=config.nucleus.n_head,
+            n_layer=config.nucleus.n_layer,
+            block_size=config.nucleus.block_size,
+            embd_pdrop=config.nucleus.embd_pdrop,
+            resid_pdrop=config.nucleus.resid_pdrop,
+            attn_pdrop=config.nucleus.attn_pdrop
         )
         # Token embedding layer. 
         # [bittensor.__vocab_size__, bittensor.__network_dim__]
@@ -201,7 +201,7 @@ class GPT2Synapse(bittensor.synapse.Synapse):
     @staticmethod   
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
-        GPT2Synapse.add_args(parser) 
+        GPT2Nucleus.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
         return config
 
@@ -209,22 +209,22 @@ class GPT2Synapse(bittensor.synapse.Synapse):
     def add_args(parser: argparse.ArgumentParser):
         """ Add model params
         """
-        parser.add_argument('--synapse.n_head', default=32, type=int, 
+        parser.add_argument('--nucleus.n_head', default=32, type=int, 
                                 help='Number of attention heads for each attention layer in the Transformer encoder.')
         
-        parser.add_argument('--synapse.n_layer', default=12, type=int, 
+        parser.add_argument('--nucleus.n_layer', default=12, type=int, 
                                 help='Number of hidden layers in the Transformer encoder.')
         
-        parser.add_argument('--synapse.block_size', default=20, type=int, 
+        parser.add_argument('--nucleus.block_size', default=20, type=int, 
                                 help='Number of hidden layers in the Transformer encoder.')
         
-        parser.add_argument('--synapse.embd_pdrop', default=0.1, type=float, 
+        parser.add_argument('--nucleus.embd_pdrop', default=0.1, type=float, 
                             help='GPT embedding dropout probability.')
 
-        parser.add_argument('--synapse.resid_pdrop', default=0.1, type=float, 
+        parser.add_argument('--nucleus.resid_pdrop', default=0.1, type=float, 
                             help='GPT residual dropout probability.')
         
-        parser.add_argument('--synapse.attn_pdrop', default=0.1, type=float, 
+        parser.add_argument('--nucleus.attn_pdrop', default=0.1, type=float, 
                             help='GPT attention dropout probability.')
         
         PKMRouter.add_args(parser)
@@ -249,7 +249,7 @@ class GPT2Synapse(bittensor.synapse.Synapse):
     
 
     def forward_text(self, inputs: torch.LongTensor):
-        """ Local forward inputs through the CLM GPT Synapse.
+        """ Local forward inputs through the CLM GPT Nucleus.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
@@ -274,7 +274,7 @@ class GPT2Synapse(bittensor.synapse.Synapse):
 
 
     def local_forward(self, inputs: torch.LongTensor, training : bool = True) -> SimpleNamespace:
-        """ Forward pass through GPT2 synapse.
+        """ Forward pass through GPT2 nucleus.
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, block_size)`, `required`): 
