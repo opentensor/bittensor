@@ -172,13 +172,22 @@ class BaseMiner( Miner ):
     def add_args( parser: argparse.ArgumentParser ):
         Miner.add_args( parser )
         parser.add_argument (
-                '--resume', 
+                '--miner.resume', 
                 dest='resume', 
                 action='store_true', 
                 help='''Resume training from last save state.'''
             )
         parser.set_defaults ( 
             resume=False 
+        )
+        parser.add_argument (
+                '--miner.restart_on_failure', 
+                dest='restart_on_failure', 
+                action='store_true', 
+                help='''Restart miner on unknown error.'''
+            )
+        parser.set_defaults ( 
+            restart_on_failure=False 
         )
 
     def startup( self ):
@@ -582,9 +591,6 @@ class BaseMiner( Miner ):
                 self.save_state()  
         
             # --- Run until ----
-            self.sync_metagraph()
-            self.metagraph.to(self.synapse.device)
-
             while self.should_run( self.epoch ):
                 try:
                     # ---- Train ----
@@ -609,4 +615,12 @@ class BaseMiner( Miner ):
                 except KeyboardInterrupt:
                     # User ended.
                     break
+
+                except Exception as e:
+                    logger.error('Unknown exception: {}', e)
+                    if self.config.restart_on_failure:
+                        logger.info('Restarting from last saved state.')
+                        self.reload_state()
+                        continue
+
 
