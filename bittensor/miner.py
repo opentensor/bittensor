@@ -595,7 +595,7 @@ class BaseMiner( Miner ):
                 try:  
                     self.reload_state()
                 except:
-                    logger.warning("Failed to reload state. Starting from scratch.")
+                    logger.warning("Failed to reload state. Starting from new model.")
                     self.save_state()
             else:
                 self.save_state()  
@@ -632,5 +632,7 @@ class BaseMiner( Miner ):
                         logger.info('Restarting from last saved state.')
                         self.reload_state()
                         continue
+                    else:
+                        break
 
 
