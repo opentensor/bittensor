@@ -20,6 +20,7 @@ import sys
 import os
 import time
 import torch
+import tqdm.asyncio
 
 from munch import Munch
 from tqdm import tqdm
@@ -194,25 +195,27 @@ class Executor ( bittensor.neuron.Neuron ):
         self.sync_metagraph()
         self.save_metagraph()
 
-        neurons = [] 
+        owned_neurons = [] 
         neuron_endpoints = self.metagraph.neuron_endpoints
         for uid, cold in enumerate(self.metagraph.coldkeys):
             if cold == self.wallet.coldkeypub:
                 owned_neurons.append( neuron_endpoints[uid] )
 
-        for neuron in neurons:
+        # Fill buffers.
+        pending_queries = []
+        for neuron in owned_neurons:
             stake = self.metagraph.S[ neuron.uid ].item()
-            result = self.subtensor.unstake( 
-                wallet = self.wallet, 
-                amount = stake, 
-                hotkey_id = neuron.hotkey, 
-                wait_for_finalization = True, 
-                timeout = bittensor.__blocktime__ * 5 
+            pending_queries.append( 
+                self.subtensor.async_unstake( 
+                    wallet = self.wallet, 
+                    amount = stake, 
+                    hotkey_id = neuron.hotkey, 
+                    wait_for_finalization = True, 
+                    timeout = bittensor.__blocktime__ * 5 
+                )
             )
-            if result:
-                logger.success( "Unstaked: \u03C4{} from uid: {} to coldkey.pub: {}".format( stake, neuron.uid, self.wallet.coldkey.public_key ))
-            else:
-                logger.critical("Unstaking transaction failed")
+        for query in tqdm.asyncio.tqdm.as_completed( pending_queries ):
+            await query
 
     def unstake( self, amount_tao: int, uid: int ):
         r""" Unstaked token of amount to from uid.
