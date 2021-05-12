@@ -587,9 +587,15 @@ class Axon(bittensor.grpc.BittensorServicer):
             self.stats.qps_per_pubkey[request.public_key] = stat_utils.timed_rolling_avg(1, 0.01)
 
     def __str__(self):
-        total_in_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'red')
-        total_out_bytes_str = colored('\u290A {:.1f}'.format((self.stats.total_out_bytes.value * 8)/1000), 'green')
+        total_in_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'green')
+        total_out_bytes_str = colored('\u290A {:.1f}'.format((self.stats.total_out_bytes.value * 8)/1000), 'red')
         qps_str = colored("{:.3f}".format(float(self.stats.qps.value)), 'blue')
+        return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
+
+    def __rich__(self):
+        total_in_bytes_str = '[red]\u290B{:.1f}[/red]'.format((self.stats.total_in_bytes.value * 8)/1000)
+        total_out_bytes_str = '[green]\u290A{:.1f}[/green]'.format((self.stats.total_out_bytes.value * 8)/1000)
+        qps_str = "[blue]{:.3f}[/blue]".format(float(self.stats.qps.value))
         return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
     
     def __to_tensorboard__(self, tensorboard, global_step):

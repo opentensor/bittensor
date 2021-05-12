@@ -303,6 +303,17 @@ class Dendrite(nn.Module):
         total_in_bytes_str = colored('\u290B{:.1f}'.format((total_bytes_in*8)/1000), 'red')
         return "(" + qps_str + "q/s|" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s" + ")"
 
+    def __rich__(self): 
+        total_bytes_out = 0
+        total_bytes_in = 0
+        for receptor in self._receptors.values():
+            total_bytes_out += receptor.stats.forward_bytes_out.value
+            total_bytes_in += receptor.stats.forward_bytes_in.value
+        total_out_bytes_str = '[green]\u290A{:.1f}[/green]'.format((total_bytes_out * 8)/1000)
+        total_in_bytes_str = '[red]\u290B{:.1f}[/red]'.format((total_bytes_in * 8)/1000)
+        qps_str = "[blue]{:.3f}[/blue]".format(float(self.stats.qps.value))
+        return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
+
     def __full_str__(self):
         uids = [receptor.neuron.uid for receptor in self._receptors.values()]
         bytes_out = [receptor.stats.forward_bytes_out.value * (8/1000) for receptor in self._receptors.values()]

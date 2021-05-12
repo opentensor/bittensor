@@ -44,7 +44,7 @@ from termcolor import colored
 from transformers import AdamW
 from types import SimpleNamespace
 from nuclei.gpt2 import GPT2Nucleus
-from routers.pkm import PKMRouter
+from routers.sgmoe import SGMOERouter
 from typing import Tuple, List, Optional
 from torch.nn.utils import clip_grad_norm_
 from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
@@ -67,17 +67,17 @@ class Miner( bittensor.miner.BaseMiner ):
         super( Miner, self ).__init__( self.config, **kwargs )
 
         # ---- router ----
-        self.router = PKMRouter( self.config, query_dim = bittensor.__network_dim__ )
+        self.router = SGMOERouter( self.config, query_dim = bittensor.__network_dim__ )
 
         # ---- nucleus ----
         self.nucleus = GPT2Nucleus( self.config )
         self.nucleus.routing_function = self.route_text 
 
         # ---- Row Weights ----
-        self.row_weights = torch.ones([1]).to(self.nucleus.device)
+        self.row_weights = torch.ones([0]).to(self.nucleus.device)
 
         # ---- Optimizer ----
-        self.optimizer = self.configure_optimizers()
+        self.optimizer = self.configure_optimizers( None )
         self.lr = self.config.miner.learning_rate
 
         # ---- Dataset ----
@@ -150,10 +150,10 @@ class Miner( bittensor.miner.BaseMiner ):
             help='Training batch size.'
         )
         parser.add_argument('--miner.name', default='gpt2_genesis', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
-        GPT2Nucleus.add_args( parser )
-        PKMRouter.add_args( parser )
         bittensor.miner.BaseMiner.add_args( parser )
         GenesisTextDataloader.add_args( parser )
+        GPT2Nucleus.add_args( parser )
+        SGMOERouter.add_args( parser )
 
     @staticmethod
     def check_config(config: Munch):
@@ -162,7 +162,7 @@ class Miner( bittensor.miner.BaseMiner ):
         bittensor.miner.BaseMiner.check_config( config )
         GenesisTextDataloader.check_config( config )
         GPT2Nucleus.check_config( config )
-        PKMRouter.check_config( config )
+        SGMOERouter.check_config( config )
 
     # ---- Axon Forward call ----
     def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
@@ -182,7 +182,7 @@ class Miner( bittensor.miner.BaseMiner ):
                 outputs (:obj:`torch.FloatTensor`): 
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
-        inputs = inputs.to(self.nucleus.device)
+        inputs = inputs.to( self.nucleus.device )
         output = self.nucleus.local_forward (
             inputs = inputs        
         )
@@ -300,18 +300,28 @@ class Miner( bittensor.miner.BaseMiner ):
         self.router.load_state_dict( state_dict['router_state'])
         self.optimizer.load_state_dict( state_dict['optimizer_state'] )
         self.nucleus.routing_function = self.route_text # Reassign the routing function.
-        self.configure_optimizers() # Reinit the optimizer.
+        self.router.sync( self.metagraph )
+        self.optimizer = self.configure_optimizers( self.optimizer ) # Reinit the optimizer.
+
+    def sync_chain_state( self ):
+        r""" Called after each training epoch. Miner should update chain state and resize objects.
+        """
+        self.metagraph.sync()
+        self.router.sync_chain_state( self.metagraph ) 
+        self.metagraph.save()
+        self.row_weights = torch.nn.functional.pad( self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel()], value=0)
+        self.optimizer = self.configure_optimizers( self.optimizer ) 
 
     # ---- Get Row Weights ----
     def get_row_weights( self ) -> torch.FloatTensor:
         r""" Called after each training epoch. Returns row_weights to be set on chain.
             Returns:
-                row_weights ( torch.FloatTensor, shape=(self.metagraph.n) ): 
-                    torch row_weights matching the metagraph size.
+                mechanism_weights ( torch.FloatTensor, shape=(self.metagraph.n) ): 
+                    torch mechanism_weights matching the metagraph size.
                     weight values should be normalized and be in range [0,1].
         """
-        self.row_weights = torch.nn.functional.pad( self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel()] )
-        self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
+        topk_weights, topk_indices = self.row_weights.topk(50, dim=0) 
+        mechanism_weights = torch.scatter( torch.zeros([self.metagraph.n]), 0, topk_indices, topk_weights)
         return self.row_weights
 
     # ---- Get Batches ----
@@ -351,14 +361,12 @@ class Miner( bittensor.miner.BaseMiner ):
         self.decay_learning_rate( inputs )
 
         # ---- Train row weights ----
-        batch_weights = torch.mean(output.router.weights, axis = 0).to( self.nucleus.device ) # Average over batch.
-        self.row_weights = (1 - 0.03) * self.row_weights + 0.03 * batch_weights # Moving avg update.
-        self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
+        self.row_weights = (1 - 0.1) * self.row_weights + 0.1 * output.router.weights # Moving avg update.
 
         # ---- Update global loss ----
         return output
 
-    def configure_optimizers(self):
+    def configure_optimizers( self, prev_optimizer ):
         """
         This long function is unfortunately doing something very simple and is being very defensive:
         We are separating out all parameters of the nucleus into two buckets: those that will experience
@@ -403,8 +411,7 @@ class Miner( bittensor.miner.BaseMiner ):
             {"params": [param_dict[pn] for pn in sorted(list(decay))], "weight_decay": self.config.miner.weight_decay},
             {"params": [param_dict[pn] for pn in sorted(list(no_decay))], "weight_decay": 0.0},
         ]
-        print ( optim_groups )
-        optimizer = torch.optim.AdamW(optim_groups, lr=self.config.miner.learning_rate, betas=(0.9, 0.95))
+        optimizer = torch.optim.AdamW(optim_groups, lr = self.config.miner.learning_rate, betas=(0.9, 0.95))
         return optimizer
 
     def decay_learning_rate(self, batch):

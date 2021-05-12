@@ -2,6 +2,7 @@ import argparse
 import copy
 import math
 import torch
+import random
 import time
 import sys
 import os
@@ -17,6 +18,18 @@ from termcolor import colored
 from types import SimpleNamespace
 from qqdm import qqdm, format_str
 from typing import Tuple, List, Optional
+from tqdm import tqdm
+
+# Rich imports.
+from rich.live import Live
+from rich.table import Table
+from rich import print
+from rich.console import RenderGroup
+from rich.panel import Panel
+from rich import print
+from rich.columns import Columns
+from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn, TimeElapsedColumn
+
 from torch.utils.tensorboard import SummaryWriter
 import bittensor
 
@@ -179,6 +192,15 @@ class BaseMiner( Miner ):
             )
         parser.set_defaults ( 
             resume=False 
+        )
+        parser.add_argument (
+                '--miner.rich', 
+                dest='rich', 
+                action='store_true', 
+                help='''Rich text display'''
+            )
+        parser.set_defaults ( 
+            rich=True 
         )
         parser.add_argument (
                 '--miner.restart_on_failure', 
@@ -390,7 +412,7 @@ class BaseMiner( Miner ):
             if None not in [ pong, pubkey, inputs_x, grads_dy, modality ]:
                 outputs = self.backward_call ( 
                     pubkey = pubkey,
-                    inputs_x = inputs,
+                    inputs_x = inputs_x,
                     grads_dy = grads_dy,
                     modality = modality
                 )
@@ -501,6 +523,12 @@ class BaseMiner( Miner ):
         if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.get_nucleus().parameters()]))):
             return True
 
+    def sync_chain_state( self ):
+        r""" Called after each training epoch. Miner should update chain state and resize objects.
+        """
+        self.metagraph.sync()
+        self.metagraph.save()
+
     def epoch_logs(self):
         r""" Called by miner.run() after each epoch.
             Sends miner state to tensorboard.
@@ -509,51 +537,6 @@ class BaseMiner( Miner ):
         self.dendrite.__to_tensorboard__( self.tensorboard, self.global_step )
         self.metagraph.__to_tensorboard__( self.tensorboard, self.global_step )
 
-    # ---- Training logs ----
-    def training_logs( self, progress_bar, iteration:int, output: SimpleNamespace, prev_row_weights: List[float], next_row_weights: List[float] ):
-        r""" Called by miner.run_training_epoch() after each training step.
-            The function populates and displays the passed progress bar.
-        """
-        try:
-            self_uid = self.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
-            stake = self.metagraph.S[ self_uid ].item()
-            rank = self.metagraph.R[ self_uid ].item()
-            incentive = self.metagraph.I[ self_uid ].item()
-        except:
-            stake = 0.0
-            rank = 0.0
-            incentive = 0.0
-            pass
-        info = {
-            'GS': colored('{}'.format(self.global_step), 'red'),
-            'LS': colored('{}'.format(iteration), 'blue'),
-            'Epoch': colored('{}'.format(self.epoch+1), 'green'),
-            'Epoch-loss': colored('{:.4f}'.format(self.epoch_loss), 'yellow'),
-            'Saved-loss': colored('{:.4f}'.format(self.last_saved_loss), 'red'),
-            'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
-            'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
-            'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
-            'nPeers': colored(self.metagraph.n.item(), 'red'),
-            'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
-            'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
-            'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
-            'Axon': self.axon.__str__(),
-            'Dendrite': self.dendrite.__str__(),
-        } 
-        for idx, (uid, code) in enumerate(list(zip(self.metagraph.uids.tolist(), output.router.return_codes.tolist()))):
-            weight_dif = next_row_weights[idx] - prev_row_weights[idx]
-            if weight_dif > 0:
-                info[colored(str(uid), 'green')] = colored('{:.4f}'.format(next_row_weights[idx]), 'green')
-            elif weight_dif == 0:
-                info[str(uid)] = colored('{:.4f}'.format(next_row_weights[idx]), 'white')
-            else:
-                info[colored(str(uid), 'red')] = colored('{:.4f}'.format(next_row_weights[idx]), 'red')
-
-        progress_bar.set_infos( info )
-        self.tensorboard.add_scalar('R-loss', output.remote_target_loss.item(), self.global_step)
-        self.tensorboard.add_scalar('L-loss', output.local_target_loss.item(), self.global_step)
-        self.tensorboard.add_scalar('D-loss', output.distillation_loss.item(), self.global_step)
-
     # --- Run Epoch ----
     def run_epoch( self ):
         r""" Called by miner.run(), calls training_call for passed batches.
@@ -561,18 +544,45 @@ class BaseMiner( Miner ):
         # --- Init Epoch ----
         total_epoch_loss = 0.0
         training_batches = self.dataset.dataloader( self.config.miner.epoch_length )
-        progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
-        for iteration, (inputs) in progress_bar:
-
-            # ---- Forward / Backward ----
+        
+        if self.config.rich: 
+            # Rich display.
+            progress = Progress(
+                "[progress.description]{task.description}",
+                BarColumn(),
+                "{task.completed} of {task.total}",
+                "[progress.percentage]{task.percentage:>3.0f}%",
+                TimeRemainingColumn(),
+                TimeElapsedColumn(),
+                auto_refresh=False, expand=True
+            )
+            epoch_task = progress.add_task('[underline bold white]Epoch', total=len(training_batches))
             prev_row_weights = self.get_row_weights().tolist()
-            output = self.training_call( batch = { 'inputs': inputs } )
-            next_row_weights = self.get_row_weights().tolist()
-            total_epoch_loss += output.local_target_loss.item()
+            with Live(self.update_rich_logs(progress, epoch_task, 0, None, prev_row_weights, prev_row_weights), refresh_per_second=4, screen=True) as live:
+                for iteration, (inputs) in enumerate(training_batches):
 
-            # ---- Update training state ----
-            self.training_logs( progress_bar, iteration = iteration, output = output, prev_row_weights = prev_row_weights, next_row_weights = next_row_weights )
-            self.global_step += 1
+                    # ---- Forward / Backward ----
+                    prev_row_weights = self.get_row_weights().tolist()
+                    output = self.training_call( batch = { 'inputs': inputs } )
+                    next_row_weights = self.get_row_weights().tolist()
+                    total_epoch_loss += output.local_target_loss.item()
+
+                    live.update(self.update_rich_logs(progress, epoch_task, iteration, output, prev_row_weights, next_row_weights))
+                    self.global_step += 1
+        else:
+
+            # QQDM display.
+            progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
+            for iteration, (inputs) in progress_bar:
+                # ---- Forward / Backward ----
+                prev_row_weights = self.get_row_weights().tolist()
+                output = self.training_call( batch = { 'inputs': inputs } )
+                next_row_weights = self.get_row_weights().tolist()
+                total_epoch_loss += output.local_target_loss.item()
+
+                # ---- Update training state ----
+                self.qqdm_logs( progress_bar, iteration = iteration, output = output, prev_row_weights = prev_row_weights, next_row_weights = next_row_weights )
+                self.global_step += 1
 
         self.epoch_loss = total_epoch_loss / (iteration + 1) 
         self.epoch += 1
@@ -603,6 +613,10 @@ class BaseMiner( Miner ):
             # --- Run until ----
             while self.should_run( self.epoch ):
                 try:
+                    
+                    # ---- Synchronize with chain ----
+                    self.sync_chain_state()
+
                     # ---- Train ----
                     self.run_epoch()
 
@@ -614,10 +628,6 @@ class BaseMiner( Miner ):
 
                     # ---- Set weights on chain ----
                     self.set_mechanism_weights()
-
-                    # ---- Metagraph ----
-                    self.sync_metagraph()
-                    self.save_metagraph()
 
                     # ---- Update Tensorboard ----
                     self.epoch_logs() 
@@ -632,5 +642,131 @@ class BaseMiner( Miner ):
                 #         logger.info('Restarting from last saved state.')
                 #         self.reload_state()
                 #         continue
+
+
+    # ---- QQDM Training logs ----
+    def qqdm_logs( self, progress_bar, iteration:int, output: SimpleNamespace, prev_row_weights: List[float], next_row_weights: List[float] ):
+        r""" Called by miner.run_training_epoch() after each training step.
+            The function populates and displays the passed progress bar.
+        """
+        try:
+            self_uid = self.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
+            stake = self.metagraph.S[ self_uid ].item()
+            rank = self.metagraph.R[ self_uid ].item()
+            incentive = self.metagraph.I[ self_uid ].item()
+        except:
+            stake = 0.0
+            rank = 0.0
+            incentive = 0.0
+            pass
+        info = {
+            'GS': colored('{}'.format(self.global_step), 'red'),
+            'LS': colored('{}'.format(iteration), 'blue'),
+            'Epoch': colored('{}'.format(self.epoch+1), 'green'),
+            'Epoch-loss': colored('{:.4f}'.format(self.epoch_loss), 'yellow'),
+            'Saved-loss': colored('{:.4f}'.format(self.last_saved_loss), 'red'),
+            'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
+            'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
+            'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
+            'nPeers': colored(self.metagraph.n.item(), 'red'),
+            'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
+            'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
+            'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
+            'Axon': self.axon.__str__(),
+            'Dendrite': self.dendrite.__str__(),
+        } 
+        for uid in self.metagraph.uids.tolist():
+            if next_row_weights[uid] != 0:
+                weight_dif = next_row_weights[uid] - prev_row_weights[uid]
+                if weight_dif > 0:
+                    info[colored(str(uid), 'green')] = colored('{:.4f}'.format(next_row_weights[uid]), 'green')
+                elif weight_dif == 0:
+                    info[str(uid)] = colored('{:.4f}'.format(next_row_weights[uid]), 'white')
+                else:
+                    info[colored(str(uid), 'red')] = colored('{:.4f}'.format(next_row_weights[uid]), 'red')
+
+        progress_bar.set_infos( info )
+        self.tensorboard.add_scalar('R-loss', output.remote_target_loss.item(), self.global_step)
+        self.tensorboard.add_scalar('L-loss', output.local_target_loss.item(), self.global_step)
+        self.tensorboard.add_scalar('D-loss', output.distillation_loss.item(), self.global_step)
+
+    def update_rich_logs(self, progress, epoch_task, iteration, output, prev, next) -> Table:
+            try:
+                self_uid = self.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
+                stake = self.metagraph.S[ self_uid ].item()
+                rank = self.metagraph.R[ self_uid ].item()
+                incentive = self.metagraph.I[ self_uid ].item()
+            except:
+                stake = 0.0
+                rank = 0.0
+                incentive = 0.0
+                pass
+            if output == None:
+                lloss = 0.0
+                rloss = 0.0
+                dloss = 0.0
+            else:
+                lloss = output.local_target_loss.item()
+                rloss = output.remote_target_loss.item()
+                dloss = output.distillation_loss.item()
+
+            Cols = [
+                '[white]GS: [bold red]{}'.format(self.global_step),
+                '[white]LS: [bold blue]{}'.format(iteration),
+                '[white]Epoch: [green]{}'.format(self.epoch+1),
+                '[white]Epoch-loss: [green]{:.4f}'.format(self.epoch_loss),
+                '[white]Saved-loss: [green]{:.4f}'.format(self.last_saved_loss),
+                '[white]L-loss: [blue]{:.4f}'.format(lloss),
+                '[white]R-loss: [green]{:.4f}'.format(rloss),
+                '[white]D-loss: [yellow]{:.4f}'.format(dloss),
+                '[white]nPeers: [red]{}'.format(self.metagraph.n.item()),
+                '[white]Stake: [bold white]\u03C4[green]{:.3f}'.format(stake),
+                '[white]Rank: [bold white]\u03C4[blue]{:.3f}'.format(rank),
+                '[white]Incentive: [bold white]\u03C4[yellow]{:.6f}[bold white]/block'.format(incentive),
+                '[white]Axon: ' + self.axon.__rich__(),
+                '[white]Dendrite: ' + self.dendrite.__rich__()
+            ]
+            columns = Columns( Cols, equal=True, expand=True)
+
+            code_cols = []
+            if output != None:
+                for (uid, req_size, code) in list(zip( output.router.uids.tolist(), output.router.request_sizes.tolist(), output.router.return_codes.tolist())):
+                    code_string = bittensor.utils.codes.code_to_string(code)
+                    code_color = bittensor.utils.codes.code_to_color(code)
+                    code_cols.append( '[white]' + str(uid) + ' [' + code_color + ']' + code_string)
+            code_col = Columns( code_cols, equal=True, expand=True)
+
+            n_cols = 10
+            table = Table()
+            for col in range(n_cols):
+                table.add_column("")
+
+            uids = []
+            weights = []
+            for uid in range( self.metagraph.n.item() ):
+                if next[uid] == 0:
+                    continue
+                if len(uids) < n_cols:
+                    if next[uid] > prev[uid]:
+                        uids.append( '[bold green frame]' + str(uid) )
+                        weights.append( '[bold green frame]' + '{:.3}'.format(next[uid]) )
+                    elif next[uid] == prev[uid]:
+                        uids.append( '[dim white frame]' + str(uid) )
+                        weights.append( '[dim white frame]' + '{:.3}'.format(next[uid]) )
+                    else:
+                        uids.append( '[bold red frame]' + str(uid) )
+                        weights.append( '[dim red frame]' + '{:.3}'.format(next[uid]) )
+                if len(uids) == n_cols:
+                    table.add_row(*copy.deepcopy(uids))
+                    table.add_row(*copy.deepcopy(weights))
+                    uids = []
+                    weights = []
+            table.box = None
+            table.pad_edge = False
+            table.width = None
+            progress.update(epoch_task, advance=1, refresh=True)
+            group = RenderGroup( progress, '\n', columns, "\n[bold white]Weights", table, "\n[bold white]Codes", code_col)
+
+            return group
 
 
