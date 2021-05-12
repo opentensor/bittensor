@@ -605,7 +605,7 @@ class BaseMiner( Miner ):
                 try:  
                     self.reload_state()
                 except:
-                    logger.warning("Failed to reload state. Starting from scratch.")
+                    logger.warning("Failed to reload state. Starting from new model.")
                     self.save_state()
             else:
                 self.save_state()  
@@ -636,6 +636,7 @@ class BaseMiner( Miner ):
                     # User ended.
                     break
 
+<<<<<<< HEAD
                 # except Exception as e:
                 #     logger.error('Unknown exception: {}', e)
                 #     if self.config.restart_on_failure:
@@ -768,5 +769,15 @@ class BaseMiner( Miner ):
             group = RenderGroup( progress, '\n', columns, "\n[bold white]Weights", table, "\n[bold white]Codes", code_col)
 
             return group
+=======
+                except Exception as e:
+                    logger.error('Unknown exception: {}', e)
+                    if self.config.restart_on_failure:
+                        logger.info('Restarting from last saved state.')
+                        self.reload_state()
+                        continue
+                    else:
+                        break
+>>>>>>> bdc21c2a6811c65fe04a01bf0aff4c13beba35fe
 
 

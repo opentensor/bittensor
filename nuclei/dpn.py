@@ -126,6 +126,10 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
         parser.add_argument('--nucleus.num_blocks', default='3, 6, 20, 3', action="append", type=to_list)
         parser.add_argument('--nucleus.dense_depth', default='16, 32, 32, 128', action="append", type=to_list)
         parser.add_argument('--nucleus.target_dim', default=10, type=int, help='Final logit layer dimension. i.e. 10 for CIFAR-10.')
+<<<<<<< HEAD:nuclei/dpn.py
+=======
+        parser = PKMRouter.add_args(parser)
+>>>>>>> bdc21c2a6811c65fe04a01bf0aff4c13beba35fe:synapses/dpn.py
     
     @staticmethod
     def check_config(config: Munch):

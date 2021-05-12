@@ -39,8 +39,6 @@ import sys
 import torch.nn.functional as F
 import bittensor
 
-from qqdm import qqdm, format_str
-from tqdm import tqdm
 from munch import Munch
 from termcolor import colored
 from types import SimpleNamespace

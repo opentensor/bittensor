@@ -96,6 +96,10 @@ class BertNucleusBase (bittensor.nucleus.Nucleus):
         parser.add_argument('--nucleus.num_attention_heads', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
         parser.add_argument('--nucleus.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
+<<<<<<< HEAD:nuclei/bert.py
+=======
+        PKMRouter.add_args(parser)
+>>>>>>> bdc21c2a6811c65fe04a01bf0aff4c13beba35fe:synapses/bert.py
 
     @staticmethod
     def check_config( config: Munch ):    
