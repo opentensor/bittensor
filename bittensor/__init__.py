@@ -45,6 +45,7 @@ import bittensor.dendrite
 import bittensor.metagraph
 import bittensor.logging
 import bittensor.receptor
+import bittensor.router
 import bittensor.subtensor
 import bittensor.nucleus
 import bittensor.wallet

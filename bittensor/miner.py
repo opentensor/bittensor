@@ -636,13 +636,14 @@ class BaseMiner( Miner ):
                     # User ended.
                     break
 
-<<<<<<< HEAD
-                # except Exception as e:
-                #     logger.error('Unknown exception: {}', e)
-                #     if self.config.restart_on_failure:
-                #         logger.info('Restarting from last saved state.')
-                #         self.reload_state()
-                #         continue
+                except Exception as e:
+                    logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
+                    if self.config.restart_on_failure == True:
+                        logger.info('Restarting from last saved state.')
+                        self.reload_state()
+                        continue
+                    else:
+                        break
 
 
     # ---- QQDM Training logs ----
@@ -712,14 +713,14 @@ class BaseMiner( Miner ):
                 dloss = output.distillation_loss.item()
 
             Cols = [
-                '[white]GS: [bold red]{}'.format(self.global_step),
-                '[white]LS: [bold blue]{}'.format(iteration),
                 '[white]Epoch: [green]{}'.format(self.epoch+1),
+                '[white]Global step: [bold red]{}'.format(self.global_step),
+                '[white]Local step: [bold blue]{}'.format(iteration),
                 '[white]Epoch-loss: [green]{:.4f}'.format(self.epoch_loss),
                 '[white]Saved-loss: [green]{:.4f}'.format(self.last_saved_loss),
-                '[white]L-loss: [blue]{:.4f}'.format(lloss),
-                '[white]R-loss: [green]{:.4f}'.format(rloss),
-                '[white]D-loss: [yellow]{:.4f}'.format(dloss),
+                '[white]Local-loss: [blue]{:.4f}'.format(lloss),
+                '[white]Remote-loss: [green]{:.4f}'.format(rloss),
+                '[white]Distillation-loss: [yellow]{:.4f}'.format(dloss),
                 '[white]nPeers: [red]{}'.format(self.metagraph.n.item()),
                 '[white]Stake: [bold white]\u03C4[green]{:.3f}'.format(stake),
                 '[white]Rank: [bold white]\u03C4[blue]{:.3f}'.format(rank),
@@ -766,18 +767,8 @@ class BaseMiner( Miner ):
             table.pad_edge = False
             table.width = None
             progress.update(epoch_task, advance=1, refresh=True)
-            group = RenderGroup( progress, '\n', columns, "\n[bold white]Weights", table, "\n[bold white]Codes", code_col)
+            group = RenderGroup( progress, '\n', columns, "\n[bold white]Row Weights:\n", table, "\n[bold white]Response Codes:\n", code_col)
 
             return group
-=======
-                except Exception as e:
-                    logger.error('Unknown exception: {}', e)
-                    if self.config.restart_on_failure:
-                        logger.info('Restarting from last saved state.')
-                        self.reload_state()
-                        continue
-                    else:
-                        break
->>>>>>> bdc21c2a6811c65fe04a01bf0aff4c13beba35fe
 
 

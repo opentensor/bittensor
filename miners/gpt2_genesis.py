@@ -71,7 +71,7 @@ class Miner( bittensor.miner.BaseMiner ):
 
         # ---- nucleus ----
         self.nucleus = GPT2Nucleus( self.config )
-        self.nucleus.routing_function = self.route_text 
+        self.nucleus.routing_function = self.routing_call # Assign the routing function.
 
         # ---- Row Weights ----
         self.row_weights = torch.ones([0]).to(self.nucleus.device)
@@ -208,130 +208,41 @@ class Miner( bittensor.miner.BaseMiner ):
                 outputs (:obj:`torch.FloatTensor`): 
                     The gradients w.r.t to the inputs [batch_size, sequence_len, __network_dim__]
         """
+        # TODO(const): add backward processing.
         # Not processing backward requests
         return None
 
-    def route_text( self, text: torch.LongTensor, query: torch.FloatTensor ) -> SimpleNamespace:
+    def routing_call( self, text: torch.LongTensor, query: torch.FloatTensor ) -> SimpleNamespace:
         r""" Routing function for a bittensor nucleus. Accepts tokenized text inputs and a query. Routes text inputs to neurons
             based on that query. This function must be overridden by a miner class and assigned to the nucleus.
 
             Args:
                 text (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_dim)`, `required`): 
-                    tensor of tokenized sentences.
+                    Tensor of tokenized sentences.
                 
                 query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dim)`, `required`): 
-                    Context tensor used to select which neurons query for each example.
+                    Context tensor used to select which neurons to query for each example.
             
             Returns:
-                SimpleNamespace {
+                outputs = SimpleNamespace {
                     responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
                         Joined responses from each queried neuron.
 
-                    weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
-                        weights for each neuron per example.
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.state.n)`, `required`): 
+                        Weights for each neuron per example.
 
-                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
-                        number of requests sent to each uid in this batch.
+                    uids (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`): 
+                        Uids of neurons queried.
 
-                    return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
-                        dendrite call return codes.
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`): 
+                        Number of requests sent to each uid.
+
+                    return_codes (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`):
+                        Return codes from each query for each queried uid.
                 }
-                
         """
         outputs = self.router.forward_text( self.metagraph, self.dendrite, text, query )
         return outputs
-
-    def should_run( self, epoch: int ) -> bool:
-        r""" Called by miner.run() every epoch, if the response is false, training stops.
-        """
-        if self.config.miner.n_epochs < 0:
-            return True
-        elif epoch < self.config.miner.n_epochs:
-            return True
-        else:
-            return False
-
-    def should_save( self ) -> bool:
-        r""" Called by miner.run() after every epoch.
-            If this function returns True, the nucleus is saved to disk and can be reloaded later.
-            Returns:
-                should_save (bool):
-                    True by default. Saves nucleus after each epoch.
-        """
-        if self.epoch_loss < self.last_saved_loss:
-            return True
-        else:
-            return False
-
-    def should_reload(self) -> bool:
-        r""" Called by miner.run() after every epoch.
-            If the function returns True the nucleus state dict is saved to miner.full_path.
-            Returns:
-                should_reload (bool):
-                    False by default -> does not reload the nucleus after each epoch.
-        """
-        if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.nucleus.parameters()]))):
-            return True
-
-    def get_state_dict( self ) -> dict:
-        r""" Called by miner.save_state().
-            Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
-            Returns:
-                state_dict (:obj:`dict`): 
-                    Dictionary containing run state information such as the nucleus parameters.
-        """
-        return {
-            'row_weights': self.row_weights,
-            'router_state': self.router.state_dict(),
-            'nucleus_state': self.nucleus.state_dict(), 
-            'optimizer_state': self.optimizer.state_dict(),
-        }
-
-    def reload_from_state_dict( self, state_dict: dict):
-        r""" Called by miner.reload_nucleus().
-            Reloads the training state from the passed state_dict. 
-            Args:
-                state_dict (:obj:`dict`): 
-                    Dictionary containing run state information such as the nucleus parameters. Output 
-                    of get_state_dict.
-        """
-        self.row_weights = state_dict['row_weights']
-        self.nucleus.load_state_dict( state_dict['nucleus_state'] )
-        self.router.load_state_dict( state_dict['router_state'])
-        self.optimizer.load_state_dict( state_dict['optimizer_state'] )
-        self.nucleus.routing_function = self.route_text # Reassign the routing function.
-        self.router.sync( self.metagraph )
-        self.optimizer = self.configure_optimizers( self.optimizer ) # Reinit the optimizer.
-
-    def sync_chain_state( self ):
-        r""" Called after each training epoch. Miner should update chain state and resize objects.
-        """
-        self.metagraph.sync()
-        self.router.sync_chain_state( self.metagraph ) 
-        self.metagraph.save()
-        self.row_weights = torch.nn.functional.pad( self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel()], value=0)
-        self.optimizer = self.configure_optimizers( self.optimizer ) 
-
-    # ---- Get Row Weights ----
-    def get_row_weights( self ) -> torch.FloatTensor:
-        r""" Called after each training epoch. Returns row_weights to be set on chain.
-            Returns:
-                mechanism_weights ( torch.FloatTensor, shape=(self.metagraph.n) ): 
-                    torch mechanism_weights matching the metagraph size.
-                    weight values should be normalized and be in range [0,1].
-        """
-        topk_weights, topk_indices = self.row_weights.topk(50, dim=0) 
-        mechanism_weights = torch.scatter( torch.zeros([self.metagraph.n]), 0, topk_indices, topk_weights)
-        return self.row_weights
-
-    # ---- Get Batches ----
-    def get_epoch_batches( self, epoch:int ) -> List[dict]:
-        r""" Returns training batches for each epoch.
-            Returns:
-                batches ( List[dict], shape=(self.config.miner.epoch_length) ): 
-                    List of batches as dictionary inputs.
-        """
-        return self.dataset.dataloader( self.config.miner.epoch_length )
 
     # ---- Training call ----
     def training_call( self, batch: dict ) -> SimpleNamespace:
@@ -340,9 +251,34 @@ class Miner( bittensor.miner.BaseMiner ):
                 batch ( dict, `required`): 
                     training batch dictionary as returned from get_epoch_batches            
             Returns:
-                outputs ( SimpleNamespace ): 
-                    SimpleNamespace output as returned by a nucleus forward call.
-                    Must include fields local_loss, remote_loss, distillation_loss
+                output = SimpleNamespace ( 
+                    local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Hidden layer context.
+
+                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Hidden layer encoding produced using local_context.
+
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                        GPT MLM Target predictions produced using local_context. 
+
+                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        GPT MLM loss using local_context.
+
+                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
+                        Hidden layer encoding produced using the remote_context.
+
+                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
+                        GPT MLM Target predictions using the remote_context.
+
+                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+                        GPT MLM loss using the remote_context.
+
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        Distillation loss between local_context and remote_context.
+
+                    router (:obj:`SimpleNamespace`, `required`): 
+                        Outputs from the pkm dendrite.
+            )
         """
         # ---- Forward pass ----
         inputs = batch['inputs']
@@ -365,6 +301,102 @@ class Miner( bittensor.miner.BaseMiner ):
 
         # ---- Update global loss ----
         return output
+
+    def should_run( self, epoch: int ) -> bool:
+        r""" Called by miner.run() every epoch, if the response is false, training stops.
+        """
+        if self.config.miner.n_epochs < 0:
+            return True
+        elif epoch < self.config.miner.n_epochs:
+            return True
+        else:
+            return False
+
+    def should_save( self ) -> bool:
+        r""" Called by miner.run() after every epoch.
+            If this function returns True, the nucleus is saved to disk and can be reloaded later.
+            Returns:
+                should_save (bool):
+                    True by default. Saves nucleus after each epoch.
+        """
+        # Save if the epoch loss has decreased.
+        if self.epoch_loss < self.last_saved_loss:
+            return True
+        else:
+            return False
+
+    def should_reload(self) -> bool:
+        r""" Called by miner.run() after every epoch.
+            If the function returns True the nucleus state dict is saved to miner.full_path.
+            Returns:
+                should_reload (bool):
+                    False by default -> does not reload the nucleus after each epoch.
+        """
+        # Only reload if the nucleus or router have seen Nans.
+        nans_in_nucleus = torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.nucleus.parameters()])))
+        nans_in_router = torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.router.parameters()])))
+        if nans_in_nucleus or nans_in_router:
+            return True
+        else:
+            return False
+
+    def get_state_dict( self ) -> dict:
+        r""" Called by miner.save_state().
+            Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
+            Returns:
+                state_dict (:obj:`dict`): 
+                    Dictionary containing run state information such as the nucleus parameters.
+        """
+        return {
+            'row_weights': self.row_weights, # Save row.
+            'router_state': self.router.state_dict(), # Save router state.
+            'nucleus_state': self.nucleus.state_dict(), # Save nucleus state.
+            'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
+        }
+
+    def reload_from_state_dict( self, state_dict: dict):
+        r""" Called by miner.reload_state().
+            Reloads the training state from the passed state_dict. 
+            Args:
+                state_dict (:obj:`dict`): 
+                    Dictionary containing run state information such as the nucleus parameters. Output 
+                    of get_state_dict.
+        """
+        self.row_weights = state_dict['row_weights'] # Load row weights
+        self.nucleus.load_state_dict( state_dict['nucleus_state'] ) # Load nucleus
+        self.router.load_state_dict( state_dict['router_state']) # Load router
+        self.optimizer.load_state_dict( state_dict['optimizer_state'] ) # Load optimizer.
+        self.nucleus.routing_function = self.routing_call # Re-assign the routing function.
+        self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
+        self.optimizer = self.configure_optimizers( self.optimizer ) # Reinit the optimizer.
+
+    def sync_chain_state( self ):
+        r""" Called after each training epoch. Miner should update chain-state and resize objects.
+        """
+        self.metagraph.sync() # Pull latest chain data.
+        self.metagraph.save() # Save chain data.
+        self.row_weights = torch.nn.functional.pad( self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel()], value=0) # Pad row weights.
+        self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
+        self.optimizer = self.configure_optimizers( self.optimizer ) 
+
+    # ---- Get Row Weights ----
+    def get_row_weights( self ) -> torch.FloatTensor:
+        r""" Called after each training epoch. Returns row_weights to be set on chain.
+            Returns:
+                row_weights ( torch.FloatTensor, shape=(self.metagraph.n) ): 
+                    Torch row_weights matching the metagraph size to be eventually set on chain.
+                    weight values should be normalized and be in range [0,1].
+        """
+        return F.normalize(self.row_weights, p = 1, dim = 0)
+
+    # ---- Get Batches ----
+    def get_epoch_batches( self, epoch:int ) -> List[dict]:
+        r""" Returns training batches for each epoch.
+            Returns:
+                batches ( List[dict], shape=(self.config.miner.epoch_length) ): 
+                    List of batches as dictionary inputs.
+        """
+        return self.dataset.dataloader( self.config.miner.epoch_length )
 
     def configure_optimizers( self, prev_optimizer ):
         """
