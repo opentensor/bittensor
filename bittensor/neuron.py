@@ -50,9 +50,9 @@ class Neuron:
                 nucleus (:obj:`bittensor.nucleus.Nucleus`, `optional`):
                     backend processing nucleus.
                 axon (:obj:`bittensor.axon.Axon`, `optional`):
-                    synapse serving endpoint.
+                    nucleus serving endpoint.
                 dendrite (:obj:`bittensor.dendrite.Dendrite`, `optional`):
-                    synapse connecting object. 
+                    nucleus connecting object. 
                 modality (default=0, type=int)
                     Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT
         """
@@ -76,7 +76,7 @@ class Neuron:
         if metagraph == None:
             metagraph = bittensor.metagraph.Metagraph()
         self.metagraph = metagraph
-        # Axon: RPC server endpoint which serves your synapse. Responds to Forward and Backward requests.
+        # Axon: RPC server endpoint which serves your nucleus. Responds to Forward and Backward requests.
         if axon == None:
             axon = bittensor.axon.Axon(config = self.config, wallet = self.wallet )
         self.axon = axon
@@ -99,7 +99,7 @@ class Neuron:
         bittensor.subtensor.Subtensor.add_args( parser )
         bittensor.axon.Axon.add_args(parser)
         bittensor.dendrite.Dendrite.add_args( parser )
-        bittensor.synapse.Synapse.add_args( parser )
+        bittensor.nucleus.Nucleus.add_args( parser )
         try:
             parser.add_argument('--neuron.modality', default=0, type=int, 
                                 help='''Neuron network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')

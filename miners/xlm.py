@@ -31,15 +31,21 @@ To run with a config file and debug
 
 import argparse
 import copy
+import os
+import math
+import random
 import torch
+import sys
 import torch.nn.functional as F
 import bittensor
 
-
+from qqdm import qqdm, format_str
+from tqdm import tqdm
 from munch import Munch
+from termcolor import colored
 from types import SimpleNamespace
-from synapses.xlm import XLMSynapse
-from typing import List
+from nuclei.xlm import XLMNucleus
+from typing import Tuple, List, Optional
 from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
@@ -64,11 +70,11 @@ class Miner( bittensor.miner.BaseMiner ):
         # ---- Row Weights ----
         self.row_weights = torch.ones([1])
 
-        # ---- Synapse ----
-        self.synapse = XLMSynapse( self.config )
+        # ---- Nucleus ----
+        self.nucleus = XLMNucleus( self.config )
 
         # ---- Optimizer ----
-        self.optimizer = torch.optim.SGD(self.synapse.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum)
+        self.optimizer = torch.optim.SGD(self.nucleus.parameters(), lr = self.config.miner.learning_rate, momentum=self.config.miner.momentum)
         self.scheduler = WarmupCosineWithHardRestartsSchedule(self.optimizer, 50, 300)
 
         # ---- Dataset ----
@@ -90,7 +96,7 @@ class Miner( bittensor.miner.BaseMiner ):
         parser.add_argument('--miner.n_epochs', default=-1, type=int, help='Number of training epochs, if < 0 runs for ever.')
         parser.add_argument('--miner.batch_size_train', default=1, type=int, help='Training batch size.')
         parser.add_argument('--miner.name', default='xlm', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
-        XLMSynapse.add_args( parser )
+        XLMNucleus.add_args( parser )
         bittensor.miner.BaseMiner.add_args( parser )
         GenesisTextDataloader.add_args( parser )
 
@@ -99,7 +105,7 @@ class Miner( bittensor.miner.BaseMiner ):
         assert config.miner.momentum > 0 and config.miner.momentum < 1, "momentum must be a value between 0 and 1"
         assert config.miner.batch_size_train > 0, "batch_size_train must be a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
-        XLMSynapse.check_config( config )
+        XLMNucleus.check_config( config )
         bittensor.miner.BaseMiner.check_config( config )
         GenesisTextDataloader.check_config( config )
 
@@ -107,7 +113,7 @@ class Miner( bittensor.miner.BaseMiner ):
     def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
         r""" Called by miner.forward_loop which can be overridden by the child class.
             The arguments reflect an RPC request from another miner in the network, the response tensor
-            should be the hidden units of the local synapse of shape [batch_size, sequence_len, __network_dim__].
+            should be the hidden units of the local nucleus of shape [batch_size, sequence_len, __network_dim__].
             
             Args:
                 pubkey ( str, `required`): 
@@ -119,9 +125,9 @@ class Miner( bittensor.miner.BaseMiner ):
             
             Returns:
                 outputs (:obj:`torch.FloatTensor`): 
-                    The synapse's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
+                    The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
-        output = self.synapse.local_forward (
+        output = self.nucleus.local_forward (
             inputs = inputs        
         )
         return output.local_hidden
@@ -130,7 +136,7 @@ class Miner( bittensor.miner.BaseMiner ):
     def backward_call( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
         r""" Called by miner.backward_loop which can be overridden in the child class.
             Arguments reflect an RPC backward request from another miner in the network, the response tensor
-            should be the gradients of the miner's synapse w.r.t to the inputs and the passed output grads.
+            should be the gradients of the miner's nucleus w.r.t to the inputs and the passed output grads.
             
             Args:
                 pubkey ( str, `required`): 
@@ -178,7 +184,7 @@ class Miner( bittensor.miner.BaseMiner ):
                 should_reload (bool):
                     False by default. Does not reload the model after each epoch.
         """
-        if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.synapse.parameters()]))):
+        if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.nucleus.parameters()]))):
             return True
 
     def get_state_dict( self ) -> dict:
@@ -190,7 +196,7 @@ class Miner( bittensor.miner.BaseMiner ):
         """
         return {
             'row_weights': self.row_weights,
-            'synapse_state': self.synapse.state_dict(), 
+            'nucleus_state': self.nucleus.state_dict(), 
             'optimizer_state': self.optimizer.state_dict(),
         }
 
@@ -203,7 +209,7 @@ class Miner( bittensor.miner.BaseMiner ):
                     of get_state_dict.
         """
         self.row_weights = state_dict['row_weights']
-        self.synapse.load_state_dict( state_dict['synapse_state'] )
+        self.nucleus.load_state_dict( state_dict['nucleus_state'] )
         self.optimizer.load_state_dict( state_dict['optimizer_state'] )
 
     # ---- Get Row Weights ----
@@ -229,18 +235,18 @@ class Miner( bittensor.miner.BaseMiner ):
 
     # ---- Training call ----
     def training_call( self, batch: dict ) -> SimpleNamespace:
-        r""" Runs a single training batch through the synapse and applies a gradient update.
+        r""" Runs a single training batch through the nucleus and applies a gradient update.
             Args:
                 batch ( dict, `required`): 
                     training batch dictionary as returned from get_epoch_batches            
             Returns:
                 outputs ( SimpleNamespace ): 
-                    SimpleNamespace output as returned by a synapse forward call.
+                    SimpleNamespace output as returned by a nucleus forward call.
                     Must include fields local_loss, remote_loss, distillation_loss
         """
         # ---- Forward pass ----
-        inputs = batch['inputs'].to(self.synapse.device)
-        output = self.synapse.remote_forward(
+        inputs = batch['inputs'].to(self.nucleus.device)
+        output = self.nucleus.remote_forward(
             neuron = self,
             inputs = inputs,
             training = True,
@@ -248,12 +254,12 @@ class Miner( bittensor.miner.BaseMiner ):
 
         # ---- Backward pass ----
         output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-        output.loss.backward() # Accumulates gradients on the synapse.
+        output.loss.backward() # Accumulates gradients on the nucleus.
         self.optimizer.step() # Applies accumulated gradients.
         self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
         # ---- Train row weights ----
-        batch_weights = torch.mean(output.router.weights, axis = 0).to( self.synapse.device ) # Average over batch.
+        batch_weights = torch.mean(output.router.weights, axis = 0).to( self.nucleus.device ) # Average over batch.
         self.row_weights = (1 - 0.03) * self.row_weights + 0.03 * batch_weights # Moving avg update.
         self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
 

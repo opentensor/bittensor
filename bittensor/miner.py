@@ -331,6 +331,11 @@ class BaseMiner( Miner ):
                     modality = modality
                 )
                 pong.send( outputs.detach() )
+
+        except BrokenPipeError:
+            logger.info('Failed to process forward request before timeout')
+            pass
+
         except Exception as e:
             logger.exception('Error in forward thread with error {}', e)
             traceback.print_exc()
@@ -390,6 +395,11 @@ class BaseMiner( Miner ):
                     modality = modality
                 )
                 pong.send( outputs.detach() )
+
+        except BrokenPipeError:
+            logger.info('Failed to process backward request before timeout')
+            pass
+
         except Exception as e:
             logger.exception('Error in backward thread with error {}', e)
 
@@ -585,7 +595,7 @@ class BaseMiner( Miner ):
                 try:  
                     self.reload_state()
                 except:
-                    logger.warning("Failed to reload state. Starting from scratch.")
+                    logger.warning("Failed to reload state. Starting from new model.")
                     self.save_state()
             else:
                 self.save_state()  
@@ -622,5 +632,7 @@ class BaseMiner( Miner ):
                         logger.info('Restarting from last saved state.')
                         self.reload_state()
                         continue
+                    else:
+                        break
 
 

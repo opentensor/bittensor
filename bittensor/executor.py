@@ -194,17 +194,17 @@ class Executor ( bittensor.neuron.Neuron ):
         self.sync_metagraph()
         self.save_metagraph()
 
-        neurons = [] 
+        owned_neurons = [] 
         neuron_endpoints = self.metagraph.neuron_endpoints
         for uid, cold in enumerate(self.metagraph.coldkeys):
             if cold == self.wallet.coldkeypub:
                 owned_neurons.append( neuron_endpoints[uid] )
 
-        for neuron in neurons:
+        for neuron in owned_neurons:
             stake = self.metagraph.S[ neuron.uid ].item()
             result = self.subtensor.unstake( 
                 wallet = self.wallet, 
-                amount = stake, 
+                amount = Balance(stake), 
                 hotkey_id = neuron.hotkey, 
                 wait_for_finalization = True, 
                 timeout = bittensor.__blocktime__ * 5 
