@@ -206,7 +206,7 @@ class Executor ( bittensor.neuron.Neuron ):
                 wallet = self.wallet, 
                 amount = Balance(stake), 
                 hotkey_id = neuron.hotkey, 
-                wait_for_finalization = True, 
+                wait_for_finalization = False, 
                 timeout = bittensor.__blocktime__ * 5 
             )
             if result:
