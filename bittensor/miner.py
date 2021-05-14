@@ -9,6 +9,7 @@ import os
 import traceback
 
 import threading
+import concurrent.futures
 import multiprocessing as mp
 import bittensor.utils.networking as net
 
@@ -211,6 +212,9 @@ class BaseMiner( Miner ):
         parser.set_defaults ( 
             restart_on_failure=False 
         )
+        parser.add_argument('--miner.max_backward_workers', default='10', type=int, help='Maximum number of concurrent backward processing threads.')
+        parser.add_argument('--miner.max_forward_workers', default='10', type=int, help='Maximum number of concurrent forward processing threads.')
+
 
     def startup( self ):
         super().startup()
@@ -332,44 +336,101 @@ class BaseMiner( Miner ):
         """
         raise NotImplementedError()
 
-    def get_nucleus() -> 'bittensor.nucleus.Nucleus':
-        r""" Called by miner.should_reload().
-            Should return a bittensor.nucleus object.
-            Returns:
-                nucleus (bittensor.nucleus.Nucleus):
-                    Mine nucleus object.
-        """
-        raise NotImplementedError()
-
     # ---- Runs the forward call -----
-    def run_next_forward_call( self ):
-        try:
-            # ---- Pull request ----
-            pong, pubkey, inputs, modality = self.axon.next_forward_item( timeout = 1.0 )
-            if None not in [ pong, pubkey, inputs, modality]:
-                outputs = self.forward_call ( 
-                    pubkey = pubkey,
-                    inputs = inputs,
-                    modality = modality
-                )
-                pong.send( outputs.detach() )
+    def run_next_forward_call( self, pong: mp.Pipe, pubkey: str, inputs: torch.Tensor, modality: int ):
+        r""" 
+            Calls the backward call on the miner given inputs. This call multi-threaded using a threadpool executor.
+                        
+            Returns:
+                pong (:obj:`mp.Pipe, `optional`): 
+                    multiprocessing pipe tunnel for the response.
+                public_key (str, `optional`):
+                    public key of caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs.
 
+        """
+        try:
+            outputs = self.forward_call ( 
+                pubkey = pubkey,
+                inputs = inputs,
+                modality = modality
+            )
+            pong.send( outputs.detach() )
         except BrokenPipeError:
             logger.info('Failed to process forward request before timeout')
             pass
 
-        except Exception as e:
-            logger.exception('Error in forward thread with error {}', e)
-            traceback.print_exc()
-            sys.exit()
+    # ---- Runs the backard call -----
+    def run_next_backward_call( self, pong: mp.Pipe, pubkey: str, inputs_x: torch.Tensor, grads_dy: torch.float32, modality: int ):
+        r""" 
+            Calls the backward call on the miner given inputs. This call multi-threaded using a threadpool executor.
+            
+            Returns:
+                pong (:obj:`mp.Pipe, `optional`): 
+                    multiprocessing pipe tunnel for the response.
+                pubkey (str, `optional`):
+                    public key of caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+                grads_dy ( :obj:`torch.Tensor`, `required`):
+                    torch gradient inputs to be backward processed with inputs.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs.
+        """
+
+        try:
+            outputs = self.backward_call ( 
+                pubkey = pubkey,
+                grads_dy = grads_dy, 
+                inputs_x = inputs_x,
+                modality = modality
+            )
+            pong.send( outputs.detach() )
+        except BrokenPipeError:
+            logger.info('Failed to process forward request before timeout')
+            pass
 
     # ---- Forward loop -----
     def forward_loop ( self ): 
+        r""" 
+            Uses a threadpool executor to make concurrent calls to the miner.forward_call given inputs.
+        """
         # ---- Loop until event is set -----
         logger.success('<white>Forward loop:</white> Started.')
-        while not self.quit_forward.is_set():
-            with self.get_forward_lock():
-                self.run_next_forward_call()
+        with concurrent.futures.ThreadPoolExecutor( max_workers = self.config.miner.max_forward_workers ) as executor:
+            while not self.quit_forward.is_set():
+                with self.get_forward_lock():
+                    try:
+                        # Submit next call.
+                        pong, pubkey, inputs, modality = self.axon.next_forward_item( timeout = 1.0 )
+                        if None not in [ pong, pubkey, inputs, modality]:
+                            executor.submit( self.run_next_forward_call, pong, pubkey, inputs, modality )
+                    except Exception as e:
+                        logger.exception('Error in forward thread with error {}', e)
+                        traceback.print_exc()
+                        sys.exit()
+
+    # ---- Backward loop -----
+    def backward_loop ( self ): 
+        r""" 
+            Uses a threadpool executor to make concurrent calls to the miner.backward_call given inputs.
+        """
+        logger.success('<white>Backward loop:</white> Started')
+        with concurrent.futures.ThreadPoolExecutor( max_workers = self.config.miner.max_backward_workers ) as executor:
+            while not self.quit_backward.is_set():
+                with self.get_backward_lock():
+                    try:
+                        # Submit backward call.
+                        pong, pubkey, inputs_x, grads_dy, modality = self.axon.next_backward_item( timeout = 1.0 )
+                        if None not in [ pong, pubkey, inputs_x, grads_dy, modality]:
+                            executor.submit( self.run_next_backward_call, pong, pubkey, inputs_x, grads_dy, modality )
+                    except Exception as e:
+                        logger.exception('Error in backward thread with error {}', e)
+                        traceback.print_exc()
+                        sys.exit()
 
     # ---- Start up forward loop -----
     def start_forward_loop( self ):
@@ -383,55 +444,6 @@ class BaseMiner( Miner ):
             self.quit_forward.clear()
         if not self.forward_thread.is_alive():
             self.forward_thread.start()
-
-    # ---- Get Backward lock ----
-    def get_forward_lock( self ):
-        if not hasattr(self, 'forward_lock'):
-            self.forward_lock = mp.Lock()
-        return self.forward_lock
-
-    # ---- Stop forward loop -----
-    def stop_forward_loop( self ):
-        if hasattr(self, 'quit_forward'):
-            self.quit_forward.set()
-        if hasattr(self, 'forward_thread'):
-            if self.forward_thread.is_alive():
-                self.forward_thread.join( timeout = 10 )
-                if not self.forward_thread.is_alive():
-                    logger.success("Forward thread joined.")
-                else:
-                    logger.error('Failed join forward thread.')
-    
-    # ---- Runs the backward call -----
-    def run_next_backward_call( self ):
-        try:
-            # ---- Pull request ----
-            pong, pubkey, inputs_x, grads_dy, modality = self.axon.next_backward_item( timeout = 1.0 )
-
-            # ---- Process Backward request -----
-            if None not in [ pong, pubkey, inputs_x, grads_dy, modality ]:
-                outputs = self.backward_call ( 
-                    pubkey = pubkey,
-                    inputs_x = inputs_x,
-                    grads_dy = grads_dy,
-                    modality = modality
-                )
-                pong.send( outputs.detach() )
-
-        except BrokenPipeError:
-            logger.info('Failed to process backward request before timeout')
-            pass
-
-        except Exception as e:
-            logger.exception('Error in backward thread with error {}', e)
-
-    # ---- Backward loop -----
-    def backward_loop ( self ): 
-        # ---- Loop until event is set -----
-        logger.success('<white>Backward loop:</white> Started')
-        while not self.quit_forward.is_set():
-            with self.get_backward_lock():
-                self.run_next_backward_call()
 
     # ---- Start up backward loop -----
     def start_backward_loop( self ):
@@ -447,10 +459,28 @@ class BaseMiner( Miner ):
             self.backward_thread.start()
 
     # ---- Get Backward lock ----
+    def get_forward_lock( self ):
+        if not hasattr(self, 'forward_lock'):
+            self.forward_lock = mp.Lock()
+        return self.forward_lock
+
+    # ---- Get Backward lock ----
     def get_backward_lock( self ):
         if not hasattr(self, 'backward_lock'):
             self.backward_lock = mp.Lock()
         return self.backward_lock
+
+    # ---- Stop forward loop -----
+    def stop_forward_loop( self ):
+        if hasattr(self, 'quit_forward'):
+            self.quit_forward.set()
+        if hasattr(self, 'forward_thread'):
+            if self.forward_thread.is_alive():
+                self.forward_thread.join( timeout = 10 )
+                if not self.forward_thread.is_alive():
+                    logger.success("Forward thread joined.")
+                else:
+                    logger.error('Failed join forward thread.')
 
     # ---- Stop backward loop -----
     def stop_backward_loop( self ):
