@@ -742,6 +742,7 @@ class BaseMiner( Miner ):
                 rloss = output.remote_target_loss.item()
                 dloss = output.distillation_loss.item()
 
+            # Training State.
             Cols = [
                 '[white]Epoch: [green]{}'.format(self.epoch+1),
                 '[white]Global step: [bold red]{}'.format(self.global_step),
@@ -751,7 +752,6 @@ class BaseMiner( Miner ):
                 '[white]Local-loss: [blue]{:.4f}'.format(lloss),
                 '[white]Remote-loss: [green]{:.4f}'.format(rloss),
                 '[white]Distillation-loss: [yellow]{:.4f}'.format(dloss),
-                '[white]nPeers: [red]{}'.format(self.metagraph.n.item()),
                 '[white]Stake: [bold white]\u03C4[green]{:.3f}'.format(stake),
                 '[white]Rank: [bold white]\u03C4[blue]{:.3f}'.format(rank),
                 '[white]Incentive: [bold white]\u03C4[yellow]{:.6f}[bold white]/block'.format(incentive),
@@ -760,6 +760,20 @@ class BaseMiner( Miner ):
             ]
             columns = Columns( Cols, equal=True, expand=True)
 
+            # Metagraph.
+            if self.metagraph.n != 0:
+                peers_online = torch.numel(torch.where( self.metagraph.block - self.metagraph.lastemit < 1000 )[0])
+            else:
+                peers_online = 0
+            MetaCols = [
+                '[white]block[/white]: [blue]{}[/blue]'.format(self.metagraph.block.item()),
+                '[white]inflation_rate[/white]: [blue]{}[/blue]'.format(self.metagraph.tau.item()),
+                '[white]staked[/white]: [bold white]\u03C4[green]{}[/green]/[bold white]\u03C4[blue]{}[/blue]'.format(torch.sum(self.metagraph.S), self.metagraph.block.item()/2),
+                '[white]active[/white]: [green]{}[/green]/[blue]{}[/blue]'.format(peers_online, self.metagraph.n.item())
+            ]
+            meta_columns = Columns( MetaCols, equal=True, expand=True)
+
+            # Add response codes column.
             code_cols = []
             if output != None:
                 for (uid, req_size, code) in list(zip( output.router.uids.tolist(), output.router.request_sizes.tolist(), output.router.return_codes.tolist())):
@@ -768,36 +782,34 @@ class BaseMiner( Miner ):
                     code_cols.append( '[white]' + str(uid) + ' [' + code_color + ']' + code_string)
             code_col = Columns( code_cols, equal=True, expand=True)
 
-            n_cols = 10
-            table = Table()
-            for col in range(n_cols):
-                table.add_column("")
-
-            uids = []
-            weights = []
+            # Add weights column.
+            weight_cols_vals = []
             for uid in range( self.metagraph.n.item() ):
                 if next[uid] == 0:
                     continue
-                if len(uids) < n_cols:
-                    if next[uid] > prev[uid]:
-                        uids.append( '[bold green frame]' + str(uid) )
-                        weights.append( '[bold green frame]' + '{:.3}'.format(next[uid]) )
-                    elif next[uid] == prev[uid]:
-                        uids.append( '[dim white frame]' + str(uid) )
-                        weights.append( '[dim white frame]' + '{:.3}'.format(next[uid]) )
-                    else:
-                        uids.append( '[bold red frame]' + str(uid) )
-                        weights.append( '[dim red frame]' + '{:.3}'.format(next[uid]) )
-                if len(uids) == n_cols:
-                    table.add_row(*copy.deepcopy(uids))
-                    table.add_row(*copy.deepcopy(weights))
-                    uids = []
-                    weights = []
-            table.box = None
-            table.pad_edge = False
-            table.width = None
+                if next[uid] > prev[uid]:
+                    weight_cols_vals.append( '[bold white frame]' + str(uid) + ' [bold green frame]' + '{:.3}'.format(next[uid]))
+                elif next[uid] == prev[uid]:
+                    weight_cols_vals.append( '[dim white frame]' + str(uid) + ' [dim white frame]' + '{:.3}'.format(next[uid]))
+                else:
+                    weight_cols_vals.append( '[bold white frame]' + str(uid) + ' [dim red frame]' + '{:.3}'.format(next[uid]))
+            weight_columns = Columns( weight_cols_vals, equal=True, expand=True)
+
+            # Add progress bar.
             progress.update(epoch_task, advance=1, refresh=True)
-            group = RenderGroup( progress, '\n', columns, "\n[bold white]Row Weights:\n", table, "\n[bold white]Response Codes:\n", code_col)
+            
+            if self.config.use_tensorboard == True:
+                tensorboard_str = '[white]tensorboard[/white]:[green]ON[/green] endpoint: [blue]http://localhost:6006/[/blue]'
+            else:
+                tensorboard_str = ''
+            
+            if self.config.record_log == True:
+                filepath = self.config.miner.full_path + "/bittensor_output.log"
+                logging_str = '[white]logging[/white]:[green]ON[/green] sink: [blue]{}[/blue]'.format(filepath)
+            else: 
+                logging_str = ''
+
+            group = RenderGroup( progress, '\n[underline bold white]Training:', columns, '\n[underline bold white]Metagraph:', meta_columns, "\n[underline bold white]Row Weights:", weight_columns, "\n[underline bold white]Response Codes:", code_col, "\n[underline bold white]Extra", tensorboard_str, logging_str)
 
             return group
 
