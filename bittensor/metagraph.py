@@ -303,7 +303,8 @@ class Metagraph( torch.nn.Module ):
         pending_queries = []
         for uid, lastemit in chain_lastemit.items():
             if lastemit > old_block or force == True:
-                pending_uids = [ (False, uid) ]
+                pending_queries.append((False, uid))
+        print( pending_queries )
 
         # Fill buffers with rety.
         # Below fills buffers for pending queries upto the rety cutoff.
@@ -314,7 +315,7 @@ class Metagraph( torch.nn.Module ):
                 logger.critical('Failed to sync metagraph. Check your subtensor connection.')
                 raise RuntimeError('Failed to sync metagraph. Check your subtensor connection.')            
             queries = []
-            for uid, code in tqdm(pending_uids):
+            for code, uid in pending_queries:
                 if code == False:
                     queries.append( self.fill_uid( subtensor = subtensor, uid = uid ) )
             if len(queries) == 0:
