@@ -3,6 +3,7 @@ import copy
 import math
 import torch
 import random
+import json
 import time
 import sys
 import os
@@ -556,7 +557,11 @@ class BaseMiner( Miner ):
     def sync_chain_state( self ):
         r""" Called after each training epoch. Miner should update chain state and resize objects.
         """
-        self.metagraph.sync()
+        try:
+            self.metagraph.sync()
+        except RuntimeError:
+            logger.info('Failed to sync metagraph. Reloading from last saved state.')
+            self.metagraph.load()
         self.metagraph.save()
 
     def epoch_logs(self):
@@ -575,7 +580,7 @@ class BaseMiner( Miner ):
         total_epoch_loss = 0.0
         training_batches = self.dataset.dataloader( self.config.miner.epoch_length )
         
-        if self.config.rich: 
+        if self.config.rich and not self.config.debug: 
             # Rich display.
             progress = Progress(
                 "[progress.description]{task.description}",
@@ -729,6 +734,7 @@ class BaseMiner( Miner ):
                 rank = self.metagraph.R[ self_uid ].item()
                 incentive = self.metagraph.I[ self_uid ].item()
             except:
+                self_uid = None
                 stake = 0.0
                 rank = 0.0
                 incentive = 0.0
@@ -795,6 +801,14 @@ class BaseMiner( Miner ):
                     weight_cols_vals.append( '[bold white frame]' + str(uid) + ' [dim red frame]' + '{:.3}'.format(next[uid]))
             weight_columns = Columns( weight_cols_vals, equal=True, expand=True)
 
+            # Chain weights column.
+            chain_weight_cols_vals = []
+            if self_uid != None:
+                for uid, weight in enumerate( self.metagraph.W[self_uid, :].tolist() ):
+                    if weight != 0:
+                        chain_weight_cols_vals.append( '[bold white frame]{} [dim green frame]{:.3}'.format(uid, weight) )
+            chain_weight_columns = Columns( chain_weight_cols_vals, equal=True, expand=True)
+
             # Add progress bar.
             progress.update(epoch_task, advance=1, refresh=True)
             
@@ -809,8 +823,8 @@ class BaseMiner( Miner ):
             else: 
                 logging_str = ''
 
-            group = RenderGroup( progress, '\n[underline bold white]Training:', columns, '\n[underline bold white]Metagraph:', meta_columns, "\n[underline bold white]Row Weights:", weight_columns, "\n[underline bold white]Response Codes:", code_col, "\n[underline bold white]Extra", tensorboard_str, logging_str)
-
+            group = RenderGroup( progress, '\n[underline bold white]Training:\n', columns, "\n[underline bold white]Response Codes:\n", code_col, "\n[underline bold white]Row Weights:\n", weight_columns, "\n[underline bold white]Chain Weights:\n", chain_weight_columns, '\n[underline bold white]Metagraph:\n', meta_columns, "\n[underline bold white]Extra\n", tensorboard_str, logging_str)
+            
             return group
 
 
