@@ -304,7 +304,6 @@ class Metagraph( torch.nn.Module ):
         for uid, lastemit in chain_lastemit.items():
             if lastemit > old_block or force == True:
                 pending_queries.append((False, uid))
-        print( pending_queries )
 
         # Fill buffers with rety.
         # Below fills buffers for pending queries upto the rety cutoff.
