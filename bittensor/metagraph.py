@@ -337,7 +337,7 @@ class Metagraph( torch.nn.Module ):
         """
         # TODO(const): try catch block with retry.
         try:
-
+            
             # Fill row from weights.
             weight_uids = await subtensor.async_weight_uids_for_uid( uid ) 
             weight_vals = await subtensor.async_weight_vals_for_uid( uid ) 
@@ -351,12 +351,11 @@ class Metagraph( torch.nn.Module ):
             self.neurons[ uid ] = torch.nn.Parameter( neuron_tensor, requires_grad=False )
             
             # Return.
-            return uid, True
+            return True, uid
 
         except:
             # Return False.
-            return uid, False
-
+            return False, uid
 
 
     def __str__(self):
