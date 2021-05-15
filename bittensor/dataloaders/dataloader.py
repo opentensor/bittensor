@@ -3,6 +3,10 @@ import bittensor
 import requests
 from munch import Munch
 
+# Potential fix for the too many open files issue.
+import torch.multiprocessing as torchmp
+torchmp.set_sharing_strategy('file_system')
+
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
