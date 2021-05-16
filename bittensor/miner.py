@@ -680,7 +680,6 @@ class BaseMiner( Miner ):
                     else:
                         break
 
-
     # ---- QQDM Training logs ----
     def qqdm_logs( self, progress_bar, iteration:int, output: SimpleNamespace, prev_row_weights: List[float], next_row_weights: List[float] ):
         r""" Called by miner.run_training_epoch() after each training step.

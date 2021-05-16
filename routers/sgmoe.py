@@ -172,7 +172,7 @@ class SGMOERouter( bittensor.router.Router ):
 
         # Get request for uids with highest scores.
         # requests: List[torch.float32]: requests for high scoring uids.
-         # len(requests) == real_topk
+        # len(requests) == real_topk
         requests = [ inputs for _ in range( len(neurons) )]
 
         # Makes queries into the network.

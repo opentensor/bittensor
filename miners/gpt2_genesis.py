@@ -277,7 +277,7 @@ class Miner( bittensor.miner.BaseMiner ):
                         Distillation loss between local_context and remote_context.
 
                     router (:obj:`SimpleNamespace`, `required`): 
-                        Outputs from the pkm dendrite.
+                        Output simplenamespace from routing call.
             )
         """
         # ---- Forward pass ----
@@ -327,10 +327,10 @@ class Miner( bittensor.miner.BaseMiner ):
 
     def should_reload(self) -> bool:
         r""" Called by miner.run() after every epoch.
-            If the function returns True the nucleus state dict is saved to miner.full_path.
+            If the function returns True the nucleus state dict is reloaded from miner.full_path.
             Returns:
                 should_reload (bool):
-                    False by default -> does not reload the nucleus after each epoch.
+                    False by default -> does not reload the nucleus this epoch.
         """
         # Only reload if the nucleus or router have seen Nans.
         nans_in_nucleus = torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.nucleus.parameters()])))
