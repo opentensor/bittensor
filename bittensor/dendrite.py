@@ -93,7 +93,8 @@ class Dendrite(nn.Module):
             wallet = bittensor.wallet.Wallet(self.config)
         self.wallet = wallet
 
-        self._executor = ThreadPoolExecutor( max_workers=self.config.dendrite.num_worker_threads )
+        # Thread pool executor for making queries across the line.
+        self._executor = ThreadPoolExecutor( max_workers = self.config.dendrite.max_worker_threads )
 
         # Receptors: Holds a set map of publickey -> receptor objects. Receptors encapsulate a TCP connection between
         # this dendrite and an upstream neuron (i.e. a peer we call for representations)
@@ -118,7 +119,7 @@ class Dendrite(nn.Module):
     @staticmethod   
     def add_args( parser: argparse.ArgumentParser ):
         bittensor.receptor.Receptor.add_args(parser)
-        parser.add_argument('--dendrite.num_worker_threads', default=20, type=int, 
+        parser.add_argument('--dendrite.max_worker_threads', default=20, type=int, 
                 help='''Number of concurrent threads used for sending RPC requests.''')
         return parser
 
