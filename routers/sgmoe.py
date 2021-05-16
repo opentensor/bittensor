@@ -126,7 +126,7 @@ class SGMOERouter( bittensor.router.Router ):
         current_block = metagraph.block
         lastemit = metagraph.lastemit
         staleness = (current_block - lastemit)
-        filtered_uids = all_uids[torch.where(staleness < self.config.sgmoe.stale_emit_filter)] 
+        filtered_uids = all_uids[torch.where(staleness < self.config.sgmoe.stale_emit_filter)]
         n_filtered = torch.numel(filtered_uids)
 
         # Return if there are no uids to query.
