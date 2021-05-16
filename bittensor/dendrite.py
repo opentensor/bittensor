@@ -27,6 +27,7 @@ import pandas as pd
 import torch.nn as nn
 import traceback
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from termcolor import colored
 from types import SimpleNamespace
 from typing import Tuple, List, Optional
@@ -92,6 +93,8 @@ class Dendrite(nn.Module):
             wallet = bittensor.wallet.Wallet(self.config)
         self.wallet = wallet
 
+        self._executor = ThreadPoolExecutor( max_workers=self.config.dendrite.num_worker_threads )
+
         # Receptors: Holds a set map of publickey -> receptor objects. Receptors encapsulate a TCP connection between
         # this dendrite and an upstream neuron (i.e. a peer we call for representations)
         self._receptors = {}
@@ -115,6 +118,8 @@ class Dendrite(nn.Module):
     @staticmethod   
     def add_args( parser: argparse.ArgumentParser ):
         bittensor.receptor.Receptor.add_args(parser)
+        parser.add_argument('--dendrite.num_worker_threads', default=20, type=int, 
+                help='''Number of concurrent threads used for sending RPC requests.''')
         return parser
 
     def forward_text(self, neurons: List[bittensor.utils.neurons.NeuronEndpoint],
@@ -133,7 +138,7 @@ class Dendrite(nn.Module):
                 forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                     Output encodings of inputs produced by remote neurons. Non-responses are zeroes of common shape.
 
-                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                return_codes (:obj:`torch.LongTensor` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops.
         """
         if len(x[0].shape) != 2:
@@ -163,7 +168,7 @@ class Dendrite(nn.Module):
                 forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`):
                     Output encodings of images produced by remote neurons. Non-responses are zeroes of common shape.
 
-                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                return_codes (:obj:`torch.LongTensor` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops.
         """
         # TODO(const): Checks across all tensors and other shape checks.
@@ -194,7 +199,7 @@ class Dendrite(nn.Module):
                 forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.__network_dim__)]`, `required`):
                     Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
 
-                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                return_codes (:obj:`torch.LongTensor` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops.
         """
         if len(x[0].shape) != 3:
@@ -231,7 +236,7 @@ class Dendrite(nn.Module):
                 forward_outputs (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
                     Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
 
-                return_codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_neurons]`, `required`):
+                return_codes (:obj:`torch.LongTensor` of shape :obj:`[num_neurons]`, `required`):
                     dendrite call return ops.
         """
         if len(x) != len(neurons):
@@ -244,53 +249,44 @@ class Dendrite(nn.Module):
         # ---- Stats ---
         self.stats.qps.update(1)
 
-        # ---- Run async calls ----
-        loop = asyncio.new_event_loop()
-        results = loop.run_until_complete(self._gather(loop, x, neurons, mode))
-        loop.stop()
-
-        # ---- Process results and return ----
-        tensor_results = [res[0] for res in results]
-        return_codes = torch.tensor([res[1] for res in results])
+        # ---- Run threaded calls ----
+        tensor_results = []
+        return_codes = []
+        receptor_args = list(zip(x, neurons, [mode] * len(x)))
+        for result in self._executor.map( lambda args: self._call_receptor(*args), receptor_args ):
+            tensor_results.append( result[0] )
+            return_codes.append( result[1] )
+        return_codes = torch.tensor(return_codes, dtype=torch.int64)
         return tensor_results, return_codes
 
-    async def _gather(self, loop: asyncio.base_events.BaseEventLoop, inputs, neurons, mode) -> List[Tuple[torch.FloatTensor, torch.LongTensor]]:
+    def _call_receptor(self, inputs, neuron, mode) -> List[Tuple[torch.FloatTensor, torch.LongTensor]]:
         r""" Creates and returns the results from len(neurons) torch forward requests. Uses asyncio for concurrency.
 
             Args:
-                loop (:obj:`asyncio.base_events.BaseEventLoop`, `required`):
-                    The asyncio concurrency loop to use while making the n calls.
+                inputs (:obj:`torch.Tensor` of shape :obj:`(1)`, `required`):
+                    Tensors to send to corresponsing neuron. 
 
-                inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [shape])`, `required`):
-                    List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and shape depending on the
-                    modality.
-
-                neurons (:obj:`List[bittensor.utils.neurons.NeuronEndpoint]` of shape :obj:`(num_neurons)`, `required`):
-                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
+                neuron (:obj:`bittensor.utils.neurons.NeuronEndpoint` of shape :obj:`(1)`, `required`):
+                    Neuron endpoint to accept tensor.
 
                 mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
-                results (:obj:`List[Tuple[torch.FloatTensor, torch.LongTensor]]`, `required`):
+                results (:obj:`Tuple[torch.FloatTensor, torch.LongTensor]`, `required`):
                     result tuples from the forward call on a Receptor class.
         """
-            
-        # ---- Calls to fill ---- 
-        calls = []
-        for (inputs_i, neuron_i) in list(zip(inputs, neurons)):
+        # ---- Find receptor for call. ---- 
+        if neuron.hotkey not in self._receptors:
+            self._receptors[neuron.hotkey] = bittensor.receptor.Receptor(neuron, self.config, self.wallet)
 
-            # ---- Find receptor or create one ---- 
-            if neuron_i.hotkey not in self._receptors:
-                self._receptors[neuron_i.hotkey] = bittensor.receptor.Receptor(neuron_i, self.config, self.wallet)
-            receptor = self._receptors[neuron_i.hotkey]
+        # ---- Trigger receptor forward call. ----
+        receptor = self._receptors[neuron.hotkey]
+        return receptor.forward( inputs = inputs, mode = mode )
 
-            # ---- Append async calls ---- 
-            calls.append( loop.run_in_executor(None, receptor.forward, inputs_i, mode) )
-
-        # ---- Gather results and return ---- 
-        results = await asyncio.gather(*calls)
-        return results
+    def __del__(self):
+        # Close down executor.
+        self._executor.shutdown()
 
     def __str__(self):
         total_bytes_out = 0

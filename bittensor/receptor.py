@@ -341,7 +341,7 @@ class _ReceptorCall(torch.autograd.Function):
                     bittensor_code = response.return_code
                 except:
                     logger.debug('<white>Dendrite</white> <green>Forward Response</> <--- <white>code</white>:<yellow>UnknownException</yellow>, <white>from</white>:{}, message:<red>{}</red>', caller.endpoint, inputs.shape, mode)
-                    return zeros, torch.tensor(bittensor_code)
+                    return zeros, torch.tensor(bittensor.proto.ReturnCode.UnknownException)
 
                 # ---- Catch bittensor errors ----
                 if bittensor_code == bittensor.proto.ReturnCode.UnknownException:
