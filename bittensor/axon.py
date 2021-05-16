@@ -108,8 +108,8 @@ class Axon(bittensor.grpc.BittensorServicer):
         self._thread = None
 
         # Forward and Backward multiprocessing queues
-        self.forward_queue = mp.Queue(100)
-        self.backward_queue = mp.Queue(100)
+        self.forward_queue = mp.Queue(self.config.axon.forward_queue_maxsize)
+        self.backward_queue = mp.Queue(self.config.axon.backward_queue_maxsize)
 
         # Stats: Memory of network statistics, QPS and bytes in and out for instance.
         self.stats = SimpleNamespace(
@@ -151,6 +151,10 @@ class Axon(bittensor.grpc.BittensorServicer):
             parser.add_argument('--axon.backward_processing_timeout', default=5, type=int, 
                 help='''Length of time allocated to the miner backward process for computing and returning responses
                         back to the axon.''')
+            parser.add_argument('--axon.forward_queue_maxsize', default=100, type=int,
+                help='''Maximum number of pending forward requests queued at any time.''')
+            parser.add_argument('--axon.backward_queue_maxsize', default=100, type=int, 
+                help='''Maximum number of pending backward requests queued at any time.''')
         except:
             pass
 

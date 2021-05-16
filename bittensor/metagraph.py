@@ -305,7 +305,7 @@ class Metagraph( torch.nn.Module ):
             if lastemit > old_block or force == True:
                 pending_queries.append((False, uid))
 
-        # Fill buffers with rety.
+        # Fill buffers with retry.
         # Below fills buffers for pending queries upto the rety cutoff.
         retries = 0
         max_retries = 3
@@ -356,7 +356,6 @@ class Metagraph( torch.nn.Module ):
         except:
             # Return False.
             return False, uid
-
 
     def __str__(self):
         if self.n != 0:
