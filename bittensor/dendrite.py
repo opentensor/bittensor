@@ -93,7 +93,7 @@ class Dendrite(nn.Module):
             wallet = bittensor.wallet.Wallet(self.config)
         self.wallet = wallet
 
-        # Thread pool executor for making queries across the line.
+        # Threadpool executor for making queries across the line.
         self._executor = ThreadPoolExecutor( max_workers = self.config.dendrite.max_worker_threads )
 
         # Receptors: Holds a set map of publickey -> receptor objects. Receptors encapsulate a TCP connection between
@@ -250,7 +250,7 @@ class Dendrite(nn.Module):
         # ---- Stats ---
         self.stats.qps.update(1)
 
-        # ---- Run threaded calls ----
+        # ---- Run threaded calls with executor ----
         tensor_results = []
         return_codes = []
         receptor_args = list(zip(x, neurons, [mode] * len(x)))
@@ -261,11 +261,11 @@ class Dendrite(nn.Module):
         return tensor_results, return_codes
 
     def _call_receptor(self, inputs, neuron, mode) -> List[Tuple[torch.FloatTensor, torch.LongTensor]]:
-        r""" Creates and returns the results from len(neurons) torch forward requests. Uses asyncio for concurrency.
+        r""" Creates and returns the results a forward requests sent to the passed neuron endpoint.
 
             Args:
                 inputs (:obj:`torch.Tensor` of shape :obj:`(1)`, `required`):
-                    Tensors to send to corresponsing neuron. 
+                    Tensors to send to the corresponsing neuron. 
 
                 neuron (:obj:`bittensor.utils.neurons.NeuronEndpoint` of shape :obj:`(1)`, `required`):
                     Neuron endpoint to accept tensor.
