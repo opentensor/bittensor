@@ -195,13 +195,14 @@ class SGMOERouter( bittensor.router.Router ):
         else:
             raise NotImplementedError
 
-        indices = torch.where(retops != 0)[0].to(self.device)
-        soft_topk_weights = F.softmax(topk_weights[indices]).to(self.device)
         weighted_responses = torch.zeros( ( batch_size, inputs.shape[1], bittensor.__network_dim__ )).to(self.device)
-
-        if torch.numel(indices[0]) != 0:
-            for soft_topk_weight, index in list(zip(soft_topk_weights, indices)): 
-                weighted_responses += responses[index].to(self.device) * soft_topk_weight
+        if retops.nelements() > 0:
+            indices = torch.where(retops != 0)[0].to(self.device)
+            soft_topk_weights = F.softmax(topk_weights[indices]).to(self.device)
+            
+            if torch.numel(indices[0]) != 0:
+                for soft_topk_weight, index in list(zip(soft_topk_weights, indices)): 
+                    weighted_responses += responses[index].to(self.device) * soft_topk_weight
     
 
         # Normalize scores.
