@@ -161,8 +161,6 @@ class SGMOERouter( bittensor.router.Router ):
         real_topk = min( n_filtered, self.config.sgmoe.topk )
         topk_weights, topk_indices = filtered_mean_weights.topk(real_topk, dim=0) 
 
-
-        
         # Get the real uids with the top scores.
         # real_filtered_topk_uids: (torch.int64): uids with highest scores.
         # real_filtered_topk_uids.shape = [ real_topk ]
@@ -196,7 +194,7 @@ class SGMOERouter( bittensor.router.Router ):
             raise NotImplementedError
 
         weighted_responses = torch.zeros( ( batch_size, inputs.shape[1], bittensor.__network_dim__ )).to(self.device)
-        if retops.nelements() > 0:
+        if torch.numel(retops) > 0:
             indices = torch.where(retops != 0)[0].to(self.device)
             soft_topk_weights = F.softmax(topk_weights[indices]).to(self.device)
             
