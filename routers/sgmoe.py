@@ -33,7 +33,9 @@ class SGMOERouter( bittensor.router.Router ):
         
         # Gating weights. Should match the metagraph.n
         self.gates = torch.nn.ModuleList()
-        self.device = 'cpu'
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if self.config.nucleus.device:
+            self.device = torch.device(self.config.nucleus.device)
 
     @staticmethod   
     def default_config() -> Munch:
@@ -143,12 +145,13 @@ class SGMOERouter( bittensor.router.Router ):
         # Get weights for uids.
         # weights: (torch.float32): weights for each filtered_uid
         # weights.shape = [n_filtered]
-        weights =  torch.cat( [ self.gates[ uid ](query) for uid in filtered_uids.tolist() ], axis = 1)
+        weights = torch.cat( [ self.gates[ uid ].to(self.device)(query) for uid in filtered_uids.tolist() ], axis = 1)
 
         # Normalize weights across batch dimension. 
         # filtered_weights_mean: (torch.float32): normalized weights across batch dimension. 
         # filtered_weights_mean.shape = [ n_filtered ]
         filtered_mean_weights = torch.mean(weights, axis = 0)
+
 
         # Get indices and values for uids with highest scores.
         # topk_weights: (torch.float64): scores of uids with highest scores.
@@ -157,11 +160,13 @@ class SGMOERouter( bittensor.router.Router ):
         # topk_indices.shape = [ real_topk ]
         real_topk = min( n_filtered, self.config.sgmoe.topk )
         topk_weights, topk_indices = filtered_mean_weights.topk(real_topk, dim=0) 
+
+
         
         # Get the real uids with the top scores.
         # real_filtered_topk_uids: (torch.int64): uids with highest scores.
         # real_filtered_topk_uids.shape = [ real_topk ]
-        real_filtered_topk_uids = filtered_uids[ topk_indices ]
+        real_filtered_topk_uids = filtered_uids[ topk_indices ].to(self.device)
         
         # Get endpoint information for the highest scoring uids.
         # neurons: List[bittensor.proto.Neuron]: endpoint information for filtered uids.
@@ -190,12 +195,14 @@ class SGMOERouter( bittensor.router.Router ):
         else:
             raise NotImplementedError
 
-        # Gate responses with weights.
-        # weighted_responses: (torch.float32): weight joined respones.
-        # weighted_responses = [ batch_size, sequence_dim, __network_dim__]
-        weighted_responses = torch.zeros( ( batch_size, inputs.shape[1], bittensor.__network_dim__ ))
-        for idx, (resp, join_weight) in enumerate(list(zip(responses, topk_weights))):
-            weighted_responses += resp * join_weight
+        indices = torch.where(retops != 0)[0].to(self.device)
+        soft_topk_weights = F.softmax(topk_weights[indices]).to(self.device)
+        weighted_responses = torch.zeros( ( batch_size, inputs.shape[1], bittensor.__network_dim__ )).to(self.device)
+
+        if torch.numel(indices[0]) != 0:
+            for soft_topk_weight, index in list(zip(soft_topk_weights, indices)): 
+                weighted_responses += responses[index].to(self.device) * soft_topk_weight
+    
 
         # Normalize scores.
         # scores: (torch.float32): normalized scores.
@@ -204,6 +211,8 @@ class SGMOERouter( bittensor.router.Router ):
         scores = scores - torch.min(scores)
         scores = scores / torch.sum(scores)
 
+        scores = scores.to(self.device)
+
         # Set weighted response.
         output.response = weighted_responses
         
@@ -211,10 +220,10 @@ class SGMOERouter( bittensor.router.Router ):
         output.uids = real_filtered_topk_uids 
 
         # Scatter scores on to metagraph dimension.
-        output.weights = torch.scatter( torch.zeros( (metagraph.n), dtype = torch.float32), 0, real_filtered_topk_uids, scores )
+        output.weights = torch.scatter( torch.zeros( (metagraph.n), dtype = torch.float32).to(self.device), 0, real_filtered_topk_uids, scores )
         
         # Set request sizes.
-        output.request_sizes = torch.scatter( torch.zeros( (metagraph.n), dtype = torch.float32), 0, real_filtered_topk_uids, batch_size )
+        output.request_sizes = torch.scatter( torch.zeros( (metagraph.n), dtype = torch.float32).to(self.device), 0, real_filtered_topk_uids, batch_size )
         
         # Set return codes.
         output.return_codes = retops

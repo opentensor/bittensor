@@ -51,7 +51,7 @@ import bittensor.nucleus
 import bittensor.wallet
 
 # ---- LOGGING ----
-__debug_on__ = False 
+__debug_on__ = False
 bittensor.logging.init_logger()
 
 # ---- Tokenizer ----

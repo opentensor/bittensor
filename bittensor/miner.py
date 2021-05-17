@@ -190,29 +190,24 @@ class BaseMiner( Miner ):
                 '--miner.resume', 
                 dest='resume', 
                 action='store_true', 
-                help='''Resume training from last save state.'''
+                help='''Resume training from last save state.''',
+                default=False,
             )
-        parser.set_defaults ( 
-            resume=False 
-        )
         parser.add_argument (
                 '--miner.rich', 
                 dest='rich', 
                 action='store_true', 
-                help='''Rich text display'''
+                help='''Rich text display''',
+                default=False
             )
-        parser.set_defaults ( 
-            rich=True 
-        )
         parser.add_argument (
                 '--miner.restart_on_failure', 
                 dest='restart_on_failure', 
                 action='store_true', 
-                help='''Restart miner on unknown error.'''
+                help='''Restart miner on unknown error.''',
+                default=False 
             )
-        parser.set_defaults ( 
-            restart_on_failure=False 
-        )
+
         parser.add_argument('--miner.max_backward_workers', default='10', type=int, help='Maximum number of concurrent backward processing threads.')
         parser.add_argument('--miner.max_forward_workers', default='10', type=int, help='Maximum number of concurrent forward processing threads.')
 
@@ -359,6 +354,7 @@ class BaseMiner( Miner ):
                 inputs = inputs,
                 modality = modality
             )
+            outputs = outputs.to('cpu')
             pong.send( outputs.detach() )
         except BrokenPipeError:
             logger.info('Failed to process forward request before timeout')
