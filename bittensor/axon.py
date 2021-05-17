@@ -315,9 +315,9 @@ class Axon(bittensor.grpc.BittensorServicer):
 
         """
         logger.debug('enqueue_forward_to_nucleus: {}, inputs_x: {}', public_key, inputs_x)
+        ping, pong = mp.Pipe()
         try:
             # ---- Build pipe for request ----
-            ping, pong = mp.Pipe()
             forward_payload = [pong, public_key, inputs_x, modality]
 
             # ---- Send request to forward queue ----
@@ -326,6 +326,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             except queue.Full:
                 message = "Forward queue is full"
                 logger.debug( message )
+                pong.close(); ping.close()
                 return None, bittensor.proto.ReturnCode.NucleusFull, message
 
             # ---- Recv response from pipe ----
@@ -333,16 +334,19 @@ class Axon(bittensor.grpc.BittensorServicer):
                 outputs = ping.recv()
                 message = "Success"
                 logger.debug( message )
+                pong.close(); ping.close()
                 return outputs, bittensor.proto.ReturnCode.Success, message
 
             else:
                 message = "Processing timeout"
                 logger.debug( message )
+                pong.close(); ping.close()
                 return None, bittensor.proto.ReturnCode.NucleusTimeout, message
 
         except Exception as e:
             message = str(e)
             logger.error( message )
+            pong.close(); ping.close()
             return None, bittensor.proto.ReturnCode.UnknownException, message
 
     def enqueue_backward_to_nucleus(
@@ -373,9 +377,9 @@ class Axon(bittensor.grpc.BittensorServicer):
                 message (str, `required`): 
                     message associated with forward call, potentially error, or 'success'.
         """
+        ping, pong = mp.Pipe()
         try:
             # ---- Build pipe for request ----
-            ping, pong = mp.Pipe()
             backward_payload = [pong, public_key, inputs_x, grads_dy, modality]
 
             # ---- Send request to queue ----
@@ -384,6 +388,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             except queue.Full:
                 message = "Backward queue is full"
                 logger.debug( message )
+                pong.close(); ping.close()
                 return None, bittensor.proto.ReturnCode.NucleusFull, message
 
             # ---- Recv response from pipe ----
@@ -391,16 +396,19 @@ class Axon(bittensor.grpc.BittensorServicer):
                 outputs = ping.recv()
                 message = "Success" 
                 logger.debug( message )
+                pong.close(); ping.close()
                 return outputs, bittensor.proto.ReturnCode.Success, message
 
             else:
                 message = "Processing timeout"
                 logger.debug( message )
+                pong.close(); ping.close()
                 return None, bittensor.proto.ReturnCode.NucleusTimeout, message
 
         except Exception as e:
             message = str( e )
             logger.error( message )
+            pong.close(); ping.close()
             return None, bittensor.proto.ReturnCode.UnknownException, message
             
     def _forward(self, request):
