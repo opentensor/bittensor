@@ -151,10 +151,12 @@ class Axon(bittensor.grpc.BittensorServicer):
             parser.add_argument('--axon.backward_processing_timeout', default=5, type=int, 
                 help='''Length of time allocated to the miner backward process for computing and returning responses
                         back to the axon.''')
-            parser.add_argument('--axon.w', default=10, type=int,
+            parser.add_argument('--axon.forward_queue_maxsize', default=10, type=int,
                 help='''Maximum number of pending forward requests queued at any time.''')
             parser.add_argument('--axon.backward_queue_maxsize', default=10, type=int, 
                 help='''Maximum number of pending backward requests queued at any time.''')
+            parser.add_argument('--axon.maximum_concurrent_rpcs', default=150, type=int, 
+                help='''The maximum number of concurrent RPCs this server will service before returning RESOURCE_EXHAUSTED status, or None to indicate no limit.''')
         except:
             pass
 
@@ -639,7 +641,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         if self._server != None:
             self._server.stop( 0 )
         
-        self._server = grpc.server(futures.ThreadPoolExecutor( max_workers = self.config.axon.max_workers ))
+        self._server = grpc.server(futures.ThreadPoolExecutor( max_workers = self.config.axon.max_workers ), maximum_concurrent_rpcs=self.config.maximum_concurrent_rpcs )
         bittensor.grpc.add_BittensorServicer_to_server( self, self._server )
         self._server.add_insecure_port('[::]:' + str( self.config.axon.local_port ))  # TODO(const): should use the ip here.
 
