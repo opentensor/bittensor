@@ -611,7 +611,7 @@ class BaseMiner( Miner ):
                 prev_row_weights = self.get_row_weights().tolist()
                 input = copy.deepcopy(inputs)
                 del inputs
-                output = self.training_call( batch = { 'inputs': inputs } )
+                output = self.training_call( batch = { 'inputs': input } )
                 next_row_weights = self.get_row_weights().tolist()
                 total_epoch_loss += output.local_target_loss.item()
 
