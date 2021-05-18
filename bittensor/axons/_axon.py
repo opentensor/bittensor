@@ -15,18 +15,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
-import copy
 import grpc
 import pandas as pd
-import random
-import requests
 import sys
 import threading
 import torch
-import time
 import queue
-import validators
 import multiprocessing as mp
 
 from concurrent import futures
@@ -36,28 +30,17 @@ from types import SimpleNamespace
 from typing import List, Tuple, Optional
 
 import bittensor
-import bittensor.utils.networking as net
 import bittensor.serialization as serialization
 import bittensor.utils.stats as stat_utils
 
 from loguru import logger
 logger = logger.opt(colors=True)
 
-class Axon(bittensor.grpc.BittensorServicer):
+class Axon( bittensor.grpc.BittensorServicer ):
     r"""
         Services Forward and Backward requests from other neurons.
     """
-    def __init__(
-            self, 
-            config: Munch = None, 
-            wallet: 'bittensor.wallet.Wallet' = None,
-            local_port: int = None,
-            local_ip: str =  None,
-            max_workers: int = None, 
-            forward_processing_timeout:int = None,
-            backward_processing_timeout:int = None,
-            **kwargs
-        ):
+    def __init__( self, config: Munch, wallet: 'bittensor.wallet.Wallet' ):
         r""" Initializes a new Axon tensor processing endpoint.
             
             Args:
@@ -65,37 +48,8 @@ class Axon(bittensor.grpc.BittensorServicer):
                     axon.Axon.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                local_port (default=8091, type=int): 
-                    The port this axon endpoint is served on. i.e. 8091
-                local_ip (default='127.0.0.1', type=str): 
-                    The local ip this axon binds to. ie. 0.0.0.0
-                max_workers (default=10, type=int): 
-                    The maximum number connection handler threads working simultaneously on this endpoint. 
-                        The grpc server distributes new worker threads to service requests up to this number.
-                forward_processing_timeout (default=5, type=int):
-                    Length of time allocated to the miner forward process for computing and returning responses
-                        back to the axon.
-                backward_processing_timeout (default=5, type=int):
-                    Length of time allocated to the miner backward process for computing and returning responses
-                        back to the axon.
         """
-        # Config: Holds all config items for this items and those that are recursively defined. For instance,
-        # config for the wallet and nucleus sub-objects.
-        if config == None:
-            config = Axon.default_config()
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
-        config.axon.local_port = local_port if local_port != None else config.axon.local_port
-        config.axon.local_ip = local_ip if local_ip != None else config.axon.local_ip
-        config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
-        config.axon.forward_processing_timeout = forward_processing_timeout if forward_processing_timeout != None else config.axon.forward_processing_timeout
-        config.axon.backward_processing_timeout = backward_processing_timeout if backward_processing_timeout != None else config.axon.backward_processing_timeout
-        Axon.check_config( config )
         self.config = config
-
-        # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
-        # and subscribe to the chain.
-        if wallet == None:
-            wallet = bittensor.wallet.Wallet( config = self.config )
         self.wallet = wallet
         
         # Server: by default the axon serves an RPC server in its own thread using GPRC.
@@ -120,48 +74,6 @@ class Axon(bittensor.grpc.BittensorServicer):
             out_bytes_per_pubkey = {},
             qps_per_pubkey = {},
         )
-
-    @staticmethod   
-    def default_config() -> Munch:
-        # Parses and returns a config Munch for this object.
-        parser = argparse.ArgumentParser(); 
-        Axon.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        return config
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        r""" Adds this axon's command line arguments to the passed parser.
-            Args:
-                parser (:obj:`argparse.ArgumentParser`, `required`): 
-                    parser argument to append args to.
-        """
-        bittensor.wallet.Wallet.add_args(parser)
-        try:
-            parser.add_argument('--axon.local_port', default=8091, type=int, 
-                help='''The port this axon endpoint is served on. i.e. 8091''')
-            parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, 
-                help='''The local ip this axon binds to. ie. 0.0.0.0''')
-            parser.add_argument('--axon.max_workers', default=10, type=int, 
-                help='''The maximum number connection handler threads working simultaneously on this endpoint. 
-                        The grpc server distributes new worker threads to service requests up to this number.''')
-            parser.add_argument('--axon.forward_processing_timeout', default=5, type=int, 
-                help='''Length of time allocated to the miner forward process for computing and returning responses
-                        back to the axon.''')
-            parser.add_argument('--axon.backward_processing_timeout', default=5, type=int, 
-                help='''Length of time allocated to the miner backward process for computing and returning responses
-                        back to the axon.''')
-        except:
-            pass
-
-    @staticmethod   
-    def check_config(config: Munch):
-        r""" Checks the passed config items for validity and obtains the remote ip.
-            Args:
-                config (:obj:`munch.Munch, `required`): 
-                    config to check.
-        """
-        assert config.axon.local_port > 1024 and config.axon.local_port < 65535, 'config.axon.local_port must be in range [1024, 65535]'
 
     def Forward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
