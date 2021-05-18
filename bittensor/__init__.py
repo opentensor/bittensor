@@ -37,8 +37,6 @@ __blocktime__ = 6
 import bittensor.tokenizer
 import bittensor.axon
 import bittensor.config 
-import bittensor.neuron
-import bittensor.miner
 import bittensor.executor
 import bittensor.cli
 import bittensor.dendrite
