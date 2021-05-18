@@ -151,9 +151,9 @@ class Axon(bittensor.grpc.BittensorServicer):
             parser.add_argument('--axon.backward_processing_timeout', default=5, type=int, 
                 help='''Length of time allocated to the miner backward process for computing and returning responses
                         back to the axon.''')
-            parser.add_argument('--axon.forward_queue_maxsize', default=100, type=int,
+            parser.add_argument('--axon.w', default=10, type=int,
                 help='''Maximum number of pending forward requests queued at any time.''')
-            parser.add_argument('--axon.backward_queue_maxsize', default=100, type=int, 
+            parser.add_argument('--axon.backward_queue_maxsize', default=10, type=int, 
                 help='''Maximum number of pending backward requests queued at any time.''')
         except:
             pass
