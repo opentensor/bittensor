@@ -594,7 +594,9 @@ class BaseMiner( Miner ):
 
                     # ---- Forward / Backward ----
                     prev_row_weights = self.get_row_weights().tolist()
-                    output = self.training_call( batch = { 'inputs': inputs } )
+                    input = copy.deepcopy(inputs)
+                    del inputs
+                    output = self.training_call( batch = { 'inputs': input } )
                     next_row_weights = self.get_row_weights().tolist()
                     total_epoch_loss += output.local_target_loss.item()
 
@@ -607,6 +609,8 @@ class BaseMiner( Miner ):
             for iteration, (inputs) in progress_bar:
                 # ---- Forward / Backward ----
                 prev_row_weights = self.get_row_weights().tolist()
+                input = copy.deepcopy(inputs)
+                del inputs
                 output = self.training_call( batch = { 'inputs': inputs } )
                 next_row_weights = self.get_row_weights().tolist()
                 total_epoch_loss += output.local_target_loss.item()
