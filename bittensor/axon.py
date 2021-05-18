@@ -641,7 +641,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         if self._server != None:
             self._server.stop( 0 )
         
-        self._server = grpc.server(futures.ThreadPoolExecutor( max_workers = self.config.axon.max_workers ), maximum_concurrent_rpcs=self.config.maximum_concurrent_rpcs )
+        self._server = grpc.server(futures.ThreadPoolExecutor( max_workers = self.config.axon.max_workers ), maximum_concurrent_rpcs = self.config.axon.maximum_concurrent_rpcs )
         bittensor.grpc.add_BittensorServicer_to_server( self, self._server )
         self._server.add_insecure_port('[::]:' + str( self.config.axon.local_port ))  # TODO(const): should use the ip here.
 
