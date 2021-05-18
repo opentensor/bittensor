@@ -16,12 +16,10 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+from bittensor import receptor
 import copy
-import asyncio
 import grpc
 import math
-import sys
-import time
 import torch
 import pandas as pd
 import torch.nn as nn
@@ -31,13 +29,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from termcolor import colored
 from types import SimpleNamespace
 from typing import Tuple, List, Optional
-from loguru import logger
 from munch import Munch
 
 import bittensor
 import bittensor.utils.stats as stat_utils
-import bittensor.serialization as serialization
-from bittensor.exceptions.handlers import rollbar
+
+from loguru import logger
+logger = logger.opt(colors=True)
 
 class Dendrite(nn.Module):
     r"""
@@ -96,7 +94,7 @@ class Dendrite(nn.Module):
         # Threadpool executor for making queries across the line.
         self._executor = ThreadPoolExecutor( max_workers = self.config.dendrite.max_worker_threads )
 
-        # Receptors: Holds a set map of publickey -> receptor objects. Receptors encapsulate a TCP connection between
+        # Receptors: Holds a set map of hotkey -> receptor objects. Receptors encapsulate a TCP connection between
         # this dendrite and an upstream neuron (i.e. a peer we call for representations)
         self._receptors = {}
 
@@ -120,7 +118,9 @@ class Dendrite(nn.Module):
     def add_args( parser: argparse.ArgumentParser ):
         bittensor.receptor.Receptor.add_args(parser)
         parser.add_argument('--dendrite.max_worker_threads', default=20, type=int, 
-                help='''Number of concurrent threads used for sending RPC requests.''')
+                help='''Max number of concurrent threads used for sending RPC requests.''')
+        parser.add_argument('--dendrite.max_active_tcp_connections', default=150, type=int, 
+                help='''Max number of concurrently active receptors / tcp-connections''')
         return parser
 
     def forward_text(self, neurons: List[bittensor.utils.neurons.NeuronEndpoint],
@@ -253,37 +253,73 @@ class Dendrite(nn.Module):
         # ---- Run threaded calls with executor ----
         tensor_results = []
         return_codes = []
-        receptor_args = list(zip(x, neurons, [mode] * len(x)))
-        for result in self._executor.map( lambda args: self._call_receptor(*args), receptor_args ):
+        
+        # --- Create calls ----
+        def _call_receptor_with_args( receptor, inputs, mode ):
+            return receptor.forward( inputs = inputs, mode = mode )
+
+        # ---- Fill calls ----
+        call_args = [ (self._get_or_create_receptor_for_neuron( neuron ), inputs, mode) for (inputs, neuron) in list(zip( x, neurons )) ]
+        for result in self._executor.map( lambda args: _call_receptor_with_args(*args), call_args ):
             tensor_results.append( result[0] )
             return_codes.append( result[1] )
+
+        # ---- Kill receptors ----
+        self._destroy_receptors_over_max_allowed()
+        
+        # ---- Return ----
         return_codes = torch.tensor(return_codes, dtype=torch.int64)
         return tensor_results, return_codes
 
-    def _call_receptor(self, inputs, neuron, mode) -> List[Tuple[torch.FloatTensor, torch.LongTensor]]:
-        r""" Creates and returns the results a forward requests sent to the passed neuron endpoint.
-
-            Args:
-                inputs (:obj:`torch.Tensor` of shape :obj:`(1)`, `required`):
-                    Tensors to send to the corresponsing neuron. 
-
-                neuron (:obj:`bittensor.utils.neurons.NeuronEndpoint` of shape :obj:`(1)`, `required`):
-                    Neuron endpoint to accept tensor.
-
-                mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
-                    Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
-
-            Returns:
-                results (:obj:`Tuple[torch.FloatTensor, torch.LongTensor]`, `required`):
-                    result tuples from the forward call on a Receptor class.
+    def _destroy_receptors_over_max_allowed( self ):
+        r""" Destroys receptors based on QPS until there are no more than max_active_tcp_connections.
         """
-        # ---- Find receptor for call. ---- 
-        if neuron.hotkey not in self._receptors:
-            self._receptors[neuron.hotkey] = bittensor.receptor.Receptor(neuron, self.config, self.wallet)
 
-        # ---- Trigger receptor forward call. ----
-        receptor = self._receptors[neuron.hotkey]
-        return receptor.forward( inputs = inputs, mode = mode )
+        # ---- Finally: Kill receptors over max allowed ----
+        while len(self._receptors) > self.config.dendrite.max_active_tcp_connections:
+            min_receptor_qps = math.inf
+            receptor_to_remove = None
+            for next_receptor in self._receptors.values():
+                next_qps = next_receptor.stats.forward_qps.value
+                if min_receptor_qps > next_qps:
+                    receptor_to_remove = next_receptor
+            if receptor_to_remove != None:
+                logger.debug('<white>Destroy receptor for neuron:</white> {}', receptor_to_remove.neuron )
+                del self._receptors[ receptor_to_remove.neuron.hotkey ]
+
+    def _get_or_create_receptor_for_neuron( self, neuron: bittensor.utils.neurons.NeuronEndpoint ) -> 'bittensor.receptor.Receptor':
+        r""" Finds or creates a receptor TCP connection associated with the passed Neuron Endpoint
+            Returns
+                receptor: (bittensor.receptor.Receptor):
+                    receptor with tcp connection endpoint at neuron.ip:neuron.port
+        """
+
+        # ---- Find the active receptor for this neuron ----
+        if neuron.hotkey in self._receptors:
+            receptor = self._receptors[ neuron.hotkey ]
+
+            # Change receptor address.
+            if receptor.neuron.ip != neuron.ip or receptor.neuron.port != neuron.port:
+                del receptor
+                logger.debug('<white>Update receptor for neuron:</white> {}', neuron )
+                receptor = bittensor.receptor.Receptor (
+                    neuron = neuron, 
+                    config = self.config, 
+                    wallet = self.wallet
+                )            
+                self._receptors[ receptor.neuron.hotkey ] = receptor
+
+        # ---- Or: Create a new receptor ----
+        else:
+            logger.debug('<white>Create receptor for neuron:</white> {}', neuron )
+            receptor = bittensor.receptor.Receptor (
+                    neuron = neuron, 
+                    config = self.config, 
+                    wallet = self.wallet
+            )
+            self._receptors[ receptor.neuron.hotkey ] = receptor
+
+        return receptor
 
     def __del__(self):
         # Close down executor.
