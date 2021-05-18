@@ -283,7 +283,6 @@ class Miner( bittensor.miner.BaseMiner ):
         # ---- Forward pass ----
         inputs = batch['inputs']
         output = self.nucleus.remote_forward(
-            neuron = self,
             inputs = inputs,
             training = True,
         )

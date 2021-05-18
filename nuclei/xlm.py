@@ -88,6 +88,9 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
         bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
         XLMNucleus.check_config(config)
         self.config = config
+
+        # To be set.
+        self.routing_function = None
         
         # Build config.
         xlm_config = XLMConfig(
@@ -196,6 +199,26 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
     def check_config(config: Munch):
         assert config.nucleus.n_layers > 0, "Number of hidden layers in the Transformer encoder must be > 0"
         assert config.nucleus.n_heads > 0, "Number of attention heads for each attention layer in the Transformer encoder must be > 0"
+
+    @property
+    def _routing_function( self, inputs: torch.Tensor, query: torch.Tensor):
+        """ Calls this nucleus's subscribed routing function. self.routing_function must be set before this call is made.
+
+        Args:
+            inputs (:obj:`torch.LongTensor` of shape :obj:`( batch_size, sequence_len )`, `required`): 
+                    Batch_size length list of tokenized sentences.
+
+            query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
+                    Context tensor used to select which neurons to query for each example.
+            
+            Returns:
+                hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Hidden layer representation produced using the local_context.
+        """
+        if self.routing_function == None:
+            raise RuntimeError('The routing function must be set on this nucleus before a remote_forward call can execute.')
+        else:
+            return self.routing_function( inputs = inputs, query = query )
     
     def forward_text (self, inputs: torch.LongTensor):
         """ Local forward inputs through the XLM Nucleus.
@@ -259,7 +282,7 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
         
         return output
 
-    def remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, training: bool) -> SimpleNamespace:
+    def remote_forward(self, inputs: torch.LongTensor, training: bool) -> SimpleNamespace:
         """ Forward pass inputs and labels through the XLM module.
 
 
@@ -305,7 +328,7 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.router = self.route_text( inputs.to(self.device), pooled )
+        output.router = self._routing_function( inputs = inputs.to(self.device), query = pooled )
         remote_context = output.router.response
 
         # Distillation loss: distillation loss between local_context and remote_context

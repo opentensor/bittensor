@@ -51,6 +51,9 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
         bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
         DPNNucleus.check_config(config)
         self.config = config
+
+        # To be set.
+        self.routing_function = None
         
         in_planes, out_planes = config.nucleus.in_planes, config.nucleus.out_planes
         num_blocks, dense_depth = config.nucleus.num_blocks, config.nucleus.dense_depth
@@ -126,10 +129,6 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
         parser.add_argument('--nucleus.num_blocks', default='3, 6, 20, 3', action="append", type=to_list)
         parser.add_argument('--nucleus.dense_depth', default='16, 32, 32, 128', action="append", type=to_list)
         parser.add_argument('--nucleus.target_dim', default=10, type=int, help='Final logit layer dimension. i.e. 10 for CIFAR-10.')
-<<<<<<< HEAD:nuclei/dpn.py
-=======
-        parser = PKMRouter.add_args(parser)
->>>>>>> bdc21c2a6811c65fe04a01bf0aff4c13beba35fe:synapses/dpn.py
     
     @staticmethod
     def check_config(config: Munch):
@@ -141,6 +140,26 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
         assert all(isinstance(el, int) for el in config.nucleus.out_planes), 'nucleus.out_planes must be a tuple of ints, got {}'.format(config.nucleus.out_planes)
         assert all(isinstance(el, int) for el in config.nucleus.num_blocks), 'nucleus.num_blocks must be a tuple of ints, got {}'.format(config.nucleus.num_blocks)
         assert all(isinstance(el, int) for el in config.nucleus.dense_depth), 'nucleus.dense_depth must be a tuple of ints, got {}'.format(config.nucleus.dense_depth)
+
+    @property
+    def _routing_function( self, inputs: torch.Tensor, query: torch.Tensor ):
+        """ Calls this nucleus's subscribed routing function. self.routing_function must be set before this call is made.
+
+        Args:
+            inputs (:obj:`torch.LongTensor` of shape :obj:`( batch_size, sequence_len )`, `required`): 
+                    Batch_size length list of tokenized sentences.
+
+            query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
+                    Context tensor used to select which neurons to query for each example.
+            
+            Returns:
+                hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Hidden layer representation produced using the local_context.
+        """
+        if self.routing_function == None:
+            raise RuntimeError('The routing function must be set on this nucleus before a remote_forward call can execute.')
+        else:
+            return self.routing_function( inputs = inputs, query = query )
     
     def forward_image ( self, images: torch.Tensor):
         r""" Forward image inputs through the DPN nucleus .
@@ -251,14 +270,11 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
         
         return output
 
-    def remote_forward(self, neuron: bittensor.neuron.Neuron, images: torch.Tensor, targets: torch.Tensor = None) -> SimpleNamespace:
+    def remote_forward(self, images: torch.Tensor, targets: torch.Tensor = None) -> SimpleNamespace:
         """
             Forward pass non-sequential image inputs and targets through the nucleus. Makes RPC queries to downstream neurons.
             
             Args:
-                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
-
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
                     PIL.toTensor() encoded images.
                                 
@@ -292,7 +308,7 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         images = torch.unsqueeze(images, 1)
-        output.router = self.route_image( images, output.transform )
+        output.router = self._routing_function( inputs = images, query = output.transform )
         remote_context = torch.squeeze( output.router.response, 1 ).to(self.device)
 
         # Distill the local context to match the remote context.

@@ -58,6 +58,9 @@ class BertNucleusBase (bittensor.nucleus.Nucleus):
         BertNucleusBase.check_config(config)
         self.config = config
 
+        # To be set.
+        self.routing_function = None
+
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
                                             hidden_size=bittensor.__network_dim__, 
@@ -96,16 +99,32 @@ class BertNucleusBase (bittensor.nucleus.Nucleus):
         parser.add_argument('--nucleus.num_attention_heads', default=2, type=int, 
                             help='Number of attention heads for each attention layer in the Transformer encoder.')
         parser.add_argument('--nucleus.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
-<<<<<<< HEAD:nuclei/bert.py
-=======
-        PKMRouter.add_args(parser)
->>>>>>> bdc21c2a6811c65fe04a01bf0aff4c13beba35fe:synapses/bert.py
 
     @staticmethod
     def check_config( config: Munch ):    
         r""" Add custom checks to the config.
         """
         pass
+
+    @property
+    def _routing_function( self, inputs: torch.Tensor, query: torch.Tensor ):
+        """ Calls this nucleus's subscribed routing function. self.routing_function must be set before this call is made.
+
+        Args:
+            inputs (:obj:`torch.LongTensor` of shape :obj:`( batch_size, sequence_len )`, `required`): 
+                    Batch_size length list of tokenized sentences.
+
+            query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
+                    Context tensor used to select which neurons to query for each example.
+            
+            Returns:
+                hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Hidden layer representation produced using the local_context.
+        """
+        if self.routing_function == None:
+            raise RuntimeError('The routing function must be set on this nucleus before a remote_forward call can execute.')
+        else:
+            return self.routing_function( inputs = inputs, query = query )
 
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the BERT NSP Nucleus.
@@ -160,13 +179,10 @@ class BertNucleusBase (bittensor.nucleus.Nucleus):
 
         return output
 
-    def base_remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None):
+    def base_remote_forward(self, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None):
         """Forward pass inputs and labels through the remote BERT networks.
 
         Args:
-            neuron (:obj: `bittensor.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
-
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.                
 
@@ -193,7 +209,7 @@ class BertNucleusBase (bittensor.nucleus.Nucleus):
 
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.router = self.route_text(text = inputs, query = output.local_pooled )
+        output.router = self._routing_function( inputs = inputs, query = output.local_pooled )
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
@@ -286,13 +302,10 @@ class BertNSPNucleus (BertNucleusBase):
             output.local_target_loss = self.loss_fct( output.local_target.view(-1, 2), targets )            
         return output
 
-    def remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None, targets: torch.Tensor = None):
+    def remote_forward(self, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None, targets: torch.Tensor = None):
         r""" Forward pass inputs and labels through the NSP BERT module. (with queries to the network)
 
             Args:
-                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
-
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
@@ -317,7 +330,7 @@ class BertNSPNucleus (BertNucleusBase):
                 )
         """
         inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
-        output = BertNucleusBase.base_remote_forward( self, neuron = neuron, attention_mask = attention_mask, inputs = inputs)
+        output = BertNucleusBase.base_remote_forward( self, attention_mask = attention_mask, inputs = inputs)
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.
             # local_target.shape = [batch_size, 2]
@@ -409,13 +422,10 @@ class BertMLMNucleus (BertNucleusBase):
         return output
 
 
-    def remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, targets: torch.LongTensor = None):
+    def remote_forward(self, inputs: torch.LongTensor, targets: torch.LongTensor = None):
         r""" Forward pass inputs and labels through the MLM BERT module. (with queries to the network)
 
             Args:
-                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
-
                 inputs (:obj:`torch.LongTensor` of shape ``(batch_size, sequence_length)``, `required`):
                     Batch_size length list of tokenized sentences.
                 
@@ -436,7 +446,7 @@ class BertMLMNucleus (BertNucleusBase):
         """
         inputs = torch.clamp(inputs, 0, bittensor.__vocab_size__) # Filter out of range tokens.
         # Call forward method from bert base.
-        output = BertNucleusBase.base_remote_forward( self, neuron = neuron, inputs = inputs ) 
+        output = BertNucleusBase.base_remote_forward( self, inputs = inputs ) 
 
         if targets is not None:
             # local_target: projection the local_hidden to target dimension.

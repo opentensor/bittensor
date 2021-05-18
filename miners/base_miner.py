@@ -71,7 +71,7 @@ class BasicMiner( miner.AbstractMiner ):
 
     @staticmethod   
     def add_args( parser: argparse.ArgumentParser ):
-        AbstractMiner.add_args( parser )
+        miner.AbstractMiner.add_args( parser )
         parser.add_argument ('--miner.resume', dest='resume', action='store_true', help='''Resume training from last save state.''', default=False )
         parser.add_argument ('--miner.rich', dest='rich', action='store_true', help='''Rich text display''', default=False)
         parser.add_argument ('--miner.restart_on_failure', dest='restart_on_failure', action='store_true', help='''Restart miner on unknown error.''', default=False)

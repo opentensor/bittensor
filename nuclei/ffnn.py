@@ -49,6 +49,9 @@ class FFNNNucleus(bittensor.nucleus.Nucleus):
         bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
         FFNNNucleus.check_config(config)
         self.config = config
+
+        # To be set.
+        self.routing_function = None
             
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
@@ -87,12 +90,30 @@ class FFNNNucleus(bittensor.nucleus.Nucleus):
     def add_args(parser: argparse.ArgumentParser):    
         parser.add_argument('--nucleus.target_dim', default=10, type=int, 
                             help='Final logit layer dimension. i.e. 10 for MNIST.')
-        parser = PKMRouter.add_args(parser)
 
     @staticmethod   
     def check_config(config: Munch):
         assert config.nucleus.target_dim > 0, "target dimension must be greater than 0."
-        config = PKMRouter.check_config(config)
+
+    @property
+    def _routing_function( self, inputs: torch.Tensor, query: torch.Tensor ):
+        """ Calls this nucleus's subscribed routing function. self.routing_function must be set before this call is made.
+
+        Args:
+            inputs (:obj:`torch.LongTensor` of shape :obj:`( batch_size, sequence_len )`, `required`): 
+                    Batch_size length list of tokenized sentences.
+
+            query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
+                    Context tensor used to select which neurons to query for each example.
+            
+            Returns:
+                hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Hidden layer representation produced using the local_context.
+        """
+        if self.routing_function == None:
+            raise RuntimeError('The routing function must be set on this nucleus before a remote_forward call can execute.')
+        else:
+            return self.routing_function( inputs = inputs, query = query )
 
     def forward_image(self, images: torch.Tensor):
         r""" Forward image inputs through the FFNN nucleus .
@@ -188,15 +209,12 @@ class FFNNNucleus(bittensor.nucleus.Nucleus):
 
         return output
 
-    def remote_forward(self, neuron: bittensor.neuron.Neuron, images: torch.Tensor, targets: torch.Tensor = None) -> SimpleNamespace:
+    def remote_forward(self, images: torch.Tensor, targets: torch.Tensor = None) -> SimpleNamespace:
         """
             Forward pass non-sequential image inputs and targets through the remote context of the nucleus. The call
-            makes RPC queries accross the network using the passed neuron's metagraph and dendrite.
+            makes RPC queries accross the network using the subscribed routing_function.
             
             Args:
-                neuron (:obj: `bittensor.neuron.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
-
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
                     PIL.toTensor() encoded images.
                                 
@@ -230,7 +248,7 @@ class FFNNNucleus(bittensor.nucleus.Nucleus):
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         images = torch.unsqueeze(images, 1)
-        output.router = self.router.forward_image( neuron, images, output.local_hidden )
+        output.router = self._routing_function( inputs = images, query = output.local_hidden )
         remote_context = torch.squeeze( output.router.response, 1 ).to(self.device)
 
         # Distill the local context to match the remote context.
