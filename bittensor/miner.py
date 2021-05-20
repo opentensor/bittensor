@@ -126,7 +126,7 @@ class Miner( bittensor.neuron.Neuron ):
         else: 
             logger.info('LOGGING is <red>OFF</red>')
 
-    def init_tensorboad( self ):
+    def init_tensorboard( self ):
         if self.config.use_tensorboard == True:
             event_file_dir = self.config.miner.full_path + '/tensorboard-' + '-'.join(str(datetime.now()).split())
             self.tensorboard = SummaryWriter( log_dir = event_file_dir )
@@ -139,7 +139,7 @@ class Miner( bittensor.neuron.Neuron ):
 
     def startup( self ):
         self.init_logging()
-        self.init_tensorboad()
+        self.init_tensorboard()
         self.init_debugging()
         self.init_external_ports_and_addresses()
         self.init_wallet()
@@ -205,9 +205,18 @@ class BaseMiner( Miner ):
                 help='''Restart miner on unknown error.''',
                 default=False 
             )
-
-        parser.add_argument('--miner.max_backward_workers', default='10', type=int, help='Maximum number of concurrent backward processing threads.')
-        parser.add_argument('--miner.max_forward_workers', default='10', type=int, help='Maximum number of concurrent forward processing threads.')
+        parser.add_argument(
+                '--miner.max_backward_workers', 
+                default='10', 
+                type=int, 
+                help='Maximum number of concurrent backward processing threads.'
+            )
+        parser.add_argument(
+                '--miner.max_forward_workers', 
+                default='10', 
+                type=int, 
+                help='Maximum number of concurrent forward processing threads.'
+            )
 
 
     def startup( self ):
