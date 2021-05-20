@@ -110,10 +110,8 @@ class Neuron:
                 '--use_upnpc', 
                 dest='use_upnpc', 
                 action='store_true', 
-                help='''Turns on port forwarding on your router using upnpc.'''
-            )
-            parser.set_defaults ( 
-                use_upnpc=False 
+                help='''Turns on port forwarding on your router using upnpc.''',
+                default=False
             )
         except argparse.ArgumentError:
             pass      
@@ -122,10 +120,8 @@ class Neuron:
                 '--record_log', 
                 dest='record_log', 
                 action='store_true', 
-                help='''Turns on logging to file.'''
-            )
-            parser.set_defaults ( 
-                record_log=True 
+                help='''Turns on logging to file.''',
+                default=True
             )
         except argparse.ArgumentError:
             pass
@@ -134,11 +130,10 @@ class Neuron:
                 '--debug', 
                 dest='debug', 
                 action='store_true', 
-                help='''Turn on bittensor debugging information'''
+                help='''Turn on bittensor debugging information''',
+                default=False,
             )
-            parser.set_defaults ( 
-                debug=False 
-            )
+
         except argparse.ArgumentError:
             pass
         try:

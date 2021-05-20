@@ -105,10 +105,8 @@ class Miner( bittensor.neuron.Neuron ):
                 '--miner.no_tensorboard',
                 dest='use_tensorboard',
                 action='store_false',
-                help='Turn off bittensor logging to tensorboard'
-            )
-            parser.set_defaults ( 
-                use_tensorboard=True 
+                help='Turn off bittensor logging to tensorboard',
+                default=True
             )
         except argparse.ArgumentError:
             logger.warning('argument miner.root_dir was parsed twice')
