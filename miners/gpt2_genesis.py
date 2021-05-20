@@ -368,7 +368,6 @@ class Miner( bittensor.miner.BaseMiner ):
         self.optimizer.load_state_dict( state_dict['optimizer_state'] ) # Load optimizer.
         self.nucleus.routing_function = self.routing_call # Re-assign the routing function.
         self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
-        self.optimizer = self.configure_optimizers( self.optimizer ) # Reset the optimizer.
 
     def sync_chain_state( self ):
         r""" Called after each training epoch. Miner should update chain-state and resize objects.
@@ -376,7 +375,6 @@ class Miner( bittensor.miner.BaseMiner ):
         super().sync_chain_state() # Syncs metagraph and saves to file.
         self.row_weights = torch.nn.functional.pad( self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel()], value=0) # Pad row weights.
         self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
-        self.optimizer = self.configure_optimizers( self.optimizer ) # Reset optimizer.
 
     # ---- Get Row Weights ----
     def get_row_weights( self ) -> torch.FloatTensor:
