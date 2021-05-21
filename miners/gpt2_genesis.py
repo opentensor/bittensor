@@ -32,6 +32,7 @@ import copy
 import os
 import math
 import random
+from re import L
 import torch
 import sys
 import torch.nn.functional as F
@@ -293,7 +294,7 @@ class Miner( miner.BasicMiner ):
         output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
         output.loss.backward() # Accumulates gradients on the nucleus.
         clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
-        print (self.optimizer)
+        clip_grad_norm_(self.router.parameters(), self.config.miner.clip_gradients)
         self.optimizer.step() # Applies accumulated gradients.
         self.optimizer.zero_grad() # Zeros out gradients for next accummulation
         self.decay_learning_rate( inputs )
@@ -370,6 +371,7 @@ class Miner( miner.BasicMiner ):
         self.nucleus.subscribe_routing_function( routing_function = self.routing_call )# Re-assign the routing function.
         self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
         self.optimizer.load_state_dict( state_dict['optimizer_state'] ) # Load optimizer.
+        self.optimizer = self.configure_optimizers( self.optimizer )
 
     def sync_chain_state( self ):
         r""" Called after each training epoch. Miner should update chain-state and resize objects.
@@ -377,6 +379,7 @@ class Miner( miner.BasicMiner ):
         super().sync_chain_state() # Syncs metagraph and saves to file.
         self.row_weights = torch.nn.functional.pad( self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel()], value=0) # Pad row weights.
         self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
+        self.optimizer = self.configure_optimizers( self.optimizer )
 
     # ---- Get Row Weights ----
     def get_row_weights( self ) -> torch.FloatTensor:
@@ -397,12 +400,16 @@ class Miner( miner.BasicMiner ):
         """
         return self.dataset.dataloader( self.config.miner.epoch_length )
 
-    def configure_optimizers( self ):
+    def configure_optimizers( self, previous_optimizer = None):
         """
         This long function is unfortunately doing something very simple and is being very defensive:
         We are separating out all parameters of the nucleus into two buckets: those that will experience
         weight decay for regularization and those that won't (biases, and layernorm/embedding weights).
         We are then returning the PyTorch optimizer object.
+
+        Args:
+            previous_optimizer:
+                optimizer from previous configure or None if not existent
 
         """
 
@@ -436,14 +443,29 @@ class Miner( miner.BasicMiner ):
         assert len(param_dict.keys() - union_params) == 0, "parameters %s were not separated into either decay/no_decay set!" \
                                                     % (str(param_dict.keys() - union_params), )
 
-        # create the pytorch optimizer object
-        optim_groups = [
-            {"params": self.router.parameters(), "betas": [0.9, 0.95] },
-            #{"params": [param_dict[pn] for pn in sorted(list(decay))], "weight_decay": self.config.miner.weight_decay, "betas": [0.9, 0.95]},
-            #{"params": [param_dict[pn] for pn in sorted(list(no_decay))], "weight_decay": 0.0, "betas": [0.9, 0.95]},
-        ]
+        # Adds new router params for extended size.
+        if previous_optimizer != None:
+            # extract the state dict from your old optimizer
+            old_state_params = previous_optimizer.state_dict()
+
+            newly_added_router_params = [ p for p in self.router.parameters() if not p in old_state_params["param_groups"][0]["params"] ]
+            next_router_params = newly_added_router_params + old_state_params["param_groups"][0]["params"]
+
+            optim_groups = [
+                {"params": next_router_params }, # The router may have been extended.
+                {"params": [param_dict[pn] for pn in sorted(list(decay))], "weight_decay": self.config.miner.weight_decay, "betas": [0.9, 0.95]},
+                {"params": [param_dict[pn] for pn in sorted(list(no_decay))], "weight_decay": 0.0, "betas": [0.9, 0.95]},
+            ]
+
+        else:
+            optim_groups = [
+                {"params": self.router.parameters() },
+                {"params": [param_dict[pn] for pn in sorted(list(decay))], "weight_decay": self.config.miner.weight_decay, "betas": [0.9, 0.95]},
+                {"params": [param_dict[pn] for pn in sorted(list(no_decay))], "weight_decay": 0.0, "betas": [0.9, 0.95]},
+            ]
+
+        # Build optimizer.
         optimizer = torch.optim.AdamW( optim_groups, lr = self.config.miner.learning_rate, betas = (0.9, 0.95) )
-        print (optimizer)
         return optimizer
 
     def decay_learning_rate(self, batch):
