@@ -58,7 +58,7 @@ class Executor ():
         config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         Executor.check_config( config )
         self.config = config
-        if wallet != None:
+        if wallet == None:
             wallet = bittensor.wallet.Wallet ( config = self.config )
         self.wallet = wallet
         self.subtensor = bittensor.subtensor.Subtensor( config = self.config )

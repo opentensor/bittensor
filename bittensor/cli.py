@@ -49,41 +49,59 @@ class CLI ( bittensor.executor.Executor ):
             'overview', 
             help='''Show account overview.'''
         )
+        overview_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
+        bittensor.executor.Executor.add_args( overview_parser )
+
         transfer_parser = cmd_parsers.add_parser(
             'transfer', 
             help='''Transfer Tao between accounts.'''
         )
+        transfer_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
+        bittensor.executor.Executor.add_args( transfer_parser )
 
         unstake_parser = cmd_parsers.add_parser(
             'unstake', 
             help='''Unstake from hotkey accounts.'''
         )
-        
+        unstake_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
+        bittensor.executor.Executor.add_args( unstake_parser )
+
         stake_parser = cmd_parsers.add_parser(
             'stake', 
             help='''Stake to your hotkey accounts.'''
         )
+        stake_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
+        bittensor.executor.Executor.add_args( stake_parser )
 
         regen_coldkey_parser = cmd_parsers.add_parser(
             'regen_coldkey',
             help='''Regenerates a coldkey from a passed mnemonic'''
         )
-        
+        regen_coldkey_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
+        bittensor.executor.Executor.add_args( regen_coldkey_parser )
+
         regen_hotkey_parser = cmd_parsers.add_parser(
             'regen_hotkey',
             help='''Regenerates a hotkey from a passed mnemonic'''
         )
+        regen_hotkey_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
+        bittensor.executor.Executor.add_args( regen_hotkey_parser )
 
         new_coldkey_parser = cmd_parsers.add_parser(
             'new_coldkey', 
             help='''Creates a new hotkey (for running a miner) under the specified path. '''
         )
-        
+        new_coldkey_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
+        bittensor.executor.Executor.add_args( new_coldkey_parser )
+
         new_hotkey_parser = cmd_parsers.add_parser(
             'new_hotkey', 
             help='''Creates a new coldkey (for containing balance) under the specified path. '''
         )
-            
+        new_hotkey_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
+        bittensor.executor.Executor.add_args( new_hotkey_parser )
+
+         
         # Fill arguments for the regen coldkey command.
         regen_coldkey_parser.add_argument(
             "--mnemonic", 
@@ -91,7 +109,6 @@ class CLI ( bittensor.executor.Executor ):
             nargs="+", 
             help='Mnemonic used to regen your key i.e. horse cart dog ...'
         )
-
         regen_coldkey_parser.add_argument(
             '--use_password', 
             dest='use_password', 
@@ -99,15 +116,12 @@ class CLI ( bittensor.executor.Executor ):
             help='''Set protect the generated bittensor key with a password.''',
             default=True,
         )
-
         regen_coldkey_parser.add_argument(
             '--no_password', 
             dest='use_password', 
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.''',
         )
-        
-        bittensor.executor.Executor.add_args( regen_coldkey_parser )
 
         # Fill arguments for the regen hotkey command.
         regen_hotkey_parser.add_argument(
@@ -116,7 +130,6 @@ class CLI ( bittensor.executor.Executor ):
             nargs="+", 
             help='Mnemonic used to regen your key i.e. horse cart dog ...'
         )
-
         regen_hotkey_parser.add_argument(
             '--use_password', 
             dest='use_password', 
@@ -124,15 +137,12 @@ class CLI ( bittensor.executor.Executor ):
             help='''Set protect the generated bittensor key with a password.''',
             default=True
         )
-
         regen_hotkey_parser.add_argument(
             '--no_password', 
             dest='use_password', 
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
-
-        bittensor.executor.Executor.add_args( regen_hotkey_parser )
 
         # Fill arguments for the new coldkey command.
         new_coldkey_parser.add_argument(
@@ -142,7 +152,6 @@ class CLI ( bittensor.executor.Executor ):
             default=12, 
             help='''The number of words representing the mnemonic. i.e. horse cart dog ... x 24'''
         )
-
         new_coldkey_parser.add_argument(
             '--use_password', 
             dest='use_password', 
@@ -150,15 +159,12 @@ class CLI ( bittensor.executor.Executor ):
             help='''Set protect the generated bittensor key with a password.''',
             default=True,
         )
-
         new_coldkey_parser.add_argument(
             '--no_password', 
             dest='use_password', 
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
-
-        bittensor.executor.Executor.add_args(  new_coldkey_parser )
 
         # Fill arguments for the new hotkey command.
         new_hotkey_parser.add_argument(
@@ -168,15 +174,13 @@ class CLI ( bittensor.executor.Executor ):
             default=12, 
             help='''The number of words representing the mnemonic. i.e. horse cart dog ... x 24'''
         )
-
         new_hotkey_parser.add_argument(
             '--use_password', 
             dest='use_password', 
             action='store_true', 
             help='''Set protect the generated bittensor key with a password.''',
-            default=True
+            default=False
         )
-
         new_hotkey_parser.add_argument(
             '--no_password', 
             dest='use_password', 
@@ -185,33 +189,24 @@ class CLI ( bittensor.executor.Executor ):
         )
 
 
-        bittensor.executor.Executor.add_args(  new_hotkey_parser )
-
-        # Fill arguments for the overview command
-        bittensor.executor.Executor.add_args( overview_parser )
-
         # Fill arguments for unstake command. 
         unstake_parser.add_argument(
             '--all', 
             dest="unstake_all", 
             action='store_true'
         )
-
         unstake_parser.add_argument(
             '--uid', 
             dest="uid", 
             type=int, 
             required=False
         )
-
         unstake_parser.add_argument(
             '--amount', 
             dest="amount", 
             type=float, 
             required=False
         )
-
-        bittensor.executor.Executor.add_args( unstake_parser )
 
         # Fill arguments for stake command.
         stake_parser.add_argument(
@@ -220,14 +215,12 @@ class CLI ( bittensor.executor.Executor ):
             type=int, 
             required=False
         )
-
         stake_parser.add_argument(
             '--amount', 
             dest="amount", 
             type=float, 
             required=False
         )
-        bittensor.executor.Executor.add_args(  stake_parser )
 
         # Fill arguments for transfer
         transfer_parser.add_argument(
@@ -236,15 +229,12 @@ class CLI ( bittensor.executor.Executor ):
             type=str, 
             required=True
         )
-
         transfer_parser.add_argument(
             '--amount', 
             dest="amount", 
             type=float, 
             required=True
         )
-        
-        bittensor.executor.Executor.add_args( transfer_parser )
 
         # Hack to print formatted help
         if len(sys.argv) == 1:
@@ -277,8 +267,8 @@ class CLI ( bittensor.executor.Executor ):
                 quit()
 
     def run_command(self):
-        self.init_debugging()
-        self.init_logging()
+        if self.config.debug: bittensor.__debug_on__ = True; logger.info('DEBUG is <green>ON</green>')
+        else: logger.info('DEBUG is <red>OFF</red>')
         if self.config.command == "transfer":
             self.transfer( amount_tao=self.config.amount, destination=self.config.dest)
         elif self.config.command == "unstake":
