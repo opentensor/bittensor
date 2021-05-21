@@ -28,6 +28,7 @@ import torch.nn.functional as F
 
 from types import SimpleNamespace
 from munch import Munch
+from collections.abc import Callable
 from loguru import logger
 
 import bittensor
@@ -95,8 +96,17 @@ class FFNNNucleus(bittensor.nucleus.Nucleus):
     def check_config(config: Munch):
         assert config.nucleus.target_dim > 0, "target dimension must be greater than 0."
 
+    def subscribe_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
+        """ Assigns the routing_function call to this neuron.
+
+            Returns:
+                routing_function (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
+                    Routing function to call on self.route()
+        """
+        self.routing_function = routing_function
+
     @property
-    def _routing_function( self, inputs: torch.Tensor, query: torch.Tensor ):
+    def route( self, inputs: torch.Tensor, query: torch.Tensor ):
         """ Calls this nucleus's subscribed routing function. self.routing_function must be set before this call is made.
 
         Args:
@@ -248,7 +258,7 @@ class FFNNNucleus(bittensor.nucleus.Nucleus):
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         images = torch.unsqueeze(images, 1)
-        output.router = self._routing_function( inputs = images, query = output.local_hidden )
+        output.router = self.route( inputs = images, query = output.local_hidden )
         remote_context = torch.squeeze( output.router.response, 1 ).to(self.device)
 
         # Distill the local context to match the remote context.

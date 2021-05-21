@@ -14,6 +14,7 @@ import torch
 import torch.nn as nn
 from munch import Munch
 
+from typing import Callable
 from torch.nn import functional as F
 from types import SimpleNamespace
 
@@ -229,8 +230,17 @@ class GPT2Nucleus(bittensor.nucleus.Nucleus):
     def check_config(config: Munch):
         pass
 
-    @property
-    def _routing_function( self, inputs: torch.Tensor, query: torch.Tensor ):
+    def subscribe_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
+        """ Assigns the routing_function call to this neuron.
+
+            Returns:
+                routing_function (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
+                    Routing function to call on self.route()
+        """
+        # TODO(const): type checking.
+        self.routing_function = routing_function
+
+    def route( self, inputs: torch.Tensor, query: torch.Tensor ):
         """ Calls this nucleus's subscribed routing function. self.routing_function must be set before this call is made.
 
         Args:
@@ -388,7 +398,7 @@ class GPT2Nucleus(bittensor.nucleus.Nucleus):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len (or block_size), bittensor.__network_dim__]
-        output.router = self._routing_function( inputs = inputs.to(self.device), query = pooled )
+        output.router = self.route( inputs = inputs.to(self.device), query = pooled )
         remote_context = output.router.response.to(self.device)
         
         # distillation_loss : distillation loss between local_context and remote_context

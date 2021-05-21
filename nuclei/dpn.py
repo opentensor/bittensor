@@ -31,7 +31,7 @@ from types import SimpleNamespace
 from munch import Munch
 
 import bittensor
-from routers.pkm import PKMRouter
+from collections.abc import Callable
 from bittensor.utils.batch_transforms import Normalize
 
 class DPNNucleus(bittensor.nucleus.Nucleus):
@@ -141,8 +141,18 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
         assert all(isinstance(el, int) for el in config.nucleus.num_blocks), 'nucleus.num_blocks must be a tuple of ints, got {}'.format(config.nucleus.num_blocks)
         assert all(isinstance(el, int) for el in config.nucleus.dense_depth), 'nucleus.dense_depth must be a tuple of ints, got {}'.format(config.nucleus.dense_depth)
 
+
+    def subscribe_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
+        """ Assigns the routing_function call to this neuron.
+
+            Returns:
+                routing_function (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
+                    Routing function to call on self.route()
+        """
+        self.routing_function = routing_function
+
     @property
-    def _routing_function( self, inputs: torch.Tensor, query: torch.Tensor ):
+    def route( self, inputs: torch.Tensor, query: torch.Tensor ):
         """ Calls this nucleus's subscribed routing function. self.routing_function must be set before this call is made.
 
         Args:
@@ -308,7 +318,7 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
         # remote_context: responses from a bittensor remote network call.
         # remote_context.shape = [batch_size, bittensor.__network_dim__]
         images = torch.unsqueeze(images, 1)
-        output.router = self._routing_function( inputs = images, query = output.transform )
+        output.router = self.route( inputs = images, query = output.transform )
         remote_context = torch.squeeze( output.router.response, 1 ).to(self.device)
 
         # Distill the local context to match the remote context.
