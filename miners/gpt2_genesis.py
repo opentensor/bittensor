@@ -51,7 +51,7 @@ from torch.nn.utils import clip_grad_norm_
 from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
-import miner
+from . import miner
 
 from loguru import logger
 logger = logger.opt(colors=True)
