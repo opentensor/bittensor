@@ -41,7 +41,12 @@ logger = logger.opt(colors=True)
 
 class Executor ():
 
-    def __init__( self, config: 'Munch' = None, **kwargs ):
+    def __init__( 
+            self, 
+            config: 'Munch' = None, 
+            wallet: 'bittensor.wallet.Wallet' =  None, 
+            **kwargs 
+        ):
         r""" Initializes a new Metagraph chain interface.
             Args:
                 config (:obj:`Munch`, `optional`): 
@@ -53,7 +58,9 @@ class Executor ():
         config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         Executor.check_config( config )
         self.config = config
-        self.wallet = bittensor.wallet.Wallet ( config = self.config )
+        if wallet != None:
+            wallet = bittensor.wallet.Wallet ( config = self.config )
+        self.wallet = wallet
         self.subtensor = bittensor.subtensor.Subtensor( config = self.config )
         self.metagraph = bittensor.metagraph.Metagraph()
         self.axon = bittensor.axon.Axon( config = self.config, wallet = self.wallet )
