@@ -177,7 +177,14 @@ class Metagraph( torch.nn.Module ):
         if self.cached_endpoints != None:
             return self.cached_endpoints
         else:
-            self.cached_endpoints = [ bittensor.utils.neurons.NeuronEndpoint.from_tensor( neuron_tensor ) for neuron_tensor in self.neurons ]
+            self.cached_endpoints = []
+            for idx, neuron_tensor in enumerate(self.neurons):
+                try:
+                    neuron_endpoint = bittensor.utils.neurons.NeuronEndpoint.from_tensor( neuron_tensor )
+                    self.cached_endpoints.append ( neuron_endpoint )
+                except Exception as e:
+                    self.cached_endpoints.append ( None )
+                    logger.exception('Faulty endpoint tensor: {} got error while trying to serialize as endpoint: {} ', neuron_tensor, e)
             return self.cached_endpoints
 
     def load( self, network:str = 'kusanagi' ):
@@ -292,18 +299,35 @@ class Metagraph( torch.nn.Module ):
             self.weights.append( torch.nn.Parameter( torch.tensor([], dtype = torch.float32), requires_grad=False ) )
             self.neurons.append( torch.nn.Parameter( torch.tensor([], dtype = torch.int64), requires_grad=False ) )
 
-        # Fill buffers.
+        # Fill pending queries.
         pending_queries = []
         for uid, lastemit in chain_lastemit.items():
             if lastemit > old_block or force == True:
-                pending_queries.append( self.fill_uid( subtensor = subtensor, uid = uid ) )
-        for query in tqdm.asyncio.tqdm.as_completed( pending_queries ):
-            await query
+                pending_queries.append((False, uid))
+
+        # Fill buffers with retry.
+        # Below fills buffers for pending queries upto the rety cutoff.
+        retries = 0
+        max_retries = 3
+        while True:
+            if retries >= max_retries:
+                logger.critical('Failed to sync metagraph. Check your subtensor connection.')
+                raise RuntimeError('Failed to sync metagraph. Check your subtensor connection.')            
+            queries = []
+            for code, uid in pending_queries:
+                if code == False:
+                    queries.append( self.fill_uid( subtensor = subtensor, uid = uid ) )
+            if len(queries) == 0:
+                # Success
+                logger.debug('Synced Metagraph.')
+                break
+            pending_queries = [await query for query in tqdm.asyncio.tqdm.as_completed( queries )]
+            retries += 1 
             
         self.cached_endpoints = None
 
     # Function which fills weights and neuron info for a uid.
-    async def fill_uid ( self, subtensor: 'bittensor.subtensor.Subtensor', uid: int ) -> bool:
+    async def fill_uid ( self, subtensor: 'bittensor.subtensor.Subtensor', uid: int ) -> Tuple[int, bool]:
         r""" Uses the passed subtensor interface to update chain state for the passed uid.
             the latest info on chain.
             
@@ -312,28 +336,32 @@ class Metagraph( torch.nn.Module ):
                     Subtensor chain interface obbject. If None, creates default connection to kusanagi.
         """
         # TODO(const): try catch block with retry.
+        try:
+            
+            # Fill row from weights.
+            weight_uids = await subtensor.async_weight_uids_for_uid( uid ) 
+            weight_vals = await subtensor.async_weight_vals_for_uid( uid ) 
+            row_weights = weight_utils.convert_weight_uids_and_vals_to_tensor( self.n.item(), weight_uids, weight_vals )
+            self.weights[ uid ] = torch.nn.Parameter( row_weights, requires_grad=False )
+            
+            # Fill Neuron info.
+            neuron = await subtensor.async_get_neuron_for_uid( uid )
+            neuron_obj = bittensor.utils.neurons.NeuronEndpoint.from_dict(neuron)
+            neuron_tensor = neuron_obj.to_tensor()
+            self.neurons[ uid ] = torch.nn.Parameter( neuron_tensor, requires_grad=False )
+            
+            # Return.
+            return True, uid
 
-        # Fill row from weights.
-        weight_uids = await subtensor.async_weight_uids_for_uid( uid ) 
-        weight_vals = await subtensor.async_weight_vals_for_uid( uid ) 
-        row_weights = weight_utils.convert_weight_uids_and_vals_to_tensor( self.n.item(), weight_uids, weight_vals )
-        self.weights[ uid ] = torch.nn.Parameter( row_weights, requires_grad=False )
-        
-        # Fill Neuron info.
-        neuron = await subtensor.async_get_neuron_for_uid( uid )
-        neuron_obj = bittensor.utils.neurons.NeuronEndpoint.from_dict(neuron)
-        neuron_tensor = neuron_obj.to_tensor()
-        self.neurons[ uid ] = torch.nn.Parameter( neuron_tensor, requires_grad=False )
-
-        # Return.
-        return True
+        except:
+            # Return False.
+            return False, uid
 
     def __str__(self):
         if self.n != 0:
             peers_online = torch.numel(torch.where( self.block - self.lastemit < 1000 )[0])
         else:
             peers_online = 0
-        peers_online = torch.numel(torch.where( self.block - self.lastemit < 1000 )[0])
         return '<green>Metagraph:</green> block:<cyan>{}</cyan>, inflation_rate:<cyan>{}</cyan>, staked:<green>\u03C4{}</green>/<cyan>\u03C4{}</cyan>, active:<green>{}</green>/<cyan>{}</cyan>'.format(self.block.item(), self.tau.item(), torch.sum(self.S), self.block.item()/2, peers_online, self.n.item())
 
     def __to_tensorboard__(self, tensorboard, global_step):

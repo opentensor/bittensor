@@ -70,7 +70,7 @@ def code_to_color( code: bittensor.proto.ReturnCode ) -> str:
     elif code == 1:
         return 'dim yellow'
     elif code == 2:
-        return 'black'
+        return 'dim yellow'
     elif code == 3:
         return 'underline red'
     elif code == 4:

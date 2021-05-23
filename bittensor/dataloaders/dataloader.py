@@ -6,8 +6,6 @@ from munch import Munch
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
-
-
 class BittensorDataLoader():
     def __init__(self):
         # IPFS hash of the genesis dataset

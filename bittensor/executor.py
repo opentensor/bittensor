@@ -39,12 +39,13 @@ from bittensor.utils.balance import Balance
 from loguru import logger
 logger = logger.opt(colors=True)
 
-class Executor ( bittensor.neuron.Neuron ):
+class Executor ():
 
-    def __init__(   
+    def __init__( 
             self, 
             config: 'Munch' = None, 
-            **kwargs,
+            wallet: 'bittensor.wallet.Wallet' =  None, 
+            **kwargs 
         ):
         r""" Initializes a new Metagraph chain interface.
             Args:
@@ -57,7 +58,13 @@ class Executor ( bittensor.neuron.Neuron ):
         config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
         Executor.check_config( config )
         self.config = config
-        super(Executor, self).__init__( self.config, **kwargs )
+        if wallet == None:
+            wallet = bittensor.wallet.Wallet ( config = self.config )
+        self.wallet = wallet
+        self.subtensor = bittensor.subtensor.Subtensor( config = self.config )
+        self.metagraph = bittensor.metagraph.Metagraph()
+        self.axon = bittensor.axon.Axon( config = self.config, wallet = self.wallet )
+        self.dendrite = bittensor.dendrite.Dendrite( config = self.config, wallet = self.wallet )
 
     @staticmethod
     def default_config () -> Munch:
@@ -68,11 +75,19 @@ class Executor ( bittensor.neuron.Neuron ):
 
     @staticmethod   
     def add_args (parser: argparse.ArgumentParser):
-        bittensor.neuron.Neuron.add_args(parser)
+        bittensor.wallet.Wallet.add_args( parser )
+        bittensor.subtensor.Subtensor.add_args( parser )
+        bittensor.axon.Axon.add_args( parser )
+        bittensor.dendrite.Dendrite.add_args( parser )
+        bittensor.nucleus.Nucleus.add_args( parser )
         
     @staticmethod   
     def check_config (config: Munch):
-        bittensor.neuron.Neuron.check_config( config )
+        bittensor.wallet.Wallet.check_config( config )
+        bittensor.subtensor.Subtensor.check_config( config )
+        bittensor.axon.Axon.check_config( config )
+        bittensor.dendrite.Dendrite.check_config( config )
+        bittensor.nucleus.Nucleus.check_config( config )
             
     def regenerate_coldkey ( self, mnemonic: str, use_password: bool, overwrite: bool = False ):
         r""" Regenerates a colkey under this wallet.
@@ -98,10 +113,10 @@ class Executor ( bittensor.neuron.Neuron ):
         r""" Prints an overview for the wallet's colkey.
         """
         self.wallet.assert_coldkeypub()
-        self.connect_to_chain()
-        self.load_metagraph()
-        self.sync_metagraph()
-        self.save_metagraph()
+        self.subtensor.connect()
+        self.metagraph.load()
+        self.metagraph.sync()
+        self.metagraph.save()
         balance = self.subtensor.get_balance( self.wallet.coldkeypub )
 
         owned_neurons = [] 
@@ -189,10 +204,10 @@ class Executor ( bittensor.neuron.Neuron ):
         """
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
-        self.connect_to_chain()
-        self.load_metagraph()
-        self.sync_metagraph()
-        self.save_metagraph()
+        self.subtensor.connect()
+        self.metagraph.load()
+        self.metagraph.sync()
+        self.metagraph.save()
 
         owned_neurons = [] 
         neuron_endpoints = self.metagraph.neuron_endpoints
@@ -219,10 +234,10 @@ class Executor ( bittensor.neuron.Neuron ):
         """
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
-        self.connect_to_chain()
-        self.load_metagraph()
-        self.sync_metagraph()
-        self.save_metagraph()
+        self.subtensor.connect()
+        self.metagraph.load()
+        self.metagraph.sync()
+        self.metagraph.save()
 
         neuron = None 
         neuron_endpoints = self.metagraph.neuron_endpoints
@@ -264,9 +279,9 @@ class Executor ( bittensor.neuron.Neuron ):
         self.wallet.assert_coldkey()
         self.wallet.assert_coldkeypub()
         self.subtensor.connect()
-        self.load_metagraph()
-        self.sync_metagraph()
-        self.save_metagraph()
+        self.metagraph.load()
+        self.metagraph.sync()
+        self.metagraph.save()
         staking_balance = Balance.from_float( amount_tao )
         account_balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
         if account_balance < staking_balance:

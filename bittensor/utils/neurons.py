@@ -50,7 +50,7 @@ class NeuronEndpoint:
             modality = neuron_dict['modality'], 
             coldkey = neuron_dict['coldkey']
         )
-
+    
     @staticmethod
     def from_tensor( tensor: torch.LongTensor) -> 'NeuronEndpoint':
         neuron_string = bittensor.__tokenizer__.decode( tensor )

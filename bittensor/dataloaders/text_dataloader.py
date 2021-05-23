@@ -145,8 +145,7 @@ class GenesisTextDataloader(BittensorDataLoader):
                 return DataLoader(self,
                             shuffle=True,
                             batch_size=self.batch_size,
-                            num_workers=self.config.dataloader.num_workers,
-                            collate_fn=self.collate_fn)
+                            num_workers=self.config.dataloader.num_workers)
 
 
             # Set up dataloader

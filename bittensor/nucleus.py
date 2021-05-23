@@ -23,6 +23,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from loguru import logger
+from types import SimpleNamespace
 from munch import Munch
 from typing import List, Tuple, Dict, Optional, TYPE_CHECKING
 

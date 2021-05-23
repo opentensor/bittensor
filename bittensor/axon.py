@@ -108,8 +108,8 @@ class Axon(bittensor.grpc.BittensorServicer):
         self._thread = None
 
         # Forward and Backward multiprocessing queues
-        self.forward_queue = mp.Queue(100)
-        self.backward_queue = mp.Queue(100)
+        self.forward_queue = mp.Queue(self.config.axon.forward_queue_maxsize)
+        self.backward_queue = mp.Queue(self.config.axon.backward_queue_maxsize)
 
         # Stats: Memory of network statistics, QPS and bytes in and out for instance.
         self.stats = SimpleNamespace(
@@ -151,6 +151,12 @@ class Axon(bittensor.grpc.BittensorServicer):
             parser.add_argument('--axon.backward_processing_timeout', default=5, type=int, 
                 help='''Length of time allocated to the miner backward process for computing and returning responses
                         back to the axon.''')
+            parser.add_argument('--axon.forward_queue_maxsize', default=10, type=int,
+                help='''Maximum number of pending forward requests queued at any time.''')
+            parser.add_argument('--axon.backward_queue_maxsize', default=10, type=int, 
+                help='''Maximum number of pending backward requests queued at any time.''')
+            parser.add_argument('--axon.maximum_concurrent_rpcs', default=150, type=int, 
+                help='''The maximum number of concurrent RPCs this server will service before returning RESOURCE_EXHAUSTED status, or None to indicate no limit.''')
         except:
             pass
 
@@ -311,9 +317,9 @@ class Axon(bittensor.grpc.BittensorServicer):
 
         """
         logger.debug('enqueue_forward_to_nucleus: {}, inputs_x: {}', public_key, inputs_x)
+        ping, pong = mp.Pipe()
         try:
             # ---- Build pipe for request ----
-            ping, pong = mp.Pipe()
             forward_payload = [pong, public_key, inputs_x, modality]
 
             # ---- Send request to forward queue ----
@@ -322,6 +328,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             except queue.Full:
                 message = "Forward queue is full"
                 logger.debug( message )
+                pong.close(); ping.close()
                 return None, bittensor.proto.ReturnCode.NucleusFull, message
 
             # ---- Recv response from pipe ----
@@ -329,16 +336,19 @@ class Axon(bittensor.grpc.BittensorServicer):
                 outputs = ping.recv()
                 message = "Success"
                 logger.debug( message )
+                pong.close(); ping.close()
                 return outputs, bittensor.proto.ReturnCode.Success, message
 
             else:
                 message = "Processing timeout"
                 logger.debug( message )
+                pong.close(); ping.close()
                 return None, bittensor.proto.ReturnCode.NucleusTimeout, message
 
         except Exception as e:
             message = str(e)
             logger.error( message )
+            pong.close(); ping.close()
             return None, bittensor.proto.ReturnCode.UnknownException, message
 
     def enqueue_backward_to_nucleus(
@@ -369,9 +379,9 @@ class Axon(bittensor.grpc.BittensorServicer):
                 message (str, `required`): 
                     message associated with forward call, potentially error, or 'success'.
         """
+        ping, pong = mp.Pipe()
         try:
             # ---- Build pipe for request ----
-            ping, pong = mp.Pipe()
             backward_payload = [pong, public_key, inputs_x, grads_dy, modality]
 
             # ---- Send request to queue ----
@@ -380,6 +390,7 @@ class Axon(bittensor.grpc.BittensorServicer):
             except queue.Full:
                 message = "Backward queue is full"
                 logger.debug( message )
+                pong.close(); ping.close()
                 return None, bittensor.proto.ReturnCode.NucleusFull, message
 
             # ---- Recv response from pipe ----
@@ -387,16 +398,19 @@ class Axon(bittensor.grpc.BittensorServicer):
                 outputs = ping.recv()
                 message = "Success" 
                 logger.debug( message )
+                pong.close(); ping.close()
                 return outputs, bittensor.proto.ReturnCode.Success, message
 
             else:
                 message = "Processing timeout"
                 logger.debug( message )
+                pong.close(); ping.close()
                 return None, bittensor.proto.ReturnCode.NucleusTimeout, message
 
         except Exception as e:
             message = str( e )
             logger.error( message )
+            pong.close(); ping.close()
             return None, bittensor.proto.ReturnCode.UnknownException, message
             
     def _forward(self, request):
@@ -587,9 +601,15 @@ class Axon(bittensor.grpc.BittensorServicer):
             self.stats.qps_per_pubkey[request.public_key] = stat_utils.timed_rolling_avg(1, 0.01)
 
     def __str__(self):
-        total_in_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'red')
-        total_out_bytes_str = colored('\u290A {:.1f}'.format((self.stats.total_out_bytes.value * 8)/1000), 'green')
+        total_in_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'green')
+        total_out_bytes_str = colored('\u290A {:.1f}'.format((self.stats.total_out_bytes.value * 8)/1000), 'red')
         qps_str = colored("{:.3f}".format(float(self.stats.qps.value)), 'blue')
+        return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
+
+    def __rich__(self):
+        total_in_bytes_str = '[red]\u290B{:.1f}[/red]'.format((self.stats.total_in_bytes.value * 8)/1000)
+        total_out_bytes_str = '[green]\u290A{:.1f}[/green]'.format((self.stats.total_out_bytes.value * 8)/1000)
+        qps_str = "[blue]{:.3f}[/blue]".format(float(self.stats.qps.value))
         return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
     
     def __to_tensorboard__(self, tensorboard, global_step):
@@ -621,10 +641,9 @@ class Axon(bittensor.grpc.BittensorServicer):
         if self._server != None:
             self._server.stop( 0 )
         
-        self._server = grpc.server(futures.ThreadPoolExecutor( max_workers = self.config.axon.max_workers ))
+        self._server = grpc.server( futures.ThreadPoolExecutor( max_workers = self.config.axon.max_workers ), maximum_concurrent_rpcs = self.config.axon.maximum_concurrent_rpcs )
         bittensor.grpc.add_BittensorServicer_to_server( self, self._server )
-        self._server.add_insecure_port('[::]:' + str( self.config.axon.local_port ))  # TODO(const): should use the ip here.
-
+        self._server.add_insecure_port('[::]:' + str( self.config.axon.local_port ))
         self._thread = threading.Thread( target = self._serve, daemon = True )
         self._thread.start()
 

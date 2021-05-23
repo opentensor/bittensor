@@ -16,7 +16,6 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABI
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 DEALINGS IN THE SOFTWARE.
 '''
-from types import SimpleNamespace
 import bittensor
 import random
 import torch
@@ -25,8 +24,10 @@ import torch.nn.functional as F
 
 from transformers import XLMConfig, XLMModel
 from munch import Munch
-from routers.pkm import PKMRouter
 from torch import nn
+
+from collections.abc import Callable
+from types import SimpleNamespac
 
 def nextbatch(data, batch_size, tokenizer):
     """ Returns a random batch of sentences from text dataset.
@@ -88,6 +89,9 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
         bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
         XLMNucleus.check_config(config)
         self.config = config
+
+        # To be set.
+        self.routing_function = None
         
         # Build config.
         xlm_config = XLMConfig(
@@ -103,9 +107,6 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
 
         # pooler layer: pools the hidden units for use by the pkm dendrite rpc query.
         self.pooler = XLMPooler(xlm_config)
-
-        # router: (PKM layer) queries network using embeddings as context
-        self.router = PKMRouter(config, query_dim = bittensor.__network_dim__)
 
         # hidden layer: transforms context and encoding to network dimension hidden units.
         self.hidden_layer = nn.Linear( bittensor.__network_dim__, bittensor.__network_dim__ )
@@ -193,12 +194,40 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
                                 help='Model agnostic parameter to identify masked tokens when generating text in an MLM context.')
         parser.add_argument('--nucleus.lang_id', default=1, type=int,
                                 help='The ID of the language used by the model. This parameter is used when generating text in a given language.')
-        PKMRouter.add_args(parser)
         
     @staticmethod
     def check_config(config: Munch):
         assert config.nucleus.n_layers > 0, "Number of hidden layers in the Transformer encoder must be > 0"
         assert config.nucleus.n_heads > 0, "Number of attention heads for each attention layer in the Transformer encoder must be > 0"
+
+    def subscribe_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
+        """ Assigns the routing_function call to this neuron.
+
+            Returns:
+                routing_function (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
+                    Routing function to call on self.route()
+        """
+        self.routing_function = routing_function
+
+    @property
+    def route( self, inputs: torch.Tensor, query: torch.Tensor):
+        """ Calls this nucleus's subscribed routing function. self.routing_function must be set before this call is made.
+
+        Args:
+            inputs (:obj:`torch.LongTensor` of shape :obj:`( batch_size, sequence_len )`, `required`): 
+                    Batch_size length list of tokenized sentences.
+
+            query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
+                    Context tensor used to select which neurons to query for each example.
+            
+            Returns:
+                hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Hidden layer representation produced using the local_context.
+        """
+        if self.routing_function == None:
+            raise RuntimeError('The routing function must be set on this nucleus before a remote_forward call can execute.')
+        else:
+            return self.routing_function( inputs = inputs, query = query )
     
     def forward_text (self, inputs: torch.LongTensor):
         """ Local forward inputs through the XLM Nucleus.
@@ -262,14 +291,11 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
         
         return output
 
-    def remote_forward(self, neuron: bittensor.neuron.Neuron, inputs: torch.LongTensor, training: bool) -> SimpleNamespace:
+    def remote_forward(self, inputs: torch.LongTensor, training: bool) -> SimpleNamespace:
         """ Forward pass inputs and labels through the XLM module.
 
 
         Args:
-            neuron (:obj: `bittensor.neuron.Neuron`, `required`):
-                    Bittensor neuron, used for making queries to the remote network.
-
             inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
@@ -308,7 +334,7 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.router = self.router.forward_text(neuron, inputs.to(self.device), pooled)
+        output.router = self.route( inputs = inputs.to(self.device), query = pooled )
         remote_context = output.router.response
 
         # Distillation loss: distillation loss between local_context and remote_context
