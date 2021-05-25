@@ -15,9 +15,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+from concurrent import futures
 import bittensor
 import argparse
 import copy
+import grpc
 from munch import Munch
 
 from . import _axon
@@ -28,11 +30,11 @@ class axon():
             cls, 
             config: Munch = None, 
             wallet: 'bittensor.wallet.Wallet' = None,
+            thread_pool: 'futures.ThreadPoolExecutor' = None,
+            server: 'grpc._Server' = None,
             local_port: int = None,
             local_ip: str =  None,
             max_workers: int = None, 
-            forward_processing_timeout:int = None,
-            backward_processing_timeout:int = None,
             **kwargs
         ):
         # config for the wallet and nucleus sub-objects.
@@ -42,8 +44,6 @@ class axon():
         config.axon.local_port = local_port if local_port != None else config.axon.local_port
         config.axon.local_ip = local_ip if local_ip != None else config.axon.local_ip
         config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
-        config.axon.forward_processing_timeout = forward_processing_timeout if forward_processing_timeout != None else config.axon.forward_processing_timeout
-        config.axon.backward_processing_timeout = backward_processing_timeout if backward_processing_timeout != None else config.axon.backward_processing_timeout
         axon.check_config( config )
 
         # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
@@ -52,7 +52,15 @@ class axon():
             wallet = bittensor.wallet.Wallet( config = config )
         wallet = wallet
 
-        return _axon.Axon( config, wallet )
+        # Create threadpool it non-existent.
+        if thread_pool == None:
+            thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
+
+        # GRPC Server object. 
+        if server == None:
+            server = grpc.server( thread_pool, maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs )
+
+        return _axon.Axon( config, wallet, server)
 
     @staticmethod   
     def default_config() -> Munch:
@@ -78,12 +86,8 @@ class axon():
             parser.add_argument('--axon.max_workers', default=10, type=int, 
                 help='''The maximum number connection handler threads working simultaneously on this endpoint. 
                         The grpc server distributes new worker threads to service requests up to this number.''')
-            parser.add_argument('--axon.forward_processing_timeout', default=5, type=int, 
-                help='''Length of time allocated to the miner forward process for computing and returning responses
-                        back to the axon.''')
-            parser.add_argument('--axon.backward_processing_timeout', default=5, type=int, 
-                help='''Length of time allocated to the miner backward process for computing and returning responses
-                        back to the axon.''')
+            parser.add_argument('--axon.maximum_concurrent_rpcs', default=400, type=int, 
+                help='''Maximum number of allowed active connections''')            
         except:
             pass
 
