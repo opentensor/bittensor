@@ -231,7 +231,7 @@ class GPT2Nucleus(bittensor.nucleus.Nucleus):
         pass
 
     def attach(self, servicer: object ):
-        """ Subscribes a services for routing calls to this nucleus.
+        """ Attaches the passed servicer's routing function to this nucleus.
 
             Returns:
                 servicer (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
@@ -240,7 +240,7 @@ class GPT2Nucleus(bittensor.nucleus.Nucleus):
         self.attach_routing_function( servicer.route )
 
     def attach_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
-        """ Assigns the routing_function call to this neuron.
+        """ Assigns the passed routing_function to this nucleus.
 
             Returns:
                 routing_function (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
