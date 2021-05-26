@@ -52,7 +52,8 @@ class axon():
             wallet = bittensor.wallet.Wallet( config = config )
         wallet = wallet
 
-        # Create threadpool it non-existent.
+        # Create threadpool if non-existent.
+        # Pass this to the grpc server.
         if thread_pool == None:
             thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
 
