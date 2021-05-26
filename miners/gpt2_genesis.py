@@ -78,11 +78,7 @@ class Miner( miner.BasicMiner ):
 
         # ---- Nucleus ----
         self.nucleus = GPT2Nucleus( self.config )
-<<<<<<< HEAD
         self.nucleus.subscribe( self ) # Assign the routing function.
-=======
-        self.nucleus.subscribe_routing_function( routing_function =  self.routing_call ) # Assign the routing function.
->>>>>>> b71ff0aa08a2b9c75eee15c0a5a7a4f1617c74e6
 
         # ---- Row Weights ----
         self.row_weights = torch.ones([0]).to(self.nucleus.device)
@@ -223,11 +219,7 @@ class Miner( miner.BasicMiner ):
         # Not processing backward requests
         return None
 
-<<<<<<< HEAD
     def route ( self, inputs: torch.LongTensor, query: torch.FloatTensor ) -> SimpleNamespace:
-=======
-    def routing_call( self, inputs: torch.LongTensor, query: torch.FloatTensor ) -> SimpleNamespace:
->>>>>>> b71ff0aa08a2b9c75eee15c0a5a7a4f1617c74e6
         r""" Routing function for a bittensor nucleus. Accepts tokenized text inputs and a query. Routes text inputs to neurons
             based on that query. This function must be overridden by a miner class and assigned to the nucleus.
 
@@ -260,7 +252,7 @@ class Miner( miner.BasicMiner ):
         return outputs
 
     # ---- Training call ----
-    def training_call( self, batch: dict ) -> SimpleNamespace:
+    def train ( self, batch: dict ) -> SimpleNamespace:
         r""" Runs a single training batch through the nucleus and applies a gradient update.
             Args:
                 batch ( dict, `required`): 

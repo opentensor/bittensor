@@ -350,7 +350,7 @@ class BasicMiner( AbstractMiner ):
                         break
 
     # ---- Training call ----
-    def training_call( self, batch: dict ) -> SimpleNamespace:
+    def train ( self, batch: dict ) -> SimpleNamespace:
         r""" Runs a single training batch through the nucleus and applies a gradient update.
             Args:
                 batch ( dict, `required`): 
@@ -543,7 +543,7 @@ class BasicMiner( AbstractMiner ):
 
     # --- Run Epoch ----
     def run_epoch( self ):
-        r""" Called by miner.run(), calls training_call for passed batches.
+        r""" Called by miner.run(), calls train for passed batches.
         """
         # --- Init Epoch ----
         total_epoch_loss = 0.0
@@ -567,7 +567,7 @@ class BasicMiner( AbstractMiner ):
 
                     # ---- Forward / Backward ----
                     prev_row_weights = self.get_row_weights().tolist()
-                    output = self.training_call( batch = { 'inputs': inputs } )
+                    output = self.train ( batch = { 'inputs': inputs } )
                     next_row_weights = self.get_row_weights().tolist()
                     total_epoch_loss += output.local_target_loss.item()
 
@@ -575,12 +575,12 @@ class BasicMiner( AbstractMiner ):
                     self.global_step += 1
         else:
 
-            # QQDM display.
+            # QQDM display.ss
             progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
             for iteration, (inputs) in progress_bar:
                 # ---- Forward / Backward ----
                 prev_row_weights = self.get_row_weights().tolist()
-                output = self.training_call( batch = { 'inputs': inputs } )
+                output = self.train ( batch = { 'inputs': inputs } )
                 next_row_weights = self.get_row_weights().tolist()
                 total_epoch_loss += output.local_target_loss.item()
 
