@@ -230,6 +230,7 @@ class GPT2Nucleus(bittensor.nucleus.Nucleus):
     def check_config(config: Munch):
         pass
 
+<<<<<<< HEAD
     def subscribe(self, servicer: object ):
         """ Subscribes a services for routing calls to this nucleus.
 
@@ -239,6 +240,8 @@ class GPT2Nucleus(bittensor.nucleus.Nucleus):
         """
         self.subscribe_routing_function( servicer.route )
 
+=======
+>>>>>>> b71ff0aa08a2b9c75eee15c0a5a7a4f1617c74e6
     def subscribe_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
         """ Assigns the routing_function call to this neuron.
 

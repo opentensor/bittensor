@@ -51,7 +51,11 @@ from torch.nn.utils import clip_grad_norm_
 from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
+<<<<<<< HEAD
 import miner
+=======
+from . import miner
+>>>>>>> b71ff0aa08a2b9c75eee15c0a5a7a4f1617c74e6
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -74,7 +78,11 @@ class Miner( miner.BasicMiner ):
 
         # ---- Nucleus ----
         self.nucleus = GPT2Nucleus( self.config )
+<<<<<<< HEAD
         self.nucleus.subscribe( self ) # Assign the routing function.
+=======
+        self.nucleus.subscribe_routing_function( routing_function =  self.routing_call ) # Assign the routing function.
+>>>>>>> b71ff0aa08a2b9c75eee15c0a5a7a4f1617c74e6
 
         # ---- Row Weights ----
         self.row_weights = torch.ones([0]).to(self.nucleus.device)
@@ -215,7 +223,11 @@ class Miner( miner.BasicMiner ):
         # Not processing backward requests
         return None
 
+<<<<<<< HEAD
     def route ( self, inputs: torch.LongTensor, query: torch.FloatTensor ) -> SimpleNamespace:
+=======
+    def routing_call( self, inputs: torch.LongTensor, query: torch.FloatTensor ) -> SimpleNamespace:
+>>>>>>> b71ff0aa08a2b9c75eee15c0a5a7a4f1617c74e6
         r""" Routing function for a bittensor nucleus. Accepts tokenized text inputs and a query. Routes text inputs to neurons
             based on that query. This function must be overridden by a miner class and assigned to the nucleus.
 
