@@ -96,7 +96,7 @@ class FFNNNucleus(bittensor.nucleus.Nucleus):
     def check_config(config: Munch):
         assert config.nucleus.target_dim > 0, "target dimension must be greater than 0."
 
-    def subscribe_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
+    def attach_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
         """ Assigns the routing_function call to this neuron.
 
             Returns:

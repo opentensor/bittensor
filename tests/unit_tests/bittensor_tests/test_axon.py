@@ -19,7 +19,7 @@ axon = bittensor.axon(wallet = wallet)
 def test_forward_success():
     def forward( pubkey:str, inputs: torch.FloatTensor, modality:int ):
         return torch.zeros( [inputs.shape[0], inputs.shape[1], bittensor.__network_dim__])
-    axon.subscribe_forward_function( forward )
+    axon.attach_forward_function( forward )
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
@@ -31,7 +31,7 @@ def test_forward_success():
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_forward_not_implemented():
-    axon.subscribe_forward_function( None )
+    axon.attach_forward_function( None )
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
@@ -105,7 +105,7 @@ def test_forward_tensor_shape_error():
 def test_forward_deserialization():
     def forward( pubkey:str, inputs: torch.FloatTensor, modality:int ):
         return None
-    axon.subscribe_forward_function( forward )
+    axon.attach_forward_function( forward )
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
@@ -204,7 +204,7 @@ def test_backward_grad_inputs_shape_error():
 def test_backward_response_deserialization_error():
     def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ):
         return None
-    axon.subscribe_backward_function( backward )
+    axon.attach_backward_function( backward )
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -221,7 +221,7 @@ def test_backward_response_deserialization_error():
 def test_backward_response_success():
     def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ):
         return torch.zeros( [1, 1, 1])
-    axon.subscribe_backward_function( backward )
+    axon.attach_backward_function( backward )
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
     serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -242,7 +242,7 @@ def test_grpc_forward_works():
     )
     def forward( pubkey:str, inputs_x:torch.FloatTensor, modality:int ):
         return torch.zeros( [1, 1, 1])
-    axon.subscribe_forward_function( forward )
+    axon.attach_forward_function( forward )
     axon.start()
 
     channel = grpc.insecure_channel(
@@ -271,7 +271,7 @@ def test_grpc_backward_works():
     )
     def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ):
         return torch.zeros( [1, 1, 1])
-    axon.subscribe_backward_function( backward )
+    axon.attach_backward_function( backward )
     axon.start()
 
     channel = grpc.insecure_channel(

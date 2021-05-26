@@ -74,7 +74,7 @@ class Miner( miner.BasicMiner ):
 
         # ---- Nucleus ----
         self.nucleus = GPT2Nucleus( self.config )
-        self.nucleus.subscribe( self ) # Assign the routing function.
+        self.nucleus.attach( self ) # Assign the routing function.
 
         # ---- Row Weights ----
         self.row_weights = torch.ones([0]).to(self.nucleus.device)
@@ -368,7 +368,7 @@ class Miner( miner.BasicMiner ):
         self.row_weights = state_dict['row_weights'] # Load row weights
         self.nucleus.load_state_dict( state_dict['nucleus_state'] ) # Load nucleus
         self.router.load_state_dict( state_dict['router_state']) # Load router
-        self.nucleus.subscribe_routing_function( routing_function = self.routing_call )# Re-assign the routing function.
+        self.nucleus.attach_routing_function( routing_function = self.routing_call )# Re-assign the routing function.
         self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
         self.optimizer.load_state_dict( state_dict['optimizer_state'] ) # Load optimizer.
         self.optimizer = self.configure_optimizers( self.optimizer )

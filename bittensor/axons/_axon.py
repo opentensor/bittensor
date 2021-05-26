@@ -128,18 +128,18 @@ class Axon( bittensor.grpc.BittensorServicer ):
         logger.debug('<- Backward response: {}, size:{}', response.public_key, sys.getsizeof( response ))
         return response
 
-    def subscribe( self, servicer:object ):
+    def attach( self, servicer:object ):
         """
-            Subscribes the forward and backward calls of the passed object.
+            Attaches the forward and backward calls of the passed object.
 
             Returns:
                 servicer (:object:`object`, `required`): 
                     object with callable functions servicer.forward and servicer.backward
         """
-        self._forward_function = self.subscribe_forward_function( servicer.forward )
-        self._backward_function = self.subscribe_forward_function( servicer.backward )
+        self._forward_function = self.attach_forward_function( servicer.forward )
+        self._backward_function = self.attach_forward_function( servicer.backward )
 
-    def subscribe_forward_function(self, forward_function: Callable[ [str, torch.Tensor, int], torch.Tensor ] ):
+    def attach_forward_function(self, forward_function: Callable[ [str, torch.Tensor, int], torch.Tensor ] ):
         """ Assigns the forward_function.
 
             Returns:
@@ -149,7 +149,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # TODO(const): type checking.
         self._forward_function = forward_function
 
-    def subscribe_backward_function(self, backward_function: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ] ):
+    def attach_backward_function(self, backward_function: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ] ):
         """ Assigns the routing_function call to this neuron.
 
             Returns:

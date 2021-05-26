@@ -288,7 +288,7 @@ class BasicMiner( AbstractMiner ):
     def init_axon( self ):
         # ---- Starting axon ----
         logger.info('\nStarting Axon...')
-        self.axon.subscribe( self )
+        self.axon.attach( self )
         self.axon.start()
 
     # --- Run Miner ----
