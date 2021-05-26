@@ -356,15 +356,40 @@ class BasicMiner( AbstractMiner ):
                 batch ( dict, `required`): 
                     training batch dictionary as returned from get_epoch_batches            
             Returns:
-                outputs ( SimpleNamespace ): 
-                    SimpleNamespace output as returned by a nucleus forward call.
-                    Must include fields local_loss, remote_loss, distillation_loss
+                output = SimpleNamespace ( 
+                    local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Hidden layer context.
+
+                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Hidden layer encoding produced using local_context.
+
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                        GPT MLM Target predictions produced using local_context. 
+
+                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        GPT MLM loss using local_context.
+
+                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
+                        Hidden layer encoding produced using the remote_context.
+
+                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
+                        GPT MLM Target predictions using the remote_context.
+
+                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+                        GPT MLM loss using the remote_context.
+
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        Distillation loss between local_context and remote_context.
+
+                    router (:obj:`SimpleNamespace`, `required`): 
+                        Output simplenamespace from routing call.
+            )
         """
         raise NotImplementedError()
 
     # ---- Subclass Forward call ----
-    def forward( self, pubkey:str, inputs:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Subscribed to an axon as the called forward call.
+    def forward ( self, pubkey:str, inputs:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" Recieves and processes forward calls for a bittensor.axon.
             The arguments reflect an RPC request from another miner in the network, the response tensor
             should be the hidden units of the local nucleus of shape [batch_size, sequence_len, __network_dim__].
             
@@ -383,8 +408,8 @@ class BasicMiner( AbstractMiner ):
         raise NotImplementedError()
 
     # ---- Subclass Backward call ----
-    def backward( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Subscribed to an axon as the called backward call.
+    def backward ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" Recieves and processes backward calls for a bittensor.axon.
             Arguments reflect an RPC backward request from another miner in the network, the response tensor
             should be the gradients of the miner's nucleus w.r.t to the inputs and the passed output grads.
             
