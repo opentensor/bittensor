@@ -209,7 +209,7 @@ class Miner( miner.BasicMiner ):
             
             Returns:
                 outputs (:obj:`torch.FloatTensor`): 
-                    The gradients w.r.t to the inputs [batch_size, sequence_len, __network_dim__]
+                    The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
         """
         # TODO(const): add backward processing.
         # Not processing backward requests

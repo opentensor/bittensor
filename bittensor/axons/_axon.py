@@ -187,7 +187,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # Check forward has been subscribed.
         if self._forward_function == None:
             message = "Forward function is not yet subscribed on this axon."
-            return None, bittensor.proto.ReturnCode.NotServingSynapse, message
+            return None, bittensor.proto.ReturnCode.NotImplemented, message
         
         # Make forward call.
         try:
@@ -231,9 +231,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     message associated with forward call, potentially error, or 'success'.
         """
         # Check forward has been subscribed.
-        if self._forward_function == None:
+        if self._backward_function == None:
             message = "Forward function is not yet subscribed on this axon."
-            return None, bittensor.proto.ReturnCode.NotServingSynapse, message
+            return None, bittensor.proto.ReturnCode.NotImplemented, message
         
         # Make forward call.
         try:
