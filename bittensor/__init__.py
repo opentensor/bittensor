@@ -37,12 +37,12 @@ import bittensor.bittensor_pb2_grpc as grpc
 import bittensor.tokenizer
 import bittensor.config 
 import bittensor.logging
-import bittensor.receptor
 import bittensor.nucleus
 
 from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon
 from bittensor._wallet import wallet as wallet
+from bittensor._receptor import receptor as receptor
 from bittensor._endpoint import endpoint as endpoint
 from bittensor._dendrite import dendrite as dendrite
 from bittensor._executor import executor as executor
@@ -52,6 +52,7 @@ from bittensor._subtensor import subtensor as subtensor
 from bittensor._cli.cli_impl import CLI as CLI
 from bittensor._axon.axon_impl import Axon as Axon
 from bittensor._wallet.wallet_impl import Wallet as Wallet
+from bittensor._receptor.receptor_impl import Receptor as Receptor
 from bittensor._executor.executor_impl import Executor as Executor
 from bittensor._endpoint.endpoint_impl import Endpoint as Endpoint
 from bittensor._dendrite.dendrite_impl import Dendrite as Dendrite

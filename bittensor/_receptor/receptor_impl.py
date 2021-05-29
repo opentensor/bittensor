@@ -16,24 +16,19 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
-import copy
 import grpc
 import sys
-import os
 import time
 import torch
 import torch.nn as nn
 import traceback
 
-from termcolor import colored
 from munch import Munch
 from types import SimpleNamespace
 from torch.autograd.function import once_differentiable
 from typing import Tuple, List, Optional
 
 import bittensor
-import bittensor.utils.networking as net
 import bittensor.utils.stats as stat_utils
 import bittensor.serialization as serialization
 from bittensor.exceptions.handlers import rollbar
@@ -56,48 +51,31 @@ class Receptor(nn.Module):
 
     def __init__(
             self, 
-            neuron: 'bittensor.Endpoint', 
-            config: Munch = None, 
-            wallet: 'bittensor.wallet' = None,
-            pass_gradients: bool = None,
-            timeout: int = None,
-            do_backoff: bool = None,
-            max_backoff:int = None
+            config: Munch, 
+            wallet: 'bittensor.wallet',
+            endpoint: 'bittensor.Endpoint', 
+            channel: 'grpc._Channel',
+            stub: 'bittensor.grpc.BittensorStub'
+            
         ):
         r""" Initializes a receptor grpc connection.
             Args:
-                neuron (:obj:`bittensor.Endpoint`, `required`):
-                    neuron endpoint descriptor proto.
-                config (:obj:`Munch`, `optional`): 
-                    receptor.Receptor.config()
-                wallet (:obj:`bittensor.Wallet`, `optional`):
+                config (:obj:`Munch`, `required`): 
+                    receptor.Receptor.default_config()
+                wallet (:obj:`bittensor.Wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
-                pass_gradients (default=True, type=bool)
-                    Switch to true if the neuron passes gradients to downstream peers.
-                        By default the backward call i.e. loss.backward() triggers passing gradients on the wire.
-                timeout (default=0.5, type=float):
-                    The per request RPC timeout. a.k.a the maximum request time.
-                do_backoff (default=True, type=bool)
-                    Neurons who return non successful return codes are
-                        periodically not called with a multiplicative backoff.
-                        The backoff doubles until max_backoff and then halves on ever sequential successful request.
-                max_backoff (default=100, type=int)
-                    The backoff doubles until this saturation point.
+                endpoint (:obj:`bittensor.Endpoint`, `required`):
+                    neuron endpoint descriptor proto.
+                channel (:obj:`grpc._Channel`, `required`):
+                    grpc TCP channel.
+                endpoint (:obj:`bittensor.grpc.BittensorStub`, `required`):
+                    bittensor protocol stub created from channel.
         """
         super().__init__()
-        if config == None:
-            config = Receptor.default_config()
-        config.receptor.pass_gradients = pass_gradients if pass_gradients != None else config.receptor.pass_gradients
-        config.receptor.timeout = timeout if timeout != None else config.receptor.timeout
-        config.receptor.do_backoff = do_backoff if do_backoff != None else config.receptor.do_backoff
-        config.receptor.max_backoff = max_backoff if max_backoff != None else config.receptor.max_backoff
-        Receptor.check_config( config )
-        self.config = copy.deepcopy(config) # Configuration information.
-
-        if wallet == None:
-            wallet = bittensor.wallet( self.config )
+        self.config = config
         self.wallet = wallet # Keypair information
-        self.neuron = neuron # Endpoint information.
+        self.endpoint = endpoint # Endpoint information.
+        self.channel = channel
         self.signature = None # Call signature.
         self.nounce = None # Call nounce.
         self.backoff = 0 # Number o queries to backoff.
@@ -136,76 +114,18 @@ class Receptor(nn.Module):
                 bittensor.proto.ReturnCode.UnknownException: 0,
             }
         )
-        # Loop back if the neuron is local.
-        try:
-            external_ip = self.config.axon.external_ip
-        except:
-            pass
-        try:
-            external_ip = self.config.axon.external_ip
-        except:
-            pass
-        finally:
-            external_ip = None
-        if self.neuron.ip == external_ip:
-            ip = "localhost:"
-            self.endpoint = ip + str(self.neuron.port)
-        else:
-            self.endpoint = self.neuron.ip + ':' + str(self.neuron.port)
-        self.channel = grpc.insecure_channel(
-            self.endpoint,
-            options=[('grpc.max_send_message_length', -1),
-                     ('grpc.max_receive_message_length', -1)])
-        self.stub = bittensor.grpc.BittensorStub(self.channel)
-
-    @staticmethod   
-    def default_config() -> Munch:
-        parser = argparse.ArgumentParser()
-        Receptor.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        return config
-
-    @staticmethod   
-    def check_config(config: Munch):
-        assert config.receptor.timeout >= 0, 'timeout must be positive value, got {}'.format(config.receptor.timeout)
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        bittensor.wallet.add_args( parser )
-        try:
-            # Can be called multiple times.
-            parser.add_argument('--receptor.pass_gradients', default=True, type=bool, 
-                help='''Switch to true if the neuron passes gradients to downstream peers.
-                        By default the backward call i.e. loss.backward() triggers passing gradients on the wire.''')
-            parser.add_argument('--receptor.timeout', default=3, type=float, 
-                help='''The per request RPC timeout. a.k.a the maximum request time.''')
-            parser.add_argument('--receptor.do_backoff', default=True, type=bool, 
-                help='''Neurons who return non successful return codes are
-                        periodically not called with a multiplicative backoff.
-                        The backoff doubles until max_backoff and then halves on ever sequential successful request.''')
-            parser.add_argument('--receptor.max_backoff', default=100, type=int, 
-                help='''The backoff doubles until this saturation point.''')
-        except:
-            pass
-
-    def __str__(self):
-        total_out_bytes = self.stats.forward_bytes_out.value + self.stats.backward_bytes_out.value
-        total_in_bytes = self.stats.forward_bytes_in.value + self.stats.backward_bytes_in.value
-        total_in_bytes_str = colored('\u290A{:.1f}'.format((total_in_bytes*8)/1000), 'green')
-        total_out_bytes_str = colored('\u290B{:.1f}'.format((total_out_bytes*8)/1000), 'red')
-        return str(self.neuron.uid) + ":(" + total_in_bytes_str + "/" + total_out_bytes_str + "kB/s)"
 
     def __del__(self):
         if self.channel is not None:
             self.channel.close()
 
     def forward(self, inputs: torch.Tensor, mode: bittensor.proto.Modality) -> Tuple[torch.Tensor, int]:
-        r""" Torch.nn.Module forward call: Triggers the grpc call to the remote neuron on the associated endpoint.
+        r""" Torch.nn.Module forward call: Triggers the grpc call to the remote endpoint.
             Call returns the output tensor and a bittensor.proto.ReturnCode.
 
             Args:
                 inputs (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
-                    Single torch tensor to be sent to the remote neuron endpoint.
+                    Single torch tensor to be sent to the remote endpoint.
 
                 mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
@@ -266,21 +186,21 @@ class _ReceptorCall(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, caller: Receptor, dummy: torch.Tensor, inputs: torch.Tensor, mode: bittensor.proto.Modality) -> Tuple[torch.Tensor, int]:  
-        r""" Internal autograd-friendly Forward RPC call to a remote neuron (calls the Forward method on an Axon terminal.)
+        r""" Internal autograd-friendly Forward RPC call to a remote endpoint (calls the Forward method on an Axon terminal.)
 
             Args:
                 ctx: (:obj:`torch.autograd.ctx`, `required`):
                     Autograd context, saves state information between forward and backward calls. i.e. inputs for gradient computation.
 
                 caller: (:obj:`Receptor`, `required`):
-                    Caller object the remote neuron containing the endpoint information, RPC channel etc.
+                    Caller receptor object containing the endpoint information, RPC channel etc.
 
                 dummy: (:obj:`torch.Tensor`, `required`):
                     Dummy torch tensor used to ensure that torch.backward computation is called on this function 
                     regardless of the input types.
   
                 inputs (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
-                    Torch tensor to be sent to the caller associated endpoint neurons.
+                    Torch tensor to be sent to the caller associated endpoint endpoint..
 
                 mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
@@ -410,7 +330,7 @@ class _ReceptorCall(torch.autograd.Function):
     @staticmethod
     @once_differentiable
     def backward(ctx, grads: torch.FloatTensor, code: torch.FloatTensor) -> Optional[torch.Tensor]:
-        """ Internal autograd-friendly Backward RPC call to a remote neuron (calls the Backward method on an remote Axon terminal.)
+        """ Internal autograd-friendly Backward RPC call to a remote endpoint (calls the Backward method on an remote Axon terminal.)
 
             Args:
                 ctx: (:obj:`torch.autograd.ctx`, `required`):

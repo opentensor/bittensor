@@ -338,12 +338,12 @@ class Metagraph( torch.nn.Module ):
         self.cached_endpoints = None
 
     # Function which fills weights and neuron info for a uid.
-    async def fill_uid ( self, subtensor: 'bittensor.Subtensor', uid: int ) -> Tuple[int, bool]:
+    async def fill_uid ( self, subtensor: 'bittensor.subtensor.Subtensor', uid: int ) -> Tuple[int, bool]:
         r""" Uses the passed subtensor interface to update chain state for the passed uid.
             the latest info on chain.
             
             Args: 
-                subtensor: (:obj:`bittensor.Subtensor`, optional):
+                subtensor: (:obj:`bittensor.subtensor.Subtensor`, optional):
                     Subtensor chain interface obbject. If None, creates default connection to kusanagi.
         """
         # TODO(const): try catch block with retry.
