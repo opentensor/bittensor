@@ -42,7 +42,6 @@ import bittensor.receptor
 import bittensor.router
 import bittensor.subtensor
 import bittensor.nucleus
-import bittensor.wallet
 
 from bittensor.axons import axon
 from bittensor.dendrites import dendrite
