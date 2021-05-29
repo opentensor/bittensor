@@ -29,7 +29,7 @@ class endpoint:
         return endpoint_impl.Endpoint( uid, hotkey, ip, ip_type, port, modality, coldkey )
 
     @staticmethod
-    def from_dict(neuron_dict: dict) -> 'endpoint_impl.Endpoint':
+    def from_dict(neuron_dict: dict) -> 'bittensor.Endpoint':
         return endpoint_impl.Endpoint(
             uid = neuron_dict['uid'], 
             hotkey = neuron_dict['hotkey'], 
@@ -41,10 +41,10 @@ class endpoint:
         )
     
     @staticmethod
-    def from_tensor( tensor: torch.LongTensor) -> 'endpoint_impl.Endpoint':
+    def from_tensor( tensor: torch.LongTensor) -> 'bittensor.Endpoint':
         neuron_string = bittensor.__tokenizer__.decode( tensor )
         neuron_dict = json.loads( neuron_string )
-        return endpoint_impl.Endpoint.from_dict(neuron_dict)
+        return endpoint.from_dict(neuron_dict)
 
 
 

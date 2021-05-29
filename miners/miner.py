@@ -60,7 +60,7 @@ class AbstractMiner ():
         AbstractMiner.check_config( config )
         self.config = config
         self.wallet = bittensor.wallet ( config = self.config )
-        self.subtensor = bittensor.subtensor.Subtensor( config = self.config )
+        self.subtensor = bittensor.subtensor( config = self.config )
         self.metagraph = bittensor.metagraph( config = config )
         self.axon = bittensor.axon( config = self.config, wallet = self.wallet )
         self.dendrite = bittensor.dendrite( config = self.config, wallet = self.wallet )
