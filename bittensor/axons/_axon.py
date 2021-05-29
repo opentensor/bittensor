@@ -43,7 +43,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             
             Args:
                 config (:obj:`Munch`, `required`): 
-                    axon.Axon.config()
+                    bittensor.axon.default_config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
                 server (:obj:`grpc._Server`, `required`):

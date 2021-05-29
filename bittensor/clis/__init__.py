@@ -15,29 +15,54 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import sys
-import argparse
 import bittensor
-
+import argparse
+import copy
+import sys
 from munch import Munch
+
+from . import _cli
 
 from loguru import logger
 logger = logger.opt(colors=True)
 
-class CLI ( bittensor.executor.Executor ):
-    def __init__(self, config: Munch, **kwargs):
+class cli:
+
+    def __new__(
+            cls, 
+            config: Munch = None, 
+            wallet: 'bittensor.wallet.Wallet' = None,
+            executor: 'bittensor.executor.Executor' = None
+        ):
+        r""" Creates a new bittensor.cli from passed arguments.
+            Args:
+                config (:obj:`Munch`, `optional`): 
+                    bittensor.cli.default_config()
+                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                    bittensor wallet with hotkey and coldkeypub.
+                executor (:obj:`bittensor.executor.executor`, `optional`):
+                    bittensor executor object, used to execute cli options.
+        """
+        # config for the wallet and nucleus sub-objects.
         if config == None:
-            config = CLI.default_config()
-        CLI.check_config( config )
-        self.config = config
-        super(CLI, self).__init__( self.config, **kwargs )
+            config = cli.default_config()
+        config = copy.deepcopy(config)
+        cli.check_config( config )
+
+        if wallet == None:
+            wallet = bittensor.wallet.Wallet( config = config )
+  
+        if executor == None:
+            executor = bittensor.executor( config = config, wallet = wallet )
+
+        return _cli.CLI( config, executor )
 
     @staticmethod   
     def default_config () -> Munch:
         # Build top level parser.
         parser = argparse.ArgumentParser(description="Bittensor cli", usage="bittensor-cli <command> <command args>", add_help=True)
         parser._positionals.title = "commands"
-        CLI.add_args(parser) 
+        cli.add_args(parser) 
         config = bittensor.config.Config.to_config(parser); 
         return config
 
@@ -50,56 +75,56 @@ class CLI ( bittensor.executor.Executor ):
             help='''Show account overview.'''
         )
         overview_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
-        bittensor.executor.Executor.add_args( overview_parser )
+        bittensor.executor.add_args( overview_parser )
 
         transfer_parser = cmd_parsers.add_parser(
             'transfer', 
             help='''Transfer Tao between accounts.'''
         )
         transfer_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
-        bittensor.executor.Executor.add_args( transfer_parser )
+        bittensor.executor.add_args( transfer_parser )
 
         unstake_parser = cmd_parsers.add_parser(
             'unstake', 
             help='''Unstake from hotkey accounts.'''
         )
         unstake_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
-        bittensor.executor.Executor.add_args( unstake_parser )
+        bittensor.executor.add_args( unstake_parser )
 
         stake_parser = cmd_parsers.add_parser(
             'stake', 
             help='''Stake to your hotkey accounts.'''
         )
         stake_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
-        bittensor.executor.Executor.add_args( stake_parser )
+        bittensor.executor.add_args( stake_parser )
 
         regen_coldkey_parser = cmd_parsers.add_parser(
             'regen_coldkey',
             help='''Regenerates a coldkey from a passed mnemonic'''
         )
         regen_coldkey_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
-        bittensor.executor.Executor.add_args( regen_coldkey_parser )
+        bittensor.executor.add_args( regen_coldkey_parser )
 
         regen_hotkey_parser = cmd_parsers.add_parser(
             'regen_hotkey',
             help='''Regenerates a hotkey from a passed mnemonic'''
         )
         regen_hotkey_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
-        bittensor.executor.Executor.add_args( regen_hotkey_parser )
+        bittensor.executor.add_args( regen_hotkey_parser )
 
         new_coldkey_parser = cmd_parsers.add_parser(
             'new_coldkey', 
             help='''Creates a new hotkey (for running a miner) under the specified path. '''
         )
         new_coldkey_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
-        bittensor.executor.Executor.add_args( new_coldkey_parser )
+        bittensor.executor.add_args( new_coldkey_parser )
 
         new_hotkey_parser = cmd_parsers.add_parser(
             'new_hotkey', 
             help='''Creates a new coldkey (for containing balance) under the specified path. '''
         )
         new_hotkey_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
-        bittensor.executor.Executor.add_args( new_hotkey_parser )
+        bittensor.executor.add_args( new_hotkey_parser )
 
          
         # Fill arguments for the regen coldkey command.
@@ -265,29 +290,3 @@ class CLI ( bittensor.executor.Executor ):
             if config.amount is None:
                 logger.critical("The --amount argument is required for this command")
                 quit()
-
-    def run_command(self):
-        if self.config.debug: bittensor.__debug_on__ = True; logger.info('DEBUG is <green>ON</green>')
-        else: logger.info('DEBUG is <red>OFF</red>')
-        if self.config.command == "transfer":
-            self.transfer( amount_tao=self.config.amount, destination=self.config.dest)
-        elif self.config.command == "unstake":
-            if self.config.unstake_all:
-                self.unstake_all()
-            else:
-                self.unstake( amount_tao =self.config.amount, uid=self.config.uid )
-        elif self.config.command == "stake":
-            self.stake( amount_tao=self.config.amount, uid=self.config.uid )
-        elif self.config.command == "overview":
-            self.overview()
-        elif self.config.command == "new_coldkey":
-            self.create_new_coldkey( n_words=self.config.n_words, use_password=self.config.use_password )
-        elif self.config.command == "new_hotkey":
-            self.create_new_hotkey( n_words=self.config.n_words, use_password=self.config.use_password )
-        elif self.config.command == "regen_coldkey":
-            self.regenerate_coldkey( mnemonic=self.config.mnemonic, use_password=self.config.use_password )
-        elif self.config.command == "regen_hotkey":
-            self.regenerate_hotkey( mnemonic=self.config.mnemonic, use_password=self.config.use_password )
-        else:
-            logger.critical("The command {} not implemented".format( self.config.command ))
-            quit()

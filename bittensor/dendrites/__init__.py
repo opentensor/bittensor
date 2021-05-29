@@ -24,13 +24,13 @@ from munch import Munch
 
 from . import _dendrite
 
-class dendrite():
+class dendrite:
 
     def __new__(
             cls, 
             config: Munch = None, 
             wallet: 'bittensor.wallet.Wallet' = None,
-            thread_pool: 'futures.ThreadPoolExecutor' = None,
+            thread_pool: 'ThreadPoolExecutor' = None,
             max_worker_threads: int = None,
             max_active_tcp_connections: int = None,
             pass_gradients: bool = None,
@@ -41,7 +41,7 @@ class dendrite():
         r""" Creates a new Dendrite object from passed arguments.
             Args:
                 config (:obj:`Munch`, `optional`): 
-                    dendrite.Dendrite.config()
+                    bittensor.dendrite.default_config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 thread_pool (:obj:`ThreadPoolExecutor`, `optional`):

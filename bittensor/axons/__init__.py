@@ -24,7 +24,7 @@ from munch import Munch
 
 from . import _axon
 
-class axon():
+class axon:
 
     def __new__(
             cls, 
@@ -35,13 +35,35 @@ class axon():
             local_port: int = None,
             local_ip: str =  None,
             max_workers: int = None, 
+            maximum_concurrent_rpcs: int = None,
         ):
+        r""" Creates a new bittensor.Axon object from passed arguments.
+            Args:
+                config (:obj:`Munch`, `optional`): 
+                    bittensor.axon.default_config()
+                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                    bittensor wallet with hotkey and coldkeypub.
+                thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
+                    Threadpool used for processing server queries.
+                server (:obj:`grpc._Server`, `required`):
+                    Grpc server endpoint, overrides passed threadpool.
+                local_port (:type:`int`, `optional`):
+                    Binding port.
+                local_ip (:type:`str`, `optional`):
+                    Binding ip.
+                max_workers (:type:`int`, `optional`):
+                    Used to create threadpool if not passed. Number of active threads servicing requests.
+                maximum_concurrent_rpcs (:type:`int`, `optional`):
+                    Maximum allowed concurrently processing RPCs.
+        """
+        
         # config for the wallet and nucleus sub-objects.
         if config == None:
             config = axon.default_config()
         config.axon.local_port = local_port if local_port != None else config.axon.local_port
         config.axon.local_ip = local_ip if local_ip != None else config.axon.local_ip
         config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
+        config.axon.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.axon.maximum_concurrent_rpcs
         config = copy.deepcopy(config)
         axon.check_config( config )
 
