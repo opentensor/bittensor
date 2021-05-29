@@ -29,17 +29,12 @@ To run with a config file:
 
 import argparse
 import copy
-import os
 import math
-import random
 from re import L
 import torch
-import sys
 import torch.nn.functional as F
 import bittensor
 
-from qqdm import qqdm, format_str
-from tqdm import tqdm
 from munch import Munch
 from termcolor import colored
 from transformers import AdamW
@@ -48,7 +43,6 @@ from nuclei.gpt2 import GPT2Nucleus
 from routers.sgmoe import SGMOERouter
 from typing import Tuple, List, Optional
 from torch.nn.utils import clip_grad_norm_
-from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
 from miners import miner
@@ -86,7 +80,7 @@ class Miner( miner.BasicMiner ):
         # ---- Dataset ----
         # The Genesis Dataset:
         # The dataset used to train Adam and his first 100 children.
-        self.dataset = GenesisTextDataloader( self.config.miner.batch_size_train, self.nucleus.get_block_size() )
+        self.dataset = bittensor.genesis_dataloader( batch_size = self.config.miner.batch_size_train, block_size = self.nucleus.get_block_size() )
         self.tokens = 0
                
     @staticmethod
@@ -152,9 +146,14 @@ class Miner( miner.BasicMiner ):
             type=int, 
             help='Training batch size.'
         )
-        parser.add_argument('--miner.name', default='gpt2_genesis', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
+        parser.add_argument(
+            '--miner.name', 
+            default='gpt2_genesis', 
+            type=str, 
+            help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name '
+        )
         miner.BasicMiner.add_args( parser )
-        GenesisTextDataloader.add_args( parser )
+        bittensor.genesis_dataloader.add_args( parser )
         GPT2Nucleus.add_args( parser )
         SGMOERouter.add_args( parser )
 
@@ -163,7 +162,7 @@ class Miner( miner.BasicMiner ):
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         miner.BasicMiner.check_config( config )
-        GenesisTextDataloader.check_config( config )
+        bittensor.genesis_dataloader.check_config( config )
         GPT2Nucleus.check_config( config )
         SGMOERouter.check_config( config )
 
