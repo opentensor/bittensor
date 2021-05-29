@@ -42,10 +42,12 @@ class Axon( bittensor.grpc.BittensorServicer ):
         r""" Initializes a new Axon tensor processing endpoint.
             
             Args:
-                config (:obj:`Munch`, `optional`): 
+                config (:obj:`Munch`, `required`): 
                     axon.Axon.config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                wallet (:obj:`bittensor.wallet.Wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
+                server (:obj:`grpc._Server`, `required`):
+                    Grpc server endpoint.
         """
         self.config = config
         self.wallet = wallet

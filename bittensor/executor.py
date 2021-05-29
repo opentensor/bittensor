@@ -64,7 +64,7 @@ class Executor ():
         self.subtensor = bittensor.subtensor.Subtensor( config = self.config )
         self.metagraph = bittensor.metagraph.Metagraph()
         self.axon = bittensor.axon( config = self.config, wallet = self.wallet )
-        self.dendrite = bittensor.dendrite.Dendrite( config = self.config, wallet = self.wallet )
+        self.dendrite = bittensor.dendrite( config = self.config, wallet = self.wallet )
 
     @staticmethod
     def default_config () -> Munch:
@@ -78,7 +78,7 @@ class Executor ():
         bittensor.wallet.Wallet.add_args( parser )
         bittensor.subtensor.Subtensor.add_args( parser )
         bittensor.axon.add_args( parser )
-        bittensor.dendrite.Dendrite.add_args( parser )
+        bittensor.dendrite.add_args( parser )
         bittensor.nucleus.Nucleus.add_args( parser )
         
     @staticmethod   
@@ -86,7 +86,7 @@ class Executor ():
         bittensor.wallet.Wallet.check_config( config )
         bittensor.subtensor.Subtensor.check_config( config )
         bittensor.axon.check_config( config )
-        bittensor.dendrite.Dendrite.check_config( config )
+        bittensor.dendrite.check_config( config )
         bittensor.nucleus.Nucleus.check_config( config )
             
     def regenerate_coldkey ( self, mnemonic: str, use_password: bool, overwrite: bool = False ):

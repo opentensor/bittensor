@@ -14,7 +14,7 @@ wallet =  bittensor.wallet.Wallet(
 wallet.create_new_coldkey(use_password=False, overwrite = True)
 wallet.create_new_hotkey(use_password=False, overwrite = True)
 
-dendrite = bittensor.dendrite.Dendrite( wallet = wallet )
+dendrite = bittensor.dendrite( wallet = wallet )
 dendrite.config.receptor.do_backoff = False
 neuron_obj = bittensor.utils.neurons.NeuronEndpoint(
     uid = 0,
@@ -60,7 +60,7 @@ def test_dendrite_forward_tensor():
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
 
 def test_dendrite_backoff():
-    _dendrite = bittensor.dendrite.Dendrite( wallet = wallet )
+    _dendrite = bittensor.dendrite( wallet = wallet )
     _dendrite.config.receptor.do_backoff = True
     _dendrite.config.receptor.max_backoff = 1
     _neuron_obj = bittensor.utils.neurons.NeuronEndpoint(

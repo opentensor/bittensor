@@ -15,20 +15,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
-from bittensor import receptor
-import copy
-import grpc
 import math
 import torch
 import pandas as pd
 import torch.nn as nn
-import traceback
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from termcolor import colored
 from types import SimpleNamespace
-from typing import Tuple, List, Optional
+from typing import Tuple, List
 from munch import Munch
 
 import bittensor
@@ -48,51 +43,23 @@ class Dendrite(nn.Module):
 
     def __init__(
             self, 
-            config: Munch = None, 
-            wallet: 'bittensor.wallet.Wallet' = None,
-            receptor_pass_gradients: bool = None,
-            receptor_timeout: int = None,
-            receptor_do_backoff: bool = None,
-            receptor_max_backoff:int = None
+            config: Munch,
+            wallet: 'bittensor.wallet.Wallet',
+            thread_pool: 'ThreadPoolExecutor'
         ):
         r""" Initializes a new Dendrite entry point.
             Args:
-                config (:obj:`Munch`, `optional`): 
+                config (:obj:`Munch`, `required`): 
                     dendrite.Dendrite.config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                wallet (:obj:`bittensor.wallet.Wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
-                receptor_pass_gradients (default=True, type=bool)
-                    Switch to true if the neuron passes gradients to downstream peers.
-                        By default the backward call i.e. loss.backward() triggers passing gradients on the wire.
-                receptor_timeout (default=0.5, type=float):
-                    The per request RPC timeout. a.k.a the maximum request time.
-                receptor_do_backoff (default=True, type=bool)
-                    Neurons who return non successful return codes are
-                        periodically not called with a multiplicative backoff.
-                        The backoff doubles until max_backoff and then halves on ever sequential successful request.
-                receptor_max_backoff (default=100, type=int)
-                    The backoff doubles until this saturation point.
+                thread_pool (:obj:`ThreadPoolExecutor`, `required`):
+                    Threadpool used for making client queries.
         """
         super().__init__()
-        # Config: Holds all config items for this items and those that are recursively defined. Specifically
-        # config for you wallet and metagraph.
-        if config == None:
-            config = Dendrite.default_config()
-        config.receptor.pass_gradients = receptor_pass_gradients if receptor_pass_gradients != None else config.receptor.pass_gradients
-        config.receptor.timeout = receptor_timeout if receptor_timeout != None else config.receptor.timeout
-        config.receptor.do_backoff = receptor_do_backoff if receptor_do_backoff != None else config.receptor.do_backoff
-        config.receptor.max_backoff = receptor_max_backoff if receptor_max_backoff != None else config.receptor.max_backoff
-        Dendrite.check_config( config )
-        self.config = copy.deepcopy(config)
-
-        # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
-        # and subscribe to the chain.
-        if wallet == None:
-            wallet = bittensor.wallet.Wallet(self.config)
+        self.config = config
         self.wallet = wallet
-
-        # Threadpool executor for making queries across the line.
-        self._executor = ThreadPoolExecutor( max_workers = self.config.dendrite.max_worker_threads )
+        self.thread_pool = thread_pool
 
         # Receptors: Holds a set map of hotkey -> receptor objects. Receptors encapsulate a TCP connection between
         # this dendrite and an upstream neuron (i.e. a peer we call for representations)
@@ -102,26 +69,6 @@ class Dendrite(nn.Module):
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
         )
-
-    @staticmethod   
-    def default_config() -> Munch:
-        parser = argparse.ArgumentParser(); 
-        Dendrite.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        return config
-
-    @staticmethod   
-    def check_config(config: Munch):
-        pass
-
-    @staticmethod   
-    def add_args( parser: argparse.ArgumentParser ):
-        bittensor.receptor.Receptor.add_args(parser)
-        parser.add_argument('--dendrite.max_worker_threads', default=20, type=int, 
-                help='''Max number of concurrent threads used for sending RPC requests.''')
-        parser.add_argument('--dendrite.max_active_tcp_connections', default=150, type=int, 
-                help='''Max number of concurrently active receptors / tcp-connections''')
-        return parser
 
     def forward_text(self, neurons: List[bittensor.utils.neurons.NeuronEndpoint],
                      x: List[torch.Tensor]) -> Tuple[List[torch.Tensor], torch.Tensor]:
@@ -260,7 +207,7 @@ class Dendrite(nn.Module):
 
         # ---- Fill calls ----
         call_args = [ (self._get_or_create_receptor_for_neuron( neuron ), inputs, mode) for (inputs, neuron) in list(zip( x, neurons )) ]
-        for result in self._executor.map( lambda args: _call_receptor_with_args(*args), call_args ):
+        for result in self.thread_pool.map( lambda args: _call_receptor_with_args(*args), call_args ):
             tensor_results.append( result[0] )
             return_codes.append( result[1] )
 
@@ -323,7 +270,7 @@ class Dendrite(nn.Module):
 
     def __del__(self):
         # Close down executor.
-        self._executor.shutdown()
+        self.thread_pool.shutdown()
 
     def __str__(self):
         total_bytes_out = 0

@@ -38,7 +38,6 @@ import bittensor.tokenizer
 import bittensor.config 
 import bittensor.executor
 import bittensor.cli
-import bittensor.dendrite
 import bittensor.metagraph
 import bittensor.logging
 import bittensor.receptor
@@ -48,6 +47,7 @@ import bittensor.nucleus
 import bittensor.wallet
 
 from bittensor.axons import axon
+from bittensor.dendrites import dendrite
 
 # ---- LOGGING ----
 __debug_on__ = False
