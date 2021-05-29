@@ -1,11 +1,4 @@
-import torch
-import unittest
-import pytest
-from munch import Munch
 import bittensor
-from bittensor.substrate import Keypair
-
-metagraph = None
 
 def test_create( ):
     global metagraph

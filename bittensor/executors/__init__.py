@@ -61,7 +61,7 @@ class executor:
         if subtensor == None:
             subtensor = bittensor.subtensor.Subtensor( config = config )
         if metagraph == None:
-            metagraph = bittensor.metagraph( config = config )
+            metagraph = bittensor.metagraph( config = config)
         if axon == None:
             axon = bittensor.axon( config = config, wallet = wallet )
         if dendrite == None:

@@ -12,19 +12,16 @@ from pytest import fixture
 import bittensor
 from bittensor.utils.balance import Balance
 
-from bittensor.wallet import Wallet
 from bittensor.substrate import Keypair
 
 
 BLOCK_REWARD = 500_000_000
 
-class WalletStub(Wallet):
+class WalletStub(bittensor.wallets._wallet.Wallet):
     def __init__(self, coldkey_pair: 'Keypair', hotkey_pair: 'Keypair'):
         self._hotkey = hotkey_pair
         self._coldkey = coldkey_pair
         self._coldkeypub = coldkey_pair.public_key
-
-
 
 @pytest.fixture(scope="session", autouse=True)
 def initialize_tests():

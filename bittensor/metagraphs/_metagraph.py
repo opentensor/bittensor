@@ -207,9 +207,9 @@ class Metagraph( torch.nn.Module ):
         metagraph_path = '~/.bittensor/' + str(network) + '.pt'
         metagraph_path = os.path.expanduser(metagraph_path)
         if os.path.isfile(metagraph_path):
-            self.load_from_path( path = metagraph_path)
+            self.load_from_path( path = metagraph_path )
         else:
-            logger.warning('Did not load metagrpah from path: {}, file does not exist. Run metagraph.save() first.', metagraph_path)
+            logger.warning('Did not load metagraph from path: {}, file does not exist. Run metagraph.save() first.', metagraph_path)
 
     def save( self, network:str = 'kusanagi' ):
         r""" Saves this metagraph object's state_dict under bittensor root dir.
@@ -259,13 +259,13 @@ class Metagraph( torch.nn.Module ):
         r""" Synchronizes this metagraph with the chain state.
             Args: 
                 subtensor: (:obj:`bittensor.subtensor.Subtensor`, optional):
-                    Subtensor chain interface obbject. If None, creates default connection to kusanagi.
+                    Subtensor chain interface obbject. If None, creates a default connection.
                 force (bool):
                     force syncs all nodes on the graph.
         """
         # Defaults to base subtensor connection.
         if subtensor == None:
-            subtensor = bittensor.subtensor.Subtensor( self.config )
+            subtensor = bittensor.subtensor.Subtensor( config = self.config )
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         loop.run_until_complete(self._async_sync(subtensor, force))
