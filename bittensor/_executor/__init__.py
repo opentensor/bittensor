@@ -18,13 +18,9 @@
 import bittensor
 import argparse
 import copy
-import sys
 from munch import Munch
 
 from . import executor_impl
-
-from loguru import logger
-logger = logger.opt(colors=True)
 
 class executor:
 

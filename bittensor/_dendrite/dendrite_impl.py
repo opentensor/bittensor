@@ -34,10 +34,10 @@ logger = logger.opt(colors=True)
 
 class Dendrite(nn.Module):
     r"""
-        Creates Forward and Backward calls to other neurons on the network. It behaves like a normal torch nn.Module and is differentiable. 
+        Creates Forward and Backward calls to other endpoints on the network. It behaves like a normal torch nn.Module and is differentiable. 
     
-        Messages passed through this module will be sent to other neuron objects, either remote or local, and return responses as torch tensors. 
-        Gradients passing through this module on a .backward() call will trigger Backward rpc calls to the axon terminals of the downstream neurons 
+        Messages passed through this module will be sent to other endpoint objects, either remote or local, and return responses as torch tensors. 
+        Gradients passing through this module on a .backward() call will trigger Backward rpc calls to the axon terminals of the downstream endpoints 
         called during associated Forward operation.
     """
 
@@ -62,7 +62,7 @@ class Dendrite(nn.Module):
         self.thread_pool = thread_pool
 
         # Receptors: Holds a set map of hotkey -> receptor objects. Receptors encapsulate a TCP connection between
-        # this dendrite and an upstream neuron (i.e. a peer we call for representations)
+        # this dendrite and an upstream endpoint (i.e. a peer we call for representations)
         self._receptors = {}
 
         # Stats: hold statistics for this dendrite.
@@ -70,91 +70,95 @@ class Dendrite(nn.Module):
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
         )
 
-    def forward_text(self, neurons: List['bittensor.Endpoint'],
-                     x: List[torch.Tensor]) -> Tuple[List[torch.Tensor], torch.Tensor]:
-        r""" Forward text inputs to neurons.
+    def forward_text(
+            self,
+            endpoints: List['bittensor.Endpoint'],
+            x: List[torch.Tensor]) -> Tuple[List[torch.Tensor], torch.Tensor]:
+        r""" Forward text inputs to endpoints.
 
             Args:
-                neurons (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_neurons)`, `required`):
-                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
+                endpoints (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
+                    List of remote endpoints which match length of x. Tensors from x are sent forward to these endpoints.
 
-                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len])`, `required`):
-                    List of tensors to send to corresponsing neurons. Tensors are text input_ids encoded using the
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
+                    List of tensors to send to corresponsing endpoints. Tensors are text input_ids encoded using the
                     bittensor tokenizer of shape [batch_size, sequence_len].
 
             Returns:
                 forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                    Output encodings of inputs produced by remote neurons. Non-responses are zeroes of common shape.
+                    Output encodings of inputs produced by remote endpoints. Non-responses are zeroes of common shape.
 
-                return_codes (:obj:`torch.LongTensor` of shape :obj:`[num_neurons]`, `required`):
+                return_codes (:obj:`torch.LongTensor` of shape :obj:`[num_endpoints]`, `required`):
                     dendrite call return ops.
         """
         if len(x[0].shape) != 2:
             error_msg = 'Text inputs should rank 2 with semantic shape: [batch_size, sequence_len]'
             raise ValueError(error_msg)
-        if len(x) != len(neurons):
-            error_msg = 'List of text inputs x should have the same length as passed destination neurons, got {} and {}'.format(len(x), len(neurons))
+        if len(x) != len(endpoints):
+            error_msg = 'List of text inputs x should have the same length as passed destination endpoints, got {} and {}'.format(len(x), len(endpoints))
             raise ValueError(error_msg)
         if len(x) < 1:
             error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
             raise ValueError(error_msg)
-        return self.forward(neurons, x, bittensor.proto.Modality.TEXT)
+        return self.forward(endpoints, x, bittensor.proto.Modality.TEXT)
 
-    def forward_image(self, neurons: List['bittensor.Endpoint'],
+    def forward_image(self, endpoints: List['bittensor.Endpoint'],
                       x: List[torch.Tensor]) -> Tuple[List[torch.Tensor], torch.Tensor]:
-        r""" Forward image inputs to neurons.
+        r""" Forward image inputs to endpoints.
 
             Args:
-                neurons (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_neurons)`, `required`):
-                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
+                endpoints (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
+                    List of remote endpoints which match length of x. Tensors from x are sent forward to these endpoints.
 
-                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, channels, rows, cols])`, `required`):
-                    List of image-tensors to send to corresponsing neurons. Tensors are images encoded using the
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len, channels, rows, cols])`, `required`):
+                    List of image-tensors to send to corresponsing endpoints. Tensors are images encoded using the
                     torch.toTensor() or other encoding which produces the shape [batch_size, channels, rows, cols].
 
             Returns:
                 forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.network_size)`, `required`):
-                    Output encodings of images produced by remote neurons. Non-responses are zeroes of common shape.
+                    Output encodings of images produced by remote endpoints. Non-responses are zeroes of common shape.
 
-                return_codes (:obj:`torch.LongTensor` of shape :obj:`[num_neurons]`, `required`):
+                return_codes (:obj:`torch.LongTensor` of shape :obj:`[num_endpoints]`, `required`):
                     dendrite call return ops.
         """
         # TODO(const): Checks across all tensors and other shape checks.
         if len(x[0].shape) != 5:
             error_msg = 'Image inputs should be rank 5 with semantic shape: [batch_size, sequence_dim, channels, rows, cols]'
             raise ValueError(error_msg)
-        if len(x) != len(neurons):
-            error_msg = 'List of image inputs x should have the same length as passed destination neurons, got {} and {}'.format(len(x), len(neurons))
+        if len(x) != len(endpoints):
+            error_msg = 'List of image inputs x should have the same length as passed destination endpoints, got {} and {}'.format(len(x), len(endpoints))
             raise ValueError(error_msg)
         if len(x) < 1:
             error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
             raise ValueError(error_msg)
-        return self.forward(neurons, x, bittensor.proto.Modality.IMAGE)
+        return self.forward(endpoints, x, bittensor.proto.Modality.IMAGE)
 
-    def forward_tensor(self, neurons: List['bittensor.Endpoint'],
-                       x: List[torch.Tensor]) -> Tuple[List[torch.Tensor], torch.Tensor]:
-        r""" Forward tensor inputs to neurons.
+    def forward_tensor(
+            self, 
+            endpoints: List['bittensor.Endpoint'],
+            x: List[torch.Tensor]) -> Tuple[List[torch.Tensor], torch.Tensor]:
+        r""" Forward tensor inputs to endpoints.
 
             Args:
-                neurons (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_neurons)`, `required`):
-                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
+                endpoints (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
+                    List of remote endpoints which match length of x. Tensors from x are sent forward to these endpoints.
 
-                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [batch_size, sequence_len, bittensor.__network_dim__])`, `required`):
-                    List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len, bittensor.__network_dim__])`, `required`):
+                    List of tensors to send to corresponsing endpoints. Tensors are of arbitrary type and
                     with shape [batch_size, sequence_len, bittensor.__network_dim__].
 
             Returns:
-                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.__network_dim__)]`, `required`):
-                    Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
+                forwad_output (:obj:`List[torch.FloatTensor]` of shape :obj:`num_endpoints * (batch_size, sequence_len, bittensor.__network_dim__)]`, `required`):
+                    Output encodings of tensors produced by remote endpoints. Non-responses are zeroes of common shape.
 
-                return_codes (:obj:`torch.LongTensor` of shape :obj:`[num_neurons]`, `required`):
+                return_codes (:obj:`torch.LongTensor` of shape :obj:`[num_endpoints]`, `required`):
                     dendrite call return ops.
         """
         if len(x[0].shape) != 3:
             error_msg = 'Tensor inputs should be rank 3 with semantic shape: [batch_size, sequence_len, feature_len]'
             raise ValueError(error_msg)
-        if len(x) != len(neurons):
-            error_msg = 'List of tensor inputs x should have the same length as passed destination neurons, got {} and {}'.format(len(x), len(neurons))
+        if len(x) != len(endpoints):
+            error_msg = 'List of tensor inputs x should have the same length as passed destination endpoints, got {} and {}'.format(len(x), len(endpoints))
             raise ValueError(error_msg)
         if x[0].shape[2] != bittensor.__network_dim__:
             error_msg = 'Passed tensor must have last dimension {} got {}'.format(bittensor.__network_dim__, x[0].shape[2])
@@ -162,33 +166,35 @@ class Dendrite(nn.Module):
         if len(x) == 0:
             error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
             raise ValueError(error_msg)
-        return self.forward(neurons, x, bittensor.proto.Modality.TENSOR)
+        return self.forward(endpoints, x, bittensor.proto.Modality.TENSOR)
 
-    def forward(self, neurons: List['bittensor.Endpoint'],
-                x: List[torch.Tensor],
-                mode: bittensor.proto.Modality) -> Tuple[List[torch.Tensor], torch.LongTensor]:
-        r""" Forward tensor inputs to neurons.
+    def forward(
+            self, 
+            endpoints: List['bittensor.Endpoint'],
+            x: List[torch.Tensor],
+            mode: bittensor.proto.Modality) -> Tuple[List[torch.Tensor], torch.LongTensor]:
+        r""" Forward tensor inputs to endpoints.
 
             Args:
-                neurons (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_neurons)`, `required`):
-                    List of remote neurons which match length of x. Tensors from x are sent forward to these neurons.
+                endpoints (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
+                    List of remote endpoints which match length of x. Tensors from x are sent forward to these endpoints.
 
-                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_neurons * [shape])`, `required`):
-                    List of tensors to send to corresponsing neurons. Tensors are of arbitrary type and shape depending on the
+                x (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`, `required`):
+                    List of tensors to send to corresponsing endpoints. Tensors are of arbitrary type and shape depending on the
                     modality.
 
                 mode (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
-                forward_outputs (:obj:`List[torch.FloatTensor]` of shape :obj:`num_neurons * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
-                    Output encodings of tensors produced by remote neurons. Non-responses are zeroes of common shape.
+                forward_outputs (:obj:`List[torch.FloatTensor]` of shape :obj:`num_endpoints * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
+                    Output encodings of tensors produced by remote endpoints. Non-responses are zeroes of common shape.
 
-                return_codes (:obj:`torch.LongTensor` of shape :obj:`[num_neurons]`, `required`):
+                return_codes (:obj:`torch.LongTensor` of shape :obj:`[num_endpoints]`, `required`):
                     dendrite call return ops.
         """
-        if len(x) != len(neurons):
-            error_msg = 'List of inputs x should have the same length as passed destination neurons, got {} and {}'.format(len(x), len(neurons))
+        if len(x) != len(endpoints):
+            error_msg = 'List of inputs x should have the same length as passed destination endpoints, got {} and {}'.format(len(x), len(endpoints))
             raise ValueError(error_msg)
         if len(x) < 1:
             error_msg = 'Must pass more than 0 input for argument x, got {}'.format(len(x))
@@ -206,7 +212,7 @@ class Dendrite(nn.Module):
             return receptor.forward( inputs = inputs, mode = mode )
 
         # ---- Fill calls ----
-        call_args = [ (self._get_or_create_receptor_for_neuron( neuron ), inputs, mode) for (inputs, neuron) in list(zip( x, neurons )) ]
+        call_args = [ (self._get_or_create_receptor_for_endpoint( endpoint ), inputs, mode) for (inputs, endpoint) in list(zip( x, endpoints )) ]
         for result in self.thread_pool.map( lambda args: _call_receptor_with_args(*args), call_args ):
             tensor_results.append( result[0] )
             return_codes.append( result[1] )
@@ -231,40 +237,40 @@ class Dendrite(nn.Module):
                 if min_receptor_qps > next_qps:
                     receptor_to_remove = next_receptor
             if receptor_to_remove != None:
-                logger.debug('<white>Destroy receptor for neuron:</white> {}', receptor_to_remove.neuron )
-                del self._receptors[ receptor_to_remove.neuron.hotkey ]
+                logger.debug('<white>Destroy receptor for endpoint:</white> {}', receptor_to_remove.endpoint )
+                del self._receptors[ receptor_to_remove.endpoint.hotkey ]
 
-    def _get_or_create_receptor_for_neuron( self, neuron: 'bittensor.Endpoint' ) -> 'bittensor.receptor.Receptor':
+    def _get_or_create_receptor_for_endpoint( self, endpoint: 'bittensor.Endpoint' ) -> 'bittensor.Receptor':
         r""" Finds or creates a receptor TCP connection associated with the passed Neuron Endpoint
             Returns
-                receptor: (bittensor.receptor.Receptor):
-                    receptor with tcp connection endpoint at neuron.ip:neuron.port
+                receptor: (`bittensor.Receptor`):
+                    receptor with tcp connection endpoint at endpoint.ip:endpoint.port
         """
 
-        # ---- Find the active receptor for this neuron ----
-        if neuron.hotkey in self._receptors:
-            receptor = self._receptors[ neuron.hotkey ]
+        # ---- Find the active receptor for this endpoint ----
+        if endpoint.hotkey in self._receptors:
+            receptor = self._receptors[ endpoint.hotkey ]
 
             # Change receptor address.
-            if receptor.neuron.ip != neuron.ip or receptor.neuron.port != neuron.port:
+            if receptor.endpoint.ip != endpoint.ip or receptor.endpoint.port != endpoint.port:
                 del receptor
-                logger.debug('<white>Update receptor for neuron:</white> {}', neuron )
-                receptor = bittensor.receptor.Receptor (
-                    neuron = neuron, 
+                logger.debug('<white>Update receptor for endpoint:</white> {}', endpoint )
+                receptor = bittensor.receptor (
+                    endpoint = endpoint, 
                     config = self.config, 
                     wallet = self.wallet
                 )            
-                self._receptors[ receptor.neuron.hotkey ] = receptor
+                self._receptors[ receptor.endpoint.hotkey ] = receptor
 
         # ---- Or: Create a new receptor ----
         else:
-            logger.debug('<white>Create receptor for neuron:</white> {}', neuron )
-            receptor = bittensor.receptor.Receptor (
-                    neuron = neuron, 
+            logger.debug('<white>Create receptor for endpoint:</white> {}', endpoint )
+            receptor = bittensor.receptor (
+                    endpoint = endpoint, 
                     config = self.config, 
                     wallet = self.wallet
             )
-            self._receptors[ receptor.neuron.hotkey ] = receptor
+            self._receptors[ receptor.endpoint.hotkey ] = receptor
 
         return receptor
 
@@ -295,7 +301,7 @@ class Dendrite(nn.Module):
         return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
 
     def __full_str__(self):
-        uids = [receptor.neuron.uid for receptor in self._receptors.values()]
+        uids = [receptor.endpoint.uid for receptor in self._receptors.values()]
         bytes_out = [receptor.stats.forward_bytes_out.value * (8/1000) for receptor in self._receptors.values()]
         bytes_in = [receptor.stats.forward_bytes_in.value * (8/1000) for receptor in self._receptors.values()]
         qps = [receptor.stats.forward_qps.value + receptor.stats.backward_qps.value for receptor in self._receptors.values()]

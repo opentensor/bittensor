@@ -38,7 +38,7 @@ class subtensor:
     """
 
     def __new__(
-            self, 
+            cls, 
             config: 'Munch' = None,
             network: str = None,
             chain_endpoint: str = None
@@ -60,7 +60,7 @@ class subtensor:
             config = subtensor.default_config()
         config.subtensor.network = network if network != None else config.subtensor.network
         config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else config.subtensor.chain_endpoint
-        self.config = copy.deepcopy(config)
+        config = copy.deepcopy(config)
         subtensor.check_config(config)
         substrate = SubstrateWSInterface(
             address_type = 42,

@@ -19,7 +19,6 @@ import torch
 import json
 import bittensor
 from loguru import logger
-import bittensor.utils.networking as net
 
 from . import endpoint_impl
 
@@ -29,22 +28,22 @@ class endpoint:
         return endpoint_impl.Endpoint( uid, hotkey, ip, ip_type, port, modality, coldkey )
 
     @staticmethod
-    def from_dict(neuron_dict: dict) -> 'bittensor.Endpoint':
+    def from_dict(endpoint_dict: dict) -> 'bittensor.Endpoint':
         return endpoint_impl.Endpoint(
-            uid = neuron_dict['uid'], 
-            hotkey = neuron_dict['hotkey'], 
-            port = neuron_dict['port'],
-            ip = neuron_dict['ip'], 
-            ip_type = neuron_dict['ip_type'], 
-            modality = neuron_dict['modality'], 
-            coldkey = neuron_dict['coldkey']
+            uid = endpoint_dict['uid'], 
+            hotkey = endpoint_dict['hotkey'], 
+            port = endpoint_dict['port'],
+            ip = endpoint_dict['ip'], 
+            ip_type = endpoint_dict['ip_type'], 
+            modality = endpoint_dict['modality'], 
+            coldkey = endpoint_dict['coldkey']
         )
     
     @staticmethod
     def from_tensor( tensor: torch.LongTensor) -> 'bittensor.Endpoint':
-        neuron_string = bittensor.__tokenizer__.decode( tensor )
-        neuron_dict = json.loads( neuron_string )
-        return endpoint.from_dict(neuron_dict)
+        endpoint_string = bittensor.__tokenizer__.decode( tensor )
+        endpoint_dict = json.loads( endpoint_string )
+        return endpoint.from_dict(endpoint_dict)
 
 
 

@@ -93,11 +93,11 @@ class dendrite:
 
     @staticmethod   
     def check_config(config: Munch):
-        pass
+        bittensor.receptor.check_config( config )
 
     @staticmethod   
     def add_args( parser: argparse.ArgumentParser ):
-        bittensor.receptor.Receptor.add_args(parser)
+        bittensor.receptor.add_args(parser)
         parser.add_argument('--dendrite.max_worker_threads', default=20, type=int, 
                 help='''Max number of concurrent threads used for sending RPC requests.''')
         parser.add_argument('--dendrite.max_active_tcp_connections', default=150, type=int, 
