@@ -35,7 +35,11 @@ class Executor:
     def __init__( 
             self, 
             config: 'Munch', 
+<<<<<<< HEAD:bittensor/executors/_executor.py
             wallet: 'bittensor.wallet',
+=======
+            wallet: 'bittensor.wallet.Wallet',
+>>>>>>> 0b16b8c0885d06605ba1434900d514b4685eec4e:bittensor/executor.py
             subtensor: 'bittensor.subtensor.Subtensor',
             metagraph: 'bittensor.metagraph.Metagraph',
             axon: 'bittensor.axon.Axon',
@@ -45,7 +49,11 @@ class Executor:
             Args:
                 config (:obj:`Munch`, `required`): 
                     bittensor.executor.default_config()
+<<<<<<< HEAD:bittensor/executors/_executor.py
                 wallet (:obj:`bittensor.wallet`, `required`):
+=======
+                wallet (:obj:`bittensor.wallet.Wallet`, `required`):
+>>>>>>> 0b16b8c0885d06605ba1434900d514b4685eec4e:bittensor/executor.py
                     bittensor wallet with hotkey and coldkeypub.
                 subtensor (:obj:`bittensor.subtensor.Subtensor`, `required`):
                     Bittensor subtensor chain connection.
