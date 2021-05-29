@@ -22,7 +22,7 @@ import copy
 import grpc
 from munch import Munch
 
-from . import _axon
+from . import axon_impl
 
 class axon:
 
@@ -80,7 +80,7 @@ class axon:
         if server == None:
             server = grpc.server( thread_pool, maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs )
 
-        return _axon.Axon( config, wallet, server )
+        return axon_impl.Axon( config, wallet, server )
 
     @staticmethod   
     def default_config() -> Munch:

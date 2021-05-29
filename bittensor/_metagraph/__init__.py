@@ -20,7 +20,7 @@ import argparse
 import copy
 from munch import Munch
 
-from . import _metagraph
+from . import metagraph_impl
 
 class metagraph:
 
@@ -36,7 +36,7 @@ class metagraph:
         if config == None:
             config = metagraph.default_config()
         metagraph.check_config( config )
-        return _metagraph.Metagraph( config )
+        return metagraph_impl.Metagraph( config )
 
     @staticmethod   
     def default_config() -> Munch:

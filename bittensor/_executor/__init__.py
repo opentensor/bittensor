@@ -21,7 +21,7 @@ import copy
 import sys
 from munch import Munch
 
-from . import _executor
+from . import executor_impl
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -59,14 +59,14 @@ class executor:
         if wallet == None:
             wallet = bittensor.wallet ( config = config )
         if subtensor == None:
-            subtensor = bittensor.subtensor.Subtensor( config = config )
+            subtensor = bittensor.subtensor( config = config )
         if metagraph == None:
             metagraph = bittensor.metagraph( config = config)
         if axon == None:
             axon = bittensor.axon( config = config, wallet = wallet )
         if dendrite == None:
             dendrite = bittensor.dendrite( config = config, wallet = wallet )
-        return _executor.Executor( config, wallet, subtensor, metagraph, axon, dendrite )
+        return executor_impl.Executor( config, wallet, subtensor, metagraph, axon, dendrite )
     
     @staticmethod
     def default_config () -> Munch:
@@ -78,7 +78,7 @@ class executor:
     @staticmethod   
     def add_args (parser: argparse.ArgumentParser):
         bittensor.wallet.add_args( parser )
-        bittensor.subtensor.Subtensor.add_args( parser )
+        bittensor.subtensor.add_args( parser )
         bittensor.axon.add_args( parser )
         bittensor.dendrite.add_args( parser )
         bittensor.metagraph.add_args( parser )
@@ -87,7 +87,7 @@ class executor:
     @staticmethod   
     def check_config (config: Munch):
         bittensor.wallet.check_config( config )
-        bittensor.subtensor.Subtensor.check_config( config )
+        bittensor.subtensor.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.dendrite.check_config( config )
         bittensor.metagraph.add_args( config )

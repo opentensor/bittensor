@@ -77,7 +77,7 @@ class AbstractMiner ():
     def check_config(config: Munch):
         assert 'name' in config.miner, 'miners must specify a name argument.'
         bittensor.wallet.check_config( config )
-        bittensor.subtensor.Subtensor.check_config( config )
+        bittensor.subtensor.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.dendrite.check_config( config )
         bittensor.metagraph.check_config( config )
@@ -90,7 +90,7 @@ class AbstractMiner ():
     @staticmethod   
     def add_args( parser: argparse.ArgumentParser ):
         bittensor.wallet.add_args( parser )
-        bittensor.subtensor.Subtensor.add_args( parser )
+        bittensor.subtensor.add_args( parser )
         bittensor.axon.add_args( parser )
         bittensor.dendrite.add_args( parser )
         bittensor.metagraph.add_args( parser )

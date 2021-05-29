@@ -14,23 +14,19 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
-import argparse
 import asyncio
 import random
 import time
 import torch
-import copy
 
 from munch import Munch
 from typing import List, Tuple
-from termcolor import colored
 
 import bittensor
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
-from bittensor.substrate import SubstrateWSInterface, Keypair
+from bittensor.substrate import SubstrateWSInterface
 from bittensor.substrate.exceptions import SubstrateRequestException
-from bittensor.utils.neurons import NeuronEndpoints, NeuronEndpoint
 from bittensor.utils.balance import Balance
 
 from loguru import logger
@@ -40,75 +36,16 @@ class Subtensor:
     """
     Handles interactions with the subtensor chain.
     """
-    custom_type_registry = {
-        "runtime_id": 2,
-        "types": {
-            "NeuronMetadataOf": {
-                "type": "struct",
-                "type_mapping": [["ip", "u128"], ["port", "u16"], ["ip_type", "u8"], ["uid", "u64"], ["modality", "u8"], ["hotkey", "AccountId"], ["coldkey", "AccountId"]]
-            }
-        }
-    }
-
-    def __init__(
-            self, 
-            config: 'Munch' = None,
-            network: str = None,
-            chain_endpoint: str = None
-        ):
+    def __init__( self, config: 'Munch', substrate: 'SubstrateWSInterface' ):
         r""" Initializes a subtensor chain interface.
             Args:
-                config (:obj:`Munch`, `optional`): 
+                config (:obj:`Munch`, `required`): 
                     metagraph.Metagraph.config()
-                network (default='akira', type=str)
-                    The subtensor network flag. The likely choices are:
-                            -- akira (testing network)
-                            -- kusanagi (main network)
-                    If this option is set it overloads subtensor.chain_endpoint with 
-                    an entry point node from that network.
-                chain_endpoint (default=None, type=str)
-                    The subtensor endpoint flag. If set, overrides the --network flag.
+                substrate (:obj:`SubstrateWSInterface`, `required`): 
+                    substrate websocket client.
         """
-        if config == None:
-            config = Subtensor.default_config()
-        config.subtensor.network = network if network != None else config.subtensor.network
-        config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else config.subtensor.chain_endpoint
-        Subtensor.check_config(config)
-        self.config = copy.deepcopy(config)
-
-        self.substrate = SubstrateWSInterface(
-            address_type = 42,
-            type_registry_preset='substrate-node-template',
-            type_registry=self.custom_type_registry,
-        )
-
-    @staticmethod
-    def default_config() -> Munch:
-        # Parses and returns a config Munch for this object.
-        parser = argparse.ArgumentParser(); 
-        Subtensor.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        return config
-    
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        try:
-            parser.add_argument('--subtensor.network', default='kusanagi', type=str, 
-                                help='''The subtensor network flag. The likely choices are:
-                                        -- akira (testing network)
-                                        -- kusanagi (main network)
-                                    If this option is set it overloads subtensor.chain_endpoint with 
-                                    an entry point node from that network.
-                                    ''')
-            parser.add_argument('--subtensor.chain_endpoint', default=None, type=str, 
-                                help='''The subtensor endpoint flag. If set, overrides the --network flag.
-                                    ''')
-        except:
-            pass
-        
-    @staticmethod   
-    def check_config(config: Munch):
-        pass
+        self.config = config
+        self.substrate = substrate
 
     def endpoint_for_network( self, blacklist: List[str] = [] ) -> str:
         r""" Returns a chain endpoint based on config.subtensor.network.

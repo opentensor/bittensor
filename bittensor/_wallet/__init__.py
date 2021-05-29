@@ -20,7 +20,7 @@ import argparse
 import copy
 from munch import Munch
 
-from . import _wallet
+from . import wallet_impl
 
 class wallet:
 
@@ -51,7 +51,7 @@ class wallet:
         config = copy.deepcopy(config)
         wallet.check_config(config)
 
-        return _wallet.Wallet( config )
+        return wallet_impl.Wallet( config )
 
     @staticmethod   
     def default_config() -> Munch:

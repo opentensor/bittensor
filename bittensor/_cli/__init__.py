@@ -21,7 +21,7 @@ import copy
 import sys
 from munch import Munch
 
-from . import _cli
+from . import cli_impl
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -54,7 +54,7 @@ class cli:
         if executor == None:
             executor = bittensor.executor( config = config, wallet = wallet )
 
-        return _cli.CLI( config, executor )
+        return cli_impl.CLI( config, executor )
 
     @staticmethod   
     def default_config () -> Munch:
