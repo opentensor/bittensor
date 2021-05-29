@@ -51,11 +51,7 @@ class Dendrite(nn.Module):
             Args:
                 config (:obj:`Munch`, `required`): 
                     bittensor.dendrite.default_config()
-<<<<<<< HEAD
                 wallet (:obj:`bittensor.wallet`, `required`):
-=======
-                wallet (:obj:`bittensor.wallet.Wallet`, `required`):
->>>>>>> 0b16b8c0885d06605ba1434900d514b4685eec4e
                     bittensor wallet with hotkey and coldkeypub.
                 thread_pool (:obj:`ThreadPoolExecutor`, `required`):
                     Threadpool used for making client queries.
