@@ -1,15 +1,9 @@
-import os
 import grpc
-import torchvision.transforms as transforms
 import torch
-import unittest
 import bittensor
-import pytest
-import torchvision
 
 from unittest.mock import MagicMock
 import bittensor.serialization as serialization
-from munch import Munch
 
 wallet =  bittensor.wallet(
     path = '/tmp/pytest',
@@ -19,7 +13,7 @@ wallet =  bittensor.wallet(
 wallet.create_new_coldkey(use_password=False, overwrite = True)
 wallet.create_new_hotkey(use_password=False, overwrite = True)
 
-neuron = bittensor.utils.neurons.NeuronEndpoint(
+neuron = bittensor.endpoint(
     uid = 0,
     ip = '0.0.0.0',
     ip_type = 4,

@@ -16,7 +16,7 @@ wallet.create_new_hotkey(use_password=False, overwrite = True)
 
 dendrite = bittensor.dendrite( wallet = wallet )
 dendrite.config.receptor.do_backoff = False
-neuron_obj = bittensor.utils.neurons.NeuronEndpoint(
+neuron_obj = bittensor.endpoint(
     uid = 0,
     ip = '0.0.0.0',
     ip_type = 4,
@@ -63,7 +63,7 @@ def test_dendrite_backoff():
     _dendrite = bittensor.dendrite( wallet = wallet )
     _dendrite.config.receptor.do_backoff = True
     _dendrite.config.receptor.max_backoff = 1
-    _neuron_obj = bittensor.utils.neurons.NeuronEndpoint(
+    _neuron_obj = bittensor.endpoint(
         uid = 0,
         ip = '0.0.0.0',
         ip_type = 4,

@@ -22,7 +22,7 @@ import argparse
 import copy
 from munch import Munch
 
-from . import _dendrite
+from . import dendrite_impl
 
 class dendrite:
 
@@ -37,7 +37,7 @@ class dendrite:
             timeout: int = None,
             do_backoff : bool =  None,
             max_backoff: int = None, 
-        ):
+        ) -> 'bittensor.Dendrite':
         r""" Creates a new Dendrite object from passed arguments.
             Args:
                 config (:obj:`Munch`, `optional`): 
@@ -82,7 +82,7 @@ class dendrite:
         if thread_pool == None:
             thread_pool = ThreadPoolExecutor( max_workers = config.dendrite.max_worker_threads )
 
-        return _dendrite.Dendrite( config, wallet, thread_pool )
+        return dendrite_impl.Dendrite( config, wallet, thread_pool )
 
     @staticmethod   
     def default_config() -> Munch:
