@@ -315,10 +315,10 @@ To run a local node (See: docs/running_a_validator.md) \n
             else:
                 return False
 
-    def is_subscribed(self, wallet: 'bittensor.wallet.Wallet', ip: str, port: int, modality: int ) -> bool:
+    def is_subscribed(self, wallet: 'bittensor.wallet', ip: str, port: int, modality: int ) -> bool:
         r""" Returns true if the bittensor endpoint is already subscribed with the wallet and metadata.
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             ip (str):
                 endpoint host port i.e. 192.122.31.4
@@ -333,10 +333,10 @@ To run a local node (See: docs/running_a_validator.md) \n
         loop.set_debug(enabled=True)
         return loop.run_until_complete(self.async_is_subscribed( wallet, ip, port, modality ))
             
-    async def async_is_subscribed( self, wallet: 'bittensor.wallet.Wallet', ip: str, port: int, modality: int ) -> bool:
+    async def async_is_subscribed( self, wallet: 'bittensor.wallet', ip: str, port: int, modality: int ) -> bool:
         r""" Returns true if the bittensor endpoint is already subscribed with the wallet and metadata.
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             ip (str):
                 endpoint host port i.e. 192.122.31.4
@@ -357,7 +357,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     def subscribe(
             self, 
-            wallet: 'bittensor.wallet.Wallet',
+            wallet: 'bittensor.wallet',
             ip: str, 
             port: int, 
             modality: int, 
@@ -367,7 +367,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Subscribes an bittensor endpoint to the substensor chain.
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             ip (str):
                 endpoint host port i.e. 192.122.31.4
@@ -394,7 +394,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     async def async_subscribe(
             self, 
-            wallet: 'bittensor.wallet.Wallet',
+            wallet: 'bittensor.wallet',
             ip: str, 
             port: int, 
             modality: int, 
@@ -404,7 +404,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Subscribes an bittensor endpoint to the substensor chain.
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             ip (str):
                 endpoint host port i.e. 192.122.31.4
@@ -456,7 +456,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     def add_stake(
             self, 
-            wallet: 'bittensor.wallet.Wallet',
+            wallet: 'bittensor.wallet',
             amount: Balance, 
             hotkey_id: int, 
             wait_for_inclusion: bool = False,
@@ -465,7 +465,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Adds the specified amount of stake to passed hotkey uid.
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             amount (bittensor.utils.balance.Balance):
                 amount to stake as bittensor balance
@@ -490,7 +490,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     async def async_add_stake(
             self, 
-            wallet: 'bittensor.wallet.Wallet',
+            wallet: 'bittensor.wallet',
             amount: Balance, 
             hotkey_id: int, 
             wait_for_inclusion: bool = False,
@@ -499,7 +499,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Adds the specified amount of stake to passed hotkey uid.
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             amount (bittensor.utils.balance.Balance):
                 amount to stake as bittensor balance
@@ -532,7 +532,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     def transfer(
             self, 
-            wallet: 'bittensor.wallet.Wallet',
+            wallet: 'bittensor.wallet',
             dest:str, 
             amount: Balance, 
             wait_for_inclusion: bool = False,
@@ -541,7 +541,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Transfers funds from this wallet to the destination public key address
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             dest (str):
                 destination public key address of reciever. 
@@ -566,7 +566,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     async def async_transfer(
             self, 
-            wallet: 'bittensor.wallet.Wallet',
+            wallet: 'bittensor.wallet',
             dest:str, 
             amount: Balance, 
             wait_for_inclusion: bool = False,
@@ -575,7 +575,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Transfers funds from this wallet to the destination public key address
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             dest (str):
                 destination public key address of reciever. 
@@ -608,7 +608,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     def unstake(
             self, 
-            wallet: 'bittensor.wallet.Wallet',
+            wallet: 'bittensor.wallet',
             amount: Balance, 
             hotkey_id: int, 
             wait_for_inclusion:bool = False, 
@@ -617,7 +617,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Removes stake into the wallet coldkey from the specified hotkey uid.
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             amount (bittensor.utils.balance.Balance):
                 amount to stake as bittensor balance
@@ -642,7 +642,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     async def async_unstake(
             self, 
-            wallet: 'bittensor.wallet.Wallet',
+            wallet: 'bittensor.wallet',
             amount: Balance, 
             hotkey_id: int, 
             wait_for_inclusion:bool = False, 
@@ -651,7 +651,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Removes stake into the wallet coldkey from the specified hotkey uid.
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             amount (bittensor.utils.balance.Balance):
                 amount to stake as bittensor balance
@@ -681,7 +681,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     def set_weights(
             self, 
-            wallet: 'bittensor.wallet.Wallet',
+            wallet: 'bittensor.wallet',
             uids: torch.int64,
             weights: torch.float32,
             wait_for_inclusion:bool = False,
@@ -690,7 +690,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Sets the given weights and values on chain for wallet hotkey account.
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             uids (torch.LongTensor):
                 uint64 uids of destination neurons.
@@ -715,7 +715,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     async def async_set_weights(
             self,
-            wallet: 'bittensor.wallet.Wallet',
+            wallet: 'bittensor.wallet',
             uids: torch.int64,
             weights: torch.float32,
             wait_for_inclusion:bool = False,
@@ -724,7 +724,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         """" Sets the given weights and values on chain for wallet hotkey account.
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             uids (torch.LongTensor):
                 uint64 uids of destination neurons.
@@ -755,7 +755,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
 
     def set_weights_v1_1_0(self,
-        wallet: 'bittensor.wallet.Wallet',
+        wallet: 'bittensor.wallet',
         destinations,
         values,
         transaction_fee,
@@ -765,7 +765,7 @@ To run a local node (See: docs/running_a_validator.md) \n
     ) -> bool:
         """ Sets the given weights and values on chain for wallet hotkey account.
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             destinations (List[int]):
                 uint64 uids of destination neurons.
@@ -792,7 +792,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     async def async_set_weights_v1_1_0(
             self,
-            wallet: 'bittensor.wallet.Wallet',
+            wallet: 'bittensor.wallet',
             destinations,
             values,
             transaction_fee,
@@ -802,7 +802,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         """" Sets the given weights and values on chain for wallet hotkey account.
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             destinations (List[int]):
                 uint64 uids of destination neurons.
@@ -832,7 +832,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
 
     def set_weights_v1_1_0(self,
-        wallet: 'bittensor.wallet.Wallet',
+        wallet: 'bittensor.wallet',
         destinations,
         values,
         transaction_fee,
@@ -842,7 +842,7 @@ To run a local node (See: docs/running_a_validator.md) \n
     ) -> bool:
         """ Sets the given weights and values on chain for wallet hotkey account.
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             destinations (List[int]):
                 uint64 uids of destination neurons.
@@ -869,7 +869,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     async def async_set_weights_v1_1_0(
             self,
-            wallet: 'bittensor.wallet.Wallet',
+            wallet: 'bittensor.wallet',
             destinations,
             values,
             transaction_fee,
@@ -879,7 +879,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         ) -> bool:
         r""" Sets the given weights and values on chain for wallet hotkey account.
         Args:
-            wallet (bittensor.wallet.Wallet):
+            wallet (bittensor.wallet):
                 bittensor wallet object.
             destinations (List[int]):
                 uint64 uids of destination neurons.

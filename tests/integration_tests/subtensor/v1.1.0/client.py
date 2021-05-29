@@ -14,9 +14,7 @@ from pytest import fixture
 import bittensor
 from bittensor.utils.balance import Balance
 
-from bittensor.wallet import Wallet
 from bittensor.substrate import Keypair
-
 
 BLOCK_REWARD = 500_000_000
 TRANSACTION_FEE = 100
@@ -24,12 +22,11 @@ TRANSACTION_FEE_ADD_STAKE = 100 * 145  # Fee per byte * extrinsic length
 TRANSACTION_FEE_UNSTAKE = 100 * 145
 TRANSACTION_FEE_TRANSFER = 100 * 139
 
-class WalletStub(Wallet):
+class WalletStub(bittensor.wallets._wallet.Wallet):
     def __init__(self, coldkey_pair: 'Keypair', hotkey_pair: 'Keypair'):
         self._hotkey = hotkey_pair
         self._coldkey = coldkey_pair
         self._coldkeypub = coldkey_pair.public_key
-
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -71,7 +68,7 @@ def connect( port:int ):
     subtensor.connect()
     return subtensor
 
-def add_stake( subtensor, wallet: 'wallet:bittensor.wallet.Wallet', amount: 'Balance' ):
+def add_stake( subtensor, wallet: 'wallet:bittensor.wallet', amount: 'Balance' ):
     # Get the uid of the new neuron
     uid = subtensor.get_uid_for_pubkey( wallet.hotkey.public_key )
     assert uid is not None

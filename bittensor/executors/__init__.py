@@ -31,7 +31,7 @@ class executor:
     def __new__(
             cls,
             config: Munch = None, 
-            wallet: 'bittensor.wallet.Wallet' = None,
+            wallet: 'bittensor.wallet' = None,
             subtensor: 'bittensor.subtensor.Subtensor' = None,
             metagraph: 'bittensor.metagraph.Metagraph' = None,
             axon: 'bittensor.axon.Axon' = None,
@@ -41,7 +41,7 @@ class executor:
             Args:
                 config (:obj:`Munch`, `optional`): 
                     bittensor.executor.default_config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                wallet (:obj:`bittensor.wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 subtensor (:obj:`bittensor.subtensor.Subtensor`, `optional`):
                     Bittensor subtensor chain connection.
@@ -57,11 +57,11 @@ class executor:
         config = copy.deepcopy(config)
         executor.check_config( config )
         if wallet == None:
-            wallet = bittensor.wallet.Wallet ( config = config )
+            wallet = bittensor.wallet ( config = config )
         if subtensor == None:
             subtensor = bittensor.subtensor.Subtensor( config = config )
         if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph()
+            metagraph = bittensor.metagraph( config = config)
         if axon == None:
             axon = bittensor.axon( config = config, wallet = wallet )
         if dendrite == None:
@@ -77,16 +77,18 @@ class executor:
 
     @staticmethod   
     def add_args (parser: argparse.ArgumentParser):
-        bittensor.wallet.Wallet.add_args( parser )
+        bittensor.wallet.add_args( parser )
         bittensor.subtensor.Subtensor.add_args( parser )
         bittensor.axon.add_args( parser )
         bittensor.dendrite.add_args( parser )
+        bittensor.metagraph.add_args( parser )
         bittensor.nucleus.Nucleus.add_args( parser )
         
     @staticmethod   
     def check_config (config: Munch):
-        bittensor.wallet.Wallet.check_config( config )
+        bittensor.wallet.check_config( config )
         bittensor.subtensor.Subtensor.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.dendrite.check_config( config )
+        bittensor.metagraph.add_args( config )
         bittensor.nucleus.Nucleus.check_config( config )

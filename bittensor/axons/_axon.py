@@ -38,13 +38,13 @@ logger = logger.opt(colors=True)
 class Axon( bittensor.grpc.BittensorServicer ):
     r""" Services Forward and Backward requests from other neurons.
     """
-    def __init__( self, config: Munch, wallet: 'bittensor.wallet.Wallet', server: 'grpc._Server' ):
+    def __init__( self, config: Munch, wallet: 'bittensor.wallet', server: 'grpc._Server' ):
         r""" Initializes a new Axon tensor processing endpoint.
             
             Args:
                 config (:obj:`Munch`, `required`): 
                     bittensor.axon.default_config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `required`):
+                wallet (:obj:`bittensor.wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
                 server (:obj:`grpc._Server`, `required`):
                     Grpc server endpoint.

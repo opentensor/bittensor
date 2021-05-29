@@ -59,9 +59,9 @@ class AbstractMiner ():
         config = copy.deepcopy( config ); bittensor.config.Config.update_with_kwargs( config, kwargs )
         AbstractMiner.check_config( config )
         self.config = config
-        self.wallet = bittensor.wallet.Wallet ( config = self.config )
+        self.wallet = bittensor.wallet ( config = self.config )
         self.subtensor = bittensor.subtensor.Subtensor( config = self.config )
-        self.metagraph = bittensor.metagraph.Metagraph()
+        self.metagraph = bittensor.metagraph( config = config )
         self.axon = bittensor.axon( config = self.config, wallet = self.wallet )
         self.dendrite = bittensor.dendrite( config = self.config, wallet = self.wallet )
 
@@ -76,10 +76,11 @@ class AbstractMiner ():
     @staticmethod
     def check_config(config: Munch):
         assert 'name' in config.miner, 'miners must specify a name argument.'
-        bittensor.wallet.Wallet.check_config( config )
+        bittensor.wallet.check_config( config )
         bittensor.subtensor.Subtensor.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.dendrite.check_config( config )
+        bittensor.metagraph.check_config( config )
         bittensor.nucleus.Nucleus.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}'.format( config.miner.root_dir, config.wallet.name + "-" + config.wallet.hotkey, config.miner.name ))
         config.miner.full_path = os.path.expanduser(full_path)
@@ -88,10 +89,11 @@ class AbstractMiner ():
 
     @staticmethod   
     def add_args( parser: argparse.ArgumentParser ):
-        bittensor.wallet.Wallet.add_args( parser )
+        bittensor.wallet.add_args( parser )
         bittensor.subtensor.Subtensor.add_args( parser )
         bittensor.axon.add_args( parser )
         bittensor.dendrite.add_args( parser )
+        bittensor.metagraph.add_args( parser )
         bittensor.nucleus.Nucleus.add_args( parser )
         parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
         parser.add_argument('--config', type=str, help='If set, arguments are overridden by passed file.')

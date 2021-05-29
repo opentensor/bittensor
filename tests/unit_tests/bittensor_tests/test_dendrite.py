@@ -6,7 +6,7 @@ import time
 from munch import Munch
 import bittensor
 
-wallet =  bittensor.wallet.Wallet(
+wallet =  bittensor.wallet(
     path = '/tmp/pytest',
     name = 'pytest',
     hotkey = 'pytest',

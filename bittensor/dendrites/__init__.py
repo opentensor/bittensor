@@ -29,7 +29,7 @@ class dendrite:
     def __new__(
             cls, 
             config: Munch = None, 
-            wallet: 'bittensor.wallet.Wallet' = None,
+            wallet: 'bittensor.wallet' = None,
             thread_pool: 'ThreadPoolExecutor' = None,
             max_worker_threads: int = None,
             max_active_tcp_connections: int = None,
@@ -42,7 +42,7 @@ class dendrite:
             Args:
                 config (:obj:`Munch`, `optional`): 
                     bittensor.dendrite.default_config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                wallet (:obj:`bittensor.wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
                     Threadpool used for making client queries.
@@ -61,8 +61,6 @@ class dendrite:
                     If do_backoff, max_backoff is the number of maximum number of backed off requests
                     before another test query is sent.
         """
-        # Config: Holds all config items for this items and those that are recursively defined. Specifically
-        # config for you wallet and metagraph.
         if config == None:
             config = dendrite.default_config()
         config.dendrite.max_worker_threads = max_worker_threads if max_worker_threads != None else config.dendrite.max_worker_threads
@@ -77,7 +75,7 @@ class dendrite:
         # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
         # and subscribe to the chain.
         if wallet == None:
-            wallet = bittensor.wallet.Wallet( config )
+            wallet = bittensor.wallet( config )
         wallet = wallet
 
         # Threadpool executor for making queries across the line.

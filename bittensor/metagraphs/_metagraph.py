@@ -15,9 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
 import asyncio
-import copy
 import os
 import torch
 import tqdm.asyncio
@@ -28,7 +26,6 @@ from typing import List, Tuple, List
 import bittensor
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
-from bittensor.subtensor import Subtensor
 
 class Metagraph( torch.nn.Module ):
     r""" Maintains chain state as a torch.nn.Module.
@@ -56,11 +53,11 @@ class Metagraph( torch.nn.Module ):
                 Tokenized endpoint information.
 
     """
-    def __init__( self ):
+    def __init__( self, config ):
         r""" Initializes a new Metagraph torch chain interface object.
         """
         super(Metagraph, self).__init__()
-        # State.
+        self.config = config
         self.n = torch.nn.Parameter( torch.tensor( [0], dtype = torch.int64), requires_grad=False )
         self.tau = torch.nn.Parameter( torch.tensor( [0.5], dtype = torch.float32), requires_grad=False )
         self.block = torch.nn.Parameter( torch.tensor( [0], dtype = torch.int64), requires_grad=False )
@@ -89,6 +86,8 @@ class Metagraph( torch.nn.Module ):
                 I (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     Block incentive for each neuron. 
         """
+        if self.n.item() == 0:
+            return torch.tensor([], dtype=torch.float32)
         I =  (self.tau * self.ranks) / torch.sum(self.ranks)
         I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
         return I.view(self.n)
@@ -103,7 +102,7 @@ class Metagraph( torch.nn.Module ):
 
         """
         if self.n.item() == 0:
-            return torch.tensor([])
+            return torch.tensor([], dtype=torch.float32)
         else:
             S = self.S.view(self.n, 1)
             Wt = torch.transpose(self.W, 0, 1)
@@ -127,6 +126,8 @@ class Metagraph( torch.nn.Module ):
                 W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
                     Weight matrix.
         """
+        if self.n.item() == 0:
+            return torch.tensor( [], dtype=torch.float32 )
         return torch.stack( [row for row in self.weights], axis = 0 )
 
     @property
@@ -136,6 +137,8 @@ class Metagraph( torch.nn.Module ):
                 hotkeys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
                     Neuron hotkeys.
         """
+        if self.n.item() == 0:
+            return []
         return [ neuron.hotkey for neuron in self.neuron_endpoints ]
 
     @property
@@ -145,6 +148,8 @@ class Metagraph( torch.nn.Module ):
                 coldkeys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
                     Neuron coldkeys.
         """
+        if self.n.item() == 0:
+            return []
         return [ neuron.coldkey for neuron in self.neuron_endpoints ]
 
     @property
@@ -154,6 +159,8 @@ class Metagraph( torch.nn.Module ):
                 coldkeys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
                     Neuron coldkeys.
         """
+        if self.n.item() == 0:
+            return []
         return [ neuron.modality for neuron in self.neuron_endpoints ]
 
     @property
@@ -163,6 +170,8 @@ class Metagraph( torch.nn.Module ):
                 coldkeys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
                     Neuron address.
         """
+        if self.n.item() == 0:
+            return []
         return [ net.ip__str__( neuron.ip_type, neuron.ip, neuron.port ) for neuron in self.neuron_endpoints ]
 
     @property
@@ -174,6 +183,8 @@ class Metagraph( torch.nn.Module ):
                     Endpoint information for each neuron.
 
         """
+        if self.n.item() == 0:
+            return []
         if self.cached_endpoints != None:
             return self.cached_endpoints
         else:
@@ -196,9 +207,9 @@ class Metagraph( torch.nn.Module ):
         metagraph_path = '~/.bittensor/' + str(network) + '.pt'
         metagraph_path = os.path.expanduser(metagraph_path)
         if os.path.isfile(metagraph_path):
-            self.load_from_path( path = metagraph_path)
+            self.load_from_path( path = metagraph_path )
         else:
-            logger.warning('Did not load metagrpah from path: {}, file does not exist. Run metagraph.save() first.', metagraph_path)
+            logger.warning('Did not load metagraph from path: {}, file does not exist. Run metagraph.save() first.', metagraph_path)
 
     def save( self, network:str = 'kusanagi' ):
         r""" Saves this metagraph object's state_dict under bittensor root dir.
@@ -248,13 +259,13 @@ class Metagraph( torch.nn.Module ):
         r""" Synchronizes this metagraph with the chain state.
             Args: 
                 subtensor: (:obj:`bittensor.subtensor.Subtensor`, optional):
-                    Subtensor chain interface obbject. If None, creates default connection to kusanagi.
+                    Subtensor chain interface obbject. If None, creates a default connection.
                 force (bool):
                     force syncs all nodes on the graph.
         """
         # Defaults to base subtensor connection.
         if subtensor == None:
-            subtensor = bittensor.subtensor.Subtensor()
+            subtensor = bittensor.subtensor.Subtensor( config = self.config )
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         loop.run_until_complete(self._async_sync(subtensor, force))
