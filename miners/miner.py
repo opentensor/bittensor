@@ -61,7 +61,7 @@ class AbstractMiner ():
         self.config = config
         self.wallet = bittensor.wallet ( config = self.config )
         self.subtensor = bittensor.subtensor.Subtensor( config = self.config )
-        self.metagraph = bittensor.metagraph.Metagraph()
+        self.metagraph = bittensor.metagraph( config = config )
         self.axon = bittensor.axon( config = self.config, wallet = self.wallet )
         self.dendrite = bittensor.dendrite( config = self.config, wallet = self.wallet )
 
@@ -80,6 +80,7 @@ class AbstractMiner ():
         bittensor.subtensor.Subtensor.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.dendrite.check_config( config )
+        bittensor.metagraph.check_config( config )
         bittensor.nucleus.Nucleus.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}'.format( config.miner.root_dir, config.wallet.name + "-" + config.wallet.hotkey, config.miner.name ))
         config.miner.full_path = os.path.expanduser(full_path)
@@ -92,6 +93,7 @@ class AbstractMiner ():
         bittensor.subtensor.Subtensor.add_args( parser )
         bittensor.axon.add_args( parser )
         bittensor.dendrite.add_args( parser )
+        bittensor.metagraph.add_args( parser )
         bittensor.nucleus.Nucleus.add_args( parser )
         parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
         parser.add_argument('--config', type=str, help='If set, arguments are overridden by passed file.')

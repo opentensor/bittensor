@@ -61,7 +61,7 @@ class executor:
         if subtensor == None:
             subtensor = bittensor.subtensor.Subtensor( config = config )
         if metagraph == None:
-            metagraph = bittensor.metagraph.Metagraph()
+            metagraph = bittensor.metagraph( config = config)
         if axon == None:
             axon = bittensor.axon( config = config, wallet = wallet )
         if dendrite == None:
@@ -81,6 +81,7 @@ class executor:
         bittensor.subtensor.Subtensor.add_args( parser )
         bittensor.axon.add_args( parser )
         bittensor.dendrite.add_args( parser )
+        bittensor.metagraph.add_args( parser )
         bittensor.nucleus.Nucleus.add_args( parser )
         
     @staticmethod   
@@ -89,4 +90,5 @@ class executor:
         bittensor.subtensor.Subtensor.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.dendrite.check_config( config )
+        bittensor.metagraph.add_args( config )
         bittensor.nucleus.Nucleus.check_config( config )
