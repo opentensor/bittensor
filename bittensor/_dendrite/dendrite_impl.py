@@ -265,7 +265,7 @@ class Dendrite(nn.Module):
         # ---- Or: Create a new receptor ----
         else:
             logger.debug('<white>Create receptor for endpoint:</white> {}', endpoint )
-            receptor = bittensor.receptor.Receptor (
+            receptor = bittensor.receptor (
                     endpoint = endpoint, 
                     config = self.config, 
                     wallet = self.wallet

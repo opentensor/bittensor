@@ -20,13 +20,14 @@ import argparse
 import copy
 import grpc
 from munch import Munch
+import bittensor.utils.networking as net
 
 from . import receptor_impl
 
 class receptor:
 
     def __new__(
-            self, 
+            cls, 
             endpoint: 'bittensor.Endpoint', 
             config: Munch = None, 
             wallet: 'bittensor.wallet' = None,
@@ -65,30 +66,33 @@ class receptor:
         config = copy.deepcopy(config) # Configuration information.
 
         if wallet == None:
-            wallet = bittensor.wallet( self.config )
+            wallet = bittensor.wallet( config )
 
-        # Loop back if the neuron is local.
+        # Get remote IP.
         try:
             external_ip = config.axon.external_ip
         except:
             pass
         try:
-            external_ip = config.axon.external_ip
+            external_ip = str(net.get_external_ip())
         except:
             pass
         finally:
             external_ip = None
+
+        # Get endpoint string.
         if endpoint.ip == external_ip:
             ip = "localhost:"
-            self.endpoint = ip + str(endpoint.port)
+            endpoint_str = ip + str(endpoint.port)
         else:
-            self.endpoint = endpoint.ip + ':' + str(endpoint.port)
+            endpoint_str = endpoint.ip + ':' + str(endpoint.port)
         
+        # Make channel and stub.
         channel = grpc.insecure_channel(
-            self.endpoint,
+            endpoint_str,
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])
-        stub = bittensor.grpc.BittensorStub(self.channel)
+        stub = bittensor.grpc.BittensorStub( channel )
 
         return receptor_impl.Receptor( 
             config = config, 
@@ -107,6 +111,7 @@ class receptor:
 
     @staticmethod   
     def check_config(config: Munch):
+        bittensor.wallet.check_config( config )
         assert config.receptor.timeout >= 0, 'timeout must be positive value, got {}'.format(config.receptor.timeout)
 
     @staticmethod   

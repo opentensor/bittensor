@@ -13,7 +13,7 @@ wallet =  bittensor.wallet(
 wallet.create_new_coldkey(use_password=False, overwrite = True)
 wallet.create_new_hotkey(use_password=False, overwrite = True)
 
-neuron = bittensor.endpoint(
+endpoint = bittensor.endpoint(
     uid = 0,
     ip = '0.0.0.0',
     ip_type = 4,
@@ -22,8 +22,8 @@ neuron = bittensor.endpoint(
     coldkey = wallet.coldkey.public_key,
     modality = 0
 )
-receptor = bittensor.receptor.Receptor( 
-    neuron = neuron, 
+receptor = bittensor.receptor ( 
+    endpoint = endpoint, 
     wallet = wallet,
     do_backoff = False
 )

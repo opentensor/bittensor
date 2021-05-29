@@ -53,8 +53,8 @@ from bittensor._cli.cli_impl import CLI as CLI
 from bittensor._axon.axon_impl import Axon as Axon
 from bittensor._wallet.wallet_impl import Wallet as Wallet
 from bittensor._receptor.receptor_impl import Receptor as Receptor
-from bittensor._executor.executor_impl import Executor as Executor
 from bittensor._endpoint.endpoint_impl import Endpoint as Endpoint
+from bittensor._executor.executor_impl import Executor as Executor
 from bittensor._dendrite.dendrite_impl import Dendrite as Dendrite
 from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor

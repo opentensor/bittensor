@@ -19,7 +19,6 @@ import torch
 import json
 import bittensor
 from loguru import logger
-import bittensor.utils.networking as net
 
 from . import endpoint_impl
 

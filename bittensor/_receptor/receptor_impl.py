@@ -76,6 +76,7 @@ class Receptor(nn.Module):
         self.wallet = wallet # Keypair information
         self.endpoint = endpoint # Endpoint information.
         self.channel = channel
+        self.stub = stub
         self.signature = None # Call signature.
         self.nounce = None # Call nounce.
         self.backoff = 0 # Number o queries to backoff.

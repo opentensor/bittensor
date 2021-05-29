@@ -34,9 +34,9 @@ class Endpoint:
     
     def to_tensor( self ) -> torch.LongTensor:  
         string_json = self.dumps()
-        neuron_tokens = bittensor.__tokenizer__( string_json )['input_ids']
-        neuron_tensor = torch.tensor( neuron_tokens, dtype = torch.int64, requires_grad=False)
-        return neuron_tensor
+        endpoint_tokens = bittensor.__tokenizer__( string_json )['input_ids']
+        endpoint_tensor = torch.tensor( endpoint_tokens, dtype = torch.int64, requires_grad=False)
+        return endpoint_tensor
 
     def dumps(self):
         return json.dumps(
@@ -51,7 +51,7 @@ class Endpoint:
             })
 
     def __str__(self):
-        return "<neuron uid: %s hotkey: %s ip: %s modality: %s coldkey: %s>" % (self.uid, self.hotkey, net.ip__str__(self.ip_type, self.ip, self.port), self.modality, self.coldkey)
+        return "<endpoint uid: %s hotkey: %s ip: %s modality: %s coldkey: %s>" % (self.uid, self.hotkey, net.ip__str__(self.ip_type, self.ip, self.port), self.modality, self.coldkey)
 
 
 
