@@ -56,11 +56,11 @@ class Metagraph( torch.nn.Module ):
                 Tokenized endpoint information.
 
     """
-    def __init__( self ):
+    def __init__( self, config ):
         r""" Initializes a new Metagraph torch chain interface object.
         """
         super(Metagraph, self).__init__()
-        # State.
+        self.config = config
         self.n = torch.nn.Parameter( torch.tensor( [0], dtype = torch.int64), requires_grad=False )
         self.tau = torch.nn.Parameter( torch.tensor( [0.5], dtype = torch.float32), requires_grad=False )
         self.block = torch.nn.Parameter( torch.tensor( [0], dtype = torch.int64), requires_grad=False )
@@ -254,7 +254,7 @@ class Metagraph( torch.nn.Module ):
         """
         # Defaults to base subtensor connection.
         if subtensor == None:
-            subtensor = bittensor.subtensor.Subtensor()
+            subtensor = bittensor.subtensor.Subtensor( self.config )
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         loop.run_until_complete(self._async_sync(subtensor, force))

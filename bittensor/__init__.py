@@ -48,6 +48,7 @@ from bittensor.dendrites import dendrite
 from bittensor.clis import cli
 from bittensor.executors import executor
 from bittensor.wallets import wallet
+from bittensor.metagraphs import metagraph
 
 # ---- LOGGING ----
 __debug_on__ = False
