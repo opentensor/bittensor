@@ -200,7 +200,7 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
         assert config.nucleus.n_layers > 0, "Number of hidden layers in the Transformer encoder must be > 0"
         assert config.nucleus.n_heads > 0, "Number of attention heads for each attention layer in the Transformer encoder must be > 0"
 
-    def subscribe_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
+    def attach_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
         """ Assigns the routing_function call to this neuron.
 
             Returns:

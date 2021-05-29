@@ -62,7 +62,7 @@ class AbstractMiner ():
         self.wallet = bittensor.wallet.Wallet ( config = self.config )
         self.subtensor = bittensor.subtensor.Subtensor( config = self.config )
         self.metagraph = bittensor.metagraph.Metagraph()
-        self.axon = bittensor.axon.Axon( config = self.config, wallet = self.wallet )
+        self.axon = bittensor.axon( config = self.config, wallet = self.wallet )
         self.dendrite = bittensor.dendrite.Dendrite( config = self.config, wallet = self.wallet )
 
     @staticmethod   
@@ -78,7 +78,7 @@ class AbstractMiner ():
         assert 'name' in config.miner, 'miners must specify a name argument.'
         bittensor.wallet.Wallet.check_config( config )
         bittensor.subtensor.Subtensor.check_config( config )
-        bittensor.axon.Axon.check_config( config )
+        bittensor.axon.check_config( config )
         bittensor.dendrite.Dendrite.check_config( config )
         bittensor.nucleus.Nucleus.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}'.format( config.miner.root_dir, config.wallet.name + "-" + config.wallet.hotkey, config.miner.name ))
@@ -90,7 +90,7 @@ class AbstractMiner ():
     def add_args( parser: argparse.ArgumentParser ):
         bittensor.wallet.Wallet.add_args( parser )
         bittensor.subtensor.Subtensor.add_args( parser )
-        bittensor.axon.Axon.add_args( parser )
+        bittensor.axon.add_args( parser )
         bittensor.dendrite.Dendrite.add_args( parser )
         bittensor.nucleus.Nucleus.add_args( parser )
         parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
@@ -285,17 +285,13 @@ class BasicMiner( AbstractMiner ):
         parser.add_argument ('--miner.max_backward_workers', default='10', type=int, help='Maximum number of concurrent backward processing threads.')
         parser.add_argument ('--miner.max_forward_workers', default='10', type=int, help='Maximum number of concurrent forward processing threads.')
 
-    def startup( self ):
-        super().startup()
-        self.start_forward_loop()
-        self.start_backward_loop()
-    
-    def shutdown(self):
-        super().shutdown()
-        self.stop_forward_loop()
-        self.stop_backward_loop()
+    def init_axon( self ):
+        # ---- Starting axon ----
+        logger.info('\nStarting Axon...')
+        self.axon.attach( self )
+        self.axon.start()
 
-        # --- Run Miner ----
+    # --- Run Miner ----
     def run( self ):
         r""" Miner main loop.
         """
@@ -354,19 +350,86 @@ class BasicMiner( AbstractMiner ):
                         break
 
     # ---- Training call ----
-    def training_call( self, batch: dict ) -> SimpleNamespace:
+    def train ( self, batch: dict ) -> SimpleNamespace:
         r""" Runs a single training batch through the nucleus and applies a gradient update.
             Args:
                 batch ( dict, `required`): 
                     training batch dictionary as returned from get_epoch_batches            
             Returns:
-                outputs ( SimpleNamespace ): 
-                    SimpleNamespace output as returned by a nucleus forward call.
-                    Must include fields local_loss, remote_loss, distillation_loss
+                output = SimpleNamespace ( 
+                    local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Hidden layer context.
+
+                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Hidden layer encoding produced using local_context.
+
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                        GPT MLM Target predictions produced using local_context. 
+
+                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        GPT MLM loss using local_context.
+
+                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
+                        Hidden layer encoding produced using the remote_context.
+
+                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
+                        GPT MLM Target predictions using the remote_context.
+
+                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+                        GPT MLM loss using the remote_context.
+
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        Distillation loss between local_context and remote_context.
+
+                    router (:obj:`SimpleNamespace`, `required`): 
+                        Output simplenamespace from routing call.
+            )
         """
         raise NotImplementedError()
 
-    # ---- Get epoch batches ----
+    # ---- Subclass Forward call ----
+    def forward ( self, pubkey:str, inputs:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" Recieves and processes forward calls for a bittensor.axon.
+            The arguments reflect an RPC request from another miner in the network, the response tensor
+            should be the hidden units of the local nucleus of shape [batch_size, sequence_len, __network_dim__].
+            
+            Args:
+                pubkey ( str, `required`): 
+                    The public key of the caller.
+                inputs ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
+            
+            Returns:
+                outputs (:obj:`torch.FloatTensor`): 
+                    The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
+        """
+        raise NotImplementedError()
+
+    # ---- Subclass Backward call ----
+    def backward ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" Recieves and processes backward calls for a bittensor.axon.
+            Arguments reflect an RPC backward request from another miner in the network, the response tensor
+            should be the gradients of the miner's nucleus w.r.t to the inputs and the passed output grads.
+            
+            Args:
+                pubkey ( str, `required`): 
+                    The public key of the caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs from previous forward call.
+                grads_dy ( :obj:`torch.Tensor`, `required`):
+                    torch grads of forward output.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
+            
+            Returns:
+                outputs (:obj:`torch.FloatTensor`): 
+                    The gradients w.r.t to the inputs [batch_size, sequence_len, __network_dim__]
+        """
+        raise NotImplementedError()
+
+     # ---- Get epoch batches ----
     def get_epoch_batches( self, epoch:int ) -> List[ dict ]:
         r""" Returns training batches for each epoch.
             Returns:
@@ -383,6 +446,25 @@ class BasicMiner( AbstractMiner ):
                 row_weights ( torch.FloatTensor, shape=(self.metagraph.n) ): 
                     torch row_weights matching the metagraph size.
                     weight values should be normalized and be in range [0,1].
+        """
+        raise NotImplementedError()
+
+    def get_state_dict( self ) -> dict:
+        r""" Called by miner.save_state().
+            Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
+            Returns:
+                state_dict (:obj:`dict`): 
+                    Dictionary containing run state information such as the nucleus parameters.
+        """
+        raise NotImplementedError()
+
+    def reload_from_state_dict( self, state_dict: dict):
+        r""" Called by miner.reload_state().
+            Reloads the training state from the passed state_dict. 
+            Args:
+                state_dict (:obj:`dict`): 
+                    Dictionary containing run state information such as the nucleus parameters. Output 
+                    of get_state_dict.
         """
         raise NotImplementedError()
 
@@ -406,228 +488,7 @@ class BasicMiner( AbstractMiner ):
 
         except Exception as e:
             logger.error('Failure setting weights on chain with error: {}', e)
-
-    def get_state_dict( self ) -> dict:
-        r""" Called by miner.save_state().
-            Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
-            Returns:
-                state_dict (:obj:`dict`): 
-                    Dictionary containing run state information such as the nucleus parameters.
-        """
-        raise NotImplementedError()
-
-    def reload_from_state_dict( self, state_dict: dict):
-        r""" Called by miner.reload_state().
-            Reloads the training state from the passed state_dict. 
-            Args:
-                state_dict (:obj:`dict`): 
-                    Dictionary containing run state information such as the nucleus parameters. Output 
-                    of get_state_dict.
-        """
-        raise NotImplementedError()
-
-       # ---- Subclass Forward call ----
-    def forward_call( self, pubkey:str, inputs:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Called by miner.forward_loop which can be overridden by the child class.
-            The arguments reflect an RPC request from another miner in the network, the response tensor
-            should be the hidden units of the local nucleus of shape [batch_size, sequence_len, __network_dim__].
-            
-            Args:
-                pubkey ( str, `required`): 
-                    The public key of the caller.
-                inputs ( :obj:`torch.Tensor`, `required`):
-                    torch inputs to be forward processed.
-                modality ( bittensor.proto.Modality, `required`):
-                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
-            
-            Returns:
-                outputs (:obj:`torch.FloatTensor`): 
-                    The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
-        """
-        raise NotImplementedError()
-
-    # ---- Subclass Backward call ----
-    def backward_call( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Called by miner.backward_loop which can be overridden in the child class.
-            Arguments reflect an RPC backward request from another miner in the network, the response tensor
-            should be the gradients of the miner's nucleus w.r.t to the inputs and the passed output grads.
-            
-            Args:
-                pubkey ( str, `required`): 
-                    The public key of the caller.
-                inputs_x ( :obj:`torch.Tensor`, `required`):
-                    torch inputs from previous forward call.
-                grads_dy ( :obj:`torch.Tensor`, `required`):
-                    torch grads of forward output.
-                modality ( bittensor.proto.Modality, `required`):
-                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
-            
-            Returns:
-                outputs (:obj:`torch.FloatTensor`): 
-                    The gradients w.r.t to the inputs [batch_size, sequence_len, __network_dim__]
-        """
-        raise NotImplementedError()
-
-    # ---- Runs the forward call -----
-    def run_next_forward_call( self, pong: mp.Pipe, pubkey: str, inputs: torch.Tensor, modality: int ):
-        r""" 
-            Calls the backward call on the miner given inputs. This call multi-threaded using a threadpool executor.
-                        
-            Returns:
-                pong (:obj:`mp.Pipe, `optional`): 
-                    multiprocessing pipe tunnel for the response.
-                public_key (str, `optional`):
-                    public key of caller.
-                inputs_x ( :obj:`torch.Tensor`, `required`):
-                    torch inputs to be forward processed.
-                modality ( bittensor.proto.Modality, `required`):
-                    modality of inputs.
-
-        """
-        try:
-            outputs = self.forward_call ( 
-                pubkey = pubkey,
-                inputs = inputs,
-                modality = modality
-            )
-            outputs = outputs.to('cpu')
-            pong.send( outputs.detach() )
-        except BrokenPipeError:
-            logger.info('Failed to process forward request before timeout')
-            pass
-
-    # ---- Runs the backard call -----
-    def run_next_backward_call( self, pong: mp.Pipe, pubkey: str, inputs_x: torch.Tensor, grads_dy: torch.float32, modality: int ):
-        r""" 
-            Calls the backward call on the miner given inputs. This call multi-threaded using a threadpool executor.
-            
-            Returns:
-                pong (:obj:`mp.Pipe, `optional`): 
-                    multiprocessing pipe tunnel for the response.
-                pubkey (str, `optional`):
-                    public key of caller.
-                inputs_x ( :obj:`torch.Tensor`, `required`):
-                    torch inputs to be forward processed.
-                grads_dy ( :obj:`torch.Tensor`, `required`):
-                    torch gradient inputs to be backward processed with inputs.
-                modality ( bittensor.proto.Modality, `required`):
-                    modality of inputs.
-        """
-
-        try:
-            outputs = self.backward_call ( 
-                pubkey = pubkey,
-                grads_dy = grads_dy, 
-                inputs_x = inputs_x,
-                modality = modality
-            )
-            pong.send( outputs.detach() )
-        except BrokenPipeError:
-            logger.info('Failed to process forward request before timeout')
-            pass
-
-    # ---- Forward loop -----
-    def forward_loop ( self ): 
-        r""" 
-            Uses a threadpool executor to make concurrent calls to the miner.forward_call given inputs.
-        """
-        # ---- Loop until event is set -----
-        logger.success('<white>Forward loop:</white> Started.')
-        with concurrent.futures.ThreadPoolExecutor( max_workers = self.config.miner.max_forward_workers ) as executor:
-            while not self.quit_forward.is_set():
-                with self.get_forward_lock():
-                    try:
-                        # Submit next call.
-                        pong, pubkey, inputs, modality = self.axon.next_forward_item( timeout = 1.0 )
-                        if None not in [ pong, pubkey, inputs, modality]:
-                            executor.submit( self.run_next_forward_call, pong, pubkey, inputs, modality )
-                    except Exception as e:
-                        logger.exception('Error in forward thread with error {}', e)
-                        traceback.print_exc()
-                        sys.exit()
-
-    # ---- Backward loop -----
-    def backward_loop ( self ): 
-        r""" 
-            Uses a threadpool executor to make concurrent calls to the miner.backward_call given inputs.
-        """
-        logger.success('<white>Backward loop:</white> Started')
-        with concurrent.futures.ThreadPoolExecutor( max_workers = self.config.miner.max_backward_workers ) as executor:
-            while not self.quit_backward.is_set():
-                with self.get_backward_lock():
-                    try:
-                        # Submit backward call.
-                        pong, pubkey, inputs_x, grads_dy, modality = self.axon.next_backward_item( timeout = 1.0 )
-                        if None not in [ pong, pubkey, inputs_x, grads_dy, modality]:
-                            executor.submit( self.run_next_backward_call, pong, pubkey, inputs_x, grads_dy, modality )
-                    except Exception as e:
-                        logger.exception('Error in backward thread with error {}', e)
-                        traceback.print_exc()
-                        sys.exit()
-
-    # ---- Start up forward loop -----
-    def start_forward_loop( self ):
-        if not hasattr(self, 'forward_thread'):
-            self.forward_thread = threading.Thread( target = self.forward_loop, name = 'forward', daemon=True )
-        if not hasattr(self, 'quit_forward'):
-            self.quit_forward = mp.Event()
-        if not hasattr(self, 'lock_forward'):
-            self.lock_forward = mp.Lock()
-        if self.quit_forward.is_set():
-            self.quit_forward.clear()
-        if not self.forward_thread.is_alive():
-            self.forward_thread.start()
-
-    # ---- Start up backward loop -----
-    def start_backward_loop( self ):
-        if not hasattr(self, 'backward_thread'):
-            self.backward_thread = threading.Thread( target = self.backward_loop, name = 'backward', daemon=True )
-        if not hasattr(self, 'quit_backward'):
-            self.quit_backward = mp.Event()
-        if not hasattr(self, 'lock_backward'):
-            self.lock_backward = mp.Lock()
-        if not self.quit_backward.is_set():
-            self.quit_backward.clear()
-        if not self.backward_thread.is_alive():
-            self.backward_thread.start()
-
-    # ---- Get Backward lock ----
-    def get_forward_lock( self ):
-        if not hasattr(self, 'forward_lock'):
-            self.forward_lock = mp.Lock()
-        return self.forward_lock
-
-    # ---- Get Backward lock ----
-    def get_backward_lock( self ):
-        if not hasattr(self, 'backward_lock'):
-            self.backward_lock = mp.Lock()
-        return self.backward_lock
-
-    # ---- Stop forward loop -----
-    def stop_forward_loop( self ):
-        if hasattr(self, 'quit_forward'):
-            self.quit_forward.set()
-        if hasattr(self, 'forward_thread'):
-            if self.forward_thread.is_alive():
-                self.forward_thread.join( timeout = 10 )
-                if not self.forward_thread.is_alive():
-                    logger.success("Forward thread joined.")
-                else:
-                    logger.error('Failed join forward thread.')
-
-    # ---- Stop backward loop -----
-    def stop_backward_loop( self ):
-        if hasattr(self, 'quit_backward'):
-            self.quit_backward.set()
-        if hasattr(self, 'backward_thread'):
-            if self.backward_thread.is_alive():
-                self.backward_thread.join( timeout = 10 )
-                if not self.backward_thread.is_alive():
-                    logger.success("Backward thread joined.")
-                else:
-                    logger.error('Failed join backward thread.')
         
-
     def should_run( self, epoch: int ) -> bool:
         r""" Called by miner.run() every epoch, if the response is false, training stops.
         """
@@ -707,7 +568,7 @@ class BasicMiner( AbstractMiner ):
 
     # --- Run Epoch ----
     def run_epoch( self ):
-        r""" Called by miner.run(), calls training_call for passed batches.
+        r""" Called by miner.run(), calls train for passed batches.
         """
         # --- Init Epoch ----
         total_epoch_loss = 0.0
@@ -731,7 +592,7 @@ class BasicMiner( AbstractMiner ):
 
                     # ---- Forward / Backward ----
                     prev_row_weights = self.get_row_weights().tolist()
-                    output = self.training_call( batch = { 'inputs': inputs } )
+                    output = self.train ( batch = { 'inputs': inputs } )
                     next_row_weights = self.get_row_weights().tolist()
                     total_epoch_loss += output.local_target_loss.item()
 
@@ -739,12 +600,12 @@ class BasicMiner( AbstractMiner ):
                     self.global_step += 1
         else:
 
-            # QQDM display.
+            # QQDM display.ss
             progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
             for iteration, (inputs) in progress_bar:
                 # ---- Forward / Backward ----
                 prev_row_weights = self.get_row_weights().tolist()
-                output = self.training_call( batch = { 'inputs': inputs } )
+                output = self.train ( batch = { 'inputs': inputs } )
                 next_row_weights = self.get_row_weights().tolist()
                 total_epoch_loss += output.local_target_loss.item()
 

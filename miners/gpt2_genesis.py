@@ -51,7 +51,7 @@ from torch.nn.utils import clip_grad_norm_
 from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
 
-from . import miner
+from miners import miner
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -74,7 +74,7 @@ class Miner( miner.BasicMiner ):
 
         # ---- Nucleus ----
         self.nucleus = GPT2Nucleus( self.config )
-        self.nucleus.subscribe_routing_function( routing_function =  self.routing_call ) # Assign the routing function.
+        self.nucleus.attach( self ) # Assign the routing function.
 
         # ---- Row Weights ----
         self.row_weights = torch.ones([0]).to(self.nucleus.device)
@@ -168,8 +168,8 @@ class Miner( miner.BasicMiner ):
         SGMOERouter.check_config( config )
 
     # ---- Axon Forward call ----
-    def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Called by miner.forward_loop which can be overridden by the child class.
+    def forward ( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" Subscribed to an axon servicing endpoint.
             The arguments reflect an RPC request from another miner in the network, the response tensor
             should be the hidden units of the local nucleus of shape [batch_size, sequence_len, __network_dim__].
             
@@ -192,8 +192,8 @@ class Miner( miner.BasicMiner ):
         return output.local_hidden
 
     # ---- Axon Backward call ----
-    def backward_call( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Called by miner.backward_loop which can be overridden in the child class.
+    def backward ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" Subscribed to an axon servicing endpoint.
             Arguments reflect an RPC backward request from another miner in the network, the response tensor
             should be the gradients of the miner's nucleus w.r.t to the inputs and the passed output grads.
             
@@ -209,13 +209,13 @@ class Miner( miner.BasicMiner ):
             
             Returns:
                 outputs (:obj:`torch.FloatTensor`): 
-                    The gradients w.r.t to the inputs [batch_size, sequence_len, __network_dim__]
+                    The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
         """
         # TODO(const): add backward processing.
         # Not processing backward requests
         return None
 
-    def routing_call( self, inputs: torch.LongTensor, query: torch.FloatTensor ) -> SimpleNamespace:
+    def route ( self, inputs: torch.LongTensor, query: torch.FloatTensor ) -> SimpleNamespace:
         r""" Routing function for a bittensor nucleus. Accepts tokenized text inputs and a query. Routes text inputs to neurons
             based on that query. This function must be overridden by a miner class and assigned to the nucleus.
 
@@ -248,7 +248,7 @@ class Miner( miner.BasicMiner ):
         return outputs
 
     # ---- Training call ----
-    def training_call( self, batch: dict ) -> SimpleNamespace:
+    def train ( self, batch: dict ) -> SimpleNamespace:
         r""" Runs a single training batch through the nucleus and applies a gradient update.
             Args:
                 batch ( dict, `required`): 
@@ -368,7 +368,7 @@ class Miner( miner.BasicMiner ):
         self.row_weights = state_dict['row_weights'] # Load row weights
         self.nucleus.load_state_dict( state_dict['nucleus_state'] ) # Load nucleus
         self.router.load_state_dict( state_dict['router_state']) # Load router
-        self.nucleus.subscribe_routing_function( routing_function = self.routing_call )# Re-assign the routing function.
+        self.nucleus.attach( self )# Re-assign the routing function.
         self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
         self.optimizer.load_state_dict( state_dict['optimizer_state'] ) # Load optimizer.
         self.optimizer = self.configure_optimizers( self.optimizer )

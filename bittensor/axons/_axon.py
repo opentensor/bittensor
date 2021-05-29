@@ -15,49 +15,30 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
-import copy
 import grpc
-import pandas as pd
-import random
-import requests
 import sys
 import threading
 import torch
-import time
 import queue
-import validators
 import multiprocessing as mp
 
 from concurrent import futures
 from munch import Munch
 from termcolor import colored
 from types import SimpleNamespace
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Callable
 
 import bittensor
-import bittensor.utils.networking as net
 import bittensor.serialization as serialization
 import bittensor.utils.stats as stat_utils
 
 from loguru import logger
 logger = logger.opt(colors=True)
 
-class Axon(bittensor.grpc.BittensorServicer):
-    r"""
-        Services Forward and Backward requests from other neurons.
+class Axon( bittensor.grpc.BittensorServicer ):
+    r""" Services Forward and Backward requests from other neurons.
     """
-    def __init__(
-            self, 
-            config: Munch = None, 
-            wallet: 'bittensor.wallet.Wallet' = None,
-            local_port: int = None,
-            local_ip: str =  None,
-            max_workers: int = None, 
-            forward_processing_timeout:int = None,
-            backward_processing_timeout:int = None,
-            **kwargs
-        ):
+    def __init__( self, config: Munch, wallet: 'bittensor.wallet.Wallet', server: 'grpc._Server' ):
         r""" Initializes a new Axon tensor processing endpoint.
             
             Args:
@@ -65,51 +46,16 @@ class Axon(bittensor.grpc.BittensorServicer):
                     axon.Axon.config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                local_port (default=8091, type=int): 
-                    The port this axon endpoint is served on. i.e. 8091
-                local_ip (default='127.0.0.1', type=str): 
-                    The local ip this axon binds to. ie. 0.0.0.0
-                max_workers (default=10, type=int): 
-                    The maximum number connection handler threads working simultaneously on this endpoint. 
-                        The grpc server distributes new worker threads to service requests up to this number.
-                forward_processing_timeout (default=5, type=int):
-                    Length of time allocated to the miner forward process for computing and returning responses
-                        back to the axon.
-                backward_processing_timeout (default=5, type=int):
-                    Length of time allocated to the miner backward process for computing and returning responses
-                        back to the axon.
         """
-        # Config: Holds all config items for this items and those that are recursively defined. For instance,
-        # config for the wallet and nucleus sub-objects.
-        if config == None:
-            config = Axon.default_config()
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
-        config.axon.local_port = local_port if local_port != None else config.axon.local_port
-        config.axon.local_ip = local_ip if local_ip != None else config.axon.local_ip
-        config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
-        config.axon.forward_processing_timeout = forward_processing_timeout if forward_processing_timeout != None else config.axon.forward_processing_timeout
-        config.axon.backward_processing_timeout = backward_processing_timeout if backward_processing_timeout != None else config.axon.backward_processing_timeout
-        Axon.check_config( config )
         self.config = config
-
-        # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
-        # and subscribe to the chain.
-        if wallet == None:
-            wallet = bittensor.wallet.Wallet( config = self.config )
         self.wallet = wallet
-        
-        # Server: by default the axon serves an RPC server in its own thread using GPRC.
-        # The servicer must implement Forward and Backward methods to properly communicate with
-        # the other peers in the network.
-        self._server = None 
+        self._server = server
+         
+        self._forward_function = None
+        self._backward_function = None
 
-        # Serving thread: A thread which runs the axon servicer passing items to the nucleus for
-        # further processing.
-        self._thread = None
-
-        # Forward and Backward multiprocessing queues
-        self.forward_queue = mp.Queue(self.config.axon.forward_queue_maxsize)
-        self.backward_queue = mp.Queue(self.config.axon.backward_queue_maxsize)
+        bittensor.grpc.add_BittensorServicer_to_server( self, self._server )
+        self._server.add_insecure_port('[::]:' + str( self.config.axon.local_port ))
 
         # Stats: Memory of network statistics, QPS and bytes in and out for instance.
         self.stats = SimpleNamespace(
@@ -120,54 +66,6 @@ class Axon(bittensor.grpc.BittensorServicer):
             out_bytes_per_pubkey = {},
             qps_per_pubkey = {},
         )
-
-    @staticmethod   
-    def default_config() -> Munch:
-        # Parses and returns a config Munch for this object.
-        parser = argparse.ArgumentParser(); 
-        Axon.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        return config
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        r""" Adds this axon's command line arguments to the passed parser.
-            Args:
-                parser (:obj:`argparse.ArgumentParser`, `required`): 
-                    parser argument to append args to.
-        """
-        bittensor.wallet.Wallet.add_args(parser)
-        try:
-            parser.add_argument('--axon.local_port', default=8091, type=int, 
-                help='''The port this axon endpoint is served on. i.e. 8091''')
-            parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, 
-                help='''The local ip this axon binds to. ie. 0.0.0.0''')
-            parser.add_argument('--axon.max_workers', default=10, type=int, 
-                help='''The maximum number connection handler threads working simultaneously on this endpoint. 
-                        The grpc server distributes new worker threads to service requests up to this number.''')
-            parser.add_argument('--axon.forward_processing_timeout', default=5, type=int, 
-                help='''Length of time allocated to the miner forward process for computing and returning responses
-                        back to the axon.''')
-            parser.add_argument('--axon.backward_processing_timeout', default=5, type=int, 
-                help='''Length of time allocated to the miner backward process for computing and returning responses
-                        back to the axon.''')
-            parser.add_argument('--axon.forward_queue_maxsize', default=10, type=int,
-                help='''Maximum number of pending forward requests queued at any time.''')
-            parser.add_argument('--axon.backward_queue_maxsize', default=10, type=int, 
-                help='''Maximum number of pending backward requests queued at any time.''')
-            parser.add_argument('--axon.maximum_concurrent_rpcs', default=150, type=int, 
-                help='''The maximum number of concurrent RPCs this server will service before returning RESOURCE_EXHAUSTED status, or None to indicate no limit.''')
-        except:
-            pass
-
-    @staticmethod   
-    def check_config(config: Munch):
-        r""" Checks the passed config items for validity and obtains the remote ip.
-            Args:
-                config (:obj:`munch.Munch, `required`): 
-                    config to check.
-        """
-        assert config.axon.local_port > 1024 and config.axon.local_port < 65535, 'config.axon.local_port must be in range [1024, 65535]'
 
     def Forward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
@@ -230,74 +128,44 @@ class Axon(bittensor.grpc.BittensorServicer):
         logger.debug('<- Backward response: {}, size:{}', response.public_key, sys.getsizeof( response ))
         return response
 
-    def next_forward_item( 
-            self,
-            timeout: int = 10 
-        ) -> Tuple[Optional[mp.Pipe], Optional[str], Optional[torch.Tensor], Optional[torch.FloatTensor], Optional[int]]:
-        r""" 
-            Returns the next forward item from the forward queue to the caller.
-            If there are no items on the queue after the timeout the response is None.
-            Every call to next forward should be followed by a corresponding pong.send( outputs_y )
-            
-            Args:
-                timeout (int, `required`): 
-                    queue pull timeout,
-            
-            Returns:
-                pong (:obj:`mp.Pipe, `optional`): 
-                    multiprocessing pipe tunnel for the response or None if a timeout occurs.
-                public_key (str, `optional`):
-                    public key of caller or None if a timeout occurs.
-                inputs_x ( :obj:`torch.Tensor`, `required`):
-                    torch inputs to be forward processed or None if a timeout occurs.
-                modality ( bittensor.proto.Modality, `required`):
-                    modality of inputs or None if a timeout occurs.
-
+    def attach( self, servicer:object ):
         """
-        try:
-            return self.forward_queue.get( block = True, timeout = timeout )
-        except queue.Empty:
-            return (None, None, None, None)
+            Attaches the forward and backward calls of the passed object.
 
-    def next_backward_item( 
-            self, 
-            timeout: int = 10 
-        ) -> Tuple[mp.Pipe, str, torch.Tensor, torch.FloatTensor, int]:
-        r""" 
-            Returns the next backward item from the backward queue to the caller.
-            If there are no items on the queue after the timeout the response is None.
-            Every call to next backward should be followed by a corresponding pong.send( outputs_y )
-            
-            Args:
-                timeout (int, `required`): 
-                    queue pull timeout,
-            
             Returns:
-                pong (:obj:`mp.Pipe, `optional`): 
-                    multiprocessing pipe tunnel for the response or None if a timeout occurs.
-                public_key (str, `optional`):
-                    public key of caller or None if a timeout occurs.
-                inputs_x ( :obj:`torch.Tensor`, `required`):
-                    torch inputs to be forward processed or None if a timeout occurs.
-                grads_dy ( :obj:`torch.Tensor`, `required`):
-                    torch gradient inputs to be backward processed with inputs or None if a timeout occurs.
-                modality ( bittensor.proto.Modality, `required`):
-                    modality of inputs or None if a timeout occurs.
-
+                servicer (:object:`object`, `required`): 
+                    object with callable functions servicer.forward and servicer.backward
         """
-        try:
-            return self.backward_queue.get( block = True, timeout = timeout )
-        except queue.Empty:
-            return (None, None, None, None, None)
+        self._forward_function = self.attach_forward_function( servicer.forward )
+        self._backward_function = self.attach_forward_function( servicer.backward )
 
-    def enqueue_forward_to_nucleus(
+    def attach_forward_function(self, forward_function: Callable[ [str, torch.Tensor, int], torch.Tensor ] ):
+        """ Assigns the forward_function.
+
+            Returns:
+                forward_function (:callabl:`Callable[ [str, torch.Tensor, int], torch.Tensor `, `required`): 
+                    Forward function called on recieving a forward processing call on the wire.
+        """
+        # TODO(const): type checking.
+        self._forward_function = forward_function
+
+    def attach_backward_function(self, backward_function: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ] ):
+        """ Assigns the routing_function call to this neuron.
+
+            Returns:
+                backward_function (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
+                     Backward function called on recieving a forward processing call on the wire.
+        """
+        # TODO(const): type checking.
+        self._backward_function = backward_function
+
+    def _call_forward(
             self, 
             public_key: str, 
             inputs_x: torch.Tensor, 
             modality: bittensor.proto.Modality
         ) -> Tuple[ torch.FloatTensor, int, str ]:
-        r""" Forwards the torch_inputs to the axon.forward_queue for processing by the miner threads.
-        Responses are pulled from the pipe or a timeout occurs.
+        r""" Calls the forward function subscribed by the nucleus.
             
             Args:
                 public_key (str, `required`): 
@@ -316,50 +184,33 @@ class Axon(bittensor.grpc.BittensorServicer):
                     message associated with forward call, potentially error, or 'success'.
 
         """
-        logger.debug('enqueue_forward_to_nucleus: {}, inputs_x: {}', public_key, inputs_x)
-        ping, pong = mp.Pipe()
+        # Check forward has been subscribed.
+        if self._forward_function == None:
+            message = "Forward function is not yet subscribed on this axon."
+            return None, bittensor.proto.ReturnCode.NotImplemented, message
+        
+        # Make forward call.
         try:
-            # ---- Build pipe for request ----
-            forward_payload = [pong, public_key, inputs_x, modality]
-
-            # ---- Send request to forward queue ----
-            try:
-                self.forward_queue.put( forward_payload, block=True, timeout = self.config.axon.forward_processing_timeout )
-            except queue.Full:
-                message = "Forward queue is full"
-                logger.debug( message )
-                pong.close(); ping.close()
-                return None, bittensor.proto.ReturnCode.NucleusFull, message
-
-            # ---- Recv response from pipe ----
-            if ping.poll( timeout = self.config.axon.forward_processing_timeout ):
-                outputs = ping.recv()
-                message = "Success"
-                logger.debug( message )
-                pong.close(); ping.close()
-                return outputs, bittensor.proto.ReturnCode.Success, message
-
-            else:
-                message = "Processing timeout"
-                logger.debug( message )
-                pong.close(); ping.close()
-                return None, bittensor.proto.ReturnCode.NucleusTimeout, message
+            response_tensor = self._forward_function( public_key, inputs_x, modality)
+            message = "Success"
+            code = bittensor.proto.ReturnCode.Success
+            return response_tensor, code, message
 
         except Exception as e:
-            message = str(e)
-            logger.error( message )
-            pong.close(); ping.close()
-            return None, bittensor.proto.ReturnCode.UnknownException, message
+            response_tensor = None
+            message = "Error calling forward function: {}".format(e)
+            code = bittensor.proto.ReturnCode.UnknownException
+            return response_tensor, code, message 
 
-    def enqueue_backward_to_nucleus(
+
+    def _call_backward(
             self, 
             public_key: str, 
             inputs_x: torch.Tensor, 
             grads_dy: torch.FloatTensor,
             modality: bittensor.proto.Modality
         ) -> Tuple[ torch.FloatTensor, int, str ]:
-        r""" Forwards the torch_inputs to the axon.backward_queue for processing by the miner threads.
-        Responses are pulled from the pipe or a timeout occurs.
+        r""" Calls the forward function subscribed by the nucleus.
             
             Args:
                 public_key (str, `required`): 
@@ -379,39 +230,23 @@ class Axon(bittensor.grpc.BittensorServicer):
                 message (str, `required`): 
                     message associated with forward call, potentially error, or 'success'.
         """
-        ping, pong = mp.Pipe()
+        # Check forward has been subscribed.
+        if self._backward_function == None:
+            message = "Forward function is not yet subscribed on this axon."
+            return None, bittensor.proto.ReturnCode.NotImplemented, message
+        
+        # Make forward call.
         try:
-            # ---- Build pipe for request ----
-            backward_payload = [pong, public_key, inputs_x, grads_dy, modality]
-
-            # ---- Send request to queue ----
-            try:
-                self.backward_queue.put( backward_payload, block = True, timeout = self.config.axon.backward_processing_timeout )
-            except queue.Full:
-                message = "Backward queue is full"
-                logger.debug( message )
-                pong.close(); ping.close()
-                return None, bittensor.proto.ReturnCode.NucleusFull, message
-
-            # ---- Recv response from pipe ----
-            if ping.poll( timeout = self.config.axon.backward_processing_timeout ):
-                outputs = ping.recv()
-                message = "Success" 
-                logger.debug( message )
-                pong.close(); ping.close()
-                return outputs, bittensor.proto.ReturnCode.Success, message
-
-            else:
-                message = "Processing timeout"
-                logger.debug( message )
-                pong.close(); ping.close()
-                return None, bittensor.proto.ReturnCode.NucleusTimeout, message
+            response_tensor = self._backward_function( public_key, inputs_x, grads_dy, modality)
+            message = "Success"
+            code = bittensor.proto.ReturnCode.Success
+            return response_tensor, code, message
 
         except Exception as e:
-            message = str( e )
-            logger.error( message )
-            pong.close(); ping.close()
-            return None, bittensor.proto.ReturnCode.UnknownException, message
+            response_tensor = None
+            message = "Error calling forward function: {}".format(e)
+            code = bittensor.proto.ReturnCode.UnknownException
+            return response_tensor, code, message 
             
     def _forward(self, request):
         r""" Performs validity checks on the grpc request before passing the tensors to the forward queue.
@@ -476,7 +311,7 @@ class Axon(bittensor.grpc.BittensorServicer):
 
         # ---- Make nucleus forward call. ----
         logger.debug('<white>Axon</white> <green>Forward Request</green> ---> <white>from</white>:<cyan>{}</cyan>, <white>inputs</white>:<cyan>{}</cyan>', request.public_key, torch_inputs.shape)
-        outputs, code, message = self.enqueue_forward_to_nucleus( 
+        outputs, code, message = self._call_forward( 
             public_key = request.public_key, 
             inputs_x = torch_inputs, 
             modality = modality
@@ -561,7 +396,7 @@ class Axon(bittensor.grpc.BittensorServicer):
  
         # ---- Make nucleus backward call. ----
         logger.debug('<white>Axon</white> <green>Backward Request</green> ---> <white>from</white>:<cyan>{}</cyan>, <white>grads_dy</white>:<cyan>{}</cyan>', request.public_key, grads_dy.shape)
-        outputs, code, message = self.enqueue_backward_to_nucleus( 
+        outputs, code, message = self._call_backward( 
             public_key = request.public_key, 
             inputs_x = inputs_x, 
             grads_dy = grads_dy, 
@@ -639,11 +474,7 @@ class Axon(bittensor.grpc.BittensorServicer):
         # TODO(const): should allow more than one services and these can run in different processes.
         # Destroy and create a new serving thread.
         if self._server != None:
-            self._server.stop( 0 )
-        
-        self._server = grpc.server( futures.ThreadPoolExecutor( max_workers = self.config.axon.max_workers ), maximum_concurrent_rpcs = self.config.axon.maximum_concurrent_rpcs )
-        bittensor.grpc.add_BittensorServicer_to_server( self, self._server )
-        self._server.add_insecure_port('[::]:' + str( self.config.axon.local_port ))
+            self._server.stop( 0 )   
         self._thread = threading.Thread( target = self._serve, daemon = True )
         self._thread.start()
 

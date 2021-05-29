@@ -142,7 +142,7 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
         assert all(isinstance(el, int) for el in config.nucleus.dense_depth), 'nucleus.dense_depth must be a tuple of ints, got {}'.format(config.nucleus.dense_depth)
 
 
-    def subscribe_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
+    def attach_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
         """ Assigns the routing_function call to this neuron.
 
             Returns:

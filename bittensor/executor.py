@@ -63,7 +63,7 @@ class Executor ():
         self.wallet = wallet
         self.subtensor = bittensor.subtensor.Subtensor( config = self.config )
         self.metagraph = bittensor.metagraph.Metagraph()
-        self.axon = bittensor.axon.Axon( config = self.config, wallet = self.wallet )
+        self.axon = bittensor.axon( config = self.config, wallet = self.wallet )
         self.dendrite = bittensor.dendrite.Dendrite( config = self.config, wallet = self.wallet )
 
     @staticmethod
@@ -77,7 +77,7 @@ class Executor ():
     def add_args (parser: argparse.ArgumentParser):
         bittensor.wallet.Wallet.add_args( parser )
         bittensor.subtensor.Subtensor.add_args( parser )
-        bittensor.axon.Axon.add_args( parser )
+        bittensor.axon.add_args( parser )
         bittensor.dendrite.Dendrite.add_args( parser )
         bittensor.nucleus.Nucleus.add_args( parser )
         
@@ -85,7 +85,7 @@ class Executor ():
     def check_config (config: Munch):
         bittensor.wallet.Wallet.check_config( config )
         bittensor.subtensor.Subtensor.check_config( config )
-        bittensor.axon.Axon.check_config( config )
+        bittensor.axon.check_config( config )
         bittensor.dendrite.Dendrite.check_config( config )
         bittensor.nucleus.Nucleus.check_config( config )
             

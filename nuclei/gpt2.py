@@ -230,8 +230,17 @@ class GPT2Nucleus(bittensor.nucleus.Nucleus):
     def check_config(config: Munch):
         pass
 
-    def subscribe_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
-        """ Assigns the routing_function call to this neuron.
+    def attach(self, servicer: object ):
+        """ Attaches the passed servicer's routing function to this nucleus.
+
+            Returns:
+                servicer (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
+                    servicer implementing function route()
+        """
+        self.attach_routing_function( servicer.route )
+
+    def attach_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
+        """ Assigns the passed routing_function to this nucleus.
 
             Returns:
                 routing_function (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 

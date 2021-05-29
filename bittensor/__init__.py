@@ -35,7 +35,6 @@ __blocktime__ = 6
 
 # Load components.
 import bittensor.tokenizer
-import bittensor.axon
 import bittensor.config 
 import bittensor.executor
 import bittensor.cli
@@ -47,6 +46,8 @@ import bittensor.router
 import bittensor.subtensor
 import bittensor.nucleus
 import bittensor.wallet
+
+from bittensor.axons import axon
 
 # ---- LOGGING ----
 __debug_on__ = False
