@@ -48,6 +48,7 @@ from bittensor.axons import axon
 from bittensor.dendrites import dendrite
 from bittensor.clis import cli
 from bittensor.executors import executor
+from bittensor.wallets import wallet
 
 # ---- LOGGING ----
 __debug_on__ = False

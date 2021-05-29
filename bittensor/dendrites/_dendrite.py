@@ -44,14 +44,14 @@ class Dendrite(nn.Module):
     def __init__(
             self, 
             config: Munch,
-            wallet: 'bittensor.wallet.Wallet',
+            wallet: 'bittensor.wallet',
             thread_pool: 'ThreadPoolExecutor'
         ):
         r""" Initializes a new Dendrite entry point.
             Args:
                 config (:obj:`Munch`, `required`): 
                     bittensor.dendrite.default_config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `required`):
+                wallet (:obj:`bittensor.wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
                 thread_pool (:obj:`ThreadPoolExecutor`, `required`):
                     Threadpool used for making client queries.

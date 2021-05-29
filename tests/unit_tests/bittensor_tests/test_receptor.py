@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 import bittensor.serialization as serialization
 from munch import Munch
 
-wallet =  bittensor.wallet.Wallet(
+wallet =  bittensor.wallet(
     path = '/tmp/pytest',
     name = 'pytest',
     hotkey = 'pytest',

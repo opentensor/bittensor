@@ -31,26 +31,25 @@ class cli:
     def __new__(
             cls, 
             config: Munch = None, 
-            wallet: 'bittensor.wallet.Wallet' = None,
+            wallet: 'bittensor.wallet' = None,
             executor: 'bittensor.executor.Executor' = None
         ):
         r""" Creates a new bittensor.cli from passed arguments.
             Args:
                 config (:obj:`Munch`, `optional`): 
                     bittensor.cli.default_config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                wallet (:obj:`bittensor.wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 executor (:obj:`bittensor.executor.executor`, `optional`):
                     bittensor executor object, used to execute cli options.
         """
-        # config for the wallet and nucleus sub-objects.
         if config == None:
             config = cli.default_config()
         config = copy.deepcopy(config)
         cli.check_config( config )
 
         if wallet == None:
-            wallet = bittensor.wallet.Wallet( config = config )
+            wallet = bittensor.wallet( config = config )
   
         if executor == None:
             executor = bittensor.executor( config = config, wallet = wallet )

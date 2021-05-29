@@ -65,7 +65,7 @@ def connect( port:int ):
     subtensor.connect()
     return subtensor
 
-def add_stake( subtensor, wallet: 'wallet:bittensor.wallet.Wallet', amount: 'Balance' ):
+def add_stake( subtensor, wallet: 'wallet:bittensor.wallet', amount: 'Balance' ):
     # Get the uid of the new neuron
     uid = subtensor.get_uid_for_pubkey( wallet.hotkey.public_key )
     assert uid is not None

@@ -16,8 +16,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
-import copy
 import json
 import os
 import re
@@ -27,7 +25,6 @@ import sys
 from munch import Munch
 from loguru import logger
 logger = logger.opt(colors=True)
-from termcolor import colored
 
 import bittensor
 from bittensor.substrate import Keypair
@@ -44,60 +41,15 @@ class Wallet():
     The coldkey must be used to stake and unstake funds from a running node. The hotkey, on the other hand, is only used
     for suscribing and setting weights from running code. Hotkeys are linked to coldkeys through the metagraph. 
     """
-    def __init__(
-            self, 
-            config: Munch = None,
-            name: str = None,
-            path: str = None,
-            hotkey: str = None,
-            **kwargs
-        ):
+    def __init__( self, config: Munch ):
         r""" Init bittensor wallet object containing a hot and coldkey.
-
             Args:
                 config (:obj:`Munch`, `optional`): 
-                name (required=False, default='default):
-                    The name of the wallet to unlock for running bittensor
-                hotkey (required=False, default='default):
-                    The name of hotkey used to running the miner.
-                path (required=False, default='~/.bittensor/wallets/'):
-                    The path to your bittensor wallets
         """
-        if config == None:
-            config = Wallet.default_config()
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
-        config.wallet.name = name if name != None else config.wallet.name
-        config.wallet.path = path if path != None else config.wallet.path
-        config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey
-        Wallet.check_config(config)
         self.config = config
         self._hotkey = None
         self._coldkey = None
         self._coldkeypub = None
-        
-    @staticmethod   
-    def default_config() -> Munch:
-        # Parses and returns a config Munch for this object.
-        parser = argparse.ArgumentParser(); 
-        Wallet.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        return config
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        try:
-            parser.add_argument('--wallet.name', required=False, default='default', 
-                                    help='''The name of the wallet to unlock for running bittensor''')
-            parser.add_argument('--wallet.hotkey', required=False, default='default', 
-                                    help='''The name of wallet's hotkey.''')
-            parser.add_argument('--wallet.path', required=False, default='~/.bittensor/wallets/', 
-                                    help='''The path to your bittensor wallets''')
-        except:
-            pass
-
-    @staticmethod   
-    def check_config(config: Munch):
-        pass
 
     def assert_hotkey(self):
         r""" Checks for a valid hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or exits.

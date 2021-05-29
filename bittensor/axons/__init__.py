@@ -29,7 +29,7 @@ class axon:
     def __new__(
             cls, 
             config: Munch = None, 
-            wallet: 'bittensor.wallet.Wallet' = None,
+            wallet: 'bittensor.wallet' = None,
             thread_pool: 'futures.ThreadPoolExecutor' = None,
             server: 'grpc._Server' = None,
             local_port: int = None,
@@ -41,7 +41,7 @@ class axon:
             Args:
                 config (:obj:`Munch`, `optional`): 
                     bittensor.axon.default_config()
-                wallet (:obj:`bittensor.wallet.Wallet`, `optional`):
+                wallet (:obj:`bittensor.wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
                     Threadpool used for processing server queries.
@@ -55,9 +55,7 @@ class axon:
                     Used to create threadpool if not passed. Number of active threads servicing requests.
                 maximum_concurrent_rpcs (:type:`int`, `optional`):
                     Maximum allowed concurrently processing RPCs.
-        """
-        
-        # config for the wallet and nucleus sub-objects.
+        """        
         if config == None:
             config = axon.default_config()
         config.axon.local_port = local_port if local_port != None else config.axon.local_port
@@ -70,7 +68,7 @@ class axon:
         # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
         # and subscribe to the chain.
         if wallet == None:
-            wallet = bittensor.wallet.Wallet( config = config )
+            wallet = bittensor.wallet( config = config )
         wallet = wallet
 
         # Create threadpool if non-existent.
@@ -99,7 +97,7 @@ class axon:
                 parser (:obj:`argparse.ArgumentParser`, `required`): 
                     parser argument to append args to.
         """
-        bittensor.wallet.Wallet.add_args(parser)
+        bittensor.wallet.add_args(parser)
         try:
             parser.add_argument('--axon.local_port', default=8091, type=int, 
                 help='''The port this axon endpoint is served on. i.e. 8091''')
