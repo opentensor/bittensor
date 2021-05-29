@@ -33,7 +33,7 @@ class cli:
             config: Munch = None, 
             wallet: 'bittensor.wallet' = None,
             executor: 'bittensor.executor.Executor' = None
-        ):
+        ) -> 'bittensor.CLI':
         r""" Creates a new bittensor.cli from passed arguments.
             Args:
                 config (:obj:`Munch`, `optional`): 

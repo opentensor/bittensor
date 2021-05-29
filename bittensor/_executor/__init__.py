@@ -36,7 +36,7 @@ class executor:
             metagraph: 'bittensor.metagraph.Metagraph' = None,
             axon: 'bittensor.axon.Axon' = None,
             dendrite: 'bittensor.dendrite.Dendrite' = None
-        ):
+        ) -> 'bittensor.Executor':
         r""" Creates a new Executor object from passed arguments.
             Args:
                 config (:obj:`Munch`, `optional`): 

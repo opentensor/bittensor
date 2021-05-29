@@ -30,7 +30,7 @@ class wallet:
             name: str = None,
             path: str = None,
             hotkey: str = None,
-        ):
+        ) -> 'bittensor.Wallet':
         r""" Init bittensor wallet object containing a hot and coldkey.
 
             Args:

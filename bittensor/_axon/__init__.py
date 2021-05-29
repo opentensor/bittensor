@@ -36,7 +36,7 @@ class axon:
             local_ip: str =  None,
             max_workers: int = None, 
             maximum_concurrent_rpcs: int = None,
-        ):
+        ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
                 config (:obj:`Munch`, `optional`): 

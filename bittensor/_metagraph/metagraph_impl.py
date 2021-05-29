@@ -175,11 +175,11 @@ class Metagraph( torch.nn.Module ):
         return [ net.ip__str__( neuron.ip_type, neuron.ip, neuron.port ) for neuron in self.neuron_endpoints ]
 
     @property
-    def neuron_endpoints(self) -> List[ bittensor.utils.neurons.NeuronEndpoint ]:
+    def neuron_endpoints(self) -> List[ 'bittensor.Endpoint' ]:
         r""" Return neuron endpoint information for each neuron.
             
             Returns:
-                neurons (:obj:`List[ bittensor.utils.neurons.NeuronEndpoint ]` of shape :obj:`(metagraph.n)`):
+                neurons (:obj:`List[ bittensor.Endpoint ]` of shape :obj:`(metagraph.n)`):
                     Endpoint information for each neuron.
 
         """
@@ -191,7 +191,7 @@ class Metagraph( torch.nn.Module ):
             self.cached_endpoints = []
             for idx, neuron_tensor in enumerate(self.neurons):
                 try:
-                    neuron_endpoint = bittensor.utils.neurons.NeuronEndpoint.from_tensor( neuron_tensor )
+                    neuron_endpoint = bittensor.endpoint.from_tensor( neuron_tensor )
                     self.cached_endpoints.append ( neuron_endpoint )
                 except Exception as e:
                     self.cached_endpoints.append ( None )
@@ -265,7 +265,7 @@ class Metagraph( torch.nn.Module ):
         """
         # Defaults to base subtensor connection.
         if subtensor == None:
-            subtensor = bittensor.subtensor.Subtensor( config = self.config )
+            subtensor = bittensor.subtensor( config = self.config )
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         loop.run_until_complete(self._async_sync(subtensor, force))
@@ -357,7 +357,7 @@ class Metagraph( torch.nn.Module ):
             
             # Fill Neuron info.
             neuron = await subtensor.async_get_neuron_for_uid( uid )
-            neuron_obj = bittensor.utils.neurons.NeuronEndpoint.from_dict(neuron)
+            neuron_obj = bittensor.endpoint.from_dict( neuron )
             neuron_tensor = neuron_obj.to_tensor()
             self.neurons[ uid ] = torch.nn.Parameter( neuron_tensor, requires_grad=False )
             

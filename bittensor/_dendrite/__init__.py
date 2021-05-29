@@ -37,7 +37,7 @@ class dendrite:
             timeout: int = None,
             do_backoff : bool =  None,
             max_backoff: int = None, 
-        ):
+        ) -> 'bittensor.Dendrite':
         r""" Creates a new Dendrite object from passed arguments.
             Args:
                 config (:obj:`Munch`, `optional`): 

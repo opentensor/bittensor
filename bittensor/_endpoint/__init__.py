@@ -15,41 +15,38 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import torch
+import json
 import bittensor
-import argparse
-import copy
-from munch import Munch
+from loguru import logger
+import bittensor.utils.networking as net
 
-from . import metagraph_impl
+from . import endpoint_impl
 
-class metagraph:
+class endpoint:
 
-    def __new__(
-            cls, 
-            config: Munch = None
-        ) -> 'bittensor.Metagraph':
-        r""" Creates a new bittensor.Axon object from passed arguments.
-            Args:
-                config (:obj:`Munch`, `optional`): 
-                    bittensor.metagraph.default_config()
-        """        
-        if config == None:
-            config = metagraph.default_config()
-        metagraph.check_config( config )
-        return metagraph_impl.Metagraph( config )
+    def __new__( cls, uid:int, hotkey:str, ip:str, ip_type:int, port:int , modality:int, coldkey:str ) -> 'bittensor.Endpoint':
+        return endpoint_impl.Endpoint( uid, hotkey, ip, ip_type, port, modality, coldkey )
 
-    @staticmethod   
-    def default_config() -> Munch:
-        parser = argparse.ArgumentParser(); 
-        metagraph.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        return config
+    @staticmethod
+    def from_dict(neuron_dict: dict) -> 'endpoint_impl.Endpoint':
+        return endpoint_impl.Endpoint(
+            uid = neuron_dict['uid'], 
+            hotkey = neuron_dict['hotkey'], 
+            port = neuron_dict['port'],
+            ip = neuron_dict['ip'], 
+            ip_type = neuron_dict['ip_type'], 
+            modality = neuron_dict['modality'], 
+            coldkey = neuron_dict['coldkey']
+        )
+    
+    @staticmethod
+    def from_tensor( tensor: torch.LongTensor) -> 'endpoint_impl.Endpoint':
+        neuron_string = bittensor.__tokenizer__.decode( tensor )
+        neuron_dict = json.loads( neuron_string )
+        return endpoint_impl.Endpoint.from_dict(neuron_dict)
 
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        bittensor.subtensor.add_args(parser)
-        
-    @staticmethod   
-    def check_config(config: Munch):
-        bittensor.subtensor.check_config(config)
+
+
+
 

@@ -42,7 +42,7 @@ class subtensor:
             config: 'Munch' = None,
             network: str = None,
             chain_endpoint: str = None
-        ):
+        ) -> 'bittensor.Subtensor':
         r""" Initializes a subtensor chain interface.
             Args:
                 config (:obj:`Munch`, `optional`): 

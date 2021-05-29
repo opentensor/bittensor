@@ -56,7 +56,7 @@ class Receptor(nn.Module):
 
     def __init__(
             self, 
-            neuron: 'bittensor.utils.neurons.NeuronEndpoint', 
+            neuron: 'bittensor.Endpoint', 
             config: Munch = None, 
             wallet: 'bittensor.wallet' = None,
             pass_gradients: bool = None,
@@ -66,11 +66,11 @@ class Receptor(nn.Module):
         ):
         r""" Initializes a receptor grpc connection.
             Args:
-                neuron (:obj:`bittensor.utils.neurons.NeuronEndpoint`, `required`):
+                neuron (:obj:`bittensor.Endpoint`, `required`):
                     neuron endpoint descriptor proto.
                 config (:obj:`Munch`, `optional`): 
                     receptor.Receptor.config()
-                wallet (:obj:`bittensor.wallet`, `optional`):
+                wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 pass_gradients (default=True, type=bool)
                     Switch to true if the neuron passes gradients to downstream peers.
