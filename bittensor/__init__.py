@@ -48,6 +48,7 @@ from bittensor._dendrite import dendrite as dendrite
 from bittensor._executor import executor as executor
 from bittensor._metagraph import metagraph as metagraph
 from bittensor._subtensor import subtensor as subtensor
+from bittensor._dataloaders import genesis_dataloader as genesis_dataloader
 
 from bittensor._cli.cli_impl import CLI as CLI
 from bittensor._axon.axon_impl import Axon as Axon
