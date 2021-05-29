@@ -20,9 +20,6 @@
 import nest_asyncio
 nest_asyncio.apply()
 
-import bittensor.bittensor_pb2 as proto
-import bittensor.bittensor_pb2_grpc as grpc
-
 # Bittensor code and protocol version.
 __version__ = '1.0.3'
 
@@ -33,12 +30,14 @@ __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __s
 # Substrate chain block time (seconds).
 __blocktime__ = 6
 
+import bittensor.bittensor_pb2 as proto
+import bittensor.bittensor_pb2_grpc as grpc
+
 # Load components.
 import bittensor.tokenizer
 import bittensor.config 
 import bittensor.logging
 import bittensor.receptor
-import bittensor.router
 import bittensor.nucleus
 
 from bittensor._cli import cli as cli
@@ -58,7 +57,6 @@ from bittensor._endpoint.endpoint_impl import Endpoint as Endpoint
 from bittensor._dendrite.dendrite_impl import Dendrite as Dendrite
 from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
-
 
 # ---- LOGGING ----
 __debug_on__ = False
