@@ -15,9 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
 import torch
-from typing import Tuple
 from types import SimpleNamespace
 import bittensor
 
@@ -25,23 +23,23 @@ class Router( torch.nn.Module ):
     def __init__( self ):
         super().__init__()
 
-    def sync_chain_state( self, metagraph: 'bittensor.metagraph.Metagraph' ):
+    def sync_chain_state( self, metagraph: 'bittensor.Metagraph' ):
         r""" Creates new parameters based on metagraph size.
 
             Args:
-                metagraph (:obj: `bittensor.metagraph.Metagraph'`, `required`):
+                metagraph (:obj: `bittensor.Metagraph'`, `required`):
                     bittensor metagraph object.
         """
         raise NotImplementedError()
 
-    def _route(self, metagraph: 'bittensor.metagraph.Metagraph', dendrite: 'bittensor.dendrite.Dendrite', inputs: torch.FloatTensor, query: torch.FloatTensor, modality: bittensor.proto.Modality) -> SimpleNamespace:
+    def _route(self, metagraph: 'bittensor.Metagraph', dendrite: 'bittensor.Dendrite', inputs: torch.FloatTensor, query: torch.FloatTensor, modality: bittensor.proto.Modality) -> SimpleNamespace:
         r""" Routes inputs using context and metagraph state.
 
             Args:
-                metagraph (:obj: `bittensor.metagraph.Metagraph`, `required`):
+                metagraph (:obj: `bittensor.Metagraph`, `required`):
                     Bittensor metagraph object. Used to pull network endpoint info.
 
-                dendrite (:obj: `bittensor.dendrite.Dendrite`, `required`):
+                dendrite (:obj: `bittensor.Dendrite`, `required`):
                     Bittensor dendrite object. Used to make queries into the network.
 
                 inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, *-1*)`, `required`): 
@@ -74,14 +72,14 @@ class Router( torch.nn.Module ):
         raise NotImplementedError()
     
 
-    def forward_image(self, metagraph: 'bittensor.metagraph.Metagraph', dendrite: 'bittensor.dendrite.Dendrite', images: torch.FloatTensor, query: torch.FloatTensor) -> SimpleNamespace:
+    def forward_image(self, metagraph: 'bittensor.Metagraph', dendrite: 'bittensor.Dendrite', images: torch.FloatTensor, query: torch.FloatTensor) -> SimpleNamespace:
         r""" Forwards images to connected neurons using the passed context to learn connectivity.
 
             Args:
-                metagraph (:obj: `bittensor.Neuron`, `required`):
+                metagraph (:obj: `bittensor.Metagraph`, `required`):
                     bittensor metagraph object. Used to pull network endpoint info.
 
-                dendrite (:obj: `bittensor.dendrite.Dendrite`, `required`):
+                dendrite (:obj: `bittensor.Dendrite`, `required`):
                     bittensor dendrite object. User to make queries into the network.
 
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
@@ -107,14 +105,14 @@ class Router( torch.nn.Module ):
         """
         return self._route(metagraph, dendrite, images, query, bittensor.proto.Modality.IMAGE)
 
-    def forward_text(self, metagraph: 'bittensor.metagraph.Metagraph', dendrite: 'bittensor.dendrite.Dendrite', text: torch.LongTensor, query: torch.FloatTensor) -> SimpleNamespace:
+    def forward_text(self, metagraph: 'bittensor.Metagraph', dendrite: 'bittensor.Dendrite', text: torch.LongTensor, query: torch.FloatTensor) -> SimpleNamespace:
         r""" Forwards text to connected neurons using the passed context to learn connectivity.
 
             Args:
-                metagraph (:obj: `bittensor.Neuron`, `required`):
+                metagraph (:obj: `bittensor.Metagraph`, `required`):
                     bittensor metagraph object. Used to pull network endpoint info.
 
-                dendrite (:obj: `bittensor.dendrite.Dendrite`, `required`):
+                dendrite (:obj: `bittensor.Dendrite`, `required`):
                     bittensor dendrite object. User to make queries into the network.
 
                 text (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_dim)`, `required`): 
@@ -142,14 +140,14 @@ class Router( torch.nn.Module ):
         return self._route( metagraph, dendrite, text, query, bittensor.proto.Modality.TEXT)
 
 
-    def forward_tensor(self, metagraph: 'bittensor.metagraph.Metagraph', dendrite: 'bittensor.dendrite.Dendrite', tensors: torch.FloatTensor, query: torch.FloatTensor) -> SimpleNamespace:
+    def forward_tensor(self, metagraph: 'bittensor.Metagraph', dendrite: 'bittensor.Dendrite', tensors: torch.FloatTensor, query: torch.FloatTensor) -> SimpleNamespace:
         r""" Forwards tensors to connected neurons using the passed context to learn connectivity.
 
             Args:
-                metagraph (:obj: `bittensor.Neuron`, `required`):
+                metagraph (:obj: `bittensor.Metagraph`, `required`):
                     bittensor metagraph object. Used to pull network endpoint info.
 
-                dendrite (:obj: `bittensor.dendrite.Dendrite`, `required`):
+                dendrite (:obj: `bittensor.Dendrite`, `required`):
                     bittensor dendrite object. User to make queries into the network.
 
                 tensors (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 

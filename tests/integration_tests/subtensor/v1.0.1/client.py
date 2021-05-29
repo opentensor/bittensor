@@ -56,7 +56,7 @@ def setup_chain():
 
 def connect( port:int ):
     chain_endpoint = "localhost:%i" % port
-    subtensor = bittensor.subtensor.Subtensor(
+    subtensor = bittensor.Subtensor(
         chain_endpoint = chain_endpoint,
     )
     subtensor.connect()

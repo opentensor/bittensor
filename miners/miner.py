@@ -224,7 +224,7 @@ class AbstractMiner ():
             logger.error('Failed to save metagraph to path: <cyan>{}</cyan>', path)    
 
     def reconnect_to_chain( self ):
-        self.subtensor = bittensor.subtensor.Subtensor( config = self.config ) # Re-create subtensor object.
+        self.subtensor = bittensor.Subtensor( config = self.config ) # Re-create subtensor object.
         self.connect_to_chain()
 
     def connect_to_chain ( self ):

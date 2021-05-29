@@ -21,8 +21,9 @@ from munch import Munch
 from typing import List, Tuple
 from types import SimpleNamespace
 import bittensor
+from . import router
 
-class SGMOERouter( bittensor.router.Router ):
+class SGMOERouter( router.Router ):
     def __init__(self, config: Munch = None, query_dim = bittensor.__network_dim__, **kwargs):
         super().__init__()
         if config == None:
@@ -55,11 +56,11 @@ class SGMOERouter( bittensor.router.Router ):
     def check_config(config):   
         return config
 
-    def sync_with_chain_state( self, metagraph: 'bittensor.metagraph.Metagraph' ):
+    def sync_with_chain_state( self, metagraph: 'bittensor.Metagraph' ):
         r""" Creates new parameters based on metagraph size.
 
             Args:
-                metagraph (:obj: `bittensor.metagraph.Metagraph'`, `required`):
+                metagraph (:obj: `bittensor.Metagraph'`, `required`):
                     bittensor metagraph object.
         """
         # Add new gates for each uid.
@@ -69,8 +70,8 @@ class SGMOERouter( bittensor.router.Router ):
 
     def _route(
             self, 
-            metagraph: 'bittensor.metagraph.Metagraph', 
-            dendrite: 'bittensor.dendrite.Dendrite', 
+            metagraph: 'bittensor.Metagraph', 
+            dendrite: 'bittensor.Dendrite', 
             inputs: torch.FloatTensor, 
             query: torch.FloatTensor, 
             modality: bittensor.proto.Modality
@@ -78,10 +79,10 @@ class SGMOERouter( bittensor.router.Router ):
         r""" Routes inputs using context and metagraph state.
 
             Args:
-                metagraph (:obj: `bittensor.metagraph.Metagraph`, `required`):
+                metagraph (:obj: `bittensor.Metagraph`, `required`):
                     Bittensor metagraph object. Used to pull network endpoint info.
 
-                dendrite (:obj: `bittensor.dendrite.Dendrite`, `required`):
+                dendrite (:obj: `bittensor.Dendrite`, `required`):
                     Bittensor dendrite object. Used to make queries into the network.
 
                 inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, *-1*)`, `required`): 

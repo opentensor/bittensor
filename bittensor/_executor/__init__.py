@@ -32,10 +32,10 @@ class executor:
             cls,
             config: Munch = None, 
             wallet: 'bittensor.wallet' = None,
-            subtensor: 'bittensor.subtensor.Subtensor' = None,
-            metagraph: 'bittensor.metagraph.Metagraph' = None,
-            axon: 'bittensor.axon.Axon' = None,
-            dendrite: 'bittensor.dendrite.Dendrite' = None
+            subtensor: 'bittensor.Subtensor' = None,
+            metagraph: 'bittensor.Metagraph' = None,
+            axon: 'bittensor.Axon' = None,
+            dendrite: 'bittensor.Dendrite' = None
         ) -> 'bittensor.Executor':
         r""" Creates a new Executor object from passed arguments.
             Args:
@@ -43,13 +43,13 @@ class executor:
                     bittensor.executor.default_config()
                 wallet (:obj:`bittensor.wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                subtensor (:obj:`bittensor.subtensor.Subtensor`, `optional`):
+                subtensor (:obj:`bittensor.Subtensor`, `optional`):
                     Bittensor subtensor chain connection.
-                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
+                metagraph (:obj:`bittensor.Metagraph`, `optional`):
                     Bittensor metagraph chain state.
-                axon (:obj:`bittensor.axon.Axon`, `optional`):
+                axon (:obj:`bittensor.Axon`, `optional`):
                     Bittensor axon server.
-                dendrite (:obj:`bittensor.dendrite.Dendrite`, `optional`):
+                dendrite (:obj:`bittensor.Dendrite`, `optional`):
                     Bittensor dendrite client.
         """
         if config == None:
