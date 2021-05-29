@@ -147,9 +147,9 @@ message Tensor {
 	// Serializer: [REQUIRED] Specifies the serialization/deserialization method.
 	// Users should be able to decode all tensors by specifying the encoding type and the raw data. 
 	// i.e.
-	// 1. (client) serializer = bittensor.serialization.get_serializer_for_type(bittensor.Serializer.MSGPACK)
+	// 1. (client) serializer = bittensor.bittensor.serializer_for_type(bittensor.Serializer.MSGPACK)
 	// 2. (client) serializer.serialize(torch.Tensor, from_type = bittensor.proto.TensorType.TORCH) --> bittensor.proto.Tensor
-	// 3. (server) deserializer = bittensor.serialization.get_serializer_for_type(request.serialzer)
+	// 3. (server) deserializer = bittensor.bittensor.serializer_for_type(request.serialzer)
 	// 4. (server) deserializer.deserialize(request.tensor, to_type = bittensor.proto.TensorType.TENSORFLOW) --> tensorflow.Tensor    	
 	// SIZE: 32-bits (4 bytes)
 	Serializer serializer = 4;

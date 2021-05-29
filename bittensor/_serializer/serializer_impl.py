@@ -1,4 +1,3 @@
-
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -16,9 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-
 """ An interface for serializing and deserializing bittensor tensors"""
-import numpy as np
 import torch
 import msgpack
 import msgpack_numpy
@@ -28,91 +25,7 @@ from typing import Dict, List, Any
 
 import bittensor
 
-class SerializationException (Exception):
-    """ Raised during serialization """
-    pass
-
-class DeserializationException (Exception):
-    """ Raised during deserialization """
-    pass
-
-class NoSerializerForEnum (Exception):
-    """ Raised if there is no serializer for the passed type """
-    pass
-
-class SerializationTypeNotImplementedException (Exception):
-    """ Raised if serialization/deserialization is not implemented for the passed object type """
-    pass
-
-def torch_dtype_to_bittensor_dtype(tdtype):
-    """ Translates between torch.dtypes and bittensor.dtypes.
-
-        Args:
-            tdtype (torch.dtype): torch.dtype to translate.
-
-        Returns:
-            dtype: (bittensor.dtype): translated bittensor.dtype.
-    """
-    if tdtype == torch.float32:
-        dtype = bittensor.proto.DataType.FLOAT32
-    elif tdtype == torch.float64:
-        dtype = bittensor.proto.DataType.FLOAT64
-    elif tdtype == torch.int32:
-        dtype = bittensor.proto.DataType.INT32
-    elif tdtype == torch.int64:
-        dtype = bittensor.proto.DataType.INT64
-    else:
-        dtype = bittensor.proto.DataType.UNKNOWN
-    return dtype
-
-def bittensor_dtype_to_torch_dtype(bdtype):
-    """ Translates between bittensor.dtype and torch.dtypes.
-
-        Args:
-            bdtype (bittensor.dtype): bittensor.dtype to translate.
-
-        Returns:
-            dtype: (torch.dtype): translated torch.dtype.
-    """
-    if bdtype == bittensor.proto.DataType.FLOAT32:
-        dtype = torch.float32
-    elif bdtype == bittensor.proto.DataType.FLOAT64:
-        dtype = torch.float64
-    elif bdtype == bittensor.proto.DataType.INT32:
-        dtype = torch.int32
-    elif bdtype == bittensor.proto.DataType.INT64:
-        dtype = torch.int64
-    else:
-        raise DeserializationException(
-            'Unknown bittensor.Dtype or no equivalent torch.dtype for bittensor.dtype = {}'
-            .format(bdtype))
-    return dtype
-
-
-def bittensor_dtype_np_dtype(bdtype):
-    """ Translates between bittensor.dtype and np.dtypes.
-
-        Args:
-            bdtype (bittensor.dtype): bittensor.dtype to translate.
-
-        Returns:
-            dtype: (numpy.dtype): translated np.dtype.
-    """
-    if bdtype == bittensor.proto.DataType.FLOAT32:
-        dtype = np.float32
-    elif bdtype == bittensor.proto.DataType.FLOAT64:
-        dtype = np.float64
-    elif bdtype == bittensor.proto.DataType.INT32:
-        dtype = np.int32
-    elif bdtype == bittensor.proto.DataType.INT64:
-        dtype = np.int64
-    else:
-        raise SerializationException(
-            'Unknown bittensor.dtype or no equivalent numpy.dtype for bittensor.dtype = {}'
-            .format(bdtype))
-    return dtype
-
-class BittensorSerializerBase(object):
+class Serializer(object):
     r""" Bittensor base serialization object for converting between bittensor.proto.Tensor and their
     various python tensor equivalents. i.e. torch.Tensor or tensorflow.Tensor
     """
@@ -149,7 +62,7 @@ class BittensorSerializerBase(object):
             return self.serialize_from_tensorflow( tensorflow_tensor = tensor_obj, modality = modality)
 
         else:
-            raise SerializationTypeNotImplementedException("Serialization from type {} not implemented.".format(from_type))
+            raise bittensor.serializer.SerializationTypeNotImplementedException("Serialization from type {} not implemented.".format(from_type))
 
         raise NotImplementedError
 
@@ -185,52 +98,27 @@ class BittensorSerializerBase(object):
             return self.deserialize_to_tensorflow( tensor_pb2 )
 
         else:
-            raise SerializationTypeNotImplementedException("Deserialization to type {} not implemented.".format(to_type))
+            raise bittensor.serializer.SerializationTypeNotImplementedException("Deserialization to type {} not implemented.".format(to_type))
 
     def serialize_from_tensorflow(self, tensorflow_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
-        raise SerializationTypeNotImplementedException
+        raise bittensor.serializer.SerializationTypeNotImplementedException
 
     def serialize_from_torch(self, torch_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
-        raise SerializationTypeNotImplementedException
+        raise bittensor.serializer.SerializationTypeNotImplementedException
     
     def serialize_from_numpy(self, numpy_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
-        raise SerializationTypeNotImplementedException
+        raise bittensor.serializer.SerializationTypeNotImplementedException
 
     def deserialize_to_torch(self, tensor_pb2: bittensor.proto.Tensor) -> torch.Tensor:
-        raise SerializationTypeNotImplementedException
+        raise bittensor.serializer.SerializationTypeNotImplementedException
 
     def deserialize_to_tensorflow(self, tensor_pb2: bittensor.proto.Tensor) -> object:
-        raise SerializationTypeNotImplementedException
+        raise bittensor.serializer.SerializationTypeNotImplementedException
 
     def deserialize_to_numpy(self, tensor_pb2: bittensor.proto.Tensor) -> object:
-        raise SerializationTypeNotImplementedException
+        raise bittensor.serializer.SerializationTypeNotImplementedException
 
-def get_serializer ( serialzer_type: bittensor.proto.Serializer ) -> BittensorSerializerBase:
-    r"""Returns the correct serializer object for the passed Serializer enum. 
-
-        Args:
-            serialzer_type (:obj:`bittensor.proto.Serializer`, `required`): 
-                The serialzer_type ENUM from bittensor.proto.
-
-        Returns:
-            BittensorSerializerBase: (obj: `BittensorSerializerBase`, `required`): 
-                The bittensor serializer/deserialzer for the passed type.
-
-        Raises:
-            NoSerializerForEnum: (Exception): 
-                Raised if the passed there is no serialzier for the passed type. 
-    """
-
-    # WARNING: the pickle serializer is not safe. Should be removed in future verions.
-    # if serialzer_type == bittensor.proto.Serializer.PICKLE:
-    #     return PyTorchPickleSerializer()
-    if serialzer_type == bittensor.proto.Serializer.MSGPACK:
-        return MSGPackSerializer()
-    else:
-        raise NoSerializerForEnum("No known serialzier for proto type {}".format(serialzer_type))
-
-
-class MSGPackSerializer( BittensorSerializerBase ):
+class MSGPackSerializer( Serializer ):
 
     def serialize_from_torch(self, torch_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
         """ Serializes a torch.Tensor to an bittensor Tensor proto.
@@ -246,7 +134,7 @@ class MSGPackSerializer( BittensorSerializerBase ):
             bittensor.proto.Tensor: 
                 The serialized torch tensor as bittensor.proto.proto. 
         """
-        dtype = torch_dtype_to_bittensor_dtype(torch_tensor.dtype)
+        dtype = bittensor.serializer.torch_dtype_to_bittensor_dtype(torch_tensor.dtype)
         shape = list(torch_tensor.shape)
         torch_numpy = torch_tensor.cpu().numpy().copy()
         data_buffer = msgpack.packb(torch_numpy, default=msgpack_numpy.encode)
@@ -271,7 +159,7 @@ class MSGPackSerializer( BittensorSerializerBase ):
             torch.Tensor: 
                 Deserialized torch tensor.
         """
-        dtype = bittensor_dtype_to_torch_dtype(torch_proto.dtype)
+        dtype = bittensor.serializer.bittensor_dtype_to_torch_dtype(torch_proto.dtype)
         shape = tuple(torch_proto.shape)
         numpy_object = msgpack.unpackb(torch_proto.buffer, object_hook=msgpack_numpy.decode).copy()
         torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)

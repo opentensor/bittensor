@@ -29,7 +29,6 @@ from types import SimpleNamespace
 from typing import List, Tuple, Optional, Callable
 
 import bittensor
-import bittensor.serialization as serialization
 import bittensor.utils.stats as stat_utils
 
 from loguru import logger
@@ -275,7 +274,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         tensor_inputs = request.tensors[0]
         modality = tensor_inputs.modality
         try:
-            deserializer = serialization.get_serializer( serialzer_type = tensor_inputs.serializer )
+            deserializer = bittensor.serializer( serialzer_type = tensor_inputs.serializer )
             torch_inputs = deserializer.deserialize(tensor_inputs, to_type = bittensor.proto.TensorType.TORCH)
         except Exception as e:
             message = "Request deserialization exception: {}".format(str(e))
@@ -323,7 +322,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         # ---- Serialize response ----
         try:
-            serializer = serialization.get_serializer ( bittensor.proto.Serializer.MSGPACK )
+            serializer = bittensor.serializer ( bittensor.proto.Serializer.MSGPACK )
             outputs_serialized = serializer.serialize ( outputs, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH )
         except Exception as e:
             logger.error(e)
@@ -359,7 +358,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         # ---- Deserialize request ---
         try:
-            serializer = serialization.get_serializer( inputs_x.serializer )
+            serializer = bittensor.serializer( inputs_x.serializer )
             inputs_x = serializer.deserialize( inputs_x, to_type = bittensor.proto.TensorType.TORCH )
             grads_dy = serializer.deserialize( grads_dy, to_type = bittensor.proto.TensorType.TORCH )
         except Exception as e:
@@ -410,7 +409,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         # ---- Deserialize response ----
         try:
-            serializer = serialization.get_serializer( bittensor.proto.Serializer.MSGPACK )
+            serializer = bittensor.serializer( bittensor.proto.Serializer.MSGPACK )
             outputs_serialized = serializer.serialize( outputs, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH )
         except Exception as e:
             message = "Backward request serialization failed with error {} and inputs {}".format(e, outputs)

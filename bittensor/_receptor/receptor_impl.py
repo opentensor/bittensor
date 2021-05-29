@@ -30,7 +30,6 @@ from typing import Tuple, List, Optional
 
 import bittensor
 import bittensor.utils.stats as stat_utils
-import bittensor.serialization as serialization
 from bittensor.exceptions.handlers import rollbar
 
 from loguru import logger
@@ -226,7 +225,7 @@ class _ReceptorCall(torch.autograd.Function):
 
             # ---- Inputs Serialization ----
             try:
-                serializer = serialization.get_serializer( bittensor.proto.Serializer.MSGPACK )
+                serializer = bittensor.serializer( bittensor.proto.Serializer.MSGPACK )
                 serialized_inputs = serializer.serialize(inputs, modality = mode, from_type = bittensor.proto.TensorType.TORCH)
             except Exception as e:
                 logger.warning('Serialization error with error {}', e)
@@ -302,7 +301,7 @@ class _ReceptorCall(torch.autograd.Function):
             # ---- Deserialize response ----
             try:
                 outputs = response.tensors[0]
-                deserializer = serialization.get_serializer(  outputs.serializer )
+                deserializer = bittensor.serializer(  outputs.serializer )
                 outputs = deserializer.deserialize( outputs, to_type = bittensor.proto.TensorType.TORCH )
 
             except Exception as e:
@@ -372,7 +371,7 @@ class _ReceptorCall(torch.autograd.Function):
                 # ---- Serialization ----
                 try:
                     # ---- Get serializer ----
-                    serializer = serialization.get_serializer( bittensor.proto.Serializer.MSGPACK )
+                    serializer = bittensor.serializer( bittensor.proto.Serializer.MSGPACK )
 
                     # ---- Serialize grads to bitensor_pb2.Tensors ----
                     serialized_grads = serializer.serialize (grads, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
