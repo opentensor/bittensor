@@ -15,9 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
 import asyncio
-import copy
 import os
 import torch
 import tqdm.asyncio
@@ -28,7 +26,6 @@ from typing import List, Tuple, List
 import bittensor
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
-from bittensor.subtensor import Subtensor
 
 class Metagraph( torch.nn.Module ):
     r""" Maintains chain state as a torch.nn.Module.
@@ -89,6 +86,8 @@ class Metagraph( torch.nn.Module ):
                 I (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     Block incentive for each neuron. 
         """
+        if self.n.item() == 0:
+            return torch.tensor([], dtype=torch.float32)
         I =  (self.tau * self.ranks) / torch.sum(self.ranks)
         I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
         return I.view(self.n)
@@ -103,7 +102,7 @@ class Metagraph( torch.nn.Module ):
 
         """
         if self.n.item() == 0:
-            return torch.tensor([])
+            return torch.tensor([], dtype=torch.float32)
         else:
             S = self.S.view(self.n, 1)
             Wt = torch.transpose(self.W, 0, 1)
@@ -127,6 +126,8 @@ class Metagraph( torch.nn.Module ):
                 W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
                     Weight matrix.
         """
+        if self.n.item() == 0:
+            return torch.tensor( [], dtype=torch.float32 )
         return torch.stack( [row for row in self.weights], axis = 0 )
 
     @property
@@ -136,6 +137,8 @@ class Metagraph( torch.nn.Module ):
                 hotkeys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
                     Neuron hotkeys.
         """
+        if self.n.item() == 0:
+            return []
         return [ neuron.hotkey for neuron in self.neuron_endpoints ]
 
     @property
@@ -145,6 +148,8 @@ class Metagraph( torch.nn.Module ):
                 coldkeys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
                     Neuron coldkeys.
         """
+        if self.n.item() == 0:
+            return []
         return [ neuron.coldkey for neuron in self.neuron_endpoints ]
 
     @property
@@ -154,6 +159,8 @@ class Metagraph( torch.nn.Module ):
                 coldkeys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
                     Neuron coldkeys.
         """
+        if self.n.item() == 0:
+            return []
         return [ neuron.modality for neuron in self.neuron_endpoints ]
 
     @property
@@ -163,6 +170,8 @@ class Metagraph( torch.nn.Module ):
                 coldkeys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
                     Neuron address.
         """
+        if self.n.item() == 0:
+            return []
         return [ net.ip__str__( neuron.ip_type, neuron.ip, neuron.port ) for neuron in self.neuron_endpoints ]
 
     @property
@@ -174,6 +183,8 @@ class Metagraph( torch.nn.Module ):
                     Endpoint information for each neuron.
 
         """
+        if self.n.item() == 0:
+            return []
         if self.cached_endpoints != None:
             return self.cached_endpoints
         else:

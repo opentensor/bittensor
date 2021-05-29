@@ -36,7 +36,6 @@ __blocktime__ = 6
 # Load components.
 import bittensor.tokenizer
 import bittensor.config 
-import bittensor.metagraph
 import bittensor.logging
 import bittensor.receptor
 import bittensor.router
