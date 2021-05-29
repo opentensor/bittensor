@@ -36,10 +36,10 @@ class Executor:
             self, 
             config: 'Munch', 
             wallet: 'bittensor.wallet',
-            subtensor: 'bittensor.subtensor.Subtensor',
-            metagraph: 'bittensor.metagraph.Metagraph',
-            axon: 'bittensor.axon.Axon',
-            dendrite: 'bittensor.dendrite.Dendrite'
+            subtensor: 'bittensor.Subtensor',
+            metagraph: 'bittensor.Metagraph',
+            axon: 'bittensor.Axon',
+            dendrite: 'bittensor.Dendrite'
         ):
         r""" Creates a new Executor object for interfacing with the bittensor API.
             Args:
@@ -47,13 +47,13 @@ class Executor:
                     bittensor.executor.default_config()
                 wallet (:obj:`bittensor.wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
-                subtensor (:obj:`bittensor.subtensor.Subtensor`, `required`):
+                subtensor (:obj:`bittensor.Subtensor`, `required`):
                     Bittensor subtensor chain connection.
-                metagraph (:obj:`bittensor.metagraph.Metagraph`, `required`):
+                metagraph (:obj:`bittensor.Metagraph`, `required`):
                     Bittensor metagraph chain state.
-                axon (:obj:`bittensor.axon.Axon`, `required`):
+                axon (:obj:`bittensor.Axon`, `required`):
                     Bittensor axon server.
-                dendrite (:obj:`bittensor.dendrite.Dendrite`, `required`):
+                dendrite (:obj:`bittensor.Dendrite`, `required`):
                     Bittensor dendrite client.
         """
         self.config = config

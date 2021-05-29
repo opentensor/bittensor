@@ -255,10 +255,10 @@ class Metagraph( torch.nn.Module ):
         self.neurons = torch.nn.ParameterList([torch.nn.Parameter( state_dict['neurons.' + str(i)], requires_grad=False )  for i in range(self.n.item()) ])
         self.cached_endpoints = None
 
-    def sync(self, subtensor: 'bittensor.subtensor.Subtensor' = None, force: bool = False ):
+    def sync(self, subtensor: 'bittensor.Subtensor' = None, force: bool = False ):
         r""" Synchronizes this metagraph with the chain state.
             Args: 
-                subtensor: (:obj:`bittensor.subtensor.Subtensor`, optional):
+                subtensor: (:obj:`bittensor.Subtensor`, optional):
                     Subtensor chain interface obbject. If None, creates a default connection.
                 force (bool):
                     force syncs all nodes on the graph.
@@ -270,12 +270,12 @@ class Metagraph( torch.nn.Module ):
         loop.set_debug(enabled=True)
         loop.run_until_complete(self._async_sync(subtensor, force))
 
-    async def _async_sync( self, subtensor: 'bittensor.subtensor.Subtensor', force: bool = False):
+    async def _async_sync( self, subtensor: 'bittensor.Subtensor', force: bool = False):
         r""" Uses the passed subtensor interface to update the metagraph chain state to reflect 
             the latest info on chain.
 
             Args: 
-                subtensor: (:obj:`bittensor.subtensor.Subtensor`, optional):
+                subtensor: (:obj:`bittensor.Subtensor`, optional):
                     Subtensor chain interface obbject. If None, creates default connection to kusanagi.
         """
 
@@ -338,12 +338,12 @@ class Metagraph( torch.nn.Module ):
         self.cached_endpoints = None
 
     # Function which fills weights and neuron info for a uid.
-    async def fill_uid ( self, subtensor: 'bittensor.subtensor.Subtensor', uid: int ) -> Tuple[int, bool]:
+    async def fill_uid ( self, subtensor: 'bittensor.Subtensor', uid: int ) -> Tuple[int, bool]:
         r""" Uses the passed subtensor interface to update chain state for the passed uid.
             the latest info on chain.
             
             Args: 
-                subtensor: (:obj:`bittensor.subtensor.Subtensor`, optional):
+                subtensor: (:obj:`bittensor.Subtensor`, optional):
                     Subtensor chain interface obbject. If None, creates default connection to kusanagi.
         """
         # TODO(const): try catch block with retry.

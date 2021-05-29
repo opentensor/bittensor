@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from munch import Munch
 
 import bittensor
-from bittensor.neuron import Neuron
+from . import router
 
 class PKMKeys(nn.Module):
 
@@ -36,7 +36,7 @@ class PKMKeys(nn.Module):
             self._n_keys = self._keys.shape[0]
         return self._keys[uids]
 
-class PKMRouter( bittensor.router.Router ):
+class PKMRouter( router.Router ):
     def __init__(self, config: Munch, query_dim = bittensor.__network_dim__, **kwargs):
         super().__init__()
         if config == None:
@@ -71,24 +71,24 @@ class PKMRouter( bittensor.router.Router ):
     def check_config(config):   
         return config
 
-    def sync_chain_state( self, metagraph: 'bittensor.metagraph.Metagraph' ):
+    def sync_chain_state( self, metagraph: 'bittensor.Metagraph' ):
         r""" Creates new parameters based on metagraph size.
 
             Args:
-                metagraph (:obj: `bittensor.metagraph.Metagraph'`, `required`):
+                metagraph (:obj: `bittensor.Metagraph'`, `required`):
                     bittensor metagraph object.
         """
         pass
 
-    def _route(self, metagraph: 'bittensor.metagraph.Metagraph', dendrite: 'bittensor.dendrite.Dendrite', inputs: torch.FloatTensor, query: torch.FloatTensor, modality: bittensor.proto.Modality) -> SimpleNamespace:
+    def _route(self, metagraph: 'bittensor.Metagraph', dendrite: 'bittensor.Dendrite', inputs: torch.FloatTensor, query: torch.FloatTensor, modality: bittensor.proto.Modality) -> SimpleNamespace:
         r""" Routes inputs using context and metagraph state.
 
             Args:
 
-                metagraph (:obj: `bittensor.Neuron`, `required`):
+                metagraph (:obj: `bittensor.Metagraph`, `required`):
                     bittensor metagraph object. Used to pull network endpoint info.
 
-                dendrite (:obj: `bittensor.dendrite.Dendrite`, `required`):
+                dendrite (:obj: `bittensor.Dendrite`, `required`):
                     bittensor dendrite object. User to make queries into the network.
 
                 inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, *-1*)`, `required`): 
