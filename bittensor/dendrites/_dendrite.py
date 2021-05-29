@@ -50,7 +50,7 @@ class Dendrite(nn.Module):
         r""" Initializes a new Dendrite entry point.
             Args:
                 config (:obj:`Munch`, `required`): 
-                    dendrite.Dendrite.config()
+                    bittensor.dendrite.default_config()
                 wallet (:obj:`bittensor.wallet.Wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
                 thread_pool (:obj:`ThreadPoolExecutor`, `required`):

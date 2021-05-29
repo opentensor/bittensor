@@ -47,7 +47,6 @@ jobs:
           name: setup
       - run: ./scripts/create_wallet.sh
       - run: python3.7 tests/miners/text/test_gpt2.py
-      - run: python3.7 tests/miners/text/test_xlm.py
   
   "Run Integration Tests":
     executor: bittensor-executor

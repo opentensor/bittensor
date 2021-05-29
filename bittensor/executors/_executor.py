@@ -14,81 +14,55 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
-import argparse
-import copy
-import sys
-import os
 import time
 import torch
 
 from munch import Munch
 from tqdm import tqdm
-from rich import box
 from rich.align import Align
 from rich.console import Console
-from rich.live import Live
-from rich.measure import Measurement
 from rich.table import Table
-from rich.text import Text
 
 import bittensor
 import bittensor.utils.codes as code_utils
-from bittensor.utils.neurons import NeuronEndpoint, NeuronEndpoints
 from bittensor.utils.balance import Balance
 
 from loguru import logger
 logger = logger.opt(colors=True)
 
-class Executor ():
+class Executor:
 
     def __init__( 
             self, 
-            config: 'Munch' = None, 
-            wallet: 'bittensor.wallet.Wallet' =  None, 
-            **kwargs 
+            config: 'Munch', 
+            wallet: 'bittensor.wallet.Wallet',
+            subtensor: 'bittensor.subtensor.Subtensor',
+            metagraph: 'bittensor.metagraph.Metagraph',
+            axon: 'bittensor.axon.Axon',
+            dendrite: 'bittensor.dendrite.Dendrite'
         ):
-        r""" Initializes a new Metagraph chain interface.
+        r""" Creates a new Executor object for interfacing with the bittensor API.
             Args:
-                config (:obj:`Munch`, `optional`): 
-                    neuron.Neuron.config()
+                config (:obj:`Munch`, `required`): 
+                    bittensor.executor.default_config()
+                wallet (:obj:`bittensor.wallet.Wallet`, `required`):
+                    bittensor wallet with hotkey and coldkeypub.
+                subtensor (:obj:`bittensor.subtensor.Subtensor`, `required`):
+                    Bittensor subtensor chain connection.
+                metagraph (:obj:`bittensor.metagraph.Metagraph`, `required`):
+                    Bittensor metagraph chain state.
+                axon (:obj:`bittensor.axon.Axon`, `required`):
+                    Bittensor axon server.
+                dendrite (:obj:`bittensor.dendrite.Dendrite`, `required`):
+                    Bittensor dendrite client.
         """
-        # config for the wallet, metagraph sub-objects.
-        if config == None:
-            config = Executor.default_config()
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config, kwargs )
-        Executor.check_config( config )
         self.config = config
-        if wallet == None:
-            wallet = bittensor.wallet.Wallet ( config = self.config )
         self.wallet = wallet
-        self.subtensor = bittensor.subtensor.Subtensor( config = self.config )
-        self.metagraph = bittensor.metagraph.Metagraph()
-        self.axon = bittensor.axon( config = self.config, wallet = self.wallet )
-        self.dendrite = bittensor.dendrite( config = self.config, wallet = self.wallet )
+        self.subtensor = subtensor
+        self.metagraph = metagraph
+        self.axon = axon
+        self.dendrite = dendrite
 
-    @staticmethod
-    def default_config () -> Munch:
-        parser = argparse.ArgumentParser(); 
-        Executor.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
-        return config
-
-    @staticmethod   
-    def add_args (parser: argparse.ArgumentParser):
-        bittensor.wallet.Wallet.add_args( parser )
-        bittensor.subtensor.Subtensor.add_args( parser )
-        bittensor.axon.add_args( parser )
-        bittensor.dendrite.add_args( parser )
-        bittensor.nucleus.Nucleus.add_args( parser )
-        
-    @staticmethod   
-    def check_config (config: Munch):
-        bittensor.wallet.Wallet.check_config( config )
-        bittensor.subtensor.Subtensor.check_config( config )
-        bittensor.axon.check_config( config )
-        bittensor.dendrite.check_config( config )
-        bittensor.nucleus.Nucleus.check_config( config )
-            
     def regenerate_coldkey ( self, mnemonic: str, use_password: bool, overwrite: bool = False ):
         r""" Regenerates a colkey under this wallet.
         """
