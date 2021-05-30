@@ -58,6 +58,7 @@ class Metagraph( torch.nn.Module ):
         """
         super(Metagraph, self).__init__()
         self.config = config
+        self.version = torch.nn.ParameterDict( torch.tensor( [ bittensor.__version_as_int__ ], dtype = torch.int64), requires_grad=False )
         self.n = torch.nn.Parameter( torch.tensor( [0], dtype = torch.int64), requires_grad=False )
         self.tau = torch.nn.Parameter( torch.tensor( [0.5], dtype = torch.float32), requires_grad=False )
         self.block = torch.nn.Parameter( torch.tensor( [0], dtype = torch.int64), requires_grad=False )
@@ -245,14 +246,20 @@ class Metagraph( torch.nn.Module ):
                 state_dict: (:obj:`dict`, required):
                     Metagraph state_dict. Must be same as that created by save_to_path.
         """
-        self.n = torch.nn.Parameter( state_dict['n'], requires_grad=False )
-        self.tau = torch.nn.Parameter( state_dict['tau'], requires_grad=False )
-        self.block = torch.nn.Parameter( state_dict['block'], requires_grad=False )
-        self.uids = torch.nn.Parameter( state_dict['uids'], requires_grad=False )
-        self.stake = torch.nn.Parameter( state_dict['stake'], requires_grad=False )
-        self.lastemit = torch.nn.Parameter( state_dict['lastemit'], requires_grad=False )
-        self.weights = torch.nn.ParameterList([torch.nn.Parameter( state_dict['weights.' + str(i)], requires_grad=False )  for i in range(self.n.item()) ])
-        self.neurons = torch.nn.ParameterList([torch.nn.Parameter( state_dict['neurons.' + str(i)], requires_grad=False )  for i in range(self.n.item()) ])
+        if 'version' in state_dict:
+            self.version = torch.nn.Parameter( state_dict['version'], requires_grad=False )
+            self.n = torch.nn.Parameter( state_dict['n'], requires_grad=False )
+            self.tau = torch.nn.Parameter( state_dict['tau'], requires_grad=False )
+            self.block = torch.nn.Parameter( state_dict['block'], requires_grad=False )
+            self.uids = torch.nn.Parameter( state_dict['uids'], requires_grad=False )
+            self.stake = torch.nn.Parameter( state_dict['stake'], requires_grad=False )
+            self.lastemit = torch.nn.Parameter( state_dict['lastemit'], requires_grad=False )
+            self.weights = torch.nn.ParameterList([torch.nn.Parameter( state_dict['weights.' + str(i)], requires_grad=False )  for i in range(self.n.item()) ])
+            self.neurons = torch.nn.ParameterList([torch.nn.Parameter( state_dict['neurons.' + str(i)], requires_grad=False )  for i in range(self.n.item()) ])
+        else:
+            # Dont load because we need to force a new reload.
+            pass
+        
         self.cached_endpoints = None
 
     def sync(self, subtensor: 'bittensor.Subtensor' = None, force: bool = False ):
@@ -278,6 +285,7 @@ class Metagraph( torch.nn.Module ):
                 subtensor: (:obj:`bittensor.Subtensor`, optional):
                     Subtensor chain interface obbject. If None, creates default connection to kusanagi.
         """
+        if bittensor.__version_as_int__ 
 
         # Query chain info.
         chain_lastemit = dict( await subtensor.async_get_last_emit() ) #  Optional[ List[Tuple[uid, lastemit]] ]

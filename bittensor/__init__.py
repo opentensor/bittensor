@@ -22,6 +22,11 @@ nest_asyncio.apply()
 
 # Bittensor code and protocol version.
 __version__ = '1.0.3'
+__version_as_int__ = (100 * 1) + (10 * 0) + (1 * 3)  # Integer representation
+
+# Vocabulary dimension.
+#__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
+__vocab_size__ = 50378
 
 # Tensor dimension.
 # NOTE (const): if/when this increases peers must be responsible for trimming or expanding output to this size.
@@ -48,6 +53,7 @@ from bittensor._dendrite import dendrite as dendrite
 from bittensor._executor import executor as executor
 from bittensor._metagraph import metagraph as metagraph
 from bittensor._subtensor import subtensor as subtensor
+from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
 from bittensor._dataloaders import genesis_dataloader as genesis_dataloader
 
@@ -65,10 +71,6 @@ from bittensor._serializer.serializer_impl import Serializer as Serializer
 # ---- LOGGING ----
 __debug_on__ = False
 bittensor.logging.init_logger()
-
-# ---- Tokenizer ----
-__tokenizer__ = bittensor.tokenizer.get_tokenizer_for_version( __version__ )
-__vocab_size__ = len(__tokenizer__) + len(__tokenizer__.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
 
 # Hardcoded entry point nodes. 
 __akira_entrypoints__ = [

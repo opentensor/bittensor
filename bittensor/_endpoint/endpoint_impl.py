@@ -34,8 +34,9 @@ class Endpoint:
     
     def to_tensor( self ) -> torch.LongTensor:  
         string_json = self.dumps()
-        endpoint_tokens = bittensor.__tokenizer__( string_json )['input_ids']
-        endpoint_tensor = torch.tensor( endpoint_tokens, dtype = torch.int64, requires_grad=False)
+        bytes_json = bytes(string_json, 'utf-8')
+        ints_json = list(bytes_json)
+        endpoint_tensor = torch.tensor( ints_json, dtype = torch.int64, requires_grad=False)
         return endpoint_tensor
 
     def dumps(self):

@@ -112,7 +112,7 @@ class GenesisTextDataloader( BittensorDataLoader ):
     def __init__( self, config ):
         super(GenesisTextDataloader, self).__init__()
         self.config = config
-        self.tokenizer = bittensor.__tokenizer__
+        self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
         
         # Retrieve a random slice of the genesis dataset
         self.data = self.construct_text_corpus()
