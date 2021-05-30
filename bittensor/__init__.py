@@ -40,7 +40,6 @@ import bittensor.bittensor_pb2_grpc as grpc
 
 # Load components.
 import bittensor.tokenizer
-import bittensor.config 
 import bittensor.logging
 import bittensor.nucleus
 
@@ -54,14 +53,7 @@ from bittensor._dendrite import dendrite as dendrite
 from bittensor._executor import executor as executor
 from bittensor._metagraph import metagraph as metagraph
 from bittensor._subtensor import subtensor as subtensor
-<<<<<<< HEAD
 from bittensor._tokenizer import tokenizer as tokenizer
-=======
-<<<<<<< HEAD
-from bittensor._tokenizer import tokenizer as tokenizer
-=======
->>>>>>> a2b48b5ab217a9356fae3f827a8de40dbb048b29
->>>>>>> dbec9e7d7513da2349b4ecd347f8ef9d0aca2f3c
 from bittensor._serializer import serializer as serializer
 from bittensor._dataloader import dataloader as dataloader
 
