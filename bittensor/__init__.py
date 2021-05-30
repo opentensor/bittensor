@@ -39,9 +39,7 @@ import bittensor.bittensor_pb2 as proto
 import bittensor.bittensor_pb2_grpc as grpc
 
 # Load components.
-import bittensor.tokenizer
 import bittensor.logging
-import bittensor.nucleus
 
 from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon

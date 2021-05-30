@@ -68,7 +68,7 @@ class XLMPooler(nn.Module):
         return pooled_output
 
 
-class XLMNucleus(bittensor.nucleus.Nucleus):
+class XLMNucleus (torch.nn.Module):
     """A Bittensor Nucleus training XLM 
 
     Args:
@@ -83,7 +83,7 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
             config (:obj:`munch.Munch`, `required`): 
                     munched config class.
         """
-        super(XLMNucleus, self).__init__(config = config, **kwargs)
+        super(XLMNucleus, self).__init__()
         if config == None:
             config = XLMNucleus.default_config()
         XLMNucleus.check_config(config)
@@ -93,7 +93,7 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
         self.routing_function = None
         
         # Build config.
-        xlm_config = XLMConfig(
+        xlm_config = XLMConfig (
             vocab_size=bittensor.__vocab_size__, 
             emb_dim=bittensor.__network_dim__,
             n_layers=config.nucleus.n_layers,

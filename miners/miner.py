@@ -81,7 +81,6 @@ class AbstractMiner ():
         bittensor.axon.check_config( config )
         bittensor.dendrite.check_config( config )
         bittensor.metagraph.check_config( config )
-        bittensor.nucleus.Nucleus.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}'.format( config.miner.root_dir, config.wallet.name + "-" + config.wallet.hotkey, config.miner.name ))
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
@@ -94,7 +93,6 @@ class AbstractMiner ():
         bittensor.axon.add_args( parser )
         bittensor.dendrite.add_args( parser )
         bittensor.metagraph.add_args( parser )
-        bittensor.nucleus.Nucleus.add_args( parser )
         parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
         parser.add_argument('--config', type=str, help='If set, arguments are overridden by passed file.')
         parser.add_argument('--miner.modality', default=0, type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')

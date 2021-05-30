@@ -63,12 +63,19 @@ class Miner( miner.BasicMiner ):
         self.config = config
         super( Miner, self ).__init__( self.config, **kwargs )
 
+        # ---- Device ----
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         # ---- Router ----
         self.router = SGMOERouter( self.config, query_dim = bittensor.__network_dim__ )
+        self.router.device = self.device
+        self.router.to( self.device )
 
         # ---- Nucleus ----
         self.nucleus = GPT2Nucleus( self.config )
         self.nucleus.attach( self ) # Assign the routing function.
+        self.nucleus.device = self.device
+        self.nucleus.to( self.device )
 
         # ---- Row Weights ----
         self.row_weights = torch.ones([0]).to(self.nucleus.device)
