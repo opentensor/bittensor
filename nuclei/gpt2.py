@@ -128,7 +128,7 @@ class CausalSelfAttention(nn.Module):
         y = self.resid_drop(self.proj(y))
         return y
 
-class GPT2Nucleus:
+class GPT2Nucleus(torch.nn.Module):
 
     def __init__(self, config, **kwargs):
         """The full GPT language model, with context of a block size.
@@ -136,11 +136,12 @@ class GPT2Nucleus:
                 config (:obj: `munch.Munch`, `required`):
                     munched config class.
         """
-
+        super(GPT2Nucleus, self).__init__()
         if config == None:
             config = GPT2Nucleus.default_config()        
         GPT2Nucleus.check_config(config)
         self.config = config
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # To be set.
         self.routing_function = None
@@ -192,7 +193,6 @@ class GPT2Nucleus:
         self.loss_fct = nn.CrossEntropyLoss()
                 
         self.num_parameters = sum(p.numel() for p in self.parameters())
-        self.to(self.device)
     
     @staticmethod   
     def default_config() -> Munch:

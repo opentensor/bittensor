@@ -34,7 +34,7 @@ from loguru import logger
 import bittensor
 from bittensor.utils.batch_transforms import Normalize
 
-class FFNNNucleus:
+class FFNNNucleus(torch.nn.Module):
     """ Simple feed forward NN for images.
     """
 
@@ -44,6 +44,7 @@ class FFNNNucleus:
                 :type [config]:  [:obj:`munch.Munch`](, `required`)
 
         """
+        super(FFNNNucleus, self).__init__()
         if config == None:
             config = FFNNNucleus.default_config()
         FFNNNucleus.check_config(config)

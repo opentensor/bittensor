@@ -69,11 +69,13 @@ class Miner( miner.BasicMiner ):
         # ---- Router ----
         self.router = SGMOERouter( self.config, query_dim = bittensor.__network_dim__ )
         self.router.device = self.device
+        self.router.to( self.device )
 
         # ---- Nucleus ----
         self.nucleus = GPT2Nucleus( self.config )
         self.nucleus.attach( self ) # Assign the routing function.
         self.nucleus.device = self.device
+        self.nucleus.to( self.device )
 
         # ---- Row Weights ----
         self.row_weights = torch.ones([0]).to(self.nucleus.device)

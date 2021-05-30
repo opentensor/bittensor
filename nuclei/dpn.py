@@ -34,7 +34,7 @@ import bittensor
 from collections.abc import Callable
 from bittensor.utils.batch_transforms import Normalize
 
-class DPNNucleus:
+class DPNNucleus(torch.nn.Module):
     """ Bittensor endpoint trained on PIL images to detect objects using an DPN.
     """
 
@@ -45,6 +45,7 @@ class DPNNucleus:
                 config (:obj: `munch.Munch`, `required`)
                     munch namespace config item.
         """
+        super(DPNNucleus, self).__init__()
         if config == None:
             config = DPNNucleus.default_config()
         DPNNucleus.check_config(config)

@@ -68,7 +68,7 @@ class XLMPooler(nn.Module):
         return pooled_output
 
 
-class XLMNucleus:
+class XLMNucleus (torch.nn.Module):
     """A Bittensor Nucleus training XLM 
 
     Args:
@@ -83,6 +83,7 @@ class XLMNucleus:
             config (:obj:`munch.Munch`, `required`): 
                     munched config class.
         """
+        super(XLMNucleus, self).__init__()
         if config == None:
             config = XLMNucleus.default_config()
         XLMNucleus.check_config(config)
