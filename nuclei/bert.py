@@ -45,14 +45,13 @@ class BertPooler(nn.Module):
         pooled_output = self.activation(pooled_output)
         return pooled_output
 
-class BertNucleusBase (bittensor.nucleus.Nucleus):
+class BertNucleusBase:
     def __init__(self, config: Munch, **kwargs):
         r""" Init a new base-bert nucleus.
 
             Args:
                 config (:obj:`munch.Munch`, `required`): 
         """
-        super(BertNucleusBase, self).__init__( config = config, **kwargs )
         if config == None:
             config = BertNucleusBase.default_config()
         BertNucleusBase.check_config(config)

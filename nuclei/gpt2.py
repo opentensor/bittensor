@@ -128,10 +128,9 @@ class CausalSelfAttention(nn.Module):
         y = self.resid_drop(self.proj(y))
         return y
 
-class GPT2Nucleus(bittensor.nucleus.Nucleus):
+class GPT2Nucleus:
 
     def __init__(self, config, **kwargs):
-        super(GPT2Nucleus, self).__init__(config = config, **kwargs)
         """The full GPT language model, with context of a block size.
             Args:
                 config (:obj: `munch.Munch`, `required`):

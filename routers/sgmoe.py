@@ -34,8 +34,6 @@ class SGMOERouter( router.Router ):
         # Gating weights. Should match the metagraph.n
         self.gates = torch.nn.ModuleList()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        if self.config.nucleus.device:
-            self.device = torch.device(self.config.nucleus.device)
 
     @staticmethod   
     def default_config() -> Munch:
