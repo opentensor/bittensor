@@ -139,7 +139,7 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ neuron.hotkey for neuron in self.neuron_endpoints ]
+        return [ neuron.hotkey for neuron in self.endpoints ]
 
     @property
     def coldkeys( self ) -> List[str]:
@@ -150,7 +150,7 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ neuron.coldkey for neuron in self.neuron_endpoints ]
+        return [ neuron.coldkey for neuron in self.endpoints ]
 
     @property
     def modalities( self ) -> List[str]:
@@ -161,7 +161,7 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ neuron.modality for neuron in self.neuron_endpoints ]
+        return [ neuron.modality for neuron in self.endpoints ]
 
     @property
     def addresses( self ) -> List[str]:
@@ -172,10 +172,10 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ net.ip__str__( neuron.ip_type, neuron.ip, neuron.port ) for neuron in self.neuron_endpoints ]
+        return [ net.ip__str__( neuron.ip_type, neuron.ip, neuron.port ) for neuron in self.endpoints ]
 
     @property
-    def neuron_endpoints(self) -> List[ 'bittensor.Endpoint' ]:
+    def endpoints(self) -> List[ 'bittensor.Endpoint' ]:
         r""" Return neuron endpoint information for each neuron.
             
             Returns:

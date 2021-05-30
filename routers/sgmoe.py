@@ -172,7 +172,7 @@ class SGMOERouter( router.Router ):
         # len(neurons) == real_topk
         neurons = []
         for filtered_uid in real_filtered_topk_uids.tolist():
-            neurons.append( metagraph.neuron_endpoints[ filtered_uid ] )
+            neurons.append( metagraph.endpoints[ filtered_uid ] )
 
         # Get request for uids with highest scores.
         # requests: List[torch.float32]: requests for high scoring uids.
