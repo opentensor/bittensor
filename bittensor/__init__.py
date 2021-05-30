@@ -35,8 +35,8 @@ __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __s
 # Substrate chain block time (seconds).
 __blocktime__ = 6
 
-import bittensor.bittensor_pb2 as proto
-import bittensor.bittensor_pb2_grpc as grpc
+import bittensor._proto.bittensor_pb2 as proto
+import bittensor._proto.bittensor_pb2_grpc as grpc
 
 # Load components.
 import bittensor.logging
