@@ -58,7 +58,7 @@ class Metagraph( torch.nn.Module ):
         """
         super(Metagraph, self).__init__()
         self.config = config
-        self.version = torch.nn.ParameterDict( torch.tensor( [ bittensor.__version_as_int__ ], dtype = torch.int64), requires_grad=False )
+        self.version = torch.nn.Parameter( torch.tensor( [ bittensor.__version_as_int__ ], dtype = torch.int64), requires_grad=False )
         self.n = torch.nn.Parameter( torch.tensor( [0], dtype = torch.int64), requires_grad=False )
         self.tau = torch.nn.Parameter( torch.tensor( [0.5], dtype = torch.float32), requires_grad=False )
         self.block = torch.nn.Parameter( torch.tensor( [0], dtype = torch.int64), requires_grad=False )
@@ -259,7 +259,7 @@ class Metagraph( torch.nn.Module ):
         else:
             # Dont load because we need to force a new reload.
             pass
-        
+
         self.cached_endpoints = None
 
     def sync(self, subtensor: 'bittensor.Subtensor' = None, force: bool = False ):
@@ -285,8 +285,6 @@ class Metagraph( torch.nn.Module ):
                 subtensor: (:obj:`bittensor.Subtensor`, optional):
                     Subtensor chain interface obbject. If None, creates default connection to kusanagi.
         """
-        if bittensor.__version_as_int__ 
-
         # Query chain info.
         chain_lastemit = dict( await subtensor.async_get_last_emit() ) #  Optional[ List[Tuple[uid, lastemit]] ]
         chain_stake = dict( await subtensor.async_get_stake() ) #  Optional[ List[Tuple[uid, stake]] ]
