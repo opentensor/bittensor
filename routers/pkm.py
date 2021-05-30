@@ -207,7 +207,7 @@ class PKMRouter( router.Router ):
         # TODO(const): switch to tokenized representation.
         neurons = []
         for uid in filtered_uids:
-            neurons.append( metagraph.neuron_endpoints[ uid ] )
+            neurons.append( metagraph.endpoints[ uid ] )
 
         # responses: image responses from neurons.
         # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
