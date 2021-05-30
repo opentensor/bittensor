@@ -38,7 +38,7 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
     """ Bittensor endpoint trained on PIL images to detect objects using an DPN.
     """
 
-    def __init__( self, config: Munch = None, **kwargs):
+    def __init__( self, config: 'bittensor.Config' = None, **kwargs):
         r""" Init a new DPN nucleus module.
 
             Args:
@@ -48,7 +48,6 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
         super(DPNNucleus, self).__init__(config = config, **kwargs)
         if config == None:
             config = DPNNucleus.default_config()
-        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
         DPNNucleus.check_config(config)
         self.config = config
 
@@ -104,7 +103,7 @@ class DPNNucleus(bittensor.nucleus.Nucleus):
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         DPNNucleus.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config( parser ); 
         return config
 
     @staticmethod

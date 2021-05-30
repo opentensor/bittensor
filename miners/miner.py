@@ -47,16 +47,16 @@ logger = logger.opt(colors=True)
 
 class AbstractMiner ():
 
-    def __init__( self, config: Munch = None, **kwargs):
+    def __init__( self, config: 'bittensor.Config' = None, **kwargs):
         r""" Initializes a new base miner object.
             
             Args:
-                config (:obj:`Munch`, `optional`): 
+                config (:obj:`bittensor.Config`, `optional`): 
                     miner.Miner.default_config()
         """
         if config == None:
             config = AbstractMiner.default_config()
-        config = copy.deepcopy( config ); bittensor.config.Config.update_with_kwargs( config, kwargs )
+        config = copy.deepcopy( config )
         AbstractMiner.check_config( config )
         self.config = config
         self.wallet = bittensor.wallet ( config = self.config )
@@ -70,7 +70,7 @@ class AbstractMiner ():
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         AbstractMiner.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config( parser ); 
         return config
 
     @staticmethod
@@ -253,16 +253,16 @@ class AbstractMiner ():
 
 class BasicMiner( AbstractMiner ):
 
-    def __init__( self, config: Munch = None, **kwargs ):
+    def __init__( self, config: 'bittensor.Config' = None, **kwargs ):
         r""" Initializes a new basic miner object.
             
             Args:
-                config (:obj:`Munch`, `optional`): 
+                config (:obj:`bittensor.Config`, `optional`): 
                     miner.BaseMiner.default_config()
         """
         if config == None:
             config = BasicMiner.default_config()
-        config = copy.deepcopy( config ); bittensor.config.Config.update_with_kwargs( config, kwargs )
+        config = copy.deepcopy( config );
         BasicMiner.check_config( config )
         self.config = config
         super( BasicMiner, self ).__init__( self.config, **kwargs )
@@ -271,7 +271,7 @@ class BasicMiner( AbstractMiner ):
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         BasicMiner.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config( parser ); 
         return config
     
     @staticmethod

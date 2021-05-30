@@ -36,11 +36,11 @@ class Nucleus(nn.Module):
         in the model nucleus subclass. This class also implements the gradient calculation and backward pass for any extending nucleus subclass. 
     """
 
-    def __init__(self, config: Munch = None, **kwargs):
+    def __init__(self, config: 'bittensor.Config' = None, **kwargs):
         r""" Init nucleus module.
 
             Args:
-                config (:obj:`Munch`, `required`): 
+                config (:obj:`bittensor.Config`, `required`): 
                     nucleus.config()
         """
         super().__init__()
@@ -58,7 +58,7 @@ class Nucleus(nn.Module):
          # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         Nucleus.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config( parser ); 
         return config
 
     @staticmethod   

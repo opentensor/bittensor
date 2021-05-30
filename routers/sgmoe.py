@@ -24,11 +24,10 @@ import bittensor
 from . import router
 
 class SGMOERouter( router.Router ):
-    def __init__(self, config: Munch = None, query_dim = bittensor.__network_dim__, **kwargs):
+    def __init__(self, config: 'bittensor.Config' = None, query_dim = bittensor.__network_dim__, **kwargs):
         super().__init__()
         if config == None:
             config = SGMOERouter.default_config();       
-        bittensor.config.Config.update_with_kwargs(config.sgmoe, kwargs) 
         self.config = config
         self.query_dim = query_dim
         
@@ -42,7 +41,7 @@ class SGMOERouter( router.Router ):
     def default_config() -> Munch:
         parser = argparse.ArgumentParser()
         SGMOERouter.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config( parser ); 
         SGMOERouter.check_config(config)
         return config
 

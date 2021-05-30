@@ -44,7 +44,7 @@ class Wallet():
     def __init__( self, config: Munch ):
         r""" Init bittensor wallet object containing a hot and coldkey.
             Args:
-                config (:obj:`Munch`, `optional`): 
+                config (:obj:`bittensor.Config`, `optional`): 
         """
         self.config = config
         self._hotkey = None

@@ -76,7 +76,7 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
 
     """
 
-    def __init__(self, config: Munch = None, **kwargs):
+    def __init__(self, config: 'bittensor.Config' = None, **kwargs):
         """ Initialize a new XLM nucleus module.
 
         Args:
@@ -86,7 +86,6 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
         super(XLMNucleus, self).__init__(config = config, **kwargs)
         if config == None:
             config = XLMNucleus.default_config()
-        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
         XLMNucleus.check_config(config)
         self.config = config
 
@@ -123,7 +122,7 @@ class XLMNucleus(bittensor.nucleus.Nucleus):
     def default_config() -> Munch:
         parser = argparse.ArgumentParser()
         XLMNucleus.add_args(parser)
-        config = bittensor.config.Config.to_config(parser)
+        config = bittensor.config( parser )
         return config
     
     @staticmethod

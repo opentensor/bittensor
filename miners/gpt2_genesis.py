@@ -52,14 +52,14 @@ logger = logger.opt(colors=True)
 
 class Miner( miner.BasicMiner ):
 
-    def __init__(self, config: Munch = None, **kwargs):
+    def __init__(self, config: 'bittensor.Config' = None, **kwargs):
 
         # ---- Load Config ----
         if config == None:
             config = Miner.default_config();   
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config.miner, kwargs )
+        config = copy.deepcopy(config)
         Miner.check_config( config )
-        logger.info( bittensor.config.Config.toString( config ) )
+        logger.info( config )
         self.config = config
         super( Miner, self ).__init__( self.config, **kwargs )
 
@@ -80,14 +80,14 @@ class Miner( miner.BasicMiner ):
         # ---- Dataset ----
         # The Genesis Dataset:
         # The dataset used to train Adam and his first 100 children.
-        self.dataset = bittensor.genesis_dataloader( batch_size = self.config.miner.batch_size_train, block_size = self.nucleus.get_block_size() )
+        self.dataset = bittensor.dataloader( batch_size = self.config.miner.batch_size_train, block_size = self.nucleus.get_block_size() )
         self.tokens = 0
                
     @staticmethod
     def default_config() -> Munch:
         parser = argparse.ArgumentParser()
         Miner.add_args(parser)
-        config = bittensor.config.Config.to_config(parser)
+        config = bittensor.config( parser )
         return config
 
     @staticmethod
@@ -153,7 +153,7 @@ class Miner( miner.BasicMiner ):
             help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name '
         )
         miner.BasicMiner.add_args( parser )
-        bittensor.genesis_dataloader.add_args( parser )
+        bittensor.dataloader.add_args( parser )
         GPT2Nucleus.add_args( parser )
         SGMOERouter.add_args( parser )
 
@@ -162,7 +162,7 @@ class Miner( miner.BasicMiner ):
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         miner.BasicMiner.check_config( config )
-        bittensor.genesis_dataloader.check_config( config )
+        bittensor.dataloader.check_config( config )
         GPT2Nucleus.check_config( config )
         SGMOERouter.check_config( config )
 

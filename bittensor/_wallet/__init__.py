@@ -26,7 +26,7 @@ class wallet:
 
     def __new__(
             cls, 
-            config: Munch = None, 
+            config: 'bittensor.Config' = None, 
             name: str = None,
             path: str = None,
             hotkey: str = None,
@@ -34,7 +34,7 @@ class wallet:
         r""" Init bittensor wallet object containing a hot and coldkey.
 
             Args:
-                config (:obj:`Munch`, `optional`): 
+                config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.wallet.default_config()
                 name (required=False, default='default):
                     The name of the wallet to unlock for running bittensor
@@ -58,7 +58,7 @@ class wallet:
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         wallet.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config( parser ); 
         return config
 
     @staticmethod   

@@ -21,8 +21,8 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = '1.0.3'
-__version_as_int__ = (100 * 1) + (10 * 0) + (1 * 3)  # Integer representation
+__version__ = '1.0.4'
+__version_as_int__ = (100 * 1) + (10 * 0) + (1 * 4)  # Integer representation
 
 # Vocabulary dimension.
 #__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
@@ -40,29 +40,27 @@ import bittensor.bittensor_pb2_grpc as grpc
 
 # Load components.
 import bittensor.tokenizer
-import bittensor.config 
 import bittensor.logging
 import bittensor.nucleus
 
 from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon
 from bittensor._wallet import wallet as wallet
+from bittensor._config import config as config
 from bittensor._receptor import receptor as receptor
 from bittensor._endpoint import endpoint as endpoint
 from bittensor._dendrite import dendrite as dendrite
 from bittensor._executor import executor as executor
 from bittensor._metagraph import metagraph as metagraph
 from bittensor._subtensor import subtensor as subtensor
-<<<<<<< HEAD
 from bittensor._tokenizer import tokenizer as tokenizer
-=======
->>>>>>> a2b48b5ab217a9356fae3f827a8de40dbb048b29
 from bittensor._serializer import serializer as serializer
-from bittensor._dataloaders import genesis_dataloader as genesis_dataloader
+from bittensor._dataloader import dataloader as dataloader
 
 from bittensor._cli.cli_impl import CLI as CLI
 from bittensor._axon.axon_impl import Axon as Axon
 from bittensor._wallet.wallet_impl import Wallet as Wallet
+from bittensor._config.config_impl import Config as Config
 from bittensor._receptor.receptor_impl import Receptor as Receptor
 from bittensor._endpoint.endpoint_impl import Endpoint as Endpoint
 from bittensor._executor.executor_impl import Executor as Executor
@@ -70,6 +68,7 @@ from bittensor._dendrite.dendrite_impl import Dendrite as Dendrite
 from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
+from bittensor._dataloader.dataloader_impl import Dataloader as Dataloader
 
 # ---- LOGGING ----
 __debug_on__ = False

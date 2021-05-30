@@ -47,7 +47,6 @@ class FFNNNucleus(bittensor.nucleus.Nucleus):
         super(FFNNNucleus, self).__init__(config = config, **kwargs)
         if config == None:
             config = FFNNNucleus.default_config()
-        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
         FFNNNucleus.check_config(config)
         self.config = config
 
@@ -84,7 +83,7 @@ class FFNNNucleus(bittensor.nucleus.Nucleus):
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         FFNNNucleus.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config( parser ); 
         return config
 
     @staticmethod

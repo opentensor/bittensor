@@ -30,7 +30,7 @@ from torch.utils.data import Subset
 from loguru import logger
 logger = logger.opt(colors=True)
 
-class BittensorDataLoader():
+class Dataloader():
     def __init__(self):
         # IPFS hash of the genesis dataset
         # TODO (shibshib): Find a proper way to set this as config instead of hardcoding it.
@@ -90,7 +90,7 @@ class BittensorDataLoader():
         session.params.update(params)
         directory = None
 
-        response = BittensorDataLoader.requests_retry_session(session=session).post(self.dag_get)
+        response = Dataloader.requests_retry_session(session=session).post(self.dag_get)
 
         if response.status_code == 200:
             directory = response.json()
@@ -107,7 +107,7 @@ class BittensorDataLoader():
         """
         pass
 
-class GenesisTextDataloader( BittensorDataLoader ):
+class GenesisTextDataloader( Dataloader ):
     
     def __init__( self, config ):
         super(GenesisTextDataloader, self).__init__()
@@ -132,7 +132,7 @@ class GenesisTextDataloader( BittensorDataLoader ):
         session.params.update(params)
         directory = None
 
-        response = BittensorDataLoader.requests_retry_session(session=session).post(self.file_cat)
+        response = Dataloader.requests_retry_session(session=session).post(self.file_cat)
 
         if response.status_code == 200:
             directory = response

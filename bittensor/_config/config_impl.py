@@ -15,41 +15,20 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-import argparse
-import copy
+import yaml
 from munch import Munch
 
-from . import metagraph_impl
+class Config ( Munch ):
 
-class metagraph:
+    def __init__(self):
+        pass
 
-    def __new__(
-            cls, 
-            config: 'bittensor.Config' = None
-        ) -> 'bittensor.Metagraph':
-        r""" Creates a new bittensor.Axon object from passed arguments.
-            Args:
-                config (:obj:`bittensor.Config`, `optional`): 
-                    bittensor.metagraph.default_config()
-        """        
-        if config == None:
-            config = metagraph.default_config()
-        metagraph.check_config( config )
-        return metagraph_impl.Metagraph( config )
+    def __str__(items) -> str:
+        return "\n" + yaml.dump(items.toDict())
 
-    @staticmethod   
-    def default_config() -> Munch:
-        parser = argparse.ArgumentParser(); 
-        metagraph.add_args(parser) 
-        config = bittensor.config( parser ); 
-        return config
+    def toString(items) -> str:
+        return "\n" + yaml.dump(items.toDict())
 
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        bittensor.subtensor.add_args(parser)
-        
-    @staticmethod   
-    def check_config(config: Munch):
-        bittensor.subtensor.check_config(config)
-
+    def update_with_kwargs( self, kwargs ):
+        for key,val in kwargs.items():
+            self[key] = val
