@@ -59,14 +59,14 @@ class config:
                         head = config
                         for key in split_keys[:-1]:
                             if key not in config:
-                                head[key] = Munch()
+                                head[key] = config_impl.Config()
                             head = head[key] 
                         head[split_keys[-1]] = arg_val
                 else:
                     head = config
                     for key in split_keys[:-1]:
                         if key not in config:
-                            head[key] = Munch()
+                            head[key] = config_impl.Config()
                         head = head[key] 
                     head[split_keys[-1]] = arg_val
 
