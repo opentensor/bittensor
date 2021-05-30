@@ -53,7 +53,10 @@ from bittensor._dendrite import dendrite as dendrite
 from bittensor._executor import executor as executor
 from bittensor._metagraph import metagraph as metagraph
 from bittensor._subtensor import subtensor as subtensor
+<<<<<<< HEAD
 from bittensor._tokenizer import tokenizer as tokenizer
+=======
+>>>>>>> a2b48b5ab217a9356fae3f827a8de40dbb048b29
 from bittensor._serializer import serializer as serializer
 from bittensor._dataloaders import genesis_dataloader as genesis_dataloader
 
