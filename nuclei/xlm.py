@@ -92,7 +92,7 @@ class XLMNucleus:
         self.routing_function = None
         
         # Build config.
-        xlm_config = XLMConfig(
+        xlm_config = XLMConfig (
             vocab_size=bittensor.__vocab_size__, 
             emb_dim=bittensor.__network_dim__,
             n_layers=config.nucleus.n_layers,
