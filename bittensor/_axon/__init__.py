@@ -20,7 +20,6 @@ import bittensor
 import argparse
 import copy
 import grpc
-from munch import Munch
 
 from . import axon_impl
 
@@ -83,8 +82,7 @@ class axon:
         return axon_impl.Axon( config, wallet, server )
 
     @staticmethod   
-    def default_config() -> Munch:
-        # Parses and returns a config Munch for this object.
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         axon.add_args(parser) 
         config = bittensor.config( parser ); 
@@ -112,10 +110,10 @@ class axon:
             pass
 
     @staticmethod   
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         r""" Checks the passed config items for validity and obtains the remote ip.
             Args:
-                config (:obj:`munch.Munch, `required`): 
+                config (:obj:`bittensor.Config, `required`): 
                     config to check.
         """
         assert config.axon.local_port > 1024 and config.axon.local_port < 65535, 'config.axon.local_port must be in range [1024, 65535]'

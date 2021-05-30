@@ -21,7 +21,6 @@
 import argparse
 import bittensor
 import copy
-from munch import Munch
 
 from . import dataloader_impl
 
@@ -29,7 +28,7 @@ class dataloader:
 
     def __new__(
             cls,
-            config = None,
+            config: 'bittensor.Config '= None,
             block_size: int = None,
             batch_size: int = None,
             max_corpus_size:int = None,
@@ -46,7 +45,7 @@ class dataloader:
         return dataloader_impl.GenesisTextDataloader( config )
 
     @staticmethod   
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         dataloader.add_args(parser) 
         config = bittensor.config( parser ); 
@@ -64,7 +63,7 @@ class dataloader:
                                 help='Number of workers for data loader.')
 
     @staticmethod   
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         assert config.dataloader.batch_size > 0, 'Batch size must be larger than 0'
         assert config.dataloader.block_size > 0, 'Block size must be larger than 0'
         assert config.dataloader.max_corpus_size > 0, 'max_corpus_size must be larger than 0'

@@ -91,7 +91,7 @@ class Miner( miner.BasicMiner ):
         self.tokens = 0
                
     @staticmethod
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
         Miner.add_args(parser)
         config = bittensor.config( parser )
@@ -165,7 +165,7 @@ class Miner( miner.BasicMiner ):
         SGMOERouter.add_args( parser )
 
     @staticmethod
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         miner.BasicMiner.check_config( config )

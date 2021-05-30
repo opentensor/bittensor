@@ -20,7 +20,6 @@ import yaml
 import munch
 import bittensor
 from argparse import ArgumentParser
-from munch import Munch
 
 from . import config_impl
 
@@ -84,7 +83,7 @@ class config:
         return bittensor.config( parser )
 
     @staticmethod
-    def load_from_relative_path(path: str)  -> Munch:
+    def load_from_relative_path(path: str)  -> 'bittensor.Config':
         r""" Loads and returns a Munched config object from a relative path.
 
             Args:
@@ -93,7 +92,7 @@ class config:
     
             Returns:
                 config  (:obj:`bittensor.Config` `required`):
-                    Python Munch object with values from config under path.
+                    bittensor.Config object with values from config under path.
         """
         # Load yaml items from relative path.
         path_items = config_impl.Config()

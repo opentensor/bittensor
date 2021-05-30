@@ -24,7 +24,6 @@ from concurrent.futures import ThreadPoolExecutor
 from termcolor import colored
 from types import SimpleNamespace
 from typing import Tuple, List
-from munch import Munch
 
 import bittensor
 import bittensor.utils.stats as stat_utils
@@ -43,7 +42,7 @@ class Dendrite(nn.Module):
 
     def __init__(
             self, 
-            config: Munch,
+            config: 'bittensor.Config',
             wallet: 'bittensor.Wallet',
             thread_pool: 'ThreadPoolExecutor'
         ):

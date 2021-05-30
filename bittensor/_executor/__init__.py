@@ -18,7 +18,6 @@
 import bittensor
 import argparse
 import copy
-from munch import Munch
 
 from . import executor_impl
 
@@ -65,7 +64,7 @@ class executor:
         return executor_impl.Executor( config, wallet, subtensor, metagraph, axon, dendrite )
     
     @staticmethod
-    def default_config () -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         executor.add_args(parser) 
         config = bittensor.config( parser ); 
@@ -80,7 +79,7 @@ class executor:
         bittensor.metagraph.add_args( parser )
         
     @staticmethod   
-    def check_config (config: Munch):
+    def check_config (config: 'bittensor.Config'):
         bittensor.wallet.check_config( config )
         bittensor.subtensor.check_config( config )
         bittensor.axon.check_config( config )

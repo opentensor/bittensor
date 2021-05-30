@@ -66,7 +66,7 @@ class AbstractMiner ():
         self.dendrite = bittensor.dendrite( config = self.config, wallet = self.wallet )
 
     @staticmethod   
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         AbstractMiner.add_args(parser) 
@@ -74,7 +74,7 @@ class AbstractMiner ():
         return config
 
     @staticmethod
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         assert 'name' in config.miner, 'miners must specify a name argument.'
         bittensor.wallet.check_config( config )
         bittensor.subtensor.check_config( config )
@@ -266,14 +266,14 @@ class BasicMiner( AbstractMiner ):
         super( BasicMiner, self ).__init__( self.config, **kwargs )
 
     @staticmethod   
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         BasicMiner.add_args(parser) 
         config = bittensor.config( parser ); 
         return config
     
     @staticmethod
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         AbstractMiner.check_config( config )
 
     @staticmethod   

@@ -17,7 +17,6 @@
 import time
 import torch
 
-from munch import Munch
 from tqdm import tqdm
 from rich.align import Align
 from rich.console import Console

@@ -19,7 +19,6 @@ import bittensor
 import argparse
 import copy
 import grpc
-from munch import Munch
 import bittensor.utils.networking as net
 
 from . import receptor_impl
@@ -103,14 +102,14 @@ class receptor:
         )
 
     @staticmethod   
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
         receptor.add_args(parser) 
         config = bittensor.config( parser ); 
         return config
 
     @staticmethod   
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         bittensor.wallet.check_config( config )
         assert config.receptor.timeout >= 0, 'timeout must be positive value, got {}'.format(config.receptor.timeout)
 

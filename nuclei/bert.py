@@ -24,7 +24,6 @@ from torch import nn
 import torch.nn.functional as F
 import transformers
 
-from munch import Munch
 from typing import Callable
 from transformers import BertModel, BertConfig
 from types import SimpleNamespace
@@ -46,11 +45,11 @@ class BertPooler(nn.Module):
         return pooled_output
 
 class BertNucleusBase(torch.nn.Module):
-    def __init__(self, config: Munch, **kwargs):
+    def __init__(self, config: 'bittensor.Config', **kwargs):
         r""" Init a new base-bert nucleus.
 
             Args:
-                config (:obj:`munch.Munch`, `required`): 
+                config (:obj:`bittensor.Config`, `required`): 
         """
         super(BertNucleusBase, self).__init__()
         if config == None:
@@ -84,7 +83,7 @@ class BertNucleusBase(torch.nn.Module):
         self.to(self.device)
 
     @staticmethod   
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         BertNucleusBase.add_args(parser) 
         config = bittensor.config( parser ); 
@@ -101,7 +100,7 @@ class BertNucleusBase(torch.nn.Module):
         parser.add_argument('--nucleus.n_block_filter', default=100, type=int, help='Stale neurons are filtered after this many blocks.')
 
     @staticmethod
-    def check_config( config: Munch ):    
+    def check_config( config: 'bittensor.Config' ):    
         r""" Add custom checks to the config.
         """
         pass
@@ -232,7 +231,7 @@ class BertNucleusBase(torch.nn.Module):
         return output
 
 class BertNSPNucleus (BertNucleusBase):
-    def __init__( self, config: Munch, **kwargs):
+    def __init__( self, config: 'bittensor.Config', **kwargs):
         r""" Init a new bert nsp nucleus module.
 
             Args:
@@ -356,7 +355,7 @@ class BertNSPNucleus (BertNucleusBase):
 
         
 class BertMLMNucleus (BertNucleusBase):
-    def __init__(self, config: Munch, **kwargs):
+    def __init__(self, config: 'bittensor.Config', **kwargs):
         r""" Bert nucleus for MLM training
 
             Args:

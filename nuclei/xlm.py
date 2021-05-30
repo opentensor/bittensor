@@ -80,7 +80,7 @@ class XLMNucleus (torch.nn.Module):
         """ Initialize a new XLM nucleus module.
 
         Args:
-            config (:obj:`munch.Munch`, `required`): 
+            config (:obj:`bittensor.Config`, `required`): 
                     munched config class.
         """
         super(XLMNucleus, self).__init__()
@@ -119,7 +119,7 @@ class XLMNucleus (torch.nn.Module):
         self.to(self.device)
     
     @staticmethod
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
         XLMNucleus.add_args(parser)
         config = bittensor.config( parser )
@@ -195,7 +195,7 @@ class XLMNucleus (torch.nn.Module):
                                 help='The ID of the language used by the model. This parameter is used when generating text in a given language.')
         
     @staticmethod
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         assert config.nucleus.n_layers > 0, "Number of hidden layers in the Transformer encoder must be > 0"
         assert config.nucleus.n_heads > 0, "Number of attention heads for each attention layer in the Transformer encoder must be > 0"
 

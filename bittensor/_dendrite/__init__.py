@@ -19,7 +19,6 @@ from concurrent.futures import ThreadPoolExecutor
 import bittensor
 import argparse
 import copy
-from munch import Munch
 
 from . import dendrite_impl
 
@@ -84,14 +83,14 @@ class dendrite:
         return dendrite_impl.Dendrite( config, wallet, thread_pool )
 
     @staticmethod   
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         dendrite.add_args(parser) 
         config = bittensor.config( parser ); 
         return config
 
     @staticmethod   
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         bittensor.receptor.check_config( config )
 
     @staticmethod   

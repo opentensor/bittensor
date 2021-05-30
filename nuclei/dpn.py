@@ -42,7 +42,7 @@ class DPNNucleus(torch.nn.Module):
         r""" Init a new DPN nucleus module.
 
             Args:
-                config (:obj: `munch.Munch`, `required`)
+                config (:obj: `bittensor.Config`, `required`)
                     munch namespace config item.
         """
         super(DPNNucleus, self).__init__()
@@ -100,7 +100,7 @@ class DPNNucleus(torch.nn.Module):
         self.to(self.device)
 
     @staticmethod   
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         DPNNucleus.add_args(parser) 
         config = bittensor.config( parser ); 
@@ -130,7 +130,7 @@ class DPNNucleus(torch.nn.Module):
         parser.add_argument('--nucleus.target_dim', default=10, type=int, help='Final logit layer dimension. i.e. 10 for CIFAR-10.')
     
     @staticmethod
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         assert isinstance(config.nucleus.in_planes, list), 'nucleus.in_planes must be a tuple, got {}'.format(config.nucleus.in_planes)
         assert isinstance(config.nucleus.out_planes, list), 'nucleus.out_planes must be a tuple, got {}'.format(config.nucleus.out_planes)
         assert isinstance(config.nucleus.num_blocks, list), 'nucleus.num_blocks must be a tuple, got {}'.format(config.nucleus.num_blocks)

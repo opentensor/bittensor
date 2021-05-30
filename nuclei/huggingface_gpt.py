@@ -68,7 +68,7 @@ class GPT2LMNucleus(torch.nn.Module):
         r""" Init a new GPT2 nucleus module.
 
             Args:
-                config (:obj:`munch.Munch`, `required`): 
+                config (:obj:`bittensor.Config`, `required`): 
                     munched config class.
         """
         super(GPT2LMNucleus, self).__init__()
@@ -123,7 +123,7 @@ class GPT2LMNucleus(torch.nn.Module):
         self.to(self.device)
 
     @staticmethod   
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         GPT2LMNucleus.add_args(parser) 
         config = bittensor.config( parser ); 
@@ -167,7 +167,7 @@ class GPT2LMNucleus(torch.nn.Module):
                             help='Stale neurons are filtered after this many blocks.')
 
     @staticmethod
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         pass
 
     def attach_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):

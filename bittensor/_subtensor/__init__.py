@@ -71,7 +71,7 @@ class subtensor:
         return subtensor_impl.Subtensor( config, substrate )
 
     @staticmethod
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         subtensor.add_args(parser) 
@@ -95,5 +95,5 @@ class subtensor:
             pass
         
     @staticmethod   
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         pass
