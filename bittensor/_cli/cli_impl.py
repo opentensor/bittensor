@@ -19,13 +19,12 @@ import sys
 import argparse
 import bittensor
 
-from munch import Munch
 
 from loguru import logger
 logger = logger.opt(colors=True)
 
 class CLI:
-    def __init__(self, config: Munch, executor: 'bittensor.executor.Executor' ):
+    def __init__(self, config: 'bittensor.Config', executor: 'bittensor.executor.Executor' ):
         r""" Initialized a bittensor.CLI object.
             Args:
                 config (:obj:`bittensor.Config`, `required`): 

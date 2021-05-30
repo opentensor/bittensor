@@ -19,7 +19,6 @@ import bittensor
 import argparse
 import copy
 import sys
-from munch import Munch
 
 from . import cli_impl
 
@@ -57,7 +56,7 @@ class cli:
         return cli_impl.CLI( config, executor )
 
     @staticmethod   
-    def default_config () -> Munch:
+    def default_config () -> 'bittensor.Config':
         # Build top level parser.
         parser = argparse.ArgumentParser(description="Bittensor cli", usage="bittensor-cli <command> <command args>", add_help=True)
         parser._positionals.title = "commands"
@@ -266,7 +265,7 @@ class cli:
             sys.exit(0)
         
     @staticmethod   
-    def check_config (config: Munch):
+    def check_config (config: 'bittensor.Config'):
         if config.command == "transfer":
             if not config.dest:
                 logger.critical("The --dest argument is required for this command")

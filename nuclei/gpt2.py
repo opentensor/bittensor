@@ -133,7 +133,7 @@ class GPT2Nucleus(torch.nn.Module):
     def __init__(self, config, **kwargs):
         """The full GPT language model, with context of a block size.
             Args:
-                config (:obj: `munch.Munch`, `required`):
+                config (:obj: `bittensor.Config`, `required`):
                     munched config class.
         """
         super(GPT2Nucleus, self).__init__()
@@ -195,7 +195,7 @@ class GPT2Nucleus(torch.nn.Module):
         self.num_parameters = sum(p.numel() for p in self.parameters())
     
     @staticmethod   
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         GPT2Nucleus.add_args(parser) 
         config = bittensor.config( parser ); 
@@ -224,7 +224,7 @@ class GPT2Nucleus(torch.nn.Module):
                             help='GPT attention dropout probability.')
         
     @staticmethod
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         pass
 
     def attach(self, servicer: object ):

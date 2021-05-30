@@ -50,7 +50,7 @@ class Receptor(nn.Module):
 
     def __init__(
             self, 
-            config: Munch, 
+            config: 'bittensor.Config', 
             wallet: 'bittensor.wallet',
             endpoint: 'bittensor.Endpoint', 
             channel: 'grpc._Channel',

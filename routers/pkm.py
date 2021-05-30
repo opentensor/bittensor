@@ -37,7 +37,7 @@ class PKMKeys(nn.Module):
         return self._keys[uids]
 
 class PKMRouter( router.Router ):
-    def __init__(self, config: Munch, query_dim = bittensor.__network_dim__, **kwargs):
+    def __init__(self, config: 'bittensor.Config', query_dim = bittensor.__network_dim__, **kwargs):
         super().__init__()
         if config == None:
             config = PKMRouter.default_config();       
@@ -50,7 +50,7 @@ class PKMRouter( router.Router ):
         self.projection = nn.Linear(query_dim, self.config.router.key_dim, bias=True).to(self.device)
 
     @staticmethod   
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
         PKMRouter.add_args(parser) 
         config = bittensor.config( parser ); 

@@ -38,10 +38,10 @@ class FFNNNucleus(torch.nn.Module):
     """ Simple feed forward NN for images.
     """
 
-    def __init__(self, config: Munch, **kwargs):
+    def __init__(self, config: 'bittensor.Config', **kwargs):
         r""" Init a new ffnn nucleus module.
                 :param [config]: munch namespace config item.
-                :type [config]:  [:obj:`munch.Munch`](, `required`)
+                :type [config]:  [:obj:`bittensor.Config`](, `required`)
 
         """
         super(FFNNNucleus, self).__init__()
@@ -80,7 +80,7 @@ class FFNNNucleus(torch.nn.Module):
         self.to(self.device)
 
     @staticmethod   
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         FFNNNucleus.add_args(parser) 
         config = bittensor.config( parser ); 
@@ -92,7 +92,7 @@ class FFNNNucleus(torch.nn.Module):
                             help='Final logit layer dimension. i.e. 10 for MNIST.')
 
     @staticmethod   
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         assert config.nucleus.target_dim > 0, "target dimension must be greater than 0."
 
     def attach_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):

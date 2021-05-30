@@ -54,7 +54,7 @@ class wallet:
         return wallet_impl.Wallet( config )
 
     @staticmethod   
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         wallet.add_args(parser) 
@@ -74,5 +74,5 @@ class wallet:
             pass
 
     @staticmethod   
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         pass

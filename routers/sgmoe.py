@@ -36,7 +36,7 @@ class SGMOERouter( router.Router ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     @staticmethod   
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
         SGMOERouter.add_args(parser) 
         config = bittensor.config( parser ); 

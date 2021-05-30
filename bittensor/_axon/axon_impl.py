@@ -23,7 +23,6 @@ import queue
 import multiprocessing as mp
 
 from concurrent import futures
-from munch import Munch
 from termcolor import colored
 from types import SimpleNamespace
 from typing import List, Tuple, Optional, Callable
@@ -37,7 +36,7 @@ logger = logger.opt(colors=True)
 class Axon( bittensor.grpc.BittensorServicer ):
     r""" Services Forward and Backward requests from other neurons.
     """
-    def __init__( self, config: Munch, wallet: 'bittensor.wallet', server: 'grpc._Server' ):
+    def __init__( self, config: 'bittensor.Config', wallet: 'bittensor.wallet', server: 'grpc._Server' ):
         r""" Initializes a new Axon tensor processing endpoint.
             
             Args:

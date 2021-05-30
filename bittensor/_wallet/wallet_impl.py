@@ -41,7 +41,7 @@ class Wallet():
     The coldkey must be used to stake and unstake funds from a running node. The hotkey, on the other hand, is only used
     for suscribing and setting weights from running code. Hotkeys are linked to coldkeys through the metagraph. 
     """
-    def __init__( self, config: Munch ):
+    def __init__( self, config: 'bittensor.Config' ):
         r""" Init bittensor wallet object containing a hot and coldkey.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
