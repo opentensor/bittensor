@@ -36,10 +36,10 @@ class Subtensor:
     """
     Handles interactions with the subtensor chain.
     """
-    def __init__( self, config: 'Munch', substrate: 'SubstrateWSInterface' ):
+    def __init__( self, config: 'bittensor.Config', substrate: 'SubstrateWSInterface' ):
         r""" Initializes a subtensor chain interface.
             Args:
-                config (:obj:`Munch`, `required`): 
+                config (:obj:`bittensor.Config`, `required`): 
                     metagraph.Metagraph.config()
                 substrate (:obj:`SubstrateWSInterface`, `required`): 
                     substrate websocket client.

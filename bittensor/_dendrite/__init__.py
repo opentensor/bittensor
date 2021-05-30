@@ -27,8 +27,8 @@ class dendrite:
 
     def __new__(
             cls, 
-            config: Munch = None, 
-            wallet: 'bittensor.wallet' = None,
+            config: 'bittensor.Config' = None, 
+            wallet: 'bittensor.Wallet' = None,
             thread_pool: 'ThreadPoolExecutor' = None,
             max_worker_threads: int = None,
             max_active_tcp_connections: int = None,
@@ -39,9 +39,9 @@ class dendrite:
         ) -> 'bittensor.Dendrite':
         r""" Creates a new Dendrite object from passed arguments.
             Args:
-                config (:obj:`Munch`, `optional`): 
+                config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.dendrite.default_config()
-                wallet (:obj:`bittensor.wallet`, `optional`):
+                wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
                     Threadpool used for making client queries.
@@ -87,7 +87,7 @@ class dendrite:
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         dendrite.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config( parser ); 
         return config
 
     @staticmethod   

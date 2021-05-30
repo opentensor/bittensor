@@ -26,8 +26,8 @@ class executor:
 
     def __new__(
             cls,
-            config: Munch = None, 
-            wallet: 'bittensor.wallet' = None,
+            config: 'bittensor.Config' = None, 
+            wallet: 'bittensor.Wallet' = None,
             subtensor: 'bittensor.Subtensor' = None,
             metagraph: 'bittensor.Metagraph' = None,
             axon: 'bittensor.Axon' = None,
@@ -35,9 +35,9 @@ class executor:
         ) -> 'bittensor.Executor':
         r""" Creates a new Executor object from passed arguments.
             Args:
-                config (:obj:`Munch`, `optional`): 
+                config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.executor.default_config()
-                wallet (:obj:`bittensor.wallet`, `optional`):
+                wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 subtensor (:obj:`bittensor.Subtensor`, `optional`):
                     Bittensor subtensor chain connection.
@@ -68,7 +68,7 @@ class executor:
     def default_config () -> Munch:
         parser = argparse.ArgumentParser(); 
         executor.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config( parser ); 
         return config
 
     @staticmethod   

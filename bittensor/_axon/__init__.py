@@ -28,8 +28,8 @@ class axon:
 
     def __new__(
             cls, 
-            config: Munch = None, 
-            wallet: 'bittensor.wallet' = None,
+            config: 'bittensor.Config' = None, 
+            wallet: 'bittensor.Wallet' = None,
             thread_pool: 'futures.ThreadPoolExecutor' = None,
             server: 'grpc._Server' = None,
             local_port: int = None,
@@ -39,9 +39,9 @@ class axon:
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
-                config (:obj:`Munch`, `optional`): 
+                config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.axon.default_config()
-                wallet (:obj:`bittensor.wallet`, `optional`):
+                wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
                     Threadpool used for processing server queries.
@@ -87,7 +87,7 @@ class axon:
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         axon.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config( parser ); 
         return config
 
     @staticmethod   

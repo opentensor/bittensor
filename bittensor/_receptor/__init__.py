@@ -29,8 +29,8 @@ class receptor:
     def __new__(
             cls, 
             endpoint: 'bittensor.Endpoint', 
-            config: Munch = None, 
-            wallet: 'bittensor.wallet' = None,
+            config: 'bittensor.Config' = None, 
+            wallet: 'bittensor.Wallet' = None,
             pass_gradients: bool = None,
             timeout: int = None,
             do_backoff: bool = None,
@@ -40,7 +40,7 @@ class receptor:
             Args:
                 endpoint (:obj:`bittensor.Endpoint`, `required`):
                     neuron endpoint descriptor.
-                config (:obj:`Munch`, `optional`): 
+                config (:obj:`bittensor.Config`, `optional`): 
                     receptor.Receptor.config()
                 wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
@@ -106,7 +106,7 @@ class receptor:
     def default_config() -> Munch:
         parser = argparse.ArgumentParser()
         receptor.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config( parser ); 
         return config
 
     @staticmethod   

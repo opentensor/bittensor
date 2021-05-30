@@ -49,7 +49,7 @@ class Dendrite(nn.Module):
         ):
         r""" Initializes a new Dendrite entry point.
             Args:
-                config (:obj:`Munch`, `required`): 
+                config (:obj:`bittensor.Config`, `required`): 
                     bittensor.dendrite.default_config()
                 wallet (:obj:`bittensor.Wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.

@@ -39,13 +39,13 @@ class subtensor:
 
     def __new__(
             cls, 
-            config: 'Munch' = None,
+            config: 'bittensor.Config' = None,
             network: str = None,
             chain_endpoint: str = None
         ) -> 'bittensor.Subtensor':
         r""" Initializes a subtensor chain interface.
             Args:
-                config (:obj:`Munch`, `optional`): 
+                config (:obj:`bittensor.Config`, `optional`): 
                     metagraph.Metagraph.config()
                 network (default='akira', type=str)
                     The subtensor network flag. The likely choices are:
@@ -75,7 +75,7 @@ class subtensor:
         # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         subtensor.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config( parser ); 
         return config
     
     @staticmethod   

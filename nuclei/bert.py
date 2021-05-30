@@ -55,7 +55,6 @@ class BertNucleusBase (bittensor.nucleus.Nucleus):
         super(BertNucleusBase, self).__init__( config = config, **kwargs )
         if config == None:
             config = BertNucleusBase.default_config()
-        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs) 
         BertNucleusBase.check_config(config)
         self.config = config
 
@@ -88,7 +87,7 @@ class BertNucleusBase (bittensor.nucleus.Nucleus):
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         BertNucleusBase.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config( parser ); 
         return config
 
     @staticmethod
@@ -237,7 +236,7 @@ class BertNSPNucleus (BertNucleusBase):
         r""" Init a new bert nsp nucleus module.
 
             Args:
-                config (:obj:`Munch`, `required`): 
+                config (:obj:`bittensor.Config`, `required`): 
                     BertNSP configuration class.
         """
         super(BertNSPNucleus, self).__init__(config = config, **kwargs)
@@ -361,7 +360,7 @@ class BertMLMNucleus (BertNucleusBase):
         r""" Bert nucleus for MLM training
 
             Args:
-                config (:obj:`Munch`, `required`): 
+                config (:obj:`bittensor.Config`, `required`): 
                     BertNSP configuration class.
 
         """

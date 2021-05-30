@@ -28,7 +28,7 @@ class CLI:
     def __init__(self, config: Munch, executor: 'bittensor.executor.Executor' ):
         r""" Initialized a bittensor.CLI object.
             Args:
-                config (:obj:`Munch`, `required`): 
+                config (:obj:`bittensor.Config`, `required`): 
                     bittensor.cli.default_config()
                 executor (:obj:`bittensor.executor.executor`, `required`):
                     bittensor executor object, used to execute cli options.

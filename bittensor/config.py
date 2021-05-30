@@ -118,7 +118,7 @@ class Config:
                     Path to config.yaml file. full_path = cwd() + path
     
             Returns:
-                config  (:obj:`Munch` `required`):
+                config  (:obj:`bittensor.Config` `required`):
                     Python Munch object with values from config under path.
         """
         # Load yaml items from relative path.
@@ -147,7 +147,7 @@ class Config:
                     String representation of yaml file.
     
             Returns:
-                config  (:obj:`Munch` `required`):
+                config  (:obj:`bittensor.Config` `required`):
                     Python Munch object with values from parsed string.
         """
         # Load items yaml string.
@@ -252,7 +252,7 @@ class Config:
                     Items to overrite from
     
             Returns:
-                items  (:obj:`Munch` `Optional`):
+                items  (:obj:`bittensor.Config` `Optional`):
                     Overritten items or None if both are None.
         """
         if items_b == None:
@@ -275,7 +275,7 @@ class Config:
                     Items to overrite from
     
             Returns:
-                items  (:obj:`Munch` `Optional`):
+                items  (:obj:`bittensor.Config` `Optional`):
                     Items with overwrite from B to A.
         """
         for k, v in items_a.items():
@@ -299,7 +299,7 @@ class Config:
                     Items to overrite from
     
             Returns:
-                items  (:obj:`Munch` `Optional`):
+                items  (:obj:`bittensor.Config` `Optional`):
                     Items with union from A and B.
         """
         for k, v in items_b.items():

@@ -139,9 +139,7 @@ class GPT2Nucleus(bittensor.nucleus.Nucleus):
         """
 
         if config == None:
-            config = GPT2Nucleus.default_config()
-        
-        bittensor.config.Config.update_with_kwargs(config.nucleus, kwargs)
+            config = GPT2Nucleus.default_config()        
         GPT2Nucleus.check_config(config)
         self.config = config
 
@@ -201,7 +199,7 @@ class GPT2Nucleus(bittensor.nucleus.Nucleus):
     def default_config() -> Munch:
         parser = argparse.ArgumentParser(); 
         GPT2Nucleus.add_args(parser) 
-        config = bittensor.config.Config.to_config(parser); 
+        config = bittensor.config( parser ); 
         return config
 
     @staticmethod

@@ -59,7 +59,7 @@ class Receptor(nn.Module):
         ):
         r""" Initializes a receptor grpc connection.
             Args:
-                config (:obj:`Munch`, `required`): 
+                config (:obj:`bittensor.Config`, `required`): 
                     receptor.Receptor.default_config()
                 wallet (:obj:`bittensor.Wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
