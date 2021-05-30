@@ -48,6 +48,7 @@ from bittensor._dendrite import dendrite as dendrite
 from bittensor._executor import executor as executor
 from bittensor._metagraph import metagraph as metagraph
 from bittensor._subtensor import subtensor as subtensor
+from bittensor._serializer import serializer as serializer
 from bittensor._dataloaders import genesis_dataloader as genesis_dataloader
 
 from bittensor._cli.cli_impl import CLI as CLI
@@ -59,6 +60,7 @@ from bittensor._executor.executor_impl import Executor as Executor
 from bittensor._dendrite.dendrite_impl import Dendrite as Dendrite
 from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
+from bittensor._serializer.serializer_impl import Serializer as Serializer
 
 # ---- LOGGING ----
 __debug_on__ = False

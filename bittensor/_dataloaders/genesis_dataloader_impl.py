@@ -97,7 +97,6 @@ class BittensorDataLoader():
         
         return directory
     
-    
     def __len__(self):
         """ Returns length of the dataset that the dataloader is processing
         """
