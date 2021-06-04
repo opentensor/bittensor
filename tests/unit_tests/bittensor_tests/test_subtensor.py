@@ -1,6 +1,5 @@
 import bittensor
 import pytest
-from munch import Munch
 
 def test_create():
     subtensor = bittensor.subtensor()

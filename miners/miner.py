@@ -38,7 +38,6 @@ from rich.progress import Progress, BarColumn, TimeRemainingColumn, TimeElapsedC
 from termcolor import colored
 from types import SimpleNamespace
 from typing import List
-from munch import Munch
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
 from tensorboard import program
@@ -67,7 +66,6 @@ class AbstractMiner ():
 
     @staticmethod   
     def default_config() -> 'bittensor.Config':
-        # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         AbstractMiner.add_args(parser) 
         config = bittensor.config( parser ); 

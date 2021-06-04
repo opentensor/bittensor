@@ -17,7 +17,6 @@
 import argparse
 import torch
 import torch.nn.functional as F
-from munch import Munch
 from typing import List, Tuple
 from types import SimpleNamespace
 import bittensor

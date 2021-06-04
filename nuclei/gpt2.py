@@ -12,7 +12,6 @@ import math
 import bittensor
 import torch
 import torch.nn as nn
-from munch import Munch
 
 from typing import Callable
 from torch.nn import functional as F

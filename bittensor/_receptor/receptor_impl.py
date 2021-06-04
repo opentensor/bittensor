@@ -23,7 +23,6 @@ import torch
 import torch.nn as nn
 import traceback
 
-from munch import Munch
 from types import SimpleNamespace
 from torch.autograd.function import once_differentiable
 from typing import Tuple, List, Optional

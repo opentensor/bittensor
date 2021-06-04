@@ -1,6 +1,4 @@
 import bittensor
-from munch import Munch
-import pytest
 import os
 
 wallet =  bittensor.wallet(

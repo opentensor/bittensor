@@ -27,7 +27,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from types import SimpleNamespace
-from munch import Munch
 from collections.abc import Callable
 from loguru import logger
 

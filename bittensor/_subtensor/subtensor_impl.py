@@ -19,7 +19,6 @@ import random
 import time
 import torch
 
-from munch import Munch
 from typing import List, Tuple
 
 import bittensor
