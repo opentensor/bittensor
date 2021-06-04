@@ -1,4 +1,4 @@
-from bittensor.substrate import Keypair
+from bittensor._substrate import Keypair
 import json
 from loguru import logger
 

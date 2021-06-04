@@ -24,8 +24,8 @@ from typing import List, Tuple
 import bittensor
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
-from bittensor.substrate import SubstrateWSInterface
-from bittensor.substrate.exceptions import SubstrateRequestException
+from bittensor._substrate import SubstrateWSInterface
+from bittensor._substrate.exceptions import SubstrateRequestException
 from bittensor.utils.balance import Balance
 
 from loguru import logger

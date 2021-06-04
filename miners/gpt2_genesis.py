@@ -85,7 +85,6 @@ class Miner( miner.BasicMiner ):
 
         # ---- Dataset ----
         # The Genesis Dataset:
-        # The dataset used to train Adam and his first 100 children.
         self.dataset = bittensor.dataloader( batch_size = self.config.miner.batch_size_train, block_size = self.nucleus.get_block_size() )
         self.tokens = 0
                

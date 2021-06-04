@@ -26,7 +26,7 @@ from loguru import logger
 logger = logger.opt(colors=True)
 
 import bittensor
-from bittensor.substrate import Keypair
+from bittensor._substrate import Keypair
 from bittensor.utils.cli_utils import cli_utils
 from bittensor._crypto import encrypt, is_encrypted, decrypt_data, KeyError
 from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
@@ -126,10 +126,10 @@ class Wallet():
             return False
 
     @property
-    def hotkey(self) -> bittensor.substrate.Keypair:
+    def hotkey(self) -> bittensor._substrate.Keypair:
         r""" Loads the hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or raises an error.
             Returns:
-                hotkey (bittensor.substrate.Keypair):
+                hotkey (bittensor._substrate.Keypair):
                     hotkey loaded from config arguments.
             Raises:
                 KeyFileError: Raised if the file is corrupt of non-existent.
@@ -140,10 +140,10 @@ class Wallet():
         return self._hotkey
 
     @property
-    def coldkey(self) -> 'bittensor.substrate.Keypair':
+    def coldkey(self) -> 'bittensor._substrate.Keypair':
         r""" Loads the hotkey from wallet.path/wallet.name/coldkey or raises an error.
             Returns:
-                coldkey (bittensor.substrate.Keypair):
+                coldkey (bittensor._substrate.Keypair):
                     colkey loaded from config arguments.
             Raises:
                 KeyFileError: Raised if the file is corrupt of non-existent.
@@ -208,7 +208,7 @@ class Wallet():
         logger.success("Loaded coldkey.pub: <cyan>{}</cyan>".format( coldkeypub ))
         return coldkeypub
 
-    def _load_hotkey(self) -> 'bittensor.substrate.Keypair':
+    def _load_hotkey(self) -> 'bittensor._substrate.Keypair':
 
         if not os.path.isfile( self.hotkeyfile ):
             logger.critical("hotkeyfile  {} does not exist".format( self.hotkeyfile ))
@@ -243,7 +243,7 @@ class Wallet():
             return hotkey
 
 
-    def _load_coldkey(self) -> 'bittensor.substrate.Keypair':
+    def _load_coldkey(self) -> 'bittensor._substrate.Keypair':
         if not os.path.isfile( self.coldkeyfile ):
             logger.critical("coldkeyfile  {} does not exist".format( self.coldkeyfile ))
             raise KeyFileError
@@ -283,11 +283,11 @@ class Wallet():
         return st.st_mode & stat.S_IROTH
 
     @staticmethod
-    def __create_keypair() -> bittensor.substrate.Keypair:
-        return bittensor.substrate.Keypair.create_from_mnemonic(bittensor.substrate.Keypair.generate_mnemonic())
+    def __create_keypair() -> bittensor._substrate.Keypair:
+        return bittensor._substrate.Keypair.create_from_mnemonic(bittensor._substrate.Keypair.generate_mnemonic())
 
     @staticmethod
-    def __save_keypair(keypair : 'bittensor.substrate.Keypair', path : str):
+    def __save_keypair(keypair : 'bittensor._substrate.Keypair', path : str):
         path = os.path.expanduser(path)
         with open(path, 'w') as file:
             json.dump(keypair.toDict(), file)

@@ -17,7 +17,7 @@
 import argparse
 import copy
 import bittensor
-from bittensor.substrate import SubstrateWSInterface
+from bittensor._substrate import SubstrateWSInterface
 
 from . import subtensor_impl
 
