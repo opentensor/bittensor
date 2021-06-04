@@ -28,9 +28,9 @@ logger = logger.opt(colors=True)
 import bittensor
 from bittensor.substrate import Keypair
 from bittensor.utils.cli_utils import cli_utils
-from bittensor.crypto import encrypt, is_encrypted, decrypt_data, KeyError
-from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError
-from bittensor.crypto.keyfiles import KeyFileError, load_keypair_from_data
+from bittensor._crypto import encrypt, is_encrypted, decrypt_data, KeyError
+from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
+from bittensor._crypto.keyfiles import KeyFileError, load_keypair_from_data
 
 class Wallet():
     """
