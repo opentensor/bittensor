@@ -35,11 +35,12 @@ __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __s
 # Substrate chain block time (seconds).
 __blocktime__ = 6
 
+# ---- LOGGING ----
+__debug_on__ = False
+bittensor._logging.init_logger()
+
 import bittensor._proto.bittensor_pb2 as proto
 import bittensor._proto.bittensor_pb2_grpc as grpc
-
-# Load components.
-import bittensor.logging
 
 from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon
@@ -68,9 +69,6 @@ from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._dataloader.dataloader_impl import Dataloader as Dataloader
 
-# ---- LOGGING ----
-__debug_on__ = False
-bittensor.logging.init_logger()
 
 # Hardcoded entry point nodes. 
 __akira_entrypoints__ = [
