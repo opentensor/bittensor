@@ -29,7 +29,6 @@ from typing import Tuple, List, Optional
 
 import bittensor
 import bittensor.utils.stats as stat_utils
-from bittensor.exceptions.handlers import rollbar
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -409,5 +408,4 @@ class _ReceptorCall(torch.autograd.Function):
             except:
 
                 # ---- Catch all exceptions in Backward ----
-                rollbar.send_exception()
                 return (None, None, zeros, None)
