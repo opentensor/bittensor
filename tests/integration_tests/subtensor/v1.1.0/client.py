@@ -1,8 +1,6 @@
 import os
-import sys
 import time
 import pytest
-import asyncio
 import random
 import torch
 import subprocess
@@ -22,7 +20,7 @@ TRANSACTION_FEE_ADD_STAKE = 100 * 145  # Fee per byte * extrinsic length
 TRANSACTION_FEE_UNSTAKE = 100 * 145
 TRANSACTION_FEE_TRANSFER = 100 * 139
 
-class WalletStub(bittensor.wallets._wallet.Wallet):
+class WalletStub( bittensor.Wallet ):
     def __init__(self, coldkey_pair: 'Keypair', hotkey_pair: 'Keypair'):
         self._hotkey = hotkey_pair
         self._coldkey = coldkey_pair
@@ -62,13 +60,13 @@ def setup_chain():
 
 def connect( port:int ):
     chain_endpoint = "localhost:%i" % port
-    subtensor = bittensor.Subtensor(
+    subtensor = bittensor.subtensor(
         chain_endpoint = chain_endpoint,
     )
     subtensor.connect()
     return subtensor
 
-def add_stake( subtensor, wallet: 'wallet:bittensor.wallet', amount: 'Balance' ):
+def add_stake( subtensor, wallet: 'bittensor.Wallet', amount: 'Balance' ):
     # Get the uid of the new neuron
     uid = subtensor.get_uid_for_pubkey( wallet.hotkey.public_key )
     assert uid is not None
