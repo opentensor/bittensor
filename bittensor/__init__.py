@@ -36,12 +36,15 @@ __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __s
 __blocktime__ = 6
 
 # ---- LOGGING ----
+import bittensor._logging as logging
 __debug_on__ = False
-bittensor._logging.init_logger()
+logging.init_logger()
 
+# ---- Protos ----
 import bittensor._proto.bittensor_pb2 as proto
 import bittensor._proto.bittensor_pb2_grpc as grpc
 
+# ---- Components -----
 from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon
 from bittensor._wallet import wallet as wallet
@@ -56,6 +59,7 @@ from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
 from bittensor._dataloader import dataloader as dataloader
 
+# ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
 from bittensor._axon.axon_impl import Axon as Axon
 from bittensor._wallet.wallet_impl import Wallet as Wallet
