@@ -1,14 +1,12 @@
 import bittensor
-from munch import Munch
-import pytest
 import os
 
-wallet =  bittensor.wallet.Wallet(
+wallet =  bittensor.wallet(
     path = '/tmp/pytest',
     name = 'pytest',
     hotkey = 'pytest',
 ) 
-executor = bittensor.executor.Executor( wallet = wallet )
+executor = bittensor.executor( wallet = wallet )
 
 def test_create_hotkey():
     executor.create_new_hotkey(

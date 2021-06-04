@@ -15,7 +15,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
-"""GPT2 Language synapseling miner
+"""GPT2 Language Modelling miner
 
 The genesis miner.
 
@@ -29,45 +29,55 @@ To run with a config file:
 
 import argparse
 import copy
-import os
 import math
-import random
+from re import L
 import torch
-import sys
 import torch.nn.functional as F
 import bittensor
 
-from qqdm import qqdm, format_str
-from tqdm import tqdm
-from munch import Munch
 from termcolor import colored
 from transformers import AdamW
 from types import SimpleNamespace
-from synapses.gpt2 import GPT2Synapse
+from nuclei.gpt2 import GPT2Nucleus
+from routers.sgmoe import SGMOERouter
 from typing import Tuple, List, Optional
 from torch.nn.utils import clip_grad_norm_
-from bittensor.dataloaders.text_dataloader import GenesisTextDataloader
 from pytorch_transformers import WarmupCosineWithHardRestartsSchedule
+
+from miners import miner
 
 from loguru import logger
 logger = logger.opt(colors=True)
 
-class Miner( bittensor.miner.BaseMiner ):
+class Miner( miner.BasicMiner ):
 
-    def __init__(self, config: Munch = None, **kwargs):
+    def __init__(self, config: 'bittensor.Config' = None, **kwargs):
+
         # ---- Load Config ----
         if config == None:
             config = Miner.default_config();   
-        config = copy.deepcopy(config); bittensor.config.Config.update_with_kwargs(config.miner, kwargs )
+        config = copy.deepcopy(config)
         Miner.check_config( config )
-        logger.info( bittensor.config.Config.toString( config ) )
+        logger.info( config )
         self.config = config
+        super( Miner, self ).__init__( self.config, **kwargs )
 
-        # ---- synapse ----
-        self.synapse = GPT2Synapse( self.config )
+        # ---- Device ----
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # ---- Router ----
+        self.router = SGMOERouter( self.config, query_dim = bittensor.__network_dim__ )
+        self.router.device = self.device
+        self.router.to( self.device )
+
+        # ---- Nucleus ----
+        self.nucleus = GPT2Nucleus( self.config )
+        self.nucleus.attach( self ) # Assign the routing function.
+        self.nucleus.device = self.device
+        self.nucleus.to( self.device )
 
         # ---- Row Weights ----
-        self.row_weights = torch.ones([1]).to(self.synapse.device)
+        self.row_weights = torch.ones([0]).to(self.nucleus.device)
 
         # ---- Optimizer ----
         self.optimizer = self.configure_optimizers()
@@ -76,15 +86,14 @@ class Miner( bittensor.miner.BaseMiner ):
         # ---- Dataset ----
         # The Genesis Dataset:
         # The dataset used to train Adam and his first 100 children.
-        self.dataset = GenesisTextDataloader(self.config.miner.batch_size_train, self.synapse.get_block_size())
+        self.dataset = bittensor.dataloader( batch_size = self.config.miner.batch_size_train, block_size = self.nucleus.get_block_size() )
         self.tokens = 0
-        super( Miner, self ).__init__( self.config, **kwargs )
                
     @staticmethod
-    def default_config() -> Munch:
+    def default_config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
         Miner.add_args(parser)
-        config = bittensor.config.Config.to_config(parser)
+        config = bittensor.config( parser )
         return config
 
     @staticmethod
@@ -99,7 +108,7 @@ class Miner( bittensor.miner.BaseMiner ):
             '--miner.weight_decay', 
             default=0.25, 
             type=float, 
-            help='synapse parameter weight decay.'
+            help='nucleus parameter weight decay.'
         )
         parser.add_argument(
             '--miner.lr_decay',
@@ -143,23 +152,31 @@ class Miner( bittensor.miner.BaseMiner ):
             type=int, 
             help='Training batch size.'
         )
-        parser.add_argument('--miner.name', default='gpt2_genesis', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
-        GPT2Synapse.add_args( parser )
-        bittensor.miner.BaseMiner.add_args( parser )
-        GenesisTextDataloader.add_args( parser )
+        parser.add_argument(
+            '--miner.name', 
+            default='gpt2_genesis', 
+            type=str, 
+            help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name '
+        )
+        miner.BasicMiner.add_args( parser )
+        bittensor.dataloader.add_args( parser )
+        GPT2Nucleus.add_args( parser )
+        SGMOERouter.add_args( parser )
 
     @staticmethod
-    def check_config(config: Munch):
+    def check_config(config: 'bittensor.Config'):
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
-        bittensor.miner.BaseMiner.check_config( config )
-        GenesisTextDataloader.check_config( config )
+        miner.BasicMiner.check_config( config )
+        bittensor.dataloader.check_config( config )
+        GPT2Nucleus.check_config( config )
+        SGMOERouter.check_config( config )
 
     # ---- Axon Forward call ----
-    def forward_call( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Called by miner.forward_loop which can be overridden by the child class.
+    def forward ( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" Subscribed to an axon servicing endpoint.
             The arguments reflect an RPC request from another miner in the network, the response tensor
-            should be the hidden units of the local synapse of shape [batch_size, sequence_len, __network_dim__].
+            should be the hidden units of the local nucleus of shape [batch_size, sequence_len, __network_dim__].
             
             Args:
                 pubkey ( str, `required`): 
@@ -171,19 +188,19 @@ class Miner( bittensor.miner.BaseMiner ):
             
             Returns:
                 outputs (:obj:`torch.FloatTensor`): 
-                    The synapse's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
+                    The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
-        inputs = inputs.to(self.synapse.device)
-        output = self.synapse.local_forward (
+        inputs = inputs.to( self.nucleus.device )
+        output = self.nucleus.local_forward (
             inputs = inputs        
         )
         return output.local_hidden
 
     # ---- Axon Backward call ----
-    def backward_call( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Called by miner.backward_loop which can be overridden in the child class.
+    def backward ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+        r""" Subscribed to an axon servicing endpoint.
             Arguments reflect an RPC backward request from another miner in the network, the response tensor
-            should be the gradients of the miner's synapse w.r.t to the inputs and the passed output grads.
+            should be the gradients of the miner's nucleus w.r.t to the inputs and the passed output grads.
             
             Args:
                 pubkey ( str, `required`): 
@@ -197,10 +214,101 @@ class Miner( bittensor.miner.BaseMiner ):
             
             Returns:
                 outputs (:obj:`torch.FloatTensor`): 
-                    The gradients w.r.t to the inputs [batch_size, sequence_len, __network_dim__]
+                    The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
         """
+        # TODO(const): add backward processing.
         # Not processing backward requests
         return None
+
+    def route ( self, inputs: torch.LongTensor, query: torch.FloatTensor ) -> SimpleNamespace:
+        r""" Routing function for a bittensor nucleus. Accepts tokenized text inputs and a query. Routes text inputs to neurons
+            based on that query. This function must be overridden by a miner class and assigned to the nucleus.
+
+            Args:
+                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_dim)`, `required`): 
+                    Tensor of tokenized sentences.
+                
+                query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dim)`, `required`): 
+                    Context tensor used to select which neurons to query for each example.
+            
+            Returns:
+                outputs = SimpleNamespace {
+                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                        Joined responses from each queried neuron.
+
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.state.n)`, `required`): 
+                        Weights for each neuron per example.
+
+                    uids (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`): 
+                        Uids of neurons queried.
+
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`): 
+                        Number of requests sent to each uid.
+
+                    return_codes (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`):
+                        Return codes from each query for each queried uid.
+                }
+        """
+        outputs = self.router.forward_text( self.metagraph, self.dendrite, inputs, query )
+        return outputs
+
+    # ---- Training call ----
+    def train ( self, batch: dict ) -> SimpleNamespace:
+        r""" Runs a single training batch through the nucleus and applies a gradient update.
+            Args:
+                batch ( dict, `required`): 
+                    training batch dictionary as returned from get_epoch_batches            
+            Returns:
+                output = SimpleNamespace ( 
+                    local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Hidden layer context.
+
+                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Hidden layer encoding produced using local_context.
+
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                        GPT MLM Target predictions produced using local_context. 
+
+                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        GPT MLM loss using local_context.
+
+                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
+                        Hidden layer encoding produced using the remote_context.
+
+                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
+                        GPT MLM Target predictions using the remote_context.
+
+                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+                        GPT MLM loss using the remote_context.
+
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        Distillation loss between local_context and remote_context.
+
+                    router (:obj:`SimpleNamespace`, `required`): 
+                        Output simplenamespace from routing call.
+            )
+        """
+        # ---- Forward pass ----
+        inputs = batch['inputs']
+        output = self.nucleus.remote_forward(
+            inputs = inputs,
+            training = True,
+        )
+
+        # ---- Backward pass ----
+        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+        output.loss.backward() # Accumulates gradients on the nucleus.
+        clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
+        clip_grad_norm_(self.router.parameters(), self.config.miner.clip_gradients)
+        self.optimizer.step() # Applies accumulated gradients.
+        self.optimizer.zero_grad() # Zeros out gradients for next accummulation
+        self.decay_learning_rate( inputs )
+
+        # ---- Train row weights ----
+        self.row_weights = (1 - 0.1) * self.row_weights + 0.1 * output.router.weights # Moving avg update.
+
+        # ---- Update global loss ----
+        return output
 
     def should_run( self, epoch: int ) -> bool:
         r""" Called by miner.run() every epoch, if the response is false, training stops.
@@ -214,11 +322,12 @@ class Miner( bittensor.miner.BaseMiner ):
 
     def should_save( self ) -> bool:
         r""" Called by miner.run() after every epoch.
-            If this function returns True, the synapse is saved to disk and can be reloaded later.
+            If this function returns True, the nucleus is saved to disk and can be reloaded later.
             Returns:
                 should_save (bool):
-                    True by default. Saves synapse after each epoch.
+                    True by default. Saves nucleus after each epoch.
         """
+        # Save if the epoch loss has decreased.
         if self.epoch_loss < self.last_saved_loss:
             return True
         else:
@@ -226,50 +335,66 @@ class Miner( bittensor.miner.BaseMiner ):
 
     def should_reload(self) -> bool:
         r""" Called by miner.run() after every epoch.
-            If the function returns True the synapse state dict is saved to miner.full_path.
+            If the function returns True the nucleus state dict is reloaded from miner.full_path.
             Returns:
                 should_reload (bool):
-                    False by default -> does not reload the synapse after each epoch.
+                    False by default -> does not reload the nucleus this epoch.
         """
-        if torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.synapse.parameters()]))):
+        # Only reload if the nucleus or router have seen Nans.
+        nans_in_nucleus = torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.nucleus.parameters()])))
+        nans_in_router = torch.any(torch.isnan(torch.cat([param.view(-1) for param in self.router.parameters()])))
+        if nans_in_nucleus or nans_in_router:
             return True
+        else:
+            return False
 
     def get_state_dict( self ) -> dict:
         r""" Called by miner.save_state().
             Returns a state dict which can be passed to miner.reload_from_state_dict on reload.
             Returns:
                 state_dict (:obj:`dict`): 
-                    Dictionary containing run state information such as the synapse parameters.
+                    Dictionary containing run state information such as the nucleus parameters.
         """
         return {
-            'row_weights': self.row_weights,
-            'synapse_state': self.synapse.state_dict(), 
-            'optimizer_state': self.optimizer.state_dict(),
+            'row_weights': self.row_weights, # Save row.
+            'router_state': self.router.state_dict(), # Save router state.
+            'nucleus_state': self.nucleus.state_dict(), # Save nucleus state.
+            'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
         }
 
     def reload_from_state_dict( self, state_dict: dict):
-        r""" Called by miner.reload_synapse().
+        r""" Called by miner.reload_state().
             Reloads the training state from the passed state_dict. 
             Args:
                 state_dict (:obj:`dict`): 
-                    Dictionary containing run state information such as the synapse parameters. Output 
+                    Dictionary containing run state information such as the nucleus parameters. Output 
                     of get_state_dict.
         """
-        self.row_weights = state_dict['row_weights']
-        self.synapse.load_state_dict( state_dict['synapse_state'] )
-        self.optimizer.load_state_dict( state_dict['optimizer_state'] )
+        self.row_weights = state_dict['row_weights'] # Load row weights
+        self.nucleus.load_state_dict( state_dict['nucleus_state'] ) # Load nucleus
+        self.router.load_state_dict( state_dict['router_state']) # Load router
+        self.nucleus.attach( self )# Re-assign the routing function.
+        self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
+        self.optimizer.load_state_dict( state_dict['optimizer_state'] ) # Load optimizer.
+        self.optimizer = self.configure_optimizers( self.optimizer )
+
+    def sync_chain_state( self ):
+        r""" Called after each training epoch. Miner should update chain-state and resize objects.
+        """
+        super().sync_chain_state() # Syncs metagraph and saves to file.
+        self.row_weights = torch.nn.functional.pad( self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel()], value=0) # Pad row weights.
+        self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
+        self.optimizer = self.configure_optimizers( self.optimizer )
 
     # ---- Get Row Weights ----
     def get_row_weights( self ) -> torch.FloatTensor:
         r""" Called after each training epoch. Returns row_weights to be set on chain.
             Returns:
                 row_weights ( torch.FloatTensor, shape=(self.metagraph.n) ): 
-                    torch row_weights matching the metagraph size.
+                    Torch row_weights matching the metagraph size to be eventually set on chain.
                     weight values should be normalized and be in range [0,1].
         """
-        self.row_weights = torch.nn.functional.pad( self.row_weights, pad = [0, self.metagraph.n - self.row_weights.numel()] )
-        self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
-        return self.row_weights
+        return F.normalize(self.row_weights, p = 1, dim = 0)
 
     # ---- Get Batches ----
     def get_epoch_batches( self, epoch:int ) -> List[dict]:
@@ -280,47 +405,16 @@ class Miner( bittensor.miner.BaseMiner ):
         """
         return self.dataset.dataloader( self.config.miner.epoch_length )
 
-    # ---- Training call ----
-    def training_call( self, batch: dict ) -> SimpleNamespace:
-        r""" Runs a single training batch through the synapse and applies a gradient update.
-            Args:
-                batch ( dict, `required`): 
-                    training batch dictionary as returned from get_epoch_batches            
-            Returns:
-                outputs ( SimpleNamespace ): 
-                    SimpleNamespace output as returned by a synapse forward call.
-                    Must include fields local_loss, remote_loss, distillation_loss
-        """
-        # ---- Forward pass ----
-        inputs = batch['inputs']
-        output = self.synapse.remote_forward(
-            neuron = self,
-            inputs = inputs,
-            training = True,
-        )
-
-        # ---- Backward pass ----
-        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-        output.loss.backward() # Accumulates gradients on the synapse.
-        clip_grad_norm_(self.synapse.parameters(), self.config.miner.clip_gradients)
-        self.optimizer.step() # Applies accumulated gradients.
-        self.optimizer.zero_grad() # Zeros out gradients for next accummulation
-        self.decay_learning_rate( inputs )
-
-        # ---- Train row weights ----
-        batch_weights = torch.mean(output.router.weights, axis = 0).to( self.synapse.device ) # Average over batch.
-        self.row_weights = (1 - 0.03) * self.row_weights + 0.03 * batch_weights # Moving avg update.
-        self.row_weights = F.normalize( self.row_weights, p = 1, dim = 0) # Ensure normalization.
-
-        # ---- Update global loss ----
-        return output
-
-    def configure_optimizers(self):
+    def configure_optimizers( self, previous_optimizer = None):
         """
         This long function is unfortunately doing something very simple and is being very defensive:
-        We are separating out all parameters of the synapse into two buckets: those that will experience
+        We are separating out all parameters of the nucleus into two buckets: those that will experience
         weight decay for regularization and those that won't (biases, and layernorm/embedding weights).
         We are then returning the PyTorch optimizer object.
+
+        Args:
+            previous_optimizer:
+                optimizer from previous configure or None if not existent
 
         """
 
@@ -329,7 +423,7 @@ class Miner( bittensor.miner.BaseMiner ):
         no_decay = set()
         whitelist_weight_modules = (torch.nn.Linear, )
         blacklist_weight_modules = (torch.nn.LayerNorm, torch.nn.Embedding, torch.nn.Tanh)
-        for mn, m in self.synapse.named_modules():
+        for mn, m in self.nucleus.named_modules():
             for pn, p in m.named_parameters():
                 fpn = '%s.%s' % (mn, pn) if mn else pn # full param name
 
@@ -347,19 +441,36 @@ class Miner( bittensor.miner.BaseMiner ):
         no_decay.add('pos_emb')
 
         # validate that we considered every parameter
-        param_dict = {pn: p for pn, p in self.synapse.named_parameters()}
+        param_dict = {pn: p for pn, p in self.nucleus.named_parameters()}
         inter_params = decay & no_decay
         union_params = decay | no_decay
         assert len(inter_params) == 0, "parameters %s made it into both decay/no_decay sets!" % (str(inter_params), )
         assert len(param_dict.keys() - union_params) == 0, "parameters %s were not separated into either decay/no_decay set!" \
                                                     % (str(param_dict.keys() - union_params), )
 
-        # create the pytorch optimizer object
-        optim_groups = [
-            {"params": [param_dict[pn] for pn in sorted(list(decay))], "weight_decay": self.config.miner.weight_decay},
-            {"params": [param_dict[pn] for pn in sorted(list(no_decay))], "weight_decay": 0.0},
-        ]
-        optimizer = torch.optim.AdamW(optim_groups, lr=self.config.miner.learning_rate, betas=(0.9, 0.95))
+        # Adds new router params for extended size.
+        if previous_optimizer != None:
+            # extract the state dict from your old optimizer
+            old_state_params = previous_optimizer.state_dict()
+
+            newly_added_router_params = [ p for p in self.router.parameters() if not p in old_state_params["param_groups"][0]["params"] ]
+            next_router_params = newly_added_router_params + old_state_params["param_groups"][0]["params"]
+
+            optim_groups = [
+                {"params": next_router_params }, # The router may have been extended.
+                {"params": [param_dict[pn] for pn in sorted(list(decay))], "weight_decay": self.config.miner.weight_decay, "betas": [0.9, 0.95]},
+                {"params": [param_dict[pn] for pn in sorted(list(no_decay))], "weight_decay": 0.0, "betas": [0.9, 0.95]},
+            ]
+
+        else:
+            optim_groups = [
+                {"params": self.router.parameters() },
+                {"params": [param_dict[pn] for pn in sorted(list(decay))], "weight_decay": self.config.miner.weight_decay, "betas": [0.9, 0.95]},
+                {"params": [param_dict[pn] for pn in sorted(list(no_decay))], "weight_decay": 0.0, "betas": [0.9, 0.95]},
+            ]
+
+        # Build optimizer.
+        optimizer = torch.optim.AdamW( optim_groups, lr = self.config.miner.learning_rate, betas = (0.9, 0.95) )
         return optimizer
 
     def decay_learning_rate(self, batch):

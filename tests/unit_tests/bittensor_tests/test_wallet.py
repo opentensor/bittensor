@@ -1,7 +1,7 @@
 import bittensor
 import os
 
-the_wallet = bittensor.wallet.Wallet(
+the_wallet = bittensor.wallet(
     path = '/tmp/pytest',
     name = 'pytest',
     hotkey = 'pytest',
@@ -15,7 +15,7 @@ def test_create_wallet():
     assert os.path.isfile(the_wallet.coldkeypubfile)
 
 def test_wallet_config():
-    config = bittensor.wallet.Wallet.default_config()
+    config = bittensor.wallet.default_config()
     config.wallet.name
     config.wallet.path
     config.wallet.hotkey

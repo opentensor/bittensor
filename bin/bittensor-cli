@@ -22,7 +22,7 @@ from loguru import logger
 logger = logger.opt(colors=True)
  
 if __name__ == '__main__':
-    config = bittensor.cli.CLI.default_config(); 
-    cli = bittensor.cli.CLI( config )
-    logger.info(bittensor.config.Config.toString(config))
+    config = bittensor.cli.default_config(); 
+    cli = bittensor.cli( config )
+    logger.info( config )
     cli.run_command()

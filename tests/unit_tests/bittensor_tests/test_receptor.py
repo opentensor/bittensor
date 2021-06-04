@@ -1,17 +1,10 @@
-import os
 import grpc
-import torchvision.transforms as transforms
 import torch
-import unittest
 import bittensor
-import pytest
-import torchvision
 
 from unittest.mock import MagicMock
-import bittensor.serialization as serialization
-from munch import Munch
 
-wallet =  bittensor.wallet.Wallet(
+wallet =  bittensor.wallet(
     path = '/tmp/pytest',
     name = 'pytest',
     hotkey = 'pytest',
@@ -19,7 +12,7 @@ wallet =  bittensor.wallet.Wallet(
 wallet.create_new_coldkey(use_password=False, overwrite = True)
 wallet.create_new_hotkey(use_password=False, overwrite = True)
 
-neuron = bittensor.utils.neurons.NeuronEndpoint(
+endpoint = bittensor.endpoint(
     uid = 0,
     ip = '0.0.0.0',
     ip_type = 4,
@@ -28,8 +21,8 @@ neuron = bittensor.utils.neurons.NeuronEndpoint(
     coldkey = wallet.coldkey.public_key,
     modality = 0
 )
-receptor = bittensor.receptor.Receptor( 
-    neuron = neuron, 
+receptor = bittensor.receptor ( 
+    endpoint = endpoint, 
     wallet = wallet,
     do_backoff = False
 )
@@ -66,7 +59,7 @@ def test_receptor_neuron_request_empty():
 def test_receptor_neuron_mock_server():
     y = torch.rand(3, 3, bittensor.__network_dim__)
     
-    serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
             
     mock_return_val = bittensor.proto.TensorMessage(
@@ -87,7 +80,7 @@ def test_receptor_neuron_mock_server():
 def test_receptor_neuron_serve_timeout():
     y = torch.rand(3, 3, bittensor.__network_dim__)
     
-    serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
             
     mock_return_val = bittensor.proto.TensorMessage(
@@ -141,7 +134,7 @@ def test_receptor_neuron_mock_server_deserialization_error():
 def test_receptor_neuron_mock_server_shape_error():
     y = torch.rand(1, 3, bittensor.__network_dim__)
 
-    serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
    
     mock_return_val = bittensor.proto.TensorMessage(
@@ -164,7 +157,7 @@ def test_receptor_neuron_server_response_with_nans():
     y = torch.rand(3, 3, bittensor.__network_dim__)
     y[0][0][0] = np.nan
 
-    serializer = serialization.get_serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
    
     mock_return_val = bittensor.proto.TensorMessage(
