@@ -14,7 +14,7 @@ from pytest import fixture
 import bittensor
 from bittensor.utils.balance import Balance
 
-from bittensor.substrate import Keypair
+from bittensor._substrate import Keypair
 
 BLOCK_REWARD = 500_000_000
 TRANSACTION_FEE = 100
