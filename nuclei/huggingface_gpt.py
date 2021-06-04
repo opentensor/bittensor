@@ -24,7 +24,6 @@ import torch.nn.functional as F
 
 from transformers import GPT2Config, GPT2Model
 from torch import nn
-from munch import Munch
 from collections.abc import Callable
 from types import SimpleNamespace
 

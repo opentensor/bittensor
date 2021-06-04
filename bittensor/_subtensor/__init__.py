@@ -17,7 +17,6 @@
 import argparse
 import copy
 import bittensor
-from munch import Munch
 from bittensor.substrate import SubstrateWSInterface
 
 from . import subtensor_impl
@@ -72,7 +71,6 @@ class subtensor:
 
     @staticmethod
     def default_config() -> 'bittensor.Config':
-        # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         subtensor.add_args(parser) 
         config = bittensor.config( parser ); 

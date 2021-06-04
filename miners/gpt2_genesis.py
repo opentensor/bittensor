@@ -35,7 +35,6 @@ import torch
 import torch.nn.functional as F
 import bittensor
 
-from munch import Munch
 from termcolor import colored
 from transformers import AdamW
 from types import SimpleNamespace

@@ -23,7 +23,6 @@ import argparse
 import torch.nn.functional as F
 
 from transformers import XLMConfig, XLMModel
-from munch import Munch
 from torch import nn
 
 from collections.abc import Callable

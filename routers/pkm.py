@@ -5,7 +5,6 @@ import torch.nn as nn
 from torch.nn import functional as F
 from typing import Tuple
 from types import SimpleNamespace
-from munch import Munch
 
 import bittensor
 from . import router

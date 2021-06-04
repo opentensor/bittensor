@@ -18,7 +18,6 @@
 import bittensor
 import argparse
 import copy
-from munch import Munch
 
 from . import wallet_impl
 
@@ -55,7 +54,6 @@ class wallet:
 
     @staticmethod   
     def default_config() -> 'bittensor.Config':
-        # Parses and returns a config Munch for this object.
         parser = argparse.ArgumentParser(); 
         wallet.add_args(parser) 
         config = bittensor.config( parser ); 

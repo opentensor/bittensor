@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from bittensor import bittensor_pb2 as bittensor_dot_bittensor__pb2
+from bittensor._proto import bittensor_pb2 as bittensor_dot___proto_dot_bittensor__pb2
 
 
 class BittensorStub(object):
@@ -17,13 +17,13 @@ class BittensorStub(object):
         """
         self.Forward = channel.unary_unary(
                 '/Bittensor/Forward',
-                request_serializer=bittensor_dot_bittensor__pb2.TensorMessage.SerializeToString,
-                response_deserializer=bittensor_dot_bittensor__pb2.TensorMessage.FromString,
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
                 )
         self.Backward = channel.unary_unary(
                 '/Bittensor/Backward',
-                request_serializer=bittensor_dot_bittensor__pb2.TensorMessage.SerializeToString,
-                response_deserializer=bittensor_dot_bittensor__pb2.TensorMessage.FromString,
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
                 )
 
 
@@ -50,13 +50,13 @@ def add_BittensorServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Forward': grpc.unary_unary_rpc_method_handler(
                     servicer.Forward,
-                    request_deserializer=bittensor_dot_bittensor__pb2.TensorMessage.FromString,
-                    response_serializer=bittensor_dot_bittensor__pb2.TensorMessage.SerializeToString,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
             ),
             'Backward': grpc.unary_unary_rpc_method_handler(
                     servicer.Backward,
-                    request_deserializer=bittensor_dot_bittensor__pb2.TensorMessage.FromString,
-                    response_serializer=bittensor_dot_bittensor__pb2.TensorMessage.SerializeToString,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -81,8 +81,8 @@ class Bittensor(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/Bittensor/Forward',
-            bittensor_dot_bittensor__pb2.TensorMessage.SerializeToString,
-            bittensor_dot_bittensor__pb2.TensorMessage.FromString,
+            bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -98,7 +98,7 @@ class Bittensor(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/Bittensor/Backward',
-            bittensor_dot_bittensor__pb2.TensorMessage.SerializeToString,
-            bittensor_dot_bittensor__pb2.TensorMessage.FromString,
+            bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

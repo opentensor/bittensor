@@ -22,7 +22,6 @@ import re
 import stat
 import sys
 
-from munch import Munch
 from loguru import logger
 logger = logger.opt(colors=True)
 
