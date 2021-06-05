@@ -50,7 +50,7 @@ class FFNNNucleus(torch.nn.Module):
         self.config = config
 
         # To be set.
-        self.routing_function = None
+        self.routing_callback = None
             
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
@@ -94,18 +94,18 @@ class FFNNNucleus(torch.nn.Module):
     def check_config(config: 'bittensor.Config'):
         assert config.nucleus.target_dim > 0, "target dimension must be greater than 0."
 
-    def attach_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
-        """ Assigns the routing_function call to this neuron.
+    def attach_routing_callback(self, routing_callback: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
+        """ Assigns the routing_callback call to this neuron.
 
             Returns:
-                routing_function (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
+                routing_callback (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
                     Routing function to call on self.route()
         """
-        self.routing_function = routing_function
+        self.routing_callback = routing_callback
 
     @property
-    def route( self, inputs: torch.Tensor, query: torch.Tensor ):
-        """ Calls this nucleus's subscribed routing function. self.routing_function must be set before this call is made.
+    def route( self, inputs: torch.Tensor, query: torch.Tensor ) -> torch.FloatTensor:
+        """ Calls this nucleus's subscribed routing function. self.routing_callback must be set before this call is made.
 
         Args:
             inputs (:obj:`torch.LongTensor` of shape :obj:`( batch_size, sequence_len )`, `required`): 
@@ -114,14 +114,14 @@ class FFNNNucleus(torch.nn.Module):
             query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
                     Context tensor used to select which neurons to query for each example.
             
-            Returns:
-                hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
-                    Hidden layer representation produced using the local_context.
+        Returns:
+            remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                joined responses from network call.
         """
-        if self.routing_function == None:
+        if self.routing_callback == None:
             raise RuntimeError('The routing function must be set on this nucleus before a remote_forward call can execute.')
         else:
-            return self.routing_function( inputs = inputs, query = query )
+            return self.routing_callback( inputs = inputs, query = query )
 
     def forward_image(self, images: torch.Tensor):
         r""" Forward image inputs through the FFNN nucleus .
@@ -220,7 +220,7 @@ class FFNNNucleus(torch.nn.Module):
     def remote_forward(self, images: torch.Tensor, targets: torch.Tensor = None) -> SimpleNamespace:
         """
             Forward pass non-sequential image inputs and targets through the remote context of the nucleus. The call
-            makes RPC queries accross the network using the subscribed routing_function.
+            makes RPC queries accross the network using the subscribed routing_callback.
             
             Args:
                 images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 

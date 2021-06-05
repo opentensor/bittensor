@@ -136,7 +136,7 @@ class MSGPackSerializer( Serializer ):
         """
         dtype = bittensor.serializer.torch_dtype_to_bittensor_dtype(torch_tensor.dtype)
         shape = list(torch_tensor.shape)
-        torch_numpy = torch_tensor.cpu().numpy().copy()
+        torch_numpy = torch_tensor.cpu().detach().numpy().copy()
         data_buffer = msgpack.packb(torch_numpy, default=msgpack_numpy.encode)
         torch_proto = bittensor.proto.Tensor(version = bittensor.__version__,
                                     buffer = data_buffer,

@@ -51,8 +51,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.wallet = wallet
         self._server = server
          
-        self._forward_function = None
-        self._backward_function = None
+        self._forward_callback = None
+        self._backward_callback = None
 
         bittensor.grpc.add_BittensorServicer_to_server( self, self._server )
         self._server.add_insecure_port('[::]:' + str( self.config.axon.local_port ))
@@ -130,34 +130,34 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
     def attach( self, servicer:object ):
         """
-            Attaches the forward and backward calls of the passed object.
+            Attaches the forward and backward callbacks to the passed object.
 
             Returns:
                 servicer (:object:`object`, `required`): 
-                    object with callable functions servicer.forward and servicer.backward
+                    object with callbacks servicer.forward and servicer.backward
         """
-        self._forward_function = self.attach_forward_function( servicer.forward )
-        self._backward_function = self.attach_forward_function( servicer.backward )
+        self._forward_callback = self.attach_forward_callback( servicer.forward )
+        self._backward_callback = self.attach_backward_callback( servicer.backward )
 
-    def attach_forward_function(self, forward_function: Callable[ [str, torch.Tensor, int], torch.Tensor ] ):
-        """ Assigns the forward_function.
+    def attach_forward_callback(self, forward_callback: Callable[ [str, torch.Tensor, int], torch.Tensor ] ):
+        """ Assigns the forward_callback.
 
             Returns:
-                forward_function (:callabl:`Callable[ [str, torch.Tensor, int], torch.Tensor `, `required`): 
-                    Forward function called on recieving a forward processing call on the wire.
+                forward_callback (:callabl:`Callable[ [str, torch.Tensor, int], torch.Tensor `, `required`): 
+                    Forward function called on recieving a forward request.
         """
         # TODO(const): type checking.
-        self._forward_function = forward_function
+        self._forward_callback = forward_callback
 
-    def attach_backward_function(self, backward_function: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ] ):
-        """ Assigns the routing_function call to this neuron.
+    def attach_backward_callback(self, backward_callback: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ] ):
+        """ Assigns the backward_callback call to this neuron.
 
             Returns:
-                backward_function (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
-                     Backward function called on recieving a forward processing call on the wire.
+                backward_callback (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
+                     Backward callback called on recieving a backward request.
         """
         # TODO(const): type checking.
-        self._backward_function = backward_function
+        self._backward_callback = backward_callback
 
     def _call_forward(
             self, 
@@ -165,7 +165,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             inputs_x: torch.Tensor, 
             modality: bittensor.proto.Modality
         ) -> Tuple[ torch.FloatTensor, int, str ]:
-        r""" Calls the forward function subscribed by the nucleus.
+        r""" Calls the forward callback subscribed by the nucleus.
             
             Args:
                 public_key (str, `required`): 
@@ -185,20 +185,20 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         """
         # Check forward has been subscribed.
-        if self._forward_function == None:
-            message = "Forward function is not yet subscribed on this axon."
+        if self._forward_callback == None:
+            message = "Forward callback is not yet subscribed on this axon."
             return None, bittensor.proto.ReturnCode.NotImplemented, message
         
         # Make forward call.
         try:
-            response_tensor = self._forward_function( public_key, inputs_x, modality)
+            response_tensor = self._forward_callback( public_key, inputs_x, modality )
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
 
         except Exception as e:
             response_tensor = None
-            message = "Error calling forward function: {}".format(e)
+            message = "Error calling forward callback: {}".format(e)
             code = bittensor.proto.ReturnCode.UnknownException
             return response_tensor, code, message 
 
@@ -210,7 +210,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             grads_dy: torch.FloatTensor,
             modality: bittensor.proto.Modality
         ) -> Tuple[ torch.FloatTensor, int, str ]:
-        r""" Calls the forward function subscribed by the nucleus.
+        r""" Calls the backward callback.
             
             Args:
                 public_key (str, `required`): 
@@ -230,21 +230,21 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 message (str, `required`): 
                     message associated with forward call, potentially error, or 'success'.
         """
-        # Check forward has been subscribed.
-        if self._backward_function == None:
-            message = "Forward function is not yet subscribed on this axon."
+        # Check backward has been subscribed.
+        if self._backward_callback == None:
+            message = "Backward callback is not yet subscribed on this axon."
             return None, bittensor.proto.ReturnCode.NotImplemented, message
         
-        # Make forward call.
+        # Make backward call.
         try:
-            response_tensor = self._backward_function( public_key, inputs_x, grads_dy, modality)
+            response_tensor = self._backward_callback( public_key, inputs_x, grads_dy, modality)
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
 
         except Exception as e:
             response_tensor = None
-            message = "Error calling forward function: {}".format(e)
+            message = "Error calling backward callback: {}".format(e)
             code = bittensor.proto.ReturnCode.UnknownException
             return response_tensor, code, message 
             
@@ -341,9 +341,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response: (:obj:`bittensor.proto.Tensor, `required`): 
                     serialized tensor response from the nucleus call or None.
                 message: (str, `required`): 
-                    message associated with forward call, potentially error, or 'success'.
+                    message associated with backward call, potentially error, or 'success'.
                 code: (:obj:`bittensor.proto.ReturnCode, `required`)
-                    return code associated with forward call i.e. Success of Timeout.
+                    return code associated with backward call i.e. Success of Timeout.
         """
         # ---- Check request inputs ----.
         if len(request.tensors) == 2:
@@ -473,8 +473,14 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         # TODO(const): should allow more than one services and these can run in different processes.
         # Destroy and create a new serving thread.
+        if self._forward_callback == None or self._backward_callback == None:
+            message = "Forward and Backward callbacks must be subscribed on this axon before it starts. Got Forward = {} and Backward = {}".format(self._forward_callback, self._backward_callback)
+            logger.error( message )
+            raise RuntimeError( message )
+
         if self._server != None:
-            self._server.stop( 0 )   
+            self._server.stop( 0 )  
+
         self._thread = threading.Thread( target = self._serve, daemon = True )
         self._thread.start()
 
