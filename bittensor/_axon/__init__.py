@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from concurrent import futures
+from typing import List, Tuple, Optional, Callable
 import bittensor
 import argparse
 import copy
@@ -29,6 +30,8 @@ class axon:
             cls, 
             config: 'bittensor.Config' = None, 
             wallet: 'bittensor.Wallet' = None,
+            forward_callback: 'Callable' = None,
+            backward_callback: 'Callable' = None,
             thread_pool: 'futures.ThreadPoolExecutor' = None,
             server: 'grpc._Server' = None,
             local_port: int = None,
@@ -42,6 +45,10 @@ class axon:
                     bittensor.axon.default_config()
                 wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
+                forward_callback (:obj:`callable`, `optional`):
+                    function which is called on forward requests.
+                backward_callback (:obj:`callable`, `optional`):
+                    function which is called on backward requests.
                 thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
                     Threadpool used for processing server queries.
                 server (:obj:`grpc._Server`, `required`):
@@ -51,9 +58,9 @@ class axon:
                 local_ip (:type:`str`, `optional`):
                     Binding ip.
                 max_workers (:type:`int`, `optional`):
-                    Used to create threadpool if not passed. Number of active threads servicing requests.
+                    Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
                 maximum_concurrent_rpcs (:type:`int`, `optional`):
-                    Maximum allowed concurrently processing RPCs.
+                    Maximum allowed concurrently processed RPCs.
         """        
         if config == None:
             config = axon.default_config()
@@ -79,7 +86,15 @@ class axon:
         if server == None:
             server = grpc.server( thread_pool, maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs )
 
-        return axon_impl.Axon( config, wallet, server )
+        axon_instance = axon_impl.Axon( config, wallet, server )
+
+        # Attach callbacks.
+        if forward_callback != None:
+            axon_instance.attach_forward_callback( forward_callback )
+        if backward_callback != None:
+            axon_instance.attach_backward_callback( backward_callback )
+
+        return axon_instance
 
     @staticmethod   
     def default_config() -> 'bittensor.Config':

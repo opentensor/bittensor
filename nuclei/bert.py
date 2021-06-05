@@ -58,7 +58,7 @@ class BertNucleusBase(torch.nn.Module):
         self.config = config
 
         # To be set.
-        self.routing_function = None
+        self.routing_callback = None
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 
@@ -105,18 +105,18 @@ class BertNucleusBase(torch.nn.Module):
         """
         pass
 
-    def attach_routing_function(self, routing_function: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
-        """ Assigns the routing_function call to this neuron.
+    def attach_routing_callback(self, routing_callback: Callable[ [torch.Tensor, torch.Tensor], torch.Tensor ] ):
+        """ Assigns the routing_callback call to this neuron.
 
             Returns:
-                routing_function (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
+                routing_callback (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
                     Routing function to call on self.route()
         """
-        self.routing_function = routing_function
+        self.routing_callback = routing_callback
 
     @property
-    def route( self, inputs: torch.Tensor, query: torch.Tensor ):
-        """ Calls this nucleus's subscribed routing function. self.routing_function must be set before this call is made.
+    def route( self, inputs: torch.Tensor, query: torch.Tensor ) -> torch.FloatTensor:
+        """ Calls this nucleus's subscribed routing function. self.routing_callback must be set before this call is made.
 
         Args:
             inputs (:obj:`torch.LongTensor` of shape :obj:`( batch_size, sequence_len )`, `required`): 
@@ -125,14 +125,14 @@ class BertNucleusBase(torch.nn.Module):
             query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
                     Context tensor used to select which neurons to query for each example.
             
-            Returns:
-                hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
-                    Hidden layer representation produced using the local_context.
+        Returns:
+            remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                joined responses from network call.
         """
-        if self.routing_function == None:
+        if self.routing_callback == None:
             raise RuntimeError('The routing function must be set on this nucleus before a remote_forward call can execute.')
         else:
-            return self.routing_function( inputs = inputs, query = query )
+            return self.routing_callback( inputs = inputs, query = query )
 
     def forward_text(self, inputs: torch.LongTensor):
         """ Local forward inputs through the BERT NSP Nucleus.
@@ -217,15 +217,15 @@ class BertNucleusBase(torch.nn.Module):
 
         # remote_context: joined responses from a bittensor.forward_text call.
         # remote_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.router = self.route( inputs = inputs, query = output.local_pooled )
+        output.remote_context = self.route( inputs = inputs, query = output.local_pooled )
 
         # distillation_loss: distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
-        output.distillation_loss = F.mse_loss( output.local_context, output.router.response.detach() )
+        output.distillation_loss = F.mse_loss( output.local_context, output.remote_context.detach() )
 
         # remote_hidden: hidden layer encoding using remote_context.
         # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.remote_hidden = self.hidden_layer( output.router.response )
+        output.remote_hidden = self.hidden_layer( output.remote_context )
         output.remote_pooled = self.pooler( output.remote_hidden )
 
         return output
