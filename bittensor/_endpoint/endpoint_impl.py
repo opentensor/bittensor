@@ -51,8 +51,11 @@ class Endpoint:
                 'modality': self.modality,
             })
 
+    def ip_str(self) -> str:
+        return net.ip__str__(self.ip_type, self.ip, self.port)
+
     def __str__(self):
-        return "<endpoint uid: %s hotkey: %s ip: %s modality: %s coldkey: %s>" % (self.uid, self.hotkey, net.ip__str__(self.ip_type, self.ip, self.port), self.modality, self.coldkey)
+        return "<endpoint uid: %s hotkey: %s ip: %s modality: %s coldkey: %s>" % (self.uid, self.hotkey, self.ip_str(), self.modality, self.coldkey)
 
 
 

@@ -77,7 +77,7 @@ class Miner( miner.BasicMiner ):
         self.nucleus.to( self.device )
 
         # ---- Row Weights ----
-        self.row_weights = torch.ones([0]).to(self.nucleus.device)
+        self.row_weights = torch.ones([0]).to( self.nucleus.device )
 
         # ---- Optimizer ----
         self.optimizer = self.configure_optimizers()
@@ -219,7 +219,7 @@ class Miner( miner.BasicMiner ):
         # Not processing backward requests
         return None
 
-    def route ( self, inputs: torch.LongTensor, query: torch.FloatTensor ) -> SimpleNamespace:
+    def route ( self, inputs: torch.LongTensor, query: torch.FloatTensor ) -> torch.FloatTensor:
         r""" Routing function for a bittensor nucleus. Accepts tokenized text inputs and a query. Routes text inputs to neurons
             based on that query. This function must be overridden by a miner class and assigned to the nucleus.
 
@@ -231,25 +231,17 @@ class Miner( miner.BasicMiner ):
                     Context tensor used to select which neurons to query for each example.
             
             Returns:
-                outputs = SimpleNamespace {
-                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
-                        Joined responses from each queried neuron.
-
-                    weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.state.n)`, `required`): 
-                        Weights for each neuron per example.
-
-                    uids (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`): 
-                        Uids of neurons queried.
-
-                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`): 
-                        Number of requests sent to each uid.
-
-                    return_codes (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`):
-                        Return codes from each query for each queried uid.
-                }
+                remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Joined responses from network call.
         """
+        # ---- Forward messages through network ---- 
         outputs = self.router.forward_text( self.metagraph, self.dendrite, inputs, query )
-        return outputs
+
+        # ---- Train row weights ----
+        self.row_weights = (1 - 0.1) * self.row_weights + 0.1 * outputs.weights # Moving avg update.
+
+        # ---- Return responses -----
+        return outputs.responses
 
     # ---- Training call ----
     def train ( self, batch: dict ) -> SimpleNamespace:
@@ -280,11 +272,12 @@ class Miner( miner.BasicMiner ):
                     remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
                         GPT MLM loss using the remote_context.
 
+                    remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                        Joined responses from network call.
+
                     distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    router (:obj:`SimpleNamespace`, `required`): 
-                        Output simplenamespace from routing call.
             )
         """
         # ---- Forward pass ----
@@ -302,9 +295,6 @@ class Miner( miner.BasicMiner ):
         self.optimizer.step() # Applies accumulated gradients.
         self.optimizer.zero_grad() # Zeros out gradients for next accummulation
         self.decay_learning_rate( inputs )
-
-        # ---- Train row weights ----
-        self.row_weights = (1 - 0.1) * self.row_weights + 0.1 * output.router.weights # Moving avg update.
 
         # ---- Update global loss ----
         return output
