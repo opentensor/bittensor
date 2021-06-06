@@ -35,7 +35,7 @@ class executor:
         r""" Creates a new Executor object from passed arguments.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
-                    bittensor.executor.default_config()
+                    bittensor.executor.config()
                 wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 subtensor (:obj:`bittensor.Subtensor`, `optional`):
@@ -48,7 +48,7 @@ class executor:
                     Bittensor dendrite client.
         """
         if config == None:
-            config = executor.default_config()
+            config = executor.config()
         config = copy.deepcopy(config)
         executor.check_config( config )
         if wallet == None:
@@ -64,7 +64,7 @@ class executor:
         return executor_impl.Executor( config, wallet, subtensor, metagraph, axon, dendrite )
     
     @staticmethod
-    def default_config() -> 'bittensor.Config':
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         executor.add_args(parser) 
         config = bittensor.config( parser ); 

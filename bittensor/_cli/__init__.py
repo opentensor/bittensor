@@ -36,14 +36,14 @@ class cli:
         r""" Creates a new bittensor.cli from passed arguments.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
-                    bittensor.cli.default_config()
+                    bittensor.cli.config()
                 wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 executor (:obj:`bittensor.executor.executor`, `optional`):
                     bittensor executor object, used to execute cli options.
         """
         if config == None:
-            config = cli.default_config()
+            config = cli.config()
         config = copy.deepcopy(config)
         cli.check_config( config )
 
@@ -56,7 +56,7 @@ class cli:
         return cli_impl.CLI( config, executor )
 
     @staticmethod   
-    def default_config () -> 'bittensor.Config':
+    def config () -> 'bittensor.Config':
         # Build top level parser.
         parser = argparse.ArgumentParser(description="Bittensor cli", usage="bittensor-cli <command> <command args>", add_help=True)
         parser._positionals.title = "commands"

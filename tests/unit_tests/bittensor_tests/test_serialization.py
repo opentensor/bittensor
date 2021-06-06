@@ -8,7 +8,7 @@ class TestSerialization(unittest.TestCase):
     config = None
 
     def setUp(self):        
-        config = bittensor.wallet.default_config()
+        config = bittensor.wallet.config()
 
     def test_serialize(self):
         for _ in range(10):

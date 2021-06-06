@@ -55,33 +55,33 @@ class Subtensor:
         """
 
         # Chain endpoint overrides the --network flag.
-        if self.config.subtensor.chain_endpoint != None:
-            if self.config.subtensor.chain_endpoint in blacklist:
+        if self.config.chain_endpoint != None:
+            if self.config.chain_endpoint in blacklist:
                 return None
             else:
-                return self.config.subtensor.chain_endpoint
+                return self.config.chain_endpoint
 
         # Else defaults to networks.
         # TODO(const): this should probably make a DNS lookup.
-        if self.config.subtensor.network == "akira":
+        if self.config.network == "akira":
             akira_available = [item for item in bittensor.__akira_entrypoints__ if item not in blacklist ]
             if len(akira_available) == 0:
                 return None
             return random.choice( akira_available )
 
-        elif self.config.subtensor.network == "boltzmann":
+        elif self.config.network == "boltzmann":
             boltzmann_available = [item for item in bittensor.__boltzmann_entrypoints__ if item not in blacklist ]
             if len(boltzmann_available) == 0:
                 return None
             return random.choice( boltzmann_available )
 
-        elif self.config.subtensor.network == "kusanagi":
+        elif self.config.network == "kusanagi":
             kusanagi_available = [item for item in bittensor.__kusanagi_entrypoints__ if item not in blacklist ]
             if len(kusanagi_available) == 0:
                 return None
             return random.choice( kusanagi_available )
 
-        elif self.config.subtensor.network == "local":
+        elif self.config.network == "local":
             local_available = [item for item in bittensor.__local_entrypoints__ if item not in blacklist ]
             if len(local_available) == 0:
                 return None
@@ -170,25 +170,25 @@ To run a local node (See: docs/running_a_validator.md) \n
             # ---- Get next endpoint ----
             ws_chain_endpoint = self.endpoint_for_network( blacklist = attempted_endpoints )
             if ws_chain_endpoint == None:
-                logger.error("No more endpoints available for subtensor.network: <cyan>{}</cyan>, attempted: <cyan>{}</cyan>".format(self.config.subtensor.network, attempted_endpoints))
+                logger.error("No more endpoints available for subtensor.network: <cyan>{}</cyan>, attempted: <cyan>{}</cyan>".format(self.config.network, attempted_endpoints))
                 connection_error_message()
                 if failure:
-                    logger.critical('Unable to connect to network:<cyan>{}</cyan>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
+                    logger.critical('Unable to connect to network:<cyan>{}</cyan>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.config.network))
                 else:
                     return False
             attempted_endpoints.append(ws_chain_endpoint)
 
             # --- Attempt connection ----
             if await self.substrate.async_connect( ws_chain_endpoint, timeout = 5 ):
-                logger.success("Connected to network:<cyan>{}</cyan> at endpoint:<cyan>{}</cyan>".format(self.config.subtensor.network, ws_chain_endpoint))
+                logger.success("Connected to network:<cyan>{}</cyan> at endpoint:<cyan>{}</cyan>".format(self.config.network, ws_chain_endpoint))
                 return True
             
             # ---- Timeout ----
             elif (time.time() - start_time) > timeout:
-                logger.error( "Error while connecting to network:<cyan>{}</cyan> at endpoint: <cyan>{}</cyan>".format(self.config.subtensor.network, ws_chain_endpoint))
+                logger.error( "Error while connecting to network:<cyan>{}</cyan> at endpoint: <cyan>{}</cyan>".format(self.config.network, ws_chain_endpoint))
                 connection_error_message()
                 if failure:
-                    raise RuntimeError('Unable to connect to network:<cyan>{}</cyan>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.config.subtensor.network))
+                    raise RuntimeError('Unable to connect to network:<cyan>{}</cyan>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.config.network))
                 else:
                     return False
 

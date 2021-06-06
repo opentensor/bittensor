@@ -35,7 +35,7 @@ class dataloader:
             num_workers: int = None
         ):
         if config == None:
-            config = dataloader.default_config()
+            config = dataloader.config()
         config.dataloader.block_size = block_size if block_size != None else config.dataloader.block_size
         config.dataloader.batch_size = batch_size if batch_size != None else config.dataloader.batch_size
         config.dataloader.max_corpus_size = max_corpus_size if max_corpus_size != None else config.dataloader.max_corpus_size
@@ -45,7 +45,7 @@ class dataloader:
         return dataloader_impl.GenesisTextDataloader( config )
 
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         dataloader.add_args(parser) 
         config = bittensor.config( parser ); 

@@ -44,7 +44,7 @@ logging.init_logger()
 import bittensor._proto.bittensor_pb2 as proto
 import bittensor._proto.bittensor_pb2_grpc as grpc
 
-# ---- Components -----
+# ---- Factories -----
 from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon
 from bittensor._wallet import wallet as wallet
@@ -58,6 +58,7 @@ from bittensor._subtensor import subtensor as subtensor
 from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
 from bittensor._dataloader import dataloader as dataloader
+from bittensor._receptor import receptor_pool as receptor_pool
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
@@ -72,6 +73,7 @@ from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._dataloader.dataloader_impl import Dataloader as Dataloader
+from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 
 
 # Hardcoded entry point nodes. 

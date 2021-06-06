@@ -53,7 +53,7 @@ class BertNucleusBase(torch.nn.Module):
         """
         super(BertNucleusBase, self).__init__()
         if config == None:
-            config = BertNucleusBase.default_config()
+            config = BertNucleusBase.config()
         BertNucleusBase.check_config(config)
         self.config = config
 
@@ -83,7 +83,7 @@ class BertNucleusBase(torch.nn.Module):
         self.to(self.device)
 
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         BertNucleusBase.add_args(parser) 
         config = bittensor.config( parser ); 

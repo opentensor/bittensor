@@ -46,30 +46,27 @@ class config:
 
         # 3. Splits params on dot syntax i.e neuron.axon_port
         for arg_key, arg_val in params.__dict__.items():
+            current_level = config
             split_keys = arg_key.split('.')
-            
-            if len(split_keys) == 1:
-                config[arg_key] = arg_val
-            else:
-                if hasattr(config, split_keys[0]):
-                    section = getattr(config, split_keys[0])
-                
-                    if not hasattr(section, split_keys[1]):
-                        head = config
-                        for key in split_keys[:-1]:
-                            if key not in config:
-                                head[key] = config_impl.Config()
-                            head = head[key] 
-                        head[split_keys[-1]] = arg_val
+            for i, current_key in enumerate(split_keys):
+                if i == len( split_keys ) - 1:
+                    current_level[ current_key ] = arg_val
                 else:
-                    head = config
-                    for key in split_keys[:-1]:
-                        if key not in config:
-                            head[key] = config_impl.Config()
-                        head = head[key] 
-                    head[split_keys[-1]] = arg_val
+                    if current_key not in current_level:
+                        current_level [ current_key ] = config_impl.Config()
+                    current_level = current_level[ current_key ]
 
         return config
+
+    @staticmethod
+    def cut_namespace( config, namespace ) -> 'bittensor.Config':
+        if namespace == '':
+            return config
+        split_namespace = namespace.split('.')
+        current = config
+        for namespace_val in split_namespace:
+            current = current[namespace_val]
+        return current
 
     @staticmethod
     def full():

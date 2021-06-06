@@ -137,7 +137,7 @@ class GPT2Nucleus(torch.nn.Module):
         """
         super(GPT2Nucleus, self).__init__()
         if config == None:
-            config = GPT2Nucleus.default_config()        
+            config = GPT2Nucleus.config()        
         GPT2Nucleus.check_config(config)
         self.config = config
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -194,7 +194,7 @@ class GPT2Nucleus(torch.nn.Module):
         self.num_parameters = sum(p.numel() for p in self.parameters())
     
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         GPT2Nucleus.add_args(parser) 
         config = bittensor.config( parser ); 

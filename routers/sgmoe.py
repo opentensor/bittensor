@@ -26,7 +26,7 @@ class SGMOERouter( router.Router ):
     def __init__(self, config: 'bittensor.Config' = None, query_dim = bittensor.__network_dim__, **kwargs):
         super().__init__()
         if config == None:
-            config = SGMOERouter.default_config();       
+            config = SGMOERouter.config();       
         self.config = config
         self.query_dim = query_dim
         
@@ -35,7 +35,7 @@ class SGMOERouter( router.Router ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
         SGMOERouter.add_args(parser) 
         config = bittensor.config( parser ); 

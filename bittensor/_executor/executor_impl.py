@@ -43,7 +43,7 @@ class Executor:
         r""" Creates a new Executor object for interfacing with the bittensor API.
             Args:
                 config (:obj:`bittensor.Config`, `required`): 
-                    bittensor.executor.default_config()
+                    bittensor.executor.config()
                 wallet (:obj:`bittensor.wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
                 subtensor (:obj:`bittensor.Subtensor`, `required`):

@@ -272,7 +272,7 @@ class Metagraph( torch.nn.Module ):
         """
         # Defaults to base subtensor connection.
         if subtensor == None:
-            subtensor = bittensor.subtensor( config = self.config )
+            subtensor = bittensor.subtensor( config = self.config.subtensor )
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
         loop.run_until_complete(self._async_sync(subtensor, force))

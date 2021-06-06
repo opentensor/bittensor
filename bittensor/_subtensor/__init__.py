@@ -40,7 +40,8 @@ class subtensor:
             cls, 
             config: 'bittensor.Config' = None,
             network: str = None,
-            chain_endpoint: str = None
+            chain_endpoint: str = None,
+            namespace: str = ''
         ) -> 'bittensor.Subtensor':
         r""" Initializes a subtensor chain interface.
             Args:
@@ -54,13 +55,19 @@ class subtensor:
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the --network flag.
+                config (:obj:`bittensor.Config`, `optional`): 
+                    bittensor.subtensor.config()
+                namespace (:obj:`str, `optional`): 
+                    config namespace.
         """
         if config == None:
-            config = subtensor.default_config()
-        config.subtensor.network = network if network != None else config.subtensor.network
-        config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else config.subtensor.chain_endpoint
-        config = copy.deepcopy(config)
-        subtensor.check_config(config)
+            config = bittensor.config.cut_namespace( subtensor.config( namespace ), namespace  ).subtensor
+        config.network = network if network != None else config.network
+        config.chain_endpoint = chain_endpoint if chain_endpoint != None else config.chain_endpoint
+        config = copy.deepcopy( config )
+        subtensor.check_config( config )
+
+        # Build substrate.
         substrate = SubstrateWSInterface(
             address_type = 42,
             type_registry_preset='substrate-node-template',
@@ -69,28 +76,36 @@ class subtensor:
 
         return subtensor_impl.Subtensor( config, substrate )
 
-    @staticmethod
-    def default_config() -> 'bittensor.Config':
+    @staticmethod   
+    def config(namespace: str = '') -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
-        subtensor.add_args(parser) 
+        subtensor.add_args(parser = parser, namespace = namespace) 
         config = bittensor.config( parser ); 
-        return config
+        return bittensor.config.cut_namespace( config, namespace )
+
+    @staticmethod   
+    def print_help(namespace: str = ''):
+        parser = argparse.ArgumentParser(); 
+        subtensor.add_args( parser, namespace ) 
+        parser.print_help()
     
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        try:
-            parser.add_argument('--subtensor.network', default='kusanagi', type=str, 
-                                help='''The subtensor network flag. The likely choices are:
-                                        -- akira (testing network)
-                                        -- kusanagi (main network)
-                                    If this option is set it overloads subtensor.chain_endpoint with 
-                                    an entry point node from that network.
-                                    ''')
-            parser.add_argument('--subtensor.chain_endpoint', default=None, type=str, 
-                                help='''The subtensor endpoint flag. If set, overrides the --network flag.
-                                    ''')
-        except:
-            pass
+    def add_args(parser: argparse.ArgumentParser, namespace: str = ''):
+        if namespace != '':
+            namespace = namespace + 'subtensor.'
+        else:
+            namespace = 'subtensor.'
+        parser.add_argument('--' + namespace + 'network', default='kusanagi', type=str, 
+                            help='''The subtensor network flag. The likely choices are:
+                                    -- akira (testing network)
+                                    -- kusanagi (main network)
+                                If this option is set it overloads subtensor.chain_endpoint with 
+                                an entry point node from that network.
+                                ''')
+        parser.add_argument('--' + namespace + 'chain_endpoint', default=None, type=str, 
+                            help='''The subtensor endpoint flag. If set, overrides the --network flag.
+                                ''')
+    
         
     @staticmethod   
     def check_config(config: 'bittensor.Config'):

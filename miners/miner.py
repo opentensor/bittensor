@@ -46,60 +46,64 @@ logger = logger.opt(colors=True)
 
 class AbstractMiner ():
 
-    def __init__( self, config: 'bittensor.Config' = None, **kwargs):
+    def __init__( self, config: 'bittensor.Config' = None, namespace:str = '', **kwargs):
         r""" Initializes a new base miner object.
             
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
-                    miner.Miner.default_config()
+                    miner.Miner.config()
+                namespace (:obj:`str, `optional`): 
+                    config namespace.
         """
         if config == None:
-            config = AbstractMiner.default_config()
+            config = bittensor.config.cut_namespace( AbstractMiner.config( namespace ), namespace  ).miner
         config = copy.deepcopy( config )
         AbstractMiner.check_config( config )
         self.config = config
-        self.wallet = bittensor.wallet ( config = self.config )
-        self.subtensor = bittensor.subtensor( config = self.config )
-        self.metagraph = bittensor.metagraph( config = config )
-        self.axon = bittensor.axon( config = self.config, wallet = self.wallet )
-        self.dendrite = bittensor.dendrite( config = self.config, wallet = self.wallet )
+        self.wallet = bittensor.wallet ( config = self.config.wallet )
+        self.subtensor = bittensor.subtensor( config = self.config.subtensor )
+        self.metagraph = bittensor.metagraph( config = self.config.metagraph )
+        self.axon = bittensor.axon( config = self.config.axon, wallet = self.wallet )
+        self.dendrite = bittensor.dendrite( config = self.config.dendrite, wallet = self.wallet )
 
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
+    def config( namespace: str = '' ) -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         AbstractMiner.add_args(parser) 
         config = bittensor.config( parser ); 
-        return config
+        return bittensor.config.cut_namespace( config, namespace )
 
     @staticmethod
-    def check_config(config: 'bittensor.Config'):
+    def check_config( config: 'bittensor.Config' ):
         assert 'name' in config.miner, 'miners must specify a name argument.'
-        bittensor.wallet.check_config( config )
-        bittensor.subtensor.check_config( config )
-        bittensor.axon.check_config( config )
-        bittensor.dendrite.check_config( config )
-        bittensor.metagraph.check_config( config )
+        bittensor.wallet.check_config( config.wallet )
+        bittensor.subtensor.check_config( config.subtensor )
+        bittensor.axon.check_config( config.axon )
+        bittensor.dendrite.check_config( config.dendrite )
+        bittensor.metagraph.check_config( config.metagraph )
         full_path = os.path.expanduser('{}/{}/{}'.format( config.miner.root_dir, config.wallet.name + "-" + config.wallet.hotkey, config.miner.name ))
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
 
     @staticmethod   
-    def add_args( parser: argparse.ArgumentParser ):
-        bittensor.wallet.add_args( parser )
-        bittensor.subtensor.add_args( parser )
-        bittensor.axon.add_args( parser )
-        bittensor.dendrite.add_args( parser )
-        bittensor.metagraph.add_args( parser )
-        parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
-        parser.add_argument('--config', type=str, help='If set, arguments are overridden by passed file.')
-        parser.add_argument('--miner.modality', default=0, type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
-        parser.add_argument('--miner.use_upnpc', default=False, dest='use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''')
-        parser.add_argument('--miner.record_log', default=False, dest='record_log', action='store_true', help='''Turns on logging to file.''')   
-        parser.add_argument('--miner.root_dir', default='~/.bittensor/miners/', type=str, help='Root path to load and save data associated with each miner')
-        parser.add_argument('--miner.use_tensorboard', default=True, dest='use_tensorboard', action='store_true', help='Turn on bittensor logging to tensorboard')
-        parser.add_argument('--miner.no_tensorboard', dest='use_tensorboard', action='store_false', help='Turn off bittensor logging to tensorboard')
-        parser.set_defaults ( use_tensorboard=True )
+    def add_args( parser: argparse.ArgumentParser, namespace: str = ''):
+        if namespace != '':
+            namespace = namespace + 'miner.'
+        else:
+            namespace = 'miner.'
+        bittensor.wallet.add_args( parser, namespace )
+        bittensor.subtensor.add_args( parser, namespace )
+        bittensor.axon.add_args( parser, namespace )
+        bittensor.dendrite.add_args( parser, namespace )
+        bittensor.metagraph.add_args( parser, namespace )
+        parser.add_argument('--' + namespace + 'debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
+        parser.add_argument('--' + namespace + 'config', type=str, help='If set, arguments are overridden by passed file.')
+        parser.add_argument('--' + namespace + 'modality', default=0, type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
+        parser.add_argument('--' + namespace + 'use_upnpc', default=False, dest='use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''')
+        parser.add_argument('--' + namespace + 'record_log', default=False, dest='record_log', action='store_true', help='''Turns on logging to file.''')   
+        parser.add_argument('--' + namespace + 'root_dir', default='~/.bittensor/miners/', type=str, help='Root path to load and save data associated with each miner')
+        parser.add_argument('--' + namespace + 'use_tensorboard', default=True, dest='use_tensorboard', action='store_true', help='Turn on bittensor logging to tensorboard')
 
     def startup( self ):
         self.init_logging()
@@ -254,17 +258,17 @@ class BasicMiner( AbstractMiner ):
             
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
-                    miner.BaseMiner.default_config()
+                    miner.BaseMiner.config()
         """
         if config == None:
-            config = BasicMiner.default_config()
-        config = copy.deepcopy( config );
+            config = BasicMiner.config()
+        config = copy.deepcopy( config )
         BasicMiner.check_config( config )
         self.config = config
         super( BasicMiner, self ).__init__( self.config, **kwargs )
 
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         BasicMiner.add_args(parser) 
         config = bittensor.config( parser ); 

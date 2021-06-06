@@ -41,7 +41,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             
             Args:
                 config (:obj:`bittensor.Config`, `required`): 
-                    bittensor.axon.default_config()
+                    bittensor.axon.config()
                 wallet (:obj:`bittensor.wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
                 server (:obj:`grpc._Server`, `required`):
@@ -55,7 +55,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self._backward_callback = None
 
         bittensor.grpc.add_BittensorServicer_to_server( self, self._server )
-        self._server.add_insecure_port('[::]:' + str( self.config.axon.local_port ))
+        self._server.add_insecure_port('[::]:' + str( self.config.local_port ))
 
         # Stats: Memory of network statistics, QPS and bytes in and out for instance.
         self.stats = SimpleNamespace(
@@ -461,7 +461,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
     def _serve(self):
         try:
-            logger.success('Axon is serving on: {}:{}', self.config.axon.local_ip, self.config.axon.local_port)
+            logger.success('Axon is serving on: {}:{}', self.config.local_ip, self.config.local_port)
             self._server.start()
         except (KeyboardInterrupt, SystemExit):
             self.stop()
@@ -489,7 +489,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         if self._server != None:
             self._server.stop( 0 )
-            logger.success('Axon has stopped serving on: {}:{}', self.config.axon.local_ip, self.config.axon.local_port)
+            logger.success('Axon has stopped serving on: {}:{}', self.config.local_ip, self.config.local_port)
 
 
 

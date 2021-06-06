@@ -25,30 +25,43 @@ class metagraph:
 
     def __new__(
             cls, 
-            config: 'bittensor.Config' = None
+            config: 'bittensor.Config' = None,
+            namespace: str = '',
         ) -> 'bittensor.Metagraph':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
-                    bittensor.metagraph.default_config()
+                    bittensor.metagraph.config()
+                namespace (:obj:`str, `optional`): 
+                    config namespace.
         """        
         if config == None:
-            config = metagraph.default_config()
+            config = bittensor.config.cut_namespace( metagraph.config( namespace ), namespace ).metagraph
         metagraph.check_config( config )
         return metagraph_impl.Metagraph( config )
 
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
+    def config(namespace: str = '') -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
-        metagraph.add_args(parser) 
+        metagraph.add_args(parser = parser, namespace = namespace) 
         config = bittensor.config( parser ); 
-        return config
+        return bittensor.config.cut_namespace( config, namespace )
 
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        bittensor.subtensor.add_args(parser)
+    def add_args(parser: argparse.ArgumentParser, namespace: str = ''):
+        if namespace != '':
+            namespace = namespace + 'metagraph.'
+        else:
+            namespace = 'metagraph.'
+        bittensor.subtensor.add_args( parser, namespace )
         
     @staticmethod   
     def check_config(config: 'bittensor.Config'):
         bittensor.subtensor.check_config(config)
+
+    @staticmethod   
+    def print_help(namespace: str = ''):
+        parser = argparse.ArgumentParser(); 
+        metagraph.add_args( parser, namespace ) 
+        parser.print_help()
 

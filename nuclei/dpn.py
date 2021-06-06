@@ -46,7 +46,7 @@ class DPNNucleus(torch.nn.Module):
         """
         super(DPNNucleus, self).__init__()
         if config == None:
-            config = DPNNucleus.default_config()
+            config = DPNNucleus.config()
         DPNNucleus.check_config(config)
         self.config = config
 
@@ -99,7 +99,7 @@ class DPNNucleus(torch.nn.Module):
         self.to(self.device)
 
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         DPNNucleus.add_args(parser) 
         config = bittensor.config( parser ); 

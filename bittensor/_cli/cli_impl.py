@@ -28,7 +28,7 @@ class CLI:
         r""" Initialized a bittensor.CLI object.
             Args:
                 config (:obj:`bittensor.Config`, `required`): 
-                    bittensor.cli.default_config()
+                    bittensor.cli.config()
                 executor (:obj:`bittensor.executor.executor`, `required`):
                     bittensor executor object, used to execute cli options.
         """

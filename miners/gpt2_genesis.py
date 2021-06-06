@@ -28,6 +28,7 @@ To run with a config file:
 """
 
 import argparse
+import os
 import copy
 import math
 from re import L
@@ -51,30 +52,34 @@ logger = logger.opt(colors=True)
 
 class Miner( miner.BasicMiner ):
 
-    def __init__(self, config: 'bittensor.Config' = None, **kwargs):
-
-        # ---- Load Config ----
-        if config == None:
-            config = Miner.default_config();   
-        config = copy.deepcopy(config)
-        Miner.check_config( config )
-        logger.info( config )
+    def __init__(
+        self, 
+        config: 'bittensor.Config',
+        router: 'bittensor.Router',
+        nucleus: 'bittensor.Nucleus',
+        wallet:  'bittensor.Wallet',
+        subtensor: 'bittensor.Subtensor',
+        metagraph: 'bittensor.Metagraph',
+        axon: 'bittensor.Axon',
+        dendrite: 'bittensor.Dendrite',
+    ):
         self.config = config
-        super( Miner, self ).__init__( self.config, **kwargs )
+        self.router = router
+        self.nucleus = nucleus
+        self.wallet = wallet
+        self.subtensor = subtensor
+        self.metagraph = metagraph
+        self.axon = axon
+        self.dendrite = dendrite
 
-        # ---- Device ----
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        # ---- Router ----
-        self.router = SGMOERouter( self.config, query_dim = bittensor.__network_dim__ )
         self.router.device = self.device
-        self.router.to( self.device )
-
-        # ---- Nucleus ----
-        self.nucleus = GPT2Nucleus( self.config )
-        self.nucleus.attach( self ) # Assign the routing function.
         self.nucleus.device = self.device
+        self.router.to( self.device )
         self.nucleus.to( self.device )
+        self.nucleus.attach( self ) # Assign the routing function.
+        self.axon.attach_forward_callback( self.forward )
+        self.axon.attach_backward_callback( self.backward )
 
         # ---- Row Weights ----
         self.row_weights = torch.ones([0]).to( self.nucleus.device )
@@ -87,89 +92,64 @@ class Miner( miner.BasicMiner ):
         # The Genesis Dataset:
         self.dataset = bittensor.dataloader( batch_size = self.config.miner.batch_size_train, block_size = self.nucleus.get_block_size() )
         self.tokens = 0
-               
-    @staticmethod
-    def default_config() -> 'bittensor.Config':
-        parser = argparse.ArgumentParser()
-        Miner.add_args(parser)
-        config = bittensor.config( parser )
-        return config
 
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
-        parser.add_argument(
-            '--miner.learning_rate', 
-            default=3e-2, 
-            type=float, 
-            help='Training initial learning rate.'
-        )
-        parser.add_argument(
-            '--miner.weight_decay', 
-            default=0.25, 
-            type=float, 
-            help='nucleus parameter weight decay.'
-        )
-        parser.add_argument(
-            '--miner.lr_decay',
-            default=True,
-            type=bool,
-            help='learning rate decay params: linear warmup followed by cosine decay to 10%% of original.'
-        )
-        parser.add_argument(
-            '--miner.warmup_tokens',
-            default=375e6,
-            type=float,
-            help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)'
-        )
-        parser.add_argument(
-            '--miner.final_tokens',
-            default=260e9,
-            type=float,
-            help='At what point we reach 10%% of original LR'
-        )
-        parser.add_argument(
-            '--miner.clip_gradients',
-            default=1.0,
-            type=float,
-            help='Implement gradient clipping to avoid exploding loss on smaller architectures.'
-        )
-        parser.add_argument(
-            '--miner.n_epochs', 
-            default=-1, 
-            type=int, 
-            help='Number of training epochs.'
-        )
-        parser.add_argument(
-            '--miner.epoch_length', 
-            default=500, 
-            type=int, 
-            help='Iterations of training per epoch'
-        )
-        parser.add_argument(
-            '--miner.batch_size_train', 
-            default=2, 
-            type=int, 
-            help='Training batch size.'
-        )
-        parser.add_argument(
-            '--miner.name', 
-            default='gpt2_genesis', 
-            type=str, 
-            help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name '
-        )
-        miner.BasicMiner.add_args( parser )
-        bittensor.dataloader.add_args( parser )
-        GPT2Nucleus.add_args( parser )
-        SGMOERouter.add_args( parser )
+    # --- Run Miner ----
+    def run( self ):
+        r""" Miner main loop.
+        """
+        # ---- Setup ----
+        with self:  
 
-    @staticmethod
-    def check_config(config: 'bittensor.Config'):
-        assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
-        assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
-        miner.BasicMiner.check_config( config )
-        bittensor.dataloader.check_config( config )
-        GPT2Nucleus.check_config( config )
-        SGMOERouter.check_config( config )
+            # --- Setup run state ----
+            self.epoch = 0
+            self.global_step = 0 
+            self.epoch_loss = math.inf
+            self.last_saved_loss = math.inf
+
+            # ---- Optionally reload ----
+            if self.config.resume: 
+                try:  
+                    self.reload_state()
+                except:
+                    logger.warning("Failed to reload state. Starting from new model.")
+                    self.save_state()
+            else:
+                self.save_state()  
+        
+            # --- Run until ----
+            while self.should_run( self.epoch ):
+                try:
+                    
+                    # ---- Synchronize with chain ----
+                    self.sync_chain_state()
+
+                    # ---- Train ----
+                    self.run_epoch()
+
+                    # ---- Save or Reload state ----
+                    if self.should_save():
+                        self.save_state()
+                    elif self.should_reload():
+                        self.reload_state()
+
+                    # ---- Set weights on chain ----
+                    self.set_mechanism_weights()
+
+                    # ---- Update Tensorboard ----
+                    self.epoch_logs() 
+                
+                except KeyboardInterrupt:
+                    # User ended.
+                    break
+
+                except Exception as e:
+                    logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
+                    if self.config.restart_on_failure == True:
+                        logger.info('Restarting from last saved state.')
+                        self.reload_state()
+                        continue
+                    else:
+                        break
 
     # ---- Axon Forward call ----
     def forward ( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
@@ -299,6 +279,27 @@ class Miner( miner.BasicMiner ):
         # ---- Update global loss ----
         return output
 
+    def set_mechanism_weights( self ):
+        r""" Called after every training epoch, sets the row_weights into the incentive mechanism on chain.
+        """
+        try:
+            row_weights = self.get_row_weights()
+            uids = self.metagraph.uids
+            did_set = self.subtensor.set_weights(
+                wallet = self.wallet,
+                uids = uids,
+                weights = row_weights, 
+                wait_for_inclusion = True
+            )
+            if did_set:
+                logger.success('Successfully set weights with row:\n {}', row_weights.tolist())
+            else:
+                logger.warning('Failed to set weights on chain.')
+                self.reconnect_to_chain()
+
+        except Exception as e:
+            logger.error('Failure setting weights on chain with error: {}', e)
+
     def should_run( self, epoch: int ) -> bool:
         r""" Called by miner.run() every epoch, if the response is false, training stops.
         """
@@ -336,6 +337,7 @@ class Miner( miner.BasicMiner ):
             return True
         else:
             return False
+            
 
     def get_state_dict( self ) -> dict:
         r""" Called by miner.save_state().
@@ -366,6 +368,33 @@ class Miner( miner.BasicMiner ):
         self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
         self.optimizer.load_state_dict( state_dict['optimizer_state'] ) # Load optimizer.
         self.optimizer = self.configure_optimizers( self.optimizer )
+
+    def save_state( self ):
+        r""" This function is called by miner.run() if miner.should_save() returns True.
+        """
+        try:
+            state_dict = self.get_state_dict()
+            state_dict['epoch'] = self.epoch
+            state_dict['epoch_loss'] = self.epoch_loss
+            state_dict['global_step'] = self.global_step
+            torch.save( state_dict, "{}/model.torch".format( self.config.miner.full_path, self.epoch_loss ))
+            logger.success( 'Saved model to: <cyan>{}/model.torch</cyan>\n'.format( self.config.miner.full_path ))
+        except Exception as e:
+             logger.exception('Failed to save model with error:{}', e)
+
+    def reload_state( self ):
+        r""" Called by miner.run() if miner.should_reload() returns True.
+        """
+        try:
+            state_dict = torch.load("{}/model.torch".format( self.config.miner.full_path ))
+            self.reload_from_state_dict( state_dict )
+            self.epoch = state_dict['epoch']
+            self.epoch_loss = state_dict['epoch_loss']
+            self.global_step = state_dict['global_step']
+            logger.success( 'Reloaded model from: <cyan>{}/model.torch</cyan>\n'.format( self.config.miner.full_path ))
+        except Exception as e:
+            logger.exception('Failed to reload model with error: {}', e)
+
 
     def sync_chain_state( self ):
         r""" Called after each training epoch. Miner should update chain-state and resize objects.
@@ -494,7 +523,137 @@ class Miner( miner.BasicMiner ):
             return param_group['lr']
 
 
+class miner:
+
+    def __new__(
+        self, 
+        config: 'bittensor.Config' = None, 
+        namespace: str = ''
+    ):
+        # ---- Load Config ----
+        if config == None:
+            config = bittensor.config.cut_namespace( miner.config( namespace ), namespace ).miner
+        config = copy.deepcopy(config)
+        miner.check_config( config )
+        router = SGMOERouter( config = config.router, query_dim = bittensor.__network_dim__ )
+        nucleus = GPT2Nucleus( config = config.nucleus )
+        wallet = bittensor.wallet ( config = config.wallet )
+        subtensor = bittensor.subtensor( config = config.subtensor )
+        metagraph = bittensor.metagraph( config = config.metagraph )
+        axon = bittensor.axon( config = config.axon, wallet = wallet )
+        dendrite = bittensor.dendrite( config = config.dendrite, wallet = wallet )
+        return Miner( config, wallet, subtensor, metagraph, axon, dendrite, router, nucleus )
+
+    @staticmethod
+    def config( namespace: str = '' ) -> 'bittensor.Config':
+        parser = argparse.ArgumentParser()
+        miner.add_args(parser)
+        config = bittensor.config( parser )
+        return bittensor.config.cut_namespace( config, namespace )
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser, namespace: str = ''):
+        if namespace != '':
+            namespace = namespace + 'miner.'
+        else:
+            namespace = 'miner.'
+        parser.add_argument(
+            '--' + namespace + 'learning_rate', 
+            default=3e-2, 
+            type=float, 
+            help='Training initial learning rate.'
+        )
+        parser.add_argument(
+            '--' + namespace + 'weight_decay', 
+            default=0.25, 
+            type=float, 
+            help='nucleus parameter weight decay.'
+        )
+        parser.add_argument(
+            '--' + namespace + 'lr_decay',
+            default=True,
+            type=bool,
+            help='learning rate decay params: linear warmup followed by cosine decay to 10%% of original.'
+        )
+        parser.add_argument(
+            '--' + namespace + 'warmup_tokens',
+            default=375e6,
+            type=float,
+            help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)'
+        )
+        parser.add_argument(
+            '--' + namespace + 'final_tokens',
+            default=260e9,
+            type=float,
+            help='At what point we reach 10%% of original LR'
+        )
+        parser.add_argument(
+            '--' + namespace + 'clip_gradients',
+            default=1.0,
+            type=float,
+            help='Implement gradient clipping to avoid exploding loss on smaller architectures.'
+        )
+        parser.add_argument(
+            '--' + namespace + 'n_epochs', 
+            default=-1, 
+            type=int, 
+            help='Number of training epochs.'
+        )
+        parser.add_argument(
+            '--' + namespace + 'epoch_length', 
+            default=500, 
+            type=int, 
+            help='Iterations of training per epoch'
+        )
+        parser.add_argument(
+            '--' + namespace + 'batch_size_train', 
+            default=2, 
+            type=int, 
+            help='Training batch size.'
+        )
+        parser.add_argument(
+            '--' + namespace + 'name', 
+            default='gpt2_genesis', 
+            type=str, 
+            help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name '
+        )
+        parser.add_argument('--' + namespace + 'debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
+        parser.add_argument('--' + namespace + 'config', type=str, help='If set, arguments are overridden by passed file.')
+        parser.add_argument('--' + namespace + 'modality', default=0, type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
+        parser.add_argument('--' + namespace + 'use_upnpc', default=False, dest='use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''')
+        parser.add_argument('--' + namespace + 'record_log', default=False, dest='record_log', action='store_true', help='''Turns on logging to file.''')   
+        parser.add_argument('--' + namespace + 'root_dir', default='~/.bittensor/miners/', type=str, help='Root path to load and save data associated with each miner')
+        parser.add_argument('--' + namespace + 'use_tensorboard', default=True, dest='use_tensorboard', action='store_true', help='Turn on bittensor logging to tensorboard')
+
+        miner.add_args( parser )
+        bittensor.dataloader.add_args( parser )
+        GPT2Nucleus.add_args( parser )
+        SGMOERouter.add_args( parser )
+        bittensor.wallet.add_args( parser, namespace )
+        bittensor.subtensor.add_args( parser, namespace )
+        bittensor.axon.add_args( parser, namespace )
+        bittensor.dendrite.add_args( parser, namespace )
+        bittensor.metagraph.add_args( parser, namespace )
+
+    @staticmethod
+    def check_config(config: 'bittensor.Config'):
+        assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
+        assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
+        GPT2Nucleus.check_config( config )
+        SGMOERouter.check_config( config )
+        bittensor.dataloader.check_config( config )
+        bittensor.wallet.check_config( config.wallet )
+        bittensor.subtensor.check_config( config.subtensor )
+        bittensor.axon.check_config( config.axon )
+        bittensor.dendrite.check_config( config.dendrite )
+        bittensor.metagraph.check_config( config.metagraph )
+        full_path = os.path.expanduser('{}/{}/{}'.format( config.miner.root_dir, config.wallet.name + "-" + config.wallet.hotkey, config.miner.name ))
+        config.miner.full_path = os.path.expanduser(full_path)
+        if not os.path.exists(config.miner.full_path):
+            os.makedirs(config.miner.full_path)
+
 if __name__ == "__main__":
     # ---- Build and Run ----
     miner = Miner()
+    print (miner.config)
     miner.run()

@@ -15,7 +15,7 @@ def test_create_wallet():
     assert os.path.isfile(the_wallet.coldkeypubfile)
 
 def test_wallet_config():
-    config = bittensor.wallet.default_config()
+    config = bittensor.wallet.config()
     config.wallet.name
     config.wallet.path
     config.wallet.hotkey

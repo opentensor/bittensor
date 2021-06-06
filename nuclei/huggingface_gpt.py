@@ -72,7 +72,7 @@ class GPT2LMNucleus(torch.nn.Module):
         """
         super(GPT2LMNucleus, self).__init__()
         if config == None:
-            config = GPT2LMNucleus.default_config()
+            config = GPT2LMNucleus.config()
         GPT2LMNucleus.check_config(config)
         self.config = config
 
@@ -122,7 +122,7 @@ class GPT2LMNucleus(torch.nn.Module):
         self.to(self.device)
 
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         GPT2LMNucleus.add_args(parser) 
         config = bittensor.config( parser ); 
