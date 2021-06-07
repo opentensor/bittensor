@@ -37,7 +37,7 @@ class DPNNucleus(torch.nn.Module):
     """ Bittensor endpoint trained on PIL images to detect objects using an DPN.
     """
 
-    def __init__( self, config: 'bittensor.Config' = None, **kwargs):
+    def __init__( self, routing_callback, config: 'bittensor.Config' = None, **kwargs):
         r""" Init a new DPN nucleus module.
 
             Args:
@@ -51,7 +51,7 @@ class DPNNucleus(torch.nn.Module):
         self.config = config
 
         # To be set.
-        self.routing_callback = None
+        self.routing_callback = routing_callback
         
         in_planes, out_planes = config.nucleus.in_planes, config.nucleus.out_planes
         num_blocks, dense_depth = config.nucleus.num_blocks, config.nucleus.dense_depth
