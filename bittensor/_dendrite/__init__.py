@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from concurrent.futures.thread import ThreadPoolExecutor
+from os import name
 import bittensor
 import argparse
 import copy
@@ -74,17 +75,17 @@ class dendrite:
         config.receptor_pool.receptor.do_backoff = do_backoff if do_backoff != None else config.receptor_pool.receptor.do_backoff
         config.receptor_pool.receptor.max_backoff = max_backoff if max_backoff != None else config.receptor_pool.receptor.max_backoff
         config = copy.deepcopy(config)
-        dendrite.check_config( config )
-
-        # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
-        # and subscribe to the chain.
-        if wallet == None:
-            wallet = bittensor.wallet( config.wallet )
 
         # Threadpool executor for making queries across the line.
         if receptor_pool == None:
-            receptor_pool = bittensor.receptor_pool ( config.receptor_pool, wallet, thread_pool = thread_pool )
+            receptor_pool = bittensor.receptor_pool ( 
+                config = config.receptor_pool, 
+                wallet = wallet, 
+                thread_pool = thread_pool 
+            )
+        config.receptor_pool = copy.deepcopy(receptor_pool.config)
 
+        dendrite.check_config( config )
         return dendrite_impl.Dendrite( config, wallet, receptor_pool )
 
     @staticmethod   
@@ -92,21 +93,20 @@ class dendrite:
         parser = argparse.ArgumentParser(); 
         dendrite.add_args(parser = parser, namespace = namespace) 
         config = bittensor.config( parser ); 
+        print (config)
         return bittensor.config.cut_namespace( config, namespace )
 
     @staticmethod   
     def check_config( config: 'bittensor.Config', namespace: str = ''):
         bittensor.config.cut_namespace( config, namespace )
-        bittensor.wallet.check_config( config.wallet )
         bittensor.receptor_pool.check_config( config.receptor_pool )
 
-    @staticmethod   
-    def add_args( parser: argparse.ArgumentParser, namespace: str = ''):
+    @classmethod   
+    def add_args(cls, parser: argparse.ArgumentParser, namespace: str = ''):
         if namespace != '':
             namespace = namespace + 'dendrite.'
         else:
-            namespace = 'dendrite.'
-        bittensor.wallet.add_args( parser, namespace )
+            namespace = 'dendrite.'   
         bittensor.receptor_pool.add_args( parser, namespace )
         parser.add_argument('--' + namespace + 'pass_gradients', default=True, type=bool, 
                 help='''Does this dendrite pass gradients by default.''')

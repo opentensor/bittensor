@@ -60,11 +60,11 @@ class receptor:
         config.timeout = timeout if timeout != None else config.timeout
         config.do_backoff = do_backoff if do_backoff != None else config.do_backoff
         config.max_backoff = max_backoff if max_backoff != None else config.max_backoff
-        receptor.check_config( config )
         config = copy.deepcopy(config) # Configuration information.
 
         if wallet == None:
             wallet = bittensor.wallet( config )
+        config.wallet = copy.deepcopy(wallet.config)
 
         # Get remote IP.
         try:
@@ -92,6 +92,7 @@ class receptor:
                      ('grpc.max_receive_message_length', -1)])
         stub = bittensor.grpc.BittensorStub( channel )
 
+        receptor.check_config( config )
         return receptor_impl.Receptor( 
             config = config, 
             wallet = wallet, 
@@ -185,12 +186,12 @@ class receptor_pool:
         config.receptor.timeout = timeout if timeout != None else config.receptor.timeout
         config.receptor.do_backoff = do_backoff if do_backoff != None else config.receptor.do_backoff
         config.receptor.max_backoff = max_backoff if max_backoff != None else config.receptor.max_backoff
-        receptor_pool.check_config( config )
         config = copy.deepcopy(config) # Configuration information.
 
         if thread_pool == None:
             thread_pool = ThreadPoolExecutor( max_workers = config.max_worker_threads )
 
+        receptor_pool.check_config( config )
         return bittensor.ReceptorPool( config = config, wallet = wallet, thread_pool = thread_pool )
 
     @staticmethod   

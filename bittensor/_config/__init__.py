@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+from re import split
 import yaml
 import munch
 import bittensor
@@ -60,11 +61,14 @@ class config:
 
     @staticmethod
     def cut_namespace( config, namespace ) -> 'bittensor.Config':
+        print (config, namespace)
         if namespace == '':
             return config
         split_namespace = namespace.split('.')
         current = config
         for namespace_val in split_namespace:
+            if namespace_val == '':
+                break
             current = current[namespace_val]
         return current
 

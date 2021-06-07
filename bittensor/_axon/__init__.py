@@ -72,13 +72,12 @@ class axon:
         config.max_workers = max_workers if max_workers != None else config.max_workers
         config.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.maximum_concurrent_rpcs
         config = copy.deepcopy( config )
-        axon.check_config( config )
 
         # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
         # and subscribe to the chain.
         if wallet == None:
             wallet = bittensor.wallet( config = config.wallet )
-        wallet = wallet
+        config.wallet = copy.deepcopy(wallet.config)
 
         # Create threadpool if non-existent.
         # Pass this to the grpc server.
@@ -89,7 +88,13 @@ class axon:
         if server == None:
             server = grpc.server( thread_pool, maximum_concurrent_rpcs = config.maximum_concurrent_rpcs )
 
-        axon_instance = axon_impl.Axon( config, wallet, server )
+        # Create instance.
+        axon.check_config( config )
+        axon_instance = axon_impl.Axon( 
+            config = config, 
+            wallet = wallet, 
+            server = server 
+        )
 
         # Attach callbacks.
         if forward_callback != None:

@@ -49,9 +49,11 @@ class cli:
 
         if wallet == None:
             wallet = bittensor.wallet( config = config )
+        config.wallet = wallet.config
   
         if executor == None:
             executor = bittensor.executor( config = config, wallet = wallet )
+        config.executor = executor.wallet
 
         return cli_impl.CLI( config, executor )
 

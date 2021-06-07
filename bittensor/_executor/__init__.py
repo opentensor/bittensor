@@ -50,18 +50,30 @@ class executor:
         if config == None:
             config = executor.config()
         config = copy.deepcopy(config)
-        executor.check_config( config )
         if wallet == None:
-            wallet = bittensor.wallet ( config = config )
+            wallet = bittensor.wallet ( config = config.wallet )
+        config.wallet = copy.deepcopy(wallet.config)
         if subtensor == None:
-            subtensor = bittensor.subtensor( config = config )
+            subtensor = bittensor.subtensor( config = config.subtensor )
+        config.subtensor = copy.deepcopy(subtensor.config)
         if metagraph == None:
-            metagraph = bittensor.metagraph( config = config)
+            metagraph = bittensor.metagraph( config = config.metagraph )
+        config.metagraph = copy.deepcopy(metagraph.config)
         if axon == None:
-            axon = bittensor.axon( config = config, wallet = wallet )
+            axon = bittensor.axon( config = config.axon, wallet = wallet )
+        config.axon = copy.deepcopy(axon.config)
         if dendrite == None:
-            dendrite = bittensor.dendrite( config = config, wallet = wallet )
-        return executor_impl.Executor( config, wallet, subtensor, metagraph, axon, dendrite )
+            dendrite = bittensor.dendrite( config = config.dendrite, wallet = wallet )
+        config.dendrite = copy.deepcopy(dendrite.config)
+        executor.check_config( config )
+        return executor_impl.Executor ( 
+            config = config, 
+            wallet = wallet, 
+            subtensor = subtensor, 
+            metagraph = metagraph, 
+            axon = axon, 
+            dendrite = dendrite 
+        )
     
     @staticmethod
     def config() -> 'bittensor.Config':
@@ -80,8 +92,8 @@ class executor:
         
     @staticmethod   
     def check_config (config: 'bittensor.Config'):
-        bittensor.wallet.check_config( config )
-        bittensor.subtensor.check_config( config )
-        bittensor.axon.check_config( config )
-        bittensor.dendrite.check_config( config )
-        bittensor.metagraph.add_args( config )
+        bittensor.wallet.check_config( config.wallet )
+        bittensor.subtensor.check_config( config.subtensor )
+        bittensor.axon.check_config( config.axon )
+        bittensor.dendrite.check_config( config.dendrite )
+        bittensor.metagraph.check_config( config.metagraph )
