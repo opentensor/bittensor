@@ -75,7 +75,7 @@ class XLMNucleus (torch.nn.Module):
 
     """
 
-    def __init__(self, config: 'bittensor.Config' = None, **kwargs):
+    def __init__(self, routing_callback, config: 'bittensor.Config' = None, **kwargs):
         """ Initialize a new XLM nucleus module.
 
         Args:
@@ -89,7 +89,7 @@ class XLMNucleus (torch.nn.Module):
         self.config = config
 
         # To be set.
-        self.routing_callback = None
+        self.routing_callback = routing_callback
         
         # Build config.
         xlm_config = XLMConfig (

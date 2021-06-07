@@ -63,7 +63,7 @@ class GPT2Pooler(nn.Module):
 class GPT2LMNucleus(torch.nn.Module):
     """ A Bittensor Nucleus training GPT2 with Causal Language Modelling (CLM)
     """
-    def __init__(self, config: 'bittensor.Config' = None, **kwargs):
+    def __init__(self, routing_callback, config: 'bittensor.Config' = None, **kwargs):
         r""" Init a new GPT2 nucleus module.
 
             Args:
