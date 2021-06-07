@@ -129,7 +129,7 @@ class CausalSelfAttention(nn.Module):
 
 class GPT2Nucleus(torch.nn.Module):
 
-    def __init__(self, config: bittensor.Config = None, **kwargs):
+    def __init__(self, routing_callback, config: bittensor.Config = None, **kwargs):
         """The full GPT language model, with context of a block size.
             Args:
                 config (:obj: `bittensor.Config`, `required`):
@@ -143,7 +143,7 @@ class GPT2Nucleus(torch.nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # To be set.
-        self.routing_callback = None
+        self.routing_callback = routing_callback
 
         gpt_config = GPTConfig(
             vocab_size = bittensor.__vocab_size__,

@@ -45,7 +45,7 @@ class BertPooler(nn.Module):
         return pooled_output
 
 class BertNucleusBase(torch.nn.Module):
-    def __init__(self, config: 'bittensor.Config', **kwargs):
+    def __init__(self, routing_callback, config: 'bittensor.Config', **kwargs):
         r""" Init a new base-bert nucleus.
 
             Args:
@@ -58,7 +58,7 @@ class BertNucleusBase(torch.nn.Module):
         self.config = config
 
         # To be set.
-        self.routing_callback = None
+        self.routing_callback = routing_callback
 
         # Hugging face config item.
         huggingface_config = BertConfig(    vocab_size=bittensor.__vocab_size__, 

@@ -37,7 +37,7 @@ class FFNNNucleus(torch.nn.Module):
     """ Simple feed forward NN for images.
     """
 
-    def __init__(self, config: 'bittensor.Config', **kwargs):
+    def __init__(self, routing_callback, config: 'bittensor.Config', **kwargs):
         r""" Init a new ffnn nucleus module.
                 :param [config]: munch namespace config item.
                 :type [config]:  [:obj:`bittensor.Config`](, `required`)
@@ -50,7 +50,7 @@ class FFNNNucleus(torch.nn.Module):
         self.config = config
 
         # To be set.
-        self.routing_callback = None
+        self.routing_callback = routing_callback
             
         # transform_layer: transforms images to common dimension.
         # [batch_size, -1, -1, -1] -> [batch_size, self.transform_dim]
