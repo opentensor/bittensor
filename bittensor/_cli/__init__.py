@@ -29,7 +29,6 @@ class cli:
 
     def __new__(
             cls, 
-            config: 'bittensor.Config' = None, 
             wallet: 'bittensor.Wallet' = None,
             executor: 'bittensor.executor.Executor' = None
         ) -> 'bittensor.CLI':
@@ -42,20 +41,15 @@ class cli:
                 executor (:obj:`bittensor.executor.executor`, `optional`):
                     bittensor executor object, used to execute cli options.
         """
-        if config == None:
-            config = cli.config()
-        config = copy.deepcopy(config)
-        cli.check_config( config )
-
         if wallet == None:
-            wallet = bittensor.wallet( config = config )
-        config.wallet = wallet.config
+            wallet = bittensor.wallet()
   
         if executor == None:
-            executor = bittensor.executor( config = config, wallet = wallet )
-        config.executor = executor.wallet
+            executor = bittensor.executor( wallet = wallet )
 
-        return cli_impl.CLI( config, executor )
+        return cli_impl.CLI( 
+            executor = executor 
+        )
 
     @staticmethod   
     def config () -> 'bittensor.Config':

@@ -22,60 +22,26 @@ import copy
 from . import wallet_impl
 
 class wallet:
-
     def __new__(
             cls, 
-            config: 'bittensor.Config' = None, 
-            name: str = None,
-            path: str = None,
-            hotkey: str = None,
-            namespace: str = ''
+            name: str = 'default',
+            path: str = 'default',
+            hotkey: str = '~/.bittensor/wallets/',
         ) -> 'bittensor.Wallet':
         r""" Init bittensor wallet object containing a hot and coldkey.
 
             Args:
-                config (:obj:`bittensor.Config`, `optional`): 
-                    bittensor.wallet.config()
                 name (required=False, default='default):
                     The name of the wallet to unlock for running bittensor
                 hotkey (required=False, default='default):
                     The name of hotkey used to running the miner.
                 path (required=False, default='~/.bittensor/wallets/'):
                     The path to your bittensor wallets
-                namespace (:obj:`str, `optional`): 
-                    config namespace.
         """
-        if config == None:
-            config = bittensor.config.cut_namespace( wallet.config( namespace ), namespace ).wallet
-        config.name = name if name != None else config.name
-        config.path = path if path != None else config.path
-        config.hotkey = hotkey if hotkey != None else config.hotkey
-        config = copy.deepcopy( config )
-        wallet.check_config( config )
+        return wallet_impl.Wallet(
+            name = name, 
+            hotkey = hotkey, 
+            path = path 
+        )
 
-        return wallet_impl.Wallet( config )
-
-    @staticmethod   
-    def config( namespace: str = '' ) -> 'bittensor.Config':
-        parser = argparse.ArgumentParser()
-        wallet.add_args(parser, namespace) 
-        config = bittensor.config( parser )
-        return bittensor.config.cut_namespace( config, namespace )
-
-    @staticmethod   
-    def check_config(config: 'bittensor.Config'):
-        pass
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser, namespace: str = ''):
-        if namespace != '':
-            namespace = namespace + 'wallet.'
-        else:
-            namespace = 'wallet.'
-        parser.add_argument('--' + namespace + 'name', required=False, default='default', 
-                                help='''The name of the wallet to unlock for running bittensor''')
-        parser.add_argument('--' + namespace + 'hotkey', required=False, default='default', 
-                                help='''The name of the wallet's hotkey.''')
-        parser.add_argument('--' + namespace + 'path', required=False, default='~/.bittensor/wallets/', 
-                                help='''The path to your bittensor wallets''')
 

@@ -28,43 +28,19 @@ class dataloader:
 
     def __new__(
             cls,
-            config: 'bittensor.Config '= None,
-            block_size: int = None,
-            batch_size: int = None,
-            max_corpus_size:int = None,
-            num_workers: int = None
+            block_size: int = 20,
+            batch_size: int = 10,
+            max_corpus_size:int = 1e+6,
+            num_workers: int = 0
         ):
-        if config == None:
-            config = dataloader.config()
-        config.dataloader.block_size = block_size if block_size != None else config.dataloader.block_size
-        config.dataloader.batch_size = batch_size if batch_size != None else config.dataloader.batch_size
-        config.dataloader.max_corpus_size = max_corpus_size if max_corpus_size != None else config.dataloader.max_corpus_size
-        config.dataloader.num_workers = num_workers if num_workers != None else config.dataloader.num_workers
-        config = copy.deepcopy(config)
-        dataloader.check_config( config )
-        return dataloader_impl.GenesisTextDataloader( config )
+        assert batch_size > 0, 'Batch size must be larger than 0'
+        assert block_size > 0, 'Block size must be larger than 0'
+        assert max_corpus_size > 0, 'max_corpus_size must be larger than 0'
+        assert num_workers >= 0, 'num_workers must be equal to or larger than 0'
+        return dataloader_impl.GenesisTextDataloader(
+            block_size = block_size,
+            batch_size = batch_size,
+            max_corpus_size = max_corpus_size,
+            num_workers = num_workers
+        )
 
-    @staticmethod   
-    def config() -> 'bittensor.Config':
-        parser = argparse.ArgumentParser(); 
-        dataloader.add_args(parser) 
-        config = bittensor.config( parser ); 
-        return config
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
-        parser.add_argument('--dataloader.batch_size', default=10, type=int, 
-                                help='Batch size..')
-        parser.add_argument('--dataloader.block_size', default=20, type=int, 
-                                help='Number of text items to pull for each example..')
-        parser.add_argument('--dataloader.max_corpus_size', default=1e+6, type=int, 
-                                help='Maximum amount of data to download from IPFS into memory for training.')
-        parser.add_argument('--dataloader.num_workers', default=0, type=int, 
-                                help='Number of workers for data loader.')
-
-    @staticmethod   
-    def check_config(config: 'bittensor.Config'):
-        assert config.dataloader.batch_size > 0, 'Batch size must be larger than 0'
-        assert config.dataloader.block_size > 0, 'Block size must be larger than 0'
-        assert config.dataloader.max_corpus_size > 0, 'max_corpus_size must be larger than 0'
-        assert config.dataloader.num_workers >= 0, 'num_workers must be equal to or larger than 0'

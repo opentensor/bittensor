@@ -33,7 +33,6 @@ class Executor:
 
     def __init__( 
             self, 
-            config: 'bittensor.Config', 
             wallet: 'bittensor.wallet',
             subtensor: 'bittensor.Subtensor',
             metagraph: 'bittensor.Metagraph',
@@ -42,8 +41,6 @@ class Executor:
         ):
         r""" Creates a new Executor object for interfacing with the bittensor API.
             Args:
-                config (:obj:`bittensor.Config`, `required`): 
-                    bittensor.executor.config()
                 wallet (:obj:`bittensor.wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
                 subtensor (:obj:`bittensor.Subtensor`, `required`):
@@ -55,7 +52,6 @@ class Executor:
                 dendrite (:obj:`bittensor.Dendrite`, `required`):
                     Bittensor dendrite client.
         """
-        self.config = config
         self.wallet = wallet
         self.subtensor = subtensor
         self.metagraph = metagraph

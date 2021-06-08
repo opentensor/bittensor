@@ -36,7 +36,13 @@ logger = logger.opt(colors=True)
 class Axon( bittensor.grpc.BittensorServicer ):
     r""" Services Forward and Backward requests from other neurons.
     """
-    def __init__( self, config: 'bittensor.Config', wallet: 'bittensor.wallet', server: 'grpc._Server' ):
+    def __init__( 
+        self, 
+        wallet: 'bittensor.wallet',
+        server: 'grpc._Server',
+        forward_callback: 'Callable' = None,
+        backward_callback: 'Callable' = None,
+    ):
         r""" Initializes a new Axon tensor processing endpoint.
             
             Args:
@@ -46,18 +52,15 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     bittensor wallet with hotkey and coldkeypub.
                 server (:obj:`grpc._Server`, `required`):
                     Grpc server endpoint.
+                forward_callback (:obj:`callable`, `optional`):
+                    function which is called on forward requests.
+                backward_callback (:obj:`callable`, `optional`):
+                    function which is called on backward requests.
         """
-        self.config = config
         self.wallet = wallet
-        self._server = server
-         
-        self._forward_callback = None
-        self._backward_callback = None
-
-        bittensor.grpc.add_BittensorServicer_to_server( self, self._server )
-        self._server.add_insecure_port('[::]:' + str( self.config.local_port ))
-
-        # Stats: Memory of network statistics, QPS and bytes in and out for instance.
+        self.server = server
+        self.forward_callback = forward_callback
+        self.backward_callback = backward_callback 
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),

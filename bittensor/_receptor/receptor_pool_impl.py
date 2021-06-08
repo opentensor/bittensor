@@ -31,13 +31,13 @@ class ReceptorPool ( torch.nn.Module ):
 
     def __init__(
         self, 
-        config: 'bittensor.Config',
         wallet: 'bittensor.Wallet',
-        thread_pool: 'ThreadPoolExecutor'
+        thread_pool: 'ThreadPoolExecutor',
+        max_active_receptors: int
     ):
-        self.config = config
         self.wallet = wallet
         self.thread_pool = thread_pool
+        self.max_active_receptors = max_active_receptors
         self.receptors = {}
 
     def forward(
@@ -157,7 +157,7 @@ class ReceptorPool ( torch.nn.Module ):
         """
 
         # ---- Finally: Kill receptors over max allowed ----
-        while len(self.receptors) > self.config.max_active_receptors:
+        while len(self.receptors) > self.max_active_receptors:
             min_receptor_qps = math.inf
             receptor_to_remove = None
             for next_receptor in self.receptors.values():
@@ -185,7 +185,6 @@ class ReceptorPool ( torch.nn.Module ):
                 logger.debug('<white>Update receptor for endpoint:</white> {}', endpoint )
                 receptor = bittensor.receptor (
                     endpoint = endpoint, 
-                    config = self.config.receptor, 
                     wallet = self.wallet
                 )            
                 self.receptors[ receptor.endpoint.hotkey ] = receptor
@@ -195,7 +194,6 @@ class ReceptorPool ( torch.nn.Module ):
             logger.debug('<white>Create receptor for endpoint:</white> {}', endpoint )
             receptor = bittensor.receptor (
                     endpoint = endpoint, 
-                    config = self.config, 
                     wallet = self.wallet
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor

@@ -32,7 +32,6 @@ class CLI:
                 executor (:obj:`bittensor.executor.executor`, `required`):
                     bittensor executor object, used to execute cli options.
         """
-        self.config = config
         self.executor = executor
 
     def run_command(self):

@@ -14,16 +14,9 @@ def test_create_wallet():
     assert os.path.isfile(the_wallet.hotkeyfile)
     assert os.path.isfile(the_wallet.coldkeypubfile)
 
-def test_wallet_config():
-    config = bittensor.wallet.config()
-    config.wallet.name
-    config.wallet.path
-    config.wallet.hotkey
-
 def test_wallet_keypair():  
     the_wallet.hotkey
     the_wallet.coldkeypub
 
 test_create_wallet()
-test_wallet_config()
 test_wallet_keypair()

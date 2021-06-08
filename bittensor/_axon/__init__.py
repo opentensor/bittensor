@@ -28,17 +28,15 @@ class axon:
 
     def __new__(
             cls, 
-            config: 'bittensor.Config' = None,
             wallet: 'bittensor.Wallet' = None,
             forward_callback: 'Callable' = None,
             backward_callback: 'Callable' = None,
             thread_pool: 'futures.ThreadPoolExecutor' = None,
             server: 'grpc._Server' = None,
-            local_port: int = None,
-            local_ip: str =  None,
-            max_workers: int = None, 
-            maximum_concurrent_rpcs: int = None,
-            namespace: str = ''
+            local_port: int = 8091,
+            local_ip: str = '127.0.0.1',
+            max_workers: int = 10, 
+            maximum_concurrent_rpcs: int = 400,
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
@@ -60,86 +58,23 @@ class axon:
                     Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
                 maximum_concurrent_rpcs (:type:`int`, `optional`):
                     Maximum allowed concurrently processed RPCs.
-                config (:obj:`bittensor.Config`, `optional`): 
-                    bittensor.axon.config()
-                namespace (:obj:`str, `optional`): 
-                    config namespace.
-        """        
-        if config == None:
-            config = bittensor.config.cut_namespace( axon.config( namespace ), namespace ).axon
-        config.local_port = local_port if local_port != None else config.local_port
-        config.local_ip = local_ip if local_ip != None else config.local_ip
-        config.max_workers = max_workers if max_workers != None else config.max_workers
-        config.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.maximum_concurrent_rpcs
-        config = copy.deepcopy( config )
-
-        # Wallet: Holds you hotkey keypair and coldkey pub, which can be used to sign messages 
-        # and subscribe to the chain.
+        """       
+        assert local_port > 1024 and local_port < 65535, 'local_port must be in range [1024, 65535]' 
         if wallet == None:
-            wallet = bittensor.wallet( config = config.wallet )
-        config.wallet = copy.deepcopy(wallet.config)
-
-        # Create threadpool if non-existent.
-        # Pass this to the grpc server.
+            wallet = bittensor.wallet()
         if thread_pool == None:
-            thread_pool = futures.ThreadPoolExecutor( max_workers = config.max_workers )
-
-        # GRPC Server object. 
+            thread_pool = futures.ThreadPoolExecutor( max_workers = max_workers )
         if server == None:
-            server = grpc.server( thread_pool, maximum_concurrent_rpcs = config.maximum_concurrent_rpcs )
-
-        # Create instance.
-        axon.check_config( config )
+            server = grpc.server( thread_pool, maximum_concurrent_rpcs = maximum_concurrent_rpcs )
         axon_instance = axon_impl.Axon( 
-            config = config, 
             wallet = wallet, 
-            server = server 
+            server = server,
+            local_ip = local_ip,
+            local_port = local_port,
+            forward_callback = forward_callback,
+            backward_callback = backward_callback
         )
-
-        # Attach callbacks.
-        if forward_callback != None:
-            axon_instance.attach_forward_callback( forward_callback )
-        if backward_callback != None:
-            axon_instance.attach_backward_callback( backward_callback )
-
-        return axon_instance
-
-    @staticmethod   
-    def config(namespace: str = '') -> 'bittensor.Config':
-        parser = argparse.ArgumentParser(); 
-        axon.add_args(parser = parser, namespace = namespace) 
-        config = bittensor.config( parser ); 
-        return bittensor.config.cut_namespace( config, namespace )
-
-    @staticmethod   
-    def check_config( config: 'bittensor.Config', namespace: str = ''):
-        bittensor.config.cut_namespace( config, namespace )
-        assert config.local_port > 1024 and config.local_port < 65535, 'axon.local_port must be in range [1024, 65535]'
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser, namespace: str = ''):
-        r""" Adds this axon's command line arguments to the passed parser.
-            Args:
-                parser (:obj:`argparse.ArgumentParser`, `required`): 
-                    parser argument to append args to.
-        """
-        if namespace != '':
-            namespace = namespace + 'axon.'
-        else:
-            namespace = 'axon.'
-        bittensor.wallet.add_args(parser, namespace)
-        parser.add_argument('--' + namespace + 'local_port', default=8091, type=int, 
-            help='''The port this axon endpoint is served on. i.e. 8091''')
-        parser.add_argument('--' + namespace + 'local_ip', default='127.0.0.1', type=str, 
-            help='''The local ip this axon binds to. ie. 0.0.0.0''')
-        parser.add_argument('--' + namespace + 'max_workers', default=10, type=int, 
-            help='''The maximum number connection handler threads working simultaneously on this endpoint. 
-                    The grpc server distributes new worker threads to service requests up to this number.''')
-        parser.add_argument('--' + namespace + 'maximum_concurrent_rpcs', default=400, type=int, 
-            help='''Maximum number of allowed active connections''')  
-
-    @staticmethod   
-    def print_help(namespace: str = ''):
-        parser = argparse.ArgumentParser(); 
-        axon.add_args( parser, namespace ) 
-        parser.print_help()          
+        bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
+        full_address = str( local_ip ) + ":" + str( local_port )
+        server.add_insecure_port( full_address )
+        return axon_instance 

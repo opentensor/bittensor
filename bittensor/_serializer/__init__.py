@@ -41,7 +41,7 @@ class serializer:
         """ Raised if serialization/deserialization is not implemented for the passed object type """
         pass
     
-    def __new__(cls, serialzer_type: bittensor.proto.Serializer ) -> 'bittensor.Serializer':
+    def __new__(cls, serialzer_type: bittensor.proto.Serializer = bittensor.proto.Serializer.MSGPACK ) -> 'bittensor.Serializer':
         r"""Returns the correct serializer object for the passed Serializer enum. 
 
             Args:

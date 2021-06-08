@@ -48,7 +48,6 @@ import bittensor._proto.bittensor_pb2_grpc as grpc
 from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon
 from bittensor._wallet import wallet as wallet
-from bittensor._config import config as config
 from bittensor._receptor import receptor as receptor
 from bittensor._endpoint import endpoint as endpoint
 from bittensor._dendrite import dendrite as dendrite
@@ -64,7 +63,6 @@ from bittensor._receptor import receptor_pool as receptor_pool
 from bittensor._cli.cli_impl import CLI as CLI
 from bittensor._axon.axon_impl import Axon as Axon
 from bittensor._wallet.wallet_impl import Wallet as Wallet
-from bittensor._config.config_impl import Config as Config
 from bittensor._receptor.receptor_impl import Receptor as Receptor
 from bittensor._endpoint.endpoint_impl import Endpoint as Endpoint
 from bittensor._executor.executor_impl import Executor as Executor

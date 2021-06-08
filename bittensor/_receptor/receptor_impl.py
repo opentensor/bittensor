@@ -48,17 +48,13 @@ class Receptor(nn.Module):
 
     def __init__(
             self, 
-            config: 'bittensor.Config', 
             wallet: 'bittensor.wallet',
             endpoint: 'bittensor.Endpoint', 
             channel: 'grpc._Channel',
-            stub: 'bittensor.grpc.BittensorStub'
-            
+            stub: 'bittensor.grpc.BittensorStub',
         ):
         r""" Initializes a receptor grpc connection.
             Args:
-                config (:obj:`bittensor.Config`, `required`): 
-                    receptor.Receptor.config()
                 wallet (:obj:`bittensor.Wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
                 endpoint (:obj:`bittensor.Endpoint`, `required`):
@@ -69,7 +65,6 @@ class Receptor(nn.Module):
                     bittensor protocol stub created from channel.
         """
         super().__init__()
-        self.config = config
         self.wallet = wallet # Keypair information
         self.endpoint = endpoint # Endpoint information.
         self.channel = channel
@@ -86,7 +81,6 @@ class Receptor(nn.Module):
             forward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.01),
             backward_bytes_out = stat_utils.timed_rolling_avg(0.0, 0.01),
             backward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.01),
-
             codes = {
                 bittensor.proto.ReturnCode.Success: 0,
                 bittensor.proto.ReturnCode.Timeout: 0,
@@ -120,7 +114,8 @@ class Receptor(nn.Module):
     def forward (
         self, 
         inputs: torch.Tensor, 
-        modality: bittensor.proto.Modality
+        modality: bittensor.proto.Modality,
+        timeout: int = 3
     ) -> Tuple[torch.Tensor, int]:
         r""" Torch.nn.Module forward call: Triggers the grpc call to the remote endpoint.
             Call returns the output tensor and a bittensor.proto.ReturnCode.
@@ -139,58 +134,23 @@ class Receptor(nn.Module):
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
                     Return code associated with forward call.
         """
-        # ---- On Backoff: We dont make an RPC and return zeros instead ----  
-        if self.config.do_backoff and self.backoff >= 1:
-            outputs = nill_response_for(inputs)
-            code = bittensor.proto.ReturnCode.Backoff
-
-        # ---- On Not-backoff: We make the Forward RPC ---- 
-        else:
-            try:
-                # Make and time the query.
-                outputs, code = self._call_forward( inputs, modality )
-
-            # ---- On unknown failure: we return zeros and unknown code ---- 
-            except Exception as e:
-                logger.error('Uncaught error in forward call with error {}, {}'.format( e, traceback.format_exc()))
-                outputs = nill_response_for(inputs)
-                code = bittensor.proto.ReturnCode.UnknownException
-
-        # ---- On Success: set zero backoff and halve the next backoff ---- 
+        outputs, code = self._call_forward( 
+            inputs = inputs, 
+            modality = modality, 
+            timeout = timeout 
+        )
         try:
             self.stats.codes[code] += 1
         except Exception: 
             pass
-        if code == bittensor.proto.ReturnCode.Success:
-            self.backoff = 0
-            self.next_backoff = max(1, self.next_backoff / 2)
-
-        elif code == bittensor.proto.ReturnCode.EmptyRequest:
-            # This was a NO-OP
-            pass
-            
-        # ---- On Backoff: Lower backoff value by 1 ---- 
-        elif code == bittensor.proto.ReturnCode.Backoff:
-            # We slowly lower the backoff count until 0.
-            self.backoff -= 1
-
-        # ---- On failure: Increase backoff and double next_backoff towards max value ---- 
-        # Catch all non-success / non-backoff codes and trigger backoff increase. This catches
-        # serialization errors, timeouts, unavailable endpoints etc. Note, it can 
-        # be triggered by invalid requests on this side of the query.
-        else:
-            # ---- Do backoff: incease backoff until max_backoff is reached ---- 
-            self.backoff = self.next_backoff
-            self.next_backoff = min(self.config.max_backoff, self.next_backoff * 2)
-
-        # ---- Finally return ---- 
         return outputs, code
 
     def backward(
             self, 
             inputs_x: torch.Tensor, 
             grads_dy: torch.Tensor, 
-            modality: bittensor.proto.Modality
+            modality: bittensor.proto.Modality,
+            timeout: int = 3
         ) -> Tuple[ torch.Tensor, int ]:
         r""" Backward call: Triggers the grpc Backward call to the associated endpoint.
 
@@ -204,6 +164,9 @@ class Receptor(nn.Module):
                 modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
+                timeout (int):
+                    request timeout.
+
             Returns:
                 output (:obj:`Tuple[torch.FloatTensor, torch.LongTensor]`, `required`):
                     Result tuple from the forward call.
@@ -211,25 +174,23 @@ class Receptor(nn.Module):
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
                     Return code associated with backward call.
         """
-        # ---- Make the query ----
+        outputs, code = self._call_backward( 
+            inputs = inputs_x, 
+            grads = grads_dy, 
+            modality = modality,
+            timeout = timeout
+        )
         try:
-            outputs, code = self._call_backward( 
-                inputs = inputs_x, 
-                grads = grads_dy, 
-                modality = modality
-            )
-        except Exception as e:
-            outputs = nill_response_for( inputs_x )
-            code = bittensor.proto.ReturnCode.UnknownException
-
-        # NOTE (const): Stats/ backoff are not updated for backward calls ---
-        # ---- Return outputs and code ---- 
+            self.stats.codes[code] += 1
+        except Exception: 
+            pass
         return outputs, code
 
     def _call_forward(
         self, 
         inputs: torch.Tensor, 
-        modality: bittensor.proto.Modality
+        modality: bittensor.proto.Modality,
+        timeout: int
     ) -> Tuple[torch.Tensor, int]:  
         r""" Internal autograd-friendly Forward RPC call to a remote endpoint (calls the Forward method on an Axon terminal.)
 
@@ -239,6 +200,9 @@ class Receptor(nn.Module):
 
                 modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality of type Enum: [TEXT, IMAGE, TENSOR]
+
+                timeout (int):
+                    request timeout.
 
             Returns:
                 output (:obj:`Tuple[torch.FloatTensor`, torch.LongTensor]`, `optional`):
@@ -276,9 +240,9 @@ class Receptor(nn.Module):
                 self.stats.forward_qps.update(1)
                 self.stats.forward_bytes_out.update(sys.getsizeof(request))
                 logger.debug('<white>Dendrite</white> <green>Forward Request</green> ---> <white>to</white>:{}, <white>inputs</white>:{}, <white>mode</white>:{}', self.endpoint.ip_str(), inputs.shape, modality)
-                response = self.stub.Forward(request, timeout=self.config.timeout)
-                self.forward_bytes_in.update(sys.getsizeof(response))
-                self.forward_elapsed_time.update((time.time() - start_time))
+                response = self.stub.Forward(request, timeout = timeout)
+                self.stats.forward_bytes_in.update(sys.getsizeof(response))
+                self.stats.forward_elapsed_time.update((time.time() - start_time))
 
                 # Get message
                 try:
@@ -361,7 +325,8 @@ class Receptor(nn.Module):
             self,
             inputs_x: torch.Tensor, 
             grads_dy: torch.FloatTensor, 
-            modality: bittensor.proto.Modality
+            modality: bittensor.proto.Modality,
+            timeout: int
         ) -> Tuple[torch.Tensor, int]:
         """ Checks and makes RPC Forward call to a remote neuron (calls the Forward method on an Axon terminal of the endpoint)
 
@@ -371,6 +336,9 @@ class Receptor(nn.Module):
   
                 grads_dy (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
                     Gradients of this function's outputs computed during the loss.backward() call.
+                
+                timeout (int):
+                    request timeout.
 
             Returns:
                 outputs (:obj:`Tuple[torch.FloatTensor`, torch.LongTensor]`, `optional`):
@@ -382,10 +350,6 @@ class Receptor(nn.Module):
         """
         # ---- Zeros response in the case of failure ----
         zeros = nill_response_for( inputs_x )
-
-        # ---- Check if we are passing gradients ----
-        if not self.config.pass_gradients:
-            return zeros, bittensor.proto.ReturnCode.Success
  
         # ---- Check inputs size ----
         if torch.numel( inputs_x ) == 0:
@@ -413,7 +377,7 @@ class Receptor(nn.Module):
                 tensors = [serialized_inputs, serialized_grads]
             )
             logger.debug('-> Backward rpc to: {}', self.endpoint)
-            response = self.stub.Backward(request, timeout=self.config.backward_timeout)
+            response = self.stub.Backward(request, timeout = timeout)
 
         # ---- Catch GRPC Errors ----
         except grpc.RpcError as e:
