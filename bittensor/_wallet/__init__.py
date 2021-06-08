@@ -44,10 +44,10 @@ class wallet:
             path = path 
         )
 
-    def add_args( config: Munch, namespace:str = 'wallet'):
-        namespace_obj = Munch()
-        config[namespace] = namespace_obj
-        namespace += '.'
+    def extend_config( config: Munch, namespace:str = 'wallet'):
+        wallet_config = Munch()
+        config[namespace] = wallet_config
+        if namespace != '': namespace += '.'
         parser = argparse.ArgumentParser()
         parser.add_argument('--' + namespace + 'name', dest = 'name', required=False, default='default', 
                                 help='''The name of the wallet to unlock for running bittensor''')
@@ -55,5 +55,5 @@ class wallet:
                                 help='''The name of the wallet's-hotkey used to run the miner.''')
         parser.add_argument('--' + namespace + 'path', dest = 'path', required=False, default='~/.bittensor/wallets/', 
                                 help='''The path to your bittensor wallets''')
-        parser.parse_known_args( namespace = namespace_obj )
+        parser.parse_known_args( namespace = wallet_config )
 
