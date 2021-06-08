@@ -25,15 +25,15 @@ class wallet:
     def __new__(
             cls, 
             name: str = 'default',
-            path: str = 'default',
-            hotkey: str = '~/.bittensor/wallets/',
+            path: str = '~/.bittensor/wallets/',
+            hotkey: str = 'default',
         ) -> 'bittensor.Wallet':
         r""" Init bittensor wallet object containing a hot and coldkey.
 
             Args:
-                name (required=False, default='default):
+                name (required=False, default='default'):
                     The name of the wallet to unlock for running bittensor
-                hotkey (required=False, default='default):
+                hotkey (required=False, default='default'):
                     The name of hotkey used to running the miner.
                 path (required=False, default='~/.bittensor/wallets/'):
                     The path to your bittensor wallets

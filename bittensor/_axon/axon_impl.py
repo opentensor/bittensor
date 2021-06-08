@@ -139,8 +139,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 servicer (:object:`object`, `required`): 
                     object with callbacks servicer.forward and servicer.backward
         """
-        self._forward_callback = self.attach_forward_callback( servicer.forward )
-        self._backward_callback = self.attach_backward_callback( servicer.backward )
+        self.forward_callback = self.attach_forward_callback( servicer.forward )
+        self.backward_callback = self.attach_backward_callback( servicer.backward )
 
     def attach_forward_callback(self, forward_callback: Callable[ [str, torch.Tensor, int], torch.Tensor ] ):
         """ Assigns the forward_callback.
@@ -150,7 +150,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     Forward function called on recieving a forward request.
         """
         # TODO(const): type checking.
-        self._forward_callback = forward_callback
+        self.forward_callback = forward_callback
 
     def attach_backward_callback(self, backward_callback: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ] ):
         """ Assigns the backward_callback call to this neuron.
@@ -160,7 +160,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                      Backward callback called on recieving a backward request.
         """
         # TODO(const): type checking.
-        self._backward_callback = backward_callback
+        self.backward_callback = backward_callback
 
     def _call_forward(
             self, 
@@ -188,13 +188,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         """
         # Check forward has been subscribed.
-        if self._forward_callback == None:
+        if self.forward_callback == None:
             message = "Forward callback is not yet subscribed on this axon."
             return None, bittensor.proto.ReturnCode.NotImplemented, message
         
         # Make forward call.
         try:
-            response_tensor = self._forward_callback( public_key, inputs_x, modality )
+            response_tensor = self.forward_callback( public_key, inputs_x, modality )
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
@@ -234,13 +234,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     message associated with forward call, potentially error, or 'success'.
         """
         # Check backward has been subscribed.
-        if self._backward_callback == None:
+        if self.backward_callback == None:
             message = "Backward callback is not yet subscribed on this axon."
             return None, bittensor.proto.ReturnCode.NotImplemented, message
         
         # Make backward call.
         try:
-            response_tensor = self._backward_callback( public_key, inputs_x, grads_dy, modality)
+            response_tensor = self.backward_callback( public_key, inputs_x, grads_dy, modality)
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
@@ -464,8 +464,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
     def _serve(self):
         try:
-            logger.success('Axon is serving on: {}:{}', self.config.local_ip, self.config.local_port)
-            self._server.start()
+            self.server.start()
         except (KeyboardInterrupt, SystemExit):
             self.stop()
         except Exception as e:
@@ -476,13 +475,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         # TODO(const): should allow more than one services and these can run in different processes.
         # Destroy and create a new serving thread.
-        if self._forward_callback == None or self._backward_callback == None:
-            message = "Forward and Backward callbacks must be subscribed on this axon before it starts. Got Forward = {} and Backward = {}".format(self._forward_callback, self._backward_callback)
+        if self.forward_callback == None or self.backward_callback == None:
+            message = "Forward and Backward callbacks must be subscribed on this axon before it starts. Got Forward = {} and Backward = {}".format(self.forward_callback, self.backward_callback)
             logger.error( message )
             raise RuntimeError( message )
 
-        if self._server != None:
-            self._server.stop( 0 )  
+        if self.server != None:
+            self.server.stop( 0 )  
 
         self._thread = threading.Thread( target = self._serve, daemon = True )
         self._thread.start()
@@ -490,9 +489,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
     def stop(self):
         r""" Stop the axon grpc server.
         """
-        if self._server != None:
-            self._server.stop( 0 )
-            logger.success('Axon has stopped serving on: {}:{}', self.config.local_ip, self.config.local_port)
+        if self.server != None:
+            self.server.stop( 0 )
 
 
 

@@ -69,8 +69,6 @@ class axon:
         axon_instance = axon_impl.Axon( 
             wallet = wallet, 
             server = server,
-            local_ip = local_ip,
-            local_port = local_port,
             forward_callback = forward_callback,
             backward_callback = backward_callback
         )
