@@ -31,7 +31,6 @@ def test_create_coldkey():
     assert not os.path.isfile(executor.wallet.coldkeypubfile) 
 
 def test_regenerate_coldkey():
-    executor.wallet.config.wallet.coldkey = 'pytest3'
     executor.regenerate_coldkey(
         mnemonic = ["cabin", "thing", "arch", "canvas", "game", "park", "motion", "snack", "advice", "arch", "parade", "climb"],
         use_password = False,
@@ -44,7 +43,6 @@ def test_regenerate_coldkey():
     assert not os.path.isfile(executor.wallet.coldkeypubfile) 
 
 def test_regenerate_hotkey():
-    executor.wallet.config.wallet.coldkey = 'pytest4'
     executor.regenerate_hotkey(
         mnemonic = ["cabin", "thing", "arch", "canvas", "game", "park", "motion", "snack", "advice", "arch", "parade", "climb"],
         use_password = False,
