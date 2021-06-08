@@ -122,48 +122,50 @@ class GPT2LMNucleus(torch.nn.Module):
         self.to(self.device)
 
     @staticmethod   
-    def config() -> 'bittensor.Config':
+    def config() -> SimpleNamespace:
         parser = argparse.ArgumentParser(); 
         GPT2LMNucleus.add_args(parser) 
         config = bittensor.config( parser ); 
         return config
 
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser):    
+    def add_args( config: 'SimpleNamespace' ):    
         r""" Add custom params to the parser.
         """
-        parser.add_argument('--nucleus.n_head', default=1, type=int, 
-                            help='Number of attention heads for each attention layer in the Transformer encoder.')
-        parser.add_argument('--nucleus.n_layer', default=2, type=int, 
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--n_head', default=1, type=int, 
+                            help='Number of attention heads for each attention layer in the Transformer encoder.', namesp)
+        parser.add_argument('--n_layer', default=2, type=int, 
                             help='Number of hidden layers in the Transformer encoder.')
-        parser.add_argument('--nucleus.n_inner', default=8, type=int, 
+        parser.add_argument('--n_inner', default=8, type=int, 
                             help='The dimensionality of the inner feed-forward layers. :obj:`None` will set it to 4 times n_embd')
-        parser.add_argument('--nucleus.activation_function', default='gelu_new', type=str, 
+        parser.add_argument('--activation_function', default='gelu_new', type=str, 
                             help='Activation function, to be selected in the list :obj:`["relu", "silu", "gelu", "tanh", "gelu_new"]')
-        parser.add_argument('--nucleus.resid_pdrop', default=0.1, type=float, 
+        parser.add_argument('--resid_pdrop', default=0.1, type=float, 
                             help='GPT residual dropout probabilit.')
-        parser.add_argument('--nucleus.embd_pdrop', default=0.1, type=float, 
+        parser.add_argument('--embd_pdrop', default=0.1, type=float, 
                             help='GPT embedding dropout probability.')
-        parser.add_argument('--nucleus.attn_pdrop', default=0.1, type=float, 
+        parser.add_argument('--attn_pdrop', default=0.1, type=float, 
                             help='GPT attention dropout probability.')
-        parser.add_argument('--nucleus.layer_norm_epsilon', default=1e-05, type=float, 
+        parser.add_argument('--layer_norm_epsilon', default=1e-05, type=float, 
                             help='GPT the epsilon to use in the layer normalization layers')
-        parser.add_argument('--nucleus.summary_type', default='cls_index', type=str, 
+        parser.add_argument('--summary_type', default='cls_index', type=str, 
                             help='Supply a Tensor of classification token position (like GPT/GPT-2).')
-        parser.add_argument('--nucleus.initializer_range', default=0.02, type=float, 
+        parser.add_argument('--initializer_range', default=0.02, type=float, 
                             help='The standard deviation of the truncated_normal_initializer for initializing all weight matrices.')
-        parser.add_argument('--nucleus.summary_use_proj', default=True, type=bool, 
+        parser.add_argument('--summary_use_proj', default=True, type=bool, 
                             help='Whether or not to add a projection after the vector extraction.')
-        parser.add_argument('--nucleus.summary_activation', type=str, 
+        parser.add_argument('--summary_activation', type=str, 
                             help='Pass "tanh" for a tanh activation to the output, any other value will result in no activation.')
-        parser.add_argument('--nucleus.summary_proj_to_labels', default=True, type=bool, 
+        parser.add_argument('--summary_proj_to_labels', default=True, type=bool, 
                             help='Whether the projection outputs should have config.num_labels or config.hidden_size classes.')
-        parser.add_argument('--nucleus.summary_first_dropout', default=0.1, type=float, 
+        parser.add_argument('--summary_first_dropout', default=0.1, type=float, 
                             help='The dropout ratio to be used after the projection and activation.')
-        parser.add_argument('--nucleus.n_block_filter', default=100, type=int, 
+        parser.add_argument('--n_block_filter', default=100, type=int, 
                             help='Stale neurons are filtered after this many blocks.')
-        parser.add_argument('--nucleus.gradient_checkpointing', default=True, type=bool, 
+        parser.add_argument('--gradient_checkpointing', default=True, type=bool, 
                             help='Stale neurons are filtered after this many blocks.')
+        return parser.parse_known_args( namespace = namespace )
 
     @staticmethod
     def check_config(config: 'bittensor.Config'):

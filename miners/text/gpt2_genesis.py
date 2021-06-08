@@ -28,14 +28,20 @@ To run with a config file:
 """
 
 import argparse
+from bittensor._dataloader import dataloader
+from concurrent.futures import thread
 import os
 import copy
 import math
 from re import L
+import traceback
+from tensorboard import data
 import torch
+from torch.autograd import backward
 import torch.nn.functional as F
 import bittensor
 
+from qqdm import qqdm, format_str
 from termcolor import colored
 from transformers import AdamW
 from types import SimpleNamespace
@@ -50,31 +56,55 @@ from miners import miner
 from loguru import logger
 logger = logger.opt(colors=True)
 
-class Miner( miner.BasicMiner ):
+class Miner:
+    def __init__( self, hparams ):
+        
+        self.wallet = bittensor.wallet (
+            name = hparams.wallet.name,
+            path = hparams.wallet.path,
+            hotkey = hparams.wallet.hotkey
+        )
 
-    def __init__(
-        self, 
-        config: 'bittensor.Config',
-        router: 'bittensor.Router',
-        nucleus: 'bittensor.Nucleus',
-        wallet:  'bittensor.Wallet',
-        subtensor: 'bittensor.Subtensor',
-        metagraph: 'bittensor.Metagraph',
-        axon: 'bittensor.Axon',
-        dendrite: 'bittensor.Dendrite',
-    ):
-        self.config = config
-        self.router = router
-        self.nucleus = nucleus
-        self.wallet = wallet
-        self.subtensor = subtensor
-        self.metagraph = metagraph
-        self.axon = axon
-        self.dendrite = dendrite
+        self.subtensor = bittensor.subtensor (
+            network = hparams.subtensor.network
+        )
+
+        self.metagraph = bittensor.metagraph ( 
+            subtensor = self.subtensor
+        )
+
+        self.axon = bittensor.axon ( 
+            wallet = self.wallet,
+            local_ip = hparams.local_ip,
+            local_port = hparams.local_port,
+            forward_callback = self.forward,
+            backward_callback = self.backward,
+        )
+
+        self.dendrite = bittensor.dendrite ( 
+            wallet = self.wallet,
+            max_active_receptors = hparams.dendrite.max_active_receptors,
+            max_worker_threads = hparams.dendrite.max_worker_threads
+        )
+
+        self.dataset = bittensor.dataloader ( 
+            batch_size = self.config.miner.batch_size_train, 
+            block_size = self.nucleus.get_block_size(),
+            max_corpus_size = hparams.dataloader.max_corpus_size,
+        )
+
+        self.router = SGMOERouter ( 
+            query_dim = bittensor.__network_dim__ 
+        )
+
+        self.nucleus = GPT2Nucleus ( 
+            routing_callback = self.route 
+        )
+
+        self.optimizer = self.configure_optimizers()
+
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.router.device = self.device
-        self.nucleus.device = self.device
         self.router.to( self.device )
         self.nucleus.to( self.device )
         self.nucleus.attach( self ) # Assign the routing function.
@@ -90,8 +120,14 @@ class Miner( miner.BasicMiner ):
 
         # ---- Dataset ----
         # The Genesis Dataset:
-        self.dataset = bittensor.dataloader( batch_size = self.config.miner.batch_size_train, block_size = self.nucleus.get_block_size() )
+        self.dataset = bittensor.dataloader( 
+            batch_size = self.config.miner.batch_size_train, 
+            block_size = self.nucleus.get_block_size(),
+            max_corpus_size = hparams.dataloader.max_corpus_size,
+        )
         self.tokens = 0
+
+        self.dataset.dataloader( self.config.miner.epoch_length )
 
     # --- Run Miner ----
     def run( self ):
@@ -150,6 +186,27 @@ class Miner( miner.BasicMiner ):
                         continue
                     else:
                         break
+
+    # ---- Epoch -----
+    def run_epoch(self):
+        epoch_examples = self.dataset.dataloader( self.hparams.epoch_length )
+
+        # QQDM display.ss
+        progress_bar = qqdm(enumerate(training_batches), total=len(training_batches), desc=format_str('blue', f'Epoch Progress'))
+        for iteration, (inputs) in progress_bar:
+            # ---- Forward / Backward ----
+            prev_row_weights = self.get_row_weights().tolist()
+            output = self.train ( batch = { 'inputs': inputs } )
+            next_row_weights = self.get_row_weights().tolist()
+            total_epoch_loss += output.local_target_loss.item()
+
+            # ---- Update training state ----
+            self.qqdm_logs( progress_bar, iteration = iteration, output = output, prev_row_weights = prev_row_weights, next_row_weights = next_row_weights )
+            self.global_step += 1
+
+        self.epoch_loss = total_epoch_loss / (iteration + 1) 
+        self.epoch += 1
+
 
     # ---- Axon Forward call ----
     def forward ( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
@@ -414,15 +471,6 @@ class Miner( miner.BasicMiner ):
         """
         return F.normalize(self.row_weights, p = 1, dim = 0)
 
-    # ---- Get Batches ----
-    def get_epoch_batches( self, epoch:int ) -> List[dict]:
-        r""" Returns training batches for each epoch.
-            Returns:
-                batches ( List[dict], shape=(self.config.miner.epoch_length) ): 
-                    List of batches as dictionary inputs.
-        """
-        return self.dataset.dataloader( self.config.miner.epoch_length )
-
     def configure_optimizers( self, previous_optimizer = None):
         """
         This long function is unfortunately doing something very simple and is being very defensive:
@@ -553,79 +601,23 @@ class miner:
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser, namespace: str = ''):
-        if namespace != '':
-            namespace = namespace + 'miner.'
-        else:
-            namespace = 'miner.'
-        parser.add_argument(
-            '--' + namespace + 'learning_rate', 
-            default=3e-2, 
-            type=float, 
-            help='Training initial learning rate.'
-        )
-        parser.add_argument(
-            '--' + namespace + 'weight_decay', 
-            default=0.25, 
-            type=float, 
-            help='nucleus parameter weight decay.'
-        )
-        parser.add_argument(
-            '--' + namespace + 'lr_decay',
-            default=True,
-            type=bool,
-            help='learning rate decay params: linear warmup followed by cosine decay to 10%% of original.'
-        )
-        parser.add_argument(
-            '--' + namespace + 'warmup_tokens',
-            default=375e6,
-            type=float,
-            help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)'
-        )
-        parser.add_argument(
-            '--' + namespace + 'final_tokens',
-            default=260e9,
-            type=float,
-            help='At what point we reach 10%% of original LR'
-        )
-        parser.add_argument(
-            '--' + namespace + 'clip_gradients',
-            default=1.0,
-            type=float,
-            help='Implement gradient clipping to avoid exploding loss on smaller architectures.'
-        )
-        parser.add_argument(
-            '--' + namespace + 'n_epochs', 
-            default=-1, 
-            type=int, 
-            help='Number of training epochs.'
-        )
-        parser.add_argument(
-            '--' + namespace + 'epoch_length', 
-            default=500, 
-            type=int, 
-            help='Iterations of training per epoch'
-        )
-        parser.add_argument(
-            '--' + namespace + 'batch_size_train', 
-            default=2, 
-            type=int, 
-            help='Training batch size.'
-        )
-        parser.add_argument(
-            '--' + namespace + 'name', 
-            default='gpt2_genesis', 
-            type=str, 
-            help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name '
-        )
-        parser.add_argument('--' + namespace + 'debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
-        parser.add_argument('--' + namespace + 'config', type=str, help='If set, arguments are overridden by passed file.')
-        parser.add_argument('--' + namespace + 'modality', default=0, type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
-        parser.add_argument('--' + namespace + 'use_upnpc', default=False, dest='use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''')
-        parser.add_argument('--' + namespace + 'record_log', default=False, dest='record_log', action='store_true', help='''Turns on logging to file.''')   
-        parser.add_argument('--' + namespace + 'root_dir', default='~/.bittensor/miners/', type=str, help='Root path to load and save data associated with each miner')
-        parser.add_argument('--' + namespace + 'use_tensorboard', default=True, dest='use_tensorboard', action='store_true', help='Turn on bittensor logging to tensorboard')
-
-        miner.add_args( parser )
+        parser.add_argument('--learning_rate', default=3e-2, type=float, help='Training initial learning rate.')
+        parser.add_argument('--weight_decay', default=0.25, type=float, help='nucleus parameter weight decay.')
+        parser.add_argument('--lr_decay', default=True, type=bool, help='learning rate decay params: linear warmup followed by cosine decay to 10%% of original.')
+        parser.add_argument('--warmup_tokens', default=375e6, type=float, help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)')
+        parser.add_argument('--final_tokens', default=260e9, type=float, help='At what point we reach 10%% of original LR')
+        parser.add_argument('--clip_gradients', default=1.0, type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.')
+        parser.add_argument('--n_epochs', default=-1, type=int, help='Number of training epochs.')
+        parser.add_argument('--epoch_length', default=500, type=int, help='Iterations of training per epoch')
+        parser.add_argument('--batch_size_train', default=2, type=int, help='Training batch size.')
+        parser.add_argument('--name', default='gpt2_genesis', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
+        parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
+        parser.add_argument('--config', type=str, help='If set, arguments are overridden by passed file.')
+        parser.add_argument('--modality', default=0, type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
+        parser.add_argument('--use_upnpc', default=False, dest='use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''')
+        parser.add_argument('--record_log', default=False, dest='record_log', action='store_true', help='''Turns on logging to file.''')   
+        parser.add_argument('--root_dir', default='~/.bittensor/miners/', type=str, help='Root path to load and save data associated with each miner')
+        parser.add_argument('--use_tensorboard', default=True, dest='use_tensorboard', action='store_true', help='Turn on bittensor logging to tensorboard')
         bittensor.dataloader.add_args( parser )
         GPT2Nucleus.add_args( parser )
         SGMOERouter.add_args( parser )
