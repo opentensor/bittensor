@@ -158,7 +158,7 @@ class GenesisTextDataloader( Dataloader ):
                 total_dataset_size = int(random_dataset_file['Size'])
 
                 # Make sure the file we chose satisfies our maximum file size requirement
-                while total_dataset_size <= self.config.dataloader.max_corpus_size:
+                while total_dataset_size <= self.config.max_corpus_size:
 
                     # Find file hash
                     random_dataset_file_hash = random_dataset_file['Cid']['/']
@@ -197,7 +197,7 @@ class GenesisTextDataloader( Dataloader ):
         """
 
         # If we've exhausted the dataset, retrieve another corpus.
-        if self.refresh_corpus or len(self.data) < self.config.dataloader.block_size:
+        if self.refresh_corpus or len(self.data) < self.config.block_size:
             self.data = self.construct_text_corpus()
             self.refresh_corpus = False
 
@@ -206,7 +206,7 @@ class GenesisTextDataloader( Dataloader ):
         if epoch_length and epoch_length < len(self.data):
             
             # Set up upper bound of indices to fit the batch size we want. 
-            idx_bound = epoch_length * self.config.dataloader.batch_size 
+            idx_bound = epoch_length * self.config.batch_size 
             if idx_bound < len(self):
                 # Collect enough random indices to batch together using batch_size into epoch_length batches
                 random_start = random.randint(0, len(self) - idx_bound)
@@ -225,22 +225,22 @@ class GenesisTextDataloader( Dataloader ):
                 self.refresh_corpus = True
                 return DataLoader(self,
                             shuffle=True,
-                            batch_size=self.config.dataloader.batch_size,
-                            num_workers=self.config.dataloader.num_workers)
+                            batch_size=self.config.batch_size,
+                            num_workers=self.config.num_workers)
 
 
             # Set up dataloader
             return DataLoader(subset,
-                            batch_size=self.config.dataloader.batch_size,
-                            num_workers=self.config.dataloader.num_workers)
+                            batch_size=self.config.batch_size,
+                            num_workers=self.config.num_workers)
         
         # If epoch_length is not set or it is higher than the total size of the dataset,
         #  then just shuffle dataset and return the whole thing.
         self.refresh_corpus = True
         return DataLoader(self,
                             shuffle=True,
-                            batch_size=self.config.dataloader.batch_size,
-                            num_workers=self.config.dataloader.num_workers)
+                            batch_size=self.config.batch_size,
+                            num_workers=self.config.num_workers)
 
     def __len__(self):
         """Returns length of dataset minus the block size
@@ -248,7 +248,7 @@ class GenesisTextDataloader( Dataloader ):
         Returns:
             int: length of dataset minus block size
         """
-        return len(self.data) - self.config.dataloader.block_size
+        return len(self.data) - self.config.block_size
 
     def __getitem__(self, idx):
         """ Returns a batch of sentences from text dataset.
@@ -259,14 +259,14 @@ class GenesisTextDataloader( Dataloader ):
             Returns:
                 x
         """
-        chunk = self.data[idx:idx + self.config.dataloader.block_size]
+        chunk = self.data[idx:idx + self.config.block_size]
 
         dix = []
         block_num=0
-        while block_num < self.config.dataloader.block_size and len(chunk) > block_num:
+        while block_num < self.config.block_size and len(chunk) > block_num:
             tokenized = self.tokenizer(chunk[block_num], padding=True, truncation=True)['input_ids']
             for t in tokenized:
-                if block_num < self.config.dataloader.block_size:
+                if block_num < self.config.block_size:
                     dix.append(t)
                     block_num += 1
 

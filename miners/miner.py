@@ -61,7 +61,12 @@ class AbstractMiner ():
         self.wallet = bittensor.wallet ( config = self.config )
         self.subtensor = bittensor.subtensor( config = self.config )
         self.metagraph = bittensor.metagraph( config = config )
-        self.axon = bittensor.axon( config = self.config, wallet = self.wallet )
+        self.axon = bittensor.axon ( 
+            config = self.config, 
+            wallet = self.wallet,
+            forward_callback = self.forward,
+            backward_callback = self.backward
+        )
         self.dendrite = bittensor.dendrite( config = self.config, wallet = self.wallet )
 
     @staticmethod   
