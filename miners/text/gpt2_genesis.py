@@ -57,16 +57,16 @@ from loguru import logger
 logger = logger.opt(colors=True)
 
 class Miner:
-    def __init__( self, hparams ):
+    def __init__( self, config ):
         
         self.wallet = bittensor.wallet (
-            name = hparams.wallet.name,
-            path = hparams.wallet.path,
-            hotkey = hparams.wallet.hotkey
+            name = config.wallet.name,
+            path = config.wallet.path,
+            hotkey = config.wallet.hotkey
         )
 
         self.subtensor = bittensor.subtensor (
-            network = hparams.subtensor.network
+            network = config.subtensor.network
         )
 
         self.metagraph = bittensor.metagraph ( 
@@ -75,16 +75,16 @@ class Miner:
 
         self.axon = bittensor.axon ( 
             wallet = self.wallet,
-            local_ip = hparams.local_ip,
-            local_port = hparams.local_port,
+            local_ip = config.axon.local_ip,
+            local_port = config.axon.local_port,
             forward_callback = self.forward,
             backward_callback = self.backward,
         )
 
         self.dendrite = bittensor.dendrite ( 
             wallet = self.wallet,
-            max_active_receptors = hparams.dendrite.max_active_receptors,
-            max_worker_threads = hparams.dendrite.max_worker_threads
+            max_active_receptors = config.dendrite.max_active_receptors,
+            max_worker_threads = config.dendrite.max_worker_threads
         )
 
         self.dataset = bittensor.dataloader ( 

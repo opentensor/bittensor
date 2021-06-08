@@ -17,16 +17,16 @@
 
 import bittensor
 import argparse
-import copy
 
+from munch import Munch
 from . import wallet_impl
 
 class wallet:
     def __new__(
             cls, 
             name: str = 'default',
-            path: str = '~/.bittensor/wallets/',
             hotkey: str = 'default',
+            path: str = '~/.bittensor/wallets/',
         ) -> 'bittensor.Wallet':
         r""" Init bittensor wallet object containing a hot and coldkey.
 
@@ -44,4 +44,16 @@ class wallet:
             path = path 
         )
 
+    def add_args( config: Munch, namespace:str = 'wallet'):
+        namespace_obj = Munch()
+        config[namespace] = namespace_obj
+        namespace += '.'
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--' + namespace + 'name', dest = 'name', required=False, default='default', 
+                                help='''The name of the wallet to unlock for running bittensor''')
+        parser.add_argument('--' + namespace + 'hotkey', dest = 'hotkey', required=False, default='default', 
+                                help='''The name of the wallet's-hotkey used to run the miner.''')
+        parser.add_argument('--' + namespace + 'path', dest = 'path', required=False, default='~/.bittensor/wallets/', 
+                                help='''The path to your bittensor wallets''')
+        parser.parse_known_args( namespace = namespace_obj )
 

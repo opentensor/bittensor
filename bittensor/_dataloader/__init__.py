@@ -22,6 +22,7 @@ import argparse
 import bittensor
 import copy
 
+from munch import Munch
 from . import dataloader_impl
 
 class dataloader:
@@ -43,4 +44,21 @@ class dataloader:
             max_corpus_size = max_corpus_size,
             num_workers = num_workers
         )
+
+    def add_args( config: Munch, namespace:str = 'dataloader' ):
+        namespace_obj = Munch()
+        config[namespace] = namespace_obj
+        if namespace != '':
+            namespace += '.'
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--' + namespace + 'network', default='kusanagi', type=str, 
+                            help='''The subtensor network flag. The likely choices are:
+                                    -- akira (staging network)
+                                    -- kusanagi (testing network)
+                                This option is overloaded by subtensor.chain_endpoint.
+                                 ''')
+        parser.add_argument('--' + namespace + 'chain_endpoint', default=None, type=str, 
+                            help='''The subtensor endpoint flag. If set, overrides the --network flag.
+                                 ''')
+        parser.parse_known_args( namespace = namespace_obj )
 
