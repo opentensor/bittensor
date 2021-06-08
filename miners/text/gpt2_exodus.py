@@ -1,5 +1,4 @@
-
-
+#!/bin/python3
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -16,32 +15,32 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
+""" The Exodus miner.
+
+Example:
+    $ python miners/text/gpt2_exodus.py
+
+"""
+
+class Miner:
+
+    def __init__( self, config ):
+        pass
+
+    def __enter__(self):
+        pass
+
+    def __exit_(self):
+        pass
+
+    def run ( self ):
+        with self:
+            
+
+class miner:
+    def __new__( cls ) -> Miner:
+        pass
 
 
-import argparse
-import bittensor
-import copy
-
-from munch import Munch
-from . import dataloader_impl
-
-class dataloader:
-
-    def __new__(
-            cls,
-            block_size: int = 20,
-            batch_size: int = 10,
-            max_corpus_size:int = 1e+6,
-            num_workers: int = 0
-        ):
-        assert batch_size > 0, 'Batch size must be larger than 0'
-        assert block_size > 0, 'Block size must be larger than 0'
-        assert max_corpus_size > 0, 'max_corpus_size must be larger than 0'
-        assert num_workers >= 0, 'num_workers must be equal to or larger than 0'
-        return dataloader_impl.GenesisTextDataloader(
-            block_size = block_size,
-            batch_size = batch_size,
-            max_corpus_size = max_corpus_size,
-            num_workers = num_workers
-        )
-
+if __name__ == "__main__":
+    miner().run()
