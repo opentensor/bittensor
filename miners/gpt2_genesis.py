@@ -55,7 +55,7 @@ class Miner( miner.BasicMiner ):
 
         # ---- Load Config ----
         if config == None:
-            config = Miner.default_config();   
+            config = Miner.config();   
         config = copy.deepcopy(config)
         Miner.check_config( config )
         logger.info( config )
@@ -89,10 +89,11 @@ class Miner( miner.BasicMiner ):
         self.tokens = 0
                
     @staticmethod
-    def default_config() -> 'bittensor.Config':
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
         Miner.add_args(parser)
         config = bittensor.config( parser )
+        bittensor.dataloader.add_args( config, 'dataloader' )
         return config
 
     @staticmethod
@@ -158,7 +159,6 @@ class Miner( miner.BasicMiner ):
             help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name '
         )
         miner.BasicMiner.add_args( parser )
-        bittensor.dataloader.add_args( parser )
         GPT2Nucleus.add_args( parser )
         SGMOERouter.add_args( parser )
 
@@ -167,7 +167,7 @@ class Miner( miner.BasicMiner ):
         assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         miner.BasicMiner.check_config( config )
-        bittensor.dataloader.check_config( config )
+        bittensor.dataloader.check_config( config.dataloader )
         GPT2Nucleus.check_config( config )
         SGMOERouter.check_config( config )
 
