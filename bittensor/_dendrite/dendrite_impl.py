@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+from bittensor._config import config
 import torch
 import pandas as pd
 from termcolor import colored
@@ -32,6 +33,7 @@ class Dendrite( torch.autograd.Function ):
 
     def __init__(
             self, 
+            config: 'bittensor.config',
             wallet: 'bittensor.Wallet',
             receptor_pool: 'bittensor.ReceptorPool',
         ):
@@ -40,6 +42,7 @@ class Dendrite( torch.autograd.Function ):
                 receptor_pool (:obj:`bittensor.ReceptorPool`, `required`):
                     bittensor receptor pool
         """
+        self.config = config
         self.receptor_pool = receptor_pool
 
     @staticmethod

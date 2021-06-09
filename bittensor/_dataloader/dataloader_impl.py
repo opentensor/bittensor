@@ -111,12 +111,14 @@ class GenesisTextDataloader( Dataloader ):
     
     def __init__( 
         self, 
+        config,
         block_size,
         batch_size,
         max_corpus_size,
         num_workers,
     ):
         super(GenesisTextDataloader, self).__init__()
+        self.config = config
         self.block_size = block_size
         self.batch_size = batch_size
         self.max_corpus_size = max_corpus_size

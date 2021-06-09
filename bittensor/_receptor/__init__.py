@@ -99,17 +99,14 @@ class receptor_pool:
         )
 
     @staticmethod   
-    def config( config: 'bittensor.Config' = None, prefix: str = '', namespace: str = 'receptor_pool' ) -> 'bittensor.Config':
+    def config( config: 'bittensor.Config' = None, namespace: str = 'receptor_pool' ) -> 'bittensor.Config':
         if config == None: config = bittensor.config()
         receptor_pool_config = bittensor.config()        
-        bittensor.wallet.config( receptor_pool_config, prefix = namespace )
+        bittensor.wallet.config( receptor_pool_config )
         config[ namespace ] = receptor_pool_config
-        if namespace != '': namespace += '.'
-        if prefix != '': prefix += '.'
-        full_namespace = prefix + namespace
         parser = argparse.ArgumentParser()
-        parser.add_argument('--' + full_namespace + 'max_worker_threads', dest = 'max_worker_threads',  default=20, type=int, help='''Max number of concurrent threads used for sending RPC requests.''')
-        parser.add_argument('--' + full_namespace + 'max_active_receptors', dest = 'max_active_receptors', default=150, type=int, help='''Max number of concurrently active receptors / tcp-connections''')
+        parser.add_argument('--' + namespace + 'max_worker_threads', dest = 'max_worker_threads',  default=20, type=int, help='''Max number of concurrent threads used for sending RPC requests.''')
+        parser.add_argument('--' + namespace + 'max_active_receptors', dest = 'max_active_receptors', default=150, type=int, help='''Max number of concurrently active receptors / tcp-connections''')
         parser.parse_known_args( namespace = receptor_pool_config )
         return config
 

@@ -48,7 +48,6 @@ class metagraph:
         metagraph_config = bittensor.config()
         bittensor.subtensor.config( metagraph_config, prefix = namespace )
         config[ namespace  ] = metagraph_config
-        if namespace != '': namespace += '.'
         return config
 
     @staticmethod   

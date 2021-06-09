@@ -75,15 +75,12 @@ class subtensor:
         )
 
     @staticmethod   
-    def config( config: 'bittensor.Config' = None, prefix: str = '', namespace: str = 'subtensor' ) -> 'bittensor.Config':
+    def config( config: 'bittensor.Config' = None, namespace: str = 'subtensor' ) -> 'bittensor.Config':
         if config == None: config = bittensor.config()
         subtensor_config = bittensor.config()
         config[ namespace] = subtensor_config
-        if namespace != '': namespace += '.'
-        if prefix != '': prefix += '.'
-        full_namespace = prefix + namespace
         parser = argparse.ArgumentParser()
-        parser.add_argument('--' + full_namespace + 'network', dest = 'network', default='kusanagi', type=str, 
+        parser.add_argument('--' + namespace + 'network', dest = 'network', default='kusanagi', type=str, 
                             help='''The subtensor network flag. The likely choices are:
                                     -- akira (staging network)
                                     -- kusanagi (testing network)
@@ -91,7 +88,7 @@ class subtensor:
                                 If this option is set it overloads subtensor.chain_endpoint with 
                                 an entry point node from that network.
                                 ''')
-        parser.add_argument('--' + full_namespace + 'chain_endpoint', dest = 'chain_endpoint', default=None, type=str, 
+        parser.add_argument('--' + namespace + 'chain_endpoint', dest = 'chain_endpoint', default=None, type=str, 
                             help='''The subtensor endpoint flag. If set, overrides the --network flag.
                                 ''')
         parser.parse_known_args( namespace = subtensor_config )

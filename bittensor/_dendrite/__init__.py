@@ -44,21 +44,24 @@ class dendrite:
         config = copy.deepcopy(config)
         if wallet == None:
             wallet = bittensor.wallet( config = config.wallet )
+        config.wallet = copy.deepcopy( wallet.config )
         if receptor_pool == None:
-            receptor_pool = bittensor.receptor_pool( config = config.receptor_pool, wallet = wallet )  
+            receptor_pool = bittensor.receptor_pool( config = config.receptor_pool, wallet = wallet )
+        config.receptor_pool = copy.deepcopy( receptor_pool.config )
         return dendrite_impl.Dendrite ( 
+            config = config,
             wallet = wallet, 
             receptor_pool = receptor_pool 
         )
         
     @staticmethod   
-    def config( config: 'bittensor.Config' = None, prefix: str = '', namespace: str = 'dendrite' ) -> 'bittensor.Config':
+    def config( config: 'bittensor.Config' = None, namespace: str = 'dendrite' ) -> 'bittensor.Config':
         if config == None: config = bittensor.config()
         dendrite_config = bittensor.config()
         config[ namespace ] = dendrite_config
         if namespace != '': namespace += '.'
-        bittensor.wallet.config( dendrite_config, prefix = namespace )
-        bittensor.receptor_pool.config( dendrite_config, prefix = namespace )
+        bittensor.wallet.config( dendrite_config )
+        bittensor.receptor_pool.config( dendrite_config )
         return config
 
     @staticmethod   

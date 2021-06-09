@@ -88,23 +88,21 @@ class axon:
         return axon_instance 
 
     @staticmethod   
-    def config( config: 'bittensor.Config' = None, prefix: str = '', namespace: str = 'axon' ) -> 'bittensor.Config':
+    def config( config: 'bittensor.Config' = None, namespace: str = 'axon' ) -> 'bittensor.Config':
         if config == None: config = bittensor.config()
         axon_config = bittensor.config()
         bittensor.wallet.config( axon_config, prefix = namespace )
         config[ namespace ] = axon_config
         if namespace != '': namespace += '.'
-        if prefix != '': prefix += '.'
-        full_namespace = prefix + namespace
         parser = argparse.ArgumentParser()
-        parser.add_argument('--' + full_namespace + 'local_port', dest = 'local_port', default=8091, type=int, 
+        parser.add_argument('--' + namespace + 'local_port', dest = 'local_port', default=8091, type=int, 
                 help='''The port this axon endpoint is served on. i.e. 8091''')
-        parser.add_argument('--' + full_namespace + 'local_ip', dest = 'local_ip', default='127.0.0.1', type=str, 
+        parser.add_argument('--' + namespace + 'local_ip', dest = 'local_ip', default='127.0.0.1', type=str, 
             help='''The local ip this axon binds to. ie. 0.0.0.0''')
-        parser.add_argument('--' + full_namespace + 'max_workers', dest = 'max_workers', default=10, type=int, 
+        parser.add_argument('--' + namespace + 'max_workers', dest = 'max_workers', default=10, type=int, 
             help='''The maximum number connection handler threads working simultaneously on this endpoint. 
                     The grpc server distributes new worker threads to service requests up to this number.''')
-        parser.add_argument('--' + full_namespace + 'maximum_concurrent_rpcs', dest = 'maximum_concurrent_rpcs', default=400, type=int, 
+        parser.add_argument('--' + namespace + 'maximum_concurrent_rpcs', dest = 'maximum_concurrent_rpcs', default=400, type=int, 
             help='''Maximum number of allowed active connections''')          
         parser.parse_known_args( namespace = axon_config )
         return config
