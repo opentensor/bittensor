@@ -266,7 +266,7 @@ class Metagraph( torch.nn.Module ):
 
         self.cached_endpoints = None
 
-    def sync(self,force: bool = False ):
+    def sync(self, force: bool = False ):
         r""" Synchronizes this metagraph with the chain state.
             Args: 
                 subtensor: (:obj:`bittensor.Subtensor`, optional):
@@ -278,7 +278,7 @@ class Metagraph( torch.nn.Module ):
         loop.set_debug(enabled=True)
         loop.run_until_complete(self._async_sync(force))
 
-    async def _async_sync( self, force: bool = False):
+    async def _async_sync( self, force: bool = False ):
         r""" Uses the passed subtensor interface to update the metagraph chain state to reflect 
             the latest info on chain.
 

@@ -26,18 +26,24 @@ import argparse
 import bittensor
 import math
 import torch
+import os
+import sys
 
-from loguru import logger
+from datetime import datetime
+from loguru import logger; logger = logger.opt(colors=True)
 from types import SimpleNamespace
 from nuclei.gpt2 import GPT2Nucleus
 from routers.sgmoe import SGMOERouter
 from torch.nn.utils import clip_grad_norm_
+from tensorboard import program
+from torch.utils.tensorboard import SummaryWriter
+import bittensor.utils.networking as net
 
 class miner:
 
     def __init__( self, config: 'bittensor.config' = None ):
         if config == None: config = miner.config().miner
-        self.config = config; print ( self.config )
+        self.config = config; miner.check_config( self.config ); print ( self.config )
         self.router = SGMOERouter( config = self.config.router )
         self.nucleus = GPT2Nucleus( config = self.config.nucleus )
         self.wallet = bittensor.wallet( config = self.config.wallet )
@@ -46,6 +52,11 @@ class miner:
         self.subtensor = bittensor.subtensor( config = self.config.subtensor )
         self.metagraph = bittensor.metagraph( config = self.config.metagraph )
         self.row_weights = torch.ones( [0] )
+        optim_groups = [
+            {"params": self.router.parameters() },
+            {"params": self.nucleus.parameters() },
+        ]
+        self.optimizer = torch.optim.AdamW( optim_groups, lr = self.config.learning_rate, betas = (0.9, 0.95) )
         self.epoch = 0
         self.epoch_loss = math.inf
         self.global_step = 0
@@ -53,8 +64,8 @@ class miner:
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        assert config.miner.batch_size_train > 0, "batch_size_train must a positive value"
-        assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
+        assert config.batch_size_train > 0, "batch_size_train must a positive value"
+        assert config.learning_rate > 0, "learning_rate must be a positive value."
         bittensor.wallet.check_config( config.wallet )
         bittensor.subtensor.check_config( config.subtensor )
         bittensor.metagraph.check_config( config.metagraph )
@@ -63,6 +74,10 @@ class miner:
         bittensor.axon.check_config( config.axon )
         GPT2Nucleus.check_config( config.nucleus )
         SGMOERouter.check_config( config.router )
+        full_path = os.path.expanduser('{}/{}/{}'.format( config.root_dir, config.wallet.name + "-" + config.wallet.hotkey, config.name ))
+        config.full_path = os.path.expanduser(full_path)
+        if not os.path.exists(config.full_path):
+            os.makedirs(config.full_path)
 
     @staticmethod   
     def config( config: 'bittensor.Config' = None, namespace: str = 'miner' ) -> 'bittensor.Config':
@@ -87,7 +102,7 @@ class miner:
         parser.add_argument('--' + namespace + 'n_epochs', dest='n_epochs', default=-1, type=int, help='Number of training epochs.')
         parser.add_argument('--' + namespace + 'epoch_length', dest='epoch_length', default=500, type=int, help='Iterations of training per epoch')
         parser.add_argument('--' + namespace + 'batch_size_train', dest='batch_size_train',  default=2, type=int, help='Training batch size.')
-        parser.add_argument('--' + namespace + 'name', dest ='name', default='gpt2_genesis', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
+        parser.add_argument('--' + namespace + 'name', dest ='name', default='gpt2_exodus', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
         parser.parse_known_args( namespace = miner_config )
         bittensor.wallet.config( miner_config )
         bittensor.subtensor.config( miner_config )
@@ -100,10 +115,98 @@ class miner:
         return config
 
     def __enter__(self):
-        pass
 
-    def __exit_(self):
-        pass
+        # ---- Setup logging ----
+        if self.config.record_log == True:
+            filepath = self.config.full_path + "/bittensor_output.log"
+            logger.add (
+                filepath,
+                format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
+                rotation="25 MB",
+                retention="10 days"
+            )
+            logger.info('LOGGING is <green>ON</green> with sink: <cyan>{}</cyan>', filepath)
+        else: 
+            logger.info('LOGGING is <red>OFF</red>')
+
+        # ---- Setup tensorboard ----
+        if self.config.use_tensorboard == True:
+            event_file_dir = self.config.full_path + '/tensorboard-' + '-'.join(str(datetime.now()).split())
+            self.tensorboard = SummaryWriter( log_dir = event_file_dir )
+            self._tensorboard_program = program.TensorBoard()
+            self._tensorboard_program.configure(argv=[None, '--logdir', event_file_dir ])
+            self._tensorbaord_url = self._tensorboard_program.launch()
+            logger.info('TENSORBOARD is <green>ON</green> with entrypoint: <cyan>http://localhost:6006/</cyan>', )
+        else: 
+            logger.info('TENSORBOARD is <red>OFF</red>')
+
+        # ---- Setup debugging ----
+        if self.config.debug: bittensor.__debug_on__ = True; logger.info('DEBUG is <green>ON</green>')
+        else: logger.info('DEBUG is <red>OFF</red>')
+
+         # ---- Setup UPNPC ----
+        if self.config.use_upnpc: 
+            logger.info('UPNPC is <green>ON</green>')
+            try:
+                self.external_port = net.upnpc_create_port_map( local_port = self.axon.local_port )
+            except net.UPNPCException as upnpc_exception:
+                logger.critical('Failed to hole-punch with upnpc')
+                sys.exit()
+        else: 
+            logger.info('UPNPC is <red>OFF</red>')
+            self.external_port = self.config.axon.local_port
+
+        # ---- Get external ip ----
+        logger.info('\nFinding external ip...')
+        try:
+            self.external_ip = net.get_external_ip()
+        except net.ExternalIPNotFound as external_port_exception:
+            logger.critical('Unable to attain your external ip. Check your internet connection.')
+            sys.exit()
+        logger.success('Found external ip: <cyan>{}</cyan>', self.external_ip)
+
+        # ---- Setup Wallet. ----
+        logger.info('\nLoading wallet...')
+        if not self.wallet.has_coldkeypub:
+            self.wallet.create_new_coldkey( n_words = 12, use_password = True )
+        assert self.wallet.has_coldkeypub
+        if not self.wallet.has_hotkey:
+            self.wallet.create_new_hotkey( n_words = 12, use_password = False )
+        assert self.wallet.has_hotkey
+
+        # ---- Setup metagraph ----
+        self.metagraph.load()
+        self.metagraph.sync()
+
+        # ---- Connect to chain ----
+        logger.info('\nConnecting to network...')
+        self.subtensor.connect()
+        if not self.subtensor.is_connected():
+            logger.critical('Failed to connect subtensor to network:<cyan>{}</cyan>', self.subtensor.network)
+            quit()  
+
+        # ---- Subscribe to chain ----
+        logger.info('\nSubscribing to chain...')
+        subscribe_success = self.subtensor.subscribe(
+                wallet = self.wallet,
+                ip = self.external_ip, 
+                port = self.external_port,
+                modality = bittensor.proto.Modality.TEXT,
+                wait_for_finalization = True,
+                timeout = 4 * bittensor.__blocktime__,
+        )
+        if not subscribe_success:
+            logger.critical('Failed to subscribe neuron.')
+            quit()
+
+        # ---- Starting axon ----
+        logger.info('\nStarting Axon...')
+        self.axon.start()
+
+    def __exit__(self):
+        # ---- Stop axon ----
+        logger.info('\nStopping Axon...')
+        self.axon.stop()
 
     def run ( self ):
         with self:
@@ -228,8 +331,8 @@ class miner:
         # ---- Backward pass ----
         output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
         output.loss.backward() # Accumulates gradients on the nucleus.
-        clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
-        clip_grad_norm_(self.router.parameters(), self.config.miner.clip_gradients)
+        clip_grad_norm_(self.nucleus.parameters(), self.config.clip_gradients)
+        clip_grad_norm_(self.router.parameters(), self.config.clip_gradients)
         self.optimizer.step() # Applies accumulated gradients.
         self.optimizer.zero_grad() # Zeros out gradients for next accummulation
         self.decay_learning_rate( inputs )
@@ -245,22 +348,21 @@ class miner:
             {"params": self.router.parameters() },
             {"params": self.nucleus.parameters() },
         ]
-        self.optimizer = torch.optim.AdamW( optim_groups, lr = self.config.miner.learning_rate, betas = (0.9, 0.95) )
+        self.optimizer = torch.optim.AdamW( optim_groups, lr = self.config.learning_rate, betas = (0.9, 0.95) )
 
     def reload_sate( self ):
         try:
-            state_dict = torch.load("{}/model.torch".format( self.config.miner.full_path ))
+            state_dict = torch.load("{}/model.torch".format( self.config.full_path ))
             self.epoch = state_dict['epoch']
             self.epoch_loss = state_dict['epoch_loss']
             self.global_step = state_dict['global_step']
             self.row_weights = state_dict['row_weights'] # Load row weights
             self.nucleus.load_state_dict( state_dict['nucleus_state'] ) # Load nucleus
             self.router.load_state_dict( state_dict['router_state']) # Load router
-            self.nucleus.attach( self )# Re-assign the routing function.
-            self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
             self.optimizer.load_state_dict( state_dict['optimizer_state'] ) # Load optimizer.
-            self.optimizer = self.configure_optimizers( self.optimizer )
-            logger.success( 'Reloaded model from: <cyan>{}/model.torch</cyan>\n'.format( self.config.miner.full_path ))
+            self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
+            self.nucleus.attach( self )# Re-assign the routing function.
+            logger.success( 'Reloaded model from: <cyan>{}/model.torch</cyan>\n'.format( self.config.full_path ))
         except Exception as e:
             logger.exception('Failed to reload model with error: {}', e)
 
@@ -275,8 +377,8 @@ class miner:
                 'nucleus_state': self.nucleus.state_dict(), # Save nucleus state.
                 'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
             }
-            torch.save( state_dict, "{}/model.torch".format( self.config.miner.full_path, self.epoch_loss ))
-            logger.success( 'Saved model to: <cyan>{}/model.torch</cyan>\n'.format( self.config.miner.full_path ))
+            torch.save( state_dict, "{}/model.torch".format( self.config.full_path, self.epoch_loss ))
+            logger.success( 'Saved model to: <cyan>{}/model.torch</cyan>\n'.format( self.config.full_path ))
         except Exception as e:
              logger.exception('Failed to save model with error:{}', e)
 

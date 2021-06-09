@@ -43,10 +43,10 @@ class metagraph:
         return metagraph_impl.Metagraph( subtensor = subtensor )
 
     @staticmethod   
-    def config( config: 'bittensor.Config' = None, prefix: str = '', namespace: str = 'metagraph' ) -> 'bittensor.Config':
+    def config( config: 'bittensor.Config' = None, namespace: str = 'metagraph' ) -> 'bittensor.Config':
         if config == None: config = bittensor.config()
         metagraph_config = bittensor.config()
-        bittensor.subtensor.config( metagraph_config, prefix = namespace )
+        bittensor.subtensor.config( metagraph_config )
         config[ namespace  ] = metagraph_config
         return config
 

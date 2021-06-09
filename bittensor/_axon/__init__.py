@@ -91,7 +91,7 @@ class axon:
     def config( config: 'bittensor.Config' = None, namespace: str = 'axon' ) -> 'bittensor.Config':
         if config == None: config = bittensor.config()
         axon_config = bittensor.config()
-        bittensor.wallet.config( axon_config, prefix = namespace )
+        bittensor.wallet.config( axon_config )
         config[ namespace ] = axon_config
         if namespace != '': namespace += '.'
         parser = argparse.ArgumentParser()

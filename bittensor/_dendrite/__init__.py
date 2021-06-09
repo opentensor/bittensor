@@ -44,10 +44,8 @@ class dendrite:
         config = copy.deepcopy(config)
         if wallet == None:
             wallet = bittensor.wallet( config = config.wallet )
-        config.wallet = copy.deepcopy( wallet.config )
         if receptor_pool == None:
             receptor_pool = bittensor.receptor_pool( config = config.receptor_pool, wallet = wallet )
-        config.receptor_pool = copy.deepcopy( receptor_pool.config )
         return dendrite_impl.Dendrite ( 
             config = config,
             wallet = wallet, 
@@ -66,10 +64,6 @@ class dendrite:
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
-        assert config.batch_size > 0, 'Batch size must be larger than 0'
-        assert config.block_size > 0, 'Block size must be larger than 0'
-        assert config.max_corpus_size > 0, 'max_corpus_size must be larger than 0'
-        assert config.num_workers >= 0, 'num_workers must be equal to or larger than 0'
         bittensor.wallet.check_config( config.wallet )
         bittensor.receptor_pool.check_config( config.receptor_pool )
 

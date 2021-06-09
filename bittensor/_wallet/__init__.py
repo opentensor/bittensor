@@ -60,6 +60,7 @@ class wallet:
         wallet_config = bittensor.config()
         config[ namespace ] = wallet_config
         parser = argparse.ArgumentParser()
+        if namespace != '': namespace += '.'
         parser.add_argument('--' + namespace + 'name', dest = 'name', required=False, default='default', help='''The name of the wallet to unlock for running bittensor''')
         parser.add_argument('--' + namespace + 'hotkey', dest = 'hotkey', required=False, default='default', help='''The name of wallet's hotkey.''')
         parser.add_argument('--' + namespace + 'path', dest = 'path', required=False, default='~/.bittensor/wallets/', help='''The path to your bittensor wallets''')
