@@ -37,14 +37,9 @@ class Dendrite( torch.autograd.Function ):
         ):
         r""" Initializes a new Dendrite entry point.
             Args:
-                config (:obj:`bittensor.Config`, `required`): 
-                    bittensor.dendrite.config()
-                wallet (:obj:`bittensor.Wallet`, `required`):
-                    bittensor wallet with hotkey and coldkeypub.
                 receptor_pool (:obj:`bittensor.ReceptorPool`, `required`):
                     bittensor receptor pool
         """
-        self.wallet = wallet
         self.receptor_pool = receptor_pool
 
     @staticmethod

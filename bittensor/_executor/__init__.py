@@ -25,6 +25,7 @@ class executor:
 
     def __new__(
             cls,
+            config: 'bittensor.Config' = None,
             wallet: 'bittensor.Wallet' = None,
             subtensor: 'bittensor.Subtensor' = None,
             metagraph: 'bittensor.Metagraph' = None,
@@ -33,6 +34,8 @@ class executor:
         ) -> 'bittensor.Executor':
         r""" Creates a new Executor object from passed arguments.
             Args:
+                config (:obj:`bittensor.Config`, `optional`): 
+                    bittensor.executor.config()
                 wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
                 subtensor (:obj:`bittensor.Subtensor`, `optional`):
@@ -44,16 +47,17 @@ class executor:
                 dendrite (:obj:`bittensor.Dendrite`, `optional`):
                     Bittensor dendrite client.
         """
+        if config == None: config = executor.config().executor
+        config = copy.deepcopy(config)
         if wallet == None:
-            wallet = bittensor.wallet ()
+            wallet = bittensor.wallet ( config = config.wallet )
         if subtensor == None:
-            subtensor = bittensor.subtensor()
-        if metagraph == None:
-            metagraph = bittensor.metagraph( subtensor = subtensor )
+            subtensor = bittensor.subtensor( config = config.wallet )
+        metagraph = bittensor.metagraph( subtensor = subtensor )
         if axon == None:
-            axon = bittensor.axon( wallet = wallet )
+            axon = bittensor.axon( config = config.axon, wallet = wallet )
         if dendrite == None:
-            dendrite = bittensor.dendrite( wallet = wallet )
+            dendrite = bittensor.dendrite( config = config.dendrite,  wallet = wallet )
         return executor_impl.Executor ( 
             wallet = wallet, 
             subtensor = subtensor, 
@@ -61,3 +65,22 @@ class executor:
             axon = axon, 
             dendrite = dendrite 
         )
+
+    @staticmethod   
+    def config( config: 'bittensor.Config' = None, prefix: str = '', namespace: str = 'executor' ) -> 'bittensor.Config':
+        if config == None: config = bittensor.config()
+        executor_config = bittensor.config()
+        bittensor.axon.config( executor_config, prefix = namespace )
+        bittensor.wallet.config( executor_config, prefix = namespace )
+        bittensor.subtensor.config( executor_config, prefix = namespace )
+        bittensor.dendrite.config( executor_config, prefix = namespace )
+        config[ namespace ] = executor_config
+        return config
+
+    @staticmethod   
+    def check_config( config: 'bittensor.Config' ):
+        bittensor.axon.check_config( config.axon )
+        bittensor.wallet.check_config( config.wallet )
+        bittensor.subtensor.check_config( config.subtensor )
+        bittensor.dendrite.check_config( config.dendrite )
+

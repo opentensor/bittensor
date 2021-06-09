@@ -129,16 +129,15 @@ class CausalSelfAttention(nn.Module):
 
 class GPT2Nucleus(torch.nn.Module):
 
-    def __init__(self, routing_callback, config: bittensor.Config = None, **kwargs):
+    def __init__(self, config: bittensor.Config = None, routing_callback = None, **kwargs):
         """The full GPT language model, with context of a block size.
             Args:
                 config (:obj: `bittensor.Config`, `required`):
                     munched config class.
         """
         super(GPT2Nucleus, self).__init__()
-        if config == None:
-            config = GPT2Nucleus.config()        
-        GPT2Nucleus.check_config(config)
+        if config == None: config = GPT2Nucleus.config().nucleus
+        GPT2Nucleus.check_config( config )
         self.config = config
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -148,12 +147,12 @@ class GPT2Nucleus(torch.nn.Module):
         gpt_config = GPTConfig(
             vocab_size = bittensor.__vocab_size__,
             n_embd=bittensor.__network_dim__,
-            n_head=config.nucleus.n_head,
-            n_layer=config.nucleus.n_layer,
-            block_size=config.nucleus.block_size,
-            embd_pdrop=config.nucleus.embd_pdrop,
-            resid_pdrop=config.nucleus.resid_pdrop,
-            attn_pdrop=config.nucleus.attn_pdrop
+            n_head=config.n_head,
+            n_layer=config.n_layer,
+            block_size=config.block_size,
+            embd_pdrop=config.embd_pdrop,
+            resid_pdrop=config.resid_pdrop,
+            attn_pdrop=config.attn_pdrop
         )
         # Token embedding layer. 
         # [bittensor.__vocab_size__, bittensor.__network_dim__]
@@ -194,34 +193,21 @@ class GPT2Nucleus(torch.nn.Module):
         self.num_parameters = sum(p.numel() for p in self.parameters())
     
     @staticmethod   
-    def config() -> 'bittensor.Config':
-        parser = argparse.ArgumentParser(); 
-        GPT2Nucleus.add_args(parser) 
-        config = bittensor.config( parser ); 
+    def config( config: 'bittensor.Config' = None, namespace: str = 'nucleus' ) -> 'bittensor.Config':
+        if config == None: config = bittensor.config()
+        nucleus_config = bittensor.config()
+        config[ namespace ] = nucleus_config
+        if namespace != '': namespace += '.'
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--' + namespace + 'n_head', dest = 'n_head', default=32, type=int, help='Number of attention heads for each attention layer in the Transformer encoder.')
+        parser.add_argument('--' + namespace + 'n_layer', dest = 'n_layer', default=12, type=int, help='Number of hidden layers in the Transformer encoder.')
+        parser.add_argument('--' + namespace + 'block_size', dest = 'block_size', default=20, type=int, help='Number of hidden layers in the Transformer encoder.')
+        parser.add_argument('--' + namespace + 'embd_pdrop', dest = 'embd_pdrop', default=0.1, type=float, help='GPT embedding dropout probability.')
+        parser.add_argument('--' + namespace + 'resid_pdrop', dest = 'resid_pdrop', default=0.1, type=float, help='GPT residual dropout probability.')
+        parser.add_argument('--' + namespace + 'attn_pdrop', dest = 'attn_pdrop', default=0.1, type=float, help='GPT attention dropout probability.')
+        parser.parse_known_args( namespace = nucleus_config )
         return config
 
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
-        """ Add model params
-        """
-        parser.add_argument('--nucleus.n_head', default=32, type=int, 
-                                help='Number of attention heads for each attention layer in the Transformer encoder.')
-        
-        parser.add_argument('--nucleus.n_layer', default=12, type=int, 
-                                help='Number of hidden layers in the Transformer encoder.')
-        
-        parser.add_argument('--nucleus.block_size', default=20, type=int, 
-                                help='Number of hidden layers in the Transformer encoder.')
-        
-        parser.add_argument('--nucleus.embd_pdrop', default=0.1, type=float, 
-                            help='GPT embedding dropout probability.')
-
-        parser.add_argument('--nucleus.resid_pdrop', default=0.1, type=float, 
-                            help='GPT residual dropout probability.')
-        
-        parser.add_argument('--nucleus.attn_pdrop', default=0.1, type=float, 
-                            help='GPT attention dropout probability.')
-        
     @staticmethod
     def check_config(config: 'bittensor.Config'):
         pass

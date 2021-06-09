@@ -59,10 +59,12 @@ class receptor:
             wallet = wallet,
             stub = stub
         )
+
 class receptor_pool:
 
     def __new__( 
             cls, 
+            config: 'bittensor.config' = None,
             wallet: 'bittensor.Wallet' = None,
             thread_pool: ThreadPoolExecutor = None,
             max_worker_threads: int = 20,
@@ -70,13 +72,24 @@ class receptor_pool:
         ) -> 'bittensor.ReceptorPool':
         r""" Initializes a receptor grpc connection.
             Args:
+                config (:obj:`bittensor.Config`, `optional`): 
+                    bittensor.receptor_pool.config()
+                wallet (:obj:`bittensor.Wallet`, `optional`):
+                    bittensor wallet with hotkey and coldkeypub.
                 thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
-                    thread pool executor passed the receptor pool unless defined.s
+                    thread pool executor passed the receptor pool unless defined.
+                max_worker_threads (:type:`int`, `optional`):
+                    Maximum number of active client threads. Does not override passed 
+                    Threadpool.
                 max_active_receptors (:type:`int`, `optional`):
                     Maximum allowed active allocated TCP connections.
         """        
+        if config == None: config = receptor_pool.config().receptor_pool
+        config.max_worker_threads = max_worker_threads if max_worker_threads != None else config.max_worker_threads
+        config.max_active_receptors = max_active_receptors if max_active_receptors != None else config.max_active_receptors
+        config = copy.deepcopy( config )
         if wallet == None:
-            wallet = bittensor.wallet()
+            wallet = bittensor.wallet( config.wallet )
         if thread_pool == None:
             thread_pool = ThreadPoolExecutor( max_workers = max_worker_threads )
         return bittensor.ReceptorPool( 
@@ -84,3 +97,24 @@ class receptor_pool:
             thread_pool = thread_pool,
             max_active_receptors = max_active_receptors
         )
+
+    @staticmethod   
+    def config( config: 'bittensor.Config' = None, prefix: str = '', namespace: str = 'receptor_pool' ) -> 'bittensor.Config':
+        if config == None: config = bittensor.config()
+        receptor_pool_config = bittensor.config()        
+        bittensor.wallet.config( receptor_pool_config, prefix = namespace )
+        config[ namespace ] = receptor_pool_config
+        if namespace != '': namespace += '.'
+        if prefix != '': prefix += '.'
+        full_namespace = prefix + namespace
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--' + full_namespace + 'max_worker_threads', dest = 'max_worker_threads',  default=20, type=int, help='''Max number of concurrent threads used for sending RPC requests.''')
+        parser.add_argument('--' + full_namespace + 'max_active_receptors', dest = 'max_active_receptors', default=150, type=int, help='''Max number of concurrently active receptors / tcp-connections''')
+        parser.parse_known_args( namespace = receptor_pool_config )
+        return config
+
+    @staticmethod   
+    def check_config( config: 'bittensor.Config' ):
+        assert config.max_worker_threads > 0, 'max_worker_threads must be larger than 0'
+        assert config.max_active_receptors > 0, 'max_active_receptors must be larger than 0'
+        bittensor.wallet.check_config( config.wallet )
