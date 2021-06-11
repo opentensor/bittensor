@@ -43,6 +43,7 @@ class Dendrite( torch.autograd.Function ):
                     bittensor receptor pool
         """
         self.config = config
+        self.wallet = wallet
         self.receptor_pool = receptor_pool
 
     @staticmethod
@@ -52,6 +53,7 @@ class Dendrite( torch.autograd.Function ):
             dummy: torch.Tensor, 
             endpoints: List['bittensor.Endpoint'], 
             modality: bittensor.proto.Modality,
+            timeout: int,
             *inputs: torch.Tensor
         ) -> Tuple[ torch.Tensor, ... ] :
         """ Internal autograd-friendly Forward RPC call to a list of neuron endpoints.
@@ -76,6 +78,9 @@ class Dendrite( torch.autograd.Function ):
                 inputs (:obj:`List[torch.Tensor]` of shape :obj:`(n_endpoints)`, `required`):
                     List of torch tensors to be sent to the associated endpoints.
 
+                timeout (int):
+                    request timeout.
+
             Returns:
                 codes (:obj:`torch.LongTensor` of shape :obj:`(n_endpoints)` `required`):
                     Return code associated with forward call.
@@ -84,15 +89,16 @@ class Dendrite( torch.autograd.Function ):
                         Output encodings of inputs produced by the remote endpoints. Non-responses are zeroes of common shape.
         """
         ctx.receptor_pool = dendrite.receptor_pool
-        ctx.endpoints, ctx.inputs, ctx.modality = endpoints, inputs, modality
+        ctx.endpoints, ctx.inputs, ctx.modality, ctx.timeout = endpoints, inputs, modality, timeout
         inputs = [ x.cpu().clone().detach() for x in inputs ]
-        outputs, forward_codes = ctx.receptor_pool.forward(
+        forward_outputs, forward_codes = ctx.receptor_pool.forward(
             endpoints = endpoints, 
             inputs = inputs, 
-            modality = modality
+            modality = modality,
+            timeout = timeout
         )
         ctx.forward_codes = forward_codes
-        return (torch.tensor(forward_codes, dtype=torch.int64), *outputs)
+        return (torch.tensor(forward_codes, dtype=torch.int64), *forward_outputs)
 
     @staticmethod
     @once_differentiable
@@ -122,17 +128,19 @@ class Dendrite( torch.autograd.Function ):
         grads_cpu = [ x.cpu().clone().detach() for x in output_grads ]
         input_grads, _ =  ctx.receptor_pool.backward (
             endpoints = ctx.endpoints, 
-            inputs = ctx.inputs, 
-            grads = grads_cpu, 
-            modality = ctx.modality
+            inputs_x = ctx.inputs, 
+            grads_dy = grads_cpu, 
+            modality = ctx.modality,
+            timeout = ctx.timeout
         )
-        return (None, None, None, None, *input_grads)
+        return (None, None, None, None, None, *input_grads)
 
     def _forward(
                 self,
                 endpoints: List['bittensor.Endpoint'],
                 inputs: List[torch.Tensor],
-                modality: bittensor.proto.Modality
+                modality: bittensor.proto.Modality,
+                timeout: int = 3
             ) -> Tuple[torch.LongTensor, List[torch.Tensor]]:
             r""" Internal Forward tensor inputs to a list of neuron endpoints.
 
@@ -159,6 +167,7 @@ class Dendrite( torch.autograd.Function ):
                 DUMMY, 
                 endpoints, 
                 modality,
+                timeout,
                 *inputs
             )
             codes = forward_response[0]
@@ -167,8 +176,9 @@ class Dendrite( torch.autograd.Function ):
 
     def forward_image(
         self, 
-        endpoints: Union[ List['bittensor.Endpoint'], 'bittensor.Endpoint'] ,
-        inputs: List[ torch.FloatTensor ]
+        endpoints: Union[ List['bittensor.Endpoint'], 'bittensor.Endpoint'],
+        inputs: List[ torch.FloatTensor ],
+        timeout: int = 3
     ) -> Tuple[ Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor]:
         r""" Forward image inputs to endpoints.
 
@@ -192,7 +202,7 @@ class Dendrite( torch.autograd.Function ):
             raise ValueError('endpoints must be of type list or bittensor.Endpoint. Got {}'.format(type(endpoints)))
 
         if not isinstance(inputs, list) and not isinstance(inputs, torch.FloatTensor):
-            raise ValueError('inputs must be of type list[torch.LongTensor] or torch.LongTensor. Got {}'.format(type(inputs)))
+            raise ValueError('inputs must be of type list[torch.FloatTensor] or torch.FloatTensor. Got {}'.format(type(inputs)))
         
         # Format to list.
         non_list_inputs = False
@@ -219,7 +229,7 @@ class Dendrite( torch.autograd.Function ):
             
         # Check list types.
         if not isinstance(inputs[0], torch.FloatTensor):
-            raise ValueError('inputs must be of type torch.LongTensor. Got {}'.format(type(inputs[0])))
+            raise ValueError('inputs must be of type torch.FloatTensor. Got {}'.format(type(inputs[0])))
         if not isinstance(endpoints[0], bittensor._endpoint.endpoint_impl.Endpoint):
             raise ValueError('endpoints must be of type bittensor.Endpoint. Got {}'.format(type(endpoints)))
 
@@ -232,7 +242,8 @@ class Dendrite( torch.autograd.Function ):
         responses, codes = self._forward(
             endpoints = endpoints, 
             inputs = inputs, 
-            modality = bittensor.proto.Modality.IMAGE
+            modality = bittensor.proto.Modality.IMAGE,
+            timeout = timeout
         )
 
         # Format to singletons.
@@ -245,7 +256,8 @@ class Dendrite( torch.autograd.Function ):
     def forward_tensor(
             self, 
             endpoints: Union[ List['bittensor.Endpoint'], 'bittensor.Endpoint'] ,
-            inputs: List[ torch.FloatTensor ]
+            inputs: List[ torch.FloatTensor ],
+            timeout: int = 3
         ) -> Tuple[ Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor]:
         r""" Forward tensor inputs to endpoints.
 
@@ -269,7 +281,7 @@ class Dendrite( torch.autograd.Function ):
             raise ValueError('endpoints must be of type list or bittensor.Endpoint. Got {}'.format(type(endpoints)))
 
         if not isinstance(inputs, list) and not isinstance(inputs, torch.FloatTensor):
-            raise ValueError('inputs must be of type list[torch.LongTensor] or torch.LongTensor. Got {}'.format(type(inputs)))
+            raise ValueError('inputs must be of type list[torch.FloatTensor] or torch.FloatTensor. Got {}'.format(type(inputs)))
         
         # Format to list.
         non_list_inputs = False
@@ -296,7 +308,7 @@ class Dendrite( torch.autograd.Function ):
             
         # Check list types.
         if not isinstance(inputs[0], torch.FloatTensor):
-            raise ValueError('inputs must be of type torch.LongTensor. Got {}'.format(type(inputs[0])))
+            raise ValueError('inputs must be of type torch.FloatTensor. Got {}'.format(type(inputs[0])))
         if not isinstance(endpoints[0], bittensor._endpoint.endpoint_impl.Endpoint):
             raise ValueError('endpoints must be of type bittensor.Endpoint. Got {}'.format(type(endpoints)))
 
@@ -312,7 +324,8 @@ class Dendrite( torch.autograd.Function ):
         responses, codes = self._forward(
             endpoints = endpoints, 
             inputs = inputs, 
-            modality = bittensor.proto.Modality.TENSOR
+            modality = bittensor.proto.Modality.TENSOR,
+            timeout = timeout
         )
 
         # Format to singletons.
@@ -326,7 +339,8 @@ class Dendrite( torch.autograd.Function ):
     def forward_text(
             self,
             endpoints: Union[ List['bittensor.Endpoint'], 'bittensor.Endpoint'] ,
-            inputs: List[ torch.LongTensor ]
+            inputs: List[ torch.LongTensor ],
+            timeout: int = 3
         ) -> Tuple[ Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor]:
         r""" Forward text inputs to a list of neuron endpoints and block until responses or timeout.
 
@@ -392,7 +406,8 @@ class Dendrite( torch.autograd.Function ):
         responses, codes = self._forward(
             endpoints = endpoints, 
             inputs = inputs, 
-            modality = bittensor.proto.Modality.TEXT
+            modality = bittensor.proto.Modality.TEXT,
+            timeout = timeout
         )
 
         # Format to singletons.

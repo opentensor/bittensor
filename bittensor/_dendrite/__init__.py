@@ -40,7 +40,7 @@ class dendrite:
                 receptor_pool (:obj:`bittensor.ReceptorPool`, `optional`):
                     bittensor receptor pool, maintains a pool of active TCP connections.
         """
-        if config == None: config = dendrite.config().dataloader
+        if config == None: config = dendrite.config().dendrite
         config = copy.deepcopy(config)
         if wallet == None:
             wallet = bittensor.wallet( config = config.wallet )

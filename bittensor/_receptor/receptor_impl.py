@@ -115,7 +115,7 @@ class Receptor(nn.Module):
         self, 
         inputs: torch.Tensor, 
         modality: bittensor.proto.Modality,
-        timeout: int = 3
+        timeout: int,
     ) -> Tuple[torch.Tensor, int]:
         r""" Torch.nn.Module forward call: Triggers the grpc call to the remote endpoint.
             Call returns the output tensor and a bittensor.proto.ReturnCode.
@@ -150,7 +150,7 @@ class Receptor(nn.Module):
             inputs_x: torch.Tensor, 
             grads_dy: torch.Tensor, 
             modality: bittensor.proto.Modality,
-            timeout: int = 3
+            timeout: int
         ) -> Tuple[ torch.Tensor, int ]:
         r""" Backward call: Triggers the grpc Backward call to the associated endpoint.
 
@@ -158,7 +158,7 @@ class Receptor(nn.Module):
                 inputs_x (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
                     inputs from previous forward call.
     
-                grads (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
+                grads_dy (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
                     gradient outputs.
 
                 modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
@@ -175,8 +175,8 @@ class Receptor(nn.Module):
                     Return code associated with backward call.
         """
         outputs, code = self._call_backward( 
-            inputs = inputs_x, 
-            grads = grads_dy, 
+            inputs_x = inputs_x, 
+            grads_dy = grads_dy, 
             modality = modality,
             timeout = timeout
         )

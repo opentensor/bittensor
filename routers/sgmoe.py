@@ -152,7 +152,7 @@ class SGMOERouter( router.Router ):
         # topk_weights.shape = [ real_topk ]
         # topk_indices: (torch.int64): indicies of uids with highest scores.
         # topk_indices.shape = [ real_topk ]
-        real_topk = min( n_filtered, self.sgmoe.topk )
+        real_topk = min( n_filtered, self.config.topk )
         topk_weights, topk_indices = filtered_mean_weights.topk(real_topk, dim=0) 
 
         # Get the real uids with the top scores.

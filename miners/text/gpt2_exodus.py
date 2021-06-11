@@ -26,9 +26,13 @@ import argparse
 import bittensor
 import math
 import torch
+import traceback
 import os
 import sys
 
+from termcolor import colored
+from typing import List
+from qqdm import qqdm, format_str
 from datetime import datetime
 from loguru import logger; logger = logger.opt(colors=True)
 from types import SimpleNamespace
@@ -42,29 +46,53 @@ import bittensor.utils.networking as net
 class miner:
 
     def __init__( self, config: 'bittensor.config' = None ):
-        if config == None: config = miner.config().miner
+        if config == None: config = miner.config()
         self.config = config; miner.check_config( self.config ); print ( self.config )
-        self.router = SGMOERouter( config = self.config.router )
-        self.nucleus = GPT2Nucleus( config = self.config.nucleus )
-        self.wallet = bittensor.wallet( config = self.config.wallet )
-        self.axon = bittensor.axon( config = self.config.axon, wallet = self.wallet)
-        self.dendrite = bittensor.dendrite( config = self.config.dendrite, wallet = self.wallet )
-        self.subtensor = bittensor.subtensor( config = self.config.subtensor )
-        self.metagraph = bittensor.metagraph( config = self.config.metagraph )
-        self.row_weights = torch.ones( [0] )
-        optim_groups = [
-            {"params": self.router.parameters() },
-            {"params": self.nucleus.parameters() },
-        ]
-        self.optimizer = torch.optim.AdamW( optim_groups, lr = self.config.learning_rate, betas = (0.9, 0.95) )
+        self.wallet = bittensor.wallet( 
+            config = self.config.wallet 
+        )
+        self.dendrite = bittensor.dendrite( 
+            config = self.config.dendrite, 
+            wallet = self.wallet 
+        )
+        self.subtensor = bittensor.subtensor( 
+            config = self.config.subtensor 
+        )
+        self.metagraph = bittensor.metagraph( 
+            config = self.config.metagraph 
+        )
+        self.axon = bittensor.axon( 
+            config = self.config.axon, 
+            wallet = self.wallet, 
+            forward_callback = self.forward,
+            backward_callback = self.backward
+        )
+        self.dataset = bittensor.dataloader(
+            config = self.config.dataloader
+        )
+        self.router = SGMOERouter( 
+            config = self.config.router 
+        )
+        self.nucleus = GPT2Nucleus( 
+            config = self.config.nucleus,
+            routing_callback = self.route
+        )
+        self.optimizer = torch.optim.AdamW( 
+            [
+                {"params": self.router.parameters()}, 
+                {"params": self.nucleus.parameters()}
+            ], 
+            lr = self.config.learning_rate, betas = (0.9, 0.95) 
+        )
+        self.mechanism_weights = torch.ones( [0] )
         self.epoch = 0
-        self.epoch_loss = math.inf
         self.global_step = 0
-        self.refresh()
+        self.epoch_loss = math.inf/2
+        self.best_epoch_loss = math.inf
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        assert config.batch_size_train > 0, "batch_size_train must a positive value"
+        assert config.batch_size_train > 0, "batch_size_train must be a positive value"
         assert config.learning_rate > 0, "learning_rate must be a positive value."
         bittensor.wallet.check_config( config.wallet )
         bittensor.subtensor.check_config( config.subtensor )
@@ -80,137 +108,163 @@ class miner:
             os.makedirs(config.full_path)
 
     @staticmethod   
-    def config( config: 'bittensor.Config' = None, namespace: str = 'miner' ) -> 'bittensor.Config':
-        if config == None: config = bittensor.config()
-        miner_config = bittensor.config()
-        config[ namespace ] = miner_config
+    def config() -> 'bittensor.Config':
+        config = bittensor.config()
         parser = argparse.ArgumentParser()
-        if namespace != '': namespace += '.'
-        parser.add_argument('--' + namespace + 'debug', dest='debug', default=False, action='store_true', help='''Turn on bittensor debugging information''')
-        parser.add_argument('--' + namespace + 'config', dest ='config', type=str, help='If set, arguments are overridden by passed file.')
-        parser.add_argument('--' + namespace + 'modality', dest ='modality', default=0, type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''')
-        parser.add_argument('--' + namespace + 'use_upnpc', dest ='use_upnpc', default=False, action='store_true', help='''Turns on port forwarding on your router using upnpc.''')
-        parser.add_argument('--' + namespace + 'record_log', dest='record_log',  default=False, action='store_true', help='''Turns on logging to file.''')   
-        parser.add_argument('--' + namespace + 'root_dir', dest='root_dir', default='~/.bittensor/miners/', type=str, help='Root path to load and save data associated with each miner')
-        parser.add_argument('--' + namespace + 'use_tensorboard', dest ='use_tensorboard', default=True, action='store_true', help='Turn on bittensor logging to tensorboard')
-        parser.add_argument('--' + namespace + 'learning_rate', dest ='learning_rate', default=3e-2, type=float, help='Training initial learning rate.')
-        parser.add_argument('--' + namespace + 'weight_decay', dest ='weight_decay', default=0.25, type=float, help='nucleus parameter weight decay.') 
-        parser.add_argument('--' + namespace + 'lr_decay', dest ='lr_decay', default=True, type=bool, help='learning rate decay params: linear warmup followed by cosine decay to 10%% of original.' )
-        parser.add_argument('--' + namespace + 'warmup_tokens', dest ='warmup_tokens', default=375e6, type=float, help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)')
-        parser.add_argument('--' + namespace + 'final_tokens', dest ='final_tokens', default=260e9, type=float, help='At what point we reach 10%% of original LR')
-        parser.add_argument('--' + namespace + 'clip_gradients', dest='clip_gradients', default=1.0, type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.')
-        parser.add_argument('--' + namespace + 'n_epochs', dest='n_epochs', default=-1, type=int, help='Number of training epochs.')
-        parser.add_argument('--' + namespace + 'epoch_length', dest='epoch_length', default=500, type=int, help='Iterations of training per epoch')
-        parser.add_argument('--' + namespace + 'batch_size_train', dest='batch_size_train',  default=2, type=int, help='Training batch size.')
-        parser.add_argument('--' + namespace + 'name', dest ='name', default='gpt2_exodus', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ')
-        parser.parse_known_args( namespace = miner_config )
-        bittensor.wallet.config( miner_config )
-        bittensor.subtensor.config( miner_config )
-        bittensor.metagraph.config( miner_config )
-        bittensor.dataloader.config( miner_config )
-        bittensor.dendrite.config( miner_config )
-        bittensor.axon.config( miner_config )
-        GPT2Nucleus.config( miner_config )
-        SGMOERouter.config( miner_config )
+        parser.add_argument('--miner.debug', dest='debug', action='store_true', help='''Turn on bittensor debugging information''', default=False)
+        parser.add_argument('--miner.config', dest ='config', type=str, help='If set, arguments are overridden by passed file.')
+        parser.add_argument('--miner.modality', dest ='modality', type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''', default=0)
+        parser.add_argument('--miner.use_upnpc', dest ='use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
+        parser.add_argument('--miner.record_log', dest='record_log', action='store_true', help='''Turns on logging to file.''', default=True)   
+        parser.add_argument('--miner.root_dir', dest='root_dir', type=str, help='Root path to load and save data associated with each miner', default='~/.bittensor/miners/')
+        parser.add_argument('--miner.use_tensorboard', dest ='use_tensorboard', action='store_true', help='Turn on bittensor logging to tensorboard', default=True)
+        parser.add_argument('--miner.learning_rate', dest ='learning_rate', type=float, help='Training initial learning rate.', default=3e-2)
+        parser.add_argument('--miner.weight_decay', dest ='weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25) 
+        parser.add_argument('--miner.lr_decay', dest ='lr_decay', type=bool, help='learning rate decay params: linear warmup followed by cosine decay to 10%% of original.', default=True)
+        parser.add_argument('--miner.warmup_tokens', dest ='warmup_tokens', type=float, help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)', default=375e6)
+        parser.add_argument('--miner.final_tokens', dest ='final_tokens', type=float, help='At what point we reach 10%% of original LR', default=260e9)
+        parser.add_argument('--miner.clip_gradients', dest='clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
+        parser.add_argument('--miner.n_epochs', dest='n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
+        parser.add_argument('--miner.epoch_length', dest='epoch_length', type=int, help='Iterations of training per epoch', default=500)
+        parser.add_argument('--miner.batch_size_train', dest='batch_size_train', type=int, help='Training batch size.', default=2)
+        parser.add_argument('--miner.reload', dest='reload',action='store_true', help='''Reload training from previous trial run.''', default=False )
+        parser.add_argument('--miner.restart_on_failure', dest='restart_on_failure', action='store_true', help='''Restart miner on unknown error.''', default=False)
+        parser.add_argument('--miner.name', dest ='name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
+        parser.parse_known_args( namespace = config )
+        bittensor.wallet.config( config )
+        bittensor.subtensor.config( config )
+        bittensor.metagraph.config( config )
+        bittensor.dataloader.config( config )
+        bittensor.dendrite.config( config )
+        bittensor.axon.config( config )
+        GPT2Nucleus.config( config )
+        SGMOERouter.config( config )
         return config
 
     def __enter__(self):
+        self.startup()
 
-        # ---- Setup logging ----
-        if self.config.record_log == True:
-            filepath = self.config.full_path + "/bittensor_output.log"
-            logger.add (
-                filepath,
-                format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
-                rotation="25 MB",
-                retention="10 days"
+    def __exit__ ( self, exc_type, exc_value, exc_traceback ): 
+        self.shutdown()
+
+    def run( self ):
+        r""" Miner main loop.
+        """
+        # ---- Setup ----
+        with self:  
+
+            # Optionally reload previous run.
+            if self.config.reload:
+                self.reload()
+            else:
+                self.save()
+
+            # --- Run until ----
+            while self.epoch < self.config.n_epochs:
+                try:
+                    # ---- Checkpoint state ----
+                    self.checkpoint()
+
+                    # ---- Train state ----
+                    self.run_epoch()
+
+                    # ---- Set weights on chain ----
+                    self.set_mechanism_weights()
+                
+                except KeyboardInterrupt:
+                    # User ended.
+                    break
+
+                except Exception as e:
+                    logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
+                    if self.config.restart_on_failure == True:
+                        logger.info('Restarting from last saved state.')
+                        self.reload()
+                        continue
+                    else:
+                        break
+
+    # --- Run Epoch ----
+    def run_epoch( self ):
+        # --- Init Epoch ----
+        total_epoch_loss = 0.0
+        epoch_batches = self.dataset.dataloader( self.config.epoch_length )
+        progress_bar = qqdm(enumerate(epoch_batches), total=len(epoch_batches), desc=format_str('blue', f'Epoch Progress'))
+        for iteration, (inputs) in progress_bar:
+
+            # ---- Forward / Backward ----
+            prev_mechanism_weights = self.mechanism_weights.tolist()
+            output = self.train ( batch = { 'inputs': inputs } )
+            next_mechanism_weights = self.mechanism_weights.tolist()
+            total_epoch_loss += output.local_target_loss.item()
+
+            # ---- Update training state ----
+            self.epoch_logs ( 
+                progress_bar, 
+                iteration = iteration, 
+                output = output, 
+                prev_mechanism_weights = prev_mechanism_weights, 
+                next_mechanism_weights = next_mechanism_weights 
             )
-            logger.info('LOGGING is <green>ON</green> with sink: <cyan>{}</cyan>', filepath)
-        else: 
-            logger.info('LOGGING is <red>OFF</red>')
+            self.global_step += 1
 
-        # ---- Setup tensorboard ----
-        if self.config.use_tensorboard == True:
-            event_file_dir = self.config.full_path + '/tensorboard-' + '-'.join(str(datetime.now()).split())
-            self.tensorboard = SummaryWriter( log_dir = event_file_dir )
-            self._tensorboard_program = program.TensorBoard()
-            self._tensorboard_program.configure(argv=[None, '--logdir', event_file_dir ])
-            self._tensorbaord_url = self._tensorboard_program.launch()
-            logger.info('TENSORBOARD is <green>ON</green> with entrypoint: <cyan>http://localhost:6006/</cyan>', )
-        else: 
-            logger.info('TENSORBOARD is <red>OFF</red>')
+        self.epoch_loss = total_epoch_loss / (iteration + 1) 
+        self.epoch += 1
 
-        # ---- Setup debugging ----
-        if self.config.debug: bittensor.__debug_on__ = True; logger.info('DEBUG is <green>ON</green>')
-        else: logger.info('DEBUG is <red>OFF</red>')
+    # ---- Training call ----
+    def train ( self, batch: dict ) -> SimpleNamespace:
+        r""" Runs a single training batch through the nucleus and applies a gradient update.
+            Args:
+                batch ( dict, `required`): 
+                    training batch dictionary.           
+            Returns:
+                output = SimpleNamespace ( 
+                    local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Hidden layer context.
 
-         # ---- Setup UPNPC ----
-        if self.config.use_upnpc: 
-            logger.info('UPNPC is <green>ON</green>')
-            try:
-                self.external_port = net.upnpc_create_port_map( local_port = self.axon.local_port )
-            except net.UPNPCException as upnpc_exception:
-                logger.critical('Failed to hole-punch with upnpc')
-                sys.exit()
-        else: 
-            logger.info('UPNPC is <red>OFF</red>')
-            self.external_port = self.config.axon.local_port
+                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Hidden layer encoding produced using local_context.
 
-        # ---- Get external ip ----
-        logger.info('\nFinding external ip...')
-        try:
-            self.external_ip = net.get_external_ip()
-        except net.ExternalIPNotFound as external_port_exception:
-            logger.critical('Unable to attain your external ip. Check your internet connection.')
-            sys.exit()
-        logger.success('Found external ip: <cyan>{}</cyan>', self.external_ip)
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                        GPT MLM Target predictions produced using local_context. 
 
-        # ---- Setup Wallet. ----
-        logger.info('\nLoading wallet...')
-        if not self.wallet.has_coldkeypub:
-            self.wallet.create_new_coldkey( n_words = 12, use_password = True )
-        assert self.wallet.has_coldkeypub
-        if not self.wallet.has_hotkey:
-            self.wallet.create_new_hotkey( n_words = 12, use_password = False )
-        assert self.wallet.has_hotkey
+                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        GPT MLM loss using local_context.
 
-        # ---- Setup metagraph ----
-        self.metagraph.load()
-        self.metagraph.sync()
+                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
+                        Hidden layer encoding produced using the remote_context.
 
-        # ---- Connect to chain ----
-        logger.info('\nConnecting to network...')
-        self.subtensor.connect()
-        if not self.subtensor.is_connected():
-            logger.critical('Failed to connect subtensor to network:<cyan>{}</cyan>', self.subtensor.network)
-            quit()  
+                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
+                        GPT MLM Target predictions using the remote_context.
 
-        # ---- Subscribe to chain ----
-        logger.info('\nSubscribing to chain...')
-        subscribe_success = self.subtensor.subscribe(
-                wallet = self.wallet,
-                ip = self.external_ip, 
-                port = self.external_port,
-                modality = bittensor.proto.Modality.TEXT,
-                wait_for_finalization = True,
-                timeout = 4 * bittensor.__blocktime__,
+                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+                        GPT MLM loss using the remote_context.
+
+                    remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                        Joined responses from network call.
+
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                        Distillation loss between local_context and remote_context.
+
+            )
+        """
+        # ---- Forward pass ----
+        inputs = batch['inputs']
+        output = self.nucleus.remote_forward(
+            inputs = inputs,
+            training = True,
         )
-        if not subscribe_success:
-            logger.critical('Failed to subscribe neuron.')
-            quit()
 
-        # ---- Starting axon ----
-        logger.info('\nStarting Axon...')
-        self.axon.start()
+        # ---- Backward pass ----
+        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+        output.loss.backward() # Accumulates gradients on the nucleus.
+        clip_grad_norm_(self.nucleus.parameters(), self.config.clip_gradients)
+        clip_grad_norm_(self.router.parameters(), self.config.clip_gradients)
+        self.optimizer.step() # Applies accumulated gradients.
+        self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
-    def __exit__(self):
-        # ---- Stop axon ----
-        logger.info('\nStopping Axon...')
-        self.axon.stop()
-
-    def run ( self ):
-        with self:
-            pass
+        # ---- Update global loss ----
+        return output
 
     # ---- Axon Forward call ----
     def forward ( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
@@ -261,8 +315,8 @@ class miner:
         return None
 
     def route ( self, inputs: torch.LongTensor, query: torch.FloatTensor ) -> torch.FloatTensor:
-        r""" Routing function for a bittensor nucleus. Accepts tokenized text inputs and a query. Routes text inputs to neurons
-            based on that query. This function must be overridden by a miner class and assigned to the nucleus.
+        r""" Accepts tokenized text inputs and a query. Routes text inputs to neurons
+            based on that query. 
 
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_dim)`, `required`): 
@@ -272,107 +326,67 @@ class miner:
                     Context tensor used to select which neurons to query for each example.
             
             Returns:
-                remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
-                    Joined responses from network call.
+                response (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    Joined responses from the network call.
         """
         # ---- Forward messages through network ---- 
         outputs = self.router.forward_text( self.metagraph, self.dendrite, inputs, query )
 
-        # ---- Train row weights ----
-        self.row_weights = (1 - 0.1) * self.row_weights + 0.1 * outputs.weights # Moving avg update.
+        # ---- Train mechanism weights ----
+        self.mechanism_weights = (1 - 0.1) * self.mechanism_weights + 0.1 * outputs.weights # Moving avg update.
 
-        # ---- Return responses -----
-        return outputs.responses
+        # ---- Return response -----
+        return outputs.response
 
-    # ---- Training call ----
-    def train ( self, batch: dict ) -> SimpleNamespace:
-        r""" Runs a single training batch through the nucleus and applies a gradient update.
-            Args:
-                batch ( dict, `required`): 
-                    training batch dictionary as returned from get_epoch_batches            
-            Returns:
-                output = SimpleNamespace ( 
-                    local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                        Hidden layer context.
-
-                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                        Hidden layer encoding produced using local_context.
-
-                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
-                        GPT MLM Target predictions produced using local_context. 
-
-                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        GPT MLM loss using local_context.
-
-                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
-                        Hidden layer encoding produced using the remote_context.
-
-                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
-                        GPT MLM Target predictions using the remote_context.
-
-                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
-                        GPT MLM loss using the remote_context.
-
-                    remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
-                        Joined responses from network call.
-
-                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        Distillation loss between local_context and remote_context.
-
-            )
-        """
-        # ---- Forward pass ----
-        inputs = batch['inputs']
-        output = self.nucleus.remote_forward(
-            inputs = inputs,
-            training = True,
-        )
-
-        # ---- Backward pass ----
-        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-        output.loss.backward() # Accumulates gradients on the nucleus.
-        clip_grad_norm_(self.nucleus.parameters(), self.config.clip_gradients)
-        clip_grad_norm_(self.router.parameters(), self.config.clip_gradients)
-        self.optimizer.step() # Applies accumulated gradients.
-        self.optimizer.zero_grad() # Zeros out gradients for next accummulation
-        self.decay_learning_rate( inputs )
-
-        # ---- Update global loss ----
-        return output
-
-    def refresh( self ):
-        self.save_state()
-        self.reload_sate()
+    def checkpoint( self ):
+        if self.best_epoch_loss >= self.epoch_loss:
+            self.save()
         self.metagraph.sync()
-        optim_groups = [
-            {"params": self.router.parameters() },
-            {"params": self.nucleus.parameters() },
-        ]
-        self.optimizer = torch.optim.AdamW( optim_groups, lr = self.config.learning_rate, betas = (0.9, 0.95) )
-
-    def reload_sate( self ):
+        self.metagraph.save()
+        self.reload()
+        
+    def reload( self ):
         try:
             state_dict = torch.load("{}/model.torch".format( self.config.full_path ))
+
+            # ---- Load training state.
             self.epoch = state_dict['epoch']
             self.epoch_loss = state_dict['epoch_loss']
             self.global_step = state_dict['global_step']
-            self.row_weights = state_dict['row_weights'] # Load row weights
-            self.nucleus.load_state_dict( state_dict['nucleus_state'] ) # Load nucleus
-            self.router.load_state_dict( state_dict['router_state']) # Load router
-            self.optimizer.load_state_dict( state_dict['optimizer_state'] ) # Load optimizer.
+
+            # ---- Load router and resize to the metagraph size.
+            self.router.load_state_dict( state_dict['router_state'] ) # Load router
             self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
+
+            # ---- Load nucleus and attach the routing function.
+            self.nucleus.load_state_dict( state_dict['nucleus_state'] ) # Load nucleus
             self.nucleus.attach( self )# Re-assign the routing function.
+
+            # --- Load optimizer.
+            optim_groups = [
+                {"params": self.router.parameters() },
+                {"params": self.nucleus.parameters() },
+            ]
+            self.optimizer = torch.optim.AdamW( optim_groups, lr = self.config.learning_rate, betas = (0.9, 0.95) )
+
+            # ---- Load mechanism weights and pad to size.
+            self.mechanism_weights = state_dict['mechanism_weights']
+            self.mechanism_weights = torch.nn.functional.pad( 
+                self.mechanism_weights, 
+                pad = [0, self.metagraph.n - self.mechanism_weights.numel()], 
+                value=0 
+            ) 
             logger.success( 'Reloaded model from: <cyan>{}/model.torch</cyan>\n'.format( self.config.full_path ))
         except Exception as e:
             logger.exception('Failed to reload model with error: {}', e)
 
-    def save_state( self ):
+    def save( self ):
         try:
             state_dict = {
                 'epoch': self.epoch,
                 'epoch_loss': self.epoch_loss,
                 'global_step': self.global_step,
-                'row_weights': self.row_weights, # Save row.
+                'mechanism_weights': self.mechanism_weights, # Save row.
                 'router_state': self.router.state_dict(), # Save router state.
                 'nucleus_state': self.nucleus.state_dict(), # Save nucleus state.
                 'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
@@ -383,25 +397,168 @@ class miner:
              logger.exception('Failed to save model with error:{}', e)
 
     def set_mechanism_weights( self ):
-        r""" Called after every training epoch, sets the row_weights into the incentive mechanism on chain.
+        r""" Called after every training epoch, sets the mechanism_weights into the incentive mechanism on chain.
         """
         try:
-            row_weights = self.get_row_weights()
             uids = self.metagraph.uids
             did_set = self.subtensor.set_weights(
                 wallet = self.wallet,
                 uids = uids,
-                weights = row_weights, 
+                weights = self.mechanism_weights, 
                 wait_for_inclusion = True
             )
             if did_set:
-                logger.success('Successfully set weights with row:\n {}', row_weights.tolist())
+                logger.success('Successfully set weights with row:\n {}', self.mechanism_weights.tolist())
             else:
                 logger.warning('Failed to set weights on chain.')
-                self.reconnect_to_chain()
+                self.subtensor = bittensor.subtensor( config = self.config.subtensor )
+                self.subtensor.connect()
 
         except Exception as e:
             logger.error('Failure setting weights on chain with error: {}', e)
+
+    def startup( self ):
+
+        # ---- Setup logging ----
+        if self.config.record_log == True:
+            filepath = self.config.full_path + "/bittensor_output.log"
+            logger.add (
+                filepath,
+                format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
+                rotation="25 MB",
+                retention="10 days"
+            )
+            logger.info('LOGGING is <green>ON</green> with sink: <cyan>{}</cyan>', filepath)
+        else: 
+            logger.info('LOGGING is <red>OFF</red>')
+
+        # ---- Setup tensorboard ----
+        if self.config.use_tensorboard == True:
+            event_file_dir = self.config.full_path + '/tensorboard-' + '-'.join(str(datetime.now()).split())
+            self.tensorboard = SummaryWriter( log_dir = event_file_dir )
+            self._tensorboard_program = program.TensorBoard()
+            self._tensorboard_program.configure(argv=[None, '--logdir', event_file_dir ])
+            self._tensorbaord_url = self._tensorboard_program.launch()
+            logger.info('TENSORBOARD is <green>ON</green> with entrypoint: <cyan>http://localhost:6006/</cyan>', )
+        else: 
+            logger.info('TENSORBOARD is <red>OFF</red>')
+
+        # ---- Setup debugging ----
+        if self.config.debug: bittensor.__debug_on__ = True; logger.info('DEBUG is <green>ON</green>')
+        else: logger.info('DEBUG is <red>OFF</red>')
+
+        # ---- Setup UPNPC ----
+        if self.config.use_upnpc: 
+            logger.info('UPNPC is <green>ON</green>')
+            try:
+                self.external_port = net.upnpc_create_port_map( local_port = self.axon.local_port )
+            except net.UPNPCException as upnpc_exception:
+                logger.critical('Failed to hole-punch with upnpc')
+                raise RuntimeError('Failed to hole-punch with upnpc')
+        else: 
+            logger.info('UPNPC is <red>OFF</red>')
+            self.external_port = self.config.axon.local_port
+
+        # ---- Get external ip ----
+        logger.info('\nFinding external ip...')
+        try:
+            self.external_ip = net.get_external_ip()
+        except net.ExternalIPNotFound as external_port_exception:
+            logger.critical('Unable to attain your external ip. Check your internet connection.')
+            raise RuntimeError('Unable to attain your external ip. Check your internet connection.')
+        logger.success('Found external ip: <cyan>{}</cyan>', self.external_ip)
+
+        # ---- Setup Wallet. ----
+        logger.info('\nLoading wallet...')
+        if not self.wallet.has_coldkeypub:
+            self.wallet.create_new_coldkey( n_words = 12, use_password = True )
+        assert self.wallet.has_coldkeypub
+        if not self.wallet.has_hotkey:
+            self.wallet.create_new_hotkey( n_words = 12, use_password = False )
+        assert self.wallet.has_hotkey
+
+        # ---- Setup metagraph ----
+        self.metagraph.load()
+        self.metagraph.sync()
+        self.metagraph.save()
+
+        # ---- Connect to chain ----
+        logger.info('\nConnecting to network...')
+        self.subtensor.connect()
+        if not self.subtensor.is_connected():
+            logger.critical('Failed to connect subtensor to network:<cyan>{}</cyan>', self.subtensor.network)
+            raise RuntimeError('Failed to connect subtensor to network:{}'.format(self.subtensor.network)) 
+
+        # ---- Subscribe to chain ----
+        logger.info('\nSubscribing to chain...')
+        subscribe_success = self.subtensor.subscribe(
+                wallet = self.wallet,
+                ip = self.external_ip, 
+                port = self.external_port,
+                modality = bittensor.proto.Modality.TEXT,
+                wait_for_finalization = True,
+                timeout = 4 * bittensor.__blocktime__,
+        )
+        if not subscribe_success:
+            logger.critical('Failed to subscribe neuron.')
+            raise RuntimeError('Failed to subscribe neuron.')
+
+        # ---- Starting axon ----
+        logger.info('\nStarting Axon...')
+        self.axon.start()
+
+    def shutdown ( self ): 
+        # ---- Stop axon ----
+        logger.info('\nStopping Axon...')
+        self.axon.stop()
+
+    # ---- QQDM Training logs ----
+    def epoch_logs( self, progress_bar, iteration:int, output: SimpleNamespace, prev_mechanism_weights: List[float], next_mechanism_weights: List[float] ):
+        r""" Called by miner.run_training_epoch() after each training step.
+            The function populates and displays the passed progress bar.
+        """
+        try:
+            self_uid = self.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
+            stake = self.metagraph.S[ self_uid ].item()
+            rank = self.metagraph.R[ self_uid ].item()
+            incentive = self.metagraph.I[ self_uid ].item()
+        except:
+            stake = 0.0
+            rank = 0.0
+            incentive = 0.0
+            pass
+        info = {
+            'GS': colored('{}'.format(self.global_step), 'red'),
+            'LS': colored('{}'.format(iteration), 'blue'),
+            'Epoch': colored('{}'.format(self.epoch+1), 'green'),
+            'Loss': colored('{:.4f}'.format(self.epoch_loss), 'yellow'),
+            'Best': colored('{:.4f}'.format(self.best_epoch_loss), 'red'),
+            'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
+            'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
+            'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
+            'nPeers': colored(self.metagraph.n.item(), 'red'),
+            'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
+            'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
+            'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
+            'Axon': self.axon.__str__(),
+            'Dendrite': self.dendrite.__str__(),
+        } 
+        for uid in self.metagraph.uids.tolist():
+            if next_mechanism_weights[uid] != 0:
+                weight_dif = next_mechanism_weights[uid] - prev_mechanism_weights[uid]
+                if weight_dif > 0:
+                    info[colored(str(uid), 'green')] = colored('{:.4f}'.format(next_mechanism_weights[uid]), 'green')
+                elif weight_dif == 0:
+                    info[str(uid)] = colored('{:.4f}'.format(next_mechanism_weights[uid]), 'white')
+                else:
+                    info[colored(str(uid), 'red')] = colored('{:.4f}'.format(next_mechanism_weights[uid]), 'red')
+
+        progress_bar.set_infos( info )
+
+        if self.config.use_tensorboard:
+            self.tensorboard.add_scalar('R-loss', output.remote_target_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('L-loss', output.local_target_loss.item(), self.global_step)
+            self.tensorboard.add_scalar('D-loss', output.distillation_loss.item(), self.global_step)
 
 
 if __name__ == "__main__":
