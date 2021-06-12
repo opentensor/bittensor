@@ -46,6 +46,8 @@ import bittensor.utils.networking as net
 class miner:
 
     def __init__( self, config: 'bittensor.config' = None ):
+        r""" Initializes a miner with the passed config.
+        """
         if config == None: config = miner.config()
         self.config = config; miner.check_config( self.config ); print ( self.config )
         self.wallet = bittensor.wallet( 
@@ -92,6 +94,8 @@ class miner:
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
+        r""" Checks/validates the config namspace object.
+        """
         assert config.batch_size_train > 0, "batch_size_train must be a positive value"
         assert config.learning_rate > 0, "learning_rate must be a positive value."
         bittensor.wallet.check_config( config.wallet )
@@ -109,6 +113,8 @@ class miner:
 
     @staticmethod   
     def config() -> 'bittensor.Config':
+        r""" Fills a config namespace object with information from the command line.
+        """
         config = bittensor.config()
         parser = argparse.ArgumentParser()
         parser.add_argument('--miner.debug', dest='debug', action='store_true', help='''Turn on bittensor debugging information''', default=False)
@@ -153,13 +159,13 @@ class miner:
         # ---- Setup ----
         with self:  
 
-            # Optionally reload previous run.
+            # ---- Optionally reload previous run ----
             if self.config.reload:
                 self.reload()
             else:
                 self.save()
 
-            # --- Run until ----
+            # --- Run until n_epochs ----
             while self.epoch < self.config.n_epochs:
                 try:
                     # ---- Checkpoint state ----
@@ -172,10 +178,11 @@ class miner:
                     self.set_mechanism_weights()
                 
                 except KeyboardInterrupt:
-                    # User ended.
+                    # --- User ended ----
                     break
 
                 except Exception as e:
+                    # --- Unknown error ----
                     logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
                     if self.config.restart_on_failure == True:
                         logger.info('Restarting from last saved state.')
@@ -186,6 +193,8 @@ class miner:
 
     # --- Run Epoch ----
     def run_epoch( self ):
+        r""" Runs through a single training epoch pulled from the dataloader.
+        """
         # --- Init Epoch ----
         total_epoch_loss = 0.0
         epoch_batches = self.dataset.dataloader( self.config.epoch_length )
@@ -198,7 +207,7 @@ class miner:
             next_mechanism_weights = self.mechanism_weights.tolist()
             total_epoch_loss += output.local_target_loss.item()
 
-            # ---- Update training state ----
+            # ---- Logs ----
             self.epoch_logs ( 
                 progress_bar, 
                 iteration = iteration, 
@@ -268,7 +277,7 @@ class miner:
 
     # ---- Axon Forward call ----
     def forward ( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Subscribed to an axon servicing endpoint.
+        r""" Subscribed to an axon servicing endpoint, processes forward messages from the wire.
             The arguments reflect an RPC request from another miner in the network, the response tensor
             should be the hidden units of the local nucleus of shape [batch_size, sequence_len, __network_dim__].
             
@@ -292,7 +301,7 @@ class miner:
 
     # ---- Axon Backward call ----
     def backward ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Subscribed to an axon servicing endpoint.
+        r""" Subscribed to an axon servicing endpoint. Processes backward messages from the wire.
             Arguments reflect an RPC backward request from another miner in the network, the response tensor
             should be the gradients of the miner's nucleus w.r.t to the inputs and the passed output grads.
             
@@ -315,7 +324,8 @@ class miner:
         return None
 
     def route ( self, inputs: torch.LongTensor, query: torch.FloatTensor ) -> torch.FloatTensor:
-        r""" Accepts tokenized text inputs and a query. Routes text inputs to neurons
+        r""" Subscribed to the nucleus as a callback which is made during remote training. 
+            Accepts tokenized text inputs and a query. Routes text inputs to neurons
             based on that query. 
 
             Args:
@@ -339,15 +349,26 @@ class miner:
         return outputs.response
 
     def checkpoint( self ):
-        if self.best_epoch_loss >= self.epoch_loss:
+        r""" Saves, updates and then reload the miner training state.
+        """
+        last_saved = self.get_saved_state()
+        if last_saved == None or last_saved['epoch_loss'] >= self.epoch_loss:
             self.save()
         self.metagraph.sync()
         self.metagraph.save()
         self.reload()
+
+    def get_saved_state( self ):
+        try:
+            return torch.load("{}/model.torch".format( self.config.full_path ))
+        except:
+            return None
         
     def reload( self ):
+        r""" Reloads the training state from the disk.
+        """
         try:
-            state_dict = torch.load("{}/model.torch".format( self.config.full_path ))
+            state_dict = self.get_saved_state()
 
             # ---- Load training state.
             self.epoch = state_dict['epoch']
@@ -381,6 +402,8 @@ class miner:
             logger.exception('Failed to reload model with error: {}', e)
 
     def save( self ):
+        r""" Saves the training state to disk.
+        """
         try:
             state_dict = {
                 'epoch': self.epoch,
@@ -397,7 +420,7 @@ class miner:
              logger.exception('Failed to save model with error:{}', e)
 
     def set_mechanism_weights( self ):
-        r""" Called after every training epoch, sets the mechanism_weights into the incentive mechanism on chain.
+        r""" Called after every training epoch, sets the mechanism weights on chain.
         """
         try:
             uids = self.metagraph.uids
@@ -418,6 +441,8 @@ class miner:
             logger.error('Failure setting weights on chain with error: {}', e)
 
     def startup( self ):
+        r""" Starts and subscribes the miner.
+        """
 
         # ---- Setup logging ----
         if self.config.record_log == True:
@@ -508,14 +533,15 @@ class miner:
         self.axon.start()
 
     def shutdown ( self ): 
+        r""" Shutsdown the miner and it's dependencies.
+        """
         # ---- Stop axon ----
         logger.info('\nStopping Axon...')
         self.axon.stop()
 
     # ---- QQDM Training logs ----
     def epoch_logs( self, progress_bar, iteration:int, output: SimpleNamespace, prev_mechanism_weights: List[float], next_mechanism_weights: List[float] ):
-        r""" Called by miner.run_training_epoch() after each training step.
-            The function populates and displays the passed progress bar.
+        r""" Called after every training step. Displays miner state to screen.
         """
         try:
             self_uid = self.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
