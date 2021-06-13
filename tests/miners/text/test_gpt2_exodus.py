@@ -4,13 +4,13 @@ import bittensor
 import torch
 import numpy
 
-from miners.text.gpt2_exodus import miner
+from miners.text.gpt2_exodus import neuron
 
 def test_run_gpt2():
-    config = miner.config()
+    config = neuron.config()
     config.n_epochs = 1
     config.epoch_length = 2
-    gpt2_exodus_miner = miner( config = config )
+    gpt2_exodus_miner = neuron( config = config )
     gpt2_exodus_miner.subtensor.connect = MagicMock(return_value = True)  
     gpt2_exodus_miner.subtensor.is_connected = MagicMock(return_value = True)      
     gpt2_exodus_miner.subtensor.subscribe = MagicMock(return_value = True)  

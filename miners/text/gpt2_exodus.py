@@ -43,13 +43,13 @@ from tensorboard import program
 from torch.utils.tensorboard import SummaryWriter
 import bittensor.utils.networking as net
 
-class miner:
+class neuron:
 
     def __init__( self, config: 'bittensor.config' = None ):
-        r""" Initializes a miner with the passed config.
+        r""" Initializes a neuron with the passed config.
         """
-        if config == None: config = miner.config()
-        self.config = config; miner.check_config( self.config ); print ( self.config )
+        if config == None: config = neuron.config()
+        self.config = config; neuron.check_config( self.config ); print ( self.config )
         self.wallet = bittensor.wallet( 
             config = self.config.wallet 
         )
@@ -118,25 +118,25 @@ class miner:
         """
         config = bittensor.config()
         parser = argparse.ArgumentParser()
-        parser.add_argument('--miner.debug', dest='debug', action='store_true', help='''Turn on bittensor debugging information''', default=False)
-        parser.add_argument('--miner.config', dest ='config', type=str, help='If set, arguments are overridden by passed file.')
-        parser.add_argument('--miner.modality', dest ='modality', type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''', default=0)
-        parser.add_argument('--miner.use_upnpc', dest ='use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
-        parser.add_argument('--miner.record_log', dest='record_log', action='store_true', help='''Turns on logging to file.''', default=True)   
-        parser.add_argument('--miner.root_dir', dest='root_dir', type=str, help='Root path to load and save data associated with each miner', default='~/.bittensor/miners/')
-        parser.add_argument('--miner.use_tensorboard', dest ='use_tensorboard', action='store_true', help='Turn on bittensor logging to tensorboard', default=True)
-        parser.add_argument('--miner.learning_rate', dest ='learning_rate', type=float, help='Training initial learning rate.', default=3e-2)
-        parser.add_argument('--miner.weight_decay', dest ='weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25) 
-        parser.add_argument('--miner.lr_decay', dest ='lr_decay', type=bool, help='learning rate decay params: linear warmup followed by cosine decay to 10%% of original.', default=True)
-        parser.add_argument('--miner.warmup_tokens', dest ='warmup_tokens', type=float, help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)', default=375e6)
-        parser.add_argument('--miner.final_tokens', dest ='final_tokens', type=float, help='At what point we reach 10%% of original LR', default=260e9)
-        parser.add_argument('--miner.clip_gradients', dest='clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
-        parser.add_argument('--miner.n_epochs', dest='n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
-        parser.add_argument('--miner.epoch_length', dest='epoch_length', type=int, help='Iterations of training per epoch', default=500)
-        parser.add_argument('--miner.batch_size_train', dest='batch_size_train', type=int, help='Training batch size.', default=2)
-        parser.add_argument('--miner.reload', dest='reload',action='store_true', help='''Reload training from previous trial run.''', default=False )
-        parser.add_argument('--miner.restart_on_failure', dest='restart_on_failure', action='store_true', help='''Restart miner on unknown error.''', default=False)
-        parser.add_argument('--miner.name', dest ='name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
+        parser.add_argument('--neuron.debug', dest='debug', action='store_true', help='''Turn on bittensor debugging information''', default=False)
+        parser.add_argument('--neuron.config', dest ='config', type=str, help='If set, arguments are overridden by passed file.')
+        parser.add_argument('--neuron.modality', dest ='modality', type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''', default=0)
+        parser.add_argument('--neuron.use_upnpc', dest ='use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
+        parser.add_argument('--neuron.record_log', dest='record_log', action='store_true', help='''Turns on logging to file.''', default=True)   
+        parser.add_argument('--neuron.root_dir', dest='root_dir', type=str, help='Root path to load and save data associated with each miner', default='~/.bittensor/miners/')
+        parser.add_argument('--neuron.use_tensorboard', dest ='use_tensorboard', action='store_true', help='Turn on bittensor logging to tensorboard', default=True)
+        parser.add_argument('--neuron.learning_rate', dest ='learning_rate', type=float, help='Training initial learning rate.', default=3e-2)
+        parser.add_argument('--neuron.weight_decay', dest ='weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25) 
+        parser.add_argument('--neuron.lr_decay', dest ='lr_decay', type=bool, help='learning rate decay params: linear warmup followed by cosine decay to 10%% of original.', default=True)
+        parser.add_argument('--neuron.warmup_tokens', dest ='warmup_tokens', type=float, help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)', default=375e6)
+        parser.add_argument('--neuron.final_tokens', dest ='final_tokens', type=float, help='At what point we reach 10%% of original LR', default=260e9)
+        parser.add_argument('--neuron.clip_gradients', dest='clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
+        parser.add_argument('--neuron.n_epochs', dest='n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
+        parser.add_argument('--neuron.epoch_length', dest='epoch_length', type=int, help='Iterations of training per epoch', default=500)
+        parser.add_argument('--neuron.batch_size_train', dest='batch_size_train', type=int, help='Training batch size.', default=2)
+        parser.add_argument('--neuron.reload', dest='reload',action='store_true', help='''Reload training from previous trial run.''', default=False )
+        parser.add_argument('--neuron.restart_on_failure', dest='restart_on_failure', action='store_true', help='''Restart miner on unknown error.''', default=False)
+        parser.add_argument('--neuron.name', dest ='name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
         parser.parse_known_args( namespace = config )
         bittensor.wallet.config( config )
         bittensor.subtensor.config( config )
@@ -169,14 +169,14 @@ class miner:
             # --- Run until n_epochs ----
             while self.epoch < self.config.n_epochs:
                 try:
-                    # ---- Checkpoint state ----
-                    self.checkpoint()
-
                     # ---- Train state ----
                     self.run_epoch()
 
                     # ---- Set weights on chain ----
                     self.set_mechanism_weights()
+
+                    # ---- Checkpoint state ----
+                    self.checkpoint()
                 
                 except KeyboardInterrupt:
                     # --- User ended ----
@@ -578,4 +578,4 @@ class miner:
 
 
 if __name__ == "__main__":
-    miner().run()
+    neuron().run()
