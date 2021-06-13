@@ -364,6 +364,7 @@ class neuron:
             return torch.load("{}/model.torch".format( self.config.full_path ))
         except Exception as e:
             logger.exception('Failed to reload model with error: {}', e)
+            return None
         
     def reload( self ):
         r""" Reloads the training state from the disk.
@@ -392,7 +393,7 @@ class neuron:
 
         # ---- Load mechanism weights and pad to size.
         self.mechanism_weights = state_dict['mechanism_weights']
-        self.mechanism_weights = torch.nn.functional.pad( 
+        self.mechanism_weights = torch.nn.functional.pad ( 
             self.mechanism_weights, 
             pad = [0, self.metagraph.n - self.mechanism_weights.numel()], 
             value=0 
@@ -412,7 +413,7 @@ class neuron:
                 'nucleus_state': self.nucleus.state_dict(), # Save nucleus state.
                 'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
             }
-            torch.save( state_dict, "{}/model.torch".format( self.config.full_path, self.epoch_loss ))
+            torch.save( state_dict, "{}/model.torch".format( self.config.full_path, self.epoch_loss ) )
             logger.success('Saved model to: <cyan>{}/model.torch</cyan>'.format( self.config.full_path ))
         except Exception as e:
              logger.exception('Failed to save model with error:{}', e)
