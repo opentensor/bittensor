@@ -164,7 +164,7 @@ class neuron:
             if self.config.reload:
                 self.reload()
             else:
-                self.save()
+                self.checkpoint()
 
             # --- Run until n_epochs ----
             while self.epoch < self.config.n_epochs:

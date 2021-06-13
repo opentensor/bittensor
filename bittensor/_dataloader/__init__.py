@@ -33,8 +33,6 @@ class dataloader:
             batch_size: int = None,
             max_corpus_size:int = None,
             num_workers: int = None,
-            config: 'bittensor.Config' = None,
-            namespace: str = 'dataloader'
         ):
         if config == None: config = dataloader.config().dataloader
         config = copy.deepcopy( config )

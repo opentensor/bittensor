@@ -26,9 +26,9 @@ class wallet:
     def __new__(
             cls, 
             config: 'bittensor.Config' = None,
-            name: str = 'default',
-            hotkey: str = 'default',
-            path: str = '~/.bittensor/wallets/',
+            name: str = None,
+            hotkey: str = None,
+            path: str = None,
         ) -> 'bittensor.Wallet':
         r""" Init bittensor wallet object containing a hot and coldkey.
 
