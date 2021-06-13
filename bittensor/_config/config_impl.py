@@ -23,6 +23,9 @@ class Config ( Munch ):
     def __init__(self):
         pass
 
+    def __repr__(self) -> str:
+        return self.__str__()
+
     def __str__(items) -> str:
         return "\n" + yaml.dump(items.toDict())
 

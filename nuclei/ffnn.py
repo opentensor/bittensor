@@ -45,7 +45,7 @@ class FFNNNucleus(torch.nn.Module):
         """
         super(FFNNNucleus, self).__init__()
         if config == None:
-            config = FFNNNucleus.default_config()
+            config = FFNNNucleus.config()
         FFNNNucleus.check_config(config)
         self.config = config
 
@@ -79,7 +79,7 @@ class FFNNNucleus(torch.nn.Module):
         self.to(self.device)
 
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser(); 
         FFNNNucleus.add_args(parser) 
         config = bittensor.config( parser ); 

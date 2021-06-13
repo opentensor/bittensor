@@ -39,7 +39,7 @@ class PKMRouter( router.Router ):
     def __init__(self, config: 'bittensor.Config', query_dim = bittensor.__network_dim__, **kwargs):
         super().__init__()
         if config == None:
-            config = PKMRouter.default_config();       
+            config = PKMRouter.config();       
         self.config = config
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -49,7 +49,7 @@ class PKMRouter( router.Router ):
         self.projection = nn.Linear(query_dim, self.config.router.key_dim, bias=True).to(self.device)
 
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
         PKMRouter.add_args(parser) 
         config = bittensor.config( parser ); 

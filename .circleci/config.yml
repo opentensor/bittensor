@@ -46,7 +46,7 @@ jobs:
           command: pip3 install -e .
           name: setup
       - run: ./scripts/create_wallet.sh
-      - run: python3.7 tests/miners/text/test_gpt2.py
+      - run: python3.7 tests/miners/text/test_gpt2_exodus.py
   
   "Run Integration Tests":
     executor: bittensor-executor

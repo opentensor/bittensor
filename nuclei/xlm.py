@@ -84,7 +84,7 @@ class XLMNucleus (torch.nn.Module):
         """
         super(XLMNucleus, self).__init__()
         if config == None:
-            config = XLMNucleus.default_config()
+            config = XLMNucleus.config()
         XLMNucleus.check_config(config)
         self.config = config
 
@@ -118,7 +118,7 @@ class XLMNucleus (torch.nn.Module):
         self.to(self.device)
     
     @staticmethod
-    def default_config() -> 'bittensor.Config':
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
         XLMNucleus.add_args(parser)
         config = bittensor.config( parser )

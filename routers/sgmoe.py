@@ -25,8 +25,7 @@ from . import router
 class SGMOERouter( router.Router ):
     def __init__(self, config: 'bittensor.Config' = None, query_dim = bittensor.__network_dim__, **kwargs):
         super().__init__()
-        if config == None:
-            config = SGMOERouter.default_config();       
+        if config == None: config = SGMOERouter.config().router;       
         self.config = config
         self.query_dim = query_dim
         
@@ -35,22 +34,20 @@ class SGMOERouter( router.Router ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
+    def config( config: 'bittensor.Config' = None, namespace: str = 'router' ) -> 'bittensor.Config':
+        if config == None: config = bittensor.config()
+        nucleus_config = bittensor.config()
+        config[ namespace ] = nucleus_config
+        if namespace != '': namespace += '.'
         parser = argparse.ArgumentParser()
-        SGMOERouter.add_args(parser) 
-        config = bittensor.config( parser ); 
-        SGMOERouter.check_config(config)
+        parser.add_argument('--' + namespace + 'topk', dest = 'topk', default=20, type=int, help='Number of uids to query each batch.')
+        parser.add_argument('--' + namespace + 'stale_emit_filter', dest = 'stale_emit_filter', default=10000, type=int, help='Number of blocks without an update before a neuron is filtered')
+        parser.parse_known_args( namespace = nucleus_config )
         return config
 
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:    
-        parser.add_argument('--sgmoe.topk', default=20, type=int, help='Number of uids to query each batch.')
-        parser.add_argument('--sgmoe.stale_emit_filter', default=10000, type=int, help='Number of blocks without an update before a neuron is filtered')
-        return parser
-
-    @staticmethod
-    def check_config(config):   
-        return config
+    def check_config(config: 'bittensor.Config'):
+        pass
 
     def sync_with_chain_state( self, metagraph: 'bittensor.Metagraph' ):
         r""" Creates new parameters based on metagraph size.
@@ -125,7 +122,7 @@ class SGMOERouter( router.Router ):
         current_block = metagraph.block
         lastemit = metagraph.lastemit
         staleness = (current_block - lastemit)
-        filtered_uids = all_uids[torch.where(staleness < self.config.sgmoe.stale_emit_filter)]
+        filtered_uids = all_uids[torch.where(staleness < self.config.stale_emit_filter)]
         n_filtered = torch.numel(filtered_uids)
 
         # Return if there are no uids to query.
@@ -155,7 +152,7 @@ class SGMOERouter( router.Router ):
         # topk_weights.shape = [ real_topk ]
         # topk_indices: (torch.int64): indicies of uids with highest scores.
         # topk_indices.shape = [ real_topk ]
-        real_topk = min( n_filtered, self.config.sgmoe.topk )
+        real_topk = min( n_filtered, self.config.topk )
         topk_weights, topk_indices = filtered_mean_weights.topk(real_topk, dim=0) 
 
         # Get the real uids with the top scores.
@@ -193,7 +190,7 @@ class SGMOERouter( router.Router ):
         weighted_responses = torch.zeros( ( batch_size, inputs.shape[1], bittensor.__network_dim__ )).to(self.device)
         indices = torch.where(retops != 0)[0].to(self.device)
         if torch.numel(indices) > 0:
-            soft_topk_weights = F.softmax(topk_weights[indices]).to(self.device)
+            soft_topk_weights = F.softmax(topk_weights[indices], dim=0).to(self.device)
             if torch.numel(indices[0]) != 0:
                 for soft_topk_weight, index in list(zip(soft_topk_weights, indices)): 
                     weighted_responses += responses[index].to(self.device) * soft_topk_weight
