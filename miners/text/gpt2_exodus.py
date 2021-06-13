@@ -72,13 +72,14 @@ class miner:
         self.dataset = bittensor.dataloader(
             config = self.config.dataloader
         )
+        self.device = torch.device( "cuda" if torch.cuda.is_available() else "cpu" )
         self.router = SGMOERouter( 
             config = self.config.router 
-        )
+        ).to( self.device )
         self.nucleus = GPT2Nucleus( 
             config = self.config.nucleus,
             routing_callback = self.route
-        )
+        ).to( self.device )
         self.optimizer = torch.optim.AdamW( 
             [
                 {"params": self.router.parameters()}, 
@@ -260,7 +261,7 @@ class miner:
         # ---- Forward pass ----
         inputs = batch['inputs']
         output = self.nucleus.remote_forward(
-            inputs = inputs,
+            inputs = inputs.to( self.device ),
             training = True,
         )
 
@@ -293,7 +294,7 @@ class miner:
                 outputs (:obj:`torch.FloatTensor`): 
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
-        inputs = inputs.to( self.nucleus.device )
+        inputs = inputs.to( self.device )
         output = self.nucleus.local_forward (
             inputs = inputs        
         )
@@ -361,45 +362,42 @@ class miner:
     def get_saved_state( self ):
         try:
             return torch.load("{}/model.torch".format( self.config.full_path ))
-        except:
-            return None
+        except Exception as e:
+            logger.exception('Failed to reload model with error: {}', e)
         
     def reload( self ):
         r""" Reloads the training state from the disk.
         """
-        try:
-            state_dict = self.get_saved_state()
+        state_dict = self.get_saved_state()
 
-            # ---- Load training state.
-            self.epoch = state_dict['epoch']
-            self.epoch_loss = state_dict['epoch_loss']
-            self.global_step = state_dict['global_step']
+        # ---- Load training state.
+        self.epoch = state_dict['epoch']
+        self.epoch_loss = state_dict['epoch_loss']
+        self.global_step = state_dict['global_step']
 
-            # ---- Load router and resize to the metagraph size.
-            self.router.load_state_dict( state_dict['router_state'] ) # Load router
-            self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
+        # ---- Load router and resize to the metagraph size.
+        self.router.load_state_dict( state_dict['router_state'] ) # Load router
+        self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
 
-            # ---- Load nucleus and attach the routing function.
-            self.nucleus.load_state_dict( state_dict['nucleus_state'] ) # Load nucleus
-            self.nucleus.attach( self )# Re-assign the routing function.
+        # ---- Load nucleus and attach the routing function.
+        self.nucleus.load_state_dict( state_dict['nucleus_state'] ) # Load nucleus
+        self.nucleus.attach( self )# Re-assign the routing function.
 
-            # --- Load optimizer.
-            optim_groups = [
-                {"params": self.router.parameters() },
-                {"params": self.nucleus.parameters() },
-            ]
-            self.optimizer = torch.optim.AdamW( optim_groups, lr = self.config.learning_rate, betas = (0.9, 0.95) )
+        # --- Load optimizer.
+        optim_groups = [
+            {"params": self.router.parameters() },
+            {"params": self.nucleus.parameters() },
+        ]
+        self.optimizer = torch.optim.AdamW( optim_groups, lr = self.config.learning_rate, betas = (0.9, 0.95) )
 
-            # ---- Load mechanism weights and pad to size.
-            self.mechanism_weights = state_dict['mechanism_weights']
-            self.mechanism_weights = torch.nn.functional.pad( 
-                self.mechanism_weights, 
-                pad = [0, self.metagraph.n - self.mechanism_weights.numel()], 
-                value=0 
-            ) 
-            logger.success( 'Reloaded model from: <cyan>{}/model.torch</cyan>\n'.format( self.config.full_path ))
-        except Exception as e:
-            logger.exception('Failed to reload model with error: {}', e)
+        # ---- Load mechanism weights and pad to size.
+        self.mechanism_weights = state_dict['mechanism_weights']
+        self.mechanism_weights = torch.nn.functional.pad( 
+            self.mechanism_weights, 
+            pad = [0, self.metagraph.n - self.mechanism_weights.numel()], 
+            value=0 
+        ) 
+        logger.success('Reloaded model from: <cyan>{}/model.torch</cyan>'.format( self.config.full_path ))
 
     def save( self ):
         r""" Saves the training state to disk.
@@ -415,7 +413,7 @@ class miner:
                 'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
             }
             torch.save( state_dict, "{}/model.torch".format( self.config.full_path, self.epoch_loss ))
-            logger.success( 'Saved model to: <cyan>{}/model.torch</cyan>\n'.format( self.config.full_path ))
+            logger.success('Saved model to: <cyan>{}/model.torch</cyan>'.format( self.config.full_path ))
         except Exception as e:
              logger.exception('Failed to save model with error:{}', e)
 
@@ -462,7 +460,7 @@ class miner:
             event_file_dir = self.config.full_path + '/tensorboard-' + '-'.join(str(datetime.now()).split())
             self.tensorboard = SummaryWriter( log_dir = event_file_dir )
             self._tensorboard_program = program.TensorBoard()
-            self._tensorboard_program.configure(argv=[None, '--logdir', event_file_dir ])
+            self._tensorboard_program.configure(argv=[None, '--logdir', event_file_dir, '--load_fast=true'])
             self._tensorbaord_url = self._tensorboard_program.launch()
             logger.info('TENSORBOARD is <green>ON</green> with entrypoint: <cyan>http://localhost:6006/</cyan>', )
         else: 
@@ -543,16 +541,10 @@ class miner:
     def epoch_logs( self, progress_bar, iteration:int, output: SimpleNamespace, prev_mechanism_weights: List[float], next_mechanism_weights: List[float] ):
         r""" Called after every training step. Displays miner state to screen.
         """
-        try:
-            self_uid = self.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
-            stake = self.metagraph.S[ self_uid ].item()
-            rank = self.metagraph.R[ self_uid ].item()
-            incentive = self.metagraph.I[ self_uid ].item()
-        except:
-            stake = 0.0
-            rank = 0.0
-            incentive = 0.0
-            pass
+        self_uid = self.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
+        stake = self.metagraph.S[ self_uid ].item()
+        rank = self.metagraph.R[ self_uid ].item()
+        incentive = self.metagraph.I[ self_uid ].item()
         info = {
             'GS': colored('{}'.format(self.global_step), 'red'),
             'LS': colored('{}'.format(iteration), 'blue'),
@@ -566,8 +558,6 @@ class miner:
             'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
-            'Axon': self.axon.__str__(),
-            'Dendrite': self.dendrite.__str__(),
         } 
         for uid in self.metagraph.uids.tolist():
             if next_mechanism_weights[uid] != 0:

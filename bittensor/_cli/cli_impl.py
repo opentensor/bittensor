@@ -32,9 +32,10 @@ class CLI:
                 executor (:obj:`bittensor.executor.executor`, `required`):
                     bittensor executor object, used to execute cli options.
         """
+        self.config = config
         self.executor = executor
 
-    def run_command(self):
+    def run ( self ):
         if self.config.debug: bittensor.__debug_on__ = True; logger.info('DEBUG is <green>ON</green>')
         else: logger.info('DEBUG is <red>OFF</red>')
         if self.config.command == "transfer":
