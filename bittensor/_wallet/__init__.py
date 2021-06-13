@@ -19,7 +19,6 @@ import bittensor
 import argparse
 import copy
 
-from munch import Munch
 from . import wallet_impl
 
 class wallet:
