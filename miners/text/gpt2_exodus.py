@@ -320,9 +320,21 @@ class neuron:
                 outputs (:obj:`torch.FloatTensor`): 
                     The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
         """
-        # TODO(const): add backward processing.
-        # Not processing backward requests
-        return None
+        inputs_x.requires_grad = True
+        with torch.enable_grad():
+            inputs = inputs_x.to( self.device )
+            grads_dy = grads_dy.to( self.device )
+            outputs_y = self.nucleus.local_forward( inputs = inputs_x ).to( self.device )
+            grads_dx = torch.autograd.grad (
+                outputs = outputs_y, 
+                inputs = inputs_x, 
+                grad_outputs = grads_dy, 
+                only_inputs = True,
+                create_graph = False, 
+                retain_graph = False
+            )
+        return grads_dx[0]
+    
 
     def route ( self, inputs: torch.LongTensor, query: torch.FloatTensor ) -> torch.FloatTensor:
         r""" Subscribed to the nucleus as a callback which is made during remote training. 
