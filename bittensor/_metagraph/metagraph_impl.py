@@ -337,7 +337,6 @@ class Metagraph( torch.nn.Module ):
                     queries.append( self.fill_uid( uid = uid ) )
             if len(queries) == 0:
                 # Success
-                logger.debug('Synced Metagraph.')
                 break
             pending_queries = [await query for query in tqdm.asyncio.tqdm.as_completed( queries )]
             retries += 1 

@@ -16,6 +16,10 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor 
+import torch
+from loguru import logger
+logger = logger.opt(colors=True)
+
 def code_to_string( code: bittensor.proto.ReturnCode ) -> str:
     if code == 0: 
 	    return 'Success'
@@ -111,3 +115,90 @@ def code_to_color( code: bittensor.proto.ReturnCode ) -> str:
         return 'red'
     else:
         return 'red'
+
+def code_to_loguru_color( code: bittensor.proto.ReturnCode ) -> str:
+    if code == 0: 
+	    return 'green'
+    elif code == 1:
+        return 'yellow'
+    elif code == 2:
+        return 'yellow'
+    elif code == 3:
+        return 'red'
+    elif code == 4:
+        return 'red'
+    elif code == 5:
+        return 'black'
+    elif code == 6:
+        return 'red'
+    elif code == 7:
+        return 'red'
+    elif code == 8:
+        return 'red'
+    elif code == 9:
+        return 'red'
+    elif code == 10:
+        return 'red'
+    elif code == 11:
+        return 'red'
+    elif code == 12:
+        return 'red'
+    elif code == 13:
+        return 'red'
+    elif code == 14:
+        return 'red'
+    elif code == 15:
+        return 'red'
+    elif code == 16:
+        return 'yellow'
+    elif code == 17:
+        return 'yellow'
+    elif code == 18:
+        return 'red'
+    elif code == 19:
+        return 'red'
+    elif code == 20:
+        return 'red'
+    elif code == 21:
+        return 'red'
+    else:
+        return 'red'
+
+def rpc_log( axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs, outputs, message:str ):
+    if axon:
+        log_msg = '<white>Axon</white>     '
+    else:
+        log_msg = '<white>Dendrite</white> '
+    if forward:
+        log_msg += "<green>Forward</green> "
+    else:
+        log_msg += "<green>Backward</green>"
+    if is_response:
+        log_msg += " <green>Response</green> <--- "
+    else:
+        log_msg += " <green>Request</green>  ---> "
+    if is_response:
+        if axon:
+            log_msg += "<white>to:  </white><cyan>{}</cyan> ".format( pubkey )
+        else:
+            log_msg += "<white>from:</white><cyan>{}</cyan> ".format( pubkey )
+    else:
+        if axon:
+            log_msg += "<white>from:</white><cyan>{}</cyan> ".format( pubkey )
+        else:
+            log_msg += "<white>to:  </white><cyan>{}</cyan> ".format( pubkey )
+    log_msg += "<white>code:</white>"
+    code_color = code_to_loguru_color( code )
+    code_string = code_to_string( code )
+    code_str = "<" + code_color + ">" + code_string + "</" + code_color + ">"
+    log_msg += code_str
+    if inputs != None:
+        if isinstance(inputs, list):
+            log_msg += " <white>inputs:</white>{}".format( [list(inp.shape) for inp in inputs] )
+        else:
+            log_msg += " <white>inputs:</white>{}".format( list(inputs.shape) )
+    if outputs != None:
+        log_msg += " <white>outputs:</white>{}".format( list(outputs.shape))
+    if message != None:
+        log_msg += " <white>message:</white><" + code_color + ">" + message + "</" + code_color + ">"
+    logger.debug( log_msg )
