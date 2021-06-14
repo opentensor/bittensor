@@ -163,34 +163,33 @@ class SGMOERouter( router.Router ):
         # Get endpoint information for the highest scoring uids.
         # neurons: List[bittensor.proto.Neuron]: endpoint information for filtered uids.
         # len(neurons) == real_topk
-        neurons = []
-        for filtered_uid in real_filtered_topk_uids.tolist():
-            neurons.append( metagraph.endpoints[ filtered_uid ] )
+        filtered_endpoints = []
+        for uid in real_filtered_topk_uids:
+            filtered_endpoints.append( metagraph.endpoints[ uid ] )
 
         # Get request for uids with highest scores.
         # requests: List[torch.float32]: requests for high scoring uids.
         # len(requests) == real_topk
-        requests = [ inputs for _ in range( len(neurons) )]
+        requests = [ inputs for _ in range( len(filtered_endpoints) )]
 
         # Makes queries into the network.
         # responses: List[torch.float64]: responses from each uid.
         # responses.shape = real_topk * [batch_size, sequence_dim, __network_dim__]
         if modality == bittensor.proto.Modality.TEXT:
-            responses, retops = dendrite.forward_text(neurons, requests)
+            responses, retops = dendrite.forward_text(endpoints = filtered_endpoints, inputs = requests)
 
         elif modality == bittensor.proto.Modality.IMAGE:
-            responses, retops = dendrite.forward_image(neurons, requests)
+            responses, retops = dendrite.forward_image(endpoints = filtered_endpoints, inputs = requests)
 
         elif modality == bittensor.proto.Modality.TENSOR:
-            responses, retops = dendrite.forward_tensor(neurons, requests)
-
+            responses, retops = dendrite.forward_tensor(endpoints = filtered_endpoints, inputs = requests)
         else:
             raise NotImplementedError
 
         weighted_responses = torch.zeros( ( batch_size, inputs.shape[1], bittensor.__network_dim__ )).to(self.device)
-        indices = torch.where(retops != 0)[0].to(self.device)
+        indices = torch.where(retops == 0)[0].to(self.device)
         if torch.numel(indices) > 0:
-            soft_topk_weights = F.softmax(topk_weights[indices], dim=0).to(self.device)
+            soft_topk_weights = F.softmax( topk_weights[indices], dim = 0 ).to(self.device)
             if torch.numel(indices[0]) != 0:
                 for soft_topk_weight, index in list(zip(soft_topk_weights, indices)): 
                     weighted_responses += responses[index].to(self.device) * soft_topk_weight

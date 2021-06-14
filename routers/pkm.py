@@ -201,21 +201,21 @@ class PKMRouter( router.Router ):
         # neurons: List[bittensor.proto.Neuron]: endpoint information for filtered keys.
         # neurons.shape = n_uids * [ bittensor.proto.Neuron ]
         # TODO(const): switch to tokenized representation.
-        neurons = []
+        filtered_endpoints = []
         for uid in filtered_uids:
-            neurons.append( metagraph.endpoints[ uid ] )
+            filtered_endpoints.append( metagraph.endpoints[ uid ] )
 
-        # responses: image responses from neurons.
-        # responses.shape = neurons.size * [-1, sequence_dim, __network_dim__]
+        # Makes queries into the network.
+        # responses: List[torch.float64]: responses from each uid.
+        # responses.shape = real_topk * [batch_size, sequence_dim, __network_dim__]
         if modality == bittensor.proto.Modality.TEXT:
-            responses, retops = dendrite.forward_text(neurons, requests)
+            responses, retops = dendrite.forward_text(endpoints = filtered_endpoints, inputs = requests)
 
         elif modality == bittensor.proto.Modality.IMAGE:
-            responses, retops = dendrite.forward_image(neurons, requests)
+            responses, retops = dendrite.forward_image(endpoints = filtered_endpoints, inputs = requests)
 
         elif modality == bittensor.proto.Modality.TENSOR:
-            responses, retops = dendrite.forward_tensor(neurons, requests)
-
+            responses, retops = dendrite.forward_tensor(endpoints = filtered_endpoints, inputs = requests)
         else:
             raise NotImplementedError
 

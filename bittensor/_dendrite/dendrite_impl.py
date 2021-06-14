@@ -235,7 +235,7 @@ class Dendrite( torch.autograd.Function ):
 
         # Check shape.
         if len( inputs[0].shape ) != 5:
-            error_msg = 'Tensor inputs should be rank 3 with semantic shape: [batch_size, sequence_len, bittensor.__network_dim__]'
+            error_msg = 'Image inputs should be rank 5 with semantic shape: [batch_size, sequence_len, channels, rows, cols], got {}'.format( inputs[0].shape )
             raise ValueError(error_msg)
         
         # Make calls.

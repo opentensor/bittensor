@@ -105,8 +105,8 @@ class receptor_pool:
         bittensor.wallet.config( receptor_pool_config )
         config[ namespace ] = receptor_pool_config
         parser = argparse.ArgumentParser()
-        parser.add_argument('--' + namespace + 'max_worker_threads', dest = 'max_worker_threads',  default=20, type=int, help='''Max number of concurrent threads used for sending RPC requests.''')
-        parser.add_argument('--' + namespace + 'max_active_receptors', dest = 'max_active_receptors', default=150, type=int, help='''Max number of concurrently active receptors / tcp-connections''')
+        parser.add_argument('--' + namespace + 'max_worker_threads', dest = 'max_worker_threads',  default=150, type=int, help='''Max number of concurrent threads used for sending RPC requests.''')
+        parser.add_argument('--' + namespace + 'max_active_receptors', dest = 'max_active_receptors', default=500, type=int, help='''Max number of concurrently active receptors / tcp-connections''')
         parser.parse_known_args( namespace = receptor_pool_config )
         return config
 
