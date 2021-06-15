@@ -65,8 +65,8 @@ class SGMOERouter( router.Router ):
             self, 
             metagraph: 'bittensor.Metagraph', 
             dendrite: 'bittensor.Dendrite', 
-            inputs: torch.FloatTensor, 
-            query: torch.FloatTensor, 
+            inputs: torch.float32, 
+            query: torch.float32, 
             modality: bittensor.proto.Modality
         ) -> SimpleNamespace:
         r""" Routes inputs using context and metagraph state.
@@ -78,10 +78,10 @@ class SGMOERouter( router.Router ):
                 dendrite (:obj: `bittensor.Dendrite`, `required`):
                     Bittensor dendrite object. Used to make queries into the network.
 
-                inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, *-1*)`, `required`): 
+                inputs (:obj:`torch.float32` of shape :obj:`(batch_size, *-1*)`, `required`): 
                     Tensor inputs to distribute to neurons using query context.
                 
-                query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
+                query (:obj:`torch.float32` of shape :obj:`(batch_size, query_dimension)`, `required`): 
                     Context tensor used to select which neurons to query for each example.
 
                 modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
@@ -89,19 +89,19 @@ class SGMOERouter( router.Router ):
 
             Returns:
                 output = SimpleNamespace {
-                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                    responses (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
                         Joined responses from each queried neuron.
 
-                    weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.state.n)`, `required`): 
+                    weights (:obj:`torch.float32` of shape :obj:`(metagraph.state.n)`, `required`): 
                         Weights for each neuron per example.
 
-                    uids (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`): 
+                    uids (:obj:`torch.int64` of shape :obj:`(n_topk)`, `required`): 
                         Uids of neurons queried.
 
-                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`): 
+                    requests_sizes (:obj:`torch.int64` of shape :obj:`(n_topk)`, `required`): 
                         Number of requests sent to each uid.
 
-                    return_codes (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`):
+                    return_codes (:obj:`torch.int64` of shape :obj:`(n_topk)`, `required`):
                         Return code from each query for each queried uid.
                 }
         """
@@ -112,12 +112,12 @@ class SGMOERouter( router.Router ):
         batch_size = inputs.shape[0]
 
         # Get all uids.
-        # all_uids: (torch.LongTensor): unique keys for each peer neuron.
+        # all_uids: (torch.int64): unique keys for each peer neuron.
         # all_uids.shape = [metagraph.n]
         all_uids = metagraph.uids # Returns a list of neuron uids.
 
         # Filter uids based on last emit.
-        # filtered_uids: (torch.LongTensor): keys filtered by emit.
+        # filtered_uids: (torch.int64): keys filtered by emit.
         # all_uids.shape = [metagraph.n]
         current_block = metagraph.block
         lastemit = metagraph.lastemit

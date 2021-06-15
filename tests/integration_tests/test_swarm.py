@@ -34,7 +34,9 @@ class Neuron:
         # Dendrite RPC Client.
         # Differentiable RPC function which calls Forward and Backward 
         # on passes endpoints.
-        self.dendrite = bittensor.dendrite( wallet = self.wallet )
+        self.dendrite = bittensor.dendrite( 
+            wallet = self.wallet 
+        )
         
         # Torch NN Module with remote_forward and local_forwadd functions.
         # plus a routing function.
