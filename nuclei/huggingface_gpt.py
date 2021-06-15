@@ -63,7 +63,7 @@ class GPT2Pooler(nn.Module):
 class GPT2LMNucleus(torch.nn.Module):
     """ A Bittensor Nucleus training GPT2 with Causal Language Modelling (CLM)
     """
-    def __init__(self, config: 'bittensor.Config' = None, **kwargs):
+    def __init__(self, routing_callback, config: 'bittensor.Config' = None, **kwargs):
         r""" Init a new GPT2 nucleus module.
 
             Args:
@@ -72,7 +72,7 @@ class GPT2LMNucleus(torch.nn.Module):
         """
         super(GPT2LMNucleus, self).__init__()
         if config == None:
-            config = GPT2LMNucleus.default_config()
+            config = GPT2LMNucleus.config()
         GPT2LMNucleus.check_config(config)
         self.config = config
 
@@ -122,48 +122,50 @@ class GPT2LMNucleus(torch.nn.Module):
         self.to(self.device)
 
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
+    def config() -> SimpleNamespace:
         parser = argparse.ArgumentParser(); 
         GPT2LMNucleus.add_args(parser) 
         config = bittensor.config( parser ); 
         return config
 
     @staticmethod
-    def add_args(parser: argparse.ArgumentParser):    
+    def add_args( config: 'SimpleNamespace' ):    
         r""" Add custom params to the parser.
         """
-        parser.add_argument('--nucleus.n_head', default=1, type=int, 
-                            help='Number of attention heads for each attention layer in the Transformer encoder.')
-        parser.add_argument('--nucleus.n_layer', default=2, type=int, 
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--n_head', default=1, type=int, 
+                            help='Number of attention heads for each attention layer in the Transformer encoder.', namesp)
+        parser.add_argument('--n_layer', default=2, type=int, 
                             help='Number of hidden layers in the Transformer encoder.')
-        parser.add_argument('--nucleus.n_inner', default=8, type=int, 
+        parser.add_argument('--n_inner', default=8, type=int, 
                             help='The dimensionality of the inner feed-forward layers. :obj:`None` will set it to 4 times n_embd')
-        parser.add_argument('--nucleus.activation_function', default='gelu_new', type=str, 
+        parser.add_argument('--activation_function', default='gelu_new', type=str, 
                             help='Activation function, to be selected in the list :obj:`["relu", "silu", "gelu", "tanh", "gelu_new"]')
-        parser.add_argument('--nucleus.resid_pdrop', default=0.1, type=float, 
+        parser.add_argument('--resid_pdrop', default=0.1, type=float, 
                             help='GPT residual dropout probabilit.')
-        parser.add_argument('--nucleus.embd_pdrop', default=0.1, type=float, 
+        parser.add_argument('--embd_pdrop', default=0.1, type=float, 
                             help='GPT embedding dropout probability.')
-        parser.add_argument('--nucleus.attn_pdrop', default=0.1, type=float, 
+        parser.add_argument('--attn_pdrop', default=0.1, type=float, 
                             help='GPT attention dropout probability.')
-        parser.add_argument('--nucleus.layer_norm_epsilon', default=1e-05, type=float, 
+        parser.add_argument('--layer_norm_epsilon', default=1e-05, type=float, 
                             help='GPT the epsilon to use in the layer normalization layers')
-        parser.add_argument('--nucleus.summary_type', default='cls_index', type=str, 
+        parser.add_argument('--summary_type', default='cls_index', type=str, 
                             help='Supply a Tensor of classification token position (like GPT/GPT-2).')
-        parser.add_argument('--nucleus.initializer_range', default=0.02, type=float, 
+        parser.add_argument('--initializer_range', default=0.02, type=float, 
                             help='The standard deviation of the truncated_normal_initializer for initializing all weight matrices.')
-        parser.add_argument('--nucleus.summary_use_proj', default=True, type=bool, 
+        parser.add_argument('--summary_use_proj', default=True, type=bool, 
                             help='Whether or not to add a projection after the vector extraction.')
-        parser.add_argument('--nucleus.summary_activation', type=str, 
+        parser.add_argument('--summary_activation', type=str, 
                             help='Pass "tanh" for a tanh activation to the output, any other value will result in no activation.')
-        parser.add_argument('--nucleus.summary_proj_to_labels', default=True, type=bool, 
+        parser.add_argument('--summary_proj_to_labels', default=True, type=bool, 
                             help='Whether the projection outputs should have config.num_labels or config.hidden_size classes.')
-        parser.add_argument('--nucleus.summary_first_dropout', default=0.1, type=float, 
+        parser.add_argument('--summary_first_dropout', default=0.1, type=float, 
                             help='The dropout ratio to be used after the projection and activation.')
-        parser.add_argument('--nucleus.n_block_filter', default=100, type=int, 
+        parser.add_argument('--n_block_filter', default=100, type=int, 
                             help='Stale neurons are filtered after this many blocks.')
-        parser.add_argument('--nucleus.gradient_checkpointing', default=True, type=bool, 
+        parser.add_argument('--gradient_checkpointing', default=True, type=bool, 
                             help='Stale neurons are filtered after this many blocks.')
+        return parser.parse_known_args( namespace = namespace )
 
     @staticmethod
     def check_config(config: 'bittensor.Config'):
@@ -183,14 +185,14 @@ class GPT2LMNucleus(torch.nn.Module):
         """ Calls this nucleus's subscribed routing function. self.routing_callback must be set before this call is made.
 
         Args:
-            inputs (:obj:`torch.LongTensor` of shape :obj:`( batch_size, sequence_len )`, `required`): 
+            inputs (:obj:`torch.int64` of shape :obj:`( batch_size, sequence_len )`, `required`): 
                     Batch_size length list of tokenized sentences.
 
-            query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
+            query (:obj:`torch.float32` of shape :obj:`(batch_size, query_dimension)`, `required`): 
                     Context tensor used to select which neurons to query for each example.
             
          Returns:
-            remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+            remote_context (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                 joined responses from network call.
         """
         if self.routing_callback == None:
@@ -198,41 +200,41 @@ class GPT2LMNucleus(torch.nn.Module):
         else:
             return self.routing_callback( inputs = inputs, query = query )
 
-    def forward_text(self, inputs: torch.LongTensor):
+    def forward_text(self, inputs: torch.int64):
         """ Local forward inputs through the MLM GPT Nucleus.
 
             Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of tokenized sentences.
             
             Returns:
-                hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                hidden (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Hidden layer representation produced using the local_context.
         """
         hidden = self.local_forward(inputs=inputs.to(self.device), training = False).local_hidden
         return hidden
 
-    def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
+    def local_forward(self, inputs: torch.int64, training: bool = True) -> SimpleNamespace:
         r""" Forward pass through GPT nucleus.
 
             Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
                 training (:obj:`bool')`, `optional`, defaults to True):
                     Switch to True if this forward pass computes an MLM loss.
 
             SimpleNamespace {
-                    local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                    local_context (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Hidden layer context.
 
-                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                    local_hidden (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Hidden layer encoding produced using local_context.
 
-                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                    local_target (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
                         GPT MLM Target predictions produced using local_context. 
 
-                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                    local_target_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`): 
                         GPT MLM loss using local_context.
                 }
         """
@@ -262,12 +264,12 @@ class GPT2LMNucleus(torch.nn.Module):
                    
         return output
 
-    def remote_forward(self, inputs: torch.LongTensor, training: bool) -> SimpleNamespace:
+    def remote_forward(self, inputs: torch.int64, training: bool) -> SimpleNamespace:
         """ Forward pass inputs and labels through the GPT2 module.
 
 
         Args:
-            inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+            inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
             training (:obj:`bool')`, `optional`, defaults to True):
@@ -276,16 +278,16 @@ class GPT2LMNucleus(torch.nn.Module):
         Returns:
             self.local_forward() + SimpleNamespace ( 
 
-                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
+                    remote_hidden (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
 
-                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
+                    remote_target (:obj:`torch.float32` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
                         GPT MLM Target predictions using the remote_context.
 
-                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+                    remote_target_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`):
                         GPT MLM loss using the remote_context.
 
-                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                    distillation_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
                     router (:obj:`SimpleNamespace`, `required`): 

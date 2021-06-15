@@ -19,16 +19,18 @@ import os
 import rollbar
 import sys
 import bittensor
+import torch
 
 from loguru import logger
 logger = logger.opt(colors=True)
 
 # Filter bittensor internal messages, only from internal files.
 def bittensor_formatter(record):
-    if bittensor.__debug_on__ == True:
-        return "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>\n"
-    else:
-        return "<level>{message}</level>\n"
+    return "<level>{message}</level>\n"
+    # if bittensor.__debug_on__ == True:
+    #     return "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>\n"
+    # else:
+    #     return "<level>{message}</level>\n"
 
 def bittensor_log_filter( record ):
     if bittensor.__debug_on__ == True:

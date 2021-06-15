@@ -15,12 +15,11 @@ def test_endpoint_overides():
     assert subtensor.endpoint_for_network() == "this is the endpoint"
 
 def test_networks():
-    subtensor = bittensor.subtensor()
-    subtensor.config.subtensor.network = 'akira'
-    assert subtensor.endpoint_for_network()  in bittensor.__akira_entrypoints__
-    subtensor.config.subtensor.network = 'boltzmann'
-    assert subtensor.endpoint_for_network()  in bittensor.__boltzmann_entrypoints__
-    subtensor.config.subtensor.network = 'kusanagi'
+    subtensor = bittensor.subtensor( network = 'akira' )
+    assert subtensor.endpoint_for_network() in bittensor.__akira_entrypoints__
+    subtensor = bittensor.subtensor( network = 'boltzmann' )
+    assert subtensor.endpoint_for_network() in bittensor.__boltzmann_entrypoints__
+    subtensor = bittensor.subtensor( network = 'kusanagi' )
     assert subtensor.endpoint_for_network() in bittensor.__kusanagi_entrypoints__
 
 # def test_connect_failure( ):

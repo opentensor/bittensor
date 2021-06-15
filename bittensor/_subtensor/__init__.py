@@ -15,10 +15,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 import argparse
-import copy
 import bittensor
+import copy
+from typing import List, Tuple
 from bittensor._substrate import SubstrateWSInterface
 
+from munch import Munch
 from . import subtensor_impl
 
 custom_type_registry = {
@@ -38,60 +40,60 @@ class subtensor:
 
     def __new__(
             cls, 
-            config: 'bittensor.Config' = None,
-            network: str = None,
-            chain_endpoint: str = None
+            config: 'bittensor.config' = None,
+            network: str = 'kusanagi',
+            chain_endpoint: str = None,
         ) -> 'bittensor.Subtensor':
         r""" Initializes a subtensor chain interface.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
-                    metagraph.Metagraph.config()
+                    bittensor.subtensor.config()
                 network (default='akira', type=str)
                     The subtensor network flag. The likely choices are:
-                            -- akira (testing network)
-                            -- kusanagi (main network)
+                            -- akira (staging network)
+                            -- kusanagi (testing network)
+                            -- exodus (main network)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
-                    The subtensor endpoint flag. If set, overrides the --network flag.
+                    The subtensor endpoint flag. If set, overrides the network argument.
         """
-        if config == None:
-            config = subtensor.default_config()
-        config.subtensor.network = network if network != None else config.subtensor.network
-        config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else config.subtensor.chain_endpoint
-        config = copy.deepcopy(config)
-        subtensor.check_config(config)
+        if config == None: config = subtensor.config().subtensor
+        config = copy.deepcopy( config )
+        config.network = network if network != None else config.network
+        config.chain_endpoint = chain_endpoint if chain_endpoint != None else config.chain_endpoint
         substrate = SubstrateWSInterface(
             address_type = 42,
             type_registry_preset='substrate-node-template',
             type_registry = custom_type_registry,
         )
+        subtensor.check_config( config )
+        return subtensor_impl.Subtensor( 
+            substrate = substrate,
+            network = config.network,
+            chain_endpoint = config.chain_endpoint,
+        )
 
-        return subtensor_impl.Subtensor( config, substrate )
-
-    @staticmethod
-    def default_config() -> 'bittensor.Config':
-        parser = argparse.ArgumentParser(); 
-        subtensor.add_args(parser) 
-        config = bittensor.config( parser ); 
+    @staticmethod   
+    def config( config: 'bittensor.Config' = None, namespace: str = 'subtensor' ) -> 'bittensor.Config':
+        if config == None: config = bittensor.config()
+        subtensor_config = bittensor.config()
+        config[ namespace] = subtensor_config
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--' + namespace + 'network', dest = 'network', default='kusanagi', type=str, 
+                            help='''The subtensor network flag. The likely choices are:
+                                    -- akira (staging network)
+                                    -- kusanagi (testing network)
+                                    -- exodus (main network)
+                                If this option is set it overloads subtensor.chain_endpoint with 
+                                an entry point node from that network.
+                                ''')
+        parser.add_argument('--' + namespace + 'chain_endpoint', dest = 'chain_endpoint', default=None, type=str, 
+                            help='''The subtensor endpoint flag. If set, overrides the --network flag.
+                                ''')
+        parser.parse_known_args( namespace = subtensor_config )
         return config
-    
+
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        try:
-            parser.add_argument('--subtensor.network', default='kusanagi', type=str, 
-                                help='''The subtensor network flag. The likely choices are:
-                                        -- akira (testing network)
-                                        -- kusanagi (main network)
-                                    If this option is set it overloads subtensor.chain_endpoint with 
-                                    an entry point node from that network.
-                                    ''')
-            parser.add_argument('--subtensor.chain_endpoint', default=None, type=str, 
-                                help='''The subtensor endpoint flag. If set, overrides the --network flag.
-                                    ''')
-        except:
-            pass
-        
-    @staticmethod   
-    def check_config(config: 'bittensor.Config'):
+    def check_config( config: 'bittensor.Config' ):
         pass

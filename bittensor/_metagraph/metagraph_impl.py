@@ -31,33 +31,33 @@ class Metagraph( torch.nn.Module ):
     r""" Maintains chain state as a torch.nn.Module.
 
         Interface:
-            tau (:obj:`torch.FloatTensor` of shape :obj:`(1)`): 
+            tau (:obj:`torch.float32` of shape :obj:`(1)`): 
                 Current, per block, token inflation rate.
 
-            block (:obj:`torch.LongTensor` of shape :obj:`(1)`):
+            block (:obj:`torch.int64` of shape :obj:`(1)`):
                 State block number.
 
-            uids (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+            uids (:obj:`torch.int64` of shape :obj:`(metagraph.n)`):
                 UIDs for each neuron.
             
-            stake (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+            stake (:obj:`torch.int64` of shape :obj:`(metagraph.n)`):
                 Stake balance for each neuron ordered by uid.
                 
-            lastemit (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+            lastemit (:obj:`torch.int64` of shape :obj:`(metagraph.n)`):
                 Last emission call for each neuron ordered by uid.
 
-            weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n, metagraph.n)`):
+            weights (:obj:`torch.float32` of shape :obj:`(metagraph.n, metagraph.n)`):
                 Full weight matrix on chain ordered by uid.
 
-            neurons (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n, -1)`) 
+            neurons (:obj:`torch.int64` of shape :obj:`(metagraph.n, -1)`) 
                 Tokenized endpoint information.
 
     """
-    def __init__( self, config ):
+    def __init__( self, subtensor ):
         r""" Initializes a new Metagraph torch chain interface object.
         """
         super(Metagraph, self).__init__()
-        self.config = config
+        self.subtensor = subtensor
         self.version = torch.nn.Parameter( torch.tensor( [ bittensor.__version_as_int__ ], dtype = torch.int64), requires_grad=False )
         self.n = torch.nn.Parameter( torch.tensor( [0], dtype = torch.int64), requires_grad=False )
         self.tau = torch.nn.Parameter( torch.tensor( [0.5], dtype = torch.float32), requires_grad=False )
@@ -70,21 +70,21 @@ class Metagraph( torch.nn.Module ):
         self.cached_endpoints = None
 
     @property
-    def S(self) -> torch.FloatTensor:
+    def S(self) -> torch.float32:
         r""" Returns neurons stake values.
              
              Returns:
-                S (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                S (:obj:`torch.float32` of shape :obj:`(metagraph.n)`):
                     Stake of each known neuron.
         """
         return self.stake
 
     @property
-    def I(self) -> torch.FloatTensor:
+    def I(self) -> torch.float32:
         r""" Returns neuron incentives: tau * R / sum(R)
         
             Returns:
-                I (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                I (:obj:`torch.float32` of shape :obj:`(metagraph.n)`):
                     Block incentive for each neuron. 
         """
         if self.n.item() == 0:
@@ -94,11 +94,11 @@ class Metagraph( torch.nn.Module ):
         return I.view(self.n)
 
     @property
-    def ranks(self) -> torch.FloatTensor:
+    def ranks(self) -> torch.float32:
         r""" Returns neuron ranks: W^t * S
            
             Returns:
-                ranks (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                ranks (:obj:`torch.float32` of shape :obj:`(metagraph.n)`):
                     Rank of each neuron.
 
         """
@@ -111,17 +111,17 @@ class Metagraph( torch.nn.Module ):
         return R
 
     @property
-    def R(self) -> torch.FloatTensor:
+    def R(self) -> torch.float32:
         r""" Returns neuron ranks: W^t * S
              
              Returns:
-                rank (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                rank (:obj:`torch.float32` of shape :obj:`(metagraph.n)`):
                     Rank of each neuron.
         """
         return self.ranks
 
     @property
-    def W(self) -> torch.FloatTensor:
+    def W(self) -> torch.float32:
         r""" Return full weight matrix from chain.
              Returns:
                 W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
@@ -199,12 +199,14 @@ class Metagraph( torch.nn.Module ):
                     logger.exception('Faulty endpoint tensor: {} got error while trying to serialize as endpoint: {} ', neuron_tensor, e)
             return self.cached_endpoints
 
-    def load( self, network:str = 'kusanagi' ):
+    def load( self, network:str = None  ):
         r""" Loads this metagraph object's state_dict from bittensor root dir.
             Args: 
                 network: (:obj:`str`, required):
                     Name of state_dict to load, defaults to kusanagi
         """
+        if network == None:
+            network = self.subtensor.network
         metagraph_path = '~/.bittensor/' + str(network) + '.pt'
         metagraph_path = os.path.expanduser(metagraph_path)
         if os.path.isfile(metagraph_path):
@@ -212,12 +214,14 @@ class Metagraph( torch.nn.Module ):
         else:
             logger.warning('Did not load metagraph from path: {}, file does not exist. Run metagraph.save() first.', metagraph_path)
 
-    def save( self, network:str = 'kusanagi' ):
+    def save( self, network:str = None ):
         r""" Saves this metagraph object's state_dict under bittensor root dir.
             Args: 
                 network: (:obj:`str`, required):
                     Name of state_dict, defaults to kusanagi
         """
+        if network == None:
+            network = self.subtensor.network
         self.save_to_path( path = '~/.bittensor/' + str(network) + '.pt')
 
     def load_from_path(self, path:str ):
@@ -262,7 +266,7 @@ class Metagraph( torch.nn.Module ):
 
         self.cached_endpoints = None
 
-    def sync(self, subtensor: 'bittensor.Subtensor' = None, force: bool = False ):
+    def sync(self, force: bool = False ):
         r""" Synchronizes this metagraph with the chain state.
             Args: 
                 subtensor: (:obj:`bittensor.Subtensor`, optional):
@@ -270,14 +274,11 @@ class Metagraph( torch.nn.Module ):
                 force (bool):
                     force syncs all nodes on the graph.
         """
-        # Defaults to base subtensor connection.
-        if subtensor == None:
-            subtensor = bittensor.subtensor( config = self.config )
         loop = asyncio.get_event_loop()
         loop.set_debug(enabled=True)
-        loop.run_until_complete(self._async_sync(subtensor, force))
+        loop.run_until_complete(self._async_sync(force))
 
-    async def _async_sync( self, subtensor: 'bittensor.Subtensor', force: bool = False):
+    async def _async_sync( self, force: bool = False ):
         r""" Uses the passed subtensor interface to update the metagraph chain state to reflect 
             the latest info on chain.
 
@@ -286,9 +287,9 @@ class Metagraph( torch.nn.Module ):
                     Subtensor chain interface obbject. If None, creates default connection to kusanagi.
         """
         # Query chain info.
-        chain_lastemit = dict( await subtensor.async_get_last_emit() ) #  Optional[ List[Tuple[uid, lastemit]] ]
-        chain_stake = dict( await subtensor.async_get_stake() ) #  Optional[ List[Tuple[uid, stake]] ]
-        chain_block = int( await subtensor.async_get_current_block()) #  Optional[ int ]
+        chain_lastemit = dict( await self.subtensor.async_get_last_emit() ) #  Optional[ List[Tuple[uid, lastemit]] ]
+        chain_stake = dict( await self.subtensor.async_get_stake() ) #  Optional[ List[Tuple[uid, stake]] ]
+        chain_block = int( await self.subtensor.async_get_current_block()) #  Optional[ int ]
 
         # Build new state.
         new_size = len(chain_stake)
@@ -333,10 +334,9 @@ class Metagraph( torch.nn.Module ):
             queries = []
             for code, uid in pending_queries:
                 if code == False:
-                    queries.append( self.fill_uid( subtensor = subtensor, uid = uid ) )
+                    queries.append( self.fill_uid( uid = uid ) )
             if len(queries) == 0:
                 # Success
-                logger.debug('Synced Metagraph.')
                 break
             pending_queries = [await query for query in tqdm.asyncio.tqdm.as_completed( queries )]
             retries += 1 
@@ -344,7 +344,7 @@ class Metagraph( torch.nn.Module ):
         self.cached_endpoints = None
 
     # Function which fills weights and neuron info for a uid.
-    async def fill_uid ( self, subtensor: 'bittensor.Subtensor', uid: int ) -> Tuple[int, bool]:
+    async def fill_uid ( self, uid: int ) -> Tuple[int, bool]:
         r""" Uses the passed subtensor interface to update chain state for the passed uid.
             the latest info on chain.
             
@@ -356,13 +356,13 @@ class Metagraph( torch.nn.Module ):
         try:
             
             # Fill row from weights.
-            weight_uids = await subtensor.async_weight_uids_for_uid( uid ) 
-            weight_vals = await subtensor.async_weight_vals_for_uid( uid ) 
+            weight_uids = await self.subtensor.async_weight_uids_for_uid( uid ) 
+            weight_vals = await self.subtensor.async_weight_vals_for_uid( uid ) 
             row_weights = weight_utils.convert_weight_uids_and_vals_to_tensor( self.n.item(), weight_uids, weight_vals )
             self.weights[ uid ] = torch.nn.Parameter( row_weights, requires_grad=False )
             
             # Fill Neuron info.
-            neuron = await subtensor.async_get_neuron_for_uid( uid )
+            neuron = await self.subtensor.async_get_neuron_for_uid( uid )
             neuron_obj = bittensor.endpoint.from_dict( neuron )
             neuron_tensor = neuron_obj.to_tensor()
             self.neurons[ uid ] = torch.nn.Parameter( neuron_tensor, requires_grad=False )

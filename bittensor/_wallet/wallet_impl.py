@@ -40,12 +40,24 @@ class Wallet():
     The coldkey must be used to stake and unstake funds from a running node. The hotkey, on the other hand, is only used
     for suscribing and setting weights from running code. Hotkeys are linked to coldkeys through the metagraph. 
     """
-    def __init__( self, config: 'bittensor.Config' ):
+    def __init__( 
+        self,
+        name:str,
+        path:str,
+        hotkey:str 
+    ):
         r""" Init bittensor wallet object containing a hot and coldkey.
             Args:
-                config (:obj:`bittensor.Config`, `optional`): 
+                name (required=False, default='default):
+                    The name of the wallet to unlock for running bittensor
+                hotkey (required=False, default='default):
+                    The name of hotkey used to running the miner.
+                path (required=False, default='~/.bittensor/wallets/'):
+                    The path to your bittensor wallets
         """
-        self.config = config
+        self._name_string = name
+        self._path_string = path
+        self._hotkey_string = hotkey
         self._hotkey = None
         self._coldkey = None
         self._coldkeypub = None
@@ -169,20 +181,20 @@ class Wallet():
 
     @property
     def coldkeyfile(self) -> str:
-        full_path = os.path.expanduser(os.path.join(self.config.wallet.path, self.config.wallet.name))
+        full_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
         return os.path.join(full_path, "coldkey")
 
     @property
     def coldkeypubfile(self) -> str:
-        full_path = os.path.expanduser(os.path.join(self.config.wallet.path, self.config.wallet.name))
+        full_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
         return os.path.join(full_path, "coldkeypub.txt")
 
     @property
     def hotkeyfile(self) -> str:
         full_path = os.path.expanduser(
-            os.path.join(self.config.wallet.path, self.config.wallet.name)
+            os.path.join(self._path_string, self._name_string)
         )
-        return os.path.join(full_path, "hotkeys", self.config.wallet.hotkey)
+        return os.path.join(full_path, "hotkeys", self._hotkey_string)
 
     def _load_coldkeypub(self) -> str:
         if not os.path.isfile( self.coldkeypubfile ):
@@ -301,7 +313,7 @@ class Wallet():
 
     def create_coldkey_from_uri(self, uri:str, use_password: bool = True, overwrite:bool = False):
          # Create directory 
-        dir_path = os.path.expanduser(os.path.join(self.config.wallet.path, self.config.wallet.name))
+        dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
 
@@ -328,7 +340,7 @@ class Wallet():
     def create_hotkey_from_uri( self, uri:str, use_password: bool = True, overwrite:bool = False):  
         # Create directory 
         dir_path = os.path.expanduser(
-            os.path.join(self.config.wallet.path, self.config.wallet.name, "hotkeys")
+            os.path.join(self._path_string, self._name_string, "hotkeys")
         )
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
@@ -355,7 +367,7 @@ class Wallet():
 
     def create_new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False):    
         # Create directory 
-        dir_path = os.path.expanduser(os.path.join(self.config.wallet.path, self.config.wallet.name))
+        dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
 
@@ -382,7 +394,7 @@ class Wallet():
     def create_new_hotkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False):  
         # Create directory 
         dir_path = os.path.expanduser(
-            os.path.join(self.config.wallet.path, self.config.wallet.name, "hotkeys")
+            os.path.join(self._path_string, self._name_string, "hotkeys")
         )
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
@@ -408,7 +420,7 @@ class Wallet():
 
     def regenerate_coldkey( self, mnemonic: str, use_password: bool,  overwrite:bool = False):
         # Create directory 
-        dir_path = os.path.expanduser(os.path.join(self.config.wallet.path, self.config.wallet.name))
+        dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
 
@@ -433,7 +445,7 @@ class Wallet():
 
     def regenerate_hotkey( self, mnemonic: str, use_password: bool = True, overwrite:bool = False):
         # Create directory 
-        dir_path = os.path.expanduser(os.path.join(self.config.wallet.path, self.config.wallet.name, "hotkeys"))
+        dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string, "hotkeys"))
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
 

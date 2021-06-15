@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+from os import name
 import bittensor
 import argparse
 import copy
@@ -22,33 +23,33 @@ import copy
 from . import metagraph_impl
 
 class metagraph:
-
+    
     def __new__(
             cls, 
-            config: 'bittensor.Config' = None
+            config: 'bittensor.config' = None,
+            subtensor: 'bittensor.Subtensor' = None
         ) -> 'bittensor.Metagraph':
-        r""" Creates a new bittensor.Axon object from passed arguments.
+        r""" Creates a new bittensor.Metagraph object from passed arguments.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
-                    bittensor.metagraph.default_config()
-        """        
-        if config == None:
-            config = metagraph.default_config()
-        metagraph.check_config( config )
-        return metagraph_impl.Metagraph( config )
+                    bittensor.metagraph.config()
+                subtensor (:obj:`bittensor.Subtensor`, `optional`): 
+                    bittensor subtensor chain connection.
+        """      
+        if config == None: config = metagraph.config().metagraph
+        config = copy.deepcopy(config)
+        if subtensor == None:
+            subtensor = bittensor.subtensor( config.subtensor )
+        return metagraph_impl.Metagraph( subtensor = subtensor )
 
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
-        parser = argparse.ArgumentParser(); 
-        metagraph.add_args(parser) 
-        config = bittensor.config( parser ); 
+    def config( config: 'bittensor.Config' = None, namespace: str = 'metagraph' ) -> 'bittensor.Config':
+        if config == None: config = bittensor.config()
+        metagraph_config = bittensor.config()
+        bittensor.subtensor.config( metagraph_config )
+        config[ namespace  ] = metagraph_config
         return config
 
     @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        bittensor.subtensor.add_args(parser)
-        
-    @staticmethod   
-    def check_config(config: 'bittensor.Config'):
-        bittensor.subtensor.check_config(config)
-
+    def check_config( config: 'bittensor.Config' ):
+        bittensor.subtensor.check_config( config.subtensor )

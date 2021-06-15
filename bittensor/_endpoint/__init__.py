@@ -24,7 +24,16 @@ from . import endpoint_impl
 
 class endpoint:
 
-    def __new__( cls, uid:int, hotkey:str, ip:str, ip_type:int, port:int , modality:int, coldkey:str ) -> 'bittensor.Endpoint':
+    def __new__( 
+        cls, 
+        uid:int, 
+        hotkey:str, 
+        ip:str, 
+        ip_type:int, 
+        port:int, 
+        modality:int, 
+        coldkey:str 
+    ) -> 'bittensor.Endpoint':
         return endpoint_impl.Endpoint( uid, hotkey, ip, ip_type, port, modality, coldkey )
 
     @staticmethod
@@ -40,7 +49,7 @@ class endpoint:
         )
     
     @staticmethod
-    def from_tensor( tensor: torch.LongTensor) -> 'bittensor.Endpoint':
+    def from_tensor( tensor: torch.int64) -> 'bittensor.Endpoint':
         endpoint_list = tensor.tolist()
         endpoint_bytes = bytearray( endpoint_list )
         endpoint_string = endpoint_bytes.decode('utf-8')

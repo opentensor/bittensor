@@ -20,58 +20,20 @@ import argparse
 import copy
 import grpc
 import bittensor.utils.networking as net
+from concurrent.futures import ThreadPoolExecutor
 
 from . import receptor_impl
 
 class receptor:
-
-    def __new__(
-            cls, 
-            endpoint: 'bittensor.Endpoint', 
-            config: 'bittensor.Config' = None, 
-            wallet: 'bittensor.Wallet' = None,
-            pass_gradients: bool = None,
-            timeout: int = None,
-            do_backoff: bool = None,
-            max_backoff:int = None
-        ) -> 'bittensor.Receptor':
+    def __new__( cls, endpoint: 'bittensor.Endpoint', wallet: 'bittensor.Wallet' = None) -> 'bittensor.Receptor':
         r""" Initializes a receptor grpc connection.
             Args:
                 endpoint (:obj:`bittensor.Endpoint`, `required`):
                     neuron endpoint descriptor.
-                config (:obj:`bittensor.Config`, `optional`): 
-                    receptor.Receptor.config()
-                wallet (:obj:`bittensor.Wallet`, `optional`):
-                    bittensor wallet with hotkey and coldkeypub.
-                pass_gradients (default=True, type=bool)
-                    Switch to true if the neuron passes gradients to downstream peers.
-                        By default the backward call i.e. loss.backward() triggers passing gradients on the wire.
-                timeout (default=0.5, type=float):
-                    The per request RPC timeout. a.k.a the maximum request time.
-                do_backoff (default=True, type=bool)
-                    Neurons who return non successful return codes are
-                        periodically not called with a multiplicative backoff.
-                        The backoff doubles until max_backoff and then halves on ever sequential successful request.
-                max_backoff (default=100, type=int)
-                    The backoff doubles until this saturation point.
         """        
-        if config == None:
-            config = receptor.default_config()
-        config.receptor.pass_gradients = pass_gradients if pass_gradients != None else config.receptor.pass_gradients
-        config.receptor.timeout = timeout if timeout != None else config.receptor.timeout
-        config.receptor.do_backoff = do_backoff if do_backoff != None else config.receptor.do_backoff
-        config.receptor.max_backoff = max_backoff if max_backoff != None else config.receptor.max_backoff
-        receptor.check_config( config )
-        config = copy.deepcopy(config) # Configuration information.
 
         if wallet == None:
-            wallet = bittensor.wallet( config )
-
-        # Get remote IP.
-        try:
-            external_ip = config.axon.external_ip
-        except:
-            pass
+            wallet = bittensor.wallet()
         try:
             external_ip = str(net.get_external_ip())
         except:
@@ -86,48 +48,70 @@ class receptor:
         else:
             endpoint_str = endpoint.ip + ':' + str(endpoint.port)
         
-        # Make channel and stub.
         channel = grpc.insecure_channel(
             endpoint_str,
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])
         stub = bittensor.grpc.BittensorStub( channel )
-
         return receptor_impl.Receptor( 
-            config = config, 
-            wallet = wallet, 
-            endpoint = endpoint, 
+            endpoint = endpoint,
             channel = channel, 
+            wallet = wallet,
             stub = stub
         )
 
+class receptor_pool:
+
+    def __new__( 
+            cls, 
+            config: 'bittensor.config' = None,
+            wallet: 'bittensor.Wallet' = None,
+            thread_pool: ThreadPoolExecutor = None,
+            max_worker_threads: int = 20,
+            max_active_receptors: int = 150,
+        ) -> 'bittensor.ReceptorPool':
+        r""" Initializes a receptor grpc connection.
+            Args:
+                config (:obj:`bittensor.Config`, `optional`): 
+                    bittensor.receptor_pool.config()
+                wallet (:obj:`bittensor.Wallet`, `optional`):
+                    bittensor wallet with hotkey and coldkeypub.
+                thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
+                    thread pool executor passed the receptor pool unless defined.
+                max_worker_threads (:type:`int`, `optional`):
+                    Maximum number of active client threads. Does not override passed 
+                    Threadpool.
+                max_active_receptors (:type:`int`, `optional`):
+                    Maximum allowed active allocated TCP connections.
+        """        
+        if config == None: config = receptor_pool.config().receptor_pool
+        config.max_worker_threads = max_worker_threads if max_worker_threads != None else config.max_worker_threads
+        config.max_active_receptors = max_active_receptors if max_active_receptors != None else config.max_active_receptors
+        config = copy.deepcopy( config )
+        if wallet == None:
+            wallet = bittensor.wallet( config.wallet )
+        if thread_pool == None:
+            thread_pool = ThreadPoolExecutor( max_workers = max_worker_threads )
+        return bittensor.ReceptorPool( 
+            wallet = wallet,
+            thread_pool = thread_pool,
+            max_active_receptors = max_active_receptors
+        )
+
     @staticmethod   
-    def default_config() -> 'bittensor.Config':
+    def config( config: 'bittensor.Config' = None, namespace: str = 'receptor_pool' ) -> 'bittensor.Config':
+        if config == None: config = bittensor.config()
+        receptor_pool_config = bittensor.config()        
+        bittensor.wallet.config( receptor_pool_config )
+        config[ namespace ] = receptor_pool_config
         parser = argparse.ArgumentParser()
-        receptor.add_args(parser) 
-        config = bittensor.config( parser ); 
+        parser.add_argument('--' + namespace + 'max_worker_threads', dest = 'max_worker_threads',  default=150, type=int, help='''Max number of concurrent threads used for sending RPC requests.''')
+        parser.add_argument('--' + namespace + 'max_active_receptors', dest = 'max_active_receptors', default=500, type=int, help='''Max number of concurrently active receptors / tcp-connections''')
+        parser.parse_known_args( namespace = receptor_pool_config )
         return config
 
     @staticmethod   
-    def check_config(config: 'bittensor.Config'):
-        bittensor.wallet.check_config( config )
-        assert config.receptor.timeout >= 0, 'timeout must be positive value, got {}'.format(config.receptor.timeout)
-
-    @staticmethod   
-    def add_args(parser: argparse.ArgumentParser):
-        bittensor.wallet.add_args( parser )
-        try:
-            # Can be called multiple times.
-            parser.add_argument('--receptor.pass_gradients', default=True, type=bool, 
-                help='''Switch to true if the neuron passes gradients to downstream peers.
-                        By default the backward call i.e. loss.backward() triggers passing gradients on the wire.''')
-            parser.add_argument('--receptor.timeout', default=3, type=float, 
-                help='''The per request RPC timeout. a.k.a the maximum request time.''')
-            parser.add_argument('--receptor.do_backoff', default=True, type=bool, 
-                help='''Neurons who return non successful return codes are
-                        periodically not called with a multiplicative backoff.
-                        The backoff doubles until max_backoff and then halves on ever sequential successful request.''')
-            parser.add_argument('--receptor.max_backoff', default=100, type=int, 
-                help='''The backoff doubles until this saturation point.''')
-        except:
-            pass
+    def check_config( config: 'bittensor.Config' ):
+        assert config.max_worker_threads > 0, 'max_worker_threads must be larger than 0'
+        assert config.max_active_receptors > 0, 'max_active_receptors must be larger than 0'
+        bittensor.wallet.check_config( config.wallet )
