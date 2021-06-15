@@ -130,10 +130,10 @@ class SGMOERouter( router.Router ):
             # Return nill responses.
             n = metagraph.n
             output.response = torch.zeros(size=(inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
-            output.weights = torch.zeros(size = ( n ), dtype=float32)
-            output.uids = torch.zeros([], dtype=int64)
-            output.requests_sizes = torch.zeros([], dtype=int64)
-            output.return_codes = torch.zeros([], dtype=int64)
+            output.weights = torch.zeros(size = ( n ), dtype=torch.float32)
+            output.uids = torch.zeros([], dtype=torch.int64)
+            output.requests_sizes = torch.zeros([], dtype=torch.int64)
+            output.return_codes = torch.zeros([], dtype=torch.int64)
             return output
 
         # Get weights for uids.
@@ -211,10 +211,10 @@ class SGMOERouter( router.Router ):
         output.uids = real_filtered_topk_uids 
 
         # Scatter scores on to metagraph dimension.
-        output.weights = torch.scatter( torch.zeros( (metagraph.n), dtype=float32).to(self.device), 0, real_filtered_topk_uids, scores )
+        output.weights = torch.scatter( torch.zeros( (metagraph.n), dtype=torch.float32).to(self.device), 0, real_filtered_topk_uids, scores )
         
         # Set request sizes.
-        output.request_sizes = torch.scatter( torch.zeros( (metagraph.n), dtype=float32).to(self.device), 0, real_filtered_topk_uids, batch_size )
+        output.request_sizes = torch.scatter( torch.zeros( (metagraph.n), dtype=torch.float32).to(self.device), 0, real_filtered_topk_uids, batch_size )
         
         # Set return codes.
         output.return_codes = retops

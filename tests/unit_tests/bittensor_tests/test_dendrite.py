@@ -25,17 +25,17 @@ neuron_obj = bittensor.endpoint(
 )
 
 def test_dendrite_forward_tensor_shape_error():
-    x = torch.rand(3, 3, 3, dtype=float32)
+    x = torch.rand(3, 3, 3, dtype=torch.float32)
     with pytest.raises(ValueError):
         dendrite.forward_tensor( [neuron_obj], [x])
 
 def test_dendrite_forward_image_shape_error():
-    x = torch.rand(3, 3, 3, dtype=float32)
+    x = torch.rand(3, 3, 3, dtype=torch.float32)
     with pytest.raises(ValueError):
         dendrite.forward_image( [neuron_obj], [x])
 
 def test_dendrite_forward_text_shape_error():
-    x = torch.zeros((3, 3, 3), dtype=int64)
+    x = torch.zeros((3, 3, 3), dtype=torch.int64)
     with pytest.raises(ValueError):
         dendrite.forward_image( [neuron_obj], [x])
 
@@ -46,13 +46,13 @@ def test_dendrite_forward_text():
     assert list(out[0].shape) == [2, 4, bittensor.__network_dim__]
 
 def test_dendrite_forward_image():
-    x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ], dtype=float32)
+    x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ], dtype=torch.float32)
     out, ops = dendrite.forward_image( [neuron_obj], [x])
     assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
     assert list(out[0].shape) == [1, 1, bittensor.__network_dim__]
 
 def test_dendrite_forward_tensor():
-    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=float32)
+    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
     out, ops = dendrite.forward_tensor( [neuron_obj], [x])
     assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
@@ -71,7 +71,7 @@ def test_dendrite_backoff():
     print (_endpoint_obj)
     
     # Normal call.
-    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=float32)
+    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
     out, ops = _dendrite.forward_tensor( [_endpoint_obj], [x])
     assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]

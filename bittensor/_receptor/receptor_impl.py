@@ -42,7 +42,7 @@ DUMMY = torch.empty(0, requires_grad=True)
 def nill_response_for(inputs):
     if torch.numel(inputs) == 0:
         return torch.tensor([])
-    return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=float32)
+    return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=torch.float32)
 
 class Receptor(nn.Module):
     """ Encapsulates a grpc connection to an axon endpoint as a standard auto-grad torch.nn.Module.

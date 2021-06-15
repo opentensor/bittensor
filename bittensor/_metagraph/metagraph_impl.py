@@ -58,13 +58,13 @@ class Metagraph( torch.nn.Module ):
         """
         super(Metagraph, self).__init__()
         self.subtensor = subtensor
-        self.version = torch.nn.Parameter( torch.tensor( [ bittensor.__version_as_int__ ], dtype=int64), requires_grad=False )
-        self.n = torch.nn.Parameter( torch.tensor( [0], dtype=int64), requires_grad=False )
-        self.tau = torch.nn.Parameter( torch.tensor( [0.5], dtype=float32), requires_grad=False )
-        self.block = torch.nn.Parameter( torch.tensor( [0], dtype=int64), requires_grad=False )
-        self.uids = torch.nn.Parameter( torch.tensor( [], dtype=int64), requires_grad=False )
-        self.stake = torch.nn.Parameter( torch.tensor( [], dtype=float32), requires_grad=False )
-        self.lastemit = torch.nn.Parameter( torch.tensor( [], dtype=int64), requires_grad=False )
+        self.version = torch.nn.Parameter( torch.tensor( [ bittensor.__version_as_int__ ], dtype=torch.int64), requires_grad=False )
+        self.n = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad=False )
+        self.tau = torch.nn.Parameter( torch.tensor( [0.5], dtype=torch.float32), requires_grad=False )
+        self.block = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad=False )
+        self.uids = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
+        self.stake = torch.nn.Parameter( torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.lastemit = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.weights = torch.nn.ParameterList()
         self.neurons = torch.nn.ParameterList()
         self.cached_endpoints = None
@@ -88,7 +88,7 @@ class Metagraph( torch.nn.Module ):
                     Block incentive for each neuron. 
         """
         if self.n.item() == 0:
-            return torch.tensor([], dtype=float32)
+            return torch.tensor([], dtype=torch.float32)
         I =  (self.tau * self.ranks) / torch.sum(self.ranks)
         I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
         return I.view(self.n)
@@ -103,7 +103,7 @@ class Metagraph( torch.nn.Module ):
 
         """
         if self.n.item() == 0:
-            return torch.tensor([], dtype=float32)
+            return torch.tensor([], dtype=torch.float32)
         else:
             S = self.S.view(self.n, 1)
             Wt = torch.transpose(self.W, 0, 1)
@@ -128,7 +128,7 @@ class Metagraph( torch.nn.Module ):
                     Weight matrix.
         """
         if self.n.item() == 0:
-            return torch.tensor( [], dtype=float32 )
+            return torch.tensor( [], dtype=torch.float32 )
         return torch.stack( [row for row in self.weights], axis = 0 )
 
     @property
@@ -295,11 +295,11 @@ class Metagraph( torch.nn.Module ):
         new_size = len(chain_stake)
         old_size = self.n.item() 
         old_block = self.block.item()
-        new_n = torch.tensor([new_size], dtype=int64)
-        new_block = torch.tensor([chain_block], dtype=int64)
-        new_uids = torch.tensor( range(new_size) ,  dtype=int64)
-        new_stake = torch.tensor([ (float(chain_stake[uid])/1000000000) for uid in range(new_size)],  dtype=float32)
-        new_lastemit = torch.tensor([ chain_lastemit[uid] for uid in range(new_size)], dtype=int64)
+        new_n = torch.tensor([new_size], dtype=torch.int64)
+        new_block = torch.tensor([chain_block], dtype=torch.int64)
+        new_uids = torch.tensor( range(new_size) ,  dtype=torch.int64)
+        new_stake = torch.tensor([ (float(chain_stake[uid])/1000000000) for uid in range(new_size)],  dtype=torch.float32)
+        new_lastemit = torch.tensor([ chain_lastemit[uid] for uid in range(new_size)], dtype=torch.int64)
 
         # Set params.
         self.n = torch.nn.Parameter( new_n, requires_grad=False )
@@ -310,12 +310,12 @@ class Metagraph( torch.nn.Module ):
 
         # Extend weights matrix.
         for idx in range( old_size ):
-            self.weights[idx] =  torch.nn.Parameter( torch.cat( [self.weights[idx], torch.zeros([new_size - len(self.weights[idx])], dtype=float32)]))
+            self.weights[idx] =  torch.nn.Parameter( torch.cat( [self.weights[idx], torch.zeros([new_size - len(self.weights[idx])], dtype=torch.float32)]))
 
         # Create buffers
         for _ in range( new_size - old_size ):
-            self.weights.append( torch.nn.Parameter( torch.tensor([], dtype=float32), requires_grad=False ) )
-            self.neurons.append( torch.nn.Parameter( torch.tensor([], dtype=int64), requires_grad=False ) )
+            self.weights.append( torch.nn.Parameter( torch.tensor([], dtype=torch.float32), requires_grad=False ) )
+            self.neurons.append( torch.nn.Parameter( torch.tensor([], dtype=torch.int64), requires_grad=False ) )
 
         # Fill pending queries.
         pending_queries = []

@@ -136,10 +136,10 @@ class PKMRouter( router.Router ):
             # Return nill responses.
             n = metagraph.n
             output.response = torch.zeros(size=(inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
-            output.weights = torch.zeros(size = ( n ), dtype=float32)
-            output.uids = torch.zeros([], dtype=int64)
-            output.requests_sizes = torch.zeros([], dtype=int64)
-            output.return_codes = torch.zeros([], dtype=int64)
+            output.weights = torch.zeros(size = ( n ), dtype=torch.float32)
+            output.uids = torch.zeros([], dtype=torch.int64)
+            output.requests_sizes = torch.zeros([], dtype=torch.int64)
+            output.return_codes = torch.zeros([], dtype=torch.int64)
             return output
 
         # keys: (torch.FloatTensor): unique trainable torch keys for each uid

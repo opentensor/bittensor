@@ -36,7 +36,7 @@ class Endpoint:
         string_json = self.dumps()
         bytes_json = bytes(string_json, 'utf-8')
         ints_json = list(bytes_json)
-        endpoint_tensor = torch.tensor( ints_json, dtype=int64, requires_grad=False)
+        endpoint_tensor = torch.tensor( ints_json, dtype=torch.int64, requires_grad=False)
         return endpoint_tensor
 
     def dumps(self):

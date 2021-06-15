@@ -97,13 +97,13 @@ class serializer:
                 dtype: (torch.dtype): translated torch.dtype.
         """
         if bdtype == bittensor.proto.DataType.FLOAT32:
-            dtype=float32
+            dtype=torch.float32
         elif bdtype == bittensor.proto.DataType.FLOAT64:
             dtype = torch.float64
         elif bdtype == bittensor.proto.DataType.INT32:
             dtype = torch.int32
         elif bdtype == bittensor.proto.DataType.INT64:
-            dtype=int64
+            dtype=torch.int64
         else:
             raise bittensor.serializer.DeserializationException(
                 'Unknown bittensor.Dtype or no equivalent torch.dtype for bittensor.dtype = {}'
