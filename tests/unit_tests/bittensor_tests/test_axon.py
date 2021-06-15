@@ -112,7 +112,7 @@ def test_forward_deserialization():
         tensors=[inputs_serialized]
     )
     response, code, message = axon._forward( request )
-    assert code == bittensor.proto.ReturnCode.ResponseDeserializationException
+    assert code == bittensor.proto.ReturnCode.EmptyResponse
 
 def test_backward_invalid_request():
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
@@ -212,7 +212,7 @@ def test_backward_response_deserialization_error():
         tensors=[ inputs_serialized, grads_serialized]
     )
     response, code, message = axon._backward( request )
-    assert code == bittensor.proto.ReturnCode.ResponseSerializationException
+    assert code == bittensor.proto.ReturnCode.EmptyResponse
 
 def test_backward_response_success():
     def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ):
