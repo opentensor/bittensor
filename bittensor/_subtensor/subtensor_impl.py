@@ -640,9 +640,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         Args:
             wallet (bittensor.wallet):
                 bittensor wallet object.
-            uids (torch.LongTensor):
+            uids (torch.int64):
                 uint64 uids of destination neurons.
-            weights (torch.FloatTensor):
+            weights (torch.float32):
                 weights to set which must floats and correspond to the passed uids.
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true,
@@ -674,9 +674,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         Args:
             wallet (bittensor.wallet):
                 bittensor wallet object.
-            uids (torch.LongTensor):
+            uids (torch.int64):
                 uint64 uids of destination neurons.
-            weights (torch.FloatTensor):
+            weights (torch.float32):
                 weights to set which must floats and correspond to the passed uids.
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true,
