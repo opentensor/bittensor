@@ -380,26 +380,26 @@ class Axon( bittensor.grpc.BittensorServicer ):
             
         if modality_x == bittensor.proto.Modality.IMAGE:
             if len(inputs_x.shape) != 5:
-                code = bittensor.proto.ReturnCode.RequestDeserializationException
+                code = bittensor.proto.ReturnCode.RequestShapeException
                 message =  "Forward image input shape exception for len(shape) = {}  must have rank 5".format(len(inputs_x.shape))
                 bittensor.utils.codes.rpc_log( axon=True, forward=False, is_response=False, code=code, pubkey=request.public_key, inputs=[grads_dy, inputs_x], outputs=None, message=message )
                 return None, code, message
 
         if modality_x == bittensor.proto.Modality.TENSOR:
             if len(inputs_x.shape) != 3:
-                code = bittensor.proto.ReturnCode.RequestDeserializationException
+                code = bittensor.proto.ReturnCode.RequestShapeException
                 message = "Forward message tensor input shape exception len(shape) = {} must have rank 3".format(len(inputs_x.shape))
                 bittensor.utils.codes.rpc_log( axon=True, forward=False, is_response=False, code=code, pubkey=request.public_key, inputs=[grads_dy, inputs_x], outputs=None, message=message )
                 return None, code, message
 
         if len(grads_dy.shape) != 3:
-            code = bittensor.proto.ReturnCode.RequestDeserializationException
+            code = bittensor.proto.ReturnCode.RequestShapeException
             message = "Passed gradients must have rank 3 but got {}".format(len(grads_dy.shape))
             bittensor.utils.codes.rpc_log( axon=True, forward=False, is_response=False, code=code, pubkey=request.public_key, inputs=[grads_dy, inputs_x], outputs=None, message=message )
             return None, code, message
 
         if grads_dy.shape[0] != inputs_x.shape[0] or grads_dy.shape[1] != inputs_x.shape[1]:
-            code = bittensor.proto.ReturnCode.RequestDeserializationException
+            code = bittensor.proto.ReturnCode.RequestShapeException
             message = "Passed gradients must same first and second dimension as passed inputs got shapes {} and {}".format(grads_dy.shape, inputs_x.shape)
             bittensor.utils.codes.rpc_log( axon=True, forward=False, is_response=False, code=code, pubkey=request.public_key, inputs=[grads_dy, inputs_x], outputs=None, message=message )
             return None, code, message

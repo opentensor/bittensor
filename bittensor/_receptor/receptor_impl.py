@@ -223,7 +223,7 @@ class Receptor(nn.Module):
                 code = bittensor.proto.ReturnCode.EmptyRequest
                 message = 'empty request'
                 bittensor.utils.codes.rpc_log( axon=False, forward=True, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=None, message=message )
-                return zeros, 
+                return zeros, code, message
 
             # ---- Inputs Serialization ----
             try:
