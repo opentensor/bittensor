@@ -61,7 +61,7 @@ class TestSerialization(unittest.TestCase):
             ts_list.append(torch.ByteTensor(list(bytes(w, 'utf8'))))
             max_l = max(ts_list[-1].size()[0], max_l)
 
-        data = torch.zeros((len(ts_list), max_l), dtype=torch.int64)
+        data = torch.zeros((len(ts_list), max_l), dtype=int64)
         for i, ts in enumerate(ts_list):
             data[i, 0:ts.size()[0]] = ts
 

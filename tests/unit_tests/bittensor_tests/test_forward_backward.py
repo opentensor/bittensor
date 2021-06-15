@@ -43,21 +43,21 @@ def test_dendrite_forward_text():
     assert list(tensors[0].shape) == [2, 4, bittensor.__network_dim__]
 
 def test_dendrite_forward_image():
-    x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ], dtype=torch.float32)
+    x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ], dtype=float32)
     dendrite.receptor_pool.forward = MagicMock(return_value = [ [torch.zeros([1, 1, bittensor.__network_dim__])] , [0]]) 
     tensors, codes  = dendrite.forward_image( endpoints=[endpoint], inputs=[x])
     assert codes[0].item() == bittensor.proto.ReturnCode.Success
     assert list(tensors[0].shape) == [1, 1, bittensor.__network_dim__]
 
 def test_dendrite_forward_tensor():
-    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
+    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=float32)
     dendrite.receptor_pool.forward = MagicMock(return_value = [ [torch.zeros([3, 3, bittensor.__network_dim__])], [0]]) 
     tensors, codes = dendrite.forward_tensor( endpoints=[endpoint], inputs=[x])
     assert codes[0].item() == bittensor.proto.ReturnCode.Success
     assert list(tensors[0].shape) == [3, 3, bittensor.__network_dim__]
 
 def test_dendrite_forward_tensor_pass_through_text():
-    x = torch.ones((3, 3), dtype=torch.int64)
+    x = torch.ones((3, 3), dtype=int64)
     y = torch.zeros([3, 3, bittensor.__network_dim__])
     dendrite.receptor_pool.forward = MagicMock(return_value = [ [y, y, y] , [0, 0, 0]]) 
     tensors, codes = dendrite.forward_text( endpoints=[endpoint, endpoint, endpoint], inputs=[x, x, x])
@@ -103,7 +103,7 @@ def test_dendrite_forward_tensor_stack():
     assert averaged.shape == torch.zeros([3, 3, bittensor.__network_dim__ ]).shape
 
 def test_dendrite_backward():
-    x = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=torch.float32), requires_grad=True)
+    x = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=float32), requires_grad=True)
     y = torch.ones((1, 1, bittensor.__network_dim__))
     dendrite.receptor_pool.forward = MagicMock(return_value = [ [y], [0]]) 
     dendrite.receptor_pool.backward = MagicMock(return_value = [ [y], [0]]) 
@@ -112,7 +112,7 @@ def test_dendrite_backward():
     assert x.grad.shape == y.shape
 
 def test_dendrite_backward_large():
-    x = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=torch.float32), requires_grad=True)
+    x = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=float32), requires_grad=True)
     y = torch.ones((1, 1, bittensor.__network_dim__))
     dendrite.receptor_pool.forward = MagicMock(return_value = [ [y], [0]]) 
     dendrite.receptor_pool.backward = MagicMock(return_value = [ [y], [0]]) 
@@ -122,9 +122,9 @@ def test_dendrite_backward_large():
     assert x.grad.tolist() == y.tolist()
 
 def test_dendrite_backward_multiple():
-    x1 = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=torch.float32), requires_grad=True)
-    x2 = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=torch.float32), requires_grad=True)
-    x3 = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=torch.float32), requires_grad=True)
+    x1 = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=float32), requires_grad=True)
+    x2 = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=float32), requires_grad=True)
+    x3 = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=float32), requires_grad=True)
     y1 = torch.ones(1, 1, bittensor.__network_dim__)
     y2 = torch.ones(1, 1, bittensor.__network_dim__)
     y3 = torch.ones(1, 1, bittensor.__network_dim__)

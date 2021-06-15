@@ -20,11 +20,11 @@ class PKMKeys(nn.Module):
     def forward(self, uids: torch.Tensor) -> torch.Tensor:
         r""" Maps metagraph uids to torch keys
             Args:
-                uids (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
+                uids (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
                     Image tensors to forward.
 
             Returns:
-                keys (:obj:`torch.float32` of shape :obj:`(batch_size, key_dim)`, `required`): 
+                keys (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, key_dim)`, `required`): 
                     Torch key for each uid.
         """
         # Get max value for possible resize.
@@ -76,7 +76,7 @@ class PKMRouter( router.Router ):
         """
         pass
 
-    def _route(self, metagraph: 'bittensor.Metagraph', dendrite: 'bittensor.Dendrite', inputs: torch.float32, query: torch.float32, modality: bittensor.proto.Modality) -> SimpleNamespace:
+    def _route(self, metagraph: 'bittensor.Metagraph', dendrite: 'bittensor.Dendrite', inputs: torch.FloatTensor, query: torch.FloatTensor, modality: bittensor.proto.Modality) -> SimpleNamespace:
         r""" Routes inputs using context and metagraph state.
 
             Args:
@@ -87,10 +87,10 @@ class PKMRouter( router.Router ):
                 dendrite (:obj: `bittensor.Dendrite`, `required`):
                     bittensor dendrite object. User to make queries into the network.
 
-                inputs (:obj:`torch.float32` of shape :obj:`(batch_size, *-1*)`, `required`): 
+                inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, *-1*)`, `required`): 
                     tensors inputs to distribute to neurons using context.
                 
-                query (:obj:`torch.float32` of shape :obj:`(batch_size, query_dimension)`, `required`): 
+                query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
                     Context tensor used to select which neurons query for each example.
 
                 modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
@@ -98,19 +98,19 @@ class PKMRouter( router.Router ):
 
             Returns:
                 output = SimpleNamespace {
-                    responses (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
                         Joined responses from each queried neuron.
 
-                    weights (:obj:`torch.float32` of shape :obj:`(metagraph.state.n)`, `required`): 
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.state.n)`, `required`): 
                         Weights for each neuron per example.
 
-                    uids (:obj:`torch.int64` of shape :obj:`(n_topk)`, `required`): 
+                    uids (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`): 
                         Uids of neurons queried.
 
-                    requests_sizes (:obj:`torch.int64` of shape :obj:`(n_topk)`, `required`): 
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`): 
                         Number of requests sent to each uid.
 
-                    return_codes (:obj:`torch.int64` of shape :obj:`(n_topk)`, `required`):
+                    return_codes (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`):
                         Return code from each query for each queried uid.
                 }
         """
@@ -119,11 +119,11 @@ class PKMRouter( router.Router ):
         # For ease of use.
         batch_size = inputs.shape[0]
 
-        # all_uids: (torch.int64): unique keys for each peer neuron.
+        # all_uids: (torch.LongTensor): unique keys for each peer neuron.
         # all_uids.shape = [metagraph.n]
         all_uids = metagraph.uids # Returns a list of neuron uids.
 
-        # filtered_uids: (torch.int64): keys filtered by emit.
+        # filtered_uids: (torch.LongTensor): keys filtered by emit.
         # all_uids.shape = [metagraph.n]
         current_block = metagraph.block
         lastemit = metagraph.lastemit
@@ -136,57 +136,57 @@ class PKMRouter( router.Router ):
             # Return nill responses.
             n = metagraph.n
             output.response = torch.zeros(size=(inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
-            output.weights = torch.zeros(size = ( n ), dtype = torch.float32)
-            output.uids = torch.zeros([], dtype = torch.int64)
-            output.requests_sizes = torch.zeros([], dtype = torch.int64)
-            output.return_codes = torch.zeros([], dtype = torch.int64)
+            output.weights = torch.zeros(size = ( n ), dtype=float32)
+            output.uids = torch.zeros([], dtype=int64)
+            output.requests_sizes = torch.zeros([], dtype=int64)
+            output.return_codes = torch.zeros([], dtype=int64)
             return output
 
-        # keys: (torch.float32): unique trainable torch keys for each uid
+        # keys: (torch.FloatTensor): unique trainable torch keys for each uid
         # keys.shape = [n_uids, config.router.key_dim]
         keys = self.keys( filtered_uids ).to(self.device)
 
-        # query: (torch.float32): projection of the query on to the key dimension.
+        # query: (torch.FloatTensor): projection of the query on to the key dimension.
         # query.shape = [batch_size, config.router.key_dim]
         # On Cuda if it's available.
         query = self.projection( query )
 
-        # scores: (torch.float32): cartesian product between keys and projection.
+        # scores: (torch.FloatTensor): cartesian product between keys and projection.
         # scores.shape = [batch_size, n_uids]
         # These are all on Cuda if it's available.
         scores = F.linear(query, keys, bias=None)
         scores = F.softmax(scores, dim = 1) # Softmax scores
 
-        # topk_scores: (torch.float32): topk scores per example
-        # topk_indices: (torch.int64): topk indices per example
+        # topk_scores: (torch.FloatTensor): topk scores per example
+        # topk_indices: (torch.LongTensor): topk indices per example
         # topk_scores.shape = [batch_size, real_topk]
         # topk_indices.shape = [batch_size, real_topk]
         # These are all on Cuda if it's available.
         real_topk = min( n_uids, self.config.router.topk )
         topk_scores, topk_indices = scores.topk(real_topk, dim=1) 
 
-        # gates: (torch.float32): gated scores for uid per example. Zeros for non queried uids.
+        # gates: (torch.FloatTensor): gated scores for uid per example. Zeros for non queried uids.
         # gates.shape = [batch_size, n_uids]
         zeros = torch.zeros(batch_size, n_uids).to(self.device)
         gates = zeros.scatter(1, topk_indices, topk_scores)
         gates = F.normalize(gates, p=1, dim=1)
 
-        # non_zero_gates: (torch.float32): indices of non-zero gate values.
+        # non_zero_gates: (torch.FloatTensor): indices of non-zero gate values.
         # non_zero_gates.shape = [numel(gates), 2]
-        # sorted_indices: (torch.float32): sorted indices along the first dimension i.e. indices ordered by row.
+        # sorted_indices: (torch.FloatTensor): sorted indices along the first dimension i.e. indices ordered by row.
         # sorted_uids.shape = [batch_size, n_uids]
         non_zero_gates = torch.nonzero(gates)
         sorted_uids, index_sorted_uids =  torch.sort(non_zero_gates, dim = 0)
 
-        # uids_index: torch.float32): batch index of sorted uids.
+        # uids_index: torch.FloatTensor): batch index of sorted uids.
         # uids_indes.shape = [topk * batch_size, 1] 
         _, uids_index = sorted_uids.split(1, dim=1)
 
-        # batch_index: (torch.float32): batch index for each uid x example
+        # batch_index: (torch.FloatTensor): batch index for each uid x example
         # batch_index.shape =  [topk * batch_size]
         batch_index = sorted_uids[index_sorted_uids[:, 1], 0]
 
-        # inputs_expanded: (torch.float32): expanded inputs to topk * batch_size
+        # inputs_expanded: (torch.FloatTensor): expanded inputs to topk * batch_size
         # inputs_expanded.shape = [topk * batch_size, -1]
         inputs_expanded = inputs[batch_index]
 
@@ -194,7 +194,7 @@ class PKMRouter( router.Router ):
         # len(part_sizes) = [n_uids]
         request_sizes = list((gates != 0.0).sum(0).cpu().numpy())
 
-        # requests: List(torch.float32): examples for each uids
+        # requests: List(torch.FloatTensor): examples for each uids
         # requests.shape = n_uids * [-1, inputs.shape[1:]]
         requests = torch.split(inputs_expanded, request_sizes, dim=0)
         
@@ -219,42 +219,42 @@ class PKMRouter( router.Router ):
         else:
             raise NotImplementedError
 
-        # stitched: (torch.float32): responses joined along the first dimension.
+        # stitched: (torch.FloatTensor): responses joined along the first dimension.
         # stitched.shape = [real_topk, sequence_dim, bittensor.__network_dim__] 
-        # flat_stitched: (torch.float32): responses joined and flattened along the last dimension.
+        # flat_stitched: (torch.FloatTensor): responses joined and flattened along the last dimension.
         # flat_stitched.shape = [real_topk * batch_size, *inputs.shape[1:]] 
         stitched = torch.cat(responses, 0)
         flat_stitched = torch.flatten(stitched, start_dim = 1).to(self.device)
 
-        # gates_expanded: (torch.float32): gate values for each queried uid per example.
+        # gates_expanded: (torch.FloatTensor): gate values for each queried uid per example.
         # gates_expanded.shape = [real_topk * batch_size, n_uids]
         gates_expanded = gates[batch_index.flatten()]
 
-        # nonzero_gates: (torch.float32): non-zero gating values for each example for each uid.
+        # nonzero_gates: (torch.FloatTensor): non-zero gating values for each example for each uid.
         # nonzero_gates.shape = [real_topk * batch_size, 1]
         nonzero_gates = torch.gather(gates_expanded, 1, uids_index)
 
-        # flat_stitched: (torch.float32): responses multiplied by gate values.
+        # flat_stitched: (torch.FloatTensor): responses multiplied by gate values.
         # flat_stitched.shape = [real_topk * batch_size, *inputs.shape[1:]] 
         flat_stitched = flat_stitched.mul(nonzero_gates)
 
-        # zeros: (torch.float32): zero for combined responses. 
+        # zeros: (torch.FloatTensor): zero for combined responses. 
         # zeros.shape = [batch_size, *inputs.shape[1:]] 
         zeros = torch.zeros(batch_size, flat_stitched.shape[1], requires_grad=True)
 
-        # combined: (torch.float32): combine responses by adding them to the corresponsing batch index.
+        # combined: (torch.FloatTensor): combine responses by adding them to the corresponsing batch index.
         # combined = [batch_size, *inputs.shape[1:]] 
         combined = zeros.to(self.device).index_add(0, batch_index, flat_stitched.float())
 
-        # combined: (torch.float32): combined responses reshaped to correct dimension.
+        # combined: (torch.FloatTensor): combined responses reshaped to correct dimension.
         # combined = [batch_size, sequence_dim, bittensor.__network_dim__]
         combined = combined.view(batch_size, inputs.shape[1], bittensor.__network_dim__)
 
-        # indices: (torch.int64): indices of uids queried during this forward call.
+        # indices: (torch.LongTensor): indices of uids queried during this forward call.
         # indices = [batch_size, metagraph.n]
         indices = filtered_uids
 
-        # weights: (torch.int64): weights scattered onto uids per example.
+        # weights: (torch.LongTensor): weights scattered onto uids per example.
         # weights.shape = [metagraph.n]
         weights = torch.zeros(inputs.shape[0], metagraph.n)
         weights = weights.to(self.device)
@@ -262,7 +262,7 @@ class PKMRouter( router.Router ):
         weights.scatter_(1, indices.repeat(batch_size, 1), gates)
         weights = torch.mean( weights, axis = 0 )
 
-        # filled_sizes: (torch.int64): number of examples queried to each uid.
+        # filled_sizes: (torch.LongTensor): number of examples queried to each uid.
         # filled_sizes.shape = [metagraph.n]
         filled_request_sizes = torch.zeros(metagraph.n, dtype=torch.long).to(self.device)
         request_sizes = torch.tensor(request_sizes).to(self.device)

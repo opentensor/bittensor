@@ -630,8 +630,8 @@ To run a local node (See: docs/running_a_validator.md) \n
     def set_weights(
             self, 
             wallet: 'bittensor.wallet',
-            uids: torch.int64,
-            weights: torch.float32,
+            uids: torch.LongTensor,
+            weights: torch.FloatTensor,
             wait_for_inclusion:bool = False,
             wait_for_finalization:bool = False,
             timeout: int = 3 * bittensor.__blocktime__
@@ -640,9 +640,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         Args:
             wallet (bittensor.wallet):
                 bittensor wallet object.
-            uids (torch.int64):
+            uids (torch.LongTensor):
                 uint64 uids of destination neurons.
-            weights (torch.float32):
+            weights (torch.FloatTensor):
                 weights to set which must floats and correspond to the passed uids.
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true,
@@ -664,8 +664,8 @@ To run a local node (See: docs/running_a_validator.md) \n
     async def async_set_weights(
             self,
             wallet: 'bittensor.wallet',
-            uids: torch.int64,
-            weights: torch.float32,
+            uids: torch.LongTensor,
+            weights: torch.FloatTensor,
             wait_for_inclusion:bool = False,
             wait_for_finalization:bool = False,
             timeout: int = 3 * bittensor.__blocktime__
@@ -674,9 +674,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         Args:
             wallet (bittensor.wallet):
                 bittensor wallet object.
-            uids (torch.int64):
+            uids (torch.LongTensor):
                 uint64 uids of destination neurons.
-            weights (torch.float32):
+            weights (torch.FloatTensor):
                 weights to set which must floats and correspond to the passed uids.
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true,

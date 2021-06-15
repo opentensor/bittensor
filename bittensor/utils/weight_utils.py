@@ -28,17 +28,17 @@ def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: Li
             weights (:obj:`List[int],`):
                 Tensor of weights.
     """
-    row_weights = torch.zeros( [ n ], dtype=torch.float32 )
+    row_weights = torch.zeros( [ n ], dtype=float32 )
     for uid_j, wij in list(zip( uids, weights )):
         row_weights[ uid_j ] = float( wij ) / float(4294967295)
     return row_weights
 
-def convert_weights_and_uids_for_emit( uids: torch.int64, weights: torch.float32 ) -> Tuple[List[int], List[int]]:
+def convert_weights_and_uids_for_emit( uids: torch.LongTensor, weights: torch.FloatTensor ) -> Tuple[List[int], List[int]]:
     r""" Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
         Returns:
-            uids (:obj:`torch.int64,`):
+            uids (:obj:`torch.LongTensor,`):
                 Tensor of uids as destinations for passed weights.
-            weights (:obj:`torch.int64,`):
+            weights (:obj:`torch.LongTensor,`):
                 Tensor of weights.
     """
     # Checks.
