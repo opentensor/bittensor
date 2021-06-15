@@ -31,25 +31,25 @@ class Metagraph( torch.nn.Module ):
     r""" Maintains chain state as a torch.nn.Module.
 
         Interface:
-            tau (:obj:`torch.FloatTensor` of shape :obj:`(1)`): 
+            tau (:obj:`torch.float32` of shape :obj:`(1)`): 
                 Current, per block, token inflation rate.
 
-            block (:obj:`torch.LongTensor` of shape :obj:`(1)`):
+            block (:obj:`torch.int64` of shape :obj:`(1)`):
                 State block number.
 
-            uids (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+            uids (:obj:`torch.int64` of shape :obj:`(metagraph.n)`):
                 UIDs for each neuron.
             
-            stake (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+            stake (:obj:`torch.int64` of shape :obj:`(metagraph.n)`):
                 Stake balance for each neuron ordered by uid.
                 
-            lastemit (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+            lastemit (:obj:`torch.int64` of shape :obj:`(metagraph.n)`):
                 Last emission call for each neuron ordered by uid.
 
-            weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n, metagraph.n)`):
+            weights (:obj:`torch.float32` of shape :obj:`(metagraph.n, metagraph.n)`):
                 Full weight matrix on chain ordered by uid.
 
-            neurons (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n, -1)`) 
+            neurons (:obj:`torch.int64` of shape :obj:`(metagraph.n, -1)`) 
                 Tokenized endpoint information.
 
     """
@@ -70,21 +70,21 @@ class Metagraph( torch.nn.Module ):
         self.cached_endpoints = None
 
     @property
-    def S(self) -> torch.FloatTensor:
+    def S(self) -> torch.float32:
         r""" Returns neurons stake values.
              
              Returns:
-                S (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                S (:obj:`torch.float32` of shape :obj:`(metagraph.n)`):
                     Stake of each known neuron.
         """
         return self.stake
 
     @property
-    def I(self) -> torch.FloatTensor:
+    def I(self) -> torch.float32:
         r""" Returns neuron incentives: tau * R / sum(R)
         
             Returns:
-                I (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                I (:obj:`torch.float32` of shape :obj:`(metagraph.n)`):
                     Block incentive for each neuron. 
         """
         if self.n.item() == 0:
@@ -94,11 +94,11 @@ class Metagraph( torch.nn.Module ):
         return I.view(self.n)
 
     @property
-    def ranks(self) -> torch.FloatTensor:
+    def ranks(self) -> torch.float32:
         r""" Returns neuron ranks: W^t * S
            
             Returns:
-                ranks (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                ranks (:obj:`torch.float32` of shape :obj:`(metagraph.n)`):
                     Rank of each neuron.
 
         """
@@ -111,17 +111,17 @@ class Metagraph( torch.nn.Module ):
         return R
 
     @property
-    def R(self) -> torch.FloatTensor:
+    def R(self) -> torch.float32:
         r""" Returns neuron ranks: W^t * S
              
              Returns:
-                rank (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                rank (:obj:`torch.float32` of shape :obj:`(metagraph.n)`):
                     Rank of each neuron.
         """
         return self.ranks
 
     @property
-    def W(self) -> torch.FloatTensor:
+    def W(self) -> torch.float32:
         r""" Return full weight matrix from chain.
              Returns:
                 W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):

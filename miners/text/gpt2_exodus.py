@@ -229,31 +229,31 @@ class neuron:
                     training batch dictionary.           
             Returns:
                 output = SimpleNamespace ( 
-                    local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                    local_context (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Hidden layer context.
 
-                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                    local_hidden (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Hidden layer encoding produced using local_context.
 
-                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                    local_target (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
                         GPT MLM Target predictions produced using local_context. 
 
-                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                    local_target_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`): 
                         GPT MLM loss using local_context.
 
-                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
+                    remote_hidden (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
 
-                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
+                    remote_target (:obj:`torch.float32` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
                         GPT MLM Target predictions using the remote_context.
 
-                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+                    remote_target_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`):
                         GPT MLM loss using the remote_context.
 
-                    remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                    remote_context (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                         Joined responses from network call.
 
-                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                    distillation_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
             )
@@ -277,7 +277,7 @@ class neuron:
         return output
 
     # ---- Axon Forward call ----
-    def forward ( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+    def forward ( self, pubkey:str, inputs: torch.float32, modality:int ) -> torch.float32:
         r""" Subscribed to an axon servicing endpoint, processes forward messages from the wire.
             The arguments reflect an RPC request from another miner in the network, the response tensor
             should be the hidden units of the local nucleus of shape [batch_size, sequence_len, __network_dim__].
@@ -291,7 +291,7 @@ class neuron:
                     modality of inputs e.g. bittensor.proto.Modality.TEXT.
             
             Returns:
-                outputs (:obj:`torch.FloatTensor`): 
+                outputs (:obj:`torch.float32`): 
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
         inputs = inputs.to( self.device )
@@ -301,7 +301,7 @@ class neuron:
         return output.local_hidden
 
     # ---- Axon Backward call ----
-    def backward ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+    def backward ( self, pubkey:str, inputs_x:torch.float32, grads_dy:torch.float32, modality:int ) -> torch.float32:
         r""" Subscribed to an axon servicing endpoint. Processes backward messages from the wire.
             Arguments reflect an RPC backward request from another miner in the network, the response tensor
             should be the gradients of the miner's nucleus w.r.t to the inputs and the passed output grads.
@@ -317,7 +317,7 @@ class neuron:
                     modality of inputs e.g. bittensor.proto.Modality.TEXT.
             
             Returns:
-                outputs (:obj:`torch.FloatTensor`): 
+                outputs (:obj:`torch.float32`): 
                     The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
         """
         inputs_x.requires_grad = True
@@ -336,20 +336,20 @@ class neuron:
         return grads_dx[0]
     
 
-    def route ( self, inputs: torch.LongTensor, query: torch.FloatTensor ) -> torch.FloatTensor:
+    def route ( self, inputs: torch.int64, query: torch.float32 ) -> torch.float32:
         r""" Subscribed to the nucleus as a callback which is made during remote training. 
             Accepts tokenized text inputs and a query. Routes text inputs to neurons
             based on that query. 
 
             Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_dim)`, `required`): 
+                inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_dim)`, `required`): 
                     Tensor of tokenized sentences.
                 
-                query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dim)`, `required`): 
+                query (:obj:`torch.float32` of shape :obj:`(batch_size, query_dim)`, `required`): 
                     Context tensor used to select which neurons to query for each example.
             
             Returns:
-                response (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                response (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Joined responses from the network call.
         """
         # ---- Forward messages through network ---- 

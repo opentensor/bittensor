@@ -100,18 +100,18 @@ class FFNNNucleus(torch.nn.Module):
         """
         self.routing_callback = routing_callback
 
-    def route( self, inputs: torch.Tensor, query: torch.Tensor ) -> torch.FloatTensor:
+    def route( self, inputs: torch.Tensor, query: torch.Tensor ) -> torch.float32:
         """ Calls this nucleus's subscribed routing function. self.routing_callback must be set before this call is made.
 
         Args:
-            inputs (:obj:`torch.LongTensor` of shape :obj:`( batch_size, sequence_len )`, `required`): 
+            inputs (:obj:`torch.int64` of shape :obj:`( batch_size, sequence_len )`, `required`): 
                     Batch_size length list of tokenized sentences.
 
-            query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
+            query (:obj:`torch.float32` of shape :obj:`(batch_size, query_dimension)`, `required`): 
                     Context tensor used to select which neurons to query for each example.
             
         Returns:
-            remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+            remote_context (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                 joined responses from network call.
         """
         if self.routing_callback == None:
@@ -123,11 +123,11 @@ class FFNNNucleus(torch.nn.Module):
         r""" Forward image inputs through the FFNN nucleus .
 
                 Args:
-                    inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
+                    inputs (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_dim, channels, rows, cols)`, `required`): 
                         Image tensors produced by calling PIL.toTensor() and with sequence dimension.
                 
                 Returns:
-                    hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                    hidden (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
                         Hidden layer encoding produced by using local_context.
         """
         # images: remove sequence dimension from images.
@@ -149,26 +149,26 @@ class FFNNNucleus(torch.nn.Module):
         remote queries to the network and returns only local hidden, target and losses.
 
         Args:
-            images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
+            images (:obj:`torch.float32` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
                 PIL.toTensor() encoded images.
 
-            targets (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, target_dim)`, `optional`, defaults to None): 
+            targets (:obj:`torch.float32`  of shape :obj:`(batch_size, target_dim)`, `optional`, defaults to None): 
                 Image labels.
 
         Returns:
-            local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
+            local_context (:obj:`torch.float32` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
                 Pre-Hidden layer context, trained to match the remote context.
 
-            local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
+            local_hidden (:obj:`torch.float32` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
                 Hidden layer produced from the context.
 
-            local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
+            local_target (:obj:`torch.float32` of shape :obj:`(batch_size, target_dim)`, `optional`):
                 FFNN Target predictions using local_context. 
 
-            local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+            local_target_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`): 
                 FFNN Classification loss using local_context.
 
-            local_accuracy (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+            local_accuracy (:obj:`torch.float32` of shape :obj:`(1)`, `optional`): 
                 Accuracy of target predictions.
             
         """
@@ -217,10 +217,10 @@ class FFNNNucleus(torch.nn.Module):
             makes RPC queries accross the network using the subscribed routing_callback.
             
             Args:
-                images (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
+                images (:obj:`torch.float32` of shape :obj:`(batch_size, channels, rows, cols)`, `required`): 
                     PIL.toTensor() encoded images.
                                 
-                targets (:obj:`torch.FloatTensor`  of shape :obj:`(batch_size, target_dim)`, `optional`, defaults to None): 
+                targets (:obj:`torch.float32`  of shape :obj:`(batch_size, target_dim)`, `optional`, defaults to None): 
                     Image labels.
             
             Returns:
@@ -229,16 +229,16 @@ class FFNNNucleus(torch.nn.Module):
                     router (:obj:`SimpleNamespace`, `required`): 
                         Outputs from the pkm dendrite remote call.
 
-                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                    distillation_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between the local and remote context.
 
-                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
+                    remote_hidden (:obj:`torch.float32` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote context.
 
-                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, target_dim)`, `optional`):
+                    remote_target (:obj:`torch.float32` of shape :obj:`(batch_size, target_dim)`, `optional`):
                         FFNN Target predictions using the remote_context.
 
-                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
+                    remote_target_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`):
                         FFNN Classification loss using the remote_context.
             
         """
