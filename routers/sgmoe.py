@@ -65,8 +65,8 @@ class SGMOERouter( router.Router ):
             self, 
             metagraph: 'bittensor.Metagraph', 
             dendrite: 'bittensor.Dendrite', 
-            inputs: torch.float32, 
-            query: torch.float32, 
+            inputs: torch.FloatTensor, 
+            query: torch.FloatTensor, 
             modality: bittensor.proto.Modality
         ) -> SimpleNamespace:
         r""" Routes inputs using context and metagraph state.
@@ -78,10 +78,10 @@ class SGMOERouter( router.Router ):
                 dendrite (:obj: `bittensor.Dendrite`, `required`):
                     Bittensor dendrite object. Used to make queries into the network.
 
-                inputs (:obj:`torch.float32` of shape :obj:`(batch_size, *-1*)`, `required`): 
+                inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, *-1*)`, `required`): 
                     Tensor inputs to distribute to neurons using query context.
                 
-                query (:obj:`torch.float32` of shape :obj:`(batch_size, query_dimension)`, `required`): 
+                query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
                     Context tensor used to select which neurons to query for each example.
 
                 modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
@@ -89,19 +89,19 @@ class SGMOERouter( router.Router ):
 
             Returns:
                 output = SimpleNamespace {
-                    responses (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
+                    responses (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_dim, bittensor.__network_dim__)`, `required`): 
                         Joined responses from each queried neuron.
 
-                    weights (:obj:`torch.float32` of shape :obj:`(metagraph.state.n)`, `required`): 
+                    weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.state.n)`, `required`): 
                         Weights for each neuron per example.
 
-                    uids (:obj:`torch.int64` of shape :obj:`(n_topk)`, `required`): 
+                    uids (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`): 
                         Uids of neurons queried.
 
-                    requests_sizes (:obj:`torch.int64` of shape :obj:`(n_topk)`, `required`): 
+                    requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`): 
                         Number of requests sent to each uid.
 
-                    return_codes (:obj:`torch.int64` of shape :obj:`(n_topk)`, `required`):
+                    return_codes (:obj:`torch.LongTensor` of shape :obj:`(n_topk)`, `required`):
                         Return code from each query for each queried uid.
                 }
         """
@@ -112,12 +112,12 @@ class SGMOERouter( router.Router ):
         batch_size = inputs.shape[0]
 
         # Get all uids.
-        # all_uids: (torch.int64): unique keys for each peer neuron.
+        # all_uids: (torch.LongTensor): unique keys for each peer neuron.
         # all_uids.shape = [metagraph.n]
         all_uids = metagraph.uids # Returns a list of neuron uids.
 
         # Filter uids based on last emit.
-        # filtered_uids: (torch.int64): keys filtered by emit.
+        # filtered_uids: (torch.LongTensor): keys filtered by emit.
         # all_uids.shape = [metagraph.n]
         current_block = metagraph.block
         lastemit = metagraph.lastemit
@@ -130,19 +130,19 @@ class SGMOERouter( router.Router ):
             # Return nill responses.
             n = metagraph.n
             output.response = torch.zeros(size=(inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
-            output.weights = torch.zeros(size = ( n ), dtype = torch.float32)
-            output.uids = torch.zeros([], dtype = torch.int64)
-            output.requests_sizes = torch.zeros([], dtype = torch.int64)
-            output.return_codes = torch.zeros([], dtype = torch.int64)
+            output.weights = torch.zeros(size = ( n ), dtype=torch.float32)
+            output.uids = torch.zeros([], dtype=torch.int64)
+            output.requests_sizes = torch.zeros([], dtype=torch.int64)
+            output.return_codes = torch.zeros([], dtype=torch.int64)
             return output
 
         # Get weights for uids.
-        # weights: (torch.float32): weights for each filtered_uid
+        # weights: (torch.FloatTensor): weights for each filtered_uid
         # weights.shape = [n_filtered]
         weights = torch.cat( [ self.gates[ uid ].to(self.device)(query) for uid in filtered_uids.tolist() ], axis = 1)
 
         # Normalize weights across batch dimension. 
-        # filtered_weights_mean: (torch.float32): normalized weights across batch dimension. 
+        # filtered_weights_mean: (torch.FloatTensor): normalized weights across batch dimension. 
         # filtered_weights_mean.shape = [ n_filtered ]
         filtered_mean_weights = torch.mean(weights, axis = 0)
 
@@ -150,13 +150,13 @@ class SGMOERouter( router.Router ):
         # Get indices and values for uids with highest scores.
         # topk_weights: (torch.float64): scores of uids with highest scores.
         # topk_weights.shape = [ real_topk ]
-        # topk_indices: (torch.int64): indicies of uids with highest scores.
+        # topk_indices: (torch.LongTensor): indicies of uids with highest scores.
         # topk_indices.shape = [ real_topk ]
         real_topk = min( n_filtered, self.config.topk )
         topk_weights, topk_indices = filtered_mean_weights.topk(real_topk, dim=0) 
 
         # Get the real uids with the top scores.
-        # real_filtered_topk_uids: (torch.int64): uids with highest scores.
+        # real_filtered_topk_uids: (torch.LongTensor): uids with highest scores.
         # real_filtered_topk_uids.shape = [ real_topk ]
         real_filtered_topk_uids = filtered_uids[ topk_indices ].to(self.device)
         
@@ -168,7 +168,7 @@ class SGMOERouter( router.Router ):
             filtered_endpoints.append( metagraph.endpoints[ uid ] )
 
         # Get request for uids with highest scores.
-        # requests: List[torch.float32]: requests for high scoring uids.
+        # requests: List[torch.FloatTensor]: requests for high scoring uids.
         # len(requests) == real_topk
         requests = [ inputs for _ in range( len(filtered_endpoints) )]
 
@@ -196,7 +196,7 @@ class SGMOERouter( router.Router ):
     
 
         # Normalize scores.
-        # scores: (torch.float32): normalized scores.
+        # scores: (torch.FloatTensor): normalized scores.
         # scores.shape = [real_topk]
         scores = topk_weights
         scores = scores - torch.min(scores)
@@ -211,10 +211,10 @@ class SGMOERouter( router.Router ):
         output.uids = real_filtered_topk_uids 
 
         # Scatter scores on to metagraph dimension.
-        output.weights = torch.scatter( torch.zeros( (metagraph.n), dtype = torch.float32).to(self.device), 0, real_filtered_topk_uids, scores )
+        output.weights = torch.scatter( torch.zeros( (metagraph.n), dtype=torch.float32).to(self.device), 0, real_filtered_topk_uids, scores )
         
         # Set request sizes.
-        output.request_sizes = torch.scatter( torch.zeros( (metagraph.n), dtype = torch.float32).to(self.device), 0, real_filtered_topk_uids, batch_size )
+        output.request_sizes = torch.scatter( torch.zeros( (metagraph.n), dtype=torch.float32).to(self.device), 0, real_filtered_topk_uids, batch_size )
         
         # Set return codes.
         output.return_codes = retops

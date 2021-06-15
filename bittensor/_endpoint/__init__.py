@@ -49,7 +49,7 @@ class endpoint:
         )
     
     @staticmethod
-    def from_tensor( tensor: torch.int64) -> 'bittensor.Endpoint':
+    def from_tensor( tensor: torch.LongTensor) -> 'bittensor.Endpoint':
         endpoint_list = tensor.tolist()
         endpoint_bytes = bytearray( endpoint_list )
         endpoint_string = endpoint_bytes.decode('utf-8')

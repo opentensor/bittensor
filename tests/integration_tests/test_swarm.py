@@ -48,7 +48,7 @@ class Neuron:
         self.optimizer = torch.optim.AdamW(self.nucleus.parameters(), lr = 0.01, betas = (0.9, 0.95) )
                 
     # Function is called by the nucleus to query child and get responses.
-    def route( self, inputs: torch.float32, query: torch.float32 ) -> torch.float32:
+    def route( self, inputs: torch.FloatTensor, query: torch.FloatTensor ) -> torch.FloatTensor:
         
         # Is this a leaf node.
         if self.child == None:
@@ -66,7 +66,7 @@ class Neuron:
         return responses[0]
     
     # Function which is called when this miner recieves a forward request from a dendrite.
-    def forward ( self, pubkey:str, images: torch.float32, modality:int ) -> torch.float32:
+    def forward ( self, pubkey:str, images: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
         # Call nucleus (locally, i.e. using the distillation model instead of calling the child)
         # return the last hidden layer.  
         return self.nucleus.forward_image (
@@ -74,7 +74,7 @@ class Neuron:
         )
 
     # Function which is called when this miner recieves a backward request.
-    def backward ( self, pubkey:str, inputs_x:torch.float32, grads_dy:torch.float32, modality:int ) -> torch.float32:
+    def backward ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
         inputs_x.requires_grad = True
         with torch.enable_grad():
             outputs_y = self.nucleus.forward_image(images = inputs_x)

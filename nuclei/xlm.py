@@ -208,18 +208,18 @@ class XLMNucleus (torch.nn.Module):
         self.routing_callback = routing_callback
 
     @property
-    def route( self, inputs: torch.Tensor, query: torch.Tensor) -> torch.float32:
+    def route( self, inputs: torch.Tensor, query: torch.Tensor) -> torch.FloatTensor:
         """ Calls this nucleus's subscribed routing function. self.routing_callback must be set before this call is made.
 
         Args:
-            inputs (:obj:`torch.int64` of shape :obj:`( batch_size, sequence_len )`, `required`): 
+            inputs (:obj:`torch.LongTensor` of shape :obj:`( batch_size, sequence_len )`, `required`): 
                     Batch_size length list of tokenized sentences.
 
-            query (:obj:`torch.float32` of shape :obj:`(batch_size, query_dimension)`, `required`): 
+            query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
                     Context tensor used to select which neurons to query for each example.
             
         Returns:
-            remote_context (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+            remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                 joined responses from network call.
         """
         if self.routing_callback == None:
@@ -227,41 +227,41 @@ class XLMNucleus (torch.nn.Module):
         else:
             return self.routing_callback( inputs = inputs, query = query )
     
-    def forward_text (self, inputs: torch.int64):
+    def forward_text (self, inputs: torch.LongTensor):
         """ Local forward inputs through the XLM Nucleus.
 
         Args:
-            inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+            inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of tokenized sentences.
             
             Returns:
-                hidden (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Hidden layer representation produced using the local_context.
         """
         hidden = self.local_forward(inputs=inputs.to(self.device), training = False).local_hidden
         return hidden
     
-    def local_forward(self, inputs: torch.int64, training: bool = True) -> SimpleNamespace:
+    def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
         """ Forward pass through XLM nucleus.
 
             Args:
-                inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
                 training (:obj:`bool')`, `optional`, defaults to True):
                     Switch to True if this forward pass computes an CLM loss.
 
             SimpleNamespace {
-                    local_context (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                    local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Hidden layer context.
 
-                    local_hidden (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Hidden layer encoding produced using local_context.
 
-                    local_target (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
                         XLM CLM Target predictions produced using local_context. 
 
-                    local_target_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`): 
+                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         XLM CLM loss using local_context.
                 }
         """
@@ -289,12 +289,12 @@ class XLMNucleus (torch.nn.Module):
         
         return output
 
-    def remote_forward(self, inputs: torch.int64, training: bool) -> SimpleNamespace:
+    def remote_forward(self, inputs: torch.LongTensor, training: bool) -> SimpleNamespace:
         """ Forward pass inputs and labels through the XLM module.
 
 
         Args:
-            inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+            inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
             training (:obj:`bool')`, `optional`, defaults to True):
@@ -303,16 +303,16 @@ class XLMNucleus (torch.nn.Module):
         Returns:
             self.local_forward() + SimpleNamespace ( 
 
-                    remote_hidden (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
+                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
 
-                    remote_target (:obj:`torch.float32` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
+                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
                         XLM CLM Target predictions using the remote_context.
 
-                    remote_target_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`):
+                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
                         XLM CLM loss using the remote_context.
 
-                    distillation_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`): 
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
                     router (:obj:`SimpleNamespace`, `required`): 

@@ -31,25 +31,25 @@ class Metagraph( torch.nn.Module ):
     r""" Maintains chain state as a torch.nn.Module.
 
         Interface:
-            tau (:obj:`torch.float32` of shape :obj:`(1)`): 
+            tau (:obj:`torch.FloatTensor` of shape :obj:`(1)`): 
                 Current, per block, token inflation rate.
 
-            block (:obj:`torch.int64` of shape :obj:`(1)`):
+            block (:obj:`torch.LongTensor` of shape :obj:`(1)`):
                 State block number.
 
-            uids (:obj:`torch.int64` of shape :obj:`(metagraph.n)`):
+            uids (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 UIDs for each neuron.
             
-            stake (:obj:`torch.int64` of shape :obj:`(metagraph.n)`):
+            stake (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 Stake balance for each neuron ordered by uid.
                 
-            lastemit (:obj:`torch.int64` of shape :obj:`(metagraph.n)`):
+            lastemit (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 Last emission call for each neuron ordered by uid.
 
-            weights (:obj:`torch.float32` of shape :obj:`(metagraph.n, metagraph.n)`):
+            weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n, metagraph.n)`):
                 Full weight matrix on chain ordered by uid.
 
-            neurons (:obj:`torch.int64` of shape :obj:`(metagraph.n, -1)`) 
+            neurons (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n, -1)`) 
                 Tokenized endpoint information.
 
     """
@@ -58,33 +58,33 @@ class Metagraph( torch.nn.Module ):
         """
         super(Metagraph, self).__init__()
         self.subtensor = subtensor
-        self.version = torch.nn.Parameter( torch.tensor( [ bittensor.__version_as_int__ ], dtype = torch.int64), requires_grad=False )
-        self.n = torch.nn.Parameter( torch.tensor( [0], dtype = torch.int64), requires_grad=False )
-        self.tau = torch.nn.Parameter( torch.tensor( [0.5], dtype = torch.float32), requires_grad=False )
-        self.block = torch.nn.Parameter( torch.tensor( [0], dtype = torch.int64), requires_grad=False )
-        self.uids = torch.nn.Parameter( torch.tensor( [], dtype = torch.int64), requires_grad=False )
-        self.stake = torch.nn.Parameter( torch.tensor( [], dtype = torch.float32), requires_grad=False )
-        self.lastemit = torch.nn.Parameter( torch.tensor( [], dtype = torch.int64), requires_grad=False )
+        self.version = torch.nn.Parameter( torch.tensor( [ bittensor.__version_as_int__ ], dtype=torch.int64), requires_grad=False )
+        self.n = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad=False )
+        self.tau = torch.nn.Parameter( torch.tensor( [0.5], dtype=torch.float32), requires_grad=False )
+        self.block = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad=False )
+        self.uids = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
+        self.stake = torch.nn.Parameter( torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.lastemit = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.weights = torch.nn.ParameterList()
         self.neurons = torch.nn.ParameterList()
         self.cached_endpoints = None
 
     @property
-    def S(self) -> torch.float32:
+    def S(self) -> torch.FloatTensor:
         r""" Returns neurons stake values.
              
              Returns:
-                S (:obj:`torch.float32` of shape :obj:`(metagraph.n)`):
+                S (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     Stake of each known neuron.
         """
         return self.stake
 
     @property
-    def I(self) -> torch.float32:
+    def I(self) -> torch.FloatTensor:
         r""" Returns neuron incentives: tau * R / sum(R)
         
             Returns:
-                I (:obj:`torch.float32` of shape :obj:`(metagraph.n)`):
+                I (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     Block incentive for each neuron. 
         """
         if self.n.item() == 0:
@@ -94,11 +94,11 @@ class Metagraph( torch.nn.Module ):
         return I.view(self.n)
 
     @property
-    def ranks(self) -> torch.float32:
+    def ranks(self) -> torch.FloatTensor:
         r""" Returns neuron ranks: W^t * S
            
             Returns:
-                ranks (:obj:`torch.float32` of shape :obj:`(metagraph.n)`):
+                ranks (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     Rank of each neuron.
 
         """
@@ -111,17 +111,17 @@ class Metagraph( torch.nn.Module ):
         return R
 
     @property
-    def R(self) -> torch.float32:
+    def R(self) -> torch.FloatTensor:
         r""" Returns neuron ranks: W^t * S
              
              Returns:
-                rank (:obj:`torch.float32` of shape :obj:`(metagraph.n)`):
+                rank (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     Rank of each neuron.
         """
         return self.ranks
 
     @property
-    def W(self) -> torch.float32:
+    def W(self) -> torch.FloatTensor:
         r""" Return full weight matrix from chain.
              Returns:
                 W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
@@ -295,11 +295,11 @@ class Metagraph( torch.nn.Module ):
         new_size = len(chain_stake)
         old_size = self.n.item() 
         old_block = self.block.item()
-        new_n = torch.tensor([new_size], dtype = torch.int64)
-        new_block = torch.tensor([chain_block], dtype = torch.int64)
-        new_uids = torch.tensor( range(new_size) ,  dtype = torch.int64)
-        new_stake = torch.tensor([ (float(chain_stake[uid])/1000000000) for uid in range(new_size)],  dtype = torch.float32)
-        new_lastemit = torch.tensor([ chain_lastemit[uid] for uid in range(new_size)], dtype = torch.int64)
+        new_n = torch.tensor([new_size], dtype=torch.int64)
+        new_block = torch.tensor([chain_block], dtype=torch.int64)
+        new_uids = torch.tensor( range(new_size) ,  dtype=torch.int64)
+        new_stake = torch.tensor([ (float(chain_stake[uid])/1000000000) for uid in range(new_size)],  dtype=torch.float32)
+        new_lastemit = torch.tensor([ chain_lastemit[uid] for uid in range(new_size)], dtype=torch.int64)
 
         # Set params.
         self.n = torch.nn.Parameter( new_n, requires_grad=False )
@@ -310,12 +310,12 @@ class Metagraph( torch.nn.Module ):
 
         # Extend weights matrix.
         for idx in range( old_size ):
-            self.weights[idx] =  torch.nn.Parameter( torch.cat( [self.weights[idx], torch.zeros([new_size - len(self.weights[idx])], dtype = torch.float32)]))
+            self.weights[idx] =  torch.nn.Parameter( torch.cat( [self.weights[idx], torch.zeros([new_size - len(self.weights[idx])], dtype=torch.float32)]))
 
         # Create buffers
         for _ in range( new_size - old_size ):
-            self.weights.append( torch.nn.Parameter( torch.tensor([], dtype = torch.float32), requires_grad=False ) )
-            self.neurons.append( torch.nn.Parameter( torch.tensor([], dtype = torch.int64), requires_grad=False ) )
+            self.weights.append( torch.nn.Parameter( torch.tensor([], dtype=torch.float32), requires_grad=False ) )
+            self.neurons.append( torch.nn.Parameter( torch.tensor([], dtype=torch.int64), requires_grad=False ) )
 
         # Fill pending queries.
         pending_queries = []

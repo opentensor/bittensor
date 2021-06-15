@@ -77,7 +77,7 @@ class Serializer(object):
                 Deserialization to this type. i.e. bittensor.proto.TensorType.TORCH or bittensor.proto.TensorType.TENSORFLOW
 
         Returns:
-            tensor_obj (:obj:`torch.float32`, `required`): 
+            tensor_obj (:obj:`torch.FloatTensor`, `required`): 
                 tensor object of type from_type in bittensor.proto.TensorType
 
         Raises:

@@ -64,7 +64,7 @@ class ReceptorPool ( torch.nn.Module ):
                     request timeout.
 
             Returns:
-                forward_outputs (:obj:`List[torch.float32]` of shape :obj:`num_endpoints * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
+                forward_outputs (:obj:`List[torch.FloatTensor]` of shape :obj:`num_endpoints * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
                     Output encodings of tensors produced by remote endpoints. Non-responses are zeroes of common shape.
 
                 forwad_codes (:obj:`List[bittensor.proto.ReturnCodes]` of shape :obj:`(num_endpoints)`, `required`):
@@ -124,10 +124,10 @@ class ReceptorPool ( torch.nn.Module ):
                     request timeout.
 
             Returns:
-                backward_outputs (:obj:`List[torch.float32]` of shape :obj:`num_endpoints * (batch_size, sequence_len, -1)]`, `required`):
+                backward_outputs (:obj:`List[torch.FloatTensor]` of shape :obj:`num_endpoints * (batch_size, sequence_len, -1)]`, `required`):
                     gradients of returned from backward call.
 
-                backward_codes (:obj:`torch.int64` of shape :obj:`(num_endpoints)`, `required`):
+                backward_codes (:obj:`torch.LongTensor` of shape :obj:`(num_endpoints)`, `required`):
                     dendrite call return ops.
         """
         if len(endpoints) != len(inputs_x):

@@ -13,7 +13,7 @@ wallet.create_new_hotkey( use_password=False, overwrite = True)
 axon = bittensor.axon(wallet = wallet)
 
 def test_forward_success():
-    def forward( pubkey:str, inputs: torch.float32, modality:int ):
+    def forward( pubkey:str, inputs: torch.FloatTensor, modality:int ):
         return torch.zeros( [inputs.shape[0], inputs.shape[1], bittensor.__network_dim__])
     axon.attach_forward_callback( forward )
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
@@ -99,7 +99,7 @@ def test_forward_tensor_shape_error():
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
 def test_forward_deserialization():
-    def forward( pubkey:str, inputs: torch.float32, modality:int ):
+    def forward( pubkey:str, inputs: torch.FloatTensor, modality:int ):
         return None
     axon.attach_forward_callback( forward )
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
@@ -198,7 +198,7 @@ def test_backward_grad_inputs_shape_error():
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
 def test_backward_response_deserialization_error():
-    def backward( pubkey:str, inputs_x:torch.float32, grads_dy:torch.float32, modality:int ):
+    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ):
         return None
     axon.attach_backward_callback( backward )
     inputs_raw = torch.rand(1, 1, 1)
@@ -215,7 +215,7 @@ def test_backward_response_deserialization_error():
     assert code == bittensor.proto.ReturnCode.EmptyResponse
 
 def test_backward_response_success():
-    def backward( pubkey:str, inputs_x:torch.float32, grads_dy:torch.float32, modality:int ):
+    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ):
         return torch.zeros( [1, 1, 1])
     axon.attach_backward_callback( backward )
     inputs_raw = torch.rand(1, 1, 1)
@@ -232,7 +232,7 @@ def test_backward_response_success():
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_grpc_forward_works():
-    def forward( pubkey:str, inputs_x:torch.float32, modality:int ):
+    def forward( pubkey:str, inputs_x:torch.FloatTensor, modality:int ):
         return torch.zeros( [1, 1, 1])
     axon = bittensor.axon (
         local_port = 8080,
@@ -262,7 +262,7 @@ def test_grpc_forward_works():
     axon.stop()
 
 def test_grpc_backward_works():
-    def backward( pubkey:str, inputs_x:torch.float32, grads_dy:torch.float32, modality:int ):
+    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ):
         return torch.zeros( [1, 1, 1])
 
     axon = bittensor.axon (

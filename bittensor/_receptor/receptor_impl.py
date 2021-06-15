@@ -42,7 +42,7 @@ DUMMY = torch.empty(0, requires_grad=True)
 def nill_response_for(inputs):
     if torch.numel(inputs) == 0:
         return torch.tensor([])
-    return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype = torch.float32)
+    return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=torch.float32)
 
 class Receptor(nn.Module):
     """ Encapsulates a grpc connection to an axon endpoint as a standard auto-grad torch.nn.Module.
@@ -130,7 +130,7 @@ class Receptor(nn.Module):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
-                output (:obj:`Tuple[torch.float32, torch.int64]`, `required`):
+                output (:obj:`Tuple[torch.FloatTensor, torch.LongTensor]`, `required`):
                     Result tuple from the forward call.
 
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
@@ -170,7 +170,7 @@ class Receptor(nn.Module):
                     request timeout.
 
             Returns:
-                output (:obj:`Tuple[torch.float32, torch.int64]`, `required`):
+                output (:obj:`Tuple[torch.FloatTensor, torch.LongTensor]`, `required`):
                     Result tuple from the forward call.
 
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
@@ -207,7 +207,7 @@ class Receptor(nn.Module):
                     request timeout.
 
             Returns:
-                output (:obj:`Tuple[torch.float32`, torch.int64]`, `optional`):
+                output (:obj:`Tuple[torch.FloatTensor`, torch.LongTensor]`, `optional`):
                     Result from forward call. May be None in the case of failure.
 
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
@@ -354,7 +354,7 @@ class Receptor(nn.Module):
     def backward(
             self,
             inputs_x: torch.Tensor, 
-            grads_dy: torch.float32, 
+            grads_dy: torch.FloatTensor, 
             modality: bittensor.proto.Modality,
             timeout: int
         ) -> Tuple[torch.Tensor, int, str]:
@@ -371,7 +371,7 @@ class Receptor(nn.Module):
                     request timeout.
 
             Returns:
-                outputs (:obj:`Tuple[torch.float32`, torch.int64]`, `optional`):
+                outputs (:obj:`Tuple[torch.FloatTensor`, torch.LongTensor]`, `optional`):
                     Gradients of the inputs with respect to the inputs and grads of the outputs.
 
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):

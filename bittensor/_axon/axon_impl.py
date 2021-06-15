@@ -133,7 +133,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             public_key: str, 
             inputs_x: torch.Tensor, 
             modality: bittensor.proto.Modality
-        ) -> Tuple[ torch.float32, int, str ]:
+        ) -> Tuple[ torch.FloatTensor, int, str ]:
         r""" Calls the forward callback subscribed by the nucleus.
             
             Args:
@@ -145,7 +145,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     modality of inputs.
             
             Returns:
-                response (:obj:`torch.float32, `required`): 
+                response (:obj:`torch.FloatTensor, `required`): 
                     Torch tensor response from miner processes.
                 code (:obj:`bittensor.proto.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.
@@ -176,9 +176,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
             self, 
             public_key: str, 
             inputs_x: torch.Tensor, 
-            grads_dy: torch.float32,
+            grads_dy: torch.FloatTensor,
             modality: bittensor.proto.Modality
-        ) -> Tuple[ torch.float32, int, str ]:
+        ) -> Tuple[ torch.FloatTensor, int, str ]:
         r""" Calls the backward callback.
             
             Args:
@@ -192,7 +192,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     modality of inputs.
             
             Returns:
-                response (:obj:`torch.float32, `required`): 
+                response (:obj:`torch.FloatTensor, `required`): 
                     Torch tensor response from miner processes.
                 code (:obj:`bittensor.proto.ReturnCode, `required`)
                     return code associated with forward call i.e. Success of Timeout.

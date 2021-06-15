@@ -32,11 +32,11 @@ class Endpoint:
         self.coldkey = coldkey
         self.modality = modality
     
-    def to_tensor( self ) -> torch.int64:  
+    def to_tensor( self ) -> torch.LongTensor:  
         string_json = self.dumps()
         bytes_json = bytes(string_json, 'utf-8')
         ints_json = list(bytes_json)
-        endpoint_tensor = torch.tensor( ints_json, dtype = torch.int64, requires_grad=False)
+        endpoint_tensor = torch.tensor( ints_json, dtype=torch.int64, requires_grad=False)
         return endpoint_tensor
 
     def dumps(self):
