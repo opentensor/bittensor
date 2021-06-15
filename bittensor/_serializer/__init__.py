@@ -74,13 +74,13 @@ class serializer:
             Returns:
                 dtype: (bittensor.dtype): translated bittensor.dtype.
         """
-        if tdtype == torch.FloatTensor:
+        if tdtype == torch.float32:
             dtype = bittensor.proto.DataType.FLOAT32
         elif tdtype == torch.float64:
             dtype = bittensor.proto.DataType.FLOAT64
         elif tdtype == torch.int32:
             dtype = bittensor.proto.DataType.INT32
-        elif tdtype == torch.LongTensor:
+        elif tdtype == torch.int64:
             dtype = bittensor.proto.DataType.INT64
         else:
             dtype = bittensor.proto.DataType.UNKNOWN
