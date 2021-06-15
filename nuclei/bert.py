@@ -115,18 +115,18 @@ class BertNucleusBase(torch.nn.Module):
         self.routing_callback = routing_callback
 
     @property
-    def route( self, inputs: torch.Tensor, query: torch.Tensor ) -> torch.FloatTensor:
+    def route( self, inputs: torch.Tensor, query: torch.Tensor ) -> torch.float32:
         """ Calls this nucleus's subscribed routing function. self.routing_callback must be set before this call is made.
 
         Args:
-            inputs (:obj:`torch.LongTensor` of shape :obj:`( batch_size, sequence_len )`, `required`): 
+            inputs (:obj:`torch.int64` of shape :obj:`( batch_size, sequence_len )`, `required`): 
                     Batch_size length list of tokenized sentences.
 
-            query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
+            query (:obj:`torch.float32` of shape :obj:`(batch_size, query_dimension)`, `required`): 
                     Context tensor used to select which neurons to query for each example.
             
         Returns:
-            remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+            remote_context (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                 joined responses from network call.
         """
         if self.routing_callback == None:
@@ -134,41 +134,41 @@ class BertNucleusBase(torch.nn.Module):
         else:
             return self.routing_callback( inputs = inputs, query = query )
 
-    def forward_text(self, inputs: torch.LongTensor):
+    def forward_text(self, inputs: torch.int64):
         """ Local forward inputs through the BERT NSP Nucleus.
 
             Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of tokenized sentences.
             
             Returns:
-                hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                hidden (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Hidden layer representation produced using the local_context.
         """
         hidden = self.base_local_forward( inputs=inputs ).local_hidden
         return hidden
 
-    def base_local_forward(self, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None):
+    def base_local_forward(self, inputs: torch.int64, attention_mask: torch.int64 = None):
         r""" Forward pass inputs and labels through the NSP BERT module.
 
             Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
-                attention_mask (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
+                attention_mask (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
                     Mask to avoid performing attention on padding token indices.
                     Mask values selected in ``[0, 1]``:
                         - 1 for tokens that are **not masked**,
                         - 0 for tokens that are **maked**.    
 
              SimpleNamespace {
-                    local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                    local_context (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Hidden layer context.
 
-                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                    local_hidden (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Hidden layer encoding produced using local_context.
 
-                    local_pooled (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
+                    local_pooled (:obj:`torch.float32` of shape :obj:`(batch_size, bittensor.__network_dim__)`, `required`):
                         Local hidden state pooled by returning the encoding of the first token.
                 }
         """        
@@ -187,14 +187,14 @@ class BertNucleusBase(torch.nn.Module):
 
         return output
 
-    def base_remote_forward(self, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None):
+    def base_remote_forward(self, inputs: torch.int64, attention_mask: torch.int64 = None):
         """Forward pass inputs and labels through the remote BERT networks.
 
         Args:
-            inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+            inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.                
 
-            attention_mask (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
+            attention_mask (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
                     Mask to avoid performing attention on padding token indices.
                     Mask values selected in ``[0, 1]``:
                         - 1 for tokens that are **not masked**,
@@ -202,10 +202,10 @@ class BertNucleusBase(torch.nn.Module):
 
         Returns:
             SimpleNamespace ( 
-                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                    distillation_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`): 
                         Distillation loss between local_context and remote_context.
 
-                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
+                    remote_hidden (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
                         Hidden layer encoding produced using the remote_context.
 
                     router (:obj:`SimpleNamespace`, `required`): 
@@ -256,35 +256,35 @@ class BertNSPNucleus (BertNucleusBase):
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = torch.nn.CrossEntropyLoss(ignore_index=-1)
     
-    def forward_text(self, inputs: torch.LongTensor):
+    def forward_text(self, inputs: torch.int64):
         """ Local forward inputs through the BERT NSP Nucleus.
 
             Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of tokenized sentences.
             
             Returns:
-                hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                hidden (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Hidden layer representation produced using the local_context.
         """
         hidden = self.local_forward( inputs = inputs ).local_hidden
         return hidden
 
 
-    def local_forward(self, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None, targets: torch.Tensor = None):
+    def local_forward(self, inputs: torch.int64, attention_mask: torch.int64 = None, targets: torch.Tensor = None):
         r""" Forward pass inputs and labels through the NSP BERT module.
 
             Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
-                attention_mask (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
+                attention_mask (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
                     Mask to avoid performing attention on padding token indices.
                     Mask values selected in ``[0, 1]``:
                         - 1 for tokens that are **not masked**,
                         - 0 for tokens that are **maked**.        
 
-                targets (``torch.LongTensor`` of shape ``(batch_size,)``, `optional`):
+                targets (``torch.int64`` of shape ``(batch_size,)``, `optional`):
                     Targets for computing the next sequence prediction (classification) loss. 
                     Indices should be in ``[0, 1]``:
                         - 0 indicates sequence B is a continuation of sequence A,
@@ -292,10 +292,10 @@ class BertNSPNucleus (BertNucleusBase):
 
         BertNucleusBase.local_forward + SimpleNamespace ( 
                     
-                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                    local_target (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
                         BERT NSP Target predictions produced using local_context. 
 
-                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                    local_target_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`): 
                         BERT NSP loss using local_context.
                 )
         """
@@ -310,30 +310,30 @@ class BertNSPNucleus (BertNucleusBase):
             output.local_target_loss = self.loss_fct( output.local_target.view(-1, 2), targets )            
         return output
 
-    def remote_forward(self, inputs: torch.LongTensor, attention_mask: torch.LongTensor = None, targets: torch.Tensor = None):
+    def remote_forward(self, inputs: torch.int64, attention_mask: torch.int64 = None, targets: torch.Tensor = None):
         r""" Forward pass inputs and labels through the NSP BERT module. (with queries to the network)
 
             Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
-                attention_mask (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
+                attention_mask (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `optional`): 
                     Mask to avoid performing attention on padding token indices.
                     Mask values selected in ``[0, 1]``:
                         - 1 for tokens that are **not masked**,
                         - 0 for tokens that are **maked**.        
 
-                targets (``torch.LongTensor`` of shape ``(batch_size,)``, `optional`):
+                targets (``torch.int64`` of shape ``(batch_size,)``, `optional`):
                     Targets for computing the next sequence prediction (classification) loss. 
                     Indices should be in ``[0, 1]``:
                         - 0 indicates sequence B is a continuation of sequence A,
                         - eqw1 indicates sequence B is a random sequence.
 
         BertNucleusBase.remote_forward + SimpleNamespace ( 
-                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                    remote_target (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
                         BERT NSP Target predictions produced using remote_context. 
 
-                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                    remote_target_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`): 
                         BERT NSP loss using remote_target_loss.
                 )
         """
@@ -381,28 +381,28 @@ class BertMLMNucleus (BertNucleusBase):
         # predicted: [batch_size, sequence_len, 1], targets: [batch_size, sequence_len, 1] -> [1]
         self.loss_fct = torch.nn.CrossEntropyLoss()
 
-    def forward_text(self, inputs: torch.LongTensor):
+    def forward_text(self, inputs: torch.int64):
         """ Local forward inputs through the BERT NSP Nucleus.
 
             Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of tokenized sentences.
             
             Returns:
-                hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                hidden (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
                     Hidden layer representation produced using the local_context.
         """
         hidden = self.local_forward( inputs = inputs, targets = None ).local_hidden
         return hidden
 
-    def local_forward(self, inputs: torch.LongTensor, targets: torch.LongTensor = None):
+    def local_forward(self, inputs: torch.int64, targets: torch.int64 = None):
         r""" Forward pass inputs and labels through the MLM BERT module.
 
             Args:
-                inputs (:obj:`torch.LongTensor` of shape ``(batch_size, sequence_length)``, `required`):
+                inputs (:obj:`torch.int64` of shape ``(batch_size, sequence_length)``, `required`):
                     Batch_size length list of tokenized sentences.
                 
-                targets (:obj:`torch.LongTensor` of shape ``(batch_size, sequence_length)``, `optional`):
+                targets (:obj:`torch.int64` of shape ``(batch_size, sequence_length)``, `optional`):
                     Targets for computing the masked language modeling loss.
                     Indices should be in ``[-100, 0, ..., config.vocab_size]`` (see ``input_ids`` docstring)
                     Tokens with indices set to ``-100`` are ignored (masked), the loss is only computed for the tokens with targets
@@ -410,10 +410,10 @@ class BertMLMNucleus (BertNucleusBase):
 
             BertNucleusBase.local_forward + SimpleNamespace ( 
                     
-                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                    local_target (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
                         BERT NSP Target predictions produced using local_context. 
 
-                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                    local_target_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`): 
                         BERT NSP loss using local_context.
             )
         """
@@ -430,14 +430,14 @@ class BertMLMNucleus (BertNucleusBase):
         return output
 
 
-    def remote_forward(self, inputs: torch.LongTensor, targets: torch.LongTensor = None):
+    def remote_forward(self, inputs: torch.int64, targets: torch.int64 = None):
         r""" Forward pass inputs and labels through the MLM BERT module. (with queries to the network)
 
             Args:
-                inputs (:obj:`torch.LongTensor` of shape ``(batch_size, sequence_length)``, `required`):
+                inputs (:obj:`torch.int64` of shape ``(batch_size, sequence_length)``, `required`):
                     Batch_size length list of tokenized sentences.
                 
-                targets (:obj:`torch.LongTensor` of shape ``(batch_size, sequence_length)``, `optional`):
+                targets (:obj:`torch.int64` of shape ``(batch_size, sequence_length)``, `optional`):
                     Targets for computing the masked language modeling loss.
                     Indices should be in ``[-100, 0, ..., config.vocab_size]`` (see ``input_ids`` docstring)
                     Tokens with indices set to ``-100`` are ignored (masked), the loss is only computed for the tokens with targets
@@ -445,10 +445,10 @@ class BertMLMNucleus (BertNucleusBase):
 
             BertNucleusBase.remote_forward + SimpleNamespace ( 
                     
-                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                    local_target (:obj:`torch.float32` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
                         BERT NSP Target predictions produced using local_context. 
 
-                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                    remote_target_loss (:obj:`torch.float32` of shape :obj:`(1)`, `optional`): 
                         BERT NSP loss using local_context.
             )
         """

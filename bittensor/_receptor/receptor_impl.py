@@ -130,7 +130,7 @@ class Receptor(nn.Module):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
-                output (:obj:`Tuple[torch.FloatTensor, torch.LongTensor]`, `required`):
+                output (:obj:`Tuple[torch.float32, torch.int64]`, `required`):
                     Result tuple from the forward call.
 
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
@@ -170,7 +170,7 @@ class Receptor(nn.Module):
                     request timeout.
 
             Returns:
-                output (:obj:`Tuple[torch.FloatTensor, torch.LongTensor]`, `required`):
+                output (:obj:`Tuple[torch.float32, torch.int64]`, `required`):
                     Result tuple from the forward call.
 
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
@@ -207,7 +207,7 @@ class Receptor(nn.Module):
                     request timeout.
 
             Returns:
-                output (:obj:`Tuple[torch.FloatTensor`, torch.LongTensor]`, `optional`):
+                output (:obj:`Tuple[torch.float32`, torch.int64]`, `optional`):
                     Result from forward call. May be None in the case of failure.
 
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
@@ -354,7 +354,7 @@ class Receptor(nn.Module):
     def backward(
             self,
             inputs_x: torch.Tensor, 
-            grads_dy: torch.FloatTensor, 
+            grads_dy: torch.float32, 
             modality: bittensor.proto.Modality,
             timeout: int
         ) -> Tuple[torch.Tensor, int, str]:
@@ -371,7 +371,7 @@ class Receptor(nn.Module):
                     request timeout.
 
             Returns:
-                outputs (:obj:`Tuple[torch.FloatTensor`, torch.LongTensor]`, `optional`):
+                outputs (:obj:`Tuple[torch.float32`, torch.int64]`, `optional`):
                     Gradients of the inputs with respect to the inputs and grads of the outputs.
 
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
