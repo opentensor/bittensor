@@ -145,8 +145,6 @@ class neuron:
         bittensor.axon.check_config( config.axon )
         GPT2Nucleus.check_config( config.nucleus )
         SGMOERouter.check_config( config.router )
-        if config.debug: bittensor.logging.set_debug( True ); logger.info('DEBUG is <green>ON</green>')
-        if config.trace: bittensor.logging.set_trace( True ); logger.info('TRACE is <green>ON</green>')
         full_path = os.path.expanduser('{}/{}/{}'.format( config.root_dir, config.wallet.name + "-" + config.wallet.hotkey, config.name ))
         config.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.full_path):
@@ -415,7 +413,7 @@ class neuron:
             pad = [0, self.metagraph.n - self.mechanism_weights.numel()], 
             value=0 
         ) 
-        logger.success('Reloaded model from: <cyan>{}/model.torch</cyan>'.format( self.config.full_path ))
+        logger.success('Reloaded model:'.ljust(20) + '<blue>{}/model.torch</blue>'.format( self.config.full_path ))
 
     def save( self ):
         r""" Saves the training state to disk.
@@ -431,7 +429,7 @@ class neuron:
                 'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
             }
             torch.save( state_dict, "{}/model.torch".format( self.config.full_path, self.epoch_loss ) )
-            logger.success('Saved model to: <cyan>{}/model.torch</cyan>'.format( self.config.full_path ))
+            logger.success('Saved model:'.ljust(20) + '<blue>{}/model.torch</blue>'.format( self.config.full_path ))
         except Exception as e:
              logger.exception('Failed to save model with error:{}', e)
 
@@ -447,7 +445,7 @@ class neuron:
                 wait_for_inclusion = True
             )
             if did_set:
-                logger.success('Successfully set weights with row:\n {}', self.mechanism_weights.tolist())
+                logger.success('Set weights:'.ljust(20) + '{}', self.mechanism_weights.tolist())
             else:
                 logger.warning('Failed to set weights on chain.')
                 self.subtensor = bittensor.subtensor( config = self.config.subtensor )
@@ -459,19 +457,18 @@ class neuron:
     def startup( self ):
         r""" Starts and subscribes the miner.
         """
-
+        # ---- Setup debugging ----
+        if self.config.debug: bittensor.logging.set_debug( True ); logger.success('Debug:'.ljust(20) + '<green>ON</green>')
+        else: logger.success('Set debug:'.ljust(20) + '<red>OFF</red>')
+        if self.config.trace: bittensor.logging.set_trace( True ); logger.success('Trace:'.ljust(20) + '<green>ON</green>')
+        else: logger.success('Set trace:'.ljust(20) + '<red>OFF</red>')
+        
         # ---- Setup logging ----
-        if self.config.record_log == True:
-            filepath = self.config.full_path + "/bittensor_output.log"
-            logger.add (
-                filepath,
-                format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
-                rotation="25 MB",
-                retention="10 days"
-            )
-            logger.info('LOGGING is <green>ON</green> with sink: <cyan>{}</cyan>', filepath)
-        else: 
-            logger.info('LOGGING is <red>OFF</red>')
+        if self.config.record_log: 
+            filepath = self.config.full_path + "/logs.log"
+            logger.add (filepath, rotation="25 MB", retention="10 days")
+            logger.success('Set logging:'.ljust(20) + '<blue>{}</blue>', filepath)
+        else: logger.success('Set logging:'.ljust(20) + '<red>OFF</red>')
 
         # ---- Setup tensorboard ----
         if self.config.use_tensorboard == True:
@@ -480,52 +477,47 @@ class neuron:
             self._tensorboard_program = program.TensorBoard()
             self._tensorboard_program.configure(argv=[None, '--logdir', event_file_dir, '--load_fast=true'])
             self._tensorbaord_url = self._tensorboard_program.launch()
-            logger.info('TENSORBOARD is <green>ON</green> with entrypoint: <cyan>http://localhost:6006/</cyan>', )
-        else: 
-            logger.info('TENSORBOARD is <red>OFF</red>')
-
-        # ---- Setup debugging ----
-        if self.config.debug: bittensor.logging.set_debug( True ); logger.info('DEBUG is <green>ON</green>')
-        else: logger.info('DEBUG is <red>OFF</red>')
+            logger.success('Set tensorboard:'.ljust(20) + '<blue>http://localhost:6006/</blue>')
+        else: logger.success('Set tensorboard:'.ljust(20) + '<red>OFF</red>')
 
         # ---- Setup UPNPC ----
         if self.config.use_upnpc: 
-            logger.info('UPNPC is <green>ON</green>')
+            logger.success('Set upnpc:'.ljust(20) + '<green>ON</green>')
             try:
                 self.external_port = net.upnpc_create_port_map( local_port = self.axon.local_port )
             except net.UPNPCException as upnpc_exception:
                 logger.critical('Failed to hole-punch with upnpc')
                 raise RuntimeError('Failed to hole-punch with upnpc')
         else: 
-            logger.info('UPNPC is <red>OFF</red>')
+            logger.success('Set upnpc:'.ljust(20) + '<red>OFF</red>')
             self.external_port = self.config.axon.local_port
 
         # ---- Get external ip ----
         try:
             self.external_ip = net.get_external_ip()
+            logger.success('Got external IP:'.ljust(20) + '<blue>{}</blue>', self.external_ip)
         except net.ExternalIPNotFound as external_port_exception:
-            logger.critical('Unable to attain your external ip. Check your internet connection.')
-            raise RuntimeError('Unable to attain your external ip. Check your internet connection.')
-        logger.success('Found external ip: <cyan>{}</cyan>', self.external_ip)
+            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error:{}', external_port_exception)
 
         # ---- Setup Wallet. ----
         if not self.wallet.has_coldkeypub:
             self.wallet.create_new_coldkey( n_words = 12, use_password = True )
-        assert self.wallet.has_coldkeypub
+        if not self.wallet.has_coldkeypub:
+            raise RuntimeError('Miner must have access to a decrypted coldkeypub')
         if not self.wallet.has_hotkey:
             self.wallet.create_new_hotkey( n_words = 12, use_password = False )
-        assert self.wallet.has_hotkey
+        if not self.wallet.has_hotkey:
+            raise RuntimeError('Miner must have access to a decrypted hotkey')
+
+        # ---- Connect to chain ----
+        self.subtensor.connect()
+        if not self.subtensor.is_connected():
+            raise RuntimeError('Failed to connect subtensor to network:{}'.format(self.subtensor.network)) 
 
         # ---- Setup metagraph ----
         self.metagraph.load()
         self.metagraph.sync()
         self.metagraph.save()
-
-        # ---- Connect to chain ----
-        self.subtensor.connect()
-        if not self.subtensor.is_connected():
-            logger.critical('Failed to connect subtensor to network:<cyan>{}</cyan>', self.subtensor.network)
-            raise RuntimeError('Failed to connect subtensor to network:{}'.format(self.subtensor.network)) 
 
         # ---- Subscribe to chain ----
         subscribe_success = self.subtensor.subscribe(
@@ -537,7 +529,6 @@ class neuron:
                 timeout = 4 * bittensor.__blocktime__,
         )
         if not subscribe_success:
-            logger.critical('Failed to subscribe neuron.')
             raise RuntimeError('Failed to subscribe neuron.')
 
         # ---- Starting axon ----

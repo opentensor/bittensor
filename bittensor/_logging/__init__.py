@@ -24,12 +24,6 @@ import torch
 from loguru import logger
 logger = logger.opt(colors=True)
 
-<<<<<<< HEAD
-=======
-__debug_on__ = False
-__trace_on__ = False
-
->>>>>>> 7b3135fc7629ba1e5fd84fd664ff1cc10e8d969c
 # Handler which sends messages to a rollbar server.
 class RollbarHandler:
     def write(self, message):
@@ -41,7 +35,6 @@ class RollbarHandler:
         else:
             pass
 
-<<<<<<< HEAD
 class logging:
     __debug_on__:bool = False
     __trace_on__:bool = False
@@ -67,18 +60,14 @@ class logging:
     @classmethod
     def log_formatter(cls, record):
         extra = record['extra']
-        if 'rpc' in extra and (cls.__debug_on__ or cls.__trace_on__):
+        if 'rpc' in extra:
             log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[inputs]} | {extra[key_str]} | {extra[rpc_message]} \n"
             return log_format
-        if 'receptor' in extra and (cls.__debug_on__ or cls.__trace_on__):
-            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['action'] + " | uid:{extra[uid]} | ip:{extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
+        if 'receptor' in extra:
+            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
             return log_format
-        elif cls.__debug_on__ and not cls.__trace_on__:
-            return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | {level: <8} | <level>{message}</level>\n"
-        elif cls.__trace_on__:
-            return "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>\n"
         else:
-            return "<level>{message}</level>\n"
+            return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | <level>{level: ^16}</level> | {message}\n"
 
     @classmethod
     def init(cls):
@@ -91,53 +80,11 @@ class logging:
         cls.__sink__ = logger.add ( 
             sys.stdout, 
             filter = cls.log_filter, 
-=======
-# Filter bittensor internal messages, only from internal files.
-def bittensor_formatter(record):
-    if __debug_on__ and not __trace_on__:
-        return "<level>{message}</level>\n"
-    elif __trace_on__:
-        return "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>\n"
-    else:
-        return "<level>{message}</level>\n"
-
-def bittensor_log_filter( record ):
-    if __debug_on__ or __trace_on__:
-        return True
-    elif record["level"].no >= logger.level('INFO').no:
-        return True
-    else:
-        return False
-
-class logging:
-
-    @staticmethodpyho
-    def set_debug( on: bool = True ):
-        bittensor.__debug_on__ = True
-
-    @staticmethod
-    def set_trace( on: bool = True):
-        bittensor.__trace_on__ = True
-
-    @staticmethod
-    def init():
-        # Remove all logger sinks.
-        logger.remove()
-
-        # Add filtered sys.stdout.
-        logger.add( 
-            sys.stdout, 
-            filter = bittensor_log_filter, 
->>>>>>> 7b3135fc7629ba1e5fd84fd664ff1cc10e8d969c
             colorize = True, 
             enqueue = True, 
             backtrace = True, 
             diagnose = True, 
-<<<<<<< HEAD
             format = cls.log_formatter
-=======
-            format = bittensor_formatter
->>>>>>> 7b3135fc7629ba1e5fd84fd664ff1cc10e8d969c
         )
 
         # Add filtered rollbar handler.
@@ -160,7 +107,6 @@ class logging:
         # Return internal logger
         return logger.bind( internal=True )
 
-<<<<<<< HEAD
     @classmethod
     def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs:list = [], outputs:list = [], message:str = ''):
         if axon:
@@ -173,7 +119,7 @@ class logging:
             direction = "Forward"
         else:
             direction = "Backward"
-        direction = prefix.center(len('Backward'))
+        direction = direction.center(len('Backward'))
 
         if is_response:
             arrow = "<---"
@@ -199,19 +145,16 @@ class logging:
 
     @classmethod
     def create_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
-        logger.debug( 'endpoint', receptor=True, action = '<green>Create receptor </green>', uid=str(endpoint.uid).center(5), hotkey=endpoint.hotkey, coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(29) )
+        logger.debug( 'endpoint', receptor=True, action = '<green>' + 'Connect'.center(16) + '</green>', uid=str(endpoint.uid).center(4), hotkey=endpoint.hotkey, coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(27) )
 
     @classmethod
     def update_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
-        logger.debug( 'endpoint', receptor=True, action = '<blue>Update receptor </blue>', uid=str(endpoint.uid).center(5), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(29) )
+        logger.debug( 'endpoint', receptor=True, action = '<blue>' + 'Update'.center(16) + '</blue>', uid=str(endpoint.uid).center(4), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(27) )
 
     @classmethod
     def destroy_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
-        logger.debug( 'endpoint', receptor=True, action = '<red>Destroy receptor </red>', uid=str(endpoint.uid).center(5), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(29) )
+        logger.debug( 'endpoint', receptor=True, action = '<red>' + 'Destroy'.center(16) + '</red>', uid=str(endpoint.uid).center(4), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(27) )
 
 
 logging.init()
 
-=======
-logging.init()
->>>>>>> 7b3135fc7629ba1e5fd84fd664ff1cc10e8d969c
