@@ -114,45 +114,50 @@ class logging:
     @classmethod
     def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs:list = [], outputs:list = [], message:str = ''):
         if axon:
-            prefix = "Axon    "
+            prefix = "Axon"
         else:
             prefix = "Dendrite"
+        prefix = prefix.center(len('Dendrite'))
 
         if forward:
-            direction = "Forward "
+            direction = "Forward"
         else:
             direction = "Backward"
+        direction = prefix.center(len('Backward'))
 
         if is_response:
             arrow = "<---"
         else:
             arrow = "--->"
         key_str = "{}".format( pubkey )
+
         code_color = bittensor.utils.codes.code_to_loguru_color( code )
         code_string = bittensor.utils.codes.code_to_string( code )
-        code_string += " " * max ( 16 - len(code_string), 0)
+        code_string = code_string.center(16)
         code_str = "<" + code_color + ">" + code_string + "</" + code_color + ">"
-        rpc_message = message if message != None else 'None'
+
         if is_response:
             inputs = str(list(outputs)) if outputs != None else '[x]'
         else:
             inputs = str(list(inputs)) if inputs != None else '[x]'
-        inputs += " " * max ( 13 - len(inputs), 0)
-        rpc_message = message if message != None else ''
+        inputs = inputs.center(15)
+
+        rpc_message = message if message != None else 'None'
+
         logger.debug( 'rpc', rpc=True, prefix=prefix, direction=direction, arrow=arrow, key_str=key_str, code_str=code_str, inputs = inputs, rpc_message = rpc_message)
 
 
     @classmethod
     def create_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
-        logger.debug( 'endpoint', receptor=True, action = '<green>Create receptor </green>', uid=endpoint.uid, hotkey=endpoint.hotkey, coldkey=endpoint.coldkey, ip_str=endpoint.ip_str() )
+        logger.debug( 'endpoint', receptor=True, action = '<green>Create receptor </green>', uid=str(endpoint.uid).center(5), hotkey=endpoint.hotkey, coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(29) )
 
     @classmethod
     def update_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
-        logger.debug( 'endpoint', receptor=True, action = '<blue>Update receptor </blue>', uid=endpoint.uid, hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str() )
+        logger.debug( 'endpoint', receptor=True, action = '<blue>Update receptor </blue>', uid=str(endpoint.uid).center(5), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(29) )
 
     @classmethod
     def destroy_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
-        logger.debug( 'endpoint', receptor=True, action = '<red>Destroy receptor </red>', uid=endpoint.uid, hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str() )
+        logger.debug( 'endpoint', receptor=True, action = '<red>Destroy receptor </red>', uid=str(endpoint.uid).center(5), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(29) )
 
 
 logging.init()
