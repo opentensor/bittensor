@@ -170,7 +170,7 @@ class ReceptorPool ( torch.nn.Module ):
                 if min_receptor_qps > next_qps:
                     receptor_to_remove = next_receptor
             if receptor_to_remove != None:
-                logger.debug('<white>Destroy receptor for endpoint:</white> {}', receptor_to_remove.endpoint )
+                bittensor.logging.destroy_receptor_log(receptor_to_remove.endpoint)
                 del self.receptors[ receptor_to_remove.endpoint.hotkey ]
 
     def _get_or_create_receptor_for_endpoint( self, endpoint: 'bittensor.Endpoint' ) -> 'bittensor.Receptor':
@@ -187,7 +187,7 @@ class ReceptorPool ( torch.nn.Module ):
             # Change receptor address.
             if receptor.endpoint.ip != endpoint.ip or receptor.endpoint.port != endpoint.port:
                 del receptor
-                logger.debug('<white>Update receptor for endpoint:</white> {}', endpoint )
+                bittensor.logging.update_receptor_log( endpoint )
                 receptor = bittensor.receptor (
                     endpoint = endpoint, 
                     wallet = self.wallet
@@ -196,7 +196,7 @@ class ReceptorPool ( torch.nn.Module ):
 
         # ---- Or: Create a new receptor ----
         else:
-            logger.debug('<white>Create receptor for endpoint:</white> {}', endpoint )
+            bittensor.logging.create_receptor_log( endpoint )
             receptor = bittensor.receptor (
                     endpoint = endpoint, 
                     wallet = self.wallet

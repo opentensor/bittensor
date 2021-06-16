@@ -24,9 +24,6 @@ import torch
 from loguru import logger
 logger = logger.opt(colors=True)
 
-__debug_on__ = False
-__trace_on__ = False
-
 # Handler which sends messages to a rollbar server.
 class RollbarHandler:
     def write(self, message):
@@ -38,47 +35,60 @@ class RollbarHandler:
         else:
             pass
 
-# Filter bittensor internal messages, only from internal files.
-def bittensor_formatter(record):
-    if __debug_on__ and not __trace_on__:
-        return "<level>{message}</level>\n"
-    elif __trace_on__:
-        return "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>\n"
-    else:
-        return "<level>{message}</level>\n"
-
-def bittensor_log_filter( record ):
-    if __debug_on__ or __trace_on__:
-        return True
-    elif record["level"].no >= logger.level('INFO').no:
-        return True
-    else:
-        return False
-
 class logging:
+    __debug_on__:bool = False
+    __trace_on__:bool = False
+    __sink__:int = None
 
-    @staticmethodpyho
-    def set_debug( on: bool = True ):
-        bittensor.__debug_on__ = True
+    @classmethod
+    def set_debug(cls, on: bool = True ):
+        cls.__debug_on__ = on
 
-    @staticmethod
-    def set_trace( on: bool = True):
-        bittensor.__trace_on__ = True
+    @classmethod
+    def set_trace(cls, on: bool = True):
+        cls._trace_on__ = on
 
-    @staticmethod
-    def init():
+    @classmethod
+    def log_filter(cls, record ):
+        if cls.__debug_on__ or cls.__trace_on__:
+            return True
+        elif record["level"].no >= logger.level('INFO').no:
+            return True
+        else:
+            return False
+
+    @classmethod
+    def log_formatter(cls, record):
+        extra = record['extra']
+        if 'rpc' in extra and (cls.__debug_on__ or cls.__trace_on__):
+            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[inputs]} | {extra[key_str]} | {extra[rpc_message]} \n"
+            return log_format
+        if 'receptor' in extra and (cls.__debug_on__ or cls.__trace_on__):
+            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['action'] + " | uid:{extra[uid]} | ip:{extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
+            return log_format
+        elif cls.__debug_on__ and not cls.__trace_on__:
+            return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | {level: <8} | <level>{message}</level>\n"
+        elif cls.__trace_on__:
+            return "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>\n"
+        else:
+            return "<level>{message}</level>\n"
+
+    @classmethod
+    def init(cls):
         # Remove all logger sinks.
-        logger.remove()
+        logger.remove( 0 )
+        if cls.__sink__ != None:
+            logger.remove( cls.__sink__ )
 
         # Add filtered sys.stdout.
-        logger.add( 
+        cls.__sink__ = logger.add ( 
             sys.stdout, 
-            filter = bittensor_log_filter, 
+            filter = cls.log_filter, 
             colorize = True, 
             enqueue = True, 
             backtrace = True, 
             diagnose = True, 
-            format = bittensor_formatter
+            format = cls.log_formatter
         )
 
         # Add filtered rollbar handler.
@@ -101,4 +111,49 @@ class logging:
         # Return internal logger
         return logger.bind( internal=True )
 
+    @classmethod
+    def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs:list = [], outputs:list = [], message:str = ''):
+        if axon:
+            prefix = "Axon    "
+        else:
+            prefix = "Dendrite"
+
+        if forward:
+            direction = "Forward "
+        else:
+            direction = "Backward"
+
+        if is_response:
+            arrow = "<---"
+        else:
+            arrow = "--->"
+        key_str = "{}".format( pubkey )
+        code_color = bittensor.utils.codes.code_to_loguru_color( code )
+        code_string = bittensor.utils.codes.code_to_string( code )
+        code_string += " " * max ( 16 - len(code_string), 0)
+        code_str = "<" + code_color + ">" + code_string + "</" + code_color + ">"
+        rpc_message = message if message != None else 'None'
+        if is_response:
+            inputs = str(list(outputs)) if outputs != None else '[x]'
+        else:
+            inputs = str(list(inputs)) if inputs != None else '[x]'
+        inputs += " " * max ( 13 - len(inputs), 0)
+        rpc_message = message if message != None else ''
+        logger.debug( 'rpc', rpc=True, prefix=prefix, direction=direction, arrow=arrow, key_str=key_str, code_str=code_str, inputs = inputs, rpc_message = rpc_message)
+
+
+    @classmethod
+    def create_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
+        logger.debug( 'endpoint', receptor=True, action = '<green>Create receptor </green>', uid=endpoint.uid, hotkey=endpoint.hotkey, coldkey=endpoint.coldkey, ip_str=endpoint.ip_str() )
+
+    @classmethod
+    def update_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
+        logger.debug( 'endpoint', receptor=True, action = '<blue>Update receptor </blue>', uid=endpoint.uid, hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str() )
+
+    @classmethod
+    def destroy_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
+        logger.debug( 'endpoint', receptor=True, action = '<red>Destroy receptor </red>', uid=endpoint.uid, hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str() )
+
+
 logging.init()
+
