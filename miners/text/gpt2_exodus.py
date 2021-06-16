@@ -100,6 +100,7 @@ class neuron:
         config = bittensor.config()
         parser = argparse.ArgumentParser()
         parser.add_argument('--debug', dest='debug', action='store_true', help='''Turn on bittensor debugging information''', default=False)
+        parser.add_argument('--trace', dest='trace', action='store_true', help='''Turn on bittensor trace level information''', default=False)
         parser.add_argument('--config', dest ='config', type=str, help='If set, arguments are overridden by passed file.')
         parser.add_argument('--modality', dest ='modality', type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''', default=0)
         parser.add_argument('--use_upnpc', dest ='use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
@@ -144,6 +145,8 @@ class neuron:
         bittensor.axon.check_config( config.axon )
         GPT2Nucleus.check_config( config.nucleus )
         SGMOERouter.check_config( config.router )
+        if config.debug: bittensor.logging.set_debug( True ); logger.info('DEBUG is <green>ON</green>')
+        if config.trace: bittensor.logging.set_trace( True ); logger.info('TRACE is <green>ON</green>')
         full_path = os.path.expanduser('{}/{}/{}'.format( config.root_dir, config.wallet.name + "-" + config.wallet.hotkey, config.name ))
         config.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.full_path):

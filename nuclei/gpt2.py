@@ -235,7 +235,7 @@ class GPT2Nucleus(torch.nn.Module):
         """ Calls this nucleus's subscribed routing function. self.routing_callback must be set before this call is made.
 
         Args:
-            inputs (:obj:`torch.LongTensor` of shape :obj:`( batch_size, sequence_len )`, `required`): 
+            inputs (:obj:`torch.int64` of shape :obj:`( batch_size, sequence_len )`, `required`): 
                     Batch_size length list of tokenized sentences.
 
             query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dimension)`, `required`): 
@@ -265,11 +265,11 @@ class GPT2Nucleus(torch.nn.Module):
             module.weight.data.fill_(1.0)
     
 
-    def forward_text(self, inputs: torch.LongTensor):
+    def forward_text(self, inputs: torch.int64):
         """ Local forward inputs through the CLM GPT Nucleus.
 
             Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+                inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of tokenized sentences.
             
             Returns:
@@ -290,11 +290,11 @@ class GPT2Nucleus(torch.nn.Module):
         return hidden
 
 
-    def local_forward(self, inputs: torch.LongTensor, training : bool = True) -> SimpleNamespace:
+    def local_forward(self, inputs: torch.int64, training : bool = True) -> SimpleNamespace:
         """ Forward pass through GPT2 nucleus.
 
             Args:
-                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, block_size)`, `required`): 
+                inputs (:obj:`torch.int64` of shape :obj:`(batch_size, block_size)`, `required`): 
                     Batch_size length x list of text sentences.
 
                 training (:obj:`bool')`, `optional`, defaults to True):
@@ -342,12 +342,12 @@ class GPT2Nucleus(torch.nn.Module):
         return output
 
 
-    def remote_forward(self, inputs: torch.LongTensor, training: bool) -> SimpleNamespace:
+    def remote_forward(self, inputs: torch.int64, training: bool) -> SimpleNamespace:
         """ Forward pass inputs and labels through the GPT2 module and into the remote network.
 
 
         Args:
-            inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_len)`, `required`): 
+            inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
                     Batch_size length list of text sentences.
 
             training (:obj:`bool')`, `optional`, defaults to True):

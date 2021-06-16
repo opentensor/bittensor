@@ -24,9 +24,12 @@ import torch
 from loguru import logger
 logger = logger.opt(colors=True)
 
+<<<<<<< HEAD
+=======
 __debug_on__ = False
 __trace_on__ = False
 
+>>>>>>> 7b3135fc7629ba1e5fd84fd664ff1cc10e8d969c
 # Handler which sends messages to a rollbar server.
 class RollbarHandler:
     def write(self, message):
@@ -38,6 +41,57 @@ class RollbarHandler:
         else:
             pass
 
+<<<<<<< HEAD
+class logging:
+    __debug_on__:bool = False
+    __trace_on__:bool = False
+    __sink__:int = None
+
+    @classmethod
+    def set_debug(cls, on: bool = True ):
+        cls.__debug_on__ = on
+
+    @classmethod
+    def set_trace(cls, on: bool = True):
+        cls._trace_on__ = on
+
+    @classmethod
+    def log_filter(cls, record ):
+        if cls.__debug_on__ or cls.__trace_on__:
+            return True
+        elif record["level"].no >= logger.level('INFO').no:
+            return True
+        else:
+            return False
+
+    @classmethod
+    def log_formatter(cls, record):
+        extra = record['extra']
+        if 'rpc' in extra and (cls.__debug_on__ or cls.__trace_on__):
+            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[inputs]} | {extra[key_str]} | {extra[rpc_message]} \n"
+            return log_format
+        if 'receptor' in extra and (cls.__debug_on__ or cls.__trace_on__):
+            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['action'] + " | uid:{extra[uid]} | ip:{extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
+            return log_format
+        elif cls.__debug_on__ and not cls.__trace_on__:
+            return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | {level: <8} | <level>{message}</level>\n"
+        elif cls.__trace_on__:
+            return "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>\n"
+        else:
+            return "<level>{message}</level>\n"
+
+    @classmethod
+    def init(cls):
+        # Remove all logger sinks.
+        logger.remove( 0 )
+        if cls.__sink__ != None:
+            logger.remove( cls.__sink__ )
+
+        # Add filtered sys.stdout.
+        cls.__sink__ = logger.add ( 
+            sys.stdout, 
+            filter = cls.log_filter, 
+=======
 # Filter bittensor internal messages, only from internal files.
 def bittensor_formatter(record):
     if __debug_on__ and not __trace_on__:
@@ -74,11 +128,16 @@ class logging:
         logger.add( 
             sys.stdout, 
             filter = bittensor_log_filter, 
+>>>>>>> 7b3135fc7629ba1e5fd84fd664ff1cc10e8d969c
             colorize = True, 
             enqueue = True, 
             backtrace = True, 
             diagnose = True, 
+<<<<<<< HEAD
+            format = cls.log_formatter
+=======
             format = bittensor_formatter
+>>>>>>> 7b3135fc7629ba1e5fd84fd664ff1cc10e8d969c
         )
 
         # Add filtered rollbar handler.
@@ -101,4 +160,58 @@ class logging:
         # Return internal logger
         return logger.bind( internal=True )
 
+<<<<<<< HEAD
+    @classmethod
+    def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs:list = [], outputs:list = [], message:str = ''):
+        if axon:
+            prefix = "Axon"
+        else:
+            prefix = "Dendrite"
+        prefix = prefix.center(len('Dendrite'))
+
+        if forward:
+            direction = "Forward"
+        else:
+            direction = "Backward"
+        direction = prefix.center(len('Backward'))
+
+        if is_response:
+            arrow = "<---"
+        else:
+            arrow = "--->"
+        key_str = "{}".format( pubkey )
+
+        code_color = bittensor.utils.codes.code_to_loguru_color( code )
+        code_string = bittensor.utils.codes.code_to_string( code )
+        code_string = code_string.center(16)
+        code_str = "<" + code_color + ">" + code_string + "</" + code_color + ">"
+
+        if is_response:
+            inputs = str(list(outputs)) if outputs != None else '[x]'
+        else:
+            inputs = str(list(inputs)) if inputs != None else '[x]'
+        inputs = inputs.center(15)
+
+        rpc_message = message if message != None else 'None'
+
+        logger.debug( 'rpc', rpc=True, prefix=prefix, direction=direction, arrow=arrow, key_str=key_str, code_str=code_str, inputs = inputs, rpc_message = rpc_message)
+
+
+    @classmethod
+    def create_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
+        logger.debug( 'endpoint', receptor=True, action = '<green>Create receptor </green>', uid=str(endpoint.uid).center(5), hotkey=endpoint.hotkey, coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(29) )
+
+    @classmethod
+    def update_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
+        logger.debug( 'endpoint', receptor=True, action = '<blue>Update receptor </blue>', uid=str(endpoint.uid).center(5), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(29) )
+
+    @classmethod
+    def destroy_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
+        logger.debug( 'endpoint', receptor=True, action = '<red>Destroy receptor </red>', uid=str(endpoint.uid).center(5), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(29) )
+
+
 logging.init()
+
+=======
+logging.init()
+>>>>>>> 7b3135fc7629ba1e5fd84fd664ff1cc10e8d969c
