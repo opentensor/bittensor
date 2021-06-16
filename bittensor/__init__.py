@@ -36,9 +36,7 @@ __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __s
 __blocktime__ = 6
 
 # ---- LOGGING ----
-import bittensor._logging as logging
-__debug_on__ = False
-logging.init_logger()
+from bittensor._logging import logging as logging
 
 # ---- Protos ----
 import bittensor._proto.bittensor_pb2 as proto

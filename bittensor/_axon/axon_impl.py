@@ -287,7 +287,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     return None, code, message
 
         except Exception as e:
-            print ('pre processing exception')
             code = bittensor.proto.ReturnCode.UnknownException
             message = 'exception in preprocessing forward call with error: {}'.format(e)
             bittensor.utils.codes.rpc_log( axon=True, forward=True, is_response=False, code=code, pubkey=request.public_key, inputs=[torch_inputs], outputs=None, message=message )
@@ -297,7 +296,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
         try:
 
             # ---- Make nucleus forward call. ----
-            bittensor.utils.codes.rpc_log( axon=True, forward=True, is_response=False, code=bittensor.proto.ReturnCode.Success, pubkey=request.public_key, inputs=[torch_inputs], outputs=None, message=None )
+            code = bittensor.proto.ReturnCode.Success
+            message = None
+            bittensor.utils.codes.rpc_log( axon=True, forward=True, is_response=False, code=code, pubkey=request.public_key, inputs=[torch_inputs], outputs=None, message=message )
             outputs, code, message = self._call_forward( 
                 public_key = request.public_key, 
                 inputs_x = torch_inputs, 
@@ -311,7 +312,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             if outputs == None:
                 code = bittensor.proto.ReturnCode.EmptyResponse
                 message = None
-                bittensor.utils.codes.rpc_log( axon=True, forward=True, is_response=True, code=code, pubkey=request.public_key, inputs=[torch_inputs], outputs=None, message=None )
+                bittensor.utils.codes.rpc_log( axon=True, forward=True, is_response=True, code=code, pubkey=request.public_key, inputs=[torch_inputs], outputs=None, message=message )
                 return None, code, message
 
             # ---- Serialize response ----
@@ -328,7 +329,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             code = bittensor.proto.ReturnCode.UnknownException
             message = 'exception in processing forward call: {}'.format(e)
             bittensor.utils.codes.rpc_log( axon=True, forward=True, is_response=True, code=code, pubkey=request.public_key, inputs=[torch_inputs], outputs=None, message=message )
-
+            return None, code, message
 
         # ---- Return successful response ----
         bittensor.utils.codes.rpc_log( axon=True, forward=True, is_response=True, code=code, pubkey=request.public_key, inputs=[torch_inputs], outputs=outputs_serialized, message=None )
@@ -413,14 +414,14 @@ class Axon( bittensor.grpc.BittensorServicer ):
             modality = modality_x
         )
         if code != bittensor.proto.ReturnCode.Success:
-            bittensor.utils.codes.rpc_log( axon=True, forward=False, is_response=True, code=code, pubkey=request.public_key, inputs=[grads_dy, inputs_x], outputs=None, message=None )
+            bittensor.utils.codes.rpc_log( axon=True, forward=False, is_response=True, code=code, pubkey=request.public_key, inputs=[grads_dy, inputs_x], outputs=None, message=message )
             return None, code, message
 
         # ---- Catch empty ----
         if outputs == None:
             code = bittensor.proto.ReturnCode.EmptyResponse
             message = None
-            bittensor.utils.codes.rpc_log( axon=True, forward=False, is_response=True, code=code, pubkey=request.public_key, inputs=[grads_dy, inputs_x], outputs=None, message=None )
+            bittensor.utils.codes.rpc_log( axon=True, forward=False, is_response=True, code=code, pubkey=request.public_key, inputs=[grads_dy, inputs_x], outputs=None, message=message )
             return None, code, message
 
         # ---- Deserialize response ----
@@ -430,7 +431,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         except Exception as e:
             code = bittensor.proto.ReturnCode.ResponseSerializationException
             message = "Backward request serialization failed with error {} and inputs {}".format(e, outputs)
-            bittensor.utils.codes.rpc_log( axon=True, forward=False, is_response=True, code=code, pubkey=request.public_key, inputs=[grads_dy, inputs_x], outputs=None, message=None )
+            bittensor.utils.codes.rpc_log( axon=True, forward=False, is_response=True, code=code, pubkey=request.public_key, inputs=[grads_dy, inputs_x], outputs=None, message=message )
             return None, code, message
 
         # ---- Finaly return ----

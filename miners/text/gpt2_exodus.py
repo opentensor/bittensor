@@ -93,28 +93,9 @@ class neuron:
         self.epoch_loss = math.inf/2
         self.best_epoch_loss = math.inf
 
-    @staticmethod
-    def check_config( config: 'bittensor.Config' ):
-        r""" Checks/validates the config namspace object.
-        """
-        assert config.batch_size_train > 0, "batch_size_train must be a positive value"
-        assert config.learning_rate > 0, "learning_rate must be a positive value."
-        bittensor.wallet.check_config( config.wallet )
-        bittensor.subtensor.check_config( config.subtensor )
-        bittensor.metagraph.check_config( config.metagraph )
-        bittensor.dataloader.check_config( config.dataloader )
-        bittensor.dendrite.check_config( config.dendrite )
-        bittensor.axon.check_config( config.axon )
-        GPT2Nucleus.check_config( config.nucleus )
-        SGMOERouter.check_config( config.router )
-        full_path = os.path.expanduser('{}/{}/{}'.format( config.root_dir, config.wallet.name + "-" + config.wallet.hotkey, config.name ))
-        config.full_path = os.path.expanduser(full_path)
-        if not os.path.exists(config.full_path):
-            os.makedirs(config.full_path)
-
     @staticmethod   
     def config() -> 'bittensor.Config':
-        r""" Fills a config namespace object with information from the command line.
+        r""" Fills a config namespace object with defaults or information from the command line.
         """
         config = bittensor.config()
         parser = argparse.ArgumentParser()
@@ -136,6 +117,7 @@ class neuron:
         parser.add_argument('--batch_size_train', dest='batch_size_train', type=int, help='Training batch size.', default=2)
         parser.add_argument('--reload', dest='reload',action='store_true', help='''Reload training from previous trial run.''', default=False )
         parser.add_argument('--restart_on_failure', dest='restart_on_failure', action='store_true', help='''Restart miner on unknown error.''', default=False)
+        parser.add_argument('--compute_remote_gradients', dest='compute_remote_gradients', action='store_true', help='''Does the miner compute/return gradients from backward queries.''', default=False)
         parser.add_argument('--name', dest ='name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
         parser.parse_known_args( namespace = config )
         bittensor.wallet.config( config )
@@ -148,6 +130,25 @@ class neuron:
         SGMOERouter.config( config )
         return config
 
+    @staticmethod
+    def check_config( config: 'bittensor.Config' ):
+        r""" Checks/validates the config namespace object.
+        """
+        assert config.batch_size_train > 0, "batch_size_train must be a positive value"
+        assert config.learning_rate > 0, "learning_rate must be a positive value."
+        bittensor.wallet.check_config( config.wallet )
+        bittensor.subtensor.check_config( config.subtensor )
+        bittensor.metagraph.check_config( config.metagraph )
+        bittensor.dataloader.check_config( config.dataloader )
+        bittensor.dendrite.check_config( config.dendrite )
+        bittensor.axon.check_config( config.axon )
+        GPT2Nucleus.check_config( config.nucleus )
+        SGMOERouter.check_config( config.router )
+        full_path = os.path.expanduser('{}/{}/{}'.format( config.root_dir, config.wallet.name + "-" + config.wallet.hotkey, config.name ))
+        config.full_path = os.path.expanduser(full_path)
+        if not os.path.exists(config.full_path):
+            os.makedirs(config.full_path)
+
     def __enter__(self):
         self.startup()
 
@@ -157,10 +158,10 @@ class neuron:
     def run( self ):
         r""" Miner main loop.
         """
-        # ---- Setup ----
+        # ---- Startup/Shutdown ----
         with self:  
 
-            # ---- Optionally reload previous run ----
+            # ---- Optionally reload from previous run ----
             if self.config.reload:
                 self.reload()
             else:
@@ -179,7 +180,7 @@ class neuron:
                     self.checkpoint()
                 
                 except KeyboardInterrupt:
-                    # --- User ended ----
+                    # --- User ended session ----
                     break
 
                 except Exception as e:
@@ -194,7 +195,7 @@ class neuron:
 
     # --- Run Epoch ----
     def run_epoch( self ):
-        r""" Runs through a single training epoch pulled from the dataloader.
+        r""" Runs a single training epoch pulled from the dataloader.
         """
         # --- Init Epoch ----
         total_epoch_loss = 0.0
@@ -218,7 +219,7 @@ class neuron:
             )
             self.global_step += 1
 
-        self.epoch_loss = total_epoch_loss / (iteration + 1) 
+        self.epoch_loss = total_epoch_loss / self.config.epoch_length 
         self.epoch += 1
 
     # ---- Training call ----
@@ -230,32 +231,31 @@ class neuron:
             Returns:
                 output = SimpleNamespace ( 
                     local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                        Hidden layer context.
+                        Representations produced by the nucleus's distillation-model prior to producing the hidden units.
 
                     local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                        Hidden layer encoding produced using local_context.
+                        Hidden layer representations produced using the local_context.
 
-                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
-                        GPT MLM Target predictions produced using local_context. 
+                    local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `required`):
+                        GPT2 MLM target predictions produced using local_hidden. 
 
-                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        GPT MLM loss using local_context.
+                    local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `required`): 
+                        GPT2 MLM loss computed from the local_target.
 
-                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
-                        Hidden layer encoding produced using the remote_context.
+                    remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                        Representations returned from the nucleus.route function after querying the network.
 
-                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
-                        GPT MLM Target predictions using the remote_context.
+                    remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
+                        Hidden layer representations produced using the remote_context.
 
-                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
-                        GPT MLM loss using the remote_context.
+                    remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `required`):
+                        GPT MLM Target predictions produced using remote_hidden.
 
-                    remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
-                        Joined responses from network call.
+                    remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `required`):
+                        GPT2 MLM loss computed from the remote_target.
 
-                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
+                    distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `required`): 
                         Distillation loss between local_context and remote_context.
-
             )
         """
         # ---- Forward pass ----
@@ -278,9 +278,9 @@ class neuron:
 
     # ---- Axon Forward call ----
     def forward ( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Subscribed to an axon servicing endpoint, processes forward messages from the wire.
+        r""" Subscribed to an axon servicing endpoint: processes forward messages from the wire.
             The arguments reflect an RPC request from another miner in the network, the response tensor
-            should be the hidden units of the local nucleus of shape [batch_size, sequence_len, __network_dim__].
+            should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
             
             Args:
                 pubkey ( str, `required`): 
@@ -302,9 +302,9 @@ class neuron:
 
     # ---- Axon Backward call ----
     def backward ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        r""" Subscribed to an axon servicing endpoint. Processes backward messages from the wire.
+        r""" Subscribed to an axon servicing endpoint: Processes backward messages from the wire.
             Arguments reflect an RPC backward request from another miner in the network, the response tensor
-            should be the gradients of the miner's nucleus w.r.t to the inputs and the passed output grads.
+            should be the gradients of the miner's nucleus w.r.t to the inputs_x and the passed output grads_dy.
             
             Args:
                 pubkey ( str, `required`): 
@@ -317,36 +317,36 @@ class neuron:
                     modality of inputs e.g. bittensor.proto.Modality.TEXT.
             
             Returns:
-                outputs (:obj:`torch.FloatTensor`): 
+                outputs (:obj:`torch.FloatTensor`, `optional`): 
                     The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
         """
-        inputs_x.requires_grad = True
-        with torch.enable_grad():
-            inputs = inputs_x.to( self.device )
-            grads_dy = grads_dy.to( self.device )
-            outputs_y = self.nucleus.local_forward( inputs = inputs_x ).to( self.device )
-            grads_dx = torch.autograd.grad (
-                outputs = outputs_y, 
-                inputs = inputs_x, 
-                grad_outputs = grads_dy, 
-                only_inputs = True,
-                create_graph = False, 
-                retain_graph = False
-            )
-        return grads_dx[0]
-    
+        if self.config.compute_remote_gradients:
+            inputs_x.requires_grad = True
+            with torch.enable_grad():
+                inputs = inputs_x.to( self.device )
+                grads_dy = grads_dy.to( self.device )
+                outputs_y = self.nucleus.local_forward( inputs = inputs_x ).to( self.device )
+                grads_dx = torch.autograd.grad (
+                    outputs = outputs_y, 
+                    inputs = inputs_x, 
+                    grad_outputs = grads_dy, 
+                    only_inputs = True,
+                    create_graph = False, 
+                    retain_graph = False
+                )
+            return grads_dx[0]
+        else:
+            return None
 
     def route ( self, inputs: torch.LongTensor, query: torch.FloatTensor ) -> torch.FloatTensor:
-        r""" Subscribed to the nucleus as a callback which is made during remote training. 
-            Accepts tokenized text inputs and a query. Routes text inputs to neurons
-            based on that query. 
-
+        r""" Subscribed to the nucleus. Called during nucleus.remote_forward. Accepts inputs and
+            a query. Routes inputs through the network to remote neurons based on query.
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_dim)`, `required`): 
-                    Tensor of tokenized sentences.
+                    Inputs to send on the wire.
                 
                 query (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, query_dim)`, `required`): 
-                    Context tensor used to select which neurons to query for each example.
+                    Query tensor used to selected which neurons to send inputs to.
             
             Returns:
                 response (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`): 
@@ -362,7 +362,7 @@ class neuron:
         return outputs.response
 
     def checkpoint( self ):
-        r""" Saves, updates and then reload the miner training state.
+        r""" Optionally Saves, updates and then reloads the miner training state.
         """
         last_saved = self.get_saved_state()
         if last_saved == None or last_saved['epoch_loss'] >= self.epoch_loss:
@@ -372,6 +372,8 @@ class neuron:
         self.reload()
 
     def get_saved_state( self ):
+        r""" Returns a saved state dict or none.
+        """
         try:
             return torch.load("{}/model.torch".format( self.config.full_path ))
         except Exception as e:
@@ -379,7 +381,7 @@ class neuron:
             return None
         
     def reload( self ):
-        r""" Reloads the training state from the disk.
+        r""" Reloads/updates the training state from the disk.
         """
         state_dict = self.get_saved_state()
 
@@ -431,7 +433,7 @@ class neuron:
              logger.exception('Failed to save model with error:{}', e)
 
     def set_mechanism_weights( self ):
-        r""" Called after every training epoch, sets the mechanism weights on chain.
+        r""" Sets the mechanism weights on chain.
         """
         try:
             uids = self.metagraph.uids
@@ -480,7 +482,7 @@ class neuron:
             logger.info('TENSORBOARD is <red>OFF</red>')
 
         # ---- Setup debugging ----
-        if self.config.debug: bittensor.__debug_on__ = True; logger.info('DEBUG is <green>ON</green>')
+        if self.config.debug: bittensor.logging.set_debug( True ); logger.info('DEBUG is <green>ON</green>')
         else: logger.info('DEBUG is <red>OFF</red>')
 
         # ---- Setup UPNPC ----

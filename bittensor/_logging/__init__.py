@@ -24,21 +24,8 @@ import torch
 from loguru import logger
 logger = logger.opt(colors=True)
 
-# Filter bittensor internal messages, only from internal files.
-def bittensor_formatter(record):
-    return "<level>{message}</level>\n"
-    # if bittensor.__debug_on__ == True:
-    #     return "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>\n"
-    # else:
-    #     return "<level>{message}</level>\n"
-
-def bittensor_log_filter( record ):
-    if bittensor.__debug_on__ == True:
-        return True
-    elif record["level"].no >= logger.level('INFO').no:
-        return True
-    else:
-        return False
+__debug_on__ = False
+__trace_on__ = False
 
 # Handler which sends messages to a rollbar server.
 class RollbarHandler:
@@ -51,37 +38,67 @@ class RollbarHandler:
         else:
             pass
 
-def init_logger():
-    # Remove all logger sinks.
-    logger.remove()
+# Filter bittensor internal messages, only from internal files.
+def bittensor_formatter(record):
+    if __debug_on__ and not __trace_on__:
+        return "<level>{message}</level>\n"
+    elif __trace_on__:
+        return "<level>{level: <8}</level>|<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>\n"
+    else:
+        return "<level>{message}</level>\n"
 
-    # Add filtered sys.stdout.
-    logger.add( 
-        sys.stdout, 
-        filter = bittensor_log_filter, 
-        colorize = True, 
-        enqueue = True, 
-        backtrace = True, 
-        diagnose = True, 
-        format = bittensor_formatter
-    )
+def bittensor_log_filter( record ):
+    if __debug_on__ or __trace_on__:
+        return True
+    elif record["level"].no >= logger.level('INFO').no:
+        return True
+    else:
+        return False
 
-    # Add filtered rollbar handler.
-    rollbar_token = os.environ.get("ROLLBAR_TOKEN", False)
-    rollbar_env = "production"
-    rollbar_handler = RollbarHandler()
-    if rollbar_token:
-        # Rollbar is enabled.
-        logger.info("Error reporting enabled using {}:{}", rollbar_token, rollbar_env)
-        rollbar.init(rollbar_token, rollbar_env)
-        logger.add (
-            sink = rollbar_handler,
-            level = 'WARNING',
+class logging:
+
+    @staticmethodpyho
+    def set_debug( on: bool = True ):
+        bittensor.__debug_on__ = True
+
+    @staticmethod
+    def set_trace( on: bool = True):
+        bittensor.__trace_on__ = True
+
+    @staticmethod
+    def init():
+        # Remove all logger sinks.
+        logger.remove()
+
+        # Add filtered sys.stdout.
+        logger.add( 
+            sys.stdout, 
+            filter = bittensor_log_filter, 
             colorize = True, 
             enqueue = True, 
             backtrace = True, 
             diagnose = True, 
+            format = bittensor_formatter
         )
-    
-    # Return internal logger
-    return logger.bind( internal=True )
+
+        # Add filtered rollbar handler.
+        rollbar_token = os.environ.get("ROLLBAR_TOKEN", False)
+        rollbar_env = "production"
+        rollbar_handler = RollbarHandler()
+        if rollbar_token:
+            # Rollbar is enabled.
+            logger.info("Error reporting enabled using {}:{}", rollbar_token, rollbar_env)
+            rollbar.init(rollbar_token, rollbar_env)
+            logger.add (
+                sink = rollbar_handler,
+                level = 'WARNING',
+                colorize = True, 
+                enqueue = True, 
+                backtrace = True, 
+                diagnose = True, 
+            )
+        
+        # Return internal logger
+        return logger.bind( internal=True )
+
+logging.init()

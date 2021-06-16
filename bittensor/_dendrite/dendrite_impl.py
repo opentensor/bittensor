@@ -140,7 +140,7 @@ class Dendrite( torch.autograd.Function ):
                 endpoints: List['bittensor.Endpoint'],
                 inputs: List[torch.Tensor],
                 modality: bittensor.proto.Modality,
-                timeout: int = 3
+                timeout: int = 5
             ) -> Tuple[torch.LongTensor, List[torch.Tensor]]:
             r""" Internal Forward tensor inputs to a list of neuron endpoints.
 
@@ -178,7 +178,7 @@ class Dendrite( torch.autograd.Function ):
         self, 
         endpoints: Union[ List['bittensor.Endpoint'], 'bittensor.Endpoint'],
         inputs: List[ torch.FloatTensor ],
-        timeout: int = 3
+        timeout: int = 5
     ) -> Tuple[ Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor]:
         r""" Forward image inputs to endpoints.
 
@@ -257,7 +257,7 @@ class Dendrite( torch.autograd.Function ):
             self, 
             endpoints: Union[ List['bittensor.Endpoint'], 'bittensor.Endpoint'] ,
             inputs: List[ torch.FloatTensor ],
-            timeout: int = 3
+            timeout: int = 5
         ) -> Tuple[ Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor]:
         r""" Forward tensor inputs to endpoints.
 
@@ -340,7 +340,7 @@ class Dendrite( torch.autograd.Function ):
             self,
             endpoints: Union[ List['bittensor.Endpoint'], 'bittensor.Endpoint'] ,
             inputs: List[ torch.LongTensor ],
-            timeout: int = 3
+            timeout: int = 5
         ) -> Tuple[ Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor]:
         r""" Forward text inputs to a list of neuron endpoints and block until responses or timeout.
 
