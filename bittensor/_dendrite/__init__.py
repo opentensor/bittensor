@@ -24,11 +24,16 @@ import copy
 from . import dendrite_impl
 
 class dendrite:
+    args_added:bool = False
 
     def __new__(
             cls, 
             config: 'bittensor.config' = None,
             wallet: 'bittensor.Wallet' = None,
+            timeout: int = None,
+            requires_grad: bool = None,
+            max_worker_threads: int = None,
+            max_active_receptors: int = None,
             receptor_pool: 'bittensor.ReceptorPool' = None,
         ) -> 'bittensor.Dendrite':
         r""" Creates a new Dendrite object from passed arguments.
@@ -37,43 +42,63 @@ class dendrite:
                     bittensor.dendrite.config()
                 wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
+                timeout (:type:`int`, `optional`):
+                    Default request timeout.
+                requires_grad (:type:`bool`, `optional`):
+                    If true, the dendrite passes gradients on the wire by default.
+                max_worker_threads (:type:`int`, `optional`):
+                    Maximum number of active client threads. Does not override the
+                    optionally passed receptor pool.
+                max_active_receptors (:type:`int`, `optional`):
+                    Maximum allowed active allocated TCP connections. Does not override the
+                    optionally passed receptor pool.
                 receptor_pool (:obj:`bittensor.ReceptorPool`, `optional`):
                     bittensor receptor pool, maintains a pool of active TCP connections.
         """
-        if config == None: config = dendrite.config().dendrite
+        if config == None: config = dendrite.config()
         config = copy.deepcopy(config)
+        config.dendrite.timeout = timeout if timeout != None else config.dendrite.timeout
+        config.dendrite.local_ip = requires_grad if requires_grad != None else config.dendrite.requires_grad
+        config.dendrite.max_worker_threads = max_worker_threads if max_worker_threads != None else config.dendrite.max_worker_threads
+        config.dendrite.max_active_receptors = max_active_receptors if max_active_receptors != None else config.dendrite.max_active_receptors
+        dendrite.check_config( config )
+
         if wallet == None:
             wallet = bittensor.wallet( config = config.wallet )
         if receptor_pool == None:
             receptor_pool = bittensor.receptor_pool( 
                 wallet = wallet,
-                max_worker_threads = config.max_worker_threads,
-                max_active_receptors = config.max_active_receptors
+                max_worker_threads = config.dendrite.max_worker_threads,
+                max_active_receptors = config.dendrite.max_active_receptors
             )
         return dendrite_impl.Dendrite ( 
             config = config,
             wallet = wallet, 
             receptor_pool = receptor_pool 
         )
-        
-    @staticmethod   
-    def config( config: 'bittensor.Config' = None, namespace: str = 'dendrite' ) -> 'bittensor.Config':
-        if config == None: config = bittensor.config()
-        dendrite_config = bittensor.config()
-        config[ namespace ] = dendrite_config
-        if namespace != '': namespace += '.'
-        bittensor.wallet.config( dendrite_config )
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--' + namespace + 'max_worker_threads', dest = 'max_worker_threads',  default=150, type=int, help='''Max number of concurrent threads used for sending RPC requests.''')
-        parser.add_argument('--' + namespace + 'max_active_receptors', dest = 'max_active_receptors', default=500, type=int, help='''Max number of concurrently active receptors / tcp-connections''')
-        parser.add_argument('--' + namespace + 'timeout', dest = 'timeout', type=int, help='''Default request timeout.''', default=5)
-        parser.add_argument('--' + namespace + 'requires_grad', dest = 'requires_grad', type=bool, help='''If true, the dendrite passes gradients on the wire.''', default=False)
-        parser.parse_known_args( namespace = dendrite_config )
-        return config
 
-    @staticmethod   
-    def check_config( config: 'bittensor.Config' ):
-        bittensor.wallet.check_config( config.wallet )
-        assert config.max_worker_threads > 0, 'max_worker_threads must be larger than 0'
-        assert config.max_active_receptors > 0, 'max_active_receptors must be larger than 0'
+    @classmethod   
+    def config(cls) -> 'bittensor.Config':
+        parser = argparse.ArgumentParser()
+        dendrite.add_args( parser )
+        return bittensor.config( parser )
+
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        if not cls.args_added:
+            parser.add_argument('--dendrite.max_worker_threads', default=150, type=int, help='''Max number of concurrent threads used for sending RPC requests.''')
+            parser.add_argument('--dendrite.max_active_receptors', default=500, type=int, help='''Max number of concurrently active receptors / tcp-connections''')
+            parser.add_argument('--dendrite.timeout', type=int, help='''Default request timeout.''', default=5)
+            parser.add_argument('--dendrite.requires_grad', type=bool, help='''If true, the dendrite passes gradients on the wire.''', default=False)
+            cls.args_added = True
+        bittensor.wallet.add_args( parser )
+
+    @classmethod   
+    def check_config( cls, config: 'bittensor.Config' ):
+        assert config.dendrite
+        assert 'timeout' in config.dendrite
+        assert 'requires_grad' in config.dendrite
+        assert config.dendrite.max_worker_threads > 0, 'max_worker_threads must be larger than 0'
+        assert config.dendrite.max_active_receptors > 0, 'max_active_receptors must be larger than 0'
+        bittensor.wallet.check_config( config )
 

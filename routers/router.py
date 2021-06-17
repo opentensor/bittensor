@@ -95,6 +95,9 @@ class Router( torch.nn.Module ):
 
                     weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each neuron per example.
+                    
+                    uids (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `required`): 
+                        Uids of endpoints queried.
 
                     requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         number of requests sent to each uid in this batch.
@@ -129,6 +132,9 @@ class Router( torch.nn.Module ):
                     weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each neuron per example.
 
+                    uids (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `required`): 
+                        Uids of endpoints queried.
+
                     requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         number of requests sent to each uid in this batch.
 
@@ -162,6 +168,9 @@ class Router( torch.nn.Module ):
 
                     weights (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, metagraph.state.n)`, `optional`): 
                         weights for each neuron per example.
+
+                    uids (:obj:`torch.LongTensor` of shape :obj:`(-1)`, `required`): 
+                        Uids of endpoints queried.
 
                     requests_sizes (:obj:`torch.LongTensor` of shape :obj:`(metagraph.state.n)`, `optional`): 
                         number of requests sent to each uid in this batch.

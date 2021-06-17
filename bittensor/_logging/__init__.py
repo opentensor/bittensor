@@ -16,10 +16,11 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import argparse
+import copy
 import rollbar
 import sys
 import bittensor
-import torch
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -36,41 +37,26 @@ class RollbarHandler:
             pass
 
 class logging:
+    args_added: bool = False
     __debug_on__:bool = False
     __trace_on__:bool = False
     __sink__:int = None
 
-    @classmethod
-    def set_debug(cls, on: bool = True ):
-        cls.__debug_on__ = on
+    def __new__(
+            cls, 
+            config: 'bittensor.Config' = None,
+            debug: bool = None,
+            trace: bool = None,
+            record_log: bool = None,
+            logging_dir: str = None,
+        ):
+        if config == None: config = logging.config()
+        config = copy.deepcopy(config)
+        config.logging.debug = debug if debug != None else config.logging.debug
+        config.logging.trace = trace if trace != None else config.logging.trace
+        config.logging.record_log = record_log if record_log != None else config.logging.record_log
+        config.logging.logging_dir = logging_dir if logging_dir != None else config.logging.logging_dir
 
-    @classmethod
-    def set_trace(cls, on: bool = True):
-        cls._trace_on__ = on
-
-    @classmethod
-    def log_filter(cls, record ):
-        if cls.__debug_on__ or cls.__trace_on__:
-            return True
-        elif record["level"].no >= logger.level('INFO').no:
-            return True
-        else:
-            return False
-
-    @classmethod
-    def log_formatter(cls, record):
-        extra = record['extra']
-        if 'rpc' in extra:
-            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[inputs]} | {extra[key_str]} | {extra[rpc_message]} \n"
-            return log_format
-        if 'receptor' in extra:
-            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
-            return log_format
-        else:
-            return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | <level>{level: ^16}</level> | {message}\n"
-
-    @classmethod
-    def init(cls):
         # Remove all logger sinks.
         logger.remove( 0 )
         if cls.__sink__ != None:
@@ -103,9 +89,75 @@ class logging:
                 backtrace = True, 
                 diagnose = True, 
             )
-        
+
+        cls.set_debug(config.logging.debug)
+        cls.set_trace(config.logging.trace)   
+        # ---- Setup logging to root ----
+        if config.logging.record_log: 
+            filepath = config.logging.logging_dir + "/logs.log"
+            logger.add (
+                filepath, 
+                rotation="25 MB", 
+                retention="10 days"
+            )
+            logger.success('Set logging:'.ljust(20) + '<blue>{}</blue>', filepath)
+        else: logger.success('Set logging:'.ljust(20) + '<red>OFF</red>')  
+   
+
         # Return internal logger
         return logger.bind( internal=True )
+
+    @classmethod
+    def config(cls):
+        parser = argparse.ArgumentParser()
+        logging.add_args( parser )
+        return bittensor.config( parser )
+
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser):
+        if not cls.args_added:
+            parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default=False)
+            parser.add_argument('--logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default=False)
+            parser.add_argument('--logging.record_log', action='store_true', help='''Turns on logging to file.''', default=False)  
+            parser.add_argument('--logging.logging_dir', type=str, help='Logging default root directory.', default='~/.bittensor/miners/')
+            cls.args_added = True
+
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        assert config.logging
+
+    @classmethod
+    def set_debug(cls, on: bool = True ):
+        if on: logging.success( prefix = 'Set debug', sufix = '<green>ON</green>')
+        else:  logging.success( prefix = 'Set debug', sufix = '<red>OFF</red>')
+        cls.__debug_on__ = on
+
+    @classmethod
+    def set_trace(cls, on: bool = True):
+        if on: logging.success( prefix = 'Set trace', sufix = '<green>ON</green>')
+        else:  logging.success( prefix = 'Set trace', sufix = '<red>OFF</red>')
+        cls._trace_on__ = on
+
+    @classmethod
+    def log_filter(cls, record ):
+        if cls.__debug_on__ or cls.__trace_on__:
+            return True
+        elif record["level"].no >= logger.level('INFO').no:
+            return True
+        else:
+            return False
+
+    @classmethod
+    def log_formatter(cls, record):
+        extra = record['extra']
+        if 'rpc' in extra:
+            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[inputs]} | {extra[key_str]} | {extra[rpc_message]} \n"
+            return log_format
+        if 'receptor' in extra:
+            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
+            return log_format
+        else:
+            return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | <level>{level: ^16}</level> | {message}\n"
 
     @classmethod
     def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs:list = [], outputs:list = [], message:str = ''):
@@ -155,5 +207,16 @@ class logging:
     def destroy_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
         logger.debug( 'endpoint', receptor=True, action = '<red>' + 'Destroy'.center(16) + '</red>', uid=str(endpoint.uid).center(4), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(27) )
 
+    @classmethod
+    def success( cls, prefix:str, sufix:str ):
+        prefix = prefix + ":"
+        prefix = prefix.ljust(20)
+        log_msg = prefix + sufix 
+        logger.success( log_msg )
 
-logging.init()
+    @classmethod
+    def info( cls, prefix:str, sufix:str ):
+        prefix = prefix + ":"
+        prefix = prefix.ljust(20)
+        log_msg = prefix + sufix 
+        logger.info( log_msg )
