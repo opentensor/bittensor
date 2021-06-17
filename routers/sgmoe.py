@@ -25,8 +25,8 @@ from . import router
 class SGMOERouter( router.Router ):
     def __init__(self, config: 'bittensor.Config' = None, query_dim = bittensor.__network_dim__, **kwargs):
         super().__init__()
-        if config == None: config = SGMOERouter.config().router;       
-        self.config = config
+        if config == None: config = SGMOERouter.config();       
+        self.config = config.router
         self.query_dim = query_dim
         
         # Gating weights. Should match the metagraph.n
@@ -34,16 +34,16 @@ class SGMOERouter( router.Router ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     @staticmethod   
-    def config( config: 'bittensor.Config' = None, namespace: str = 'router' ) -> 'bittensor.Config':
-        if config == None: config = bittensor.config()
-        nucleus_config = bittensor.config()
-        config[ namespace ] = nucleus_config
-        if namespace != '': namespace += '.'
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
-        parser.add_argument('--' + namespace + 'topk', dest = 'topk', default=20, type=int, help='Number of uids to query each batch.')
-        parser.add_argument('--' + namespace + 'stale_emit_filter', dest = 'stale_emit_filter', default=10000, type=int, help='Number of blocks without an update before a neuron is filtered')
-        parser.parse_known_args( namespace = nucleus_config )
-        return config
+        SGMOERouter.add_args( parser )
+        return bittensor.config( parser )
+
+
+    @staticmethod
+    def add_args( parser: argparse.ArgumentParser ):
+        parser.add_argument('--router.topk', default=20, type=int, help='Number of uids to query each batch.')
+        parser.add_argument('--router.stale_emit_filter', default=10000, type=int, help='Number of blocks without an update before a neuron is filtered')
 
     @staticmethod
     def check_config(config: 'bittensor.Config'):

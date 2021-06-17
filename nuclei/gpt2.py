@@ -136,9 +136,9 @@ class GPT2Nucleus(torch.nn.Module):
                     munched config class.
         """
         super(GPT2Nucleus, self).__init__()
-        if config == None: config = GPT2Nucleus.config().nucleus
+        if config == None: config = GPT2Nucleus.config()
         GPT2Nucleus.check_config( config )
-        self.config = config
+        self.config = config.nucleus
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # To be set.
@@ -147,12 +147,12 @@ class GPT2Nucleus(torch.nn.Module):
         gpt_config = GPTConfig(
             vocab_size = bittensor.__vocab_size__,
             n_embd=bittensor.__network_dim__,
-            n_head=config.n_head,
-            n_layer=config.n_layer,
-            block_size=config.block_size,
-            embd_pdrop=config.embd_pdrop,
-            resid_pdrop=config.resid_pdrop,
-            attn_pdrop=config.attn_pdrop
+            n_head=self.config.n_head,
+            n_layer=self.config.n_layer,
+            block_size=self.config.block_size,
+            embd_pdrop=self.config.embd_pdrop,
+            resid_pdrop=self.config.resid_pdrop,
+            attn_pdrop=self.config.attn_pdrop
         )
         # Token embedding layer. 
         # [bittensor.__vocab_size__, bittensor.__network_dim__]
@@ -193,24 +193,23 @@ class GPT2Nucleus(torch.nn.Module):
         self.num_parameters = sum(p.numel() for p in self.parameters())
     
     @staticmethod   
-    def config( config: 'bittensor.Config' = None, namespace: str = 'nucleus' ) -> 'bittensor.Config':
-        if config == None: config = bittensor.config()
-        nucleus_config = bittensor.config()
-        config[ namespace ] = nucleus_config
-        if namespace != '': namespace += '.'
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
-        parser.add_argument('--' + namespace + 'n_head', dest = 'n_head', default=32, type=int, help='Number of attention heads for each attention layer in the Transformer encoder.')
-        parser.add_argument('--' + namespace + 'n_layer', dest = 'n_layer', default=12, type=int, help='Number of hidden layers in the Transformer encoder.')
-        parser.add_argument('--' + namespace + 'block_size', dest = 'block_size', default=20, type=int, help='Number of hidden layers in the Transformer encoder.')
-        parser.add_argument('--' + namespace + 'embd_pdrop', dest = 'embd_pdrop', default=0.1, type=float, help='GPT embedding dropout probability.')
-        parser.add_argument('--' + namespace + 'resid_pdrop', dest = 'resid_pdrop', default=0.1, type=float, help='GPT residual dropout probability.')
-        parser.add_argument('--' + namespace + 'attn_pdrop', dest = 'attn_pdrop', default=0.1, type=float, help='GPT attention dropout probability.')
-        parser.parse_known_args( namespace = nucleus_config )
-        return config
+        GPT2Nucleus.add_args( parser )
+        return bittensor.config( parser )
 
     @staticmethod
-    def check_config(config: 'bittensor.Config'):
-        pass
+    def add_args( parser: argparse.ArgumentParser ):
+        parser.add_argument('--nucleus.n_head',  default=32, type=int, help='Number of attention heads for each attention layer in the Transformer encoder.')
+        parser.add_argument('--nucleus.n_layer', default=12, type=int, help='Number of hidden layers in the Transformer encoder.')
+        parser.add_argument('--nucleus.block_size', default=20, type=int, help='Number of hidden layers in the Transformer encoder.')
+        parser.add_argument('--nucleus.embd_pdrop', default=0.1, type=float, help='GPT embedding dropout probability.')
+        parser.add_argument('--nucleus.resid_pdrop', default=0.1, type=float, help='GPT residual dropout probability.')
+        parser.add_argument('--nucleus.attn_pdrop', default=0.1, type=float, help='GPT attention dropout probability.')
+
+    @staticmethod
+    def check_config( config: 'bittensor.Config' ):
+        assert config.nucleus
 
     def attach(self, servicer: object ):
         """ Attaches the passed servicer's routing function to this nucleus.

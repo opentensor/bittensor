@@ -96,9 +96,9 @@ class Executor:
 
         TABLE_DATA = []
 
-        total_stake = 0
-        total_rank = 0
-        total_incentive = 0
+        total_stake = 0.0
+        total_rank = 0.0
+        total_incentive = 0.0
         total_success = 0
         total_time = 0.0
         logger.info('\nRunning queries ...')

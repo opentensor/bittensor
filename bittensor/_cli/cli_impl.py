@@ -36,8 +36,6 @@ class CLI:
         self.executor = executor
 
     def run ( self ):
-        if self.config.debug: bittensor.__debug_on__ = True; logger.info('DEBUG is <green>ON</green>')
-        else: logger.info('DEBUG is <red>OFF</red>')
         if self.config.command == "transfer":
             self.executor.transfer( amount_tao=self.config.amount, destination=self.config.dest)
         elif self.config.command == "unstake":

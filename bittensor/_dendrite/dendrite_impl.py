@@ -184,8 +184,8 @@ class Dendrite( torch.autograd.Function ):
                     responses (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Output encodings of inputs produced by the remote endpoints. Non-responses are zeroes of common shape.
             """
-            timeout = timeout if timeout != None else self.config.timeout 
-            requires_grad = requires_grad if requires_grad != None else self.config.requires_grad 
+            timeout = timeout if timeout != None else self.config.dendrite.timeout 
+            requires_grad = requires_grad if requires_grad != None else self.config.dendrite.requires_grad 
             forward_response = Dendrite.apply(
                 self,
                 DUMMY, 

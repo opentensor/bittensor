@@ -50,34 +50,40 @@ class neuron:
         """
         if config == None: config = neuron.config()
         self.config = config; neuron.check_config( self.config ); print ( self.config )
-        self.wallet = bittensor.wallet( 
-            config = self.config.wallet 
+        bittensor.logging ( 
+            config = self.config,
+            logging_dir = self.config.neuron.full_path,
+        )
+        self.device = torch.device( 
+            device = self.config.neuron.device
+        )
+        self.wallet = bittensor.wallet(
+            config = self.config
         )
         self.dendrite = bittensor.dendrite( 
-            config = self.config.dendrite, 
+            config = self.config, 
             wallet = self.wallet 
         )
         self.subtensor = bittensor.subtensor( 
-            config = self.config.subtensor 
+            config = self.config 
         )
         self.metagraph = bittensor.metagraph( 
-            config = self.config.metagraph 
+            config = self.config 
         )
         self.axon = bittensor.axon ( 
-            config = self.config.axon, 
+            config = self.config, 
             wallet = self.wallet, 
             forward_callback = self.forward,
             backward_callback = self.backward
         )
         self.dataset = bittensor.dataloader (
-            config = self.config.dataloader
+            config = self.config
         )
-        self.device = torch.device( "cuda" if torch.cuda.is_available() else "cpu" )
         self.router = SGMOERouter( 
-            config = self.config.router 
+            config = self.config 
         ).to( self.device )
         self.nucleus = GPT2Nucleus( 
-            config = self.config.nucleus,
+            config = self.config,
             routing_callback = self.route
         ).to( self.device )
         self.optimizer = torch.optim.AdamW( 
@@ -85,7 +91,10 @@ class neuron:
                 {"params": self.router.parameters()}, 
                 {"params": self.nucleus.parameters()}
             ], 
-            lr = self.config.learning_rate, betas = (0.9, 0.95) 
+            lr = self.config.neuron.learning_rate, betas = (0.9, 0.95) 
+        )
+        self.tensorboard = SummaryWriter( 
+            log_dir = self.config.neuron.tensorboard_dir
         )
         self.mechanism_weights = torch.ones( [0] )
         self.epoch = 0
@@ -97,60 +106,56 @@ class neuron:
     def config() -> 'bittensor.Config':
         r""" Fills a config namespace object with defaults or information from the command line.
         """
-        config = bittensor.config()
         parser = argparse.ArgumentParser()
-        parser.add_argument('--debug', dest='debug', action='store_true', help='''Turn on bittensor debugging information''', default=False)
-        parser.add_argument('--trace', dest='trace', action='store_true', help='''Turn on bittensor trace level information''', default=False)
-        parser.add_argument('--config', dest ='config', type=str, help='If set, arguments are overridden by passed file.')
-        parser.add_argument('--modality', dest ='modality', type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''', default=0)
-        parser.add_argument('--use_upnpc', dest ='use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
-        parser.add_argument('--record_log', dest='record_log', action='store_true', help='''Turns on logging to file.''', default=True)   
-        parser.add_argument('--root_dir', dest='root_dir', type=str, help='Root path to load and save data associated with each miner', default='~/.bittensor/miners/')
-        parser.add_argument('--use_tensorboard', dest ='use_tensorboard', action='store_true', help='Turn on bittensor logging to tensorboard', default=True)
-        parser.add_argument('--learning_rate', dest ='learning_rate', type=float, help='Training initial learning rate.', default=3e-2)
-        parser.add_argument('--weight_decay', dest ='weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25) 
-        parser.add_argument('--lr_decay', dest ='lr_decay', type=bool, help='learning rate decay params: linear warmup followed by cosine decay to 10%% of original.', default=True)
-        parser.add_argument('--warmup_tokens', dest ='warmup_tokens', type=float, help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)', default=375e6)
-        parser.add_argument('--final_tokens', dest ='final_tokens', type=float, help='At what point we reach 10%% of original LR', default=260e9)
-        parser.add_argument('--clip_gradients', dest='clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
-        parser.add_argument('--n_epochs', dest='n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
-        parser.add_argument('--epoch_length', dest='epoch_length', type=int, help='Iterations of training per epoch', default=500)
-        parser.add_argument('--batch_size_train', dest='batch_size_train', type=int, help='Training batch size.', default=2)
-        parser.add_argument('--reload', dest='reload',action='store_true', help='''Reload training from previous trial run.''', default=False )
-        parser.add_argument('--restart_on_failure', dest='restart_on_failure', action='store_true', help='''Restart miner on unknown error.''', default=False)
-        parser.add_argument('--compute_remote_gradients', dest='compute_remote_gradients', action='store_true', help='''Does the miner compute/return gradients from backward queries.''', default=False)
-        parser.add_argument('--name', dest ='name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
-        parser.parse_known_args( namespace = config )
-        bittensor.wallet.config( config )
-        bittensor.subtensor.config( config )
-        bittensor.metagraph.config( config )
-        bittensor.dataloader.config( config )
-        bittensor.dendrite.config( config )
-        bittensor.axon.config( config )
-        GPT2Nucleus.config( config )
-        SGMOERouter.config( config )
-        return config
+        parser.add_argument('--neuron.config', type=str, help='If set, arguments are overridden by passed file.')
+        parser.add_argument('--neuron.modality', type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''', default=0)
+        parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
+        parser.add_argument('--neuron.use_tensorboard', action='store_true', help='Turn on bittensor logging to tensorboard', default=True)
+        parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=3e-2)
+        parser.add_argument('--neuron.weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25) 
+        parser.add_argument('--neuron.lr_decay', type=bool, help='learning rate decay params: linear warmup followed by cosine decay to 10%% of original.', default=True)
+        parser.add_argument('--neuron.warmup_tokens', type=float, help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)', default=375e6)
+        parser.add_argument('--neuron.final_tokens', type=float, help='At what point we reach 10%% of original LR', default=260e9)
+        parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
+        parser.add_argument('--neuron.n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
+        parser.add_argument('--neuron.epoch_length', type=int, help='Iterations of training per epoch', default=500)
+        parser.add_argument('--neuron.batch_size_train', type=int, help='Training batch size.', default=2)
+        parser.add_argument('--neuron.reload', action='store_true', help='''Reload training from previous trial run.''', default=False )
+        parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart miner on unknown error.''', default=False)
+        parser.add_argument('--neuron.compute_remote_gradients', action='store_true', help='''Does the miner compute/return gradients from backward queries.''', default=False)
+        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
+        parser.add_argument('--neuron.device', type=str, help='Neuron default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
+        bittensor.logging.add_args( parser )
+        bittensor.wallet.add_args( parser )
+        bittensor.subtensor.add_args( parser )
+        bittensor.metagraph.add_args( parser )
+        bittensor.dataloader.add_args( parser )
+        bittensor.dendrite.add_args( parser )
+        bittensor.axon.add_args( parser )
+        GPT2Nucleus.add_args( parser )
+        SGMOERouter.add_args( parser )
+        return bittensor.config( parser )
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         r""" Checks/validates the config namespace object.
         """
-        assert config.batch_size_train > 0, "batch_size_train must be a positive value"
-        assert config.learning_rate > 0, "learning_rate must be a positive value."
-        bittensor.wallet.check_config( config.wallet )
-        bittensor.subtensor.check_config( config.subtensor )
-        bittensor.metagraph.check_config( config.metagraph )
-        bittensor.dataloader.check_config( config.dataloader )
-        bittensor.dendrite.check_config( config.dendrite )
-        bittensor.axon.check_config( config.axon )
-        GPT2Nucleus.check_config( config.nucleus )
-        SGMOERouter.check_config( config.router )
-        if config.debug: bittensor.logging.set_debug( True ); logger.info('DEBUG is <green>ON</green>')
-        if config.trace: bittensor.logging.set_trace( True ); logger.info('TRACE is <green>ON</green>')
-        full_path = os.path.expanduser('{}/{}/{}'.format( config.root_dir, config.wallet.name + "-" + config.wallet.hotkey, config.name ))
-        config.full_path = os.path.expanduser(full_path)
-        if not os.path.exists(config.full_path):
-            os.makedirs(config.full_path)
+        assert config.neuron.batch_size_train > 0, "batch_size_train must be a positive value"
+        assert config.neuron.learning_rate > 0, "learning_rate must be a positive value."
+        bittensor.logging.check_config( config )
+        bittensor.wallet.check_config( config )
+        bittensor.subtensor.check_config( config )
+        bittensor.metagraph.check_config( config )
+        bittensor.dataloader.check_config( config )
+        bittensor.dendrite.check_config( config )
+        bittensor.axon.check_config( config )
+        GPT2Nucleus.check_config( config )
+        SGMOERouter.check_config( config )
+        full_path = os.path.expanduser('{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name + "-" + config.wallet.hotkey, config.neuron.name ))
+        config.neuron.full_path = os.path.expanduser(full_path)
+        config.neuron.tensorboard_dir = config.neuron.full_path + '/tensorboard-' + '-'.join(str(datetime.now()).split())
+        if not os.path.exists(config.neuron.full_path):
+            os.makedirs(config.neuron.full_path)
 
     def __enter__(self):
         self.startup()
@@ -165,13 +170,13 @@ class neuron:
         with self:  
 
             # ---- Optionally reload from previous run ----
-            if self.config.reload:
+            if self.config.neuron.reload:
                 self.reload()
             else:
                 self.checkpoint()
 
             # --- Run until n_epochs ----
-            while self.epoch < self.config.n_epochs:
+            while self.epoch < self.config.neuron.n_epochs:
                 try:
                     # ---- Train state ----
                     self.run_epoch()
@@ -189,7 +194,7 @@ class neuron:
                 except Exception as e:
                     # --- Unknown error ----
                     logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
-                    if self.config.restart_on_failure == True:
+                    if self.config.neuron.restart_on_failure == True:
                         logger.info('Restarting from last saved state.')
                         self.reload()
                         continue
@@ -202,7 +207,7 @@ class neuron:
         """
         # --- Init Epoch ----
         total_epoch_loss = 0.0
-        epoch_batches = self.dataset.dataloader( self.config.epoch_length )
+        epoch_batches = self.dataset.dataloader( self.config.neuron.epoch_length )
         progress_bar = qqdm(enumerate(epoch_batches), total=len(epoch_batches), desc=format_str('blue', f'Epoch Progress'))
         for iteration, (inputs) in progress_bar:
 
@@ -222,7 +227,7 @@ class neuron:
             )
             self.global_step += 1
 
-        self.epoch_loss = total_epoch_loss / self.config.epoch_length 
+        self.epoch_loss = total_epoch_loss / self.config.neuron.epoch_length 
         self.epoch += 1
 
     # ---- Training call ----
@@ -271,8 +276,8 @@ class neuron:
         # ---- Backward pass ----
         output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
         output.loss.backward() # Accumulates gradients on the nucleus.
-        clip_grad_norm_(self.nucleus.parameters(), self.config.clip_gradients)
-        clip_grad_norm_(self.router.parameters(), self.config.clip_gradients)
+        clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
+        clip_grad_norm_(self.router.parameters(), self.config.neuron.clip_gradients)
         self.optimizer.step() # Applies accumulated gradients.
         self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
@@ -323,7 +328,7 @@ class neuron:
                 outputs (:obj:`torch.FloatTensor`, `optional`): 
                     The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
         """
-        if self.config.compute_remote_gradients:
+        if self.config.neuron.compute_remote_gradients:
             inputs_x.requires_grad = True
             with torch.enable_grad():
                 inputs = inputs_x.to( self.device )
@@ -378,7 +383,7 @@ class neuron:
         r""" Returns a saved state dict or none.
         """
         try:
-            return torch.load("{}/model.torch".format( self.config.full_path ))
+            return torch.load("{}/model.torch".format( self.config.neuron.full_path ))
         except Exception as e:
             logger.exception('Failed to reload model with error: {}', e)
             return None
@@ -406,7 +411,7 @@ class neuron:
             {"params": self.router.parameters() },
             {"params": self.nucleus.parameters() },
         ]
-        self.optimizer = torch.optim.AdamW( optim_groups, lr = self.config.learning_rate, betas = (0.9, 0.95) )
+        self.optimizer = torch.optim.AdamW( optim_groups, lr = self.config.neuron.learning_rate, betas = (0.9, 0.95) )
 
         # ---- Load mechanism weights and pad to size.
         self.mechanism_weights = state_dict['mechanism_weights']
@@ -415,7 +420,7 @@ class neuron:
             pad = [0, self.metagraph.n - self.mechanism_weights.numel()], 
             value=0 
         ) 
-        logger.success('Reloaded model:'.ljust(20) + '<blue>{}/model.torch</blue>'.format( self.config.full_path ))
+        bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( self.config.neuron.full_path ))
 
     def save( self ):
         r""" Saves the training state to disk.
@@ -430,8 +435,8 @@ class neuron:
                 'nucleus_state': self.nucleus.state_dict(), # Save nucleus state.
                 'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
             }
-            torch.save( state_dict, "{}/model.torch".format( self.config.full_path, self.epoch_loss ) )
-            logger.success('Saved model:'.ljust(20) + '<blue>{}/model.torch</blue>'.format( self.config.full_path ))
+            torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path, self.epoch_loss ) )
+            bittensor.logging.success(prefix='Saved model', sufix='<blue>{}/model.torch</blue>'.format( self.config.neuron.full_path ) )
         except Exception as e:
              logger.exception('Failed to save model with error:{}', e)
 
@@ -459,45 +464,31 @@ class neuron:
     def startup( self ):
         r""" Starts and subscribes the miner.
         """
-        # ---- Setup debugging ----
-        if self.config.debug: bittensor.logging.set_debug( True ); logger.success('Debug:'.ljust(20) + '<green>ON</green>')
-        else: logger.success('Set debug:'.ljust(20) + '<red>OFF</red>')
-        if self.config.trace: bittensor.logging.set_trace( True ); logger.success('Trace:'.ljust(20) + '<green>ON</green>')
-        else: logger.success('Set trace:'.ljust(20) + '<red>OFF</red>')
-        
-        # ---- Setup logging ----
-        if self.config.record_log: 
-            filepath = self.config.full_path + "/logs.log"
-            logger.add (filepath, rotation="25 MB", retention="10 days")
-            logger.success('Set logging:'.ljust(20) + '<blue>{}</blue>', filepath)
-        else: logger.success('Set logging:'.ljust(20) + '<red>OFF</red>')
-
-        # ---- Setup tensorboard ----
-        if self.config.use_tensorboard == True:
-            event_file_dir = self.config.full_path + '/tensorboard-' + '-'.join(str(datetime.now()).split())
-            self.tensorboard = SummaryWriter( log_dir = event_file_dir )
-            self._tensorboard_program = program.TensorBoard()
-            self._tensorboard_program.configure(argv=[None, '--logdir', event_file_dir, '--load_fast=true'])
-            self._tensorbaord_url = self._tensorboard_program.launch()
-            logger.success('Set tensorboard:'.ljust(20) + '<blue>http://localhost:6006/</blue>')
-        else: logger.success('Set tensorboard:'.ljust(20) + '<red>OFF</red>')
 
         # ---- Setup UPNPC ----
-        if self.config.use_upnpc: 
-            logger.success('Set upnpc:'.ljust(20) + '<green>ON</green>')
+        if self.config.neuron.use_upnpc: 
+            bittensor.logging.success(prefix = 'Set upnpc', sufix = '<green>ON</green>')
             try:
                 self.external_port = net.upnpc_create_port_map( local_port = self.axon.local_port )
             except net.UPNPCException as upnpc_exception:
                 logger.critical('Failed to hole-punch with upnpc')
                 raise RuntimeError('Failed to hole-punch with upnpc')
         else: 
-            logger.success('Set upnpc:'.ljust(20) + '<red>OFF</red>')
+            bittensor.logging.success(prefix = 'Set upnpc', sufix = '<red>OFF</red>')
             self.external_port = self.config.axon.local_port
+
+        # ---- Setup tensorboard ----
+        if self.config.neuron.use_tensorboard == True:
+            self._tensorboard_program = program.TensorBoard()
+            self._tensorboard_program.configure(argv=[None, '--logdir', self.config.neuron.full_path, '--load_fast=true'])
+            self._tensorbaord_url = self._tensorboard_program.launch()
+            bittensor.logging.success(prefix = 'Set tensorboard', sufix = '<blue>http://localhost:6006/</blue>')
+        else: bittensor.logging.success(prefix = 'Set tensorboard', sufix = '<red>OFF</red>')
 
         # ---- Get external ip ----
         try:
             self.external_ip = net.get_external_ip()
-            logger.success('Got external IP:'.ljust(20) + '<blue>{}</blue>', self.external_ip)
+            bittensor.logging.success(prefix = 'Got external IP', sufix = '<blue>{}</blue>'.format(self.external_ip))
         except net.ExternalIPNotFound as external_port_exception:
             raise RuntimeError('Unable to attain your external ip. Check your internet connection. error:{}', external_port_exception)
 
@@ -510,11 +501,6 @@ class neuron:
             self.wallet.create_new_hotkey( n_words = 12, use_password = False )
         if not self.wallet.has_hotkey:
             raise RuntimeError('Miner must have access to a decrypted hotkey')
-
-        # ---- Connect to chain ----
-        self.subtensor.connect()
-        if not self.subtensor.is_connected():
-            raise RuntimeError('Failed to connect subtensor to network:{}'.format(self.subtensor.network)) 
 
         # ---- Setup metagraph ----
         self.metagraph.load()
@@ -576,7 +562,7 @@ class neuron:
 
         progress_bar.set_infos( info )
 
-        if self.config.use_tensorboard:
+        if self.config.neuron.use_tensorboard:
             self.tensorboard.add_scalar('R-loss', output.remote_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('L-loss', output.local_target_loss.item(), self.global_step)
             self.tensorboard.add_scalar('D-loss', output.distillation_loss.item(), self.global_step)
