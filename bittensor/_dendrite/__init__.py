@@ -66,6 +66,8 @@ class dendrite:
         parser = argparse.ArgumentParser()
         parser.add_argument('--' + namespace + 'max_worker_threads', dest = 'max_worker_threads',  default=150, type=int, help='''Max number of concurrent threads used for sending RPC requests.''')
         parser.add_argument('--' + namespace + 'max_active_receptors', dest = 'max_active_receptors', default=500, type=int, help='''Max number of concurrently active receptors / tcp-connections''')
+        parser.add_argument('--' + namespace + 'timeout', dest = 'timeout', type=int, help='''Default request timeout.''', default=5)
+        parser.add_argument('--' + namespace + 'requires_grad', dest = 'requires_grad', type=bool, help='''If true, the dendrite passes gradients on the wire.''', default=False)
         parser.parse_known_args( namespace = dendrite_config )
         return config
 

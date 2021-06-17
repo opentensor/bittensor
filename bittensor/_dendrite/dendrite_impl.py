@@ -29,6 +29,12 @@ logger = logger.opt(colors=True)
 # dummy tensor that triggers autograd 
 DUMMY = torch.empty(0, requires_grad=True)
 
+# Helper function for filling nill (zero) responses on failures.
+def nill_response_for(inputs):
+    if torch.numel(inputs) == 0:
+        return torch.tensor([])
+    return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=torch.float32)
+
 class Dendrite( torch.autograd.Function ):
 
     def __init__(
@@ -54,6 +60,7 @@ class Dendrite( torch.autograd.Function ):
             endpoints: List['bittensor.Endpoint'], 
             modality: bittensor.proto.Modality,
             timeout: int,
+            requires_grad: bool,
             *inputs: torch.Tensor
         ) -> Tuple[ torch.Tensor, ... ] :
         """ Internal autograd-friendly Forward RPC call to a list of neuron endpoints.
@@ -81,6 +88,9 @@ class Dendrite( torch.autograd.Function ):
                 timeout (int):
                     request timeout.
 
+                requires_grad (int, default = dendrite.requires_grad, `optional`):
+                    If true, the backward pass triggers passing gradients on the wire.
+
             Returns:
                 codes (:obj:`torch.LongTensor` of shape :obj:`(n_endpoints)` `required`):
                     Return code associated with forward call.
@@ -89,7 +99,7 @@ class Dendrite( torch.autograd.Function ):
                         Output encodings of inputs produced by the remote endpoints. Non-responses are zeroes of common shape.
         """
         ctx.receptor_pool = dendrite.receptor_pool
-        ctx.endpoints, ctx.inputs, ctx.modality, ctx.timeout = endpoints, inputs, modality, timeout
+        ctx.endpoints, ctx.inputs, ctx.modality, ctx.timeout, ctx.does_requires_grad = endpoints, inputs, modality, timeout, requires_grad
         inputs = [ x.cpu().clone().detach() for x in inputs ]
         forward_outputs, forward_codes = ctx.receptor_pool.forward(
             endpoints = endpoints, 
@@ -125,22 +135,28 @@ class Dendrite( torch.autograd.Function ):
                     Gradient results for each input.
 
         """
-        grads_cpu = [ x.cpu().clone().detach() for x in output_grads ]
-        input_grads, _ =  ctx.receptor_pool.backward (
-            endpoints = ctx.endpoints, 
-            inputs_x = ctx.inputs, 
-            grads_dy = grads_cpu, 
-            modality = ctx.modality,
-            timeout = ctx.timeout
-        )
-        return (None, None, None, None, None, *input_grads)
+        if ctx.does_requires_grad:
+            grads_cpu = [ x.cpu().clone().detach() for x in output_grads ]
+            input_grads, _ =  ctx.receptor_pool.backward (
+                endpoints = ctx.endpoints, 
+                inputs_x = ctx.inputs, 
+                grads_dy = grads_cpu, 
+                modality = ctx.modality,
+                timeout = ctx.timeout,
+            )
+            return (None, None, None, None, None, None, *input_grads)
+        else:
+            input_grads = [ nill_response_for( inp ) for inp in ctx.inputs ]
+            return (None, None, None, None, None, None, *input_grads)
+
 
     def _forward(
                 self,
                 endpoints: List['bittensor.Endpoint'],
                 inputs: List[torch.Tensor],
                 modality: bittensor.proto.Modality,
-                timeout: int = 5
+                timeout: int = None,
+                requires_grad: bool = None
             ) -> Tuple[torch.LongTensor, List[torch.Tensor]]:
             r""" Internal Forward tensor inputs to a list of neuron endpoints.
 
@@ -155,6 +171,12 @@ class Dendrite( torch.autograd.Function ):
                     modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                         Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
+                    timeout (int, default = dendrite.timeout, `required`):
+                        request timeout.
+
+                    requires_grad (int, default = dendrite.requires_grad, `optional`):
+                        If true, the backward pass triggers passing gradients on the wire.
+
                 Returns:
                     codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_endpoints]`, `required`):
                         dendrite call return codes.
@@ -162,12 +184,15 @@ class Dendrite( torch.autograd.Function ):
                     responses (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Output encodings of inputs produced by the remote endpoints. Non-responses are zeroes of common shape.
             """
+            timeout = timeout if timeout != None else self.config.timeout 
+            requires_grad = requires_grad if requires_grad != None else self.config.requires_grad 
             forward_response = Dendrite.apply(
                 self,
                 DUMMY, 
                 endpoints, 
                 modality,
                 timeout,
+                requires_grad,
                 *inputs
             )
             codes = forward_response[0]
@@ -178,7 +203,8 @@ class Dendrite( torch.autograd.Function ):
         self, 
         endpoints: Union[ List['bittensor.Endpoint'], 'bittensor.Endpoint'],
         inputs: List[ torch.FloatTensor ],
-        timeout: int = 5
+        timeout: int = None,
+        requires_grad: bool = None
     ) -> Tuple[ Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor]:
         r""" Forward image inputs to endpoints.
 
@@ -189,6 +215,12 @@ class Dendrite( torch.autograd.Function ):
                 inputs (:obj:`Union[List[torch.FloatTensor], torch.FloatTensor]` of shape :obj:`(num_endpoints * [ batch_size, sequence_len, channels, rows, cols ])`, `required`):
                     List or single of image-tensors to send to corresponsing endpoints. Tensors are images encoded using the
                     torch.toTensor() or other encoding which produces the shape [batch_size, channels, rows, cols].
+
+                timeout (int, default = dendrite.timeout `optional`):
+                    Request timeout.
+
+                requires_grad (int, default = dendrite.requires_grad, `optional`):
+                    If true, the backward pass triggers passing gradients on the wire.
 
             Returns:
                 responses (:obj:`Union[ List[torch.FloatTensor], torch.FloatTensor] ` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
@@ -243,7 +275,8 @@ class Dendrite( torch.autograd.Function ):
             endpoints = endpoints, 
             inputs = inputs, 
             modality = bittensor.proto.Modality.IMAGE,
-            timeout = timeout
+            timeout = timeout,
+            requires_grad = requires_grad
         )
 
         # Format to singletons.
@@ -257,7 +290,8 @@ class Dendrite( torch.autograd.Function ):
             self, 
             endpoints: Union[ List['bittensor.Endpoint'], 'bittensor.Endpoint'] ,
             inputs: List[ torch.FloatTensor ],
-            timeout: int = 5
+            timeout: int = None,
+            requires_grad: bool = None
         ) -> Tuple[ Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor]:
         r""" Forward tensor inputs to endpoints.
 
@@ -268,6 +302,12 @@ class Dendrite( torch.autograd.Function ):
                 inputs (:obj:`Union[List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
                     List or single tensors to send to corresponsing endpoints. Tensors are of float type and
                     with shape [batch_size, sequence_len, bittensor.__network_dim__].
+
+                timeout (int, default = dendrite.timeout `optional`):
+                    Request timeout.
+
+                requires_grad (int, default = dendrite.requires_grad, `optional`):
+                    If true, the backward pass triggers passing gradients on the wire.
 
             Returns:
                 responses (:obj:`Union[ List[torch.FloatTensor], torch.FloatTensor] ` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
@@ -325,7 +365,8 @@ class Dendrite( torch.autograd.Function ):
             endpoints = endpoints, 
             inputs = inputs, 
             modality = bittensor.proto.Modality.TENSOR,
-            timeout = timeout
+            timeout = timeout,
+            requires_grad = requires_grad
         )
 
         # Format to singletons.
@@ -340,7 +381,8 @@ class Dendrite( torch.autograd.Function ):
             self,
             endpoints: Union[ List['bittensor.Endpoint'], 'bittensor.Endpoint'] ,
             inputs: List[ torch.LongTensor ],
-            timeout: int = 5
+            timeout: int = None,
+            requires_grad: bool = None
         ) -> Tuple[ Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor]:
         r""" Forward text inputs to a list of neuron endpoints and block until responses or timeout.
 
@@ -351,6 +393,12 @@ class Dendrite( torch.autograd.Function ):
                     inputs (:obj:`Union[List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
                         List or single tensors to send to corresponsing neurons. Tensors are text input_ids encoded using the
                         bittensor tokenizer with shape [batch_size, sequence_len].
+
+                    timeout (int, default = dendrite.timeout `optional`):
+                        Request timeout.
+
+                    requires_grad (int, default = dendrite.requires_grad, `optional`):
+                        If true, the backward pass triggers passing gradients on the wire.
 
                 Returns:
                     responses (:obj:`Union[ List[torch.FloatTensor], torch.FloatTensor] ` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
@@ -407,7 +455,8 @@ class Dendrite( torch.autograd.Function ):
             endpoints = endpoints, 
             inputs = inputs, 
             modality = bittensor.proto.Modality.TEXT,
-            timeout = timeout
+            timeout = timeout,
+            requires_grad = requires_grad,
         )
 
         # Format to singletons.
