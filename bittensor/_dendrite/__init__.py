@@ -45,7 +45,11 @@ class dendrite:
         if wallet == None:
             wallet = bittensor.wallet( config = config.wallet )
         if receptor_pool == None:
-            receptor_pool = bittensor.receptor_pool( config = config.receptor_pool, wallet = wallet )
+            receptor_pool = bittensor.receptor_pool( 
+                wallet = wallet,
+                max_worker_threads = config.max_worker_threads,
+                max_active_receptors = config.max_active_receptors
+            )
         return dendrite_impl.Dendrite ( 
             config = config,
             wallet = wallet, 
@@ -59,11 +63,17 @@ class dendrite:
         config[ namespace ] = dendrite_config
         if namespace != '': namespace += '.'
         bittensor.wallet.config( dendrite_config )
-        bittensor.receptor_pool.config( dendrite_config )
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--' + namespace + 'max_worker_threads', dest = 'max_worker_threads',  default=150, type=int, help='''Max number of concurrent threads used for sending RPC requests.''')
+        parser.add_argument('--' + namespace + 'max_active_receptors', dest = 'max_active_receptors', default=500, type=int, help='''Max number of concurrently active receptors / tcp-connections''')
+        parser.add_argument('--' + namespace + 'timeout', dest = 'timeout', type=int, help='''Default request timeout.''', default=5)
+        parser.add_argument('--' + namespace + 'requires_grad', dest = 'requires_grad', type=bool, help='''If true, the dendrite passes gradients on the wire.''', default=False)
+        parser.parse_known_args( namespace = dendrite_config )
         return config
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
         bittensor.wallet.check_config( config.wallet )
-        bittensor.receptor_pool.check_config( config.receptor_pool )
+        assert config.max_worker_threads > 0, 'max_worker_threads must be larger than 0'
+        assert config.max_active_receptors > 0, 'max_active_receptors must be larger than 0'
 

@@ -187,7 +187,8 @@ class Wallet():
     @property
     def coldkeypubfile(self) -> str:
         full_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
-        return os.path.join(full_path, "coldkeypub.txt")
+        file_name = os.path.join(full_path, "coldkeypub.txt")
+        return file_name
 
     @property
     def hotkeyfile(self) -> str:
@@ -201,10 +202,6 @@ class Wallet():
             logger.critical("coldkeypubfile  {} does not exist".format( self.coldkeypubfile ))
             raise KeyFileError
 
-        if not os.path.isfile( self.coldkeypubfile ):
-            logger.critical("coldkeypubfile  {} is not a file".format( self.coldkeypubfile ))
-            raise KeyFileError
-
         if not os.access( self.coldkeypubfile , os.R_OK):
             logger.critical("coldkeypubfile  {} is not readable".format( self.coldkeypubfile ))
             raise KeyFileError
@@ -212,19 +209,16 @@ class Wallet():
         with open( self.coldkeypubfile, "r") as file:
             key = file.readline().strip()
             if not re.match("^0x[a-z0-9]{64}$", key):
-                raise KeyFileError("Cold key pub file is corrupt")
+                logger.critical("Coldkey pub file is corrupt")
+                raise KeyFileError("Coldkey pub file is corrupt")
 
         with open( self.coldkeypubfile , "r") as file:
             coldkeypub = file.readline().strip()
 
-        logger.success("Loaded coldkey.pub: <cyan>{}</cyan>".format( coldkeypub ))
+        logger.success("Loaded coldkey.pub:".ljust(20) + "<blue>{}</blue>".format( coldkeypub ))
         return coldkeypub
 
     def _load_hotkey(self) -> 'bittensor._substrate.Keypair':
-
-        if not os.path.isfile( self.hotkeyfile ):
-            logger.critical("hotkeyfile  {} does not exist".format( self.hotkeyfile ))
-            raise KeyFileError
 
         if not os.path.isfile( self.hotkeyfile ):
             logger.critical("hotkeyfile  {} is not a file".format( self.hotkeyfile ))
@@ -251,15 +245,12 @@ class Wallet():
                 logger.critical("Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt")
 
-            logger.success("Loaded hotkey: <cyan>{}</cyan>".format(hotkey.public_key))
+            logger.success("Loaded hotkey:".ljust(20) + "<blue>{}</blue>".format(hotkey.public_key))
             return hotkey
 
 
     def _load_coldkey(self) -> 'bittensor._substrate.Keypair':
-        if not os.path.isfile( self.coldkeyfile ):
-            logger.critical("coldkeyfile  {} does not exist".format( self.coldkeyfile ))
-            raise KeyFileError
-
+        
         if not os.path.isfile( self.coldkeyfile ):
             logger.critical("coldkeyfile  {} is not a file".format( self.coldkeyfile ))
             raise KeyFileError
@@ -286,7 +277,7 @@ class Wallet():
                 logger.critical("Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt")
 
-            logger.success("Loaded coldkey: <cyan>{}</cyan>".format(coldkey.public_key))
+            logger.success("Loaded coldkey:".ljust(20) + "<blue>{}</blue>".format(coldkey.public_key))
             return coldkey
 
     @staticmethod

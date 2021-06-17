@@ -155,7 +155,7 @@ class GenesisTextDataloader( Dataloader ):
             string: Contents of the text file. 
         """
         try:
-            logger.info("Retrieving a dataset file from the IPFS gateway...")
+            logger.success("Retrieving a dataset files from the IPFS gateway...")
             directory = self.retrieve_directory(self.genesis_text_dataset_hash)
             data_corpus = []
 
@@ -174,7 +174,7 @@ class GenesisTextDataloader( Dataloader ):
 
                     # Retrieve file contents
                     file_contents = self.retrieve_text_file(random_dataset_file_hash)
-                    logger.info("<green>Added:</green> <cyan>{}</cyan>".format(filename))
+                    logger.success("Added:".ljust(20) + "<blue>{}</blue>".format(filename))
                     data_corpus.extend(file_contents.text.split())
 
                     # Retrieve next file descriptor

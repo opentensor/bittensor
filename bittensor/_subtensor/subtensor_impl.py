@@ -170,7 +170,7 @@ class Subtensor:
         while True:
             def connection_error_message():
                 print('''
-Check that your internet connection is working and the chain endpoints are available: <cyan>{}</cyan>
+Check that your internet connection is working and the chain endpoints are available: <blue>{}</blue>
 The subtensor.network should likely be one of the following choices:
     -- local - (your locally running node)
     -- akira - (testnet)
@@ -182,25 +182,26 @@ To run a local node (See: docs/running_a_validator.md) \n
             # ---- Get next endpoint ----
             ws_chain_endpoint = self.endpoint_for_network( blacklist = attempted_endpoints )
             if ws_chain_endpoint == None:
-                logger.error("No more endpoints available for subtensor.network: <cyan>{}</cyan>, attempted: <cyan>{}</cyan>".format(self.network, attempted_endpoints))
+                logger.error("No more endpoints available for subtensor.network: <blue>{}</blue>, attempted: <blue>{}</blue>".format(self.network, attempted_endpoints))
                 connection_error_message()
                 if failure:
-                    logger.critical('Unable to connect to network:<cyan>{}</cyan>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.network))
+                    logger.critical('Unable to connect to network:<blue>{}</blue>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.network))
                 else:
                     return False
             attempted_endpoints.append(ws_chain_endpoint)
 
             # --- Attempt connection ----
             if await self.substrate.async_connect( ws_chain_endpoint, timeout = 5 ):
-                logger.success("Connected to network:<cyan>{}</cyan> at endpoint:<cyan>{}</cyan>".format(self.network, ws_chain_endpoint))
+                logger.success("Network:".ljust(20) + "<blue>{}</blue>", self.network)
+                logger.success("Endpoint:".ljust(20) + "<blue>{}</blue>", ws_chain_endpoint)
                 return True
             
             # ---- Timeout ----
             elif (time.time() - start_time) > timeout:
-                logger.error( "Error while connecting to network:<cyan>{}</cyan> at endpoint: <cyan>{}</cyan>".format(self.network, ws_chain_endpoint))
+                logger.error( "Error while connecting to network:<blue>{}</blue> at endpoint: <blue>{}</blue>".format(self.network, ws_chain_endpoint))
                 connection_error_message()
                 if failure:
-                    raise RuntimeError('Unable to connect to network:<cyan>{}</cyan>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.network))
+                    raise RuntimeError('Unable to connect to network:<blue>{}</blue>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.network))
                 else:
                     return False
 
@@ -377,7 +378,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             return False
 
         if await self.async_is_subscribed( wallet, ip, port, modality ):
-            logger.success( "Already subscribed with:\n<cyan>[\n  ip: {},\n  port: {},\n  modality: {},\n  hotkey: {},\n  coldkey: {}\n]</cyan>".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
+            logger.success( "Subscribed with".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
             return True
 
         ip_as_int  = net.ip_to_int(ip)
@@ -397,7 +398,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         extrinsic = await self.substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey)
         result = await self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
         if result:
-            logger.success( "Successfully subscribed with:\n<cyan>[\n  ip: {},\n  port: {},\n  modality: {},\n  hotkey: {},\n  coldkey: {}\n]</cyan>".format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
+            logger.success( "Subscribed with".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
         else:
             logger.error( "Failed to subscribe")
         return result
