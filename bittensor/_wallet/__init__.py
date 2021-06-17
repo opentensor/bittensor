@@ -44,7 +44,6 @@ class wallet:
         """
         if config == None: config = wallet.config()
         config = copy.deepcopy( config )
-        print (config)
         config.wallet.name = name if name != None else config.wallet.name
         config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey
         config.wallet.path = path if path != None else config.wallet.path

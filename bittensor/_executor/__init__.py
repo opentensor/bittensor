@@ -49,6 +49,9 @@ class executor:
         """
         if config == None: config = executor.config()
         config = copy.deepcopy(config)
+        bittensor.logging (
+            config = config
+        )
         if wallet == None:
             wallet = bittensor.wallet ( 
                 config = config 

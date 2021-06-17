@@ -40,7 +40,7 @@ class cli:
                     bittensor executor object, used to execute cli options.
         """
         if config == None: config = cli.config()
-        config = config; cli.check_config( config ); print ( config )
+        config = config; cli.check_config( config ); print (config)
         
         if executor == None:
             executor = bittensor.executor( config = config )
@@ -62,42 +62,34 @@ class cli:
             'overview', 
             help='''Show account overview.'''
         )
-        overview_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
         transfer_parser = cmd_parsers.add_parser(
             'transfer', 
             help='''Transfer Tao between accounts.'''
         )
-        transfer_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
         unstake_parser = cmd_parsers.add_parser(
             'unstake', 
             help='''Unstake from hotkey accounts.'''
         )
-        unstake_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
         stake_parser = cmd_parsers.add_parser(
             'stake', 
             help='''Stake to your hotkey accounts.'''
         )
-        stake_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
         regen_coldkey_parser = cmd_parsers.add_parser(
             'regen_coldkey',
             help='''Regenerates a coldkey from a passed mnemonic'''
         )
-        regen_coldkey_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
         regen_hotkey_parser = cmd_parsers.add_parser(
             'regen_hotkey',
             help='''Regenerates a hotkey from a passed mnemonic'''
         )
-        regen_hotkey_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
         new_coldkey_parser = cmd_parsers.add_parser(
             'new_coldkey', 
             help='''Creates a new hotkey (for running a miner) under the specified path. '''
         )
-        new_coldkey_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
         new_hotkey_parser = cmd_parsers.add_parser(
             'new_hotkey', 
             help='''Creates a new coldkey (for containing balance) under the specified path. '''
         )
-        new_hotkey_parser.add_argument('--debug', default=False, dest='debug', action='store_true', help='''Turn on bittensor debugging information''')
          
         # Fill arguments for the regen coldkey command.
         regen_coldkey_parser.add_argument(
