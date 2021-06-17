@@ -379,7 +379,7 @@ class Metagraph( torch.nn.Module ):
             peers_online = torch.numel(torch.where( self.block - self.lastemit < 1000 )[0])
         else:
             peers_online = 0
-        return '<green>Metagraph:</green> block:<blue>{}</blue>, inflation_rate:<blue>{}</blue>, staked:<green>\u03C4{}</green>/<blue>\u03C4{}</cyan>, active:<green>{}</green>/<blue>{}</blue>'.format(self.block.item(), self.tau.item(), torch.sum(self.S), self.block.item()/2, peers_online, self.n.item())
+        return '<green>Metagraph:</green> block:<blue>{}</blue>, inflation_rate:<blue>{}</blue>, staked:<green>\u03C4{}</green>/<blue>\u03C4{}</blue>, active:<green>{}</green>/<blue>{}</blue>'.format(self.block.item(), self.tau.item(), torch.sum(self.S), self.block.item()/2, peers_online, self.n.item())
 
     def __to_tensorboard__(self, tensorboard, global_step):
         tensorboard.add_scalar('Metagraph/neurons', self.n.item(), global_step)
