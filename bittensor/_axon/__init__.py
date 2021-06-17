@@ -25,7 +25,6 @@ import grpc
 from . import axon_impl
 
 class axon:
-    args_added:bool = False
 
     def __new__(
             cls, 
@@ -72,7 +71,7 @@ class axon:
         axon.check_config( config )
 
         if wallet == None:
-            wallet = bittensor.wallet( config = config.wallet )
+            wallet = bittensor.wallet( config = config )
         if thread_pool == None:
             thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
         if server == None:
@@ -96,7 +95,7 @@ class axon:
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
-        if not cls.args_added:
+        try:
             parser.add_argument('--axon.local_port',default=8091, type=int, 
                     help='''The port this axon endpoint is served on. i.e. 8091''')
             parser.add_argument('--axon.local_ip', default='127.0.0.1', type=str, 
@@ -106,8 +105,11 @@ class axon:
                         The grpc server distributes new worker threads to service requests up to this number.''')
             parser.add_argument('--axon.maximum_concurrent_rpcs', default=400, type=int, 
                 help='''Maximum number of allowed active connections''')   
-            cls.args_added = True
-            bittensor.wallet.add_args( parser )
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
+
+        bittensor.wallet.add_args( parser )
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):

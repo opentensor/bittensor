@@ -57,8 +57,8 @@ class neuron:
         self.device = torch.device( 
             device = self.config.neuron.device
         )
-        self.wallet = bittensor.wallet( 
-            config = self.config 
+        self.wallet = bittensor.wallet(
+            config = self.config
         )
         self.dendrite = bittensor.dendrite( 
             config = self.config, 

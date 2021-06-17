@@ -22,7 +22,6 @@ import copy
 from . import wallet_impl
 
 class wallet:
-    args_added:bool = False
 
     def __new__(
             cls, 
@@ -45,6 +44,7 @@ class wallet:
         """
         if config == None: config = wallet.config()
         config = copy.deepcopy( config )
+        print (config)
         config.wallet.name = name if name != None else config.wallet.name
         config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey
         config.wallet.path = path if path != None else config.wallet.path
@@ -63,11 +63,13 @@ class wallet:
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
-        if not cls.args_added:
+        try:
             parser.add_argument('--wallet.name',required=False, default='default', help='''The name of the wallet to unlock for running bittensor''')
             parser.add_argument('--wallet.hotkey', required=False, default='default', help='''The name of wallet's hotkey.''')
             parser.add_argument('--wallet.path',required=False, default='~/.bittensor/wallets/', help='''The path to your bittensor wallets''')
-            cls.args_added = True
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):

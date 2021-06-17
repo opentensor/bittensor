@@ -23,7 +23,6 @@ import copy
 from . import metagraph_impl
 
 class metagraph:
-    args_added:bool = False
 
     def __new__(
             cls, 
@@ -51,9 +50,11 @@ class metagraph:
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
-        if not cls.args_added:
+        try:
             bittensor.subtensor.add_args( parser )
-            cls.args_added = True
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
 
     @classmethod   
     def check_config( cls, config: 'bittensor.Config' ):

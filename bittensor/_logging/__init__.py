@@ -37,7 +37,6 @@ class RollbarHandler:
             pass
 
 class logging:
-    args_added: bool = False
     __debug_on__:bool = False
     __trace_on__:bool = False
     __sink__:int = None
@@ -115,12 +114,14 @@ class logging:
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
-        if not cls.args_added:
+        try:
             parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default=False)
             parser.add_argument('--logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default=False)
             parser.add_argument('--logging.record_log', action='store_true', help='''Turns on logging to file.''', default=False)  
             parser.add_argument('--logging.logging_dir', type=str, help='Logging default root directory.', default='~/.bittensor/miners/')
-            cls.args_added = True
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):

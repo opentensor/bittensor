@@ -37,8 +37,7 @@ class subtensor:
     """
     Handles interactions with the subtensor chain.
     """
-    args_added:bool = False
-
+    
     def __new__(
             cls, 
             config: 'bittensor.config' = None,
@@ -83,7 +82,7 @@ class subtensor:
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
-        if not cls.args_added:
+        try:
             parser.add_argument('--subtensor.network', default='kusanagi', type=str, 
                                 help='''The subtensor network flag. The likely choices are:
                                         -- akira (staging network)
@@ -95,7 +94,9 @@ class subtensor:
             parser.add_argument('--subtensor.chain_endpoint', default=None, type=str, 
                                 help='''The subtensor endpoint flag. If set, overrides the --network flag.
                                     ''')       
-            cls.args_added = True
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):

@@ -30,15 +30,12 @@ class cli:
     def __new__(
             cls, 
             config: 'bittensor.Config' = None,
-            wallet: 'bittensor.Wallet' = None,
             executor: 'bittensor.executor.Executor' = None
         ) -> 'bittensor.CLI':
         r""" Creates a new bittensor.cli from passed arguments.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.cli.config()
-                wallet (:obj:`bittensor.Wallet`, `optional`):
-                    bittensor wallet with hotkey and coldkeypub.
                 executor (:obj:`bittensor.executor.executor`, `optional`):
                     bittensor executor object, used to execute cli options.
         """
@@ -46,7 +43,7 @@ class cli:
         config = config; cli.check_config( config ); print ( config )
         
         if executor == None:
-            executor = bittensor.executor( config = config.executor )
+            executor = bittensor.executor( config = config )
 
         return cli_impl.CLI( 
             config = config,
@@ -54,12 +51,11 @@ class cli:
         )
 
     @staticmethod   
-    def config( config: 'bittensor.Config' = None ) -> 'bittensor.config':
-        config = bittensor.config()
-        bittensor.executor.config( config )
+    def config() -> 'bittensor.config':
 
         parser = argparse.ArgumentParser(description="Bittensor cli", usage="bittensor-cli <command> <command args>", add_help=True)
         parser._positionals.title = "commands"
+        bittensor.executor.add_args( parser )
 
         cmd_parsers = parser.add_subparsers(dest='command')
         overview_parser = cmd_parsers.add_parser(
@@ -144,6 +140,7 @@ class cli:
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
+
 
         # Fill arguments for the new coldkey command.
         new_coldkey_parser.add_argument(
@@ -242,12 +239,10 @@ class cli:
             parser.print_help()
             sys.exit(0)
 
-        parser.parse_known_args( namespace = config )
-        return config
+        return bittensor.config( parser )
 
     @staticmethod   
     def check_config (config: 'bittensor.Config'):
-        print( config )
         if config.command == "transfer":
             if not config.dest:
                 logger.critical("The --dest argument is required for this command")

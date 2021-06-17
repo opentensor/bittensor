@@ -24,7 +24,6 @@ import copy
 from . import dendrite_impl
 
 class dendrite:
-    args_added:bool = False
 
     def __new__(
             cls, 
@@ -64,7 +63,7 @@ class dendrite:
         dendrite.check_config( config )
 
         if wallet == None:
-            wallet = bittensor.wallet( config = config.wallet )
+            wallet = bittensor.wallet( config = config )
         if receptor_pool == None:
             receptor_pool = bittensor.receptor_pool( 
                 wallet = wallet,
@@ -85,13 +84,17 @@ class dendrite:
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
-        if not cls.args_added:
+        try:
             parser.add_argument('--dendrite.max_worker_threads', default=150, type=int, help='''Max number of concurrent threads used for sending RPC requests.''')
             parser.add_argument('--dendrite.max_active_receptors', default=500, type=int, help='''Max number of concurrently active receptors / tcp-connections''')
             parser.add_argument('--dendrite.timeout', type=int, help='''Default request timeout.''', default=5)
-            parser.add_argument('--dendrite.requires_grad', type=bool, help='''If true, the dendrite passes gradients on the wire.''', default=False)
-            cls.args_added = True
+            parser.add_argument('--dendrite.requires_grad', action='store_true', help='''If true, the dendrite passes gradients on the wire.''', default=True)
+            parser.add_argument('--dendrite.no_requires_grad', dest='dendrite.requires_grad', action='store_false', help='''If true, the dendrite passes gradients on the wire.''')
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
         bittensor.wallet.add_args( parser )
+
 
     @classmethod   
     def check_config( cls, config: 'bittensor.Config' ):
