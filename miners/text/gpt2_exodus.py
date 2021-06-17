@@ -145,6 +145,8 @@ class neuron:
         bittensor.axon.check_config( config.axon )
         GPT2Nucleus.check_config( config.nucleus )
         SGMOERouter.check_config( config.router )
+        if config.debug: bittensor.logging.set_debug( True ); logger.info('DEBUG is <green>ON</green>')
+        if config.trace: bittensor.logging.set_trace( True ); logger.info('TRACE is <green>ON</green>')
         full_path = os.path.expanduser('{}/{}/{}'.format( config.root_dir, config.wallet.name + "-" + config.wallet.hotkey, config.name ))
         config.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.full_path):

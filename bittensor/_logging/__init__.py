@@ -157,4 +157,3 @@ class logging:
 
 
 logging.init()
-
