@@ -71,7 +71,6 @@ class logging:
         except:
             pass
 
-
         # Add filtered sys.stdout.
         cls.__sink__ = logger.add ( 
             sys.stdout, 
