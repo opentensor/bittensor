@@ -99,7 +99,7 @@ class Receptor(nn.Module):
                 bittensor.proto.ReturnCode.ResponseSerializationException: 0,
                 bittensor.proto.ReturnCode.RequestDeserializationException: 0,
                 bittensor.proto.ReturnCode.ResponseDeserializationException: 0,
-                bittensor.proto.ReturnCode.NotServingSynapse: 0,
+                bittensor.proto.ReturnCode.NotServingNucleus: 0,
                 bittensor.proto.ReturnCode.NucleusTimeout: 0,
                 bittensor.proto.ReturnCode.NucleusFull: 0,
                 bittensor.proto.ReturnCode.RequestIncompatibleVersion: 0,
@@ -237,8 +237,8 @@ class Receptor(nn.Module):
 
             # ---- Build request ----
             request = bittensor.proto.TensorMessage (
-                version = bittensor.__version__,
-                public_key = self.wallet.hotkey.public_key,
+                version = bittensor.__version_as_int__,
+                hotkey = self.wallet.hotkey.public_key,
                 nounce = self.nounce,
                 signature = self.signature,
                 tensors = [serialized_inputs]
@@ -412,8 +412,8 @@ class Receptor(nn.Module):
         # ---- Make RPC call ----
         try:
             request = bittensor.proto.TensorMessage(
-                version = bittensor.__version__,
-                public_key = self.wallet.hotkey.public_key,
+                version = bittensor.__version_as_int__,
+                hotkey = self.wallet.hotkey.public_key,
                 nounce = self.nounce,
                 signature = self.signature,
                 tensors = [serialized_inputs, serialized_grads]

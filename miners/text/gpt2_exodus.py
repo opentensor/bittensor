@@ -86,12 +86,13 @@ class neuron:
             config = self.config,
             routing_callback = self.route
         ).to( self.device )
-        self.optimizer = torch.optim.AdamW( 
+        self.optimizer = torch.optim.SGD( 
             [
                 {"params": self.router.parameters()}, 
                 {"params": self.nucleus.parameters()}
             ], 
-            lr = self.config.neuron.learning_rate, betas = (0.9, 0.95) 
+            lr = self.config.neuron.learning_rate, 
+            weight_decay = self.config.neuron.weight_decay,
         )
         self.tensorboard = SummaryWriter( 
             log_dir = self.config.neuron.tensorboard_dir
@@ -113,9 +114,6 @@ class neuron:
         parser.add_argument('--neuron.use_tensorboard', action='store_true', help='Turn on bittensor logging to tensorboard', default=True)
         parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=3e-2)
         parser.add_argument('--neuron.weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25) 
-        parser.add_argument('--neuron.lr_decay', type=bool, help='learning rate decay params: linear warmup followed by cosine decay to 10%% of original.', default=True)
-        parser.add_argument('--neuron.warmup_tokens', type=float, help='A linear LR warmup over the first miner.warmup_tokens tokens (default is 365 million)', default=375e6)
-        parser.add_argument('--neuron.final_tokens', type=float, help='At what point we reach 10%% of original LR', default=260e9)
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
         parser.add_argument('--neuron.n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
         parser.add_argument('--neuron.epoch_length', type=int, help='Iterations of training per epoch', default=500)
@@ -411,7 +409,11 @@ class neuron:
             {"params": self.router.parameters() },
             {"params": self.nucleus.parameters() },
         ]
-        self.optimizer = torch.optim.AdamW( optim_groups, lr = self.config.neuron.learning_rate, betas = (0.9, 0.95) )
+        self.optimizer = torch.optim.SGD( 
+            optim_groups, 
+            lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
+            weight_decay = state_dict['optimizer_state']['param_groups'][0]['weight_decay'],
+        )
 
         # ---- Load mechanism weights and pad to size.
         self.mechanism_weights = state_dict['mechanism_weights']

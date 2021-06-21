@@ -37,6 +37,7 @@ class RollbarHandler:
             pass
 
 class logging:
+    __initialized__:bool = False 
     __debug_on__:bool = False
     __trace_on__:bool = False
     __sink__:int = None
@@ -49,6 +50,10 @@ class logging:
             record_log: bool = None,
             logging_dir: str = None,
         ):
+        if cls.__initialized__:
+            return
+        cls.__initialized__ = True
+
         if config == None: config = logging.config()
         config = copy.deepcopy(config)
         config.logging.debug = debug if debug != None else config.logging.debug
@@ -57,9 +62,14 @@ class logging:
         config.logging.logging_dir = logging_dir if logging_dir != None else config.logging.logging_dir
 
         # Remove all logger sinks.
-        logger.remove( 0 )
-        if cls.__sink__ != None:
-            logger.remove( cls.__sink__ )
+        try:
+            logger.remove( 0 )
+
+            # Remove custom sink.
+            if cls.__sink__ != None:
+                logger.remove( cls.__sink__ )
+        except:
+            pass
 
         # Add filtered sys.stdout.
         cls.__sink__ = logger.add ( 
@@ -99,11 +109,12 @@ class logging:
                 rotation="25 MB", 
                 retention="10 days"
             )
-            logger.success('Set logging:'.ljust(20) + '<blue>{}</blue>', filepath)
-        else: logger.success('Set logging:'.ljust(20) + '<red>OFF</red>')  
+            logger.success('Set record log:'.ljust(20) + '<blue>{}</blue>', filepath)
+        else: logger.success('Set record log:'.ljust(20) + '<red>OFF</red>')  
    
 
         # Return internal logger
+        cls.__initialized__ = True
         return logger.bind( internal=True )
 
     @classmethod
@@ -129,16 +140,22 @@ class logging:
 
     @classmethod
     def set_debug(cls, on: bool = True ):
-        if on: logging.success( prefix = 'Set debug', sufix = '<green>ON</green>')
-        else:  logging.success( prefix = 'Set debug', sufix = '<red>OFF</red>')
         cls.__debug_on__ = on
+        if not cls.__initialized__:
+            logging( debug = on )
+        else:
+            if on: logging.success( prefix = 'Set debug', sufix = '<green>ON</green>')
+            else:  logging.success( prefix = 'Set debug', sufix = '<red>OFF</red>')
 
     @classmethod
     def set_trace(cls, on: bool = True):
-        if on: logging.success( prefix = 'Set trace', sufix = '<green>ON</green>')
-        else:  logging.success( prefix = 'Set trace', sufix = '<red>OFF</red>')
         cls._trace_on__ = on
-
+        if not cls.__initialized__:
+            logging( trace = on )
+        else:
+            if on: logging.success( prefix = 'Set trace', sufix = '<green>ON</green>')
+            else:  logging.success( prefix = 'Set trace', sufix = '<red>OFF</red>')
+        
     @classmethod
     def log_filter(cls, record ):
         if cls.__debug_on__ or cls.__trace_on__:
