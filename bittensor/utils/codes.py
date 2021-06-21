@@ -52,7 +52,7 @@ def code_to_string( code: bittensor.proto.ReturnCode ) -> str:
     elif code == 14:
         return 'ResponseDeserializationException'
     elif code == 15:
-        return 'NotServingSynapse'
+        return 'NotServingNucleus'
     elif code == 16:
         return 'NucleusTimeout'
     elif code == 17:

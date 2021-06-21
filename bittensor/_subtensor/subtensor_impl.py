@@ -382,6 +382,8 @@ To run a local node (See: docs/running_a_validator.md) \n
             return True
 
         ip_as_int  = net.ip_to_int(ip)
+
+        # TODO(const): subscribe with version too.
         params = {
             'ip': ip_as_int,
             'port': port, 

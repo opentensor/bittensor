@@ -18,36 +18,41 @@ service Bittensor {
 message Neuron {
 	// Version: [REQUIRED] Strictly increasing protocol version identifier.
 	// Indentifies protocol version for backward compatibility.
-	// i.e. '0.0.0'
-	string version = 1;
-	
-	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key.
+	// i.e. '0.1.5' = (100 * 0) + (10 * 1) + (1 * 5) = 15
+	int32 version = 1;
+
+	// uid: [REQUIRED] unique network identifier assigned by the chain.
+  	// i.e. '1223213221'
+	// SIZE: 64-bits (8-bytes)
+	int64 uid = 2;
+
+	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key (the hotkey).
 	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
 	// SIZE: 256-bits (32-bytes)
-	string public_key = 2;
+	string hotkey = 3;
+
+	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key (the coldkey).
+	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
+	// SIZE: 256-bits (32-bytes)
+	string coldkey = 4;
 
 	// Address: [REQUIRED] Neuron ip address. 
   	// i.e. '0.0.0.0' or [2001:0db8:85a3:0000:0000:8a2e:0370:7334]
 	// SIZE: < 128-bits (16-bytes)
-	string address = 3;
+	string ip = 5;
 	
 	// Port: [REQUIRED] Neuron endpoint listening port.
   	// i.e. '8081'
 	// SIZE: 32-bits (4-bytes)
-	int32 port = 4;
+	int32 port = 6;
 
 	// IPType: [REQUIRED] Ip endpoint type, i.e. v6, or v4
-  	// i.e. '8081'
+  	// i.e. '6'
 	// SIZE: 32-bits (4-bytes)
-	int32 ip_type = 5;
+	int32 ip_type = 7;
 
 	// Modality: TEXT, TENSOR, IMAGE
-	Modality modality = 6;
-
-	// uid: [REQUIRED] unique network identifier.
-  	// i.e. '1223213221'
-	// SIZE: 64-bits (8-bytes)
-	int64 uid = 7;
+	Modality modality = 8;
 }	
 
 // TensorMessage
@@ -58,18 +63,19 @@ message Neuron {
 message TensorMessage {
 	// Version: [REQUIRED] Strictly increasing protocol version identifier.
 	// Indentifies protocol version for backward compatibility.
-	// i.e. '0.0.0'
-	string version = 1;
+	// i.e. '0.1.5' = (100 * 0) + (10 * 1) + (1 * 5) = 15
+	int32 version = 1;
 
 	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key.
 	// Public key of the caller. Used to make a call to the public key of the neuron.
 	// Links message to calling neuron-account.
 	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
 	// SIZE: 256-bits (32-bytes)
-	string public_key = 2;
+	string hotkey = 2;
 
 	// Nounce: [OPTIONAL] Incrementing nounce to identify message ordering.
 	// Used ensure with signature to protect against spoofing attacks.
+	// Likely a timestamp.
 	// i.e. nounce = nounce + 1 
 	// SIZE: 32-bits (4-bytes)
 	int64 nounce = 3;
@@ -90,25 +96,25 @@ message TensorMessage {
 	// >>> assert (nounce >= last_nounce) and neuron_key.verify(signature, digest) # to verify.
 	bytes signature = 4;
 
-	// Return codes from Backward and Forward call.
-	ReturnCode return_code = 5; 
-
-	// Message associated with return code.
-	string message = 6; 
-
 	// Tensors: [REQUIRED] 1 or more tensors passed on the wire.
 	// SIZE: variable.
 	// NOTE: During backward calls the tensors should be ordered [input_1, input_2, ... grad_1, grad_2, ...] 
-	repeated Tensor tensors = 7;
+	repeated Tensor tensors = 5;
+
+	// Return codes from Backward and Forward call.
+	ReturnCode return_code = 6; 
+
+	// Message associated with return code.
+	string message = 7; 
 }
 
 // Return codes from Backward and Forward call.
 enum ReturnCode {
 	Success = 0; // Succesfull query.
 	Timeout = 1; // Request timeout.
-	Backoff = 2;
-	Unavailable = 3;
-	NotImplemented = 4;
+	Backoff = 2; // Call triggered a backoff.
+	Unavailable = 3; // Endpoint not available.
+	NotImplemented = 4; // Modality not implemented.
 	EmptyRequest = 5; // Request is empty.
 	EmptyResponse = 6; // Response is empty.
 	InvalidResponse = 7; // Request is invalid.
@@ -119,8 +125,8 @@ enum ReturnCode {
 	ResponseSerializationException = 12; // Response failed to serialize.
 	RequestDeserializationException = 13; // Request failed to deserialize.
 	ResponseDeserializationException = 14; // Response failed to deserialize.
-	NotServingSynapse = 15; // Axon is not serving a synapse to query.
-	NucleusTimeout = 16; // Processing on the server side timedout.
+	NotServingNucleus = 15; // Receiving Neuron is not serving a Nucleus to query.
+	NucleusTimeout = 16; // Processing on the server side timeout.
 	NucleusFull = 17; // Returned when the processing queue on the server is full.
 	RequestIncompatibleVersion = 18; // The request handler is incompatible with the request version.
 	ResponseIncompatibleVersion = 19; // The request handler is incompatible with the request version.
@@ -133,8 +139,8 @@ enum ReturnCode {
 message Tensor {
 	// Version: [REQUIRED] Strictly increasing protocol version identifier.
 	// Indentifies protocol version for backward compatibility.
-	// i.e. '0.0.0'
-	string version = 1;
+	// i.e. '0.1.5' = (100 * 0) + (10 * 1) + (1 * 5) = 15
+	int32 version = 1;
 
 	// Buffer: [REQUIRED] Serialized raw tensor content.
 	bytes buffer = 2;
