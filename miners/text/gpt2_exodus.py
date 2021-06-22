@@ -520,11 +520,6 @@ class neuron:
         if not self.wallet.has_hotkey:
             raise RuntimeError('Miner must have access to a decrypted hotkey')
 
-        # ---- Setup metagraph ----
-        self.metagraph.load()
-        self.metagraph.sync()
-        self.metagraph.save()
-
         # ---- Subscribe to chain ----
         subscribe_success = self.subtensor.subscribe(
                 wallet = self.wallet,
