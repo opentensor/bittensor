@@ -457,6 +457,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     Forward function called on recieving a forward request.
         """
         # TODO(const): type checking.
+        bittensor.axon.check_forward_callback(forward_callback)
         self.forward_callback = forward_callback
 
     def attach_backward_callback(self, backward_callback: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ] ):
@@ -467,6 +468,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                      Backward callback called on recieving a backward request.
         """
         # TODO(const): type checking.
+        bittensor.axon.check_backward_callback(backward_callback)
         self.backward_callback = backward_callback
 
     def update_stats_for_request(self, request, response):
@@ -520,13 +522,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
     def start(self):
         r""" Starts the standalone axon GRPC server thread.
         """
-        # TODO(const): should allow more than one services and these can run in different processes.
-        # Destroy and create a new serving thread.
-        if self.forward_callback == None or self.backward_callback == None:
-            message = "Forward and Backward callbacks must be subscribed on this axon before it starts. Got Forward = {} and Backward = {}".format(self.forward_callback, self.backward_callback)
-            logger.error( message )
-            raise RuntimeError( message )
-
         if self.server != None:
             self.server.stop( 0 )  
 

@@ -284,7 +284,7 @@ class neuron:
         return output
 
     # ---- Axon Forward call ----
-    def forward ( self, pubkey:str, inputs: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+    def forward ( self, pubkey:str, inputs_x: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
         r""" Subscribed to an axon servicing endpoint: processes forward messages from the wire.
             The arguments reflect an RPC request from another miner in the network, the response tensor
             should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
@@ -292,7 +292,7 @@ class neuron:
             Args:
                 pubkey ( str, `required`): 
                     The public key of the caller.
-                inputs ( :obj:`torch.Tensor`, `required`):
+                inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
                 modality ( bittensor.proto.Modality, `required`):
                     modality of inputs e.g. bittensor.proto.Modality.TEXT.
@@ -301,9 +301,9 @@ class neuron:
                 outputs (:obj:`torch.FloatTensor`): 
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
-        inputs = inputs.to( self.device )
+        inputs_x = inputs_x.to( self.device )
         output = self.nucleus.local_forward (
-            inputs = inputs        
+            inputs = inputs_x        
         )
         return output.local_hidden
 
@@ -487,7 +487,7 @@ class neuron:
         if self.config.neuron.use_upnpc: 
             bittensor.logging.success(prefix = 'Set upnpc', sufix = '<green>ON</green>')
             try:
-                self.external_port = net.upnpc_create_port_map( local_port = self.axon.local_port )
+                self.external_port = net.upnpc_create_port_map( port = self.axon.port )
             except net.UPNPCException as upnpc_exception:
                 logger.critical('Failed to hole-punch with upnpc')
                 raise RuntimeError('Failed to hole-punch with upnpc')

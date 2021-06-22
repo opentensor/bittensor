@@ -29,7 +29,6 @@ class executor:
             wallet: 'bittensor.Wallet' = None,
             subtensor: 'bittensor.Subtensor' = None,
             metagraph: 'bittensor.Metagraph' = None,
-            axon: 'bittensor.Axon' = None,
             dendrite: 'bittensor.Dendrite' = None
         ) -> 'bittensor.Executor':
         r""" Creates a new Executor object from passed arguments.
@@ -42,8 +41,6 @@ class executor:
                     Bittensor subtensor chain connection.
                 metagraph (:obj:`bittensor.Metagraph`, `optional`):
                     Bittensor metagraph chain state.
-                axon (:obj:`bittensor.Axon`, `optional`):
-                    Bittensor axon server.
                 dendrite (:obj:`bittensor.Dendrite`, `optional`):
                     Bittensor dendrite client.
         """
@@ -63,11 +60,6 @@ class executor:
         metagraph = bittensor.metagraph( 
             subtensor = subtensor 
         )
-        if axon == None:
-            axon = bittensor.axon( 
-                config = config, 
-                wallet = wallet 
-            )
         if dendrite == None:
             dendrite = bittensor.dendrite( 
                 config = config,  
@@ -77,7 +69,6 @@ class executor:
             wallet = wallet, 
             subtensor = subtensor, 
             metagraph = metagraph, 
-            axon = axon, 
             dendrite = dendrite 
         )
 
@@ -95,7 +86,6 @@ class executor:
         bittensor.metagraph.add_args( parser )
         bittensor.dataloader.add_args( parser )
         bittensor.dendrite.add_args( parser )
-        bittensor.axon.add_args( parser )
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
@@ -105,5 +95,4 @@ class executor:
         bittensor.metagraph.check_config( config )
         bittensor.dataloader.check_config( config )
         bittensor.dendrite.check_config( config )
-        bittensor.axon.check_config( config )
 

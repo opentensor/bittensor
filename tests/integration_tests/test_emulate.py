@@ -21,7 +21,7 @@ class BNet(nn.Module):
         self.wallet = bittensor.wallet()
         self.axon = bittensor.axon(
             wallet = self.wallet,
-            local_port = 8080,
+            port = 8080,
             forward_callback = self.axon_forward,
             backward_callback = self.axon_backward
         )
