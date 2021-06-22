@@ -389,6 +389,7 @@ class neuron:
         last_saved = self.get_saved_state()
         if last_saved == None or last_saved['epoch_loss'] >= self.epoch_loss:
             self.save()
+        self.metagraph.load()
         self.metagraph.sync()
         self.metagraph.save()
         self.reload()
@@ -493,7 +494,7 @@ class neuron:
                 raise RuntimeError('Failed to hole-punch with upnpc')
         else: 
             bittensor.logging.success(prefix = 'Set upnpc', sufix = '<red>OFF</red>')
-            self.external_port = self.config.axon.local_port
+            self.external_port = self.config.axon.port
 
         # ---- Setup tensorboard ----
         if self.config.neuron.use_tensorboard == True:
