@@ -14,9 +14,6 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
-
-from concurrent.futures.thread import ThreadPoolExecutor
-from os import name
 import bittensor
 import argparse
 import copy
@@ -24,6 +21,11 @@ import copy
 from . import dendrite_impl
 
 class dendrite:
+    r""" This is the factory class for a bittensor.dendrite(). The dendrite class operates as a normal torch autograd friendly operation
+    which accepts a list of bittensor.endpoints and a list of torch tensors. The passed endpoints are queried with the passed inputs and either return
+    results or zeros. The operation is fully differentiable with a torch computation graph such that calls to loss.backward() produce Backward calls on
+    the passed endpoints.
+    """
 
     def __new__(
             cls, 
@@ -38,21 +40,23 @@ class dendrite:
         r""" Creates a new Dendrite object from passed arguments.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
-                    bittensor.dendrite.config()
+                    Config namespace object created by calling bittensor.dendrite.config()
                 wallet (:obj:`bittensor.Wallet`, `optional`):
-                    bittensor wallet with hotkey and coldkeypub.
-                timeout (:type:`int`, `optional`):
+                    A bittensor wallet object containing a pair of cryptographic keys, the hot and coldkey, used for signing messages
+                    on the wire.
+                timeout (:type:`int`, `optional`, default: bittensor.dendrite.config().dendrite.timeout ):
                     Default request timeout.
-                requires_grad (:type:`bool`, `optional`):
+                requires_grad (:type:`bool`, `optional`, default: bittensor.dendrite.config().dendrite.requires_grad):
                     If true, the dendrite passes gradients on the wire by default.
-                max_worker_threads (:type:`int`, `optional`):
+                max_worker_threads (:type:`int`, `optional`, default: bittensor.dendrite.config().dendrite.max_worker_threads):
                     Maximum number of active client threads. Does not override the
                     optionally passed receptor pool.
-                max_active_receptors (:type:`int`, `optional`):
+                max_active_receptors (:type:`int`, `optional`, default: bittensor.dendrite.config().dendrite.max_active_receptors):
                     Maximum allowed active allocated TCP connections. Does not override the
                     optionally passed receptor pool.
                 receptor_pool (:obj:`bittensor.ReceptorPool`, `optional`):
-                    bittensor receptor pool, maintains a pool of active TCP connections.
+                    A bittensor receptor pool object which maintains a set of connections to other peers in the network and operates as
+                    a normal torch.nn.Module. By default this object is created with the dendrite config.
         """
         if config == None: config = dendrite.config()
         config = copy.deepcopy(config)
@@ -85,8 +89,8 @@ class dendrite:
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
         try:
-            parser.add_argument('--dendrite.max_worker_threads', default=150, type=int, help='''Max number of concurrent threads used for sending RPC requests.''')
-            parser.add_argument('--dendrite.max_active_receptors', default=500, type=int, help='''Max number of concurrently active receptors / tcp-connections''')
+            parser.add_argument('--dendrite.max_worker_threads', type=int, help='''Max number of concurrent threads used for sending RPC requests.''', default=150)
+            parser.add_argument('--dendrite.max_active_receptors', type=int, help='''Max number of concurrently active receptors / tcp-connections''',  default=500)
             parser.add_argument('--dendrite.timeout', type=int, help='''Default request timeout.''', default=5)
             parser.add_argument('--dendrite.requires_grad', action='store_true', help='''If true, the dendrite passes gradients on the wire.''', default=True)
             parser.add_argument('--dendrite.no_requires_grad', dest='dendrite.requires_grad', action='store_false', help='''If true, the dendrite passes gradients on the wire.''')
