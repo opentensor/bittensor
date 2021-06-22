@@ -120,7 +120,8 @@ class neuron:
         parser.add_argument('--neuron.batch_size_train', type=int, help='Training batch size.', default=2)
         parser.add_argument('--neuron.reload', action='store_true', help='''Reload training from previous trial run.''', default=False )
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart miner on unknown error.''', default=False)
-        parser.add_argument('--neuron.compute_remote_gradients', action='store_true', help='''Does the miner compute/return gradients from backward queries.''', default=False)
+        parser.add_argument('--neuron.compute_remote_gradients', action='store_true', help='''Does the neuron compute and return gradients from backward queries.''', default=False)
+        parser.add_argument('--neuron.accumulate_remote_gradients', action='store_true', help='''Does the neuron accumulate remote gradients from backward queries.''', default=False)
         parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
         parser.add_argument('--neuron.device', type=str, help='Neuron default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         bittensor.logging.add_args( parser )
@@ -327,20 +328,35 @@ class neuron:
                     The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
         """
         if self.config.neuron.compute_remote_gradients:
-            inputs_x.requires_grad = True
             with torch.enable_grad():
-                inputs = inputs_x.to( self.device )
+
+                # ---- Set up inputs for gradient computations.
+                inputs_x.requires_grad = True
+                inputs_x = inputs_x.to( self.device )
                 grads_dy = grads_dy.to( self.device )
                 outputs_y = self.nucleus.local_forward( inputs = inputs_x ).to( self.device )
-                grads_dx = torch.autograd.grad (
-                    outputs = outputs_y, 
-                    inputs = inputs_x, 
-                    grad_outputs = grads_dy, 
-                    only_inputs = True,
-                    create_graph = False, 
-                    retain_graph = False
-                )
-            return grads_dx[0]
+                
+                # ---- The backward call will accumulate gradients on our parameters.
+                if self.config.neuron.accumulate_remote_gradients:
+                    torch.autograd.backward (
+                        tensors = [outputs_y],
+                        grad_tensors = [grads_dy]
+                    )
+                    return inputs_x.grad if inputs_x.grad != None else None
+
+                # ---- The backward call will simply compute the gradients without accumulating them.
+                else:
+                    grads_dy = torch.autograd.grad (
+                        outputs = outputs_y, 
+                        inputs = inputs_x, 
+                        grad_outputs = grads_dy, 
+                        only_inputs = True,
+                        create_graph = False, 
+                        retain_graph = False
+                    )[0]
+                    return grads_dy
+
+        # if ! compute_remote_gradients, NO-OP.
         else:
             return None
 

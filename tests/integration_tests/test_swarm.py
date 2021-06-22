@@ -1,14 +1,14 @@
 import argparse
 import random
 from numpy import average
+from torch.utils.tensorboard.summary import hparams
 import bittensor
 import torch
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from nuclei.ffnn import FFNNNucleus
 from loguru import logger
 from torchvision import datasets, transforms
-torch.autograd.set_detect_anomaly(False)
-bittensor.logging.set_debug( True )
 
 mnist_train = datasets.MNIST('../data', train=True, download=True, transform=transforms.ToTensor())
 mnist_train = torch.utils.data.DataLoader(mnist_train, batch_size=1, shuffle=False)
@@ -17,6 +17,8 @@ QUIT = False
 
 class Neuron:
     def __init__( self, wallet: bittensor.Wallet, endpoint: bittensor.Endpoint ):
+
+        self.update_lock = threading.Lock()
         
         # wallet.
         self.wallet = wallet
@@ -82,23 +84,26 @@ class Neuron:
     def forward ( self, pubkey:str, images: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
         # Call nucleus (locally, i.e. using the distillation model instead of calling the child)
         # return the last hidden layer.  
-        return self.nucleus.forward_image (
-            images = images       
-        )
+        with self.update_lock:
+            outputs = self.nucleus.forward_image (
+                images = images       
+            )
+        return outputs
 
     # Function which is called when this miner recieves a backward request.
     def backward ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
-        inputs_x.requires_grad = True
-        with torch.enable_grad():
-            outputs_y = self.nucleus.forward_image(images = inputs_x)
-            grads_dx = torch.autograd.grad (
-                outputs = outputs_y, 
-                inputs = inputs_x, 
-                grad_outputs = grads_dy, 
-                only_inputs = True,
-                create_graph = False, 
-                retain_graph = False
-            )
+        with self.update_lock:
+            inputs_x.requires_grad = True
+            with torch.enable_grad():
+                outputs_y = self.nucleus.forward_image(images = inputs_x)
+                grads_dx = torch.autograd.grad (
+                    outputs = outputs_y, 
+                    inputs = inputs_x, 
+                    grad_outputs = grads_dy, 
+                    only_inputs = True,
+                    create_graph = False, 
+                    retain_graph = False
+                )
         return grads_dx[0]
 
     # Run a single epoch.
@@ -116,10 +121,11 @@ class Neuron:
             )
 
             # ---- Backward pass ----
-            output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-            output.loss.backward() # Accumulates gradients on the nucleus.
-            self.optimizer.step() # Applies accumulated gradients.
-            self.optimizer.zero_grad() # Zeros out gradients for next accummulation
+            with self.update_lock:
+                output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+                output.loss.backward() # Accumulates gradients on the nucleus.
+                self.optimizer.step() # Applies accumulated gradients.
+                self.optimizer.zero_grad() # Zeros out gradients for next accummulation
 
 
 def wallet_for_index( i:int ):
@@ -148,11 +154,15 @@ def test_swarm():
     parser = argparse.ArgumentParser()
     parser.add_argument('--n', dest='n', type=int, help='''n neurons''', default=3)
     parser.add_argument('--k', dest='k', type=int, help='''n children''', default=2)
-    hparms = parser.parse_args()
+    parser.add_argument('--debug', dest='debug', action='store_true', help='''turn on debug.''', default=False)
+    hparams = parser.parse_args()
+
+    # Set debug.
+    bittensor.logging.set_debug( hparams.debug )
 
     # Create neurons.
     neurons = []
-    for i in range(hparms.n):
+    for i in range(hparams.n):
         wallet = wallet_for_index( i )
         endpoint = endpoint_for_index( i, wallet )
         neurons.append( Neuron ( 
@@ -161,8 +171,8 @@ def test_swarm():
         ))
 
     # Set children
-    for n in neurons:
-        n.children = [n.endpoint for n in random.sample(neurons, hparms.k)]
+    for n_a in neurons:
+        n_a.children = [ n_b.endpoint for n_b in random.sample( neurons, hparams.k ) if n_b.endpoint.hotkey != n_a.endpoint.hotkey ]
 
     # Run in threadpool.
     try:
