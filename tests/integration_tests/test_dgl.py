@@ -36,7 +36,7 @@ class Neuron:
         # When this miner recieves a Forward/Backward request it calls these functions
         self.axon = bittensor.axon ( 
             wallet = self.wallet,
-            local_port = self.endpoint.port,
+            port = self.endpoint.port,
             forward_callback = self.forward,
             backward_callback = self.backward
         )

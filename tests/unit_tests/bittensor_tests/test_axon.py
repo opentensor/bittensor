@@ -12,22 +12,7 @@ wallet.create_new_hotkey( use_password=False, overwrite = True)
 
 axon = bittensor.axon(wallet = wallet)
 
-def test_forward_success():
-    def forward( pubkey:str, inputs: torch.FloatTensor, modality:int ):
-        return torch.zeros( [inputs.shape[0], inputs.shape[1], bittensor.__network_dim__])
-    axon.attach_forward_callback( forward )
-    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
-    request = bittensor.proto.TensorMessage(
-        version = bittensor.__version_as_int__,
-        tensors=[inputs_serialized]
-    )
-    response, code, message = axon._forward( request )
-    assert code == bittensor.proto.ReturnCode.Success
-
 def test_forward_not_implemented():
-    axon.attach_forward_callback( None )
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
@@ -38,6 +23,20 @@ def test_forward_not_implemented():
     )
     response, code, message = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.NotImplemented
+
+def test_forward_success():
+    def forward( pubkey:str, inputs_x: torch.FloatTensor, modality:int ):
+        return torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
+    axon.attach_forward_callback( forward )
+    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version_as_int__,
+        tensors=[inputs_serialized]
+    )
+    response, code, message = axon._forward( request )
+    assert code == bittensor.proto.ReturnCode.Success
 
 def test_forward_empty_request():
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
@@ -99,7 +98,7 @@ def test_forward_tensor_shape_error():
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
 def test_forward_deserialization():
-    def forward( pubkey:str, inputs: torch.FloatTensor, modality:int ):
+    def forward( pubkey:str, inputs_x: torch.Tensor, modality:int ):
         return None
     axon.attach_forward_callback( forward )
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
@@ -235,11 +234,10 @@ def test_grpc_forward_works():
     def forward( pubkey:str, inputs_x:torch.FloatTensor, modality:int ):
         return torch.zeros( [1, 1, 1])
     axon = bittensor.axon (
-        local_port = 8080,
-        local_ip = '127.0.0.1',
-        backward_callback = forward,
-        forward_callback = forward,
+        port = 8080,
+        ip = '127.0.0.1',
     )
+    axon.attach_forward_callback( forward )
     axon.start()
 
     channel = grpc.insecure_channel(
@@ -266,11 +264,10 @@ def test_grpc_backward_works():
         return torch.zeros( [1, 1, 1])
 
     axon = bittensor.axon (
-        local_port = 8080,
-        local_ip = '127.0.0.1',
-        backward_callback = backward,
-        forward_callback = backward,
+        port = 8080,
+        ip = '127.0.0.1',
     )
+    axon.attach_backward_callback( backward )
     axon.start()
 
     channel = grpc.insecure_channel(
@@ -296,8 +293,8 @@ def test_grpc_backward_works():
 
 
 if __name__ == "__main__":
-    test_forward_success()
     test_forward_not_implemented()
+    test_forward_success()
     test_forward_empty_request()
     test_forward_deserialization_error()
     test_forward_text_shape_error()

@@ -57,7 +57,7 @@ class dendrite:
         if config == None: config = dendrite.config()
         config = copy.deepcopy(config)
         config.dendrite.timeout = timeout if timeout != None else config.dendrite.timeout
-        config.dendrite.local_ip = requires_grad if requires_grad != None else config.dendrite.requires_grad
+        config.dendrite.ip = requires_grad if requires_grad != None else config.dendrite.requires_grad
         config.dendrite.max_worker_threads = max_worker_threads if max_worker_threads != None else config.dendrite.max_worker_threads
         config.dendrite.max_active_receptors = max_active_receptors if max_active_receptors != None else config.dendrite.max_active_receptors
         dendrite.check_config( config )
