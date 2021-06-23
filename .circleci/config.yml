@@ -63,6 +63,9 @@ jobs:
           name: "Run dataloader tests:"
           command: pytest ./tests/integration_tests/test_dataloader_ipfs.py
       - run:
+          name: "Run dataloader tests:"
+          command: pytest ./tests/integration_tests/test_dataloader_ipfs.py
+      - run:
           name: "Code Coverage"
           command: codecov
 
