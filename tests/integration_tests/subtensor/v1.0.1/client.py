@@ -2,6 +2,7 @@ import os
 import time
 import pytest
 import random
+import torch
 import subprocess
 
 from typing import List
@@ -11,19 +12,16 @@ from pytest import fixture
 import bittensor
 from bittensor.utils.balance import Balance
 
-from bittensor.wallet import Wallet
-from bittensor.substrate import Keypair
+from bittensor._substrate import Keypair
 
 
 BLOCK_REWARD = 500_000_000
 
-class WalletStub(Wallet):
+class WalletStub(bittensor.Wallet):
     def __init__(self, coldkey_pair: 'Keypair', hotkey_pair: 'Keypair'):
         self._hotkey = hotkey_pair
         self._coldkey = coldkey_pair
         self._coldkeypub = coldkey_pair.public_key
-
-
 
 @pytest.fixture(scope="session", autouse=True)
 def initialize_tests():
@@ -58,13 +56,13 @@ def setup_chain():
 
 def connect( port:int ):
     chain_endpoint = "localhost:%i" % port
-    subtensor = bittensor.subtensor.Subtensor(
+    subtensor = bittensor.subtensor(
         chain_endpoint = chain_endpoint,
     )
     subtensor.connect()
     return subtensor
 
-def add_stake( subtensor, wallet: 'wallet:bittensor.wallet.Wallet', amount: 'Balance' ):
+def add_stake( subtensor, wallet: 'bittensor.Wallet', amount: 'Balance' ):
     # Get the uid of the new neuron
     uid = subtensor.get_uid_for_pubkey( wallet.hotkey.public_key )
     assert uid is not None
@@ -406,24 +404,24 @@ def test_set_weights_success(setup_chain):
     uidA = subtensorA.get_uid_for_pubkey(walletA.hotkey.public_key)
     uidB = subtensorB.get_uid_for_pubkey(walletB.hotkey.public_key)
 
-    w_uids = [uidA, uidB]
-    w_vals = [pow(2, 31)-1, pow(2,31)-1]
+    w_uids = torch.tensor([uidA, uidB])
+    w_vals = torch.tensor([pow(2, 31) - 1, pow(2, 31)])
     subtensorA.set_weights(
-        destinations = w_uids,
-        values = w_vals,
+        uids = w_uids,
+        weights = w_vals,
         wait_for_finalization=True,
-        timeout = 4 * bittensor.__blocktime__,
+        timeout=4 * bittensor.__blocktime__,
         wallet=walletA
     )
-    subtensorB.set_weights (
-        destinations = w_uids,
-        values = w_vals,
+    subtensorB.set_weights(
+        uids = w_uids,
+        weights = w_vals,
         wait_for_finalization=True,
-        timeout = 4 * bittensor.__blocktime__,
+        timeout=4 * bittensor.__blocktime__,
         wallet=walletB
     )
 
     result_uids = subtensorA.weight_uids_for_uid(uidA)
     result_vals = subtensorA.weight_vals_for_uid(uidA)
-    assert result_uids == w_uids
-    assert result_vals == w_vals
+    assert result_uids == w_uids.tolist()
+    assert result_vals == w_vals.tolist()

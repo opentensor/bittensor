@@ -1,0 +1,212 @@
+syntax = "proto3";
+
+// Service definition for tensor processing servers.
+service Bittensor {
+	// Forward tensor request. 
+	rpc Forward (TensorMessage) returns (TensorMessage) {}
+	
+	// Backward tensor request i.e. gradient.
+	rpc Backward (TensorMessage) returns (TensorMessage) {}
+}
+
+// Neuron endpoint definition.
+// Fully describes a tensor processing service for a bittensor Neuron.
+// SIZE: (256 * 4) + (512 * 2) + (128 * 3) + 32 + 64 = 2504-bits (~314 bytes)
+// NOTE: only the (address, port, identity) need to be stored in RAM.
+// (address, port, identity) = (128 + 32 + 256) = 412 (52 bytes)
+// Holding 20,000,000 endpoints in 1-GB of RAM and 6-GB of Disk.
+message Neuron {
+	// Version: [REQUIRED] Strictly increasing protocol version identifier.
+	// Indentifies protocol version for backward compatibility.
+	// i.e. '0.1.5' = (100 * 0) + (10 * 1) + (1 * 5) = 15
+	int32 version = 1;
+
+	// uid: [REQUIRED] unique network identifier assigned by the chain.
+  	// i.e. '1223213221'
+	// SIZE: 64-bits (8-bytes)
+	int64 uid = 2;
+
+	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key (the hotkey).
+	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
+	// SIZE: 256-bits (32-bytes)
+	string hotkey = 3;
+
+	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key (the coldkey).
+	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
+	// SIZE: 256-bits (32-bytes)
+	string coldkey = 4;
+
+	// Address: [REQUIRED] Neuron ip address. 
+  	// i.e. '0.0.0.0' or [2001:0db8:85a3:0000:0000:8a2e:0370:7334]
+	// SIZE: < 128-bits (16-bytes)
+	string ip = 5;
+	
+	// Port: [REQUIRED] Neuron endpoint listening port.
+  	// i.e. '8081'
+	// SIZE: 32-bits (4-bytes)
+	int32 port = 6;
+
+	// IPType: [REQUIRED] Ip endpoint type, i.e. v6, or v4
+  	// i.e. '6'
+	// SIZE: 32-bits (4-bytes)
+	int32 ip_type = 7;
+
+	// Modality: TEXT, TENSOR, IMAGE
+	Modality modality = 8;
+}	
+
+// TensorMessage
+// Contains a payload of 1 or more serialized tensors and their definitions.
+// Also contains information to identity and verify the sender. 
+// Protocol for bittensor-hivemind message passing.
+// SIZE: 136 bytes + (tensor_size)
+message TensorMessage {
+	// Version: [REQUIRED] Strictly increasing protocol version identifier.
+	// Indentifies protocol version for backward compatibility.
+	// i.e. '0.1.5' = (100 * 0) + (10 * 1) + (1 * 5) = 15
+	int32 version = 1;
+
+	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key.
+	// Public key of the caller. Used to make a call to the public key of the neuron.
+	// Links message to calling neuron-account.
+	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
+	// SIZE: 256-bits (32-bytes)
+	string hotkey = 2;
+
+	// Nounce: [OPTIONAL] Incrementing nounce to identify message ordering.
+	// Used ensure with signature to protect against spoofing attacks.
+	// Likely a timestamp.
+	// i.e. nounce = nounce + 1 
+	// SIZE: 32-bits (4-bytes)
+	int64 nounce = 3;
+
+	// Signature: [OPTIONAL] Digital signature linking the nounce neuron_key.
+	// Prevents spoofing attacks where an adversary sends messages as other peers.
+	// NOTE: this field does not link the signature to the tensor inputs. New signatures do not need
+	// to be generated for each message and can be periodically created with a new incrementing nounce.
+	// Endpoints ensure that that signature is correct and that nounce is incrementing.
+	// $ python
+	// >>> from cryptography.hazmat.backends import default_backend
+	// >>> from cryptography.hazmat.primitives import hashes
+	// >>> digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
+	// >>> digest.update(public_key.encode('utf-8'))
+	// >>> digest.update(bytes(nounce))
+	// >>> digest = digest.finalize()
+	// signature = private_key.sign(digest) # to create.
+	// >>> assert (nounce >= last_nounce) and neuron_key.verify(signature, digest) # to verify.
+	bytes signature = 4;
+
+	// Tensors: [REQUIRED] 1 or more tensors passed on the wire.
+	// SIZE: variable.
+	// NOTE: During backward calls the tensors should be ordered [input_1, input_2, ... grad_1, grad_2, ...] 
+	repeated Tensor tensors = 5;
+
+	// Return codes from Backward and Forward call.
+	ReturnCode return_code = 6; 
+
+	// Message associated with return code.
+	string message = 7; 
+}
+
+// Return codes from Backward and Forward call.
+enum ReturnCode {
+	Success = 0; // Succesfull query.
+	Timeout = 1; // Request timeout.
+	Backoff = 2; // Call triggered a backoff.
+	Unavailable = 3; // Endpoint not available.
+	NotImplemented = 4; // Modality not implemented.
+	EmptyRequest = 5; // Request is empty.
+	EmptyResponse = 6; // Response is empty.
+	InvalidResponse = 7; // Request is invalid.
+	InvalidRequest = 8; // Response is invalid.
+	RequestShapeException = 9; // Request has invalid shape.
+	ResponseShapeException = 10; // Response has invalid shape.
+	RequestSerializationException = 11; // Request failed to serialize.
+	ResponseSerializationException = 12; // Response failed to serialize.
+	RequestDeserializationException = 13; // Request failed to deserialize.
+	ResponseDeserializationException = 14; // Response failed to deserialize.
+	NotServingNucleus = 15; // Receiving Neuron is not serving a Nucleus to query.
+	NucleusTimeout = 16; // Processing on the server side timeout.
+	NucleusFull = 17; // Returned when the processing queue on the server is full.
+	RequestIncompatibleVersion = 18; // The request handler is incompatible with the request version.
+	ResponseIncompatibleVersion = 19; // The request handler is incompatible with the request version.
+	SenderUnknown = 20; // The requester is not known by the reciever. 
+	UnknownException = 21; // Unknown exception.
+}
+
+// A serialized tensor object created using the serializer class.
+// SIZE: 32 bytes + variable buffer size.
+message Tensor {
+	// Version: [REQUIRED] Strictly increasing protocol version identifier.
+	// Indentifies protocol version for backward compatibility.
+	// i.e. '0.1.5' = (100 * 0) + (10 * 1) + (1 * 5) = 15
+	int32 version = 1;
+
+	// Buffer: [REQUIRED] Serialized raw tensor content.
+	bytes buffer = 2;
+
+	// Shape: [REQUIRED] Shape of this tensor.
+	// NOTE: Variable dimensions (i.e. batch) are non-explicit here as -1.
+	// ~ 5 * int32 = 128 bits - (16 bytes)
+	repeated int64 shape = 3;
+
+	// Serializer: [REQUIRED] Specifies the serialization/deserialization method.
+	// Users should be able to decode all tensors by specifying the encoding type and the raw data. 
+	// i.e.
+	// 1. (client) serializer = bittensor.bittensor.serializer_for_type(bittensor.Serializer.MSGPACK)
+	// 2. (client) serializer.serialize(torch.Tensor, from_type = bittensor.proto.TensorType.TORCH) --> bittensor.proto.Tensor
+	// 3. (server) deserializer = bittensor.bittensor.serializer_for_type(request.serialzer)
+	// 4. (server) deserializer.deserialize(request.tensor, to_type = bittensor.proto.TensorType.TENSORFLOW) --> tensorflow.Tensor    	
+	// SIZE: 32-bits (4 bytes)
+	Serializer serializer = 4;
+
+	// TensorType: [REQUIRED] Purely a placeholder, not used in deserialization etc, 
+	// however, could come in handy later
+	// SIZE: 32-bits (4 bytes)
+	TensorType tensor_type = 5;
+    	
+	// Dtype: [REQUIRED] The tensor datatype.
+	// Used for serialization deserialization.
+	// int32 32-bits (4-bytes)
+	DataType dtype = 6;
+
+	// Modality: TEXT, TENSOR, IMAGE
+	Modality modality = 7;
+
+	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
+	// 1 bit.
+	bool requires_grad = 8;
+}
+
+// Dtype: [REQUIRED] The tensor serializer type.
+// For use between multiple serialziation deserialziation methods.
+enum Serializer {
+	// PICKLE = 0; // PICKLE serializer (REMOVED for security reasons.)
+	MSGPACK = 0; // MSGPACK serializer
+}
+
+// TensorType: [REQUIRED] The tensor type, for use between multipl frameworks.
+enum TensorType {
+	TORCH = 0; // Torch object
+	TENSORFLOW = 1; // Tensorflow tensor type.
+	NUMPY = 2; // Numpy tensor type.
+}
+
+// Dtype: [REQUIRED] The tensor datatype.
+// Used for serialization deserialization.
+// int32 32-bits (4-bytes)
+enum DataType {
+	UNKNOWN = 0;
+	FLOAT32 = 1;
+	FLOAT64 = 2;
+	INT32 = 3;
+	INT64 = 4;
+	UTF8 = 5;
+}
+
+enum Modality {
+	TEXT = 0;
+	IMAGE = 1;
+	TENSOR = 2;
+}
+
