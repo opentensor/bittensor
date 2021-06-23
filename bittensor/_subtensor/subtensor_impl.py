@@ -93,6 +93,12 @@ class Subtensor:
                 return None
             return random.choice( kusanagi_available )
 
+        elif self.network == "exodus":
+            exodus_available = [item for item in bittensor.__exodus_entrypoints__ if item not in blacklist ]
+            if len(exodus_available) == 0:
+                return None
+            return random.choice( exodus_available )
+
         elif self.network == "local":
             local_available = [item for item in bittensor.__local_entrypoints__ if item not in blacklist ]
             if len(local_available) == 0:
