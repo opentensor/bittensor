@@ -37,7 +37,7 @@ class subtensor:
     """
     Handles interactions with the subtensor chain.
     """
-
+    
     def __new__(
             cls, 
             config: 'bittensor.config' = None,
@@ -58,10 +58,10 @@ class subtensor:
                 chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the network argument.
         """
-        if config == None: config = subtensor.config().subtensor
+        if config == None: config = subtensor.config()
         config = copy.deepcopy( config )
-        config.network = network if network != None else config.network
-        config.chain_endpoint = chain_endpoint if chain_endpoint != None else config.chain_endpoint
+        config.subtensor.network = network if network != None else config.subtensor.network
+        config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else config.subtensor.chain_endpoint
         substrate = SubstrateWSInterface(
             address_type = 42,
             type_registry_preset='substrate-node-template',
@@ -70,30 +70,34 @@ class subtensor:
         subtensor.check_config( config )
         return subtensor_impl.Subtensor( 
             substrate = substrate,
-            network = config.network,
-            chain_endpoint = config.chain_endpoint,
+            network = config.subtensor.network,
+            chain_endpoint = config.subtensor.chain_endpoint,
         )
 
     @staticmethod   
-    def config( config: 'bittensor.Config' = None, namespace: str = 'subtensor' ) -> 'bittensor.Config':
-        if config == None: config = bittensor.config()
-        subtensor_config = bittensor.config()
-        config[ namespace] = subtensor_config
+    def config() -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
-        parser.add_argument('--' + namespace + 'network', dest = 'network', default='kusanagi', type=str, 
-                            help='''The subtensor network flag. The likely choices are:
-                                    -- akira (staging network)
-                                    -- kusanagi (testing network)
-                                    -- exodus (main network)
-                                If this option is set it overloads subtensor.chain_endpoint with 
-                                an entry point node from that network.
-                                ''')
-        parser.add_argument('--' + namespace + 'chain_endpoint', dest = 'chain_endpoint', default=None, type=str, 
-                            help='''The subtensor endpoint flag. If set, overrides the --network flag.
-                                ''')
-        parser.parse_known_args( namespace = subtensor_config )
-        return config
+        subtensor.add_args( parser )
+        return bittensor.config( parser )
+
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser ):
+        try:
+            parser.add_argument('--subtensor.network', default='kusanagi', type=str, 
+                                help='''The subtensor network flag. The likely choices are:
+                                        -- akira (staging network)
+                                        -- kusanagi (testing network)
+                                        -- exodus (main network)
+                                    If this option is set it overloads subtensor.chain_endpoint with 
+                                    an entry point node from that network.
+                                    ''')
+            parser.add_argument('--subtensor.chain_endpoint', default=None, type=str, 
+                                help='''The subtensor endpoint flag. If set, overrides the --network flag.
+                                    ''')       
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
-        pass
+        assert config.subtensor

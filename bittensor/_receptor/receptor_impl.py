@@ -42,7 +42,7 @@ DUMMY = torch.empty(0, requires_grad=True)
 def nill_response_for(inputs):
     if torch.numel(inputs) == 0:
         return torch.tensor([])
-    return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype = torch.float32)
+    return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=torch.float32)
 
 class Receptor(nn.Module):
     """ Encapsulates a grpc connection to an axon endpoint as a standard auto-grad torch.nn.Module.
@@ -99,7 +99,7 @@ class Receptor(nn.Module):
                 bittensor.proto.ReturnCode.ResponseSerializationException: 0,
                 bittensor.proto.ReturnCode.RequestDeserializationException: 0,
                 bittensor.proto.ReturnCode.ResponseDeserializationException: 0,
-                bittensor.proto.ReturnCode.NotServingSynapse: 0,
+                bittensor.proto.ReturnCode.NotServingNucleus: 0,
                 bittensor.proto.ReturnCode.NucleusTimeout: 0,
                 bittensor.proto.ReturnCode.NucleusFull: 0,
                 bittensor.proto.ReturnCode.RequestIncompatibleVersion: 0,
@@ -130,7 +130,7 @@ class Receptor(nn.Module):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
             Returns:
-                output (:obj:`Tuple[torch.float32, torch.int64]`, `required`):
+                output (:obj:`Tuple[torch.FloatTensor, torch.LongTensor]`, `required`):
                     Result tuple from the forward call.
 
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
@@ -170,7 +170,7 @@ class Receptor(nn.Module):
                     request timeout.
 
             Returns:
-                output (:obj:`Tuple[torch.float32, torch.int64]`, `required`):
+                output (:obj:`Tuple[torch.FloatTensor, torch.LongTensor]`, `required`):
                     Result tuple from the forward call.
 
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
@@ -207,7 +207,7 @@ class Receptor(nn.Module):
                     request timeout.
 
             Returns:
-                output (:obj:`Tuple[torch.float32`, torch.int64]`, `optional`):
+                output (:obj:`Tuple[torch.FloatTensor`, torch.LongTensor]`, `optional`):
                     Result from forward call. May be None in the case of failure.
 
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
@@ -222,8 +222,8 @@ class Receptor(nn.Module):
             if torch.numel(inputs) == 0:
                 code = bittensor.proto.ReturnCode.EmptyRequest
                 message = 'empty request'
-                bittensor.utils.codes.rpc_log( axon=False, forward=True, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=None, message=message )
-                return zeros, 
+                bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message )
+                return zeros, code, message
 
             # ---- Inputs Serialization ----
             try:
@@ -232,13 +232,13 @@ class Receptor(nn.Module):
             except Exception as e:
                 code =  bittensor.proto.ReturnCode.RequestSerializationException
                 message = 'Input serialization exception with error:{}'.format(str(e))
-                bittensor.utils.codes.rpc_log( axon=False, forward=True, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=None, message=message )
+                bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message )
                 return zeros, code, message
 
             # ---- Build request ----
             request = bittensor.proto.TensorMessage (
-                version = bittensor.__version__,
-                public_key = self.wallet.hotkey.public_key,
+                version = bittensor.__version_as_int__,
+                hotkey = self.wallet.hotkey.public_key,
                 nounce = self.nounce,
                 signature = self.signature,
                 tensors = [serialized_inputs]
@@ -249,7 +249,7 @@ class Receptor(nn.Module):
                 start_time = time.time()
                 self.stats.forward_qps.update(1)
                 self.stats.forward_bytes_out.update(sys.getsizeof(request))
-                bittensor.utils.codes.rpc_log( axon=False, forward=True, is_response=False, code=bittensor.proto.ReturnCode.Success, pubkey=self.endpoint.hotkey, inputs=serialized_inputs, outputs=None, message=None )
+                bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=bittensor.proto.ReturnCode.Success, pubkey=self.endpoint.hotkey, inputs=list(serialized_inputs.shape), outputs=None, message=None )
                 response = self.stub.Forward(request, timeout = timeout)
                 self.stats.forward_bytes_in.update(sys.getsizeof(response))
                 self.stats.forward_elapsed_time.update((time.time() - start_time))
@@ -266,16 +266,16 @@ class Receptor(nn.Module):
                 except:
                     code = bittensor.proto.ReturnCode.UnknownException
                     message = 'no return code.'
-                    bittensor.utils.codes.rpc_log( axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=None, message=response_message  )
+                    bittensor.logging.rpc_log( axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=response_message  )
                     return zeros, code, message
 
                 # ---- Catch bittensor errors ----
                 if bittensor_code == bittensor.proto.ReturnCode.UnknownException:
-                    bittensor.utils.codes.rpc_log( axon=False, forward=True, is_response=True, code=bittensor_code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=None, message=response_message  )
+                    bittensor.logging.rpc_log( axon=False, forward=True, is_response=True, code=bittensor_code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=response_message  )
                     return zeros, bittensor_code, response.message 
 
                 elif bittensor_code != bittensor.proto.ReturnCode.Success:
-                    bittensor.utils.codes.rpc_log( axon=False, forward=True, is_response=True, code=bittensor_code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=None, message=response_message)
+                    bittensor.logging.rpc_log( axon=False, forward=True, is_response=True, code=bittensor_code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=response_message)
                     return zeros, bittensor_code, response.message 
 
             # ---- Catch GRPC Errors ----
@@ -285,33 +285,33 @@ class Receptor(nn.Module):
                 if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
                     code = bittensor.proto.ReturnCode.Timeout
                     message = 'grpc.StatusCode.DEADLINE_EXCEEDED'
-                    bittensor.utils.codes.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=None, message=message)
+                    bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message)
                     return zeros, code, message
 
                 elif grpc_code == grpc.StatusCode.UNAVAILABLE:
                     code = bittensor.proto.ReturnCode.Unavailable
                     message = 'grpc.StatusCode.UNAVAILABLE'
-                    bittensor.utils.codes.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=None, message=message)
+                    bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message)
                     return zeros, code, message
 
                 else:
                     code = bittensor.proto.ReturnCode.UnknownException
                     message = 'GRPC error code: {}'.format( grpc_code )
-                    bittensor.utils.codes.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=None, message=message)
+                    bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message)
                     return zeros, code, message
 
             # ---- Catch Unknown Errors ----
             except Exception as e:
                 code = bittensor.proto.ReturnCode.UnknownException
                 message = str(e)
-                bittensor.utils.codes.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=None, message=message)
+                bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message)
                 return zeros, code, message
 
             # ---- Check tensor response length ----
             if len(response.tensors) == 0:
                 code = bittensor.proto.ReturnCode.EmptyResponse
                 message = 'no tensors in response'
-                bittensor.utils.codes.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=None, message=message)
+                bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message)
                 return zeros, code, message
 
             # ---- Deserialize response ----
@@ -323,7 +323,7 @@ class Receptor(nn.Module):
             except Exception as e:
                 code = bittensor.proto.ReturnCode.ResponseDeserializationException
                 message = 'deserialziation exception with error:{}'.format(str(e))
-                bittensor.utils.codes.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=None, message=message)
+                bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message)
                 return zeros, code, message
         
             # ---- Check response shape ----
@@ -332,7 +332,7 @@ class Receptor(nn.Module):
                 or outputs.size(2) != bittensor.__network_dim__:
                     code = bittensor.proto.ReturnCode.ResponseShapeException
                     message = "output.shape:{} does not match inputs:{}".format(outputs.shape, inputs.shape)
-                    bittensor.utils.codes.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=outputs, message=message)
+                    bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=list(outputs.shape), message=message)
                     return zeros, code, message
 
             # ---- Safe catch NaNs and replace with 0.0 ----
@@ -342,19 +342,19 @@ class Receptor(nn.Module):
         except Exception as e:
             code = bittensor.proto.ReturnCode.UnknownException
             message = 'exception in forward call: {}'.format(e)
-            bittensor.utils.codes.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=None, message=message)
+            bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message)
             return zeros, code, message
 
         # ---- Return ----
         code = response.return_code
         message = response_message
-        bittensor.utils.codes.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=inputs, outputs=outputs, message=None)
+        bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=list(outputs.shape), message=None)
         return outputs, code, message
 
     def backward(
             self,
             inputs_x: torch.Tensor, 
-            grads_dy: torch.float32, 
+            grads_dy: torch.FloatTensor, 
             modality: bittensor.proto.Modality,
             timeout: int
         ) -> Tuple[torch.Tensor, int, str]:
@@ -371,7 +371,7 @@ class Receptor(nn.Module):
                     request timeout.
 
             Returns:
-                outputs (:obj:`Tuple[torch.float32`, torch.int64]`, `optional`):
+                outputs (:obj:`Tuple[torch.FloatTensor`, torch.LongTensor]`, `optional`):
                     Gradients of the inputs with respect to the inputs and grads of the outputs.
 
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
@@ -388,14 +388,14 @@ class Receptor(nn.Module):
         if torch.numel( inputs_x ) == 0:
             code = bittensor.proto.ReturnCode.EmptyRequest
             message = 'empty request'
-            bittensor.utils.codes.rpc_log(axon=False, forward=False, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=[inputs_x, grads_dy], outputs=None, message=message)
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
             return zeros, code, message
 
         # ---- Check grads size ----
         if torch.numel( grads_dy ) == 0:
             code = bittensor.proto.ReturnCode.EmptyRequest
             message = 'empty request'
-            bittensor.utils.codes.rpc_log(axon=False, forward=False, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=[inputs_x, grads_dy], outputs=None, message=message)
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
             return zeros, code, message
 
         # ---- Serialization ----
@@ -406,19 +406,19 @@ class Receptor(nn.Module):
         except Exception as e:
             code = bittensor.proto.ReturnCode.RequestSerializationException
             message = 'serializer exception with error:{}'.format(e)
-            bittensor.utils.codes.rpc_log(axon=False, forward=False, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=[inputs_x, grads_dy], outputs=None, message=message)
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
             return zeros, code, message
         
         # ---- Make RPC call ----
         try:
             request = bittensor.proto.TensorMessage(
-                version = bittensor.__version__,
-                public_key = self.wallet.hotkey.public_key,
+                version = bittensor.__version_as_int__,
+                hotkey = self.wallet.hotkey.public_key,
                 nounce = self.nounce,
                 signature = self.signature,
                 tensors = [serialized_inputs, serialized_grads]
             )
-            bittensor.utils.codes.rpc_log(axon=False, forward=False, is_response=False, code=bittensor.proto.ReturnCode.Success, pubkey=self.endpoint.hotkey, inputs=[inputs_x, grads_dy], outputs=None, message=None)
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=bittensor.proto.ReturnCode.Success, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=None)
             response = self.stub.Backward(request, timeout = timeout)
 
             # Get message
@@ -432,26 +432,26 @@ class Receptor(nn.Module):
             if e.code() == grpc.StatusCode.DEADLINE_EXCEEDED:
                 code = bittensor.proto.ReturnCode.Timeout
                 message = 'grpc.StatusCode.DEADLINE_EXCEEDED'
-                bittensor.utils.codes.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=[inputs_x, grads_dy], outputs=None, message=message)
+                bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
                 return zeros, code, message
             
             elif e.code() == grpc.StatusCode.UNAVAILABLE:
                 code = bittensor.proto.ReturnCode.Unavailable
                 message = 'grpc.StatusCode.UNAVAILABLE'
-                bittensor.utils.codes.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=[inputs_x, grads_dy], outputs=None, message=message)
+                bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
                 return zeros, code, message
 
             else:
                 code = bittensor.proto.ReturnCode.UnknownException
                 message = 'grpc error code:{}'.format(str(e.code()))
-                bittensor.utils.codes.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=[inputs_x, grads_dy], outputs=None, message=message)
+                bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
                 return zeros, code, message
 
         # ---- Catch Unknown RPC Errors ----
         except Exception as e:
             code = bittensor.proto.ReturnCode.UnknownException
             message = str(e)
-            bittensor.utils.codes.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=[inputs_x, grads_dy], outputs=None, message=message)
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
             return zeros, code, message
 
         # ---- Catch Code Errors ----
@@ -460,21 +460,21 @@ class Receptor(nn.Module):
         except:
             code = bittensor.proto.ReturnCode.UnknownException
             message = 'no response code.'
-            bittensor.utils.codes.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=[inputs_x, grads_dy], outputs=None, message=message)
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
             return zeros, code, message
 
         # ---- Catch negative codes ----
         if bittensor_code != bittensor.proto.ReturnCode.Success:
             code = bittensor_code
             message = response_message
-            bittensor.utils.codes.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=[inputs_x, grads_dy], outputs=None, message=None)
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=None)
             return zeros, code, message
 
         # ---- Check for empty response ----
         if len(response.tensors) == 0:
             code = bittensor.proto.ReturnCode.EmptyResponse
             message = 'empty response tensor.'
-            bittensor.utils.codes.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=[inputs_x, grads_dy], outputs=None, message=message)
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
             return zeros, code, message
 
         # ---- Post-process request ----
@@ -485,7 +485,7 @@ class Receptor(nn.Module):
         except Exception as e:
             code = bittensor.proto.ReturnCode.ResponseDeserializationException
             message = 'deserialization exception with error:{}'.format(e)
-            bittensor.utils.codes.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=[inputs_x, grads_dy], outputs=None, message=message)
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
             return zeros, code, message
 
         # ---- Check response shape is same as inputs ----
@@ -494,7 +494,7 @@ class Receptor(nn.Module):
             or outputs.size(2) != inputs_x.size(2):
             code = bittensor.proto.ReturnCode.ResponseShapeException 
             message = 'output shape does not match inputs shape'
-            bittensor.utils.codes.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=[inputs_x, grads_dy], outputs=outputs, message=message)
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=list(outputs.shape), message=message)
             return zeros, code, message
 
         # ---- Safe catch NaNs and replace with 0.0 ----
@@ -503,5 +503,5 @@ class Receptor(nn.Module):
         # ---- Return ----
         code = bittensor.proto.ReturnCode.Success
         message = 'success'
-        bittensor.utils.codes.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=[inputs_x, grads_dy], outputs=outputs, message=None)
+        bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=list(outputs.shape), message=None)
         return outputs, code, message

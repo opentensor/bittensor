@@ -21,8 +21,8 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = '1.0.4'
-__version_as_int__ = (100 * 1) + (10 * 0) + (1 * 4)  # Integer representation
+__version__ = '2.0.0'
+__version_as_int__ = (100 * 2) + (10 * 0) + (1 * 0)  # Integer representation
 
 # Vocabulary dimension.
 #__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
@@ -36,9 +36,7 @@ __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __s
 __blocktime__ = 6
 
 # ---- LOGGING ----
-import bittensor._logging as logging
-__debug_on__ = False
-logging.init_logger()
+from bittensor._logging import logging as logging
 
 # ---- Protos ----
 import bittensor._proto.bittensor_pb2 as proto

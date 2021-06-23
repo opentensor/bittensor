@@ -52,7 +52,7 @@ def code_to_string( code: bittensor.proto.ReturnCode ) -> str:
     elif code == 14:
         return 'ResponseDeserializationException'
     elif code == 15:
-        return 'NotServingSynapse'
+        return 'NotServingNucleus'
     elif code == 16:
         return 'NucleusTimeout'
     elif code == 17:
@@ -179,14 +179,14 @@ def rpc_log( axon: bool, forward: bool, is_response: bool, code:int, pubkey: str
         log_msg += " <green>Request</green>  ---> "
     if is_response:
         if axon:
-            log_msg += "<white>to:  </white><cyan>{}</cyan> ".format( pubkey )
+            log_msg += "<white>to:  </white><blue>{}</blue> ".format( pubkey )
         else:
-            log_msg += "<white>from:</white><cyan>{}</cyan> ".format( pubkey )
+            log_msg += "<white>from:</white><blue>{}</blue> ".format( pubkey )
     else:
         if axon:
-            log_msg += "<white>from:</white><cyan>{}</cyan> ".format( pubkey )
+            log_msg += "<white>from:</white><blue>{}</blue> ".format( pubkey )
         else:
-            log_msg += "<white>to:  </white><cyan>{}</cyan> ".format( pubkey )
+            log_msg += "<white>to:  </white><blue>{}</blue> ".format( pubkey )
     log_msg += "<white>code:</white>"
     code_color = code_to_loguru_color( code )
     code_string = code_to_string( code )

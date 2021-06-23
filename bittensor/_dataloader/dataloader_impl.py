@@ -124,10 +124,10 @@ class GenesisTextDataloader( Dataloader ):
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
         
         # Retrieve a random slice of the genesis dataset
-        self.data = self.construct_text_corpus()
+        self.data = []
 
         # Used to refresh corpus if we've exhausted the whole dataset
-        self.refresh_corpus = False
+        self.refresh_corpus = True
     
     def retrieve_text_file(self, file_hash: str):
         """Connects to Infura IPFS gateway and retrieves the contents of 
@@ -155,7 +155,7 @@ class GenesisTextDataloader( Dataloader ):
             string: Contents of the text file. 
         """
         try:
-            logger.info("Retrieving a dataset file from the IPFS gateway...")
+            logger.success("Retrieving a dataset files from the IPFS gateway...")
             directory = self.retrieve_directory(self.genesis_text_dataset_hash)
             data_corpus = []
 
@@ -174,7 +174,7 @@ class GenesisTextDataloader( Dataloader ):
 
                     # Retrieve file contents
                     file_contents = self.retrieve_text_file(random_dataset_file_hash)
-                    logger.info("<green>Added:</green> <cyan>{}</cyan>".format(filename))
+                    logger.success("Added:".ljust(20) + "<blue>{}</blue>".format(filename))
                     data_corpus.extend(file_contents.text.split())
 
                     # Retrieve next file descriptor
@@ -206,7 +206,7 @@ class GenesisTextDataloader( Dataloader ):
         """
 
         # If we've exhausted the dataset, retrieve another corpus.
-        if self.refresh_corpus or len(self.data) < self.block_size:
+        if self.refresh_corpus or len(self.data) <= self.block_size:
             self.data = self.construct_text_corpus()
             self.refresh_corpus = False
 

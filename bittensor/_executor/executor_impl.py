@@ -36,7 +36,6 @@ class Executor:
             wallet: 'bittensor.wallet',
             subtensor: 'bittensor.Subtensor',
             metagraph: 'bittensor.Metagraph',
-            axon: 'bittensor.Axon',
             dendrite: 'bittensor.Dendrite'
         ):
         r""" Creates a new Executor object for interfacing with the bittensor API.
@@ -47,15 +46,12 @@ class Executor:
                     Bittensor subtensor chain connection.
                 metagraph (:obj:`bittensor.Metagraph`, `required`):
                     Bittensor metagraph chain state.
-                axon (:obj:`bittensor.Axon`, `required`):
-                    Bittensor axon server.
                 dendrite (:obj:`bittensor.Dendrite`, `required`):
                     Bittensor dendrite client.
         """
         self.wallet = wallet
         self.subtensor = subtensor
         self.metagraph = metagraph
-        self.axon = axon
         self.dendrite = dendrite
 
     def regenerate_coldkey ( self, mnemonic: str, use_password: bool, overwrite: bool = False ):
@@ -96,9 +92,9 @@ class Executor:
 
         TABLE_DATA = []
 
-        total_stake = 0
-        total_rank = 0
-        total_incentive = 0
+        total_stake = 0.0
+        total_rank = 0.0
+        total_incentive = 0.0
         total_success = 0
         total_time = 0.0
         logger.info('\nRunning queries ...')

@@ -23,7 +23,7 @@ import copy
 from . import metagraph_impl
 
 class metagraph:
-    
+
     def __new__(
             cls, 
             config: 'bittensor.config' = None,
@@ -36,20 +36,26 @@ class metagraph:
                 subtensor (:obj:`bittensor.Subtensor`, `optional`): 
                     bittensor subtensor chain connection.
         """      
-        if config == None: config = metagraph.config().metagraph
+        if config == None: config = metagraph.config()
         config = copy.deepcopy(config)
         if subtensor == None:
-            subtensor = bittensor.subtensor( config.subtensor )
+            subtensor = bittensor.subtensor( config = config )
         return metagraph_impl.Metagraph( subtensor = subtensor )
 
-    @staticmethod   
-    def config( config: 'bittensor.Config' = None, namespace: str = 'metagraph' ) -> 'bittensor.Config':
-        if config == None: config = bittensor.config()
-        metagraph_config = bittensor.config()
-        bittensor.subtensor.config( metagraph_config )
-        config[ namespace  ] = metagraph_config
-        return config
+    @classmethod   
+    def config(cls) -> 'bittensor.Config':
+        parser = argparse.ArgumentParser()
+        metagraph.add_args( parser )
+        return bittensor.config( parser )
 
-    @staticmethod   
-    def check_config( config: 'bittensor.Config' ):
-        bittensor.subtensor.check_config( config.subtensor )
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        try:
+            bittensor.subtensor.add_args( parser )
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
+
+    @classmethod   
+    def check_config( cls, config: 'bittensor.Config' ):
+        assert config.subtensor

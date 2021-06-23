@@ -77,7 +77,7 @@ class Serializer(object):
                 Deserialization to this type. i.e. bittensor.proto.TensorType.TORCH or bittensor.proto.TensorType.TENSORFLOW
 
         Returns:
-            tensor_obj (:obj:`torch.float32`, `required`): 
+            tensor_obj (:obj:`torch.FloatTensor`, `required`): 
                 tensor object of type from_type in bittensor.proto.TensorType
 
         Raises:
@@ -138,14 +138,16 @@ class MSGPackSerializer( Serializer ):
         shape = list(torch_tensor.shape)
         torch_numpy = torch_tensor.cpu().detach().numpy().copy()
         data_buffer = msgpack.packb(torch_numpy, default=msgpack_numpy.encode)
-        torch_proto = bittensor.proto.Tensor(version = bittensor.__version__,
+        torch_proto = bittensor.proto.Tensor (
+                                    version = bittensor.__version_as_int__,
                                     buffer = data_buffer,
                                     shape = shape,
                                     dtype = dtype,
                                     serializer = bittensor.proto.Serializer.MSGPACK,
                                     tensor_type = bittensor.proto.TensorType.TORCH,
                                     modality = modality,
-                                    requires_grad = torch_tensor.requires_grad)
+                                    requires_grad = torch_tensor.requires_grad
+                                )
         return torch_proto
 
     def deserialize_to_torch(self, torch_proto: bittensor.proto.Tensor) -> torch.Tensor:

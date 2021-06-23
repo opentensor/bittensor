@@ -29,7 +29,6 @@ class executor:
             wallet: 'bittensor.Wallet' = None,
             subtensor: 'bittensor.Subtensor' = None,
             metagraph: 'bittensor.Metagraph' = None,
-            axon: 'bittensor.Axon' = None,
             dendrite: 'bittensor.Dendrite' = None
         ) -> 'bittensor.Executor':
         r""" Creates a new Executor object from passed arguments.
@@ -42,56 +41,58 @@ class executor:
                     Bittensor subtensor chain connection.
                 metagraph (:obj:`bittensor.Metagraph`, `optional`):
                     Bittensor metagraph chain state.
-                axon (:obj:`bittensor.Axon`, `optional`):
-                    Bittensor axon server.
                 dendrite (:obj:`bittensor.Dendrite`, `optional`):
                     Bittensor dendrite client.
         """
-        if config == None: config = executor.config().executor
+        if config == None: config = executor.config()
         config = copy.deepcopy(config)
+        bittensor.logging (
+            config = config
+        )
         if wallet == None:
             wallet = bittensor.wallet ( 
-                config = config.wallet 
+                config = config 
             )
         if subtensor == None:
             subtensor = bittensor.subtensor( 
-                config = config.subtensor 
+                config = config 
             )
         metagraph = bittensor.metagraph( 
             subtensor = subtensor 
         )
-        if axon == None:
-            axon = bittensor.axon( 
-                config = config.axon, 
-                wallet = wallet 
-            )
         if dendrite == None:
             dendrite = bittensor.dendrite( 
-                config = config.dendrite,  
+                config = config,  
                 wallet = wallet 
             )
         return executor_impl.Executor ( 
             wallet = wallet, 
             subtensor = subtensor, 
             metagraph = metagraph, 
-            axon = axon, 
             dendrite = dendrite 
         )
+
+    @classmethod   
+    def config(cls) -> 'bittensor.Config':
+        parser = argparse.ArgumentParser()
+        executor.add_args( parser )
+        return bittensor.config( parser )
     
     @staticmethod   
-    def config( config: 'bittensor.Config' = None, namespace: str = 'executor' ) -> 'bittensor.config':
-        if config == None: config = bittensor.config()
-        config[ namespace ] = bittensor.config()
-        bittensor.axon.config( config[ namespace ] )
-        bittensor.wallet.config( config[ namespace ] )
-        bittensor.subtensor.config( config[ namespace ] )
-        bittensor.dendrite.config( config[ namespace ] )
-        return config
+    def add_args( parser: argparse.ArgumentParser ):
+        bittensor.logging.add_args( parser )
+        bittensor.wallet.add_args( parser )
+        bittensor.subtensor.add_args( parser )
+        bittensor.metagraph.add_args( parser )
+        bittensor.dataloader.add_args( parser )
+        bittensor.dendrite.add_args( parser )
 
-    @staticmethod   
+    @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        bittensor.axon.check_config( config.axon )
-        bittensor.wallet.check_config( config.wallet )
-        bittensor.subtensor.check_config( config.subtensor )
-        bittensor.dendrite.check_config( config.dendrite )
+        bittensor.logging.check_config( config )
+        bittensor.wallet.check_config( config )
+        bittensor.subtensor.check_config( config )
+        bittensor.metagraph.check_config( config )
+        bittensor.dataloader.check_config( config )
+        bittensor.dendrite.check_config( config )
 

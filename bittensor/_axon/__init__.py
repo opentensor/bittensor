@@ -21,8 +21,11 @@ import bittensor
 import argparse
 import copy
 import grpc
+import inspect
 
 from . import axon_impl
+
+
 
 class axon:
 
@@ -34,8 +37,8 @@ class axon:
             backward_callback: 'Callable' = None,
             thread_pool: 'futures.ThreadPoolExecutor' = None,
             server: 'grpc._Server' = None,
-            local_port: int = 8091,
-            local_ip: str = '127.0.0.1',
+            port: int = 8091,
+            ip: str = '127.0.0.1',
             max_workers: int = 10, 
             maximum_concurrent_rpcs: int = 400,
         ) -> 'bittensor.Axon':
@@ -53,29 +56,35 @@ class axon:
                     Threadpool used for processing server queries.
                 server (:obj:`grpc._Server`, `required`):
                     Grpc server endpoint, overrides passed threadpool.
-                local_port (:type:`int`, `optional`):
+                port (:type:`int`, `optional`):
                     Binding port.
-                local_ip (:type:`str`, `optional`):
+                ip (:type:`str`, `optional`):
                     Binding ip.
                 max_workers (:type:`int`, `optional`):
                     Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
                 maximum_concurrent_rpcs (:type:`int`, `optional`):
                     Maximum allowed concurrently processed RPCs.
         """              
-        if config == None: config = axon.config().axon
+        if config == None: config = axon.config()
         config = copy.deepcopy(config)
-        config.local_port = local_port if local_port != None else config.local_port
-        config.local_ip = local_ip if local_ip != None else config.local_ip
-        config.max_workers = max_workers if max_workers != None else config.max_workers
-        config.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.maximum_concurrent_rpcs
+        config.axon.port = port if port != None else config.axon.port
+        config.axon.ip = ip if ip != None else config.axon.ip
+        config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
+        config.axon.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.axon.maximum_concurrent_rpcs
         axon.check_config( config )
 
         if wallet == None:
-            wallet = bittensor.wallet( config = config.wallet )
+            wallet = bittensor.wallet( config = config )
         if thread_pool == None:
-            thread_pool = futures.ThreadPoolExecutor( max_workers = config.max_workers )
+            thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
         if server == None:
-            server = grpc.server( thread_pool, maximum_concurrent_rpcs = config.maximum_concurrent_rpcs )
+            server = grpc.server( thread_pool, maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs )
+
+        if forward_callback != None:
+            axon.check_forward_callback(forward_callback)
+        if backward_callback != None:
+            axon.check_backward_callback(backward_callback)
+
         axon_instance = axon_impl.Axon( 
             wallet = wallet, 
             server = server,
@@ -83,32 +92,64 @@ class axon:
             backward_callback = backward_callback
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
-        full_address = str( local_ip ) + ":" + str( local_port )
+        full_address = str( ip ) + ":" + str( port )
         server.add_insecure_port( full_address )
         return axon_instance 
 
-    @staticmethod   
-    def config( config: 'bittensor.Config' = None, namespace: str = 'axon' ) -> 'bittensor.Config':
-        if config == None: config = bittensor.config()
-        axon_config = bittensor.config()
-        bittensor.wallet.config( axon_config )
-        config[ namespace ] = axon_config
-        if namespace != '': namespace += '.'
+    @classmethod   
+    def config(cls) -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
-        parser.add_argument('--' + namespace + 'local_port', dest = 'local_port', default=8091, type=int, 
-                help='''The port this axon endpoint is served on. i.e. 8091''')
-        parser.add_argument('--' + namespace + 'local_ip', dest = 'local_ip', default='127.0.0.1', type=str, 
-            help='''The local ip this axon binds to. ie. 0.0.0.0''')
-        parser.add_argument('--' + namespace + 'max_workers', dest = 'max_workers', default=10, type=int, 
-            help='''The maximum number connection handler threads working simultaneously on this endpoint. 
-                    The grpc server distributes new worker threads to service requests up to this number.''')
-        parser.add_argument('--' + namespace + 'maximum_concurrent_rpcs', dest = 'maximum_concurrent_rpcs', default=400, type=int, 
-            help='''Maximum number of allowed active connections''')          
-        parser.parse_known_args( namespace = axon_config )
-        return config
+        axon.add_args( parser )
+        return bittensor.config( parser )
 
-    @staticmethod   
-    def check_config( config: 'bittensor.Config' ):
-        assert config.local_port > 1024 and config.local_port < 65535, 'local_port must be in range [1024, 65535]'
-        bittensor.wallet.check_config( config.wallet )
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        try:
+            parser.add_argument('--axon.port',default=8091, type=int, 
+                    help='''The port this axon endpoint is served on. i.e. 8091''')
+            parser.add_argument('--axon.ip', default='127.0.0.1', type=str, 
+                help='''The local ip this axon binds to. ie. 0.0.0.0''')
+            parser.add_argument('--axon.max_workers',default=10, type=int, 
+                help='''The maximum number connection handler threads working simultaneously on this endpoint. 
+                        The grpc server distributes new worker threads to service requests up to this number.''')
+            parser.add_argument('--axon.maximum_concurrent_rpcs', default=400, type=int, 
+                help='''Maximum number of allowed active connections''')   
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
 
+        bittensor.wallet.add_args( parser )
+
+    @classmethod   
+    def check_config(cls, config: 'bittensor.Config' ):
+        assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
+        bittensor.wallet.check_config( config )
+
+
+    @staticmethod
+    def check_backward_callback( backward_callback:Callable ):
+        if not inspect.ismethod(backward_callback) and not inspect.isfunction(backward_callback):
+            raise ValueError('The axon backward callback must be a function with signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:, got {}'.format(backward_callback))        
+        if len( inspect.signature(backward_callback).parameters) != 4:
+            raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
+        if 'pubkey' not in inspect.signature(backward_callback).parameters:
+            raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
+        if 'inputs_x' not in inspect.signature(backward_callback).parameters:
+            raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
+        if 'grads_dy' not in inspect.signature(backward_callback).parameters:
+            raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
+        if 'modality' not in inspect.signature(backward_callback).parameters:
+            raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
+
+    @staticmethod
+    def check_forward_callback( forward_callback:Callable ):
+        if not inspect.ismethod(forward_callback) and not inspect.isfunction(forward_callback):
+            raise ValueError('The axon forward callback must be a function with signature Callable[pubkey:str, inputs_x: torch.Tensor, modality:int] -> torch.FloatTensor:, got {}'.format(forward_callback))   
+        if len( inspect.signature(forward_callback).parameters) != 3:
+            raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor, modality:int] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
+        if 'pubkey' not in inspect.signature(forward_callback).parameters:
+            raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor, modality:int] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
+        if 'inputs_x' not in inspect.signature(forward_callback).parameters:
+            raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor, modality:int] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
+        if 'modality' not in inspect.signature(forward_callback).parameters:
+            raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor, modality:int] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
