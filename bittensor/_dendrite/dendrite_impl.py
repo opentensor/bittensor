@@ -15,10 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from bittensor._config import config
 import torch
-import pandas as pd
-from termcolor import colored
 from typing import Tuple, List, Union, Optional
 from torch.autograd.function import once_differentiable
 import bittensor
@@ -36,10 +33,25 @@ def nill_response_for(inputs):
     return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=torch.float32)
 
 class Dendrite( torch.autograd.Function ):
+    r""" This is the implementation class for a bittensor.dendrite(). The dendrite class operates as a normal torch autograd friendly operation
+    which accepts a list of bittensor.endpoints and a list of torch tensors. The passed endpoints are queried with the passed inputs and either return
+    results or zeros. The operation is fully differentiable with a torch computation graph such that calls to loss.backward() produce Backward calls on
+    the passed endpoints.
+
+    Args:
+        config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.dendrite.config()):
+            config namespace object created by calling bittensor.dendrite.config()
+        wallet (:obj:`bittensor.Wallet`, `optional`, defaults to bittensor.wallet( name = 'default', hotkey = 'default')):
+            A bittensor wallet object containing a pair of cryptographic keys, the hot and coldkey, used for signing messages
+            on the wire.
+        receptor_pool (:obj:`bittensor.ReceptorPool`, `optional`, defaults to bittensor.receptor_pool()):
+            A bittensor receptor pool object which maintains a set of connections to other peers in the network and operates as
+            a normal torch.nn.Module. By default this object is created with the dendrite config.
+    """
 
     def __init__(
             self, 
-            config: 'bittensor.config',
+            config: 'bittensor.Config',
             wallet: 'bittensor.Wallet',
             receptor_pool: 'bittensor.ReceptorPool',
         ):
@@ -394,10 +406,10 @@ class Dendrite( torch.autograd.Function ):
                         List or single tensors to send to corresponsing neurons. Tensors are text input_ids encoded using the
                         bittensor tokenizer with shape [batch_size, sequence_len].
 
-                    timeout (int, default = dendrite.timeout `optional`):
+                    timeout (:type:`int`, default = dendrite.timeout `optional`):
                         Request timeout.
 
-                    requires_grad (int, default = dendrite.requires_grad, `optional`):
+                    requires_grad (:type:`int`, default = dendrite.requires_grad, `optional`):
                         If true, the backward pass triggers passing gradients on the wire.
 
                 Returns:

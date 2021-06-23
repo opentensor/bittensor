@@ -483,7 +483,6 @@ class neuron:
     def startup( self ):
         r""" Starts and subscribes the miner.
         """
-
         # ---- Setup UPNPC ----
         if self.config.neuron.use_upnpc: 
             bittensor.logging.success(prefix = 'Set upnpc', sufix = '<green>ON</green>')
@@ -496,6 +495,13 @@ class neuron:
             bittensor.logging.success(prefix = 'Set upnpc', sufix = '<red>OFF</red>')
             self.external_port = self.config.axon.port
 
+        # ---- Get external ip ----
+        try:
+            self.external_ip = net.get_external_ip()
+            bittensor.logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format(self.external_ip))
+        except net.ExternalIPNotFound as external_port_exception:
+            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error:{}', external_port_exception)
+
         # ---- Setup tensorboard ----
         if self.config.neuron.use_tensorboard == True:
             self._tensorboard_program = program.TensorBoard()
@@ -503,13 +509,6 @@ class neuron:
             self._tensorbaord_url = self._tensorboard_program.launch()
             bittensor.logging.success(prefix = 'Set tensorboard', sufix = '<blue>http://localhost:6006/</blue>')
         else: bittensor.logging.success(prefix = 'Set tensorboard', sufix = '<red>OFF</red>')
-
-        # ---- Get external ip ----
-        try:
-            self.external_ip = net.get_external_ip()
-            bittensor.logging.success(prefix = 'Got external IP', sufix = '<blue>{}</blue>'.format(self.external_ip))
-        except net.ExternalIPNotFound as external_port_exception:
-            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error:{}', external_port_exception)
 
         # ---- Setup Wallet. ----
         if not self.wallet.has_coldkeypub:
