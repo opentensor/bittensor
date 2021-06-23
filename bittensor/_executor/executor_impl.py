@@ -103,7 +103,7 @@ class Executor:
             # Make query and get response.
             if self.wallet.has_hotkey:
                 start_time = time.time()
-                result, code = self.dendrite.forward_text( endpoints = [endpoint], inputs = [torch.zeros((1,1), dtype=int64)] )
+                result, code = self.dendrite.forward_text( endpoints = [endpoint], inputs = [torch.zeros((1,1), dtype=torch.int64)] )
                 end_time = time.time()
                 code_to_string = code_utils.code_to_string(code.item())
                 code_color = code_utils.code_to_color(code.item()) 
