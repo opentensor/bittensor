@@ -75,6 +75,11 @@ from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 
 
 # Hardcoded entry point nodes. 
+__exodus_entrypoints__ = [
+    "Thomas.akatsuki.bittensor.com:9944",
+    "Simon.akatsuki.bittensor.com:9944",
+    "Bartholomew.akatsuki.bittensor.com:9944",
+]
 __akira_entrypoints__ = [
     "fermi.akira.bittensor.com:9944",
     "copernicus.akira.bittensor.com:9944",
