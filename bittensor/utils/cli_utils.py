@@ -25,10 +25,10 @@ import getpass
 
 from loguru import logger
 
-from bittensor.substrate import Keypair
-from bittensor.crypto.keyfiles import load_keypair_from_data, KeyFileError
+from bittensor._substrate import Keypair
+from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
 from termcolor import colored
-from bittensor.crypto import encrypt, is_encrypted, decrypt_data, KeyError
+from bittensor._crypto import encrypt, is_encrypted, decrypt_data, KeyError
 from bittensor.utils import Cli
 
 class cli_utils():
@@ -143,12 +143,16 @@ class cli_utils():
             os.makedirs(path)
 
     @staticmethod
-    def validate_create_path( keyfile ):
+    def validate_create_path( keyfile, overwrite: bool = False ):
         keyfile = os.path.expanduser(keyfile)
         if os.path.isfile(keyfile):
             if os.access(keyfile, os.W_OK):
-                if cli_utils.may_overwrite( keyfile ):
+                if overwrite:
                     return keyfile
+
+                elif cli_utils.may_overwrite( keyfile ):
+                    return keyfile
+
                 else:
                     quit()
             else:

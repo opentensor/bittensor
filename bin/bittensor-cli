@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -17,12 +15,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+#!/usr/bin/env python
+
 import bittensor
 from loguru import logger
 logger = logger.opt(colors=True)
  
 if __name__ == '__main__':
-    config = bittensor.cli.CLI.default_config(); 
-    cli = bittensor.cli.CLI( config )
-    logger.info(bittensor.config.Config.toString(config))
-    cli.run_command()
+    bittensor.cli().run()

@@ -55,8 +55,8 @@ def ip_to_int(str_val: str) -> int:
     """
     return int(netaddr.IPAddress(str_val))
 
-def ip__str__(ip_type, ip_str):
-    return "/ipv%i/%s" % (ip_type, ip_str)
+def ip__str__(ip_type:int, ip_str:str, port:int):
+    return "/ipv%i/%s:%i" % (ip_type, ip_str, port)
 
 class ExternalIPNotFound(Exception):
     """ Raised if we cannot attain your external ip from CURL/URLLIB/IPIFY/AWS """
@@ -129,11 +129,11 @@ def upnpc_delete_port_map(external_port: int):
     except Exception as e:
         raise UPNPCException(e)
 
-def upnpc_create_port_map(local_port: int):
+def upnpc_create_port_map(port: int):
     r""" Creates a upnpc port map on your router from passed external_port to local port.
 
         Args: 
-            local_port (int, `required`):
+            port (int, `required`):
                 The local machine port to map from your external port.
 
         Return:
@@ -153,15 +153,15 @@ def upnpc_create_port_map(local_port: int):
         u.selectigd()
         logger.debug('UPNPC: ' + str(ndevices) + ' device(s) detected')
 
-        local_ip = u.lanaddr
+        ip = u.lanaddr
         external_ip = u.externalipaddress()
 
-        logger.debug('UPNPC: your local ip address: ' + str(local_ip))
+        logger.debug('UPNPC: your local ip address: ' + str(ip))
         logger.debug('UPNPC: your external ip address: ' + str(external_ip))
         logger.debug('UPNPC: status = ' + str(u.statusinfo()) + " connection type = " + str(u.connectiontype()))
 
         # find a free port for the redirection
-        external_port = local_port
+        external_port = port
         rc = u.getspecificportmapping(external_port, 'TCP')
         while rc != None and external_port < 65536:
             external_port += 1
@@ -169,8 +169,8 @@ def upnpc_create_port_map(local_port: int):
         if rc != None:
             raise UPNPCException("UPNPC: No available external ports for port mapping.")
 
-        logger.info('UPNPC: trying to redirect remote: {}:{} => local: {}:{} over TCP', external_ip, external_port, local_ip, local_port)
-        u.addportmapping(external_port, 'TCP', local_ip, local_port, 'Bittensor: %u' % external_port, '')
+        logger.info('UPNPC: trying to redirect remote: {}:{} => local: {}:{} over TCP', external_ip, external_port, ip, port)
+        u.addportmapping(external_port, 'TCP', ip, port, 'Bittensor: %u' % external_port, '')
         logger.info('UPNPC: Create Success')
 
         return external_port

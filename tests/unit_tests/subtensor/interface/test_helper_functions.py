@@ -21,7 +21,7 @@ from unittest.mock import MagicMock
 from scalecodec import ScaleBytes, Bytes
 from scalecodec.metadata import MetadataDecoder
 
-from bittensor.substrate import SubstrateWSInterface
+from bittensor._substrate import SubstrateWSInterface
 from .fixtures import metadata_v12_hex
 
 
