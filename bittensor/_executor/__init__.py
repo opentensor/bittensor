@@ -84,7 +84,6 @@ class executor:
         bittensor.wallet.add_args( parser )
         bittensor.subtensor.add_args( parser )
         bittensor.metagraph.add_args( parser )
-        bittensor.dataloader.add_args( parser )
         bittensor.dendrite.add_args( parser )
 
     @staticmethod
@@ -93,6 +92,5 @@ class executor:
         bittensor.wallet.check_config( config )
         bittensor.subtensor.check_config( config )
         bittensor.metagraph.check_config( config )
-        bittensor.dataloader.check_config( config )
         bittensor.dendrite.check_config( config )
 
