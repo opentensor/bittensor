@@ -84,7 +84,7 @@ class config:
 
     @staticmethod
     def load_from_relative_path(path: str)  -> 'bittensor.Config':
-        r""" Loads and returns a Munched Config object from a relative path.
+        r""" Loads and returns a Munched config object from a relative path.
 
             Args:
                 path (str, `required`): 
@@ -92,7 +92,7 @@ class config:
     
             Returns:
                 config  (:obj:`bittensor.Config` `required`):
-                    Munched Config object with values from config under path.
+                    bittensor.Config object with values from config under path.
         """
         # Load yaml items from relative path.
         path_items = config_impl.Config()
