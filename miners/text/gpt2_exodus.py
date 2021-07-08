@@ -108,6 +108,10 @@ class neuron:
         r""" Fills a config namespace object with defaults or information from the command line.
         """
         parser = argparse.ArgumentParser()
+        parser.add_argument('--master.config', type=str, help='If set, arguments are overridden by passed file.')
+        config_file_path = vars(parser.parse_known_args()[0])['master.config']
+        
+        
         parser.add_argument('--neuron.config', type=str, help='If set, arguments are overridden by passed file.')
         parser.add_argument('--neuron.modality', type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''', default=0)
         parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
@@ -133,6 +137,12 @@ class neuron:
         bittensor.axon.add_args( parser )
         GPT2Nucleus.add_args( parser )
         SGMOERouter.add_args( parser )
+        
+        if config_file_path:
+            params_config = bittensor.config.load_from_relative_path(config_file_path)
+            print('Config File Detected at' ,config_file_path, ', updating defaults')
+            parser.set_defaults(**params_config)
+        
         return bittensor.config( parser )
 
     @staticmethod
