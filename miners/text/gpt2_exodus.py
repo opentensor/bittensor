@@ -111,8 +111,6 @@ class neuron:
         parser.add_argument('--master.config', type=str, help='If set, arguments are overridden by passed file.')
         config_file_path = vars(parser.parse_known_args()[0])['master.config']
         
-        
-        parser.add_argument('--neuron.config', type=str, help='If set, arguments are overridden by passed file.')
         parser.add_argument('--neuron.modality', type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''', default=0)
         parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
         parser.add_argument('--neuron.use_tensorboard', action='store_true', help='Turn on bittensor logging to tensorboard', default=True)
@@ -139,6 +137,7 @@ class neuron:
         SGMOERouter.add_args( parser )
         
         if config_file_path:
+            #loads config_file and updates defaults
             params_config = bittensor.config.load_from_relative_path(config_file_path)
             print('Config File Detected at' ,config_file_path, ', updating defaults')
             parser.set_defaults(**params_config)
