@@ -84,7 +84,7 @@ class config:
 
     @staticmethod
     def load_from_relative_path(path: str)  -> 'bittensor.Config':
-        r""" Loads and returns a Munched dict object from a relative path.
+        r""" Loads and returns a Munched Config object from a relative path.
 
             Args:
                 path (str, `required`): 
@@ -92,7 +92,7 @@ class config:
     
             Returns:
                 config  (:obj:`bittensor.Config` `required`):
-                    Munched dict object with values from config under path.
+                    Munched Config object with values from config under path.
         """
         # Load yaml items from relative path.
         path_items = config_impl.Config()
@@ -105,7 +105,7 @@ class config:
                 try:
                     path_items = yaml.safe_load(f)
                     path_items = munch.munchify(path_items)
-                    #path_items = config_impl.Config( path_items )
+                    path_items = config_impl.Config( path_items )
                 except yaml.YAMLError as exc:
                     logger.error('CONFIG: cannot parse passed configuration file at {}', path)
                     raise config.InvalidConfigFile
