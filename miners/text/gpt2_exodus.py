@@ -108,7 +108,7 @@ class neuron:
         r""" Fills a config namespace object with defaults or information from the command line.
         """
         parser = argparse.ArgumentParser()
-        parser.add_argument('--neuron.config', type=str, help='If set, arguments are overridden by passed file.')
+        parser.add_argument('--master.config', type=str, help='If set, arguments are overridden by passed file.')
         config_file_path = vars(parser.parse_known_args()[0])['master.config']
         
         parser.add_argument('--neuron.modality', type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''', default=0)

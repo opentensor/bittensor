@@ -19,7 +19,7 @@ neuron.accumulate_remote_gradients: false
 neuron.batch_size_train: 2
 neuron.clip_gradients: 1.0
 neuron.compute_remote_gradients: false
-neuron.config: null
+master.config: null
 neuron.device: cpu
 neuron.epoch_length: 500
 neuron.learning_rate: 0.03
