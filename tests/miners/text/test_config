@@ -1,3 +1,0 @@
-#Sample Config File
-neuron.epoch_length: 20
-neuron.n_epochs: 10
