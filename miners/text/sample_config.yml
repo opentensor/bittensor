@@ -21,10 +21,11 @@ neuron.clip_gradients: 1.0
 neuron.compute_remote_gradients: false
 neuron.config: null
 neuron.device: cpu
-neuron.epoch_length: 500
+neuron.epoch_length: 2
 neuron.learning_rate: 0.03
 neuron.modality: 0 
 neuron.name: gpt2_exodus
+neuron.n_epochs: 1
 neuron.reload: false
 neuron.restart_on_failure: false
 neuron.use_tensorboard: true

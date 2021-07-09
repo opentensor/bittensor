@@ -141,7 +141,10 @@ class neuron:
         config_file_path = vars(parser.parse_known_args()[0])['neuron.config']
         if config_file_path:
             #loads config_file and updates defaults
-            config_file_path = os.getcwd() + '/' + config_file_path
+            if os.path.isabs(config_file_path) == False:
+                config_file_path = os.getcwd() + '/' + config_file_path
+
+                
             try:
                 with open(config_file_path) as f:
                     params_config = yaml.safe_load(f)
