@@ -1,3 +1,6 @@
+# This file would soon be deprecated
+# Migrating from Circle CI to Github Actions
+
 version: 2.1
 
 executors:
@@ -131,6 +134,3 @@ workflows:
               branches:
                 only:
                     - /master.*/
-
-
-
