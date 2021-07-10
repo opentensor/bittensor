@@ -142,13 +142,12 @@ class neuron:
         if config_file_path:
             #loads config_file and updates defaults
             if os.path.isabs(config_file_path) == False:
-                config_file_path = os.getcwd() + '/' + config_file_path
+                config_file_path = os.path.expanduser(config_file_path)
 
                 
             try:
                 with open(config_file_path) as f:
                     params_config = yaml.safe_load(f)
-                    params_config = munch.munchify(params_config)
                     
                     print('Config File Detected at' ,config_file_path, ', updating defaults')
                     parser.set_defaults(**params_config)
