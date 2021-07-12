@@ -413,8 +413,9 @@ class neuron:
         self.global_step = state_dict['global_step']
 
         # ---- Load router and resize to the metagraph size.
-        self.router.load_state_dict( state_dict['router_state'] ) # Load router
         self.router.sync_with_chain_state( self.metagraph ) # Resize the router.
+        self.router.load_state_dict( state_dict['router_state'], strict=False ) # Load router
+        
 
         # ---- Load nucleus and attach the routing function.
         self.nucleus.load_state_dict( state_dict['nucleus_state'] ) # Load nucleus
