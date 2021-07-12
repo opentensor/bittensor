@@ -35,6 +35,7 @@ jobs:
     - name: Run Unit Tests
       run: |
         ./scripts/build_protos.sh
+        ./scripts/create_wallet.sh
         pytest ./tests/unit_tests
     - name: Run Miners
       run: python tests/miners/text/test_gpt2_exodus.py
