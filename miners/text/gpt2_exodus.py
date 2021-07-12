@@ -148,9 +148,7 @@ class neuron:
                     
             except Exception as e:
                 print('Error in loading: {} using default parser settings'.format(e))
-                
-            
-        
+
         return bittensor.config( parser )
 
     @staticmethod
