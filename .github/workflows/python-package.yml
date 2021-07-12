@@ -36,10 +36,4 @@ jobs:
       run: |
         ./scripts/build_protos.sh
         pytest ./tests/unit_tests
-    - name: Run Miners
-      run: python tests/miners/text/test_gpt2_exodus.py
-    - name: Run Integration tests
-    - name: Run dataloader tests
-      run: pytest ./tests/integration_tests/test_dataloader_ipfs.py
-    - name: Code Coverage
-      run: codecov
+   
