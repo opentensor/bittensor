@@ -134,25 +134,20 @@ class neuron:
         bittensor.axon.add_args( parser )
         GPT2Nucleus.add_args( parser )
         SGMOERouter.add_args( parser )
-                
-        
         
         config_file_path = vars(parser.parse_known_args()[0])['neuron.config']
         if config_file_path:
             #loads config_file and updates defaults
-            
             config_file_path = os.path.expanduser(config_file_path)
-
                 
             try:
                 with open(config_file_path) as f:
-                    params_config = yaml.safe_load(f)
-                    
-                    print('Config File Detected at' ,config_file_path, ', updating defaults')
+                    params_config = yaml.safe_load(f) 
+                    print('Config File Detected at {} updating defaults'.format(config_file_path))
                     parser.set_defaults(**params_config)
                     
-            except Exception as E:
-                print('Error in loading:', E, ', using default parser settings')
+            except Exception as e:
+                print('Error in loading: {} using default parser settings'.format(e))
                 
             
         
