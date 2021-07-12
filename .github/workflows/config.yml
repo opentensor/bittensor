@@ -3,11 +3,7 @@
 
 name: Bittensor Python Application
 
-on:
-  push:
-    branches: "*"
-  pull_request:
-    branches: "*"
+on: push
 
 jobs:
   build:
