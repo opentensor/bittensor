@@ -4,7 +4,7 @@ import pytest
 def test_create():
     subtensor = bittensor.subtensor()
 
-def test_defaults_to_akira( ):
+def test_defaults_to_kusanagi( ):
     subtensor = bittensor.subtensor()
     assert subtensor.endpoint_for_network() in bittensor.__kusanagi_entrypoints__
 
@@ -20,6 +20,14 @@ def test_networks():
     subtensor = bittensor.subtensor( network = 'boltzmann' )
     assert subtensor.endpoint_for_network() in bittensor.__boltzmann_entrypoints__
     subtensor = bittensor.subtensor( network = 'kusanagi' )
+    assert subtensor.endpoint_for_network() in bittensor.__kusanagi_entrypoints__
+
+def test_network_overides():
+    config = bittensor.subtensor.config()
+    config.subtensor.network = 'akira'
+    subtensor = bittensor.subtensor(config=config)
+    assert subtensor.endpoint_for_network() in bittensor.__akira_entrypoints__
+    subtensor = bittensor.subtensor(network='kusanagi',config=config)
     assert subtensor.endpoint_for_network() in bittensor.__kusanagi_entrypoints__
 
 # def test_connect_failure( ):
