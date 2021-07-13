@@ -1,137 +1,135 @@
-#This file will be deprecated
-version: 2.1
+# This file has been deprecated
+# Migrating to GitHub Actions for CI/CD pipeline
+# version: 2.1
 
-executors:
-    bittensor-executor:
-        docker:
-          - image: bittensor/bittensor:latest
+# executors:
+#     bittensor-executor:
+#         docker:
+#           - image: bittensor/bittensor:latest
 
-orbs:
-  python: circleci/python@1.3.2
-  shellcheck: circleci/shellcheck@2.0.0
+# orbs:
+#   python: circleci/python@1.3.2
+#   shellcheck: circleci/shellcheck@2.0.0
 
-jobs:
-  "Build Bittensor":
-    executor: bittensor-executor
-    steps:
-      - checkout
-      - run: pip3 install cython
-      - run:
-          command: pip3 install -e .
-          name: setup
-      - run: ./scripts/create_wallet.sh
+# jobs:
+#   "Build Bittensor":
+#     executor: bittensor-executor
+#     steps:
+#       - checkout
+#       - run: pip3 install cython
+#       - run:
+#           command: pip3 install -e .
+#           name: setup
+#       - run: ./scripts/create_wallet.sh
 
-  "Run Unit Tests":
-    executor: bittensor-executor
-    steps:
-      - checkout
-      - run: pip3 install cython
-      - run: pip3 install -r requirements.txt
-      - run: ./scripts/build_protos.sh
-      - run:
-          command: pip3 install -e .
-          name: setup
-      - run: ./scripts/create_wallet.sh
-      - run:
-          name: "Run unit tests"
-          command: pytest ./tests/unit_tests
+#   "Run Unit Tests":
+#     executor: bittensor-executor
+#     steps:
+#       - checkout
+#       - run: pip3 install cython
+#       - run: pip3 install -r requirements.txt
+#       - run: ./scripts/build_protos.sh
+#       - run:
+#           command: pip3 install -e .
+#           name: setup
+#       - run: ./scripts/create_wallet.sh
+#       - run:
+#           name: "Run unit tests"
+#           command: pytest ./tests/unit_tests
 
-  "Run Miners":
-    executor: bittensor-executor
-    steps:
-      - checkout
-      - run: pip3 install cython
-      - run: pip3 install -r requirements.txt
-      - run: ./scripts/build_protos.sh
-      - run:
-          command: pip3 install -e .
-          name: setup
-      - run: ./scripts/create_wallet.sh
-      - run: python3.7 tests/miners/text/test_gpt2_exodus.py
+#   "Run Miners":
+#     executor: bittensor-executor
+#     steps:
+#       - checkout
+#       - run: pip3 install cython
+#       - run: pip3 install -r requirements.txt
+#       - run: ./scripts/build_protos.sh
+#       - run:
+#           command: pip3 install -e .
+#           name: setup
+#       - run: ./scripts/create_wallet.sh
+#       - run: python3.7 tests/miners/text/test_gpt2_exodus.py
   
-  "Run Integration Tests":
-    executor: bittensor-executor
-    steps:
-      - checkout
-      - run: pip3 install cython
-      - run: pip3 install -r requirements.txt
-      - run: ./scripts/build_protos.sh
-      - run: ./scripts/create_wallet.sh
-      - run:
-          command: pip3 install -e .
-          name: setup
-      - run:
-          name: "Run dataloader tests:"
-          command: pytest ./tests/integration_tests/test_dataloader_ipfs.py
-      - run:
-          name: "Run dataloader tests:"
-          command: pytest ./tests/integration_tests/test_dataloader_ipfs.py
-      - run:
-          name: "Code Coverage"
-          command: codecov
+#   "Run Integration Tests":
+#     executor: bittensor-executor
+#     steps:
+#       - checkout
+#       - run: pip3 install cython
+#       - run: pip3 install -r requirements.txt
+#       - run: ./scripts/build_protos.sh
+#       - run: ./scripts/create_wallet.sh
+#       - run:
+#           command: pip3 install -e .
+#           name: setup
+#       - run:
+#           name: "Run dataloader tests:"
+#           command: pytest ./tests/integration_tests/test_dataloader_ipfs.py
+#       - run:
+#           name: "Run dataloader tests:"
+#           command: pytest ./tests/integration_tests/test_dataloader_ipfs.py
+#       - run:
+#           name: "Code Coverage"
+#           command: codecov
 
-  # "Run subtensor integration tests":
-  #   executor: bittensor-executor
-  #   steps:
-  #     - checkout
-  #     - run: pip3 install cython
-  #     - run: pip3 install -r requirements.txt
-  #     - run: ./scripts/build_protos.sh
-  #     - run: ./scripts/create_wallet.sh
-  #     - run:
-  #         command: pip3 install -e .
-  #         name: setup
-  #     - run:
-  #         name: "Run integration tests for subtensor v1.0.1"
-  #         command: "export PYTHONUNBUFFERED=1; export NODE_SUBTENSOR_BIN=/subtensor/v1.0.1/node-subtensor; pytest -n 8 ./tests/integration_tests/subtensor/v1.0.1/*"
-  #     - run:
-  #         name: "Run integration tests for subtensor v1.1.0"
-  #         command: "export PYTHONUNBUFFERED=1; export NODE_SUBTENSOR_BIN=/subtensor/v1.1.0/node-subtensor; pytest -n 8 ./tests/integration_tests/subtensor/v1.1.0/*"
+#   # "Run subtensor integration tests":
+#   #   executor: bittensor-executor
+#   #   steps:
+#   #     - checkout
+#   #     - run: pip3 install cython
+#   #     - run: pip3 install -r requirements.txt
+#   #     - run: ./scripts/build_protos.sh
+#   #     - run: ./scripts/create_wallet.sh
+#   #     - run:
+#   #         command: pip3 install -e .
+#   #         name: setup
+#   #     - run:
+#   #         name: "Run integration tests for subtensor v1.0.1"
+#   #         command: "export PYTHONUNBUFFERED=1; export NODE_SUBTENSOR_BIN=/subtensor/v1.0.1/node-subtensor; pytest -n 8 ./tests/integration_tests/subtensor/v1.0.1/*"
+#   #     - run:
+#   #         name: "Run integration tests for subtensor v1.1.0"
+#   #         command: "export PYTHONUNBUFFERED=1; export NODE_SUBTENSOR_BIN=/subtensor/v1.1.0/node-subtensor; pytest -n 8 ./tests/integration_tests/subtensor/v1.1.0/*"
 
-  "Push image to DockerHub":
-    docker:
-      - image: circleci/python:3.8.1
-        auth: 
-           username: $DOCKER_USER
-           password: $DOCKERPASS
-    steps:
-      - checkout
-      - setup_remote_docker:
-             version: 19.03.13
-      - run:
-          name: "Docker credentials"
-          command: echo $DOCKERPASS | docker login --username $DOCKER_USER --password-stdin
-      - run:
-          name: "Push production candidate"
-          command: ./scripts/push_image.sh
+#   "Push image to DockerHub":
+#     docker:
+#       - image: circleci/python:3.8.1
+#         auth: 
+#            username: $DOCKER_USER
+#            password: $DOCKERPASS
+#     steps:
+#       - checkout
+#       - setup_remote_docker:
+#              version: 19.03.13
+#       - run:
+#           name: "Docker credentials"
+#           command: echo $DOCKERPASS | docker login --username $DOCKER_USER --password-stdin
+#       - run:
+#           name: "Push production candidate"
+#           command: ./scripts/push_image.sh
   
  
-workflows:
-  main:
-    jobs:
-      - "Build Bittensor"
-      - "Run Unit Tests":
-              requires:
-                - "Build Bittensor"
-      - "Run Miners":
-              requires:
-                - "Build Bittensor"
-      - "Run Integration Tests":
-              requires:
-                - "Build Bittensor"
-      # - "Run subtensor integration tests":
-      #         requires:
-      #           - "Build Bittensor"
-      - "Push image to DockerHub":
-          requires:
-            - "Build Bittensor"
-            - "Run Unit Tests"
-            - "Run Miners"
-            - "Run Integration Tests"
-          filters:
-              branches:
-                only:
-                    - /master.*/
-
-
-
+# workflows:
+#   main:
+#     jobs:
+#       - "Build Bittensor"
+#       - "Run Unit Tests":
+#               requires:
+#                 - "Build Bittensor"
+#       - "Run Miners":
+#               requires:
+#                 - "Build Bittensor"
+#       - "Run Integration Tests":
+#               requires:
+#                 - "Build Bittensor"
+#       # - "Run subtensor integration tests":
+#       #         requires:
+#       #           - "Build Bittensor"
+#       - "Push image to DockerHub":
+#           requires:
+#             - "Build Bittensor"
+#             - "Run Unit Tests"
+#             - "Run Miners"
+#             - "Run Integration Tests"
+#           filters:
+#               branches:
+#                 only:
+#                     - /master.*/
