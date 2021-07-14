@@ -55,41 +55,48 @@ class cli:
 
         parser = argparse.ArgumentParser(description="Bittensor cli", usage="bittensor-cli <command> <command args>", add_help=True)
         parser._positionals.title = "commands"
-        bittensor.executor.add_args( parser )
 
         cmd_parsers = parser.add_subparsers(dest='command')
         overview_parser = cmd_parsers.add_parser(
             'overview', 
             help='''Show account overview.'''
         )
+        bittensor.executor.add_args( overview_parser )
         transfer_parser = cmd_parsers.add_parser(
             'transfer', 
             help='''Transfer Tao between accounts.'''
         )
+        bittensor.executor.add_args( transfer_parser )
         unstake_parser = cmd_parsers.add_parser(
             'unstake', 
             help='''Unstake from hotkey accounts.'''
         )
+        bittensor.executor.add_args( unstake_parser )
         stake_parser = cmd_parsers.add_parser(
             'stake', 
             help='''Stake to your hotkey accounts.'''
         )
+        bittensor.executor.add_args( stake_parser )
         regen_coldkey_parser = cmd_parsers.add_parser(
             'regen_coldkey',
             help='''Regenerates a coldkey from a passed mnemonic'''
         )
+        bittensor.executor.add_args( regen_coldkey_parser )
         regen_hotkey_parser = cmd_parsers.add_parser(
             'regen_hotkey',
             help='''Regenerates a hotkey from a passed mnemonic'''
         )
+        bittensor.executor.add_args( regen_hotkey_parser )
         new_coldkey_parser = cmd_parsers.add_parser(
             'new_coldkey', 
             help='''Creates a new hotkey (for running a miner) under the specified path. '''
         )
+        bittensor.executor.add_args( new_coldkey_parser )
         new_hotkey_parser = cmd_parsers.add_parser(
             'new_hotkey', 
             help='''Creates a new coldkey (for containing balance) under the specified path. '''
         )
+        bittensor.executor.add_args( new_hotkey_parser )
          
         # Fill arguments for the regen coldkey command.
         regen_coldkey_parser.add_argument(
