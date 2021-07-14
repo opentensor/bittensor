@@ -74,13 +74,7 @@ def get_external_ip() -> str:
     # --- Try curl.
     try:
         external_ip  = os.popen('curl -s ifconfig.me').readline()
-        return str(external_ip)
-    except:
-        pass
-
-    # --- Try urllib
-    try:
-        external_ip = urllib.request.urlopen('https://ident.me').read().decode('utf8')
+        assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
     except:
         pass
@@ -88,6 +82,7 @@ def get_external_ip() -> str:
     # --- Try ipify
     try:
         external_ip = requests.get('https://api.ipify.org').text
+        assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
     except:
         pass
@@ -95,6 +90,31 @@ def get_external_ip() -> str:
     # --- Try AWS
     try:
         external_ip = requests.get('https://checkip.amazonaws.com').text.strip()
+        assert isinstance(ip_to_int(external_ip), int)
+        return str(external_ip)
+    except:
+        pass
+
+    # --- Try myip.dnsomatic 
+    try:
+        external_ip  = os.popen('curl -s myip.dnsomatic.com').readline()
+        assert isinstance(ip_to_int(external_ip), int)
+        return str(external_ip)
+    except:
+        pass    
+
+    # --- Try urllib ipv6 (Doesn't work yet)
+    try:
+        external_ip = urllib.request.urlopen('https://ident.me').read().decode('utf8')
+        assert isinstance(ip_to_int(external_ip), int)
+        return str(external_ip)
+    except:
+        pass
+
+    # --- Try Wikipedia ipv6 (Doesn't work yet)
+    try:
+        external_ip = requests.get('https://www.wikipedia.org').headers['X-Client-IP']
+        assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
     except:
         pass
