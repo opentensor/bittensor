@@ -3,7 +3,9 @@
 
 name: Pushing Image to Docker
 
-on: push
+on: 
+  push:
+    branches: [master]
 
 jobs:
   build:
