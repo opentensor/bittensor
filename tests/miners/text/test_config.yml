@@ -1,0 +1,3 @@
+#Sample Config File
+neuron.epoch_length: 2
+neuron.n_epochs: 1
