@@ -3,7 +3,7 @@
 
 name: Pushing Image to Docker
 
-on:
+on: 
   push:
     branches: [ master ]
 
@@ -44,10 +44,14 @@ jobs:
       run: pytest ./tests/integration_tests/test_dataloader_ipfs.py
     - name: Code Coverage
       run: codecov
-    - name: Push image to DockerHub
-      env:
-        username: $DOCKER_USER
-        password: $DOCKERPASS
-      run: |
-        echo $DOCKERPASS | docker login --username $DOCKER_USER --password-stdin
-        ./scripts/push_image.sh
+    - name: Login to DockerHub
+      uses: docker/login-action@v1 
+      with:
+        username: ${{secrets.DOCKER_USER}}
+        password: ${{secrets.DOCKER_PASS}}
+    - name: Build and Push to Docker
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: true
+        tags: bittensor/bittensor:latest
