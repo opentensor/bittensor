@@ -3,9 +3,7 @@
 
 name: Pushing Image to Docker
 
-on: 
-  push:
-    branches: [master]
+on: push
 
 jobs:
   build:
@@ -54,4 +52,4 @@ jobs:
       with:
         context: .
         push: true
-        tags: bittensor/bittensor:subtensor_tests
+        tags: bittensor/bittensor:latest
