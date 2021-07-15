@@ -41,7 +41,7 @@ class subtensor:
     def __new__(
             cls, 
             config: 'bittensor.config' = None,
-            network: str = 'kusanagi',
+            network: str = None,
             chain_endpoint: str = None,
         ) -> 'bittensor.Subtensor':
         r""" Initializes a subtensor chain interface.

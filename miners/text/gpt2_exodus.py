@@ -29,6 +29,7 @@ import torch
 import traceback
 import os
 import sys
+import yaml
 
 from termcolor import colored
 from typing import List
@@ -108,7 +109,7 @@ class neuron:
         r""" Fills a config namespace object with defaults or information from the command line.
         """
         parser = argparse.ArgumentParser()
-        parser.add_argument('--neuron.config', type=str, help='If set, arguments are overridden by passed file.')
+        parser.add_argument('--neuron.config', type=str, help='If set, defaults are overridden by passed file.')
         parser.add_argument('--neuron.modality', type=int, help='''Miner network modality. TEXT=0, IMAGE=1. Currently only allowed TEXT''', default=0)
         parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
         parser.add_argument('--neuron.use_tensorboard', action='store_true', help='Turn on bittensor logging to tensorboard', default=True)
@@ -133,6 +134,21 @@ class neuron:
         bittensor.axon.add_args( parser )
         GPT2Nucleus.add_args( parser )
         SGMOERouter.add_args( parser )
+        
+        config_file_path = vars(parser.parse_known_args()[0])['neuron.config']
+        if config_file_path:
+            #loads config_file and updates defaults
+            config_file_path = os.path.expanduser(config_file_path)
+                
+            try:
+                with open(config_file_path) as f:
+                    params_config = yaml.safe_load(f) 
+                    print('Config File Detected at {} updating defaults'.format(config_file_path))
+                    parser.set_defaults(**params_config)
+                    
+            except Exception as e:
+                print('Error in loading: {} using default parser settings'.format(e))
+
         return bittensor.config( parser )
 
     @staticmethod

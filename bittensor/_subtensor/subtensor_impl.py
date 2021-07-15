@@ -100,10 +100,10 @@ class Subtensor:
             return random.choice( local_available )
             
         else:
-            akira_available = [item for item in bittensor.__akira_entrypoints__ if item not in blacklist ]
-            if len(akira_available) == 0:
+            kusanagi_available = [item for item in bittensor.__kusanagi_entrypoints__ if item not in blacklist ]
+            if len(kusanagi_available) == 0:
                 return None
-            return random.choice( akira_available )
+            return random.choice( kusanagi_available )
 
     def is_connected(self) -> bool:
         r""" Returns true if the connection state as a boolean.
