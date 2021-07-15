@@ -1,7 +1,7 @@
 <div align="center">
 
 # **Bittensor**
-[![GitHub Actions CI](https://github.com/opentensor/bittensor/actions/workflows/docker_image_push.yml/badge.svg)](https://github.com/opentensor/bittensor/actions/workflows/docker_image_push.yml)
+[![Pushing Image to Docker](https://github.com/opentensor/bittensor/actions/workflows/docker_image_push.yml/badge.svg)](https://github.com/opentensor/bittensor/actions/workflows/docker_image_push.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/3rUr6EcvbB)
 
