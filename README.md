@@ -1,7 +1,7 @@
 <div align="center">
 
 # **Bittensor**
-[![Build status](https://circleci.com/gh/opentensor/bittensor.svg?style=shield)](https://circleci.com/gh/opentensor/bittensor)
+![Github Actions CI](https://github.com/ivanezeigbo/opentensor/bittensor/actions/workflows/docker_image_push.yml/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/3rUr6EcvbB)
 
