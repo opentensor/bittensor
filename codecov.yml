@@ -1,2 +1,2 @@
 ignore:
-  - "*/tests/*”
+  - "./tests/integration_tests/*”
