@@ -35,8 +35,15 @@ __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __s
 # Substrate chain block time (seconds).
 __blocktime__ = 6
 
+# ---- Config ----
+from bittensor._config import config as config
+
 # ---- LOGGING ----
 from bittensor._logging import logging as logging
+logging(
+    debug = False,
+    trace = False 
+)
 
 # ---- Protos ----
 import bittensor._proto.bittensor_pb2 as proto
@@ -45,7 +52,6 @@ import bittensor._proto.bittensor_pb2_grpc as grpc
 # ---- Factories -----
 from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon
-from bittensor._config import config as config
 from bittensor._wallet import wallet as wallet
 from bittensor._receptor import receptor as receptor
 from bittensor._endpoint import endpoint as endpoint
