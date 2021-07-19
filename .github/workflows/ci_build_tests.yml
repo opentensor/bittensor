@@ -45,6 +45,6 @@ jobs:
     - name: Run dataloader tests
       run: pytest ./tests/integration_tests/test_dataloader_ipfs.py
     - name: Generate Report
-      run: pytest --cov=./ --cov-report=xml
+      run: pytest --cov=./tests/ --cov-report=xml --ignore=./tests/integration_tests/
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v1
