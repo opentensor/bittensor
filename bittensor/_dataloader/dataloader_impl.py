@@ -164,7 +164,7 @@ class GenesisTextDataloader( Dataloader ):
                 # Let's construct a dataset!
                 random_dataset_file = random.choice(directory['links'])
                 filename = random_dataset_file['Name']
-                total_dataset_size = int(random_dataset_file['Size'])
+                total_dataset_size = 0
 
                 # Make sure the file we chose satisfies our maximum file size requirement
                 while total_dataset_size <= self.max_corpus_size:
