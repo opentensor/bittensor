@@ -93,7 +93,6 @@ def add_args( parser: argparse.ArgumentParser ):
     dataloader.add_args( parser )
     dendrite.add_args( parser )
     axon.add_args( parser )
-    parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
 
 def check_config( config ):
     logging.check_config( config )
@@ -147,7 +146,7 @@ class Neuron():
 
     def __enter__(self):
         # ---- Setup UPNPC ----
-        if self.config.neuron.use_upnpc:
+        if self.config.miner.use_upnpc:
             logging.success(prefix = 'Set upnpc', sufix = '<green>ON</green>')
             try:
                 self.external_port = net.upnpc_create_port_map( port = self.axon.port )
@@ -183,6 +182,7 @@ class Neuron():
                 wait_for_finalization = True,
                 timeout = 4 * __blocktime__,
         )
+        
         if not subscribe_success:
             raise RuntimeError('Failed to subscribe neuron.')
 
