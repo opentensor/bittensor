@@ -93,6 +93,7 @@ def add_args( parser: argparse.ArgumentParser ):
     dataloader.add_args( parser )
     dendrite.add_args( parser )
     axon.add_args( parser )
+    parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Neuron punches a hole in your router using upnpc''', default=False)
 
 def check_config( config ):
     logging.check_config( config )
@@ -146,7 +147,7 @@ class Neuron():
 
     def __enter__(self):
         # ---- Setup UPNPC ----
-        if self.config.miner.use_upnpc:
+        if self.config.neuron.use_upnpc:
             logging.success(prefix = 'Set upnpc', sufix = '<green>ON</green>')
             try:
                 self.external_port = net.upnpc_create_port_map( port = self.axon.port )
@@ -195,6 +196,7 @@ class Neuron():
 
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         self.axon.stop()
+        print(exc_type, exc_value, exc_traceback)
 
 def init( 
         config: 'Config' = None,

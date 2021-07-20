@@ -47,10 +47,11 @@ class Nucleus(nn.Module):
     def __init__(self, config ):
         super(Nucleus, self).__init__()
         self.config = config
-        encoder_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout ,batch_first=True)
+        encoder_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
         self.transformer = TransformerEncoder( encoder_layers, self.config.nucleus.nlayers)
         self.encoder = nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )
-        self.decoder = nn.Linear(  bittensor.__network_dim__, bittensor.__vocab_size__ )
+        self.hidden_layer = nn.Linear( bittensor.__network_dim__, bittensor.__network_dim__ )
+        self.decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ )
         self.loss_fct = nn.CrossEntropyLoss()
         self.chain_weights = torch.ones( [0] )
         self.init_weights()
@@ -96,20 +97,21 @@ class Nucleus(nn.Module):
         # local_hidden: hidden layer encoding of sequence with local_context.
         # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         token = self.encoder( inputs )
-        output.local_hidden = self.transformer( token )
-        logger.info(output.local_hidden.shape)
+        output.local_context = self.transformer( token )
+
+        # local_hidden: hidden l;ayer encoding using local_context.
+        # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        output.local_hidden = self.hidden_layer( output.local_context )
 
         if training :
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
             output.local_target = self.decoder( output.local_hidden )
-            logger.info(output.local_target.shape)
 
             # local_target_loss: MLM loss between local_target and passed targets.
             # local_target_loss.shape = [1]
             shift_logits = output.local_target[..., :-1, :].contiguous()
             shift_labels = inputs[..., 1:].contiguous()     
-            logger.info([shift_labels.shape,shift_logits.shape])
        
             output.local_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
             
@@ -144,7 +146,7 @@ class Nucleus(nn.Module):
 
         # distillation_loss : distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
-        output.distillation_loss = F.mse_loss(output.local_context, output.remote_hidden.detach())
+        output.distillation_loss = F.mse_loss(output.local_context, output.remote_context.detach())
 
         # remote_hidden: hidden l;ayer encoding using remote_context.
         # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
@@ -153,7 +155,7 @@ class Nucleus(nn.Module):
         if training :
             # remote_target: projection of remote_hidden onto target dimension.
             # remote_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.remote_target = self.target_layer(output.remote_hidden)
+            output.remote_target = self.decoder(output.remote_hidden)
 
             # remote_target_loss: MLM loss between remote_target and passed targets.
             # remote_target_loss.shape = [1]
@@ -179,15 +181,14 @@ class Nucleus(nn.Module):
         endpoints = [bittensor.neuron.metagraph.endpoints[uid] for uid in topk_uids]
 
         # ---- Query network ----
-        responses, _ = bittensor.neuron.dendrite.forward_text( 
+        responses, _ = bittensor.neuron.dendrite.forward_text ( 
             endpoints = endpoints, 
             inputs = [inputs for _ in endpoints] 
         )
 
-
         # ---- Join based on weights ----
         joining_weights = F.softmax( topk_weights, dim = 0 )
-        output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to(self.device)
+        output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
         for index, response in enumerate( responses ): 
             output += response * joining_weights[ index ]
 
@@ -275,17 +276,14 @@ class Miner:
     def run( self ):
         r""" Miner main loop.
         """
-        bit = bittensor.init (  
+        # ---- Build Bittensor neuron ----
+        with bittensor.init (  
                 config = self.config,
                 root_dir = self.config.miner.full_path,
                 axon_forward_callback = self.forward,
                 axon_backward_callback = self.backward,
-            )
-        print(bit)
-        # ---- Build Bittensor neuron ----
-        with bit:
-            print(bittensor.neuron.metagraph.R)
-            print(bittensor.neuron.axon)
+            ):
+
             # ---- Init run state ----
             self.epoch = 0
             self.global_step = 0
@@ -504,9 +502,16 @@ class Miner:
         self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
         self.nucleus.to( self.device ) # Load nucleus
 
+        # ---- Pad chain_weights to size.
+        self.nucleus.chain_weights = torch.nn.functional.pad (
+            self.nucleus.chain_weights,
+            pad = [0, bittensor.neuron.metagraph.n - self.nucleus.chain_weights.numel()],
+            value=0
+        )
+
         # --- Load optimizer.
         self.optimizer = torch.optim.SGD(
-            [{"params": self.nucleus.parameters()}],
+            [{"params": self.nucleus.parameters()}, {"params": self.nucleus.chain_weights} ],
             lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
             weight_decay = state_dict['optimizer_state']['param_groups'][0]['weight_decay'],
         )
@@ -554,7 +559,7 @@ class Miner:
     def logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
         r""" Called after every training step. Displays miner state to screen.
         """
-        self_uid = bittensor.neuron.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
+        self_uid = bittensor.neuron.metagraph.hotkeys.index( bittensor.neuron.wallet.hotkey.public_key )
         stake = bittensor.neuron.metagraph.S[ self_uid ].item()
         rank = bittensor.neuron.metagraph.R[ self_uid ].item()
         incentive = bittensor.neuron.metagraph.I[ self_uid ].item()
@@ -567,7 +572,7 @@ class Miner:
             'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
             'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
             'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
-            'nPeers': colored(self.metagraph.n.item(), 'red'),
+            'nPeers': colored(bittensor.neuron.metagraph.n.item(), 'red'),
             'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
