@@ -47,8 +47,8 @@ class Nucleus(nn.Module):
     def __init__(self, config ):
         super(Nucleus, self).__init__()
         self.config = config
-        encoder_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
-        self.transformer = TransformerEncoder( encoder_layers, self.config.nucleus.nlayers )
+        encoder_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout ,batch_first=True)
+        self.transformer = TransformerEncoder( encoder_layers, self.config.nucleus.nlayers)
         self.encoder = nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )
         self.decoder = nn.Linear(  bittensor.__network_dim__, bittensor.__vocab_size__ )
         self.loss_fct = nn.CrossEntropyLoss()
@@ -95,8 +95,8 @@ class Nucleus(nn.Module):
 
         # local_hidden: hidden layer encoding of sequence with local_context.
         # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        inputs = self.encoder( inputs )
-        output.local_hidden = self.transformer( inputs )
+        token = self.encoder( inputs )
+        output.local_hidden = self.transformer( token )
         logger.info(output.local_hidden.shape)
 
         if training :
@@ -109,7 +109,7 @@ class Nucleus(nn.Module):
             # local_target_loss.shape = [1]
             shift_logits = output.local_target[..., :-1, :].contiguous()
             shift_labels = inputs[..., 1:].contiguous()     
-            logger.info(shift_labels.shape)
+            logger.info([shift_labels.shape,shift_logits.shape])
        
             output.local_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
             
@@ -183,6 +183,7 @@ class Nucleus(nn.Module):
             endpoints = endpoints, 
             inputs = [inputs for _ in endpoints] 
         )
+
 
         # ---- Join based on weights ----
         joining_weights = F.softmax( topk_weights, dim = 0 )
@@ -274,14 +275,17 @@ class Miner:
     def run( self ):
         r""" Miner main loop.
         """
-        # ---- Build Bittensor neuron ----
-        with bittensor.init (  
+        bit = bittensor.init (  
                 config = self.config,
                 root_dir = self.config.miner.full_path,
                 axon_forward_callback = self.forward,
                 axon_backward_callback = self.backward,
-            ):
-
+            )
+        print(bit)
+        # ---- Build Bittensor neuron ----
+        with bit:
+            print(bittensor.neuron.metagraph.R)
+            print(bittensor.neuron.axon)
             # ---- Init run state ----
             self.epoch = 0
             self.global_step = 0
@@ -474,6 +478,7 @@ class Miner:
         last_saved = self.get_saved_state()
         if last_saved == None or last_saved['epoch_loss'] >= self.epoch_loss:
             self.save()
+        bittensor.neuron.metagraph.load()
         bittensor.neuron.metagraph.sync()
         bittensor.neuron.metagraph.save()
         self.reload()
