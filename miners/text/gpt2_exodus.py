@@ -53,7 +53,7 @@ class Nucleus(nn.Module):
         self.hidden_layer = nn.Linear( bittensor.__network_dim__, bittensor.__network_dim__ )
         self.decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ )
         self.loss_fct = nn.CrossEntropyLoss()
-        self.chain_weights = torch.ones( [0] )
+        self.chain_weights = torch.zeros( [0] , requires_grad=True)
         self.init_weights()
 
     @staticmethod
@@ -148,14 +148,10 @@ class Nucleus(nn.Module):
         # distillation_loss.shape = [1]
         output.distillation_loss = F.mse_loss(output.local_context, output.remote_context.detach())
 
-        # remote_hidden: hidden l;ayer encoding using remote_context.
-        # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.remote_hidden = self.hidden_layer( output.remote_context )
-
         if training :
             # remote_target: projection of remote_hidden onto target dimension.
             # remote_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.remote_target = self.decoder(output.remote_hidden)
+            output.remote_target = self.decoder(output.remote_context)
 
             # remote_target_loss: MLM loss between remote_target and passed targets.
             # remote_target_loss.shape = [1]
@@ -244,6 +240,7 @@ class Miner:
         parser.add_argument('--miner.accumulate_remote_gradients', action='store_true', help='''Does the miner accumulate remote gradients from backward queries.''', default=False)
         parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
+        parser.add_argument('--miner.use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
         bittensor.add_args( parser )
         Nucleus.add_args( parser )  
 
@@ -499,19 +496,14 @@ class Miner:
         self.epoch = state_dict['epoch']
         self.epoch_loss = state_dict['epoch_loss']
         self.global_step = state_dict['global_step']
+        for uid in bittensor.neuron.metagraph.uids.tolist():
+            self.nucleus.chain_weights = torch.cat ((self.nucleus.chain_weights,torch.zeros([1], requires_grad=True)),0) #updates the shape of nucleus chain weights
         self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
         self.nucleus.to( self.device ) # Load nucleus
 
-        # ---- Pad chain_weights to size.
-        self.nucleus.chain_weights = torch.nn.functional.pad (
-            self.nucleus.chain_weights,
-            pad = [0, bittensor.neuron.metagraph.n - self.nucleus.chain_weights.numel()],
-            value=0
-        )
-
         # --- Load optimizer.
         self.optimizer = torch.optim.SGD(
-            [{"params": self.nucleus.parameters()}, {"params": self.nucleus.chain_weights} ],
+            [{"params": self.nucleus.parameters()}],
             lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
             weight_decay = state_dict['optimizer_state']['param_groups'][0]['weight_decay'],
         )
@@ -579,7 +571,8 @@ class Miner:
         }
         for uid in bittensor.neuron.metagraph.uids.tolist():
             if self.nucleus.chain_weights[uid] != 0:
-                weight_dif = -self.nucleus.chain_weights.grad[uid]
+                print(self.nucleus.chain_weights[uid])
+                weight_dif = -self.nucleus.chain_weights[uid].grad
                 if weight_dif > 0:
                     info[colored(str(uid), 'green')] = colored('{:.4f}'.format(self.nucleus.chain_weights[uid]), 'green')
                 elif weight_dif == 0:
