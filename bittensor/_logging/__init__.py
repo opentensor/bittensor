@@ -152,8 +152,6 @@ class logging:
     def log_filter(cls, record ):
         if cls.__debug_on__ or cls.__trace_on__:
             return True
-        elif record["level"].no >= logger.level('INFO').no:
-            return True
         else:
             return False
 

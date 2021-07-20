@@ -18,6 +18,7 @@
 
 # Nest Asyncio for colab support.
 import nest_asyncio
+import argparse
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
@@ -79,6 +80,137 @@ from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._dataloader.dataloader_impl import Dataloader as Dataloader
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 
+import bittensor.utils.networking as net
+
+# Singluar Neuron instance useful for creating simple miners.
+neuron = None
+
+def add_args( parser: argparse.ArgumentParser ):
+    logging.add_args( parser )
+    wallet.add_args( parser )
+    subtensor.add_args( parser )
+    metagraph.add_args( parser )
+    dataloader.add_args( parser )
+    dendrite.add_args( parser )
+    axon.add_args( parser )
+    parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
+
+def check_config( config ):
+    logging.check_config( config )
+    wallet.check_config( config )
+    subtensor.check_config( config )
+    metagraph.check_config( config )
+    dataloader.check_config( config )
+    dendrite.check_config( config )
+    axon.check_config( config )
+
+def default_config() -> 'Config':
+    parser = argparse.ArgumentParser()
+    add_args( parser )
+    bittensor_config = config( parser )
+    check_config(bittensor_config)
+    return bittensor_config
+
+class Neuron():
+
+    def __init__(self, 
+            config: 'Config',
+            root_dir: str = '',
+            axon_forward_callback: 'Callable' = None,
+            axon_backward_callback: 'Callable' = None,
+        ):
+        if config == None: config = default_config()
+        self.config = config
+        logging (
+            config = self.config,
+            logging_dir = root_dir,
+        )
+        self.wallet = wallet(
+            config = self.config
+        )
+        self.dendrite = dendrite(
+            config = self.config,
+            wallet = self.wallet
+        )
+        self.subtensor = subtensor(
+            config = self.config
+        )
+        self.metagraph = metagraph(
+            config = self.config
+        )
+        self.axon = axon (
+            config = self.config,
+            wallet = self.wallet,
+            forward_callback=axon_forward_callback,
+            backward_callback=axon_backward_callback,
+        )
+
+    def __enter__(self):
+        # ---- Setup UPNPC ----
+        if self.config.neuron.use_upnpc:
+            logging.success(prefix = 'Set upnpc', sufix = '<green>ON</green>')
+            try:
+                self.external_port = net.upnpc_create_port_map( port = self.axon.port )
+            except net.UPNPCException as upnpc_exception:
+                raise RuntimeError('Failed to hole-punch with upnpc')
+        else:
+            logging.success(prefix = 'Set upnpc', sufix = '<red>OFF</red>')
+            self.external_port = self.config.axon.port
+
+        # ---- Get external ip ----
+        try:
+            self.external_ip = net.get_external_ip()
+            logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format(self.external_ip))
+        except Exception as E:
+            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error:{}', E)
+
+        # ---- Setup Wallet. ----
+        if not self.wallet.has_coldkeypub:
+            self.wallet.create_new_coldkey( n_words = 12, use_password = True )
+        if not self.wallet.has_coldkeypub:
+            raise RuntimeError('Miner must have access to a decrypted coldkeypub')
+        if not self.wallet.has_hotkey:
+            self.wallet.create_new_hotkey( n_words = 12, use_password = False )
+        if not self.wallet.has_hotkey:
+            raise RuntimeError('Miner must have access to a decrypted hotkey')
+
+        # ---- Subscribe to chain ----
+        subscribe_success = self.subtensor.subscribe(
+                wallet = self.wallet,
+                ip = self.external_ip,
+                port = self.external_port,
+                modality = proto.Modality.TEXT,
+                wait_for_finalization = True,
+                timeout = 4 * __blocktime__,
+        )
+        if not subscribe_success:
+            raise RuntimeError('Failed to subscribe neuron.')
+
+        # --- Update metagraph ----
+        self.metagraph.load()
+        self.metagraph.sync()
+
+        # ---- Starting axon ----
+        self.axon.start()
+
+    def __exit__ ( self, exc_type, exc_value, exc_traceback ):
+        self.axon.stop()
+
+def init( 
+        config: 'Config' = None,
+        root_dir: str = None,
+        axon_forward_callback: 'Callable' = None,
+        axon_backward_callback: 'Callable' = None,
+    ) -> Neuron:
+
+    global neuron
+    neuron = Neuron( 
+        config = config,
+        root_dir = root_dir,
+        axon_forward_callback = axon_forward_callback,
+        axon_backward_callback = axon_backward_callback,
+    )
+    return neuron
 
 # Hardcoded entry point nodes. 
 __akira_entrypoints__ = [
