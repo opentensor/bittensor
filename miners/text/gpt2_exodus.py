@@ -47,10 +47,11 @@ class Nucleus(nn.Module):
     def __init__(self, config ):
         super(Nucleus, self).__init__()
         self.config = config
-        encoder_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout ,batch_first=True)
+        encoder_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
         self.transformer = TransformerEncoder( encoder_layers, self.config.nucleus.nlayers)
         self.encoder = nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )
-        self.decoder = nn.Linear(  bittensor.__network_dim__, bittensor.__vocab_size__ )
+        self.hidden_layer = nn.Linear( bittensor.__network_dim__, bittensor.__network_dim__ )
+        self.decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ )
         self.loss_fct = nn.CrossEntropyLoss()
         self.chain_weights = torch.zeros( [0] , requires_grad=True)
         self.init_weights()
@@ -96,20 +97,21 @@ class Nucleus(nn.Module):
         # local_hidden: hidden layer encoding of sequence with local_context.
         # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         token = self.encoder( inputs )
-        output.local_hidden = self.transformer( token )
-        logger.info(output.local_hidden.shape)
+        output.local_context = self.transformer( token )
+
+        # local_hidden: hidden l;ayer encoding using local_context.
+        # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        output.local_hidden = self.hidden_layer( output.local_context )
 
         if training :
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
             output.local_target = self.decoder( output.local_hidden )
-            logger.info(output.local_target.shape)
 
             # local_target_loss: MLM loss between local_target and passed targets.
             # local_target_loss.shape = [1]
             shift_logits = output.local_target[..., :-1, :].contiguous()
             shift_labels = inputs[..., 1:].contiguous()     
-            logger.info([shift_labels.shape,shift_logits.shape])
        
             output.local_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
             
@@ -144,13 +146,12 @@ class Nucleus(nn.Module):
 
         # distillation_loss : distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
-        output.distillation_loss = F.mse_loss(output.local_hidden, output.remote_hidden.detach())
-
+        output.distillation_loss = F.mse_loss(output.local_context, output.remote_context.detach())
 
         if training :
             # remote_target: projection of remote_hidden onto target dimension.
             # remote_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.remote_target = self.decoder(output.remote_hidden)
+            output.remote_target = self.decoder(output.remote_context)
 
             # remote_target_loss: MLM loss between remote_target and passed targets.
             # remote_target_loss.shape = [1]
@@ -176,7 +177,7 @@ class Nucleus(nn.Module):
         endpoints = [bittensor.neuron.metagraph.endpoints[uid] for uid in topk_uids]
 
         # ---- Query network ----
-        responses, _ = bittensor.neuron.dendrite.forward_text( 
+        responses, _ = bittensor.neuron.dendrite.forward_text ( 
             endpoints = endpoints, 
             inputs = [inputs for _ in endpoints] 
         )
@@ -184,7 +185,7 @@ class Nucleus(nn.Module):
 
         # ---- Join based on weights ----
         joining_weights = F.softmax( topk_weights, dim = 0 )
-        output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to(self.config.miner.device)
+        output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
         for index, response in enumerate( responses ): 
             output += response * joining_weights[ index ]
 
