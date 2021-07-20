@@ -52,7 +52,7 @@ class Nucleus(nn.Module):
         self.encoder = nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )
         self.decoder = nn.Linear(  bittensor.__network_dim__, bittensor.__vocab_size__ )
         self.loss_fct = nn.CrossEntropyLoss()
-        self.chain_weights = torch.ones( [0] )
+        self.chain_weights = torch.zeros( [0] , requires_grad=True)
         self.init_weights()
 
     @staticmethod
@@ -140,20 +140,17 @@ class Nucleus(nn.Module):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len (or block_size), bittensor.__network_dim__]
-        output.remote_context = self.remote( inputs )
+        output.remote_hidden = self.remote( inputs )
 
         # distillation_loss : distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
-        output.distillation_loss = F.mse_loss(output.local_context, output.remote_hidden.detach())
+        output.distillation_loss = F.mse_loss(output.local_hidden, output.remote_hidden.detach())
 
-        # remote_hidden: hidden l;ayer encoding using remote_context.
-        # remote_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.remote_hidden = self.hidden_layer( output.remote_context )
 
         if training :
             # remote_target: projection of remote_hidden onto target dimension.
             # remote_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.remote_target = self.target_layer(output.remote_hidden)
+            output.remote_target = self.decoder(output.remote_hidden)
 
             # remote_target_loss: MLM loss between remote_target and passed targets.
             # remote_target_loss.shape = [1]
@@ -187,7 +184,7 @@ class Nucleus(nn.Module):
 
         # ---- Join based on weights ----
         joining_weights = F.softmax( topk_weights, dim = 0 )
-        output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to(self.device)
+        output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to(self.config.miner.device)
         for index, response in enumerate( responses ): 
             output += response * joining_weights[ index ]
 
@@ -243,6 +240,7 @@ class Miner:
         parser.add_argument('--miner.accumulate_remote_gradients', action='store_true', help='''Does the miner accumulate remote gradients from backward queries.''', default=False)
         parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
+        parser.add_argument('--miner.use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
         bittensor.add_args( parser )
         Nucleus.add_args( parser )  
 
@@ -281,11 +279,8 @@ class Miner:
                 axon_forward_callback = self.forward,
                 axon_backward_callback = self.backward,
             )
-        print(bit)
         # ---- Build Bittensor neuron ----
         with bit:
-            print(bittensor.neuron.metagraph.R)
-            print(bittensor.neuron.axon)
             # ---- Init run state ----
             self.epoch = 0
             self.global_step = 0
@@ -501,6 +496,8 @@ class Miner:
         self.epoch = state_dict['epoch']
         self.epoch_loss = state_dict['epoch_loss']
         self.global_step = state_dict['global_step']
+        for uid in bittensor.neuron.metagraph.uids.tolist():
+            self.nucleus.chain_weights = torch.cat ((self.nucleus.chain_weights,torch.zeros([1], requires_grad=True)),0) #updates the shape of nucleus chain weights
         self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
         self.nucleus.to( self.device ) # Load nucleus
 
@@ -554,7 +551,7 @@ class Miner:
     def logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
         r""" Called after every training step. Displays miner state to screen.
         """
-        self_uid = bittensor.neuron.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
+        self_uid = bittensor.neuron.metagraph.hotkeys.index( bittensor.neuron.wallet.hotkey.public_key )
         stake = bittensor.neuron.metagraph.S[ self_uid ].item()
         rank = bittensor.neuron.metagraph.R[ self_uid ].item()
         incentive = bittensor.neuron.metagraph.I[ self_uid ].item()
@@ -567,14 +564,15 @@ class Miner:
             'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
             'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
             'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
-            'nPeers': colored(self.metagraph.n.item(), 'red'),
+            'nPeers': colored(bittensor.neuron.metagraph.n.item(), 'red'),
             'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
         }
         for uid in bittensor.neuron.metagraph.uids.tolist():
             if self.nucleus.chain_weights[uid] != 0:
-                weight_dif = -self.nucleus.chain_weights.grad[uid]
+                print(self.nucleus.chain_weights[uid])
+                weight_dif = -self.nucleus.chain_weights[uid].grad
                 if weight_dif > 0:
                     info[colored(str(uid), 'green')] = colored('{:.4f}'.format(self.nucleus.chain_weights[uid]), 'green')
                 elif weight_dif == 0:
