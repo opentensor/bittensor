@@ -501,8 +501,6 @@ class Miner:
         self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
         self.nucleus.to( self.device ) # Load nucleus
 
-        
-
         # --- Load optimizer.
         self.optimizer = torch.optim.SGD(
             [{"params": self.nucleus.parameters()}],
