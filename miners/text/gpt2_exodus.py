@@ -297,7 +297,7 @@ class Miner:
                 axon_backward_callback = self.backward,
             ):
             if self.config.neuron.use_wandb:
-                bittensor.neuron.wandb.watch([self.nucleus.transformer, self.nucleus.decoder, self.nucleus.hidden_layer], self.nucleus.loss_fct,log ='all', log_freq=10)
+                bittensor.neuron.wandb.watch([self.nucleus.local_hidden, self.nucleus.local_encoder, self.nucleus.remote_hidden], self.nucleus.loss_fct, log ='all', log_freq=10 )
             
             # ---- Init run state ----
             self.epoch = 0
