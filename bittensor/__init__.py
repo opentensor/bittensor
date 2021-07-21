@@ -15,11 +15,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import argparse
+import wandb
 
 # Nest Asyncio for colab support.
-import nest_asyncio
-import argparse
-nest_asyncio.apply()
+import nest_asyncio;nest_asyncio.apply()
 
 # Bittensor code and protocol version.
 __version__ = '2.0.0'
@@ -122,6 +122,7 @@ class Neuron():
         ):
         if config == None: config = default_config()
         self.config = config
+        self.root_dir = root_dir
         logging (
             config = self.config,
             logging_dir = root_dir,
@@ -195,13 +196,16 @@ class Neuron():
         # ---- Starting axon ----
         self.axon.start()
 
+        # --- Init wandb ----
         if self.config.neuron.use_wandb:
-            import wandb
             self.wandb = wandb.init(
-                project= self.config.wallet.name + "-" + self.config.wallet.hotkey,
-                dir = self.config.miner.full_path,
-                config = self.config
+                project = self.config.wallet.name,
+                dir = self.root_dir,
+                config = self.config,
+                save_code = True,
+                group = self.config.wallet.hotkey,
             )
+            
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         self.axon.stop()
         print(exc_type, exc_value, exc_traceback)

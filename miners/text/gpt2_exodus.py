@@ -241,6 +241,7 @@ class Miner:
         parser.add_argument('--miner.restart_on_failure',  action='store_true', help='''Restart miner on unknown error.''', default=False)
         parser.add_argument('--miner.compute_remote_gradients', action='store_true', help='''Does the miner compute and return gradients from backward queries.''', default=False)
         parser.add_argument('--miner.accumulate_remote_gradients', action='store_true', help='''Does the miner accumulate remote gradients from backward queries.''', default=False)
+        parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
         parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--miner.use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
@@ -268,7 +269,7 @@ class Miner:
         assert config.miner.batch_size_train > 0, "batch_size_train must be a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         bittensor.check_config( config )
-        full_path = os.path.expanduser('{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name + "-" + config.wallet.hotkey, config.miner.name ))
+        full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.miner.name ))
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
@@ -283,9 +284,9 @@ class Miner:
                 axon_forward_callback = self.forward,
                 axon_backward_callback = self.backward,
             ):
-
             if self.config.neuron.use_wandb:
-                bittensor.neuron.wandb.watch([self.nucleus.transformer,self.nucleus.decoder,self.nucleus.hidden_layer],self.nucleus.loss_fct,log ='all',log_freq=10)
+                bittensor.neuron.wandb.watch([self.nucleus.transformer, self.nucleus.decoder, self.nucleus.hidden_layer], self.nucleus.loss_fct,log ='all', log_freq=10)
+            
             # ---- Init run state ----
             self.epoch = 0
             self.global_step = 0
@@ -535,12 +536,12 @@ class Miner:
     def set_chain_weights( self ):
         r""" Sets the chain weights.
         """
-        # TODO(const): select topk.
         try:
-            uids = bittensor.neuron.metagraph.uids
+            topk_uids, topk_weights = torch.topk( self.nucleus.chain_weights, k = self.config.miner.n_topk_chain_weights )
+            normalized_topk_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
             did_set = bittensor.neuron.subtensor.set_weights(
-                uids = uids,
-                weights = self.nucleus.chain_weights,
+                uids = topk_uids,
+                weights = normalized_topk_weights,
                 wait_for_inclusion = True,
                 wallet = bittensor.neuron.wallet,
             )
@@ -587,7 +588,7 @@ class Miner:
                 'Incentive':incentive}
             )
         for uid in bittensor.neuron.metagraph.uids.tolist():
-            normalized_chain_weights = torch.nn.functional.normalize( self.nucleus.chain_weights + torch.min( self.nucleus.chain_weights ), p = 1, dim = 0)
+            normalized_chain_weights = torch.nn.functional.normalize( self.nucleus.chain_weights - torch.min( self.nucleus.chain_weights ), p = 1, dim = 0)
             if self.nucleus.chain_weights[uid] != 0:
                 weight_dif = -self.nucleus.chain_weights.grad[uid]
                 if weight_dif > 0:
