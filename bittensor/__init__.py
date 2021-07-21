@@ -94,6 +94,7 @@ def add_args( parser: argparse.ArgumentParser ):
     dendrite.add_args( parser )
     axon.add_args( parser )
     parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Neuron punches a hole in your router using upnpc''', default=False)
+    parser.add_argument('--neuron.use_wandb', action='store_true', help='''Neuron activates its weights and biases powers''', default=False)
 
 def check_config( config ):
     logging.check_config( config )
@@ -194,6 +195,13 @@ class Neuron():
         # ---- Starting axon ----
         self.axon.start()
 
+        if self.config.neuron.use_wandb:
+            import wandb
+            self.wandb = wandb.init(
+                project= self.config.wallet.name + "-" + self.config.wallet.hotkey,
+                dir = self.config.miner.full_path,
+                config = self.config
+            )
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         self.axon.stop()
         print(exc_type, exc_value, exc_traceback)
