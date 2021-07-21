@@ -574,14 +574,15 @@ class Miner:
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
         }
         for uid in bittensor.neuron.metagraph.uids.tolist():
+            normalized_chain_weights = torch.nn.functional.normalize( self.nucleus.chain_weights + torch.min( self.nucleus.chain_weights ), p = 1, dim = 0)
             if self.nucleus.chain_weights[uid] != 0:
                 weight_dif = -self.nucleus.chain_weights.grad[uid]
                 if weight_dif > 0:
-                    info[colored(str(uid), 'green')] = colored('{:.4f}'.format(self.nucleus.chain_weights[uid]), 'green')
+                    info[colored(str(uid), 'green')] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'green')
                 elif weight_dif == 0:
-                    info[str(uid)] = colored('{:.4f}'.format(self.nucleus.chain_weights[uid]), 'white')
+                    info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'white')
                 else:
-                    info[colored(str(uid), 'red')] = colored('{:.4f}'.format(self.nucleus.chain_weights[uid]), 'red')
+                    info[colored(str(uid), 'red')] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
         progress_bar.set_infos( info )
 
 if __name__ == "__main__":
