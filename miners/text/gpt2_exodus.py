@@ -276,14 +276,13 @@ class Miner:
     def run( self ):
         r""" Miner main loop.
         """
-        bit = bittensor.init (  
+        # ---- Build Bittensor neuron ----
+        with bittensor.init (  
                 config = self.config,
                 root_dir = self.config.miner.full_path,
                 axon_forward_callback = self.forward,
                 axon_backward_callback = self.backward,
-            )
-        # ---- Build Bittensor neuron ----
-        with bit:
+            ):
             # ---- Init run state ----
             self.epoch = 0
             self.global_step = 0
