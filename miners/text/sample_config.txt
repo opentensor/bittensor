@@ -39,7 +39,7 @@ neuron.use_wandb: true
 nucleus.nhid: 200
 nucleus.nhead: 2
 nucleus.nlayers: 2
-nucleus.dropout: 0.1
+nucleus.dropout: 0.3
 nucleus.topk: 30 
 
 subtensor.chain_endpoint: null
