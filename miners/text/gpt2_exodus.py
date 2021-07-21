@@ -561,7 +561,10 @@ class neuron:
     def epoch_logs( self, progress_bar, iteration:int, output: SimpleNamespace, prev_mechanism_weights: List[float], next_mechanism_weights: List[float] ):
         r""" Called after every training step. Displays miner state to screen.
         """
-        self_uid = self.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
+        self_uid = 0
+        if hasattr(self.metagraph, 'hotkeys'):
+            self_uid = self.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
+            
         stake = self.metagraph.S[ self_uid ].item()
         rank = self.metagraph.R[ self_uid ].item()
         incentive = self.metagraph.I[ self_uid ].item()
