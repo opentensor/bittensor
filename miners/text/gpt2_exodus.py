@@ -283,6 +283,9 @@ class Miner:
                 axon_forward_callback = self.forward,
                 axon_backward_callback = self.backward,
             ):
+
+            if self.config.neuron.use_wandb:
+                bittensor.neuron.wandb.watch([self.nucleus.transformer,self.nucleus.decoder,self.nucleus.hidden_layer],self.nucleus.loss_fct,log ='all',log_freq=10)
             # ---- Init run state ----
             self.epoch = 0
             self.global_step = 0
@@ -573,6 +576,16 @@ class Miner:
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
         }
+        if self.config.neuron.use_wandb:
+            bittensor.neuron.wandb.log({
+                'remote_target_loss':output.remote_target_loss.item(),
+                'distillation_loss':output.distillation_loss.item(), 
+                "local_target_loss": output.local_target_loss.item(),
+                'Number of Peers':bittensor.neuron.metagraph.n.item(),
+                'Stake':stake,
+                'Rank':rank,
+                'Incentive':incentive}
+            )
         for uid in bittensor.neuron.metagraph.uids.tolist():
             if self.nucleus.chain_weights[uid] != 0:
                 weight_dif = -self.nucleus.chain_weights.grad[uid]
