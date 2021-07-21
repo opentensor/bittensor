@@ -47,10 +47,22 @@ class Nucleus(nn.Module):
     def __init__(self, config ):
         super(Nucleus, self).__init__()
         self.config = config
-        encoder_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
+
+        # Embedding Layer.
         self.embedding = nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )
-        self.encoder = TransformerEncoder( encoder_layers, self.config.nucleus.nlayers )
-        self.decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ )
+
+        # Local Model
+        local_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
+        local_hidden_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
+        self.local_encoder = TransformerEncoder( local_layers, self.config.nucleus.nlayers )
+        self.local_hidden = TransformerEncoder( local_hidden_layers, self.config.nucleus.nlayers )
+        self.local_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ )
+
+        # Remote Model
+        remote_context_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
+        self.remote_hidden = TransformerEncoder( remote_context_layers, self.config.nucleus.nlayers )
+        self.remote_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ )
+
         self.loss_fct = nn.CrossEntropyLoss()
         self.chain_weights = torch.zeros( [0] , requires_grad=True)
         self.init_weights()
@@ -67,9 +79,10 @@ class Nucleus(nn.Module):
 
     def init_weights(self):
         initrange = 0.1
-        self.embedding.weight.data.uniform_(-initrange, initrange)
-        self.decoder.bias.data.zero_()
-        self.decoder.weight.data.uniform_(-initrange, initrange)
+        self.remote_decoder.weight.data.uniform_(-initrange, initrange)
+        self.remote_decoder.bias.data.zero_()
+        self.local_decoder.weight.data.uniform_(-initrange, initrange)
+        self.local_decoder.bias.data.zero_()
 
     def local_forward(self, inputs: torch.int64, training : bool = True) -> SimpleNamespace:
         """ Forward pass through GPT2 nucleus.
@@ -89,22 +102,26 @@ class Nucleus(nn.Module):
                         MLM loss using local_context.
                 }
         """
+        # To be filled.
         output = SimpleNamespace()
 
         # local_context: hidden layer encoding of sequence with local_context.
         # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.local_context = self.encoder( self.embedding( inputs ) )
+        output.local_context = self.local_encoder( self.embedding( inputs ) )
 
         if training :
+            # local_hidden: local model which learns a new projection from the local_context
+            # local_hidden.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
+            output.local_hidden = self.local_hidden( output.local_context.detach() )
+
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.local_target = self.decoder( output.local_context )
+            output.local_target = self.local_decoder( output.local_context )
 
             # local_target_loss: MLM loss between local_target and passed targets.
             # local_target_loss.shape = [1]
             shift_logits = output.local_target[..., :-1, :].contiguous()
             shift_labels = inputs[..., 1:].contiguous()     
-       
             output.local_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
             
         return output
@@ -129,22 +146,25 @@ class Nucleus(nn.Module):
             )
         """
         # Run local model
-        # output = SimpleNamespace
-        output = self.local_forward(inputs, training)
+        output = self.local_forward( inputs, training )
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len (or block_size), bittensor.__network_dim__]
         output.remote_context = self.remote( inputs )
 
+        # remote_hidden: projects from the remote_context
+        # remote_hidden.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
+        output.remote_hidden = self.remote_hidden( output.remote_context )
+
         # distillation_loss : distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
-        # This trains the local_context to emulate the network context.
-        output.distillation_loss = F.mse_loss( output.local_context, output.remote_context )
+        # This trains the local_context (student) to emulate the network context.
+        output.distillation_loss = F.mse_loss( output.local_context, output.remote_hidden.detach() )
 
         if training :
-            # remote_target: projection of remote_context onto target dimension.
+            # remote_target: projection of remote_hidden onto target dimension.
             # remote_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.remote_target = self.decoder( output.remote_context )
+            output.remote_target = self.remote_decoder( output.remote_hidden )
 
             # remote_target_loss: MLM loss between remote_target and passed targets.
             # remote_target_loss.shape = [1]
@@ -181,7 +201,6 @@ class Nucleus(nn.Module):
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
         for index, response in enumerate( responses ): 
             # --- responses currently zeroed out (TODO: run more miners and see if the responses are fixed) 
-            #output += response * joining_weights[ index ]
             output += torch.rand((inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)) * joining_weights[ index ]
 
         # ---- Return response -----
