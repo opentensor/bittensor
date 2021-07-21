@@ -64,7 +64,7 @@ class Nucleus(nn.Module):
         parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default=2)
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
-        parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=10)
+        parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
 
     def init_weights(self):
         initrange = 0.1
@@ -142,11 +142,11 @@ class Nucleus(nn.Module):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len (or block_size), bittensor.__network_dim__]
-        output.remote_hidden = self.remote( inputs )
+        output.remote_context = self.remote( inputs )
 
         # distillation_loss : distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
-        output.distillation_loss = F.mse_loss(output.local_context, output.remote_context.detach())
+        output.distillation_loss = F.mse_loss(output.local_context, output.remote_context)
 
         if training :
             # remote_target: projection of remote_hidden onto target dimension.
@@ -170,8 +170,8 @@ class Nucleus(nn.Module):
             outputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
                 Joined hidden layer responses from peers.
         """
-        # ---- Topk Weights ----
-        topk_weights, topk_uids = self.chain_weights.topk( self.config.nucleus.topk, dim=0 )
+        # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
+        topk_weights, topk_uids = torch.topk(self.chain_weights + torch.normal(0.1,0.1,size=(self.chain_weights.size())) , self.config.nucleus.topk, dim=0) 
 
         # ---- Filter endpoints ----
         endpoints = [bittensor.neuron.metagraph.endpoints[uid] for uid in topk_uids]
@@ -187,7 +187,9 @@ class Nucleus(nn.Module):
         joining_weights = F.softmax( topk_weights, dim = 0 )
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
         for index, response in enumerate( responses ): 
-            output += response * joining_weights[ index ]
+            # --- responses currently zeroed out (TODO: run more miners and see if the responses are fixed) 
+            #output += response * joining_weights[ index ]
+            output += torch.rand((inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))* joining_weights[ index ]
 
         # ---- Return response -----
         return output
@@ -500,6 +502,8 @@ class Miner:
         for uid in bittensor.neuron.metagraph.uids.tolist():
             self.nucleus.chain_weights = torch.cat ((self.nucleus.chain_weights,torch.zeros([1], requires_grad=True)),0) #updates the shape of nucleus chain weights
         self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
+        self.nucleus.chain_weights = nn.Parameter(self.nucleus.chain_weights, requires_grad=True)
+        self.nucleus.chain_weights.retain_grad()
         self.nucleus.to( self.device ) # Load nucleus
 
         # --- Load optimizer.
@@ -572,8 +576,7 @@ class Miner:
         }
         for uid in bittensor.neuron.metagraph.uids.tolist():
             if self.nucleus.chain_weights[uid] != 0:
-                print(self.nucleus.chain_weights[uid])
-                weight_dif = -self.nucleus.chain_weights[uid].grad
+                weight_dif = -self.nucleus.chain_weights.grad[uid]
                 if weight_dif > 0:
                     info[colored(str(uid), 'green')] = colored('{:.4f}'.format(self.nucleus.chain_weights[uid]), 'green')
                 elif weight_dif == 0:
