@@ -147,7 +147,7 @@ class Neuron():
 
     def __enter__(self):
         # ---- Setup UPNPC ----
-        if self.config.miner.use_upnpc:
+        if self.config.neuron.use_upnpc:
             logging.success(prefix = 'Set upnpc', sufix = '<green>ON</green>')
             try:
                 self.external_port = net.upnpc_create_port_map( port = self.axon.port )
