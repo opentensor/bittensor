@@ -48,9 +48,8 @@ class Nucleus(nn.Module):
         super(Nucleus, self).__init__()
         self.config = config
         encoder_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
-        self.transformer = TransformerEncoder( encoder_layers, self.config.nucleus.nlayers)
-        self.encoder = nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )
-        self.hidden_layer = nn.Linear( bittensor.__network_dim__, bittensor.__network_dim__ )
+        self.embedding = nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )
+        self.encoder = TransformerEncoder( encoder_layers, self.config.nucleus.nlayers )
         self.decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ )
         self.loss_fct = nn.CrossEntropyLoss()
         self.chain_weights = torch.zeros( [0] , requires_grad=True)
@@ -68,7 +67,7 @@ class Nucleus(nn.Module):
 
     def init_weights(self):
         initrange = 0.1
-        self.encoder.weight.data.uniform_(-initrange, initrange)
+        self.embedding.weight.data.uniform_(-initrange, initrange)
         self.decoder.bias.data.zero_()
         self.decoder.weight.data.uniform_(-initrange, initrange)
 
@@ -84,29 +83,22 @@ class Nucleus(nn.Module):
                 SimpleNamespace {
                     local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Hidden layer context.
-                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                        Hidden layer encoding produced using local_context.
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
-                        GPT MLM Target predictions produced using local_context. 
+                        MLM Target predictions produced using local_context. 
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
-                        GPT MLM loss using local_context.
+                        MLM loss using local_context.
                 }
         """
         output = SimpleNamespace()
 
-        # local_hidden: hidden layer encoding of sequence with local_context.
-        # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        token = self.encoder( inputs )
-        output.local_context = self.transformer( token )
-
-        # local_hidden: hidden l;ayer encoding using local_context.
-        # local_hidden.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.local_hidden = self.hidden_layer( output.local_context )
+        # local_context: hidden layer encoding of sequence with local_context.
+        # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        output.local_context = self.encoder( self.embedding( inputs ) )
 
         if training :
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.local_target = self.decoder( output.local_hidden )
+            output.local_target = self.decoder( output.local_context )
 
             # local_target_loss: MLM loss between local_target and passed targets.
             # local_target_loss.shape = [1]
@@ -121,17 +113,17 @@ class Nucleus(nn.Module):
         """ Forward pass inputs and labels through the GPT2 module and into the remote network.
         Args:
             inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`): 
-                    Batch_size length list of text sentences.
+                Tokenized sentences using bittensor.tokenizer()
             training (:obj:`bool')`, `optional`, defaults to True):
                 Switch to True if this forward pass computes an MLM loss.
         Returns:
             self.local_forward() + SimpleNamespace ( 
-                remote_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`): 
-                    Hidden layer encoding produced using the remote_context.
+                remote_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                    Joined responses from the network.
                 remote_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size,  bittensor.__vocab_size__)`, `optional`):
-                    GPT MLM Target predictions using the remote_context.
+                    Target predictions using the remote_context layer.
                 remote_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
-                    GPT MLM loss using the remote_context.
+                    MLM loss using remote_target.
                 distillation_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`): 
                     Distillation loss between local_context and remote_context.
             )
@@ -146,12 +138,13 @@ class Nucleus(nn.Module):
 
         # distillation_loss : distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
-        output.distillation_loss = F.mse_loss(output.local_context, output.remote_context)
+        # This trains the local_context to emulate the network context.
+        output.distillation_loss = F.mse_loss( output.local_context, output.remote_context )
 
         if training :
-            # remote_target: projection of remote_hidden onto target dimension.
+            # remote_target: projection of remote_context onto target dimension.
             # remote_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.remote_target = self.decoder(output.remote_context)
+            output.remote_target = self.decoder( output.remote_context )
 
             # remote_target_loss: MLM loss between remote_target and passed targets.
             # remote_target_loss.shape = [1]
@@ -171,7 +164,8 @@ class Nucleus(nn.Module):
                 Joined hidden layer responses from peers.
         """
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
-        topk_weights, topk_uids = torch.topk(self.chain_weights + torch.normal(0.1,0.1,size=(self.chain_weights.size())) , self.config.nucleus.topk, dim=0) 
+        noise = torch.normal( torch.mean(self.chain_weights).item(), torch.std(self.chain_weights).item()+0.0000001, size=( self.chain_weights.size() ) )
+        topk_weights, topk_uids = torch.topk( self.chain_weights + noise, self.config.nucleus.topk, dim=0 ) 
 
         # ---- Filter endpoints ----
         endpoints = [bittensor.neuron.metagraph.endpoints[uid] for uid in topk_uids]
@@ -182,14 +176,13 @@ class Nucleus(nn.Module):
             inputs = [inputs for _ in endpoints] 
         )
 
-
         # ---- Join based on weights ----
         joining_weights = F.softmax( topk_weights, dim = 0 )
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
         for index, response in enumerate( responses ): 
             # --- responses currently zeroed out (TODO: run more miners and see if the responses are fixed) 
             #output += response * joining_weights[ index ]
-            output += torch.rand((inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))* joining_weights[ index ]
+            output += torch.rand((inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)) * joining_weights[ index ]
 
         # ---- Return response -----
         return output
