@@ -208,6 +208,9 @@ class Neuron():
             
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         self.axon.stop()
+        if self.config.neuron.use_wandb:
+            self.wandb.finish()
+            
         print(exc_type, exc_value, exc_traceback)
 
 def init( 
