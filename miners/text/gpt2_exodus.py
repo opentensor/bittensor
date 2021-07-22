@@ -514,11 +514,14 @@ class Miner:
         self.epoch = state_dict['epoch']
         self.epoch_loss = state_dict['epoch_loss']
         self.global_step = state_dict['global_step']
-        for uid in bittensor.neuron.metagraph.uids.tolist():
-            self.nucleus.chain_weights = torch.cat ((self.nucleus.chain_weights,torch.zeros([1], requires_grad=True)),0) #updates the shape of nucleus chain weights
+        self.nucleus.chain_weights = nn.Parameter(
+            torch.zeros(
+                [len(bittensor.neuron.metagraph.uids.tolist())],
+                 dtype=torch.float32, 
+                 requires_grad=True
+                 )) #updates the shape of nucleus chain weights
         self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
         self.nucleus.chain_weights = nn.Parameter(self.nucleus.chain_weights, requires_grad=True)
-        self.nucleus.chain_weights.retain_grad()
         self.nucleus.to( self.device ) # Load nucleus
 
         # --- Load optimizer.
@@ -549,7 +552,7 @@ class Miner:
         r""" Sets the chain weights.
         """
         try:
-            topk_uids, topk_weights = torch.topk( self.nucleus.chain_weights, k = self.config.miner.n_topk_chain_weights )
+            topk_weights, topk_uids = torch.topk( self.nucleus.chain_weights, k = self.config.miner.n_topk_chain_weights )
             normalized_topk_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
             did_set = bittensor.neuron.subtensor.set_weights(
                 uids = topk_uids,
@@ -590,7 +593,7 @@ class Miner:
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
         }
         if self.config.neuron.use_wandb:
-            bittensor.neuron.wandb.log({
+            wandb_info = {
                 'remote_target_loss':output.remote_target_loss.item(),
                 'distillation_loss':output.distillation_loss.item(), 
                 "local_target_loss": output.local_target_loss.item(),
@@ -598,9 +601,9 @@ class Miner:
                 'Stake':stake,
                 'Rank':rank,
                 'Incentive':incentive}
-            )
+
+        normalized_chain_weights = torch.nn.functional.normalize( self.nucleus.chain_weights - torch.min( self.nucleus.chain_weights ), p = 1, dim = 0)
         for uid in bittensor.neuron.metagraph.uids.tolist():
-            normalized_chain_weights = torch.nn.functional.normalize( self.nucleus.chain_weights - torch.min( self.nucleus.chain_weights ), p = 1, dim = 0)
             if self.nucleus.chain_weights[uid] != 0:
                 weight_dif = -self.nucleus.chain_weights.grad[uid]
                 if weight_dif > 0:
@@ -609,6 +612,12 @@ class Miner:
                     info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'white')
                 else:
                     info[colored(str(uid), 'red')] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
+                if self.config.neuron.use_wandb:
+                    wandb_info['Chain wights:' + str(uid)]= normalized_chain_weights[uid]
+        
+        if self.config.neuron.use_wandb:
+            bittensor.neuron.wandb.log(wandb_info)
+
         progress_bar.set_infos( info )
 
 if __name__ == "__main__":
