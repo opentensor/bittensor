@@ -17,6 +17,7 @@
 
 import argparse
 import wandb
+import os
 
 # Nest Asyncio for colab support.
 import nest_asyncio;nest_asyncio.apply()
@@ -95,6 +96,7 @@ def add_args( parser: argparse.ArgumentParser ):
     axon.add_args( parser )
     parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Neuron punches a hole in your router using upnpc''', default=False)
     parser.add_argument('--neuron.use_wandb', action='store_true', help='''Neuron activates its weights and biases powers''', default=False)
+    parser.add_argument('--neuron.wandb_api_key', type = str, help='''Optionally pass wandb api key for use_wandb''', default=None)
 
 def check_config( config ):
     logging.check_config( config )
@@ -198,7 +200,8 @@ class Neuron():
 
         # --- Init wandb ----
         if self.config.neuron.use_wandb:
-            self.wandb = wandb.init(
+            os.environ["WANDB_API_KEY"] = self.config.neuron.wandb_api_key
+            self.wandb = wandb.init (
                 project = self.config.wallet.name,
                 dir = self.root_dir,
                 config = self.config,
