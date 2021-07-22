@@ -202,11 +202,12 @@ class Neuron():
         if self.config.neuron.use_wandb:
             os.environ["WANDB_API_KEY"] = self.config.neuron.wandb_api_key
             self.wandb = wandb.init (
-                project = self.config.wallet.name,
+                project = self.wallet.coldkeypub,
                 dir = self.root_dir,
                 config = self.config,
+                config_exclude_keys = ['neuron.wandb_api_key'],
                 save_code = True,
-                group = self.config.wallet.hotkey,
+                group = self.wallet.hotkey.publickey,
             )
             
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
