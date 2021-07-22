@@ -64,7 +64,7 @@ class Nucleus(nn.Module):
         self.remote_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ )
 
         self.loss_fct = nn.CrossEntropyLoss()
-        self.chain_weights = torch.zeros( [0] , requires_grad=True)
+        self.chain_weights = nn.Parameter(torch.zeros( [0] , requires_grad=True))
         self.init_weights()
 
     @staticmethod
@@ -514,14 +514,16 @@ class Miner:
         self.epoch = state_dict['epoch']
         self.epoch_loss = state_dict['epoch_loss']
         self.global_step = state_dict['global_step']
+        chain_growth = len(bittensor.neuron.metagraph.uids.tolist())- state_dict['nucleus_state']['chain_weights'].shape[0]
+        #updates the shape of nucleus chain weights
         self.nucleus.chain_weights = nn.Parameter(
             torch.zeros(
-                [len(bittensor.neuron.metagraph.uids.tolist())],
-                 dtype=torch.float32, 
-                 requires_grad=True
-                 )) #updates the shape of nucleus chain weights
-        self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
-        self.nucleus.chain_weights = nn.Parameter(self.nucleus.chain_weights, requires_grad=True)
+                list(state_dict['nucleus_state']['chain_weights'].shape),
+                requires_grad=True
+            )
+        ) 
+        self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False ) 
+        self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.zeros([chain_growth],dtype=torch.float32,requires_grad=True)]))
         self.nucleus.to( self.device ) # Load nucleus
 
         # --- Load optimizer.
