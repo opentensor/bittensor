@@ -201,7 +201,7 @@ class Nucleus(nn.Module):
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
         for index, response in enumerate( responses ): 
             # --- responses currently zeroed out (TODO: run more miners and see if the responses are fixed) 
-            output += torch.rand((inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)) * joining_weights[ index ]
+            output += response * joining_weights[ index ]
 
         # ---- Return response -----
         return output
