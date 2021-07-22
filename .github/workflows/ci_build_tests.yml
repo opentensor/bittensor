@@ -4,8 +4,8 @@
 name: CI Tests
 
 on: 
-  push:
-    branches-ignore:
+  pull_request:
+    branches:
       - master
 
 jobs:

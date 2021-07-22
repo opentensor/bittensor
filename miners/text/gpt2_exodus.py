@@ -576,10 +576,13 @@ class Miner:
     def logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
         r""" Called after every training step. Displays miner state to screen.
         """
-        self_uid = bittensor.neuron.metagraph.hotkeys.index( bittensor.neuron.wallet.hotkey.public_key )
-        stake = bittensor.neuron.metagraph.S[ self_uid ].item()
-        rank = bittensor.neuron.metagraph.R[ self_uid ].item()
-        incentive = bittensor.neuron.metagraph.I[ self_uid ].item()
+        self_uid = 0
+        if hasattr(self.metagraph, 'hotkeys'):
+            self_uid = self.metagraph.hotkeys.index( self.wallet.hotkey.public_key )
+            
+        stake = self.metagraph.S[ self_uid ].item()
+        rank = self.metagraph.R[ self_uid ].item()
+        incentive = self.metagraph.I[ self_uid ].item()
         info = {
             'GS': colored('{}'.format(self.global_step), 'red'),
             'LS': colored('{}'.format(iteration), 'blue'),
