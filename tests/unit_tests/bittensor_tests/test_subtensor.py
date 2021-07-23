@@ -22,11 +22,8 @@ def test_networks():
     subtensor = bittensor.subtensor( network = 'kusanagi' )
     assert subtensor.endpoint_for_network() in bittensor.__kusanagi_entrypoints__
 
-def test_network_overides():
+def test_network_overrides():
     config = bittensor.subtensor.config()
-    config.subtensor.network = 'akira'
-    subtensor = bittensor.subtensor(config=config)
-    assert subtensor.endpoint_for_network() in bittensor.__akira_entrypoints__
     subtensor = bittensor.subtensor(network='kusanagi',config=config)
     assert subtensor.endpoint_for_network() in bittensor.__kusanagi_entrypoints__
 
