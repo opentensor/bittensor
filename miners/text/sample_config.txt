@@ -48,3 +48,11 @@ subtensor.network: kusanagi
 wallet.hotkey: default
 wallet.name: default
 wallet.path: ~/.bittensor/wallets/
+
+wandb.api_key: default
+wandb.directory: default
+wandb.name: default
+wandb.offline: false
+wandb.project: default
+wandb.run_group: default
+wandb.tags: default
