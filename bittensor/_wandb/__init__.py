@@ -38,7 +38,7 @@ class wandb:
             hot_pubkey: str = None,
             root_dir: str = None
         ):
-        if config == None: config = dataloader.config()
+        if config == None: config = wandb.config()
         config = copy.deepcopy( config )
         config.wandb.api_key = api_key if api_key != None else config.wandb.api_key
         config.wandb.name = name if name != None else config.wandb.name
