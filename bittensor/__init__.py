@@ -234,33 +234,14 @@ def init(
     return neuron
 
 # Hardcoded entry point nodes. 
-__akira_entrypoints__ = [
-    "fermi.akira.bittensor.com:9944",
-    "copernicus.akira.bittensor.com:9944",
-    "buys.akira.bittensor.com:9944",
-    "nobel.akira.bittensor.com:9944",
-    "mendeleev.akira.bittensor.com:9944",
-    "rontgen.akira.bittensor.com:9944",
-    "feynman.akira.bittensor.com:9944",
-    "bunsen.akira.bittensor.com:9944",
-    "berkeley.akira.bittensor.com:9944",
-    "huygens.akira.bittensor.com:9944"
-]
 __kusanagi_entrypoints__ = [
-    "fermi.kusanagi.bittensor.com:9944",
-    "copernicus.kusanagi.bittensor.com:9944",
-    "buys.kusanagi.bittensor.com:9944",
-    "nobel.kusanagi.bittensor.com:9944",
-    "mendeleev.kusanagi.bittensor.com:9944",
-    "rontgen.kusanagi.bittensor.com:9944",
-    "feynman.kusanagi.bittensor.com:9944",
-    "bunsen.kusanagi.bittensor.com:9944",
-    "berkeley.kusanagi.bittensor.com:9944",
-    "huygens.kusanagi.bittensor.com:9944"
+    "test.kusanagi.bittensor.com:9944" 
 ]
-__boltzmann_entrypoints__ = [
-    'feynman.boltzmann.bittensor.com:9944',
+
+__akatsuki_entrypoints__ = [
+    "main.akatsuki.bittensor.com:9944"
 ]
+
 __local_entrypoints__ = [
     '127.0.0.1:9944'
 ]
