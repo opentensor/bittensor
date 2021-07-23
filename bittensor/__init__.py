@@ -61,6 +61,7 @@ from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
 from bittensor._dataloader import dataloader as dataloader
 from bittensor._receptor import receptor_pool as receptor_pool
+from bittensor._wandb import wandb as wandb
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
@@ -85,7 +86,6 @@ neuron = None
 def add_args( parser: argparse.ArgumentParser ):
     parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Neuron punches a hole in your router using upnpc''', default=False)
     parser.add_argument('--neuron.use_wandb', action='store_true', help='''Neuron activates its weights and biases powers''', default=False)
-    parser.add_argument('--neuron.wandb_api_key', type = str, help='''Optionally pass wandb api key for use_wandb''', default=None)
     logging.add_args( parser )
     wallet.add_args( parser )
     subtensor.add_args( parser )
@@ -93,6 +93,7 @@ def add_args( parser: argparse.ArgumentParser ):
     dataloader.add_args( parser )
     dendrite.add_args( parser )
     axon.add_args( parser )
+    wandb.add_args( parser )
 
 def check_config( config ):
     logging.check_config( config )
@@ -197,15 +198,11 @@ class Neuron():
 
         # --- Init wandb ----
         if self.config.neuron.use_wandb:
-            if self.config.neuron.wandb_api_key != None:
-                os.environ["WANDB_API_KEY"] = self.config.neuron.wandb_api_key
-            self.wandb = wandb.init (
-                project = self.wallet.coldkeypub,
-                dir = self.root_dir,
+            self.wandb = wandb(
                 config = self.config,
-                config_exclude_keys = ['neuron.wandb_api_key'],
-                save_code = True,
-                group = self.wallet.hotkey.public_key,
+                cold_pubkey = self.wallet.coldkeypub,
+                hot_pubkey = self.wallet.hotkey.public_key,
+                root_dir = self.root_dir
             )
             
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
