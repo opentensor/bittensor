@@ -192,8 +192,12 @@ class Metagraph( torch.nn.Module ):
             self.cached_endpoints = []
             for idx, neuron_tensor in enumerate(self.neurons):
                 try:
-                    neuron_endpoint = bittensor.endpoint.from_tensor( neuron_tensor )
-                    self.cached_endpoints.append ( neuron_endpoint )
+                    # This would only be false if we are the only miner in the network.
+                    if neuron_tensor.numel() > 0:
+                        neuron_endpoint = bittensor.endpoint.from_tensor( neuron_tensor )
+                        self.cached_endpoints.append ( neuron_endpoint )
+                    else:
+                        self.cached_endpoints.append ( None )
                 except Exception as e:
                     self.cached_endpoints.append ( None )
                     logger.exception('Faulty endpoint tensor: {} got error while trying to serialize as endpoint: {} ', neuron_tensor, e)
