@@ -210,13 +210,13 @@ class cli:
             '--uid', 
             dest="uid", 
             type=int, 
-            required=False
+            required=True
         )
         stake_parser.add_argument(
             '--amount', 
             dest="amount", 
             type=float, 
-            required=False
+            required=True
         )
 
         # Fill arguments for transfer
@@ -245,7 +245,6 @@ class cli:
         if config.command == "transfer":
             if not config.dest:
                 logger.critical("The --dest argument is required for this command")
-                quit()
             if not config.amount:
                 logger.critical("The --amount argument is required for this command")
                 quit()
@@ -253,14 +252,12 @@ class cli:
             if not config.unstake_all:
                 if config.uid is None:
                     logger.critical("The --uid argument is required for this command")
-                    quit()
                 if not config.amount:
                     logger.critical("The --amount argument is required for this command")
                     quit()
         elif config.command == "stake":
             if config.uid is None:
                 logger.critical("The --uid argument is required for this command")
-                quit()
             if config.amount is None:
                 logger.critical("The --amount argument is required for this command")
                 quit()

@@ -131,6 +131,7 @@ class logging:
     def add_args(cls, parser: argparse.ArgumentParser):
         try:
             parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default=True)
+            parser.add_argument('--logging.no_debug', action='store_false', dest='logging.debug', help='''Turn on bittensor debugging information''', default=True)
             parser.add_argument('--logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default=False)
             parser.add_argument('--logging.record_log', action='store_true', help='''Turns on logging to file.''', default=False)  
             parser.add_argument('--logging.logging_dir', type=str, help='Logging default root directory.', default='~/.bittensor/miners')
