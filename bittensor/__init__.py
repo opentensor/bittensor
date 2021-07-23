@@ -42,10 +42,6 @@ from bittensor._config import config as config
 
 # ---- LOGGING ----
 from bittensor._logging import logging as logging
-logging(
-    debug = False,
-    trace = False 
-)
 
 # ---- Protos ----
 import bittensor._proto.bittensor_pb2 as proto
@@ -87,6 +83,9 @@ import bittensor.utils.networking as net
 neuron = None
 
 def add_args( parser: argparse.ArgumentParser ):
+    parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Neuron punches a hole in your router using upnpc''', default=False)
+    parser.add_argument('--neuron.use_wandb', action='store_true', help='''Neuron activates its weights and biases powers''', default=False)
+    parser.add_argument('--neuron.wandb_api_key', type = str, help='''Optionally pass wandb api key for use_wandb''', default=None)
     logging.add_args( parser )
     wallet.add_args( parser )
     subtensor.add_args( parser )
@@ -94,9 +93,6 @@ def add_args( parser: argparse.ArgumentParser ):
     dataloader.add_args( parser )
     dendrite.add_args( parser )
     axon.add_args( parser )
-    parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Neuron punches a hole in your router using upnpc''', default=False)
-    parser.add_argument('--neuron.use_wandb', action='store_true', help='''Neuron activates its weights and biases powers''', default=False)
-    parser.add_argument('--neuron.wandb_api_key', type = str, help='''Optionally pass wandb api key for use_wandb''', default=None)
 
 def check_config( config ):
     logging.check_config( config )
@@ -200,14 +196,15 @@ class Neuron():
 
         # --- Init wandb ----
         if self.config.neuron.use_wandb:
-            os.environ["WANDB_API_KEY"] = self.config.neuron.wandb_api_key
+            if self.config.neuron.wandb_api_key != None:
+                os.environ["WANDB_API_KEY"] = self.config.neuron.wandb_api_key
             self.wandb = wandb.init (
                 project = self.wallet.coldkeypub,
                 dir = self.root_dir,
                 config = self.config,
                 config_exclude_keys = ['neuron.wandb_api_key'],
                 save_code = True,
-                group = self.wallet.hotkey.publickey,
+                group = self.wallet.hotkey.public_key,
             )
             
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):

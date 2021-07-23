@@ -36,6 +36,12 @@ class RollbarHandler:
         else:
             pass
 
+ # Remove default sink.
+try:
+    logger.remove( 0 )
+except:
+    pass
+
 class logging:
     __debug_on__:bool = False
     __trace_on__:bool = False
