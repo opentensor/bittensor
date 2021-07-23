@@ -201,7 +201,6 @@ class Nucleus(nn.Module):
         joining_weights = F.softmax( topk_weights, dim = 0 )
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
         for index, response in enumerate( responses ): 
-            # --- responses currently zeroed out (TODO: run more miners and see if the responses are fixed) 
             output += response * joining_weights[ index ]
 
         # ---- Return response -----
