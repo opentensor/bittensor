@@ -76,16 +76,7 @@ from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 
 # Hardcoded entry point nodes. 
 __kusanagi_entrypoints__ = [
-    "fermi.kusanagi.bittensor.com:9944",
-    "copernicus.kusanagi.bittensor.com:9944",
-    "buys.kusanagi.bittensor.com:9944",
-    "nobel.kusanagi.bittensor.com:9944",
-    "mendeleev.kusanagi.bittensor.com:9944",
-    "rontgen.kusanagi.bittensor.com:9944",
-    "feynman.kusanagi.bittensor.com:9944",
-    "bunsen.kusanagi.bittensor.com:9944",
-    "berkeley.kusanagi.bittensor.com:9944",
-    "huygens.kusanagi.bittensor.com:9944"
+    "test.kusanagi.bittensor.com:9944" 
 ]
 
 __akatsuki_entrypoints__ = [
