@@ -45,10 +45,10 @@ class Subtensor:
             Args:
                 substrate (:obj:`SubstrateWSInterface`, `required`): 
                     substrate websocket client.
-                network (default='akira', type=str)
+                network (default='kusanagi', type=str)
                     The subtensor network flag. The likely choices are:
-                            -- akira (testing network)
-                            -- kusanagi (main network)
+                            -- kusanagi (test network)
+                            -- akatsuki (main network)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
@@ -75,17 +75,11 @@ class Subtensor:
 
         # Else defaults to networks.
         # TODO(const): this should probably make a DNS lookup.
-        if self.network == "akira":
-            akira_available = [item for item in bittensor.__akira_entrypoints__ if item not in blacklist ]
-            if len(akira_available) == 0:
+        if self.network == "akatsuki":
+            akatsuki_available = [item for item in bittensor.__akatsuki_entrypoints__ if item not in blacklist ]
+            if len(akatsuki_available) == 0:
                 return None
-            return random.choice( akira_available )
-
-        elif self.network == "boltzmann":
-            boltzmann_available = [item for item in bittensor.__boltzmann_entrypoints__ if item not in blacklist ]
-            if len(boltzmann_available) == 0:
-                return None
-            return random.choice( boltzmann_available )
+            return random.choice (akatsuki_available)
 
         elif self.network == "kusanagi":
             kusanagi_available = [item for item in bittensor.__kusanagi_entrypoints__ if item not in blacklist ]
@@ -858,8 +852,6 @@ To run a local node (See: docs/running_a_validator.md) \n
         extrinsic = await self.substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
         return await self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
 
-
-
     def get_balance(self, address: str) -> Balance:
         r""" Returns the token balance for the passed ss58_address address
         Args:
@@ -936,6 +928,16 @@ To run a local node (See: docs/running_a_validator.md) \n
             storage_function='Active',
         )
         return result
+
+    def stake(self) -> List[Tuple[int, int]]:
+        r""" Returns a list of (uid, stake) pairs one for each active peer on chain.
+        Returns:
+            stake (List[Tuple[int, int]]):
+                List of stake values.
+        """
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        return loop.run_until_complete(self.async_get_stake())
 
     def get_stake(self) -> List[Tuple[int, int]]:
         r""" Returns a list of (uid, stake) pairs one for each active peer on chain.

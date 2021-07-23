@@ -42,10 +42,6 @@ from bittensor._config import config as config
 
 # ---- LOGGING ----
 from bittensor._logging import logging as logging
-logging(
-    debug = False,
-    trace = False 
-)
 
 # ---- Protos ----
 import bittensor._proto.bittensor_pb2 as proto
@@ -87,6 +83,9 @@ import bittensor.utils.networking as net
 neuron = None
 
 def add_args( parser: argparse.ArgumentParser ):
+    parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Neuron punches a hole in your router using upnpc''', default=False)
+    parser.add_argument('--neuron.use_wandb', action='store_true', help='''Neuron activates its weights and biases powers''', default=False)
+    parser.add_argument('--neuron.wandb_api_key', type = str, help='''Optionally pass wandb api key for use_wandb''', default=None)
     logging.add_args( parser )
     wallet.add_args( parser )
     subtensor.add_args( parser )
@@ -94,9 +93,6 @@ def add_args( parser: argparse.ArgumentParser ):
     dataloader.add_args( parser )
     dendrite.add_args( parser )
     axon.add_args( parser )
-    parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Neuron punches a hole in your router using upnpc''', default=False)
-    parser.add_argument('--neuron.use_wandb', action='store_true', help='''Neuron activates its weights and biases powers''', default=False)
-    parser.add_argument('--neuron.wandb_api_key', type = str, help='''Optionally pass wandb api key for use_wandb''', default=None)
 
 def check_config( config ):
     logging.check_config( config )
@@ -140,7 +136,8 @@ class Neuron():
             config = self.config
         )
         self.metagraph = metagraph(
-            config = self.config
+            config = self.config,
+            subtensor = self.subtensor
         )
         self.axon = axon (
             config = self.config,
@@ -200,14 +197,15 @@ class Neuron():
 
         # --- Init wandb ----
         if self.config.neuron.use_wandb:
-            os.environ["WANDB_API_KEY"] = self.config.neuron.wandb_api_key
+            if self.config.neuron.wandb_api_key != None:
+                os.environ["WANDB_API_KEY"] = self.config.neuron.wandb_api_key
             self.wandb = wandb.init (
                 project = self.wallet.coldkeypub,
                 dir = self.root_dir,
                 config = self.config,
                 config_exclude_keys = ['neuron.wandb_api_key'],
                 save_code = True,
-                group = self.wallet.hotkey.publickey,
+                group = self.wallet.hotkey.public_key,
             )
             
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
@@ -234,33 +232,14 @@ def init(
     return neuron
 
 # Hardcoded entry point nodes. 
-__akira_entrypoints__ = [
-    "fermi.akira.bittensor.com:9944",
-    "copernicus.akira.bittensor.com:9944",
-    "buys.akira.bittensor.com:9944",
-    "nobel.akira.bittensor.com:9944",
-    "mendeleev.akira.bittensor.com:9944",
-    "rontgen.akira.bittensor.com:9944",
-    "feynman.akira.bittensor.com:9944",
-    "bunsen.akira.bittensor.com:9944",
-    "berkeley.akira.bittensor.com:9944",
-    "huygens.akira.bittensor.com:9944"
-]
 __kusanagi_entrypoints__ = [
-    "fermi.kusanagi.bittensor.com:9944",
-    "copernicus.kusanagi.bittensor.com:9944",
-    "buys.kusanagi.bittensor.com:9944",
-    "nobel.kusanagi.bittensor.com:9944",
-    "mendeleev.kusanagi.bittensor.com:9944",
-    "rontgen.kusanagi.bittensor.com:9944",
-    "feynman.kusanagi.bittensor.com:9944",
-    "bunsen.kusanagi.bittensor.com:9944",
-    "berkeley.kusanagi.bittensor.com:9944",
-    "huygens.kusanagi.bittensor.com:9944"
+    "test.kusanagi.bittensor.com:9944" 
 ]
-__boltzmann_entrypoints__ = [
-    'feynman.boltzmann.bittensor.com:9944',
+
+__akatsuki_entrypoints__ = [
+    "main.akatsuki.bittensor.com:9944"
 ]
+
 __local_entrypoints__ = [
     '127.0.0.1:9944'
 ]

@@ -184,8 +184,9 @@ class Nucleus(nn.Module):
                 Joined hidden layer responses from peers.
         """
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
+        real_topk = min( self.config.nucleus.topk, bittensor.neuron.metagraph.n.item() ) 
         noise = torch.normal( torch.mean(self.chain_weights).item(), torch.std(self.chain_weights).item()+0.0000001, size=( self.chain_weights.size() ) )
-        topk_weights, topk_uids = torch.topk( self.chain_weights + noise, self.config.nucleus.topk, dim=0 ) 
+        topk_weights, topk_uids = torch.topk( self.chain_weights + noise, real_topk, dim=0 ) 
 
         # ---- Filter endpoints ----
         endpoints = [bittensor.neuron.metagraph.endpoints[uid] for uid in topk_uids]
@@ -200,7 +201,6 @@ class Nucleus(nn.Module):
         joining_weights = F.softmax( topk_weights, dim = 0 )
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
         for index, response in enumerate( responses ): 
-            # --- responses currently zeroed out (TODO: run more miners and see if the responses are fixed) 
             output += response * joining_weights[ index ]
 
         # ---- Return response -----
@@ -256,7 +256,6 @@ class Miner:
         parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
         parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
-        parser.add_argument('--miner.use_upnpc', action='store_true', help='''Turns on port forwarding on your router using upnpc.''', default=False)
         bittensor.add_args( parser )
         Nucleus.add_args( parser )  
 
@@ -514,7 +513,7 @@ class Miner:
         self.epoch = state_dict['epoch']
         self.epoch_loss = state_dict['epoch_loss']
         self.global_step = state_dict['global_step']
-        chain_growth = len(bittensor.neuron.metagraph.uids.tolist())- state_dict['nucleus_state']['chain_weights'].shape[0]
+        chain_growth = bittensor.neuron.metagraph.n.item()- state_dict['nucleus_state']['chain_weights'].shape[0]
         #updates the shape of nucleus chain weights
         self.nucleus.chain_weights = nn.Parameter(
             torch.zeros(
@@ -554,7 +553,8 @@ class Miner:
         r""" Sets the chain weights.
         """
         try:
-            topk_weights, topk_uids = torch.topk( self.nucleus.chain_weights, k = self.config.miner.n_topk_chain_weights )
+            real_topk = min( self.config.miner.n_topk_chain_weights , bittensor.neuron.metagraph.n.item() ) 
+            topk_weights, topk_uids = torch.topk( self.nucleus.chain_weights, k = real_topk )
             normalized_topk_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
             did_set = bittensor.neuron.subtensor.set_weights(
                 uids = topk_uids,
