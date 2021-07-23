@@ -48,11 +48,10 @@ class subtensor:
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.subtensor.config()
-                network (default='akira', type=str)
+                network (default='kusanagi', type=str)
                     The subtensor network flag. The likely choices are:
-                            -- akira (staging network)
                             -- kusanagi (testing network)
-                            -- exodus (main network)
+                            -- akatsuki (main network)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
@@ -85,9 +84,8 @@ class subtensor:
         try:
             parser.add_argument('--subtensor.network', default='kusanagi', type=str, 
                                 help='''The subtensor network flag. The likely choices are:
-                                        -- akira (staging network)
                                         -- kusanagi (testing network)
-                                        -- exodus (main network)
+                                        -- akatsuki (main network)
                                     If this option is set it overloads subtensor.chain_endpoint with 
                                     an entry point node from that network.
                                     ''')

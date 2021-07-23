@@ -45,10 +45,10 @@ class Subtensor:
             Args:
                 substrate (:obj:`SubstrateWSInterface`, `required`): 
                     substrate websocket client.
-                network (default='akira', type=str)
+                network (default='kusanagi', type=str)
                     The subtensor network flag. The likely choices are:
-                            -- akira (testing network)
-                            -- kusanagi (main network)
+                            -- kusanagi (test network)
+                            -- akatsuki (main network)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
@@ -75,17 +75,11 @@ class Subtensor:
 
         # Else defaults to networks.
         # TODO(const): this should probably make a DNS lookup.
-        if self.network == "akira":
-            akira_available = [item for item in bittensor.__akira_entrypoints__ if item not in blacklist ]
-            if len(akira_available) == 0:
+        if self.network == "akatsuki":
+            akatsuki_available = [item for item in bittensor.__akatsuki_entrypoints__ if item not in blacklist ]
+            if len(akatsuki_available) == 0:
                 return None
-            return random.choice( akira_available )
-
-        elif self.network == "boltzmann":
-            boltzmann_available = [item for item in bittensor.__boltzmann_entrypoints__ if item not in blacklist ]
-            if len(boltzmann_available) == 0:
-                return None
-            return random.choice( boltzmann_available )
+            return random.choice (akatsuki_available)
 
         elif self.network == "kusanagi":
             kusanagi_available = [item for item in bittensor.__kusanagi_entrypoints__ if item not in blacklist ]
