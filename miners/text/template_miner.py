@@ -513,14 +513,18 @@ class Miner:
         self.epoch = state_dict['epoch']
         self.epoch_loss = state_dict['epoch_loss']
         self.global_step = state_dict['global_step']
-        chain_growth = bittensor.neuron.metagraph.n.item()- state_dict['nucleus_state']['chain_weights'].shape[0]
-        #updates the shape of nucleus chain weights
-        self.nucleus.chain_weights = nn.Parameter(
-            torch.zeros(
-                list(state_dict['nucleus_state']['chain_weights'].shape),
-                requires_grad=True
-            )
-        ) 
+        if 'network' in state_dict.keys() and bittensor.neuron.subtensor.network == state_dict['network']: # checks if you are loading into the same network
+            chain_growth = bittensor.neuron.metagraph.n.item()- state_dict['nucleus_state']['chain_weights'].shape[0]
+            #updates the shape of nucleus chain weights
+            self.nucleus.chain_weights = nn.Parameter(
+                torch.zeros(
+                    list(state_dict['nucleus_state']['chain_weights'].shape),
+                    requires_grad=True
+                )
+            ) 
+        else:
+            chain_growth = bittensor.neuron.metagraph.n.item()
+            state_dict['nucleus_state']['chain_weights'] = self.nucleus.chain_weights.data
         self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False ) 
         self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.zeros([chain_growth],dtype=torch.float32,requires_grad=True)]))
         self.nucleus.to( self.device ) # Load nucleus
@@ -543,6 +547,7 @@ class Miner:
                 'global_step': self.global_step,
                 'nucleus_state': self.nucleus.state_dict(), # Save nucleus state.
                 'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
+                'network': bittensor.neuron.subtensor.network # Save Network
             }
             torch.save( state_dict, "{}/model.torch".format( self.config.miner.full_path, self.epoch_loss ) )
             bittensor.logging.success(prefix='Saved model', sufix='<blue>{}/model.torch</blue>'.format( self.config.miner.full_path ) )
