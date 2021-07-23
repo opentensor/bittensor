@@ -56,6 +56,9 @@ class Endpoint:
 
     def __str__(self):
         return "<endpoint uid: %s hotkey: %s ip: %s modality: %s coldkey: %s>" % (self.uid, self.hotkey, self.ip_str(), self.modality, self.coldkey)
+    
+    def __repr__(self):
+        return self.__str__()
 
 
 
