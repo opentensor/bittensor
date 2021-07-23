@@ -192,6 +192,7 @@ class Metagraph( torch.nn.Module ):
             self.cached_endpoints = []
             for idx, neuron_tensor in enumerate(self.neurons):
                 try:
+                    # This would only be false if we are the only miner in the network.
                     neuron_endpoint = bittensor.endpoint.from_tensor( neuron_tensor )
                     self.cached_endpoints.append ( neuron_endpoint )
                 except Exception as e:
@@ -370,8 +371,9 @@ class Metagraph( torch.nn.Module ):
             # Return.
             return True, uid
 
-        except:
+        except Exception as e:
             # Return False.
+            logger.exception("Errored out due to: {}".format(e))
             return False, uid
 
     def __str__(self):

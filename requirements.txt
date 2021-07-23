@@ -48,3 +48,4 @@ wheel
 codecov
 tqdm
 qqdm
+wandb
