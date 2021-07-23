@@ -136,7 +136,8 @@ class Neuron():
             config = self.config
         )
         self.metagraph = metagraph(
-            config = self.config
+            config = self.config,
+            subtensor = self.subtensor
         )
         self.axon = axon (
             config = self.config,
