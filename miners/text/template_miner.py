@@ -524,7 +524,7 @@ class Miner:
             ) 
         else:
             chain_growth = bittensor.neuron.metagraph.n.item()
-            state_dict['nucleus_state']['chain_weights'] = self.nucleus.chain_weights.data
+            state_dict['nucleus_state']['chain_weights'] = torch.zeros( [0] , requires_grad=True)
         self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False ) 
         self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.zeros([chain_growth],dtype=torch.float32,requires_grad=True)]))
         self.nucleus.to( self.device ) # Load nucleus
