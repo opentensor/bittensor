@@ -60,7 +60,7 @@ class wandb:
         os.environ["WANDB_DIR"] = config.wandb.directory if config.wandb.directory != 'default' else root_dir
         os.environ["WANDB_MODE"] = 'offline' if config.wandb.offline else 'run'
 
-        return wb.init(config = config, config_exclude_keys = ['neuron.wandb_api_key'],save_code = True)
+        return wb.init(config = config, config_exclude_keys = ['wandb.api_key'],save_code = True)
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
