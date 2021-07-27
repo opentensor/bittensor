@@ -192,6 +192,7 @@ class Nucleus(nn.Module):
         endpoints = [bittensor.neuron.metagraph.endpoints[uid] for uid in topk_uids]
         logger.info(isinstance(inputs, torch.LongTensor or torch.cuda.LongTensor))
         logger.info(inputs.dtype)
+        logger.infor(str(len(endpoints)))
         # ---- Query network ----
         responses, return_ops = bittensor.neuron.dendrite.forward_text ( 
             endpoints = endpoints, 
