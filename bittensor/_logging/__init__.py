@@ -43,6 +43,7 @@ except:
     pass
 
 class logging:
+    __has_been_inited__:bool = False
     __debug_on__:bool = False
     __trace_on__:bool = False
     __std_sink__:int = None
@@ -57,6 +58,8 @@ class logging:
             record_log: bool = None,
             logging_dir: str = None,
         ):
+
+        cls.__has_been_inited__ = True
 
         if config == None: config = logging.config()
         config = copy.deepcopy(config)
@@ -145,12 +148,16 @@ class logging:
 
     @classmethod
     def set_debug(cls, on: bool = True ):
+        if not cls.__has_been_inited__:
+            cls()
         cls.__debug_on__ = on
         if on: logging.success( prefix = 'Set debug', sufix = '<green>ON</green>')
         else:  logging.success( prefix = 'Set debug', sufix = '<red>OFF</red>')
 
     @classmethod
     def set_trace(cls, on: bool = True):
+        if not cls.__has_been_inited__:
+            cls()
         cls._trace_on__ = on
         if on: logging.success( prefix = 'Set trace', sufix = '<green>ON</green>')
         else:  logging.success( prefix = 'Set trace', sufix = '<red>OFF</red>')
@@ -224,6 +231,8 @@ class logging:
 
     @classmethod
     def success( cls, prefix:str, sufix:str ):
+        if not cls.__has_been_inited__:
+            cls()
         prefix = prefix + ":"
         prefix = prefix.ljust(20)
         log_msg = prefix + sufix 
@@ -231,6 +240,8 @@ class logging:
 
     @classmethod
     def info( cls, prefix:str, sufix:str ):
+        if not cls.__has_been_inited__:
+            cls()
         prefix = prefix + ":"
         prefix = prefix.ljust(20)
         log_msg = prefix + sufix 

@@ -64,7 +64,7 @@ class Nucleus(nn.Module):
         self.remote_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ )
 
         self.loss_fct = nn.CrossEntropyLoss()
-        self.chain_weights = nn.Parameter(torch.zeros( [0] , requires_grad=True))
+        self.chain_weights = nn.Parameter(torch.ones( [0] , requires_grad=True))
         self.init_weights()
 
     @staticmethod
@@ -192,7 +192,7 @@ class Nucleus(nn.Module):
         endpoints = [bittensor.neuron.metagraph.endpoints[uid] for uid in topk_uids]
 
         # ---- Query network ----
-        responses, _ = bittensor.neuron.dendrite.forward_text ( 
+        responses, return_ops = bittensor.neuron.dendrite.forward_text ( 
             endpoints = endpoints, 
             inputs = [inputs for _ in endpoints] 
         )
@@ -202,6 +202,10 @@ class Nucleus(nn.Module):
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
         for index, response in enumerate( responses ): 
             output += response * joining_weights[ index ]
+
+        # ---- Punish peers with non-successful return ops ----
+        with torch.no_grad():
+            self.chain_weights -= (return_ops != 0) * 0.01
 
         # ---- Return response -----
         return output
@@ -495,6 +499,7 @@ class Miner:
         bittensor.neuron.metagraph.save()
         self.reload()
 
+
     def get_saved_state( self ):
         r""" Returns a saved state dict or none.
         """
@@ -517,16 +522,16 @@ class Miner:
             chain_growth = bittensor.neuron.metagraph.n.item()- state_dict['nucleus_state']['chain_weights'].shape[0]
             #updates the shape of nucleus chain weights
             self.nucleus.chain_weights = nn.Parameter(
-                torch.zeros(
+                torch.ones(
                     list(state_dict['nucleus_state']['chain_weights'].shape),
                     requires_grad=True
                 )
             ) 
         else:
             chain_growth = bittensor.neuron.metagraph.n.item()
-            state_dict['nucleus_state']['chain_weights'] = torch.zeros( [0] , requires_grad=True)
+            state_dict['nucleus_state']['chain_weights'] = torch.ones( [0] , requires_grad=True)
         self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False ) 
-        self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.zeros([chain_growth],dtype=torch.float32,requires_grad=True)]))
+        self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
         self.nucleus.to( self.device ) # Load nucleus
 
         # --- Load optimizer.
