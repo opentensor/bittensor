@@ -185,7 +185,7 @@ class Nucleus(nn.Module):
         """
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
         real_topk = min( self.config.nucleus.topk, bittensor.neuron.metagraph.n.item() ) 
-        noise = torch.normal( torch.mean(self.chain_weights).item(), torch.std(self.chain_weights).item()+0.0000001, size=( self.chain_weights.size())).to( self.device )
+        noise = torch.normal( torch.mean(self.chain_weights).item(), torch.std(self.chain_weights).item()+0.0000001, size=( self.chain_weights.size())).to( self.config.miner.device )
         topk_weights, topk_uids = torch.topk( self.chain_weights + noise, real_topk, dim=0 ) 
 
         # ---- Filter endpoints ----
