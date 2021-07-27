@@ -185,7 +185,7 @@ class Nucleus(nn.Module):
         """
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
         real_topk = min( self.config.nucleus.topk, bittensor.neuron.metagraph.n.item() ) 
-        noise = torch.normal( torch.mean(self.chain_weights).item(), torch.std(self.chain_weights).item()+0.0000001, size=( self.chain_weights.size() ) )
+        noise = torch.normal( torch.mean(self.chain_weights).item(), torch.std(self.chain_weights).item()+0.0000001, size=( self.chain_weights.size())).to( self.device )
         topk_weights, topk_uids = torch.topk( self.chain_weights + noise, real_topk, dim=0 ) 
 
         # ---- Filter endpoints ----
@@ -507,7 +507,7 @@ class Miner:
         try:
             return torch.load("{}/model.torch".format( self.config.miner.full_path ))
         except Exception as e:
-            logger.exception('Failed to reload model with error: {}', e)
+            logger.warning('No saved model found with error: {}', e)
             return None
 
     def reload( self ):
@@ -630,7 +630,10 @@ class Miner:
                     wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
         
         if self.config.neuron.use_wandb:
-            bittensor.neuron.wandb.log(wandb_info)
+            try:
+                bittensor.neuron.wandb.log(wandb_info)
+            except Exception as e:
+                logger.warning('Failed to update weights and biases with error:{}', e)
 
         progress_bar.set_infos( info )
 
