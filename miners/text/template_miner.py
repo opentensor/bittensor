@@ -191,12 +191,15 @@ class Nucleus(nn.Module):
         # ---- Filter endpoints ----
         endpoints = [bittensor.neuron.metagraph.endpoints[uid] for uid in topk_uids]
         logger.info(isinstance(inputs, torch.LongTensor or torch.cuda.LongTensor))
-        logger.info(inputs.dtype)
-        logger.info(str(len(endpoints)))
+        logger.info(inputs.type())
+        logger.info(inputs.device)
+        inputs  = [inputs.long() for _ in endpoints]
+        logger.info(isinstance(inputs[0], torch.LongTensor or torch.cuda.LongTensor))
+        logger.info(inputs[0].type())
         # ---- Query network ----
         responses, return_ops = bittensor.neuron.dendrite.forward_text ( 
             endpoints = endpoints, 
-            inputs = [inputs.long() for _ in endpoints] 
+            inputs = inputs
         )
 
         # ---- Join based on weights ----
