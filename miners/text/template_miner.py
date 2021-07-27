@@ -193,13 +193,10 @@ class Nucleus(nn.Module):
         logger.info(isinstance(inputs,torch.cuda.LongTensor) or isinstance(inputs,torch.LongTensor))
         logger.info(inputs.type())
         logger.info(inputs.device)
-        inputs  = [inputs.long() for _ in endpoints]
-        logger.info(isinstance(inputs[0], torch.LongTensor or torch.cuda.LongTensor))
-        logger.info(inputs[0].type())
         # ---- Query network ----
         responses, return_ops = bittensor.neuron.dendrite.forward_text ( 
             endpoints = endpoints, 
-            inputs = inputs
+            inputs = [inputs.long() for _ in endpoints]
         )
 
         # ---- Join based on weights ----
