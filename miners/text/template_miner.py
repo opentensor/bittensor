@@ -190,8 +190,8 @@ class Nucleus(nn.Module):
 
         # ---- Filter endpoints ----
         endpoints = [bittensor.neuron.metagraph.endpoints[uid] for uid in topk_uids]
-        print(isinstance(inputs, torch.LongTensor))
-        print(inputs.dtype)
+        logger.info(isinstance(inputs, torch.LongTensor))
+        logger.info(inputs.dtype)
         # ---- Query network ----
         responses, return_ops = bittensor.neuron.dendrite.forward_text ( 
             endpoints = endpoints, 
