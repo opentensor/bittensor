@@ -201,11 +201,11 @@ class Nucleus(nn.Module):
         joining_weights = F.softmax( topk_weights, dim = 0 )
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
         for index, response in enumerate( responses ): 
-            output += response * joining_weights[ index ]
+            output += response * joining_weights[ topk_uids[index] ]
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
-            self.chain_weights -= (return_ops != 0) * 0.01
+            self.chain_weights[topk_uids[(return_ops != 0)]] -=  self.config.miner.punishment
 
         # ---- Return response -----
         return output
@@ -251,7 +251,7 @@ class Miner:
         parser.add_argument('--miner.weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25)
         parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
         parser.add_argument('--miner.n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
-        parser.add_argument('--miner.epoch_length', type=int, help='Iterations of training per epoch', default=500)
+        parser.add_argument('--miner.epoch_length', type=int, help='Iterations of training per epoch', default=100)
         parser.add_argument('--miner.batch_size_train', type=int, help='Training batch size.', default=2)
         parser.add_argument('--miner.reload', action='store_true', help='''Reload training from previous trial run.''', default=False )
         parser.add_argument('--miner.restart_on_failure',  action='store_true', help='''Restart miner on unknown error.''', default=False)
@@ -260,6 +260,7 @@ class Miner:
         parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
         parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
+        parser.add_argument('--miner.punishment', type=int, help='The punishment on responses that do no ', default=100 )
         bittensor.add_args( parser )
         Nucleus.add_args( parser )  
 
@@ -612,7 +613,8 @@ class Miner:
                 'Number of Peers':bittensor.neuron.metagraph.n.item(),
                 'Stake':stake,
                 'Rank':rank,
-                'Incentive':incentive}
+                'Incentive':incentive,
+                'Network Activity':bittensor.neuron.axon.stats.qps.value}
 
         normalized_chain_weights = torch.nn.functional.normalize( self.nucleus.chain_weights - torch.min( self.nucleus.chain_weights ), p = 1, dim = 0)
         for uid in bittensor.neuron.metagraph.uids.tolist():
@@ -625,7 +627,7 @@ class Miner:
                 else:
                     info[colored(str(uid), 'red')] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
                 if self.config.neuron.use_wandb:
-                    wandb_info['Chain wights:' + str(uid)]= normalized_chain_weights[uid]
+                    wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
         
         if self.config.neuron.use_wandb:
             bittensor.neuron.wandb.log(wandb_info)
