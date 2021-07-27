@@ -452,7 +452,7 @@ class Dendrite( torch.autograd.Function ):
             raise ValueError(error_msg)
             
         # Check list types.
-        if not isinstance(inputs[0], torch.LongTensor or torch.cuda.LongTensor) :
+        if not isinstance(inputs[0], torch.LongTensor) or isinstance(inputs[0], torch.cuda.LongTensor) :
             raise ValueError('inputs must be of type torch.LongTensor. Got {}'.format(type(inputs[0])))
         if not isinstance(endpoints[0], bittensor._endpoint.endpoint_impl.Endpoint):
             raise ValueError('endpoints must be of type bittensor.Endpoint. Got {}'.format(type(endpoints)))
