@@ -194,7 +194,7 @@ class Nucleus(nn.Module):
         # ---- Query network ----
         responses, return_ops = bittensor.neuron.dendrite.forward_text ( 
             endpoints = endpoints, 
-            inputs = [inputs.long() for _ in endpoints] 
+            inputs = [inputs.long().to( self.config.miner.device) for _ in endpoints] 
         )
 
         # ---- Join based on weights ----
