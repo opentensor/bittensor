@@ -190,7 +190,7 @@ class Nucleus(nn.Module):
 
         # ---- Filter endpoints ----
         endpoints = [bittensor.neuron.metagraph.endpoints[uid] for uid in topk_uids]
-        logger.info(isinstance(inputs, torch.LongTensor or torch.cuda.LongTensor))
+        logger.info(isinstance(inputs,torch.cuda.LongTensor) or isinstance(inputs,torch.LongTensor))
         logger.info(inputs.type())
         logger.info(inputs.device)
         inputs  = [inputs.long() for _ in endpoints]
