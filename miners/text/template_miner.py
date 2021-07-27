@@ -202,6 +202,8 @@ class Nucleus(nn.Module):
         # ---- Join based on weights ----
         joining_weights = F.softmax( topk_weights, dim = 0 )
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
+        logger.info(responses[0].device)
+        logger.info(joining_weights[10].device)
         for index, response in enumerate( responses ): 
             output += response * joining_weights[ topk_uids[index] ]
 
