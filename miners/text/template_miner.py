@@ -206,6 +206,7 @@ class Nucleus(nn.Module):
         logger.info(joining_weights[10].device)
         for index, response in enumerate( responses ): 
             print(index)
+            print(responses[index].device,joining_weights[index].device)
             #output += response * joining_weights[ topk_uids[index] ]
 
         # ---- Punish peers with non-successful return ops ----
