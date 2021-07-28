@@ -194,14 +194,14 @@ class Nucleus(nn.Module):
         # ---- Query network ----
         responses, return_ops = bittensor.neuron.dendrite.forward_text ( 
             endpoints = endpoints, 
-            inputs = [inputs.long() for _ in endpoints] 
+            inputs = [inputs.long() for _ in endpoints]
         )
 
         # ---- Join based on weights ----
         joining_weights = F.softmax( topk_weights, dim = 0 )
-        output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
+        output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
         for index, response in enumerate( responses ): 
-            output += response * joining_weights[ topk_uids[index] ]
+            output += response.to( self.config.miner.device ) * joining_weights[ topk_uids[index] ]
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
