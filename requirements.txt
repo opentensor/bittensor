@@ -47,4 +47,4 @@ codecov
 tqdm
 qqdm
 wandb
-substrateinterface==0.13.11
+substrate-interface==0.13.11
