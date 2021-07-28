@@ -98,20 +98,6 @@ class Subtensor:
                 return None
             return random.choice( kusanagi_available )
 
-    def is_connected(self) -> bool:
-        r""" Returns true if the connection state as a boolean.
-        Raises:
-            success (bool):
-                True if the websocket is connected to the chain endpoint.
-        """
-        return self.substrate.is_connected()
-
-    def check_connection(self) -> bool:
-        r""" Checks if substrate websocket backend is connected, connects if it is not. 
-        """
-        if not self.is_connected():
-            return self.connect()
-        return True
 
     def connect( self, timeout: int = 10, failure = True ) -> bool:
         start_time = time.time()
@@ -140,19 +126,20 @@ To run a local node (See: docs/running_a_validator.md) \n
             attempted_endpoints.append(ws_chain_endpoint)
 
             # --- Attempt connection ----
-            if self.substrate( ws_chain_endpoint, timeout = 5 ):
-                logger.success("Network:".ljust(20) + "<blue>{}</blue>", self.network)
-                logger.success("Endpoint:".ljust(20) + "<blue>{}</blue>", ws_chain_endpoint)
-                return True
+            with self.substrate as substrate:
+                if substrate( ws_chain_endpoint, timeout = 5 ):
+                    logger.success("Network:".ljust(20) + "<blue>{}</blue>", self.network)
+                    logger.success("Endpoint:".ljust(20) + "<blue>{}</blue>", ws_chain_endpoint)
+                    return True
             
-            # ---- Timeout ----
-            elif (time.time() - start_time) > timeout:
-                logger.error( "Error while connecting to network:<blue>{}</blue> at endpoint: <blue>{}</blue>".format(self.network, ws_chain_endpoint))
-                connection_error_message()
-                if failure:
-                    raise RuntimeError('Unable to connect to network:<blue>{}</blue>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.network))
-                else:
-                    return False
+                # ---- Timeout ----
+                elif (time.time() - start_time) > timeout:
+                    logger.error( "Error while connecting to network:<blue>{}</blue> at endpoint: <blue>{}</blue>".format(self.network, ws_chain_endpoint))
+                    connection_error_message()
+                    if failure:
+                        raise RuntimeError('Unable to connect to network:<blue>{}</blue>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.network))
+                    else:
+                        return False
 
     def _submit_and_check_extrinsic(
             self, 
@@ -182,12 +169,13 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         # Send extrinsic
         try:
-            response = self.substrate.submit_extrinsic( 
-                                    extrinsic, 
-                                    wait_for_inclusion = wait_for_inclusion,
-                                    wait_for_finalization = wait_for_finalization, 
-                                    timeout = timeout
-                            )
+            with self.substrate as substrate:
+                response = substrate.submit_extrinsic( 
+                                        extrinsic, 
+                                        wait_for_inclusion = wait_for_inclusion,
+                                        wait_for_finalization = wait_for_finalization, 
+                                        timeout = timeout
+                                )
         except SubstrateRequestException as e:
             logger.error('Extrinsic exception with error {}', e)
             return False
@@ -287,19 +275,21 @@ To run a local node (See: docs/running_a_validator.md) \n
             'modality': modality,
             'coldkey': wallet.coldkeypub,
         }
-        call = self.substrate.compose_call(
-            call_module='SubtensorModule',
-            call_function='subscribe',
-            call_params=params
-        )
-        # TODO (const): hotkey should be an argument here not assumed. Either that or the coldkey pub should also be assumed.
-        extrinsic = self.substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey)
-        result = self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
-        if result:
-            logger.success( "Subscribed with".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
-        else:
-            logger.error( "Failed to subscribe")
-        return result
+        
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                call_module='SubtensorModule',
+                call_function='subscribe',
+                call_params=params
+            )
+            # TODO (const): hotkey should be an argument here not assumed. Either that or the coldkey pub should also be assumed.
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey)
+            result = self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
+            if result:
+                logger.success( "Subscribed with".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
+            else:
+                logger.error( "Failed to subscribe")
+            return result
 
     def add_stake(
             self, 
@@ -332,17 +322,17 @@ To run a local node (See: docs/running_a_validator.md) \n
                 If we did not wait for finalization / inclusion, the response is true.
         """
         
-        # self.check_connection()
-        call = self.substrate.compose_call(
-            call_module='SubtensorModule',
-            call_function='add_stake',
-            call_params={
-                'hotkey': hotkey_id,
-                'ammount_staked': amount.rao
-            }
-        )
-        extrinsic = self.substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
-        return self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                call_module='SubtensorModule',
+                call_function='add_stake',
+                call_params={
+                    'hotkey': hotkey_id,
+                    'ammount_staked': amount.rao
+                }
+            )
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
+            return self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
 
     def transfer(
             self, 
@@ -353,17 +343,18 @@ To run a local node (See: docs/running_a_validator.md) \n
             wait_for_finalization: bool = False,
             timeout: int = 3 * bittensor.__blocktime__,
         ) -> bool:
-        # self.check_connection()
-        call = self.substrate.compose_call(
-            call_module='Balances',
-            call_function='transfer',
-            call_params={
-                'dest': dest, 
-                'value': amount.rao
-            }
-        )
-        extrinsic = self.substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
-        return self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
+        
+         with self.substrate as substrate:
+            call = substrate.compose_call(
+                call_module='Balances',
+                call_function='transfer',
+                call_params={
+                    'dest': dest, 
+                    'value': amount.rao
+                }
+            )
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
+            return self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
 
     def unstake(
             self, 
@@ -375,14 +366,14 @@ To run a local node (See: docs/running_a_validator.md) \n
             timeout: int = 3 * bittensor.__blocktime__,
         ) -> bool:
         
-        # self.check_connection()
-        call = self.substrate.compose_call(
-            call_module='SubtensorModule',
-            call_function='remove_stake',
-            call_params={'ammount_unstaked': amount.rao, 'hotkey': hotkey_id}
-        )
-        extrinsic = self.substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
-        return self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                call_module='SubtensorModule',
+                call_function='remove_stake',
+                call_params={'ammount_unstaked': amount.rao, 'hotkey': hotkey_id}
+            )
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
+            return self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
 
     def set_weights(
             self, 
@@ -415,14 +406,14 @@ To run a local node (See: docs/running_a_validator.md) \n
                 If we did not wait for finalization / inclusion, the response is true.
         """
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit( uids, weights )
-        # self.check_connection()
-        call = self.substrate.compose_call(
-            call_module='SubtensorModule',
-            call_function='set_weights',
-            call_params = {'dests': weight_uids, 'weights': weight_vals}
-        )
-        extrinsic = self.substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
-        return self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                call_module='SubtensorModule',
+                call_function='set_weights',
+                call_params = {'dests': weight_uids, 'weights': weight_vals}
+            )
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+            return self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
 
 
     def set_weights_v1_1_0(self,
@@ -455,14 +446,14 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or uncluded in the block.
                 If we did not wait for finalization / inclusion, the response is true.
         """
-        # self.check_connection()
-        call = self.substrate.compose_call(
-            call_module='SubtensorModule',
-            call_function='set_weights',
-            call_params = {'dests': destinations, 'weights': values, 'fee': transaction_fee}
-        )
-        extrinsic = self.substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
-        return self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                call_module='SubtensorModule',
+                call_function='set_weights',
+                call_params = {'dests': destinations, 'weights': values, 'fee': transaction_fee}
+            )
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+            return self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
 
 
     def get_balance(self, address: str) -> Balance:
@@ -474,18 +465,18 @@ To run a local node (See: docs/running_a_validator.md) \n
             balance (bittensor.utils.balance.Balance):
                 account balance
         """
-        # self.check_connection()
-        result = self.substrate.get_runtime_state(
-            module='System',
-            storage_function='Account',
-            params=[address],
-            block_hash=None
-        )
-        balance_info = result.get('result')
-        if not balance_info:
-            return Balance(0)
-        balance = balance_info['data']['free']
-        return Balance(balance)
+        with self.substrate as substrate:
+            result = substrate.get_runtime_state(
+                module='System',
+                storage_function='Account',
+                params=[address],
+                block_hash=None
+            )
+            balance_info = result.get('result')
+            if not balance_info:
+                return Balance(0)
+            balance = balance_info['data']['free']
+            return Balance(balance)
 
     def get_current_block(self) -> int:
         r""" Returns the current block number on the chain.
@@ -494,8 +485,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 Current chain blocknumber.
         """
         
-        # self.check_connection()
-        return self.substrate.get_block_number(None)
+        with self.substrate as substrate:
+            return substrate.get_block_number(None)
 
     def get_active(self) -> List[Tuple[str, int]]:
         r""" Returns a list of (public key, uid) pairs one for each active peer on chain.
@@ -503,12 +494,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             active (List[Tuple[str, int]]):
                 List of active peers.
         """
-        # self.check_connection()
-        result =  self.substrate.iterate_map(
-            module='SubtensorModule',
-            storage_function='Active',
-        )
-        return result
+        with self.substrate as substrate:
+            result =  substrate.iterate_map(
+                module='SubtensorModule',
+                storage_function='Active',
+            )
+            return result
 
     def get_stake(self) -> List[Tuple[int, int]]:
         r""" Returns a list of (uid, stake) pairs one for each active peer on chain.
@@ -518,11 +509,12 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         
         # self.check_connection()
-        result = self.substrate.iterate_map(
-            module='SubtensorModule',
-            storage_function='Stake',
-        )
-        return result
+        with self.substrate as substrate:
+            result = substrate.iterate_map(
+                module='SubtensorModule',
+                storage_function='Stake',
+            )
+            return result
 
     def get_last_emit(self) -> List[Tuple[int, int]]:
         r""" Returns a list of (uid, last emit) pairs for each active peer on chain.
@@ -531,11 +523,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 List of last emit values.
         """
         # self.check_connection()
-        result = self.substrate.iterate_map(
-            module='SubtensorModule',
-            storage_function='LastEmit'
-        )
-        return result
+        with self.substrate as substrate:
+            result = substrate.iterate_map(
+                module='SubtensorModule',
+                storage_function='LastEmit'
+            )
+            return result
 
     def get_weight_vals(self) -> List[Tuple[int, List[int]]]:
         r""" Returns a list of (uid, weight vals) pairs for each active peer on chain.
@@ -544,11 +537,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 List of weight val pairs.
         """
         # self.check_connection()
-        result = self.substrate.iterate_map(
-            module='SubtensorModule',
-            storage_function='WeightVals'
-        )
-        return result
+        with self.substrate as substrate:
+            result = substrate.iterate_map(
+                module='SubtensorModule',
+                storage_function='WeightVals'
+            )
+            return result
 
     def get_weight_uids(self) -> List[Tuple[int, int]]:
         r""" Returns a list of (uid, weight uids) pairs for each active peer on chain.
@@ -557,11 +551,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 List of weight uid pairs
         """
         # self.check_connection()
-        result = self.substrate.iterate_map(
-            module='SubtensorModule',
-            storage_function='WeightUids'
-        )
-        return result
+        with self.substrate as substrate:
+            result = substrate.iterate_map(
+                module='SubtensorModule',
+                storage_function='WeightUids'
+            )
+            return result
 
     def neurons(self) -> List[Tuple[int, dict]]: 
         r""" Returns a list of neuron from the chain. 
@@ -570,11 +565,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 List of neuron objects.
         """
         # self.check_connection()
-        neurons = self.substrate.iterate_map(
-            module='SubtensorModule',
-            storage_function='Neurons'
-        )
-        return neurons
+        with self.substrate as substrate:
+            neurons = substrate.iterate_map(
+                module='SubtensorModule',
+                storage_function='Neurons'
+            )
+            return neurons
 
     def get_uid_for_pubkey(self, pubkey = str) -> int: 
         r""" Returns the uid of the peer given passed public key string.
@@ -586,14 +582,15 @@ To run a local node (See: docs/running_a_validator.md) \n
                 uid of peer with hotkey equal to passed public key.
         """
         ## self.check_connection()
-        result = self.substrate.get_runtime_state(
-            module='SubtensorModule',
-            storage_function='Active',
-            params=[pubkey]
-        )
-        if result['result'] is None:
-            return None
-        return int(result['result'])
+        with self.substrate as substrate:
+            result = substrate.get_runtime_state(
+                module='SubtensorModule',
+                storage_function='Active',
+                params=[pubkey]
+            )
+            if result['result'] is None:
+                return None
+            return int(result['result'])
 
     def get_neuron_for_uid(self, uid) -> dict:
         r""" Returns the neuron metadata of the peer with the passed uid.
@@ -606,12 +603,13 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         
         # self.check_connection()
-        result = self.substrate.get_runtime_state(
-                module='SubtensorModule',
-                storage_function='Neurons',
-                params=[uid]
-        )
-        return result['result']
+        with self.substrate as substrate:
+            result = substrate.get_runtime_state(
+                    module='SubtensorModule',
+                    storage_function='Neurons',
+                    params=[uid]
+            )
+            return result['result']
 
     def get_stake_for_uid(self, uid) -> Balance:
         r""" Returns the staked token amount of the peer with the passed uid.
@@ -624,15 +622,16 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         
         # self.check_connection()
-        stake = self.substrate.get_runtime_state(
-            module='SubtensorModule',
-            storage_function='Stake',
-            params = [uid]
-        )
-        result = stake['result']
-        if not result:
-            return Balance(0)
-        return Balance(result)
+        with self.substrate as substrate:
+            stake = substrate.get_runtime_state(
+                module='SubtensorModule',
+                storage_function='Stake',
+                params = [uid]
+            )
+            result = stake['result']
+            if not result:
+                return Balance(0)
+            return Balance(result)
 
     def weight_uids_for_uid(self, uid) -> List[int]:
         r""" Returns the weight uids of the peer with the passed uid.
@@ -644,12 +643,13 @@ To run a local node (See: docs/running_a_validator.md) \n
                 Weight uids for passed uid.
         """
         # self.check_connection()
-        result = self.substrate.get_runtime_state(
-            module='SubtensorModule',
-            storage_function='WeightUids',
-            params = [uid]
-        )
-        return result['result']
+        with self.substrate as substrate:
+            result = substrate.get_runtime_state(
+                module='SubtensorModule',
+                storage_function='WeightUids',
+                params = [uid]
+            )
+            return result['result']
 
     def weight_vals_for_uid(self, uid) -> List[int]:
         r""" Returns the weight vals of the peer with the passed uid.
@@ -661,12 +661,13 @@ To run a local node (See: docs/running_a_validator.md) \n
                 Weight vals for passed uid.
         """
         # self.check_connection()
-        result = self.substrate.get_runtime_state(
-            module='SubtensorModule',
-            storage_function='WeightVals',
-            params = [uid]
-        )
-        return result['result']
+        with self.substrate as substrate:
+            result = substrate.get_runtime_state(
+                module='SubtensorModule',
+                storage_function='WeightVals',
+                params = [uid]
+            )
+            return result['result']
 
     def get_last_emit_data_for_uid(self, uid) -> int:
         r""" Returns the last emit of the peer with the passed uid.
@@ -678,9 +679,10 @@ To run a local node (See: docs/running_a_validator.md) \n
                 Last emit block numebr
         """
         # self.check_connection()
-        result = self.substrate.get_runtime_state(
-            module='SubtensorModule',
-            storage_function='LastEmit',
-            params = [uid]
-        )
+        with self.substrate as substrate:
+            result = substrate.get_runtime_state(
+                module='SubtensorModule',
+                storage_function='LastEmit',
+                params = [uid]
+            )
         return result['result']

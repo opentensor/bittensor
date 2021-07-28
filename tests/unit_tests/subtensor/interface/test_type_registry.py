@@ -40,11 +40,10 @@ class KusamaTypeRegistryTestCase(unittest.TestCase):
 
     @pytest.mark.asyncio
     async def test_type_registry_compatibility(self):
-
-        for scale_type in await self.substrate.get_type_registry():
-            obj = RuntimeConfiguration().get_decoder_class(scale_type)
-
-            self.assertIsNotNone(obj, '{} not supported'.format(scale_type))
+        with self.substrate as substrate:
+            for scale_type in await substrate.get_type_registry():
+                obj = RuntimeConfiguration().get_decoder_class(scale_type)
+                self.assertIsNotNone(obj, '{} not supported'.format(scale_type))
 
 
 class PolkadotTypeRegistryTestCase(unittest.TestCase):
@@ -59,12 +58,10 @@ class PolkadotTypeRegistryTestCase(unittest.TestCase):
 
     @pytest.mark.asyncio
     async def test_type_registry_compatibility(self):
-
-        for scale_type in await self.substrate.get_type_registry():
-
-            obj = RuntimeConfiguration().get_decoder_class(scale_type)
-
-            self.assertIsNotNone(obj, '{} not supported'.format(scale_type))
+        with self.substrate as substrate:
+            for scale_type in await substrate.get_type_registry():
+                obj = RuntimeConfiguration().get_decoder_class(scale_type)
+                self.assertIsNotNone(obj, '{} not supported'.format(scale_type))
 
 
 if __name__ == '__main__':
