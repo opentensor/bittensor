@@ -126,20 +126,19 @@ To run a local node (See: docs/running_a_validator.md) \n
             attempted_endpoints.append(ws_chain_endpoint)
 
             # --- Attempt connection ----
-            with self.substrate as substrate:
-                if substrate( ws_chain_endpoint, timeout = 5 ):
+            try:
+                with self.substrate as substrate:
                     logger.success("Network:".ljust(20) + "<blue>{}</blue>", self.network)
                     logger.success("Endpoint:".ljust(20) + "<blue>{}</blue>", ws_chain_endpoint)
                     return True
             
-                # ---- Timeout ----
-                elif (time.time() - start_time) > timeout:
-                    logger.error( "Error while connecting to network:<blue>{}</blue> at endpoint: <blue>{}</blue>".format(self.network, ws_chain_endpoint))
-                    connection_error_message()
-                    if failure:
-                        raise RuntimeError('Unable to connect to network:<blue>{}</blue>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.network))
-                    else:
-                        return False
+            except Exception:
+                logger.error( "Error while connecting to network:<blue>{}</blue> at endpoint: <blue>{}</blue>".format(self.network, ws_chain_endpoint))
+                connection_error_message()
+                if failure:
+                    raise RuntimeError('Unable to connect to network:<blue>{}</blue>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.network))
+                else:
+                    return False
 
     def _submit_and_check_extrinsic(
             self, 
