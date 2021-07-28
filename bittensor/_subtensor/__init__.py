@@ -67,6 +67,7 @@ class subtensor:
             type_registry_preset='substrate-node-template',
             type_registry = custom_type_registry,
             url = "ws://{}".format(config.subtensor.chain_endpoint),
+            use_remote_preset=True
         )
         subtensor.check_config( config )
         return subtensor_impl.Subtensor( 
