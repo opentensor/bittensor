@@ -17,10 +17,8 @@
 import argparse
 import bittensor
 import copy
-from typing import List, Tuple
-from bittensor._substrate import SubstrateWSInterface
+from substrateinterface import SubstrateInterface
 
-from munch import Munch
 from . import subtensor_impl
 
 custom_type_registry = {
@@ -60,11 +58,15 @@ class subtensor:
         if config == None: config = subtensor.config()
         config = copy.deepcopy( config )
         config.subtensor.network = network if network != None else config.subtensor.network
-        config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else config.subtensor.chain_endpoint
-        substrate = SubstrateWSInterface(
+
+        # Determine chain endpoint
+        config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else subtensor.determine_chain_endpoint(config.subtensor.network)
+
+        substrate = SubstrateInterface(
             address_type = 42,
             type_registry_preset='substrate-node-template',
             type_registry = custom_type_registry,
+            url = "ws://{}".format(config.subtensor.chain_endpoint)
         )
         subtensor.check_config( config )
         return subtensor_impl.Subtensor( 
@@ -99,3 +101,13 @@ class subtensor:
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
         assert config.subtensor
+
+    @staticmethod
+    def determine_chain_endpoint(network: str):
+        if network == "akatsuki":
+            # Get first network in akatsuki entrypoints, which is main
+            return bittensor.__akatsuki_entrypoints__[0]
+    
+        # Kusanagi testnet
+        return bittensor.__kusanagi_entrypoints__[0]
+            

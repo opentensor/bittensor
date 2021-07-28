@@ -15,7 +15,6 @@ msgpack==1.0.2
 msgpack-numpy==0.4.7.1
 miniupnpc
 munch
-nest_asyncio
 netaddr==0.8.0
 password_strength==0.0.3.post2
 pickle-mixin==1.0.2
@@ -28,7 +27,6 @@ py-ed25519-bindings~=0.1.2
 py-bip39-bindings>=0.1.6
 pytest>=6.1.2
 pytest-xdist==2.2.0
-pytest-asyncio>=0.14.0
 pytorch_transformers
 pyyaml
 rich
@@ -49,3 +47,4 @@ codecov
 tqdm
 qqdm
 wandb
+substrateinterface==0.13.11

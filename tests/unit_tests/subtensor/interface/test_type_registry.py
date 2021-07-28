@@ -22,9 +22,9 @@ sys.path.append(os.path.abspath('../../py-scale-codec'))
 import unittest
 import pytest
 
-from scalecodec.base import RuntimeConfiguration, ScaleType
+from scalecodec.base import RuntimeConfiguration
 
-from bittensor._substrate import SubstrateWSInterface, Keypair, SubstrateRequestException
+from substrateinterface import SubstrateInterface
 from .settings import *
 
 
@@ -32,9 +32,10 @@ class KusamaTypeRegistryTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.substrate = SubstrateWSInterface(
+        cls.substrate = SubstrateInterface(
             address_type=2,
-            type_registry_preset='kusama'
+            type_registry_preset='kusama',
+            url='test.kusanagi.bittensor.com:99444'
         )
 
     @pytest.mark.asyncio
@@ -50,9 +51,10 @@ class PolkadotTypeRegistryTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.substrate = SubstrateWSInterface(
+        cls.substrate = SubstrateInterface(
             address_type=0,
-            type_registry_preset='polkadot'
+            type_registry_preset='polkadot',
+            url='test.kusanagi.bittensor.com:9944'
         )
 
     @pytest.mark.asyncio

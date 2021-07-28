@@ -1,16 +1,9 @@
 import os
-<<<<<<< HEAD
-import time
-import pytest
-import random
-import torch
-=======
+
 import sys
 import time
 import pytest
-import asyncio
 import random
->>>>>>> 920f8cee43163d0eb3a21f9c22974cb46be20058
 import subprocess
 
 from typing import List
@@ -20,13 +13,10 @@ from pytest import fixture
 import bittensor
 from bittensor.utils.balance import Balance
 
-<<<<<<< HEAD
-from bittensor._substrate import Keypair
-=======
-from bittensor.wallet import Wallet
-from bittensor.substrate import Keypair
 
->>>>>>> 920f8cee43163d0eb3a21f9c22974cb46be20058
+from bittensor.wallet import Wallet
+from substrateinterface import Keypair
+
 
 BLOCK_REWARD = 500_000_000
 TRANSACTION_FEE = 100

@@ -12,7 +12,7 @@ from pytest import fixture
 import bittensor
 from bittensor.utils.balance import Balance
 
-from bittensor._substrate import Keypair
+from substrateinterface import Keypair
 
 
 BLOCK_REWARD = 500_000_000

@@ -15,7 +15,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import asyncio
 import os
 import torch
 import tqdm.asyncio
@@ -275,22 +274,10 @@ class Metagraph( torch.nn.Module ):
                 force (bool):
                     force syncs all nodes on the graph.
         """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        loop.run_until_complete(self._async_sync(force))
-
-    async def _async_sync( self, force: bool = False ):
-        r""" Uses the passed subtensor interface to update the metagraph chain state to reflect 
-            the latest info on chain.
-
-            Args: 
-                subtensor: (:obj:`bittensor.Subtensor`, optional):
-                    Subtensor chain interface obbject. If None, creates default connection to kusanagi.
-        """
         # Query chain info.
-        chain_lastemit = dict( await self.subtensor.async_get_last_emit() ) #  Optional[ List[Tuple[uid, lastemit]] ]
-        chain_stake = dict( await self.subtensor.async_get_stake() ) #  Optional[ List[Tuple[uid, stake]] ]
-        chain_block = int( await self.subtensor.async_get_current_block()) #  Optional[ int ]
+        chain_lastemit = dict( self.subtensor.get_last_emit() ) #  Optional[ List[Tuple[uid, lastemit]] ]
+        chain_stake = dict( self.subtensor.get_stake() ) #  Optional[ List[Tuple[uid, stake]] ]
+        chain_block = int( self.subtensor.get_current_block()) #  Optional[ int ]
 
         # Build new state.
         new_size = len(chain_stake)
@@ -319,33 +306,34 @@ class Metagraph( torch.nn.Module ):
             self.neurons.append( torch.nn.Parameter( torch.tensor([], dtype=torch.int64), requires_grad=False ) )
 
         # Fill pending queries.
-        pending_queries = []
-        for uid, lastemit in chain_lastemit.items():
-            if lastemit > old_block or force == True:
-                pending_queries.append((False, uid))
+        # pending_queries = []
+        # for uid, lastemit in chain_lastemit.items():
+        #     if lastemit > old_block or force == True:
+        #         pending_queries.append((False, uid))
 
-        # Fill buffers with retry.
-        # Below fills buffers for pending queries upto the rety cutoff.
-        retries = 0
-        max_retries = 3
-        while True:
-            if retries >= max_retries:
-                logger.critical('Failed to sync metagraph. Check your subtensor connection.')
-                raise RuntimeError('Failed to sync metagraph. Check your subtensor connection.')            
-            queries = []
-            for code, uid in pending_queries:
-                if code == False:
-                    queries.append( self.fill_uid( uid = uid ) )
-            if len(queries) == 0:
-                # Success
-                break
-            pending_queries = [await query for query in tqdm.asyncio.tqdm.as_completed( queries )]
-            retries += 1 
+        # # Fill buffers with retry.
+        # # Below fills buffers for pending queries upto the rety cutoff.
+        # import pdb; pdb.set_trace()
+        # retries = 0
+        # max_retries = 3
+        # while True:
+        #     if retries >= max_retries:
+        #         logger.critical('Failed to sync metagraph. Check your subtensor connection.')
+        #         raise RuntimeError('Failed to sync metagraph. Check your subtensor connection.')            
+        #     queries = []
+        #     for code, uid in pending_queries:
+        #         if code == False:
+        #             queries.append( self.fill_uid( uid = uid ) )
+        #     if len(queries) == 0:
+        #         # Success
+        #         break
+        #     pending_queries = [query for query in queries]
+        #     retries += 1 
             
         self.cached_endpoints = None
 
     # Function which fills weights and neuron info for a uid.
-    async def fill_uid ( self, uid: int ) -> Tuple[int, bool]:
+    def fill_uid ( self, uid: int ) -> Tuple[int, bool]:
         r""" Uses the passed subtensor interface to update chain state for the passed uid.
             the latest info on chain.
             
@@ -357,13 +345,13 @@ class Metagraph( torch.nn.Module ):
         try:
             
             # Fill row from weights.
-            weight_uids = await self.subtensor.async_weight_uids_for_uid( uid ) 
-            weight_vals = await self.subtensor.async_weight_vals_for_uid( uid ) 
+            weight_uids = self.subtensor.weight_uids_for_uid( uid ) 
+            weight_vals = self.subtensor.weight_vals_for_uid( uid ) 
             row_weights = weight_utils.convert_weight_uids_and_vals_to_tensor( self.n.item(), weight_uids, weight_vals )
             self.weights[ uid ] = torch.nn.Parameter( row_weights, requires_grad=False )
             
             # Fill Neuron info.
-            neuron = await self.subtensor.async_get_neuron_for_uid( uid )
+            neuron = self.subtensor.get_neuron_for_uid( uid )
             neuron_obj = bittensor.endpoint.from_dict( neuron )
             neuron_tensor = neuron_obj.to_tensor()
             self.neurons[ uid ] = torch.nn.Parameter( neuron_tensor, requires_grad=False )
