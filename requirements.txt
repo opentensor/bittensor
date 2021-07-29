@@ -32,7 +32,7 @@ pyyaml
 rich
 rollbar
 requests~=2.25.0
-scalecodec~=0.10.59
+scalecodec~=0.11.16
 termcolor
 tensorboard
 torch>=1.6.0
