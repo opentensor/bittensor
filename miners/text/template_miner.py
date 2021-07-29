@@ -253,7 +253,6 @@ class Miner:
         parser.add_argument('--miner.n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
         parser.add_argument('--miner.epoch_length', type=int, help='Iterations of training per epoch', default=100)
         parser.add_argument('--miner.batch_size_train', type=int, help='Training batch size.', default=2)
-        parser.add_argument('--miner.reload', action='store_true', help='''Reload training from previous trial run.''', default=False )
         parser.add_argument('--miner.restart_on_failure',  action='store_true', help='''Restart miner on unknown error.''', default=False)
         parser.add_argument('--miner.compute_remote_gradients', action='store_true', help='''Does the miner compute and return gradients from backward queries.''', default=False)
         parser.add_argument('--miner.accumulate_remote_gradients', action='store_true', help='''Does the miner accumulate remote gradients from backward queries.''', default=False)
@@ -308,12 +307,9 @@ class Miner:
             self.global_step = 0
             self.epoch_loss = math.inf/2
             self.best_epoch_loss = math.inf
-
-            # ---- Optionally reload from previous run ----
-            if self.config.miner.reload:
-                self.reload()
-            else:
-                self.checkpoint()
+            
+            # ---- reloads previous run ----
+            self.reload()
 
             # --- Run until n_epochs ----
             while self.epoch < self.config.miner.n_epochs:
@@ -498,7 +494,7 @@ class Miner:
         bittensor.neuron.metagraph.load()
         bittensor.neuron.metagraph.sync()
         bittensor.neuron.metagraph.save()
-        self.reload()
+        #self.reload()
 
 
     def get_saved_state( self ):
@@ -508,12 +504,18 @@ class Miner:
             return torch.load("{}/model.torch".format( self.config.miner.full_path ))
         except Exception as e:
             logger.warning('No saved model found with error: {}', e)
+            logger.info('Initalizing with new model')
             return None
 
     def reload( self ):
         r""" Reloads/updates the training state from the disk.
         """
         state_dict = self.get_saved_state()
+
+        # --- loads and syncs metagraph
+        bittensor.neuron.metagraph.load()
+        bittensor.neuron.metagraph.sync()
+        bittensor.neuron.metagraph.save()
 
         # ---- Load training state.
         self.epoch = state_dict['epoch']
