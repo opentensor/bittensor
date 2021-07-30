@@ -76,6 +76,7 @@ class Nucleus(nn.Module):
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
+        parser.add_argument('--nucleus.punishment', type=int, help='The punishment on peers that do not respond ', default=0.01 )
 
     def init_weights(self):
         initrange = 0.1
@@ -205,7 +206,7 @@ class Nucleus(nn.Module):
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
-            self.chain_weights[topk_uids[(return_ops != 0)]] -=  self.config.miner.punishment
+            self.chain_weights[topk_uids[(return_ops != 0)]] -=  self.config.nucleus.punishment
 
         # ---- Return response -----
         return output
@@ -259,7 +260,7 @@ class Miner:
         parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
         parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
-        parser.add_argument('--miner.punishment', type=int, help='The punishment on responses that do no ', default=100 )
+
         bittensor.add_args( parser )
         Nucleus.add_args( parser )  
 
