@@ -1,6 +1,5 @@
 # Sample Config File
 
-axon.ip: 127.0.0.1
 axon.max_workers: 10
 axon.maximum_concurrent_rpcs: 400
 axon.port: 8091
@@ -34,22 +33,22 @@ miner.clip_gradients: 1.0
 miner.compute_remote_gradients: false
 
 neuron.use_upnpc: false
-neuron.use_wandb: true
+neuron.use_wandb: false
+neuron.api_key: default
 
 nucleus.nhid: 200
 nucleus.nhead: 2
 nucleus.nlayers: 2
 nucleus.dropout: 0.3
-nucleus.topk: 30 
+nucleus.topk: 30
 
 subtensor.chain_endpoint: null
-subtensor.network: kusanagi
+subtensor.network: akatsuki
 
 wallet.hotkey: default
 wallet.name: default
 wallet.path: ~/.bittensor/wallets/
 
-wandb.api_key: default
 wandb.directory: default
 wandb.name: default
 wandb.offline: false
