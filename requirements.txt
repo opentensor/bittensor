@@ -1,5 +1,4 @@
 argparse
-autobahn==20.7.1
 base58>=2.0.1
 certifi>=2020.11.8
 cryptography==3.1.1
@@ -31,7 +30,7 @@ pytorch_transformers
 pyyaml
 rich
 rollbar
-requests~=2.25.0
+requests>=2.25.0
 scalecodec~=0.11.16
 termcolor
 tensorboard
@@ -46,5 +45,5 @@ wheel
 codecov
 tqdm
 qqdm
-wandb
-substrate-interface==0.13.11
+wandb>=0.11.1
+substrate-interface>=0.13.11

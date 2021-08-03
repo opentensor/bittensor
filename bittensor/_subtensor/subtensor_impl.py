@@ -169,12 +169,14 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Send extrinsic
         try:
             with self.substrate as substrate:
+                import pdb; pdb.set_trace()
                 response = substrate.submit_extrinsic( 
                                         extrinsic, 
                                         wait_for_inclusion = wait_for_inclusion,
                                         wait_for_finalization = wait_for_finalization, 
-                                        timeout = timeout
+                                        #timeout = timeout
                                 )
+                
         except SubstrateRequestException as e:
             logger.error('Extrinsic exception with error {}', e)
             return False
@@ -191,14 +193,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         if not wait_for_inclusion and not wait_for_finalization:
             return True
         else:
-            if 'error' in response:
-                logger.error('Error in extrinsic: {}', response['error'])
-            elif 'finalized' in response and response['finalized'] == True:
+            if response.is_success:
                 return True
-            elif 'inBlock' in response and response['inBlock'] == True:
-                return True
-            else:
-                return False
+            return False
 
     def is_subscribed(self, wallet: 'bittensor.wallet', ip: str, port: int, modality: int ) -> bool:
         r""" Returns true if the bittensor endpoint is already subscribed with the wallet and metadata.
@@ -259,7 +256,6 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
 #        if not # self.check_connection():
 #            return False
-
         if self.is_subscribed( wallet, ip, port, modality ):
             logger.success( "Subscribed with".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
             return True
@@ -284,6 +280,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             # TODO (const): hotkey should be an argument here not assumed. Either that or the coldkey pub should also be assumed.
             extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey)
             result = self._submit_and_check_extrinsic (extrinsic, wait_for_inclusion, wait_for_finalization, timeout)
+
             if result:
                 logger.success( "Subscribed with".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
             else:

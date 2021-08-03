@@ -17,7 +17,7 @@
 
 import os
 import torch
-import tqdm.asyncio
+from tqdm import trange
 
 from loguru import logger
 from typing import List, Tuple, List
@@ -274,105 +274,40 @@ class Metagraph( torch.nn.Module ):
                 force (bool):
                     force syncs all nodes on the graph.
         """
+
         # Query chain info.
         chain_lastemit = dict( self.subtensor.get_last_emit() ) #  Optional[ List[Tuple[uid, lastemit]] ]
         chain_stake = dict( self.subtensor.get_stake() ) #  Optional[ List[Tuple[uid, stake]] ]
         chain_block = int( self.subtensor.get_current_block()) #  Optional[ int ]
+        chain_weights_uids = dict ( self.subtensor.get_weight_uids() )
+        chain_weights_vals = dict ( self.subtensor.get_weight_vals() )
+        chain_endpoints = dict ( self.subtensor.neurons() )
 
         # Build new state.
-        new_size = len(chain_stake)
-        old_size = self.n.item() 
-        old_block = self.block.item()
-        new_n = torch.tensor([new_size], dtype=torch.int64)
+        size = len(chain_stake)
+        new_n = torch.tensor([size], dtype=torch.int64)
         new_block = torch.tensor([chain_block], dtype=torch.int64)
-        new_uids = torch.tensor( range(new_size) ,  dtype=torch.int64)
-        new_stake = torch.tensor([ (float(chain_stake[uid])/1000000000) for uid in range(new_size)],  dtype=torch.float32)
-        new_lastemit = torch.tensor([ chain_lastemit[uid] for uid in range(new_size)], dtype=torch.int64)
+        new_uids = torch.tensor( range(size) ,  dtype=torch.int64)
 
         # Set params.
+        new_stake = torch.tensor([float(stake) / 1000000000 for stake in chain_stake], dtype=torch.float32)
+        new_lastemit = torch.tensor([float(emit) / 1000000000 for emit in chain_lastemit], dtype=torch.float32)
+        self.block = torch.nn.Parameter(torch.tensor([chain_block], dtype=torch.int64), requires_grad=False)
         self.n = torch.nn.Parameter( new_n, requires_grad=False )
         self.block = torch.nn.Parameter( new_block, requires_grad=False )
         self.uids = torch.nn.Parameter( new_uids, requires_grad=False )
         self.stake = torch.nn.Parameter( new_stake, requires_grad=False )
         self.lastemit = torch.nn.Parameter( new_lastemit, requires_grad=False )
 
-        # Extend weights matrix.
-        for idx in range( old_size ):
-            self.weights[idx] =  torch.nn.Parameter( torch.cat( [self.weights[idx], torch.zeros([new_size - len(self.weights[idx])], dtype=torch.float32)]))
-
-        # Create buffers
-        for _ in range( new_size - old_size ):
-            self.weights.append( torch.nn.Parameter( torch.tensor([], dtype=torch.float32), requires_grad=False ) )
-            self.neurons.append( torch.nn.Parameter( torch.tensor([], dtype=torch.int64), requires_grad=False ) )
-
-        # Fill pending queries.
-        # pending_queries = []
-        # for uid, lastemit in chain_lastemit.items():
-        #     if lastemit > old_block or force == True:
-        #         pending_queries.append((False, uid))
-
-        # # Fill buffers with retry.
-        # # Below fills buffers for pending queries upto the rety cutoff.
-        # import pdb; pdb.set_trace()
-        # retries = 0
-        # max_retries = 3
-        # while True:
-        #     if retries >= max_retries:
-        #         logger.critical('Failed to sync metagraph. Check your subtensor connection.')
-        #         raise RuntimeError('Failed to sync metagraph. Check your subtensor connection.')            
-        #     queries = []
-        #     for code, uid in pending_queries:
-        #         if code == False:
-        #             queries.append( self.fill_uid( uid = uid ) )
-        #     if len(queries) == 0:
-        #         # Success
-        #         break
-        #     pending_queries = [query for query in queries]
-        #     retries += 1 
-            
-        self.cached_endpoints = None
-
-    # Function which fills weights and neuron info for a uid.
-    def fill_uid ( self, uid: int ) -> Tuple[int, bool]:
-        r""" Uses the passed subtensor interface to update chain state for the passed uid.
-            the latest info on chain.
-            
-            Args: 
-                subtensor: (:obj:`bittensor.Subtensor`, optional):
-                    Subtensor chain interface obbject. If None, creates default connection to kusanagi.
-        """
-        # TODO(const): try catch block with retry.
-        try:
-            
-            # Fill row from weights.
-            weight_uids = self.subtensor.weight_uids_for_uid( uid ) 
-            weight_vals = self.subtensor.weight_vals_for_uid( uid ) 
-            row_weights = weight_utils.convert_weight_uids_and_vals_to_tensor( self.n.item(), weight_uids, weight_vals )
-            self.weights[ uid ] = torch.nn.Parameter( row_weights, requires_grad=False )
+        # # Create buffers
+        for uid in trange( size ):
+             # Fill row from weights.
+            row_weights = weight_utils.convert_weight_uids_and_vals_to_tensor( size, chain_weights_uids[uid], chain_weights_vals[uid] )
+            self.weights.append(torch.nn.Parameter( row_weights, requires_grad=False ))
             
             # Fill Neuron info.
-            neuron = self.subtensor.get_neuron_for_uid( uid )
-            neuron_obj = bittensor.endpoint.from_dict( neuron )
+            neuron_obj = bittensor.endpoint.from_dict( chain_endpoints[uid] )
             neuron_tensor = neuron_obj.to_tensor()
-            self.neurons[ uid ] = torch.nn.Parameter( neuron_tensor, requires_grad=False )
+            self.neurons.append(torch.nn.Parameter( neuron_tensor, requires_grad=False ))
             
-            # Return.
-            return True, uid
-
-        except Exception as e:
-            # Return False.
-            logger.exception("Errored out due to: {}".format(e))
-            return False, uid
-
-    def __str__(self):
-        if self.n != 0:
-            peers_online = torch.numel(torch.where( self.block - self.lastemit < 1000 )[0])
-        else:
-            peers_online = 0
-        return '<green>Metagraph:</green> block:<blue>{}</blue>, inflation_rate:<blue>{}</blue>, staked:<green>\u03C4{}</green>/<blue>\u03C4{}</blue>, active:<green>{}</green>/<blue>{}</blue>'.format(self.block.item(), self.tau.item(), torch.sum(self.S), self.block.item()/2, peers_online, self.n.item())
-
-    def __to_tensorboard__(self, tensorboard, global_step):
-        tensorboard.add_scalar('Metagraph/neurons', self.n.item(), global_step)
-        tensorboard.add_scalar('Metagraph/inflation_rate', self.tau.item(), global_step)
-
-
+        self.cached_endpoints = None

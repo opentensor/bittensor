@@ -11,7 +11,6 @@ def test_print_empty():
 
 def test_load_sync_save():
     metagraph = bittensor.metagraph()
-    #import pdb; pdb.set_trace()
     metagraph.sync()
     metagraph.save()
     metagraph.load()
