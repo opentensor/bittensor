@@ -535,8 +535,8 @@ class Miner:
                 )
             ) 
         else:
-            chain_growth = bittensor.neuron.metagraph.n.item()
-            state_dict['nucleus_state']['chain_weights'] = torch.ones( [0] , requires_grad=True)
+            logger.exception('Incorrect network setting between miner input and saved state. Please use the same network')
+
         self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False ) 
         self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
         self.nucleus.to( self.device ) # Load nucleus
