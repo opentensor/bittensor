@@ -208,10 +208,6 @@ class KeyPairTestCase(unittest.TestCase):
     def test_hdkd_unsupported_password(self):
         self.assertRaises(NotImplementedError, Keypair.create_from_uri, DEV_PHRASE + '///test')
 
-    # def test_reconstruct_path_fail(self):
-    #     self.assertRaises(ValueError, extract_derive_path, 'no_slashes')
-    #     self.assertRaises(ValueError, extract_derive_path, '//')
-
 
 if __name__ == '__main__':
     unittest.main()

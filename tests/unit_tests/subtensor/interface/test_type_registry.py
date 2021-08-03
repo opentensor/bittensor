@@ -35,7 +35,7 @@ class KusamaTypeRegistryTestCase(unittest.TestCase):
         cls.substrate = SubstrateInterface(
             address_type=2,
             type_registry_preset='kusama',
-            url='test.kusanagi.bittensor.com:99444'
+            url='test.kusanagi.bittensor.com:9944'
         )
 
     @pytest.mark.asyncio

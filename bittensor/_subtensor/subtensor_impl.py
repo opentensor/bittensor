@@ -169,12 +169,10 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Send extrinsic
         try:
             with self.substrate as substrate:
-                import pdb; pdb.set_trace()
                 response = substrate.submit_extrinsic( 
                                         extrinsic, 
                                         wait_for_inclusion = wait_for_inclusion,
                                         wait_for_finalization = wait_for_finalization, 
-                                        #timeout = timeout
                                 )
                 
         except SubstrateRequestException as e:
