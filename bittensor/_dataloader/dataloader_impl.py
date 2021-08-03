@@ -36,19 +36,22 @@ class Dataloader():
         # TODO (shibshib): Find a proper way to set this as config instead of hardcoding it.
         # More dataset hashes can be added as we add directories for other modalities.
         self.genesis_text_dataset_hash = "QmXwfPoh2QFYqC6cYcW8kzyd9ruFfhnUi2kVBkdhawjUzj"
+        self.wikitext_text_dataset_hash = 'QmRjFNn3XpYMycVzTE4YcVcxk45vNZcTAjKmtEqPLKwAWd'
+        self.test_text_dataset_hash = 'QmRhWSMPQzTiWcdGYy8vpRMxSxCAKDJBaXvmum4fjkF7cJ'
+        self.validation_text_dataset_hash = 'QmQnE8wBmxKgNteFkZ1RAdZFit16iSeHwX6zSpYfwFmAuG'
 
         # Used to retrieve directory contentx
-        self.dag_get = 'https://ipfs.infura.io:5001/api/v0/dag/get'
+        self.dag_get = 'https://gateway.pinata.cloud/api/v0/dag/get'
         # Used to retrieve file contents
-        self.file_cat = 'https://ipfs.infura.io:5001/api/v0/cat'
+        self.file_cat = 'https://gateway.pinata.cloud/api/v0/cat'
 
         # Used when current corpus has been exhausted
         self.refresh_corpus = False
 
     @staticmethod
     def requests_retry_session(
-            retries=3,
-            backoff_factor=0.3,
+            retries=5,
+            backoff_factor=0.5,
             status_forcelist=(500, 502, 504),
             session=None,
         ):
@@ -115,6 +118,7 @@ class GenesisTextDataloader( Dataloader ):
         batch_size,
         max_corpus_size,
         num_workers,
+        dataset,
     ):
         super(GenesisTextDataloader, self).__init__()
         self.block_size = block_size
@@ -122,6 +126,7 @@ class GenesisTextDataloader( Dataloader ):
         self.max_corpus_size = max_corpus_size
         self.num_workers = num_workers
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
+        self.dataset = dataset
         
         # Retrieve a random slice of the genesis dataset
         self.data = []
@@ -156,9 +161,18 @@ class GenesisTextDataloader( Dataloader ):
         """
         try:
             logger.success("Retrieving a dataset files from the IPFS gateway...")
-            directory = self.retrieve_directory(self.genesis_text_dataset_hash)
-            data_corpus = []
 
+            # Retrieves the directory for the given dataset
+            if self.dataset == 'genesis':
+                directory = self.retrieve_directory(self.genesis_text_dataset_hash)
+            elif self.dataset == 'wikitext':
+                directory = self.retrieve_directory(self.wikitext_text_dataset_hash)
+            elif self.dataset == 'test':
+                directory = self.retrieve_directory(self.test_text_dataset_hash)
+            elif self.dataset == 'validation':
+                directory = self.retrieve_directory(self.validation_text_dataset_hash)
+            
+            data_corpus = []
             # Pick a random dataset file and return its contents
             if directory and 'links' in directory.keys():
                 # Let's construct a dataset!
@@ -168,7 +182,6 @@ class GenesisTextDataloader( Dataloader ):
 
                 # Make sure the file we chose satisfies our maximum file size requirement
                 while total_dataset_size <= self.max_corpus_size:
-
                     # Find file hash
                     random_dataset_file_hash = random_dataset_file['Cid']['/']
 
@@ -176,11 +189,11 @@ class GenesisTextDataloader( Dataloader ):
                     file_contents = self.retrieve_text_file(random_dataset_file_hash)
                     logger.success("Added:".ljust(20) + "<blue>{}</blue>".format(filename))
                     data_corpus.extend(file_contents.text.split())
+                    total_dataset_size += int(random_dataset_file['Size'])
 
-                    # Retrieve next file descriptor
+                    # Retrieve next file descriptor                     
                     random_dataset_file = random.choice(directory['links'])
                     filename = random_dataset_file['Name']
-                    total_dataset_size += int(random_dataset_file['Size'])
                 
                 return data_corpus
                 
