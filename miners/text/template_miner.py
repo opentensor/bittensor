@@ -76,7 +76,7 @@ class Nucleus(nn.Module):
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
-        parser.add_argument('--nucleus.punishment', type=int, help='The punishment on peers that do not respond ', default=0.01 )
+        parser.add_argument('--nucleus.punishment', type=int, help='The punishment on the chain weights that do not respond ', default=0.01 )
 
     def init_weights(self):
         initrange = 0.1
@@ -495,8 +495,11 @@ class Miner:
         bittensor.neuron.metagraph.load()
         bittensor.neuron.metagraph.sync()
         bittensor.neuron.metagraph.save()
-        #self.reload()
 
+        # Checks if epochs managed to diverage
+        if not math.isfinite(self.epoch_loss):
+            logger.error('Incorrect epoch loss detected, reloading to previous saved state')
+            self.reload()
 
     def get_saved_state( self ):
         r""" Returns a saved state dict or none.
@@ -617,7 +620,7 @@ class Miner:
                 'Stake':stake,
                 'Rank':rank,
                 'Incentive':incentive,
-                'Network Activity':bittensor.neuron.axon.stats.qps.value}
+                'Axon QPS':bittensor.neuron.axon.stats.qps.value}
 
         normalized_chain_weights = torch.nn.functional.normalize( self.nucleus.chain_weights - torch.min( self.nucleus.chain_weights ), p = 1, dim = 0)
         for uid in bittensor.neuron.metagraph.uids.tolist():
