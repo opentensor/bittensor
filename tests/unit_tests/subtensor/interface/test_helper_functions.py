@@ -45,9 +45,6 @@ class TestHelperFunctions(unittest.TestCase):
 
         cls.substrate.rpc_request = MagicMock(side_effect=mocked_request)
 
-    # def test_decode_scale(self):
-    #     self.assertEqual(self.substrate.decode_scale('Compact<u32>', '0x08'), 2)
-
     async def test_encode_scale(self):
         with self.substrate as substrate:
             self.assertEqual(substrate.encode_scale('Compact<u32>', 3), '0x0c')

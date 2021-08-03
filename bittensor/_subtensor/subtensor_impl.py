@@ -197,7 +197,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return True
             return False
 
-    def is_subscribed(self, wallet: 'bittensor.wallet', ip: str, port: int, modality: int ) -> bool:
+    def is_subscribed(self, wallet: 'bittensor.wallet', ip: str, port: int) -> bool:
         r""" Returns true if the bittensor endpoint is already subscribed with the wallet and metadata.
         Args:
             wallet (bittensor.wallet):
@@ -206,10 +206,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 endpoint host port i.e. 192.122.31.4
             port (int):
                 endpoint port number i.e. 9221
-            modality (int):
-                int encoded endpoint modality i.e 0 for TEXT
-            coldkeypub (str):
-                string encoded coldekey pub.
         """
         uid = self.get_uid_for_pubkey( wallet.hotkey.public_key )
         if uid != None:
@@ -254,8 +250,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or uncluded in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
-#        if not # self.check_connection():
-#            return False
+
         if self.is_subscribed( wallet, ip, port, modality ):
             logger.success( "Subscribed with".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
             return True
@@ -339,8 +334,29 @@ To run a local node (See: docs/running_a_validator.md) \n
             wait_for_finalization: bool = False,
             timeout: int = 3 * bittensor.__blocktime__,
         ) -> bool:
+        r""" Transfers funds from this wallet to the destination public key address
+        Args:
+            wallet (bittensor.wallet):
+                bittensor wallet object.
+            dest (str):
+                destination public key address of reciever. 
+            amount (bittensor.utils.balance.Balance):
+                amount to stake as bittensor balance
+            wait_for_inclusion (bool):
+                if set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.   
+            wait_for_finalization (bool):
+                if set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            timeout (int):
+                time that this call waits for either finalization of inclusion.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
+        """
         
-         with self.substrate as substrate:
+        with self.substrate as substrate:
             call = substrate.compose_call(
                 call_module='Balances',
                 call_function='transfer',
@@ -361,7 +377,27 @@ To run a local node (See: docs/running_a_validator.md) \n
             wait_for_finalization:bool = False,
             timeout: int = 3 * bittensor.__blocktime__,
         ) -> bool:
-        
+        r""" Removes stake into the wallet coldkey from the specified hotkey uid.
+        Args:
+            wallet (bittensor.wallet):
+                bittensor wallet object.
+            amount (bittensor.utils.balance.Balance):
+                amount to stake as bittensor balance
+            hotkey_id (int):
+                uid of hotkey to unstake from.
+            wait_for_inclusion (bool):
+                if set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.   
+            wait_for_finalization (bool):
+                if set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            timeout (int):
+                time that this call waits for either finalization of inclusion.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
+        """
         with self.substrate as substrate:
             call = substrate.compose_call(
                 call_module='SubtensorModule',
@@ -504,7 +540,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 List of stake values.
         """
         
-        # self.check_connection()
         with self.substrate as substrate:
             result = substrate.iterate_map(
                 module='SubtensorModule',
@@ -518,7 +553,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             last_emit (List[Tuple[int, int]]):
                 List of last emit values.
         """
-        # self.check_connection()
         with self.substrate as substrate:
             result = substrate.iterate_map(
                 module='SubtensorModule',
@@ -532,7 +566,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             weight_vals (List[Tuple[int, List[int]]]):
                 List of weight val pairs.
         """
-        # self.check_connection()
         with self.substrate as substrate:
             result = substrate.iterate_map(
                 module='SubtensorModule',
@@ -546,7 +579,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             weight_uids (List[Tuple[int, List[int]]]):
                 List of weight uid pairs
         """
-        # self.check_connection()
         with self.substrate as substrate:
             result = substrate.iterate_map(
                 module='SubtensorModule',
@@ -560,7 +592,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron (List[Tuple[int, dict]]):
                 List of neuron objects.
         """
-        # self.check_connection()
         with self.substrate as substrate:
             neurons = substrate.iterate_map(
                 module='SubtensorModule',
@@ -577,7 +608,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             uid (int):
                 uid of peer with hotkey equal to passed public key.
         """
-        ## self.check_connection()
         with self.substrate as substrate:
             result = substrate.get_runtime_state(
                 module='SubtensorModule',
@@ -598,7 +628,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 Dict in list form containing metadata of associated uid.
         """
         
-        # self.check_connection()
         with self.substrate as substrate:
             result = substrate.get_runtime_state(
                     module='SubtensorModule',
@@ -617,7 +646,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 Amount of staked token.
         """
         
-        # self.check_connection()
         with self.substrate as substrate:
             stake = substrate.get_runtime_state(
                 module='SubtensorModule',
@@ -638,7 +666,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             weight_uids (List[int]):
                 Weight uids for passed uid.
         """
-        # self.check_connection()
         with self.substrate as substrate:
             result = substrate.get_runtime_state(
                 module='SubtensorModule',
@@ -656,7 +683,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             weight_vals (List[int]):
                 Weight vals for passed uid.
         """
-        # self.check_connection()
         with self.substrate as substrate:
             result = substrate.get_runtime_state(
                 module='SubtensorModule',
@@ -674,7 +700,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             last_emit (int):
                 Last emit block numebr
         """
-        # self.check_connection()
         with self.substrate as substrate:
             result = substrate.get_runtime_state(
                 module='SubtensorModule',
