@@ -19,9 +19,6 @@ import argparse
 import wandb
 import os
 
-# Nest Asyncio for colab support.
-import nest_asyncio;nest_asyncio.apply()
-
 # Bittensor code and protocol version.
 __version__ = '2.0.0'
 __version_as_int__ = (100 * 2) + (10 * 0) + (1 * 0)  # Integer representation

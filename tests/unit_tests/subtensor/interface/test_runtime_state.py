@@ -21,7 +21,7 @@ from unittest.mock import MagicMock
 from scalecodec import ScaleBytes
 from scalecodec.metadata import MetadataDecoder
 
-from bittensor._substrate import SubstrateWSInterface
+from substrateinterface import SubstrateInterface
 from .fixtures import metadata_v12_hex
 
 
@@ -30,7 +30,7 @@ class TestRuntimeState(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
 
-        cls.substrate = SubstrateWSInterface(address_type=42, type_registry_preset='kusama')
+        cls.substrate = SubstrateInterface(address_type=42, type_registry_preset='kusama', url='test.kusanagi.bittensor.com:9944')
 
     @pytest.mark.asyncio
     async def test_plaintype_call(self):
@@ -51,13 +51,14 @@ class TestRuntimeState(unittest.TestCase):
 
         metadata_decoder = MetadataDecoder(ScaleBytes(metadata_v12_hex))
         metadata_decoder.decode()
-        self.substrate.get_block_metadata = MagicMock(return_value=metadata_decoder)
-        self.substrate.rpc_request = MagicMock(side_effect=mocked_request)
+        with self.substrate as substrate:
+            substrate.get_block_metadata = MagicMock(return_value=metadata_decoder)
+            substrate.rpc_request = MagicMock(side_effect=mocked_request)
 
-        response = await self.substrate.get_runtime_state(
-            module='System',
-            storage_function='Events'
-        )
+            response = await substrate.get_runtime_state(
+                module='System',
+                storage_function='Events'
+            )
 
         self.assertEqual(len(response['result']), 2)
 
@@ -82,17 +83,17 @@ class TestRuntimeState(unittest.TestCase):
                     'result': '0x00000000030000c16ff28623000000000000000000000000000000000000000000000000000000c16ff286230000000000000000000000c16ff28623000000000000000000',
                     'id': 1
                 }
+        with self.substrate as substrate:
+            substrate.rpc_request = MagicMock(side_effect=mocked_request)
+            metadata_decoder = MetadataDecoder(ScaleBytes(metadata_v12_hex))
+            metadata_decoder.decode()
+            substrate.get_block_metadata = MagicMock(return_value=metadata_decoder)
 
-        self.substrate.rpc_request = MagicMock(side_effect=mocked_request)
-        metadata_decoder = MetadataDecoder(ScaleBytes(metadata_v12_hex))
-        metadata_decoder.decode()
-        self.substrate.get_block_metadata = MagicMock(return_value=metadata_decoder)
-
-        response = await self.substrate.get_runtime_state(
-            module='System',
-            storage_function='Account',
-            params=['5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY']
-        )
+            response = await substrate.get_runtime_state(
+                module='System',
+                storage_function='Account',
+                params=['5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY']
+            )
 
         self.assertEqual(response['result'], {
             'data':
@@ -125,17 +126,17 @@ class TestRuntimeState(unittest.TestCase):
                     ],
                     "id": 1
                 }
+        with self.substrate as substrate:
+            substrate.rpc_request = MagicMock(side_effect=mocked_request)
+            metadata_decoder = MetadataDecoder(ScaleBytes(metadata_v12_hex))
+            metadata_decoder.decode()
+            substrate.get_block_metadata = MagicMock(return_value=metadata_decoder)
 
-        self.substrate.rpc_request = MagicMock(side_effect=mocked_request)
-        metadata_decoder = MetadataDecoder(ScaleBytes(metadata_v12_hex))
-        metadata_decoder.decode()
-        self.substrate.get_block_metadata = MagicMock(return_value=metadata_decoder)
-
-        all_bonded_stash_ctrls = self.substrate.iterate_map(
-            module='Staking',
-            storage_function='Bonded',
-            block_hash='0x7d56e0ff8d3c57f77ea6a1eeef1cd2c0157a7b24d5a1af0f802ca242617922bf'
-        )
+            all_bonded_stash_ctrls = substrate.iterate_map(
+                module='Staking',
+                storage_function='Bonded',
+                block_hash='0x7d56e0ff8d3c57f77ea6a1eeef1cd2c0157a7b24d5a1af0f802ca242617922bf'
+            )
 
         self.assertEqual(all_bonded_stash_ctrls, [[
             '0xbe5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f',

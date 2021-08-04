@@ -22,9 +22,9 @@ sys.path.append(os.path.abspath('../../py-scale-codec'))
 import unittest
 import pytest
 
-from scalecodec.base import RuntimeConfiguration, ScaleType
+from scalecodec.base import RuntimeConfiguration
 
-from bittensor._substrate import SubstrateWSInterface, Keypair, SubstrateRequestException
+from substrateinterface import SubstrateInterface
 from .settings import *
 
 
@@ -32,37 +32,36 @@ class KusamaTypeRegistryTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.substrate = SubstrateWSInterface(
+        cls.substrate = SubstrateInterface(
             address_type=2,
-            type_registry_preset='kusama'
+            type_registry_preset='kusama',
+            url='test.kusanagi.bittensor.com:9944'
         )
 
     @pytest.mark.asyncio
     async def test_type_registry_compatibility(self):
-
-        for scale_type in await self.substrate.get_type_registry():
-            obj = RuntimeConfiguration().get_decoder_class(scale_type)
-
-            self.assertIsNotNone(obj, '{} not supported'.format(scale_type))
+        with self.substrate as substrate:
+            for scale_type in await substrate.get_type_registry():
+                obj = RuntimeConfiguration().get_decoder_class(scale_type)
+                self.assertIsNotNone(obj, '{} not supported'.format(scale_type))
 
 
 class PolkadotTypeRegistryTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.substrate = SubstrateWSInterface(
+        cls.substrate = SubstrateInterface(
             address_type=0,
-            type_registry_preset='polkadot'
+            type_registry_preset='polkadot',
+            url='test.kusanagi.bittensor.com:9944'
         )
 
     @pytest.mark.asyncio
     async def test_type_registry_compatibility(self):
-
-        for scale_type in await self.substrate.get_type_registry():
-
-            obj = RuntimeConfiguration().get_decoder_class(scale_type)
-
-            self.assertIsNotNone(obj, '{} not supported'.format(scale_type))
+        with self.substrate as substrate:
+            for scale_type in await substrate.get_type_registry():
+                obj = RuntimeConfiguration().get_decoder_class(scale_type)
+                self.assertIsNotNone(obj, '{} not supported'.format(scale_type))
 
 
 if __name__ == '__main__':

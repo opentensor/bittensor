@@ -1,5 +1,4 @@
 argparse
-autobahn==20.7.1
 base58>=2.0.1
 certifi>=2020.11.8
 cryptography==3.1.1
@@ -15,7 +14,6 @@ msgpack==1.0.2
 msgpack-numpy==0.4.7.1
 miniupnpc
 munch
-nest_asyncio
 netaddr==0.8.0
 password_strength==0.0.3.post2
 pickle-mixin==1.0.2
@@ -28,13 +26,12 @@ py-ed25519-bindings~=0.1.2
 py-bip39-bindings>=0.1.6
 pytest>=6.1.2
 pytest-xdist==2.2.0
-pytest-asyncio>=0.14.0
 pytorch_transformers
 pyyaml
 rich
 rollbar
-requests~=2.25.0
-scalecodec~=0.10.59
+requests>=2.25.0
+scalecodec~=0.11.16
 termcolor
 tensorboard
 torch>=1.6.0
@@ -48,4 +45,5 @@ wheel
 codecov
 tqdm
 qqdm
-wandb
+wandb>=0.11.1
+substrate-interface>=0.13.11
