@@ -301,12 +301,12 @@ class Metagraph( torch.nn.Module ):
         for uid in trange( size ):
              # Fill row from weights.
             row_weights = weight_utils.convert_weight_uids_and_vals_to_tensor( size, chain_weights_uids[uid], chain_weights_vals[uid] )
-            self.weights[uid] = torch.nn.Parameter( row_weights, requires_grad=False )
+            self.weights.append(torch.nn.Parameter( row_weights, requires_grad=False ))
             
             # Fill Neuron info.
             neuron_obj = bittensor.endpoint.from_dict( chain_endpoints[uid] )
             neuron_tensor = neuron_obj.to_tensor()
-            self.neurons[uid] = torch.nn.Parameter( neuron_tensor, requires_grad=False )
+            self.neurons.append(torch.nn.Parameter( neuron_tensor, requires_grad=False ))
             
         self.cached_endpoints = None
         
