@@ -249,7 +249,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 If we did not wait for finalization / inclusion, the response is true.
         """
 
-        if self.is_subscribed( wallet, ip, port, modality ):
+        if self.is_subscribed( wallet, ip, port ):
             logger.success( "Subscribed with".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
             return True
 
