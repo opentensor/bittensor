@@ -313,7 +313,11 @@ class Miner:
             self.best_epoch_loss = math.inf
             
             # ---- reloads previous run ----
-            self.reload()
+            try:
+                self.reload()
+            except:
+                self.save()
+                self.reload()
 
             # --- Run until n_epochs ----
             while self.epoch < self.config.miner.n_epochs:
