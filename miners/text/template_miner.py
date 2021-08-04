@@ -315,12 +315,9 @@ class Miner:
             
             # ---- reloads previous run ----
             try:
-                self.save()
-                bittensor.neuron.metagraph.save()
                 self.reload()
             except:
                 self.save()
-                bittensor.neuron.metagraph.save()
                 self.reload()
 
             # --- Run until n_epochs ----

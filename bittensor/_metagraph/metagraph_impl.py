@@ -297,6 +297,8 @@ class Metagraph( torch.nn.Module ):
         self.uids = torch.nn.Parameter( new_uids, requires_grad=False )
         self.stake = torch.nn.Parameter( new_stake, requires_grad=False )
         self.lastemit = torch.nn.Parameter( new_lastemit, requires_grad=False )
+        self.weights = torch.nn.ParameterList()
+        self.neurons = torch.nn.ParameterList()
         # # Create buffers
         for uid in trange( size ):
              # Fill row from weights.
