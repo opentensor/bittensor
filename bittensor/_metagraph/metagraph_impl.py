@@ -291,23 +291,23 @@ class Metagraph( torch.nn.Module ):
 
         # Set params.
         new_stake = torch.tensor([float(stake) / 1000000000 for stake in chain_stake], dtype=torch.float32)
-        new_lastemit = torch.tensor([float(emit) / 1000000000 for emit in chain_lastemit], dtype=torch.float32)
-        self.block = torch.nn.Parameter(torch.tensor([chain_block], dtype=torch.int64), requires_grad=False)
+        new_lastemit = torch.tensor([float(emit) / 1000000000 for emit in chain_lastemit], dtype=torch.int64)
         self.n = torch.nn.Parameter( new_n, requires_grad=False )
         self.block = torch.nn.Parameter( new_block, requires_grad=False )
         self.uids = torch.nn.Parameter( new_uids, requires_grad=False )
         self.stake = torch.nn.Parameter( new_stake, requires_grad=False )
         self.lastemit = torch.nn.Parameter( new_lastemit, requires_grad=False )
-
         # # Create buffers
         for uid in trange( size ):
              # Fill row from weights.
             row_weights = weight_utils.convert_weight_uids_and_vals_to_tensor( size, chain_weights_uids[uid], chain_weights_vals[uid] )
-            self.weights.append(torch.nn.Parameter( row_weights, requires_grad=False ))
+            self.weights[uid] = torch.nn.Parameter( row_weights, requires_grad=False )
             
             # Fill Neuron info.
             neuron_obj = bittensor.endpoint.from_dict( chain_endpoints[uid] )
             neuron_tensor = neuron_obj.to_tensor()
-            self.neurons.append(torch.nn.Parameter( neuron_tensor, requires_grad=False ))
+            self.neurons[uid] = torch.nn.Parameter( neuron_tensor, requires_grad=False )
             
         self.cached_endpoints = None
+        
+        
