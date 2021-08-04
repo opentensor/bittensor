@@ -202,7 +202,7 @@ class Nucleus(nn.Module):
         joining_weights = F.softmax( topk_weights, dim = 0 )
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
         for index, response in enumerate( responses ): 
-            output += response.to( self.config.miner.device ) * joining_weights[ topk_uids[index] ]
+            output += response.to( self.config.miner.device ) * joining_weights[index]
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
