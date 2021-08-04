@@ -12,7 +12,7 @@ from pytest import fixture
 import bittensor
 from bittensor.utils.balance import Balance
 
-from bittensor._substrate import Keypair
+from substrateinterface import Keypair
 
 
 BLOCK_REWARD = 500_000_000
@@ -93,8 +93,7 @@ def subscribe( subtensor, wallet):
     assert subtensor.is_subscribed (
         wallet = wallet,
         ip = "8.8.8.8",
-        port = 6666,
-        modality=0
+        port = 6666
     )
 
 '''

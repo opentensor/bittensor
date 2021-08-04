@@ -543,7 +543,6 @@ class neuron:
                 port = self.external_port,
                 modality = bittensor.proto.Modality.TEXT,
                 wait_for_finalization = True,
-                timeout = 4 * bittensor.__blocktime__,
         )
         if not subscribe_success:
             raise RuntimeError('Failed to subscribe neuron.')
