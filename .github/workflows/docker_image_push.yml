@@ -23,7 +23,7 @@ jobs:
         python -m pip install --upgrade pip
         # python -m pip install flake8 
         python -m pip install pytest cython
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements.txt ]; then pip install -r requirements.txt --use-deprecated=legacy-resolver; fi
     # - name: Lint with flake8
     #   run: |
     #     # stop the build if there are Python syntax errors or undefined names
