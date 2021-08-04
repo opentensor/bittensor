@@ -241,6 +241,14 @@ class Miner:
             weight_decay = self.config.miner.weight_decay,
         )
 
+        #bittensor backend
+        self.neuron = bittensor.init (  
+                config = self.config,
+                root_dir = self.config.miner.full_path,
+                axon_forward_callback = self.forward,
+                axon_backward_callback = self.backward,
+            ) 
+
     @staticmethod
     def config() -> 'bittensor.Config':
         r""" Fills a config namespace object with defaults or information from the command line.
@@ -294,12 +302,7 @@ class Miner:
         r""" Miner main loop.
         """
         # ---- Build Bittensor neuron ----
-        with bittensor.init (  
-                config = self.config,
-                root_dir = self.config.miner.full_path,
-                axon_forward_callback = self.forward,
-                axon_backward_callback = self.backward,
-            ):
+        with self.neuron:
             if self.config.neuron.use_wandb:
                 bittensor.neuron.wandb.watch([self.nucleus.local_hidden, self.nucleus.local_encoder, self.nucleus.remote_hidden], self.nucleus.loss_fct, log ='all', log_freq=10 )
             
@@ -310,7 +313,11 @@ class Miner:
             self.best_epoch_loss = math.inf
             
             # ---- reloads previous run ----
-            self.reload()
+            try:
+                self.reload()
+            except:
+                self.save()
+                self.reload()
 
             # --- Run until n_epochs ----
             while self.epoch < self.config.miner.n_epochs:
