@@ -187,7 +187,7 @@ class Nucleus(nn.Module):
         """
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
         real_topk = min( self.config.nucleus.topk, bittensor.neuron.metagraph.n.item() ) 
-        noise = torch.normal( torch.mean(self.chain_weights).item(), torch.std(self.chain_weights).item()+0.0000001, size=( self.chain_weights.size())).to( self.config.miner.device )
+        noise = torch.normal( 0, torch.std(self.chain_weights).item()+0.0000001, size=( self.chain_weights.size())).to( self.config.miner.device )
         topk_weights, topk_uids = torch.topk( self.chain_weights + noise, real_topk, dim=0 ) 
 
         # ---- Filter endpoints ----
@@ -200,13 +200,18 @@ class Nucleus(nn.Module):
         )
 
         # ---- Join based on weights ----
-        joining_weights = F.softmax( topk_weights, dim = 0 )
+        #print(topk_weights[(return_ops == 0)])
+        joining_uids= [i for i, x in enumerate(return_ops == 0) if x]
+        joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 )
+        #print(joining_uids,joining_weights)
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
-        for index, response in enumerate( responses ): 
-            output += response.to( self.config.miner.device ) * joining_weights[index]
+        for index, joining_weight in enumerate( joining_weights ): 
+            #print(index,joining_uids[index],joining_weights[index],responses[joining_uids[index]].sum(),self.chain_weights[index])
+            output += responses[joining_uids[index]].to( self.config.miner.device ) * joining_weight
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
+            #print(self.chain_weights,topk_uids[(return_ops != 0)])
             self.chain_weights[topk_uids[(return_ops != 0)]] -=  self.config.nucleus.punishment
 
         # ---- Return response -----
@@ -315,6 +320,7 @@ class Miner:
             
             # ---- reloads previous run ----
             try:
+                self.save()
                 self.reload()
             except:
                 self.save()
