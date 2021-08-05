@@ -1,46 +1,57 @@
-#Sample Config File
-axon.ip: 127.0.0.1
+# Sample Config File
+
 axon.max_workers: 10
 axon.maximum_concurrent_rpcs: 400
 axon.port: 8091
+
 dataloader.batch_size: 10
 dataloader.block_size: 20
 dataloader.max_corpus_size: 1000000.0
 dataloader.num_workers: 0
+
 dendrite.max_active_receptors: 500
 dendrite.max_worker_threads: 150
 dendrite.requires_grad: true
 dendrite.timeout: 5
+
 logging.debug: false
 logging.logging_dir: ~/.bittensor/miners/
 logging.record_log: false
 logging.trace: false
-neuron.accumulate_remote_gradients: false
-neuron.batch_size_train: 2
-neuron.clip_gradients: 1.0
-neuron.compute_remote_gradients: false
-neuron.config: null
-neuron.device: cpu
-neuron.epoch_length: 500
-neuron.learning_rate: 0.03
-neuron.modality: 0 
-neuron.name: gpt2_exodus
-neuron.n_epochs: 500
-neuron.reload: false
-neuron.restart_on_failure: false
-neuron.use_tensorboard: true
+
+miner.device: cpu
+miner.epoch_length: 500
+miner.learning_rate: 0.03
+miner.name: gpt2_exodus
+miner.n_epochs: 500
+miner.reload: false
+miner.restart_on_failure: false
+miner.weight_decay: 0.25
+miner.accumulate_remote_gradients: false
+miner.batch_size_train: 2
+miner.clip_gradients: 1.0
+miner.compute_remote_gradients: false
+
 neuron.use_upnpc: false
-neuron.weight_decay: 0.25
-nucleus.attn_pdrop: 0.1
-nucleus.block_size: 20
-nucleus.embd_pdrop: 0.1
-nucleus.n_head: 32
-nucleus.n_layer: 12
-nucleus.resid_pdrop: 0.1
-router.stale_emit_filter: 10000
-router.topk: 20
+neuron.use_wandb: false
+neuron.api_key: default
+
+nucleus.nhid: 200
+nucleus.nhead: 2
+nucleus.nlayers: 2
+nucleus.dropout: 0.3
+nucleus.topk: 30
+
 subtensor.chain_endpoint: null
-subtensor.network: kusanagi
+subtensor.network: akatsuki
+
 wallet.hotkey: default
 wallet.name: default
 wallet.path: ~/.bittensor/wallets/
+
+wandb.directory: default
+wandb.name: default
+wandb.offline: false
+wandb.project: default
+wandb.run_group: default
+wandb.tags: default
