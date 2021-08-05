@@ -82,9 +82,9 @@ class Nucleus(nn.Module):
     def init_weights(self):
         initrange = 0.1
         self.remote_decoder.weight.data.uniform_(-initrange, initrange)
-        self.remote_decoder.bias.data.zero_()
+        #self.remote_decoder.bias.data.zero_()
         self.local_decoder.weight.data.uniform_(-initrange, initrange)
-        self.local_decoder.bias.data.zero_()
+        #self.local_decoder.bias.data.zero_()
 
     def local_forward(self, inputs: torch.int64, training : bool = True) -> SimpleNamespace:
         """ Forward pass through GPT2 nucleus.
