@@ -114,7 +114,7 @@ class Nucleus(nn.Module):
         if training :
             # local_hidden: local model which learns a new projection from the local_context
             # local_hidden.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.local_hidden = self.local_hidden( output.local_context.detach() )
+            output.local_hidden = self.local_hidden( output.local_context )
 
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
@@ -123,6 +123,7 @@ class Nucleus(nn.Module):
             # local_target_loss: MLM loss between local_target and passed targets.
             # local_target_loss.shape = [1]
             shift_logits = output.local_target[..., :-1, :].contiguous()
+            print(shift_logits.view(-1)[:5],shift_logits.view(-1, shift_logits.size(-1))[:5,:])
             shift_labels = inputs[..., 1:].contiguous()     
             output.local_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
             
@@ -260,7 +261,7 @@ class Miner:
         # ---- Add miner args.
         parser = argparse.ArgumentParser()
         parser.add_argument('--miner.config', type=str, help='If set, defaults are overridden by passed file.')
-        parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=5)
+        parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=1)
         parser.add_argument('--miner.weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25)
         parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
         parser.add_argument('--miner.n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
