@@ -57,12 +57,12 @@ class Nucleus(nn.Module):
         local_hidden_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
         self.local_encoder = TransformerEncoder( local_layers, self.config.nucleus.nlayers )
         self.local_hidden = TransformerEncoder( local_hidden_layers, self.config.nucleus.nlayers )
-        self.local_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ )
+        self.local_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
 
         # Remote Model
         remote_context_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
         self.remote_hidden = TransformerEncoder( remote_context_layers, self.config.nucleus.nlayers )
-        self.remote_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ )
+        self.remote_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
 
         self.loss_fct = nn.CrossEntropyLoss()
         self.chain_weights = nn.Parameter(torch.ones( [0] , requires_grad=True))
@@ -118,11 +118,11 @@ class Nucleus(nn.Module):
 
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.local_target = self.local_decoder( output.local_hidden )
+            output.local_target = F.softmax(self.local_decoder( output.local_hidden ),dim =2)
 
             # local_target_loss: MLM loss between local_target and passed targets.
             # local_target_loss.shape = [1]
-            shift_logits = F.softmax(output.local_target[..., :-1, :].contiguous())
+            shift_logits = output.local_target[..., :-1, :].contiguous()
             print(shift_logits.view(-1)[:5],shift_logits.view(-1, shift_logits.size(-1))[:5,:])
             shift_labels = inputs[..., 1:].contiguous()     
             output.local_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
@@ -241,7 +241,7 @@ class Miner:
         self.optimizer = torch.optim.SGD(
             [ {"params": self.nucleus.parameters()}],
             lr = self.config.miner.learning_rate,
-            momentum = 0.9,
+            momentum = 0.8,
         )
 
         self.scheduler= torch.optim.lr_scheduler.StepLR(self.optimizer, 1.0, gamma=0.95)
