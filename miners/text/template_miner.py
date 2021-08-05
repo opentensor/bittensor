@@ -241,7 +241,7 @@ class Miner:
         self.optimizer = torch.optim.SGD(
             [ {"params": self.nucleus.parameters()}],
             lr = self.config.miner.learning_rate,
-            weight_decay = self.config.miner.weight_decay,
+            momentum = 0.9,
         )
 
         self.scheduler= torch.optim.lr_scheduler.StepLR(self.optimizer, 1.0, gamma=0.95)
