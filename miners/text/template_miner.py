@@ -200,18 +200,14 @@ class Nucleus(nn.Module):
         )
 
         # ---- Join based on weights ----
-        #print(topk_weights[(return_ops == 0)])
         joining_uids= [i for i, x in enumerate(return_ops == 0) if x]
         joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 )
-        #print(joining_uids,joining_weights)
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
         for index, joining_weight in enumerate( joining_weights ): 
-            #print(index,joining_uids[index],joining_weights[index],responses[joining_uids[index]].sum(),self.chain_weights[index])
             output += responses[joining_uids[index]].to( self.config.miner.device ) * joining_weight
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
-            #print(self.chain_weights,topk_uids[(return_ops != 0)])
             self.chain_weights[topk_uids[(return_ops != 0)]] -=  self.config.nucleus.punishment
 
         # ---- Return response -----
@@ -247,6 +243,8 @@ class Miner:
             weight_decay = self.config.miner.weight_decay,
         )
 
+        self.scheduler= torch.optim.lr_scheduler.StepLR(self.optimizer, 1.0, gamma=0.95)
+
         #bittensor backend
         self.neuron = bittensor.init (  
                 config = self.config,
@@ -262,7 +260,7 @@ class Miner:
         # ---- Add miner args.
         parser = argparse.ArgumentParser()
         parser.add_argument('--miner.config', type=str, help='If set, defaults are overridden by passed file.')
-        parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=3e-2)
+        parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=5)
         parser.add_argument('--miner.weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25)
         parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
         parser.add_argument('--miner.n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
@@ -409,13 +407,13 @@ class Miner:
 
         # ---- Forward pass ----
         inputs = batch['inputs']
-        output = self.nucleus.remote_forward (
+        output = self.nucleus.local_forward (
             inputs = inputs.to( self.device ),
             training = True,
         )
 
         # ---- Backward pass ----
-        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+        output.loss = output.local_target_loss
         output.loss.backward() # Accumulates gradients on the nucleus.
         clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
         self.optimizer.step() # Applies accumulated gradients.
@@ -619,8 +617,8 @@ class Miner:
             'Loss': colored('{:.4f}'.format(self.epoch_loss), 'yellow'),
             'Best': colored('{:.4f}'.format(self.best_epoch_loss), 'red'),
             'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
-            'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
-            'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
+            #'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
+            #'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
             'nPeers': colored(bittensor.neuron.metagraph.n.item(), 'red'),
             'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
@@ -636,7 +634,7 @@ class Miner:
                 'Rank':rank,
                 'Incentive':incentive,
                 'Axon QPS':bittensor.neuron.axon.stats.qps.value}
-
+        """
         #removing normalization of chain weights for display
         normalized_chain_weights = F.softmax(self.nucleus.chain_weights)
         for uid in bittensor.neuron.metagraph.uids.tolist():
@@ -650,7 +648,7 @@ class Miner:
                     info[colored(str(uid), 'red')] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
                 if self.config.neuron.use_wandb:
                     wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
-        
+        """
         if self.config.neuron.use_wandb:
             try:
                 bittensor.neuron.wandb.log(wandb_info)
