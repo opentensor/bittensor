@@ -122,7 +122,7 @@ class Nucleus(nn.Module):
 
             # local_target_loss: MLM loss between local_target and passed targets.
             # local_target_loss.shape = [1]
-            shift_logits = output.local_target[..., :-1, :].contiguous()
+            shift_logits = F.softmax(output.local_target[..., :-1, :].contiguous())
             print(shift_logits.view(-1)[:5],shift_logits.view(-1, shift_logits.size(-1))[:5,:])
             shift_labels = inputs[..., 1:].contiguous()     
             output.local_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
