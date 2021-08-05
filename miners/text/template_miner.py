@@ -626,8 +626,8 @@ class Miner:
         }
         if self.config.neuron.use_wandb:
             wandb_info = {
-                'remote_target_loss':output.remote_target_loss.item(),
-                'distillation_loss':output.distillation_loss.item(), 
+                #'remote_target_loss':output.remote_target_loss.item(),
+                #'distillation_loss':output.distillation_loss.item(), 
                 "local_target_loss": output.local_target_loss.item(),
                 'Number of Peers':bittensor.neuron.metagraph.n.item(),
                 'Stake':stake,
