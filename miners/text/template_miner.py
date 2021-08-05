@@ -118,7 +118,7 @@ class Nucleus(nn.Module):
 
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.local_target = F.softmax(self.local_decoder( output.local_hidden ),dim =2)
+            output.local_target = self.local_decoder( output.local_hidden )
 
             # local_target_loss: MLM loss between local_target and passed targets.
             # local_target_loss.shape = [1]
