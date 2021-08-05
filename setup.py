@@ -32,7 +32,7 @@ setup(
     author_email='',
     license='MIT',
     install_requires=install_requires,
-    scripts=['bin/bittensor-cli'],
+    scripts=['bin/bittensor', 'bin/bittensor-cli'],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
