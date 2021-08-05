@@ -114,7 +114,7 @@ class Nucleus(nn.Module):
         if training :
             # local_hidden: local model which learns a new projection from the local_context
             # local_hidden.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.local_hidden = self.local_hidden( output.local_context )* math.sqrt(bittensor.__network_dim__)
+            output.local_hidden = self.local_hidden( output.local_context )
 
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
