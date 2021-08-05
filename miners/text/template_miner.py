@@ -638,7 +638,7 @@ class Miner:
                 'Axon QPS':bittensor.neuron.axon.stats.qps.value}
 
         #removing normalization of chain weights for display
-        normalized_chain_weights = self.nucleus.chain_weights
+        normalized_chain_weights = F.softmax(self.nucleus.chain_weights)
         for uid in bittensor.neuron.metagraph.uids.tolist():
             if self.nucleus.chain_weights[uid] != 0:
                 weight_dif = -self.nucleus.chain_weights.grad[uid]
