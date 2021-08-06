@@ -4,9 +4,9 @@ import pytest
 def test_create():
     subtensor = bittensor.subtensor()
 
-def test_defaults_to_kusanagi( ):
+def test_defaults_to_akatsuki( ):
     subtensor = bittensor.subtensor()
-    assert subtensor.endpoint_for_network() in bittensor.__kusanagi_entrypoints__
+    assert subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
 
 
 def test_networks():

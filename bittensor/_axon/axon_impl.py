@@ -33,13 +33,14 @@ import bittensor.utils.stats as stat_utils
 from loguru import logger
 logger = logger.opt(colors=True)
 
-
 class Axon( bittensor.grpc.BittensorServicer ):
     r""" Services Forward and Backward requests from other neurons.
     """
     def __init__( 
         self, 
         wallet: 'bittensor.wallet',
+        ip: str,
+        port: int,
         server: 'grpc._Server',
         forward_callback: 'Callable' = None,
         backward_callback: 'Callable' = None,
@@ -58,6 +59,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 backward_callback (:obj:`callable`, `optional`):
                     function which is called on backward requests.
         """
+        self.ip = ip
+        self.port = port
         self.wallet = wallet
         self.server = server
         self.forward_callback = forward_callback
@@ -511,28 +514,24 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         self.stop()
 
-    def _serve(self):
-        try:
-            self.server.start()
-        except (KeyboardInterrupt, SystemExit):
-            self.stop()
-        except Exception as e:
-            logger.error(e)
-
     def start(self):
         r""" Starts the standalone axon GRPC server thread.
         """
         if self.server != None:
-            self.server.stop( 0 )  
+            self.server.stop( grace = 1 )  
+            logger.success("Axon Stopped:".ljust(20) + "<blue>{}</blue>", self.ip + ':' + str(self.port))
 
-        self._thread = threading.Thread( target = self._serve, daemon = True )
-        self._thread.start()
+        self.server.start()
+        logger.success("Axon Started:".ljust(20) + "<blue>{}</blue>", self.ip + ':' + str(self.port))
+
 
     def stop(self):
         r""" Stop the axon grpc server.
         """
         if self.server != None:
-            self.server.stop( 0 )
+            self.server.stop( grace = 1 )
+            logger.success("Axon Stopped:".ljust(20) + "<blue>{}</blue>", self.ip + ':' + str(self.port))
+
 
 
 

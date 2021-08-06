@@ -531,6 +531,16 @@ To run a local node (See: docs/running_a_validator.md) \n
             )
             return result
 
+    def stake(self) -> List[Tuple[int, int]]:
+        r""" Returns a list of (uid, stake) pairs one for each active peer on chain.
+        Returns:
+            stake (List[Tuple[int, int]]):
+                List of stake values.
+        """
+        loop = asyncio.get_event_loop()
+        loop.set_debug(enabled=True)
+        return loop.run_until_complete(self.async_get_stake())
+
     def get_stake(self) -> List[Tuple[int, int]]:
         r""" Returns a list of (uid, stake) pairs one for each active peer on chain.
         Returns:
