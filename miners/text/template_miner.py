@@ -650,7 +650,7 @@ class Miner:
                 if self.config.neuron.use_wandb:
                     wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
         """
-        if self.config.neuron.use_wandb:
+        if self.config.neuron.use_wandb and (self.global_step % 10 == 0):
             try:
                 bittensor.neuron.wandb.log(wandb_info)
             except Exception as e:
