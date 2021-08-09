@@ -42,8 +42,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
         ip: str,
         port: int,
         server: 'grpc._Server',
-        forward_callback: 'Callable' = None,
-        backward_callback: 'Callable' = None,
+        forward: 'Callable' = None,
+        backward: 'Callable' = None,
     ):
         r""" Initializes a new Axon tensor processing endpoint.
             
@@ -54,17 +54,17 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     bittensor wallet with hotkey and coldkeypub.
                 server (:obj:`grpc._Server`, `required`):
                     Grpc server endpoint.
-                forward_callback (:obj:`callable`, `optional`):
+                forward (:obj:`callable`, `optional`):
                     function which is called on forward requests.
-                backward_callback (:obj:`callable`, `optional`):
+                backward (:obj:`callable`, `optional`):
                     function which is called on backward requests.
         """
         self.ip = ip
         self.port = port
         self.wallet = wallet
         self.server = server
-        self.forward_callback = forward_callback
-        self.backward_callback = backward_callback 
+        self.forward_callback = forward
+        self.backward_callback = backward 
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -514,10 +514,11 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         self.stop()
 
-    def subscribe( self, use_upnpc = False, modality: 'bittensor.proto.Modality' = bittensor.proto.Modality.TEXT ) -> 'Axon':
+    def subscribe( self, use_upnpc = False, modality: 'bittensor.proto.Modality' = bittensor.proto.Modality.TEXT, subtensor: 'bittensor.Subtensor' = None) -> 'Axon':
 
         # Create subtensor connection.
-        subtensor = bittensor.subtensor()
+        if subtensor == None:
+            subtensor = bittensor.subtensor()
 
         # ---- Setup UPNPC ----
         if use_upnpc:
@@ -538,14 +539,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             raise RuntimeError('Unable to attain your external ip. Check your internet connection. error:{}', E)
 
         # ---- Setup Wallet. ----
-        if not self.wallet.has_coldkeypub:
-            self.wallet.create_new_coldkey( n_words = 12, use_password = True )
-        if not self.wallet.has_coldkeypub:
-            raise RuntimeError('The axon must have access to a decrypted coldkeypub')
-        if not self.wallet.has_hotkey:
-            self.wallet.create_new_hotkey( n_words = 12, use_password = False )
-        if not self.wallet.has_hotkey:
-            raise RuntimeError('The axon must have access to a decrypted hotkey')
+        self.wallet.create()
 
         # ---- Subscribe to chain ----
         subscribe_success = subtensor.subscribe(
@@ -556,6 +550,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 wait_for_finalization = True,
                 timeout = 4 * bittensor.__blocktime__,
         )
+        if not subscribe_success:
+            raise RuntimeError('Failed to subscribe neuron.')
+
         return self
 
 

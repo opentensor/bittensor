@@ -21,21 +21,23 @@ Bittensor is a p2p-market that rewards the production of machine intelligence wi
 $ pip3 install bittensor
 ```
 
-## Client [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1m6c4_D1FHHcZxnDJCW4F0qORWhXV_hc_?usp=sharing)
+## Client 
 
 ```python
 import bittensor
 import torch
+wallet = bittensor.wallet().create()
 graph = bittensor.metagraph().load().sync().save()
 text = torch.tensor([bittensor.tokenizer().encode( "The quick brown fox jumped over the lazy dog" )], dtype=torch.int64)
-representations, _ = bittensor.dendrite().forward_text(
+representations, _ = bittensor.dendrite( wallet ).forward_text(
     endpoints = graph.endpoints,
     inputs = [text for _ in graph.endpoints]
 )
 representations = # List[ (1, 9, 512) ... x N ]
 ```
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1m6c4_D1FHHcZxnDJCW4F0qORWhXV_hc_?usp=sharing)
 
-## Server
+## Server 
 
 ```python
 import bittensor
@@ -44,13 +46,19 @@ from transformers import BertModel, BertConfig
 
 model = BertModel(BertConfig())
 
-def forward ( pubkey, inputs_x, modality)
-  return torch.model( inputs ).narrow(2, 0, bittensor.__network_dim__)
+def forward ( pubkey, inputs_x, modality ):
+  return model( inputs ).narrow(2, 0, bittensor.__network_dim__)
 
-axon = bittensor.axon(
-    forward_callback = forward,
+wallet = bittensor.wallet().create()
+axon = bittensor.axon (
+    wallet = wallet,
+    forward = forward,
 ).start().subscribe()
+
+...
+
 ```
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12nGV6cmoZNvywb_z6E8CDzdHCQ3F7tpQ?usp=sharing)
 
 ---
 
