@@ -201,7 +201,7 @@ class Nucleus(nn.Module):
         )
 
         # ---- Join based on weights ----
-        joining_uids= [i for i, x in enumerate(return_ops == 0) if x]
+        joining_uids= torch.where(return_ops==0)[0]
         joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 )
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
         for index, joining_weight in enumerate( joining_weights ): 
@@ -244,15 +244,19 @@ class Miner:
             momentum = 0.8,
         )
 
-        self.scheduler= torch.optim.lr_scheduler.StepLR(self.optimizer, 1.0, gamma=0.95)
+        #Torch scheduler
+        self.scheduler= torch.optim.lr_scheduler.StepLR(self.optimizer,
+            step_size= 100.0,
+            gamma=0.9
+        )
 
         #bittensor backend
-        self.neuron = bittensor.init (  
-                config = self.config,
-                root_dir = self.config.miner.full_path,
-                axon_forward_callback = self.forward,
-                axon_backward_callback = self.backward,
-            ) 
+        self.neuron = bittensor.init (
+            config = self.config,
+            root_dir = self.config.miner.full_path,
+            axon_forward_callback = self.forward,
+            axon_backward_callback = self.backward,
+        ) 
 
     @staticmethod
     def config() -> 'bittensor.Config':

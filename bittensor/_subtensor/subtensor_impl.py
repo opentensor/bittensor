@@ -211,8 +211,10 @@ To run a local node (See: docs/running_a_validator.md) \n
             if neuron['ip'] == net.ip_to_int(ip) and neuron['port'] == port:
                 return True
             else:
+                logger.warning('IP does not match, resubscribing with new IP')
                 return False
         else:
+            logger.warning('No previous subscription found with this hotkey. Initalizing subscription..')
             return False
 
     def subscribe(
@@ -254,12 +256,13 @@ To run a local node (See: docs/running_a_validator.md) \n
             return True
 
         ip_as_int  = net.ip_to_int(ip)
+        ip_version = net.ip_version(ip)
 
         # TODO(const): subscribe with version too.
         params = {
             'ip': ip_as_int,
             'port': port, 
-            'ip_type': 4,
+            'ip_type': ip_version,
             'modality': modality,
             'coldkey': wallet.coldkeypub,
         }
