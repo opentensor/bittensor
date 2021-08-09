@@ -32,7 +32,7 @@ representations, _ = bittensor.dendrite().forward_text(
     endpoints = graph.endpoints,
     inputs = [text for _ in graph.endpoints]
 )
-representations = # List[ (1, 9, 512) ... ]
+representations = # List[ (1, 9, 512) ... x N ]
 ```
 
 ## Server

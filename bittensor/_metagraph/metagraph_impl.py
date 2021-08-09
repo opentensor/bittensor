@@ -231,8 +231,8 @@ class Metagraph( torch.nn.Module ):
                 path: (:obj:`str`, required):
                     Path to load state_dict.
         """
-        os.makedirs('~/.bittensor/', exist_ok=True)
         full_path = os.path.expanduser(path)
+        os.makedirs(full_path, exist_ok=True)
         metastate = torch.load( full_path )
         return self.load_from_state_dict( metastate )
 
@@ -243,6 +243,7 @@ class Metagraph( torch.nn.Module ):
                     Path to save state_dict.
         """
         full_path = os.path.expanduser(path)
+        os.makedirs(full_path, exist_ok=True)
         metastate = self.state_dict()
         torch.save(metastate, full_path)
         return self
