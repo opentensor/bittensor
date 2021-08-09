@@ -247,7 +247,7 @@ class Miner:
             weight_decay = self.config.miner.weight_decay,
         )
 
-        #bittensor backend
+        # Bittensor backend
         self.neuron = bittensor.init (  
                 config = self.config,
                 root_dir = self.config.miner.full_path,
