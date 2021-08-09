@@ -223,7 +223,7 @@ class Metagraph( torch.nn.Module ):
         """
         if network == None:
             network = self.subtensor.network
-        return self.save_to_path( path = '~/.bittensor/' + str(network) + '.pt')
+        return self.save_to_path( path = '~/.bittensor/', filename = str(network) + '.pt')
 
     def load_from_path(self, path:str ) -> 'Metagraph':
         r""" Loads this metagraph object with state_dict under the specified path.
@@ -232,11 +232,10 @@ class Metagraph( torch.nn.Module ):
                     Path to load state_dict.
         """
         full_path = os.path.expanduser(path)
-        os.makedirs(full_path, exist_ok=True)
         metastate = torch.load( full_path )
         return self.load_from_state_dict( metastate )
 
-    def save_to_path(self, path:str ) -> 'Metagraph':
+    def save_to_path(self, path:str, filename:str ) -> 'Metagraph':
         r""" Saves this metagraph object's state_dict to the specified path.
             Args: 
                 path: (:obj:`str`, required):
@@ -245,7 +244,7 @@ class Metagraph( torch.nn.Module ):
         full_path = os.path.expanduser(path)
         os.makedirs(full_path, exist_ok=True)
         metastate = self.state_dict()
-        torch.save(metastate, full_path)
+        torch.save(metastate, full_path + '/' + filename)
         return self
 
     def load_from_state_dict(self, state_dict:dict ) -> 'Metagraph':

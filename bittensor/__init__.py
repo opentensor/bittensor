@@ -20,7 +20,7 @@ import wandb
 import os
 
 # Bittensor code and protocol version.
-__version__ = '1.1.3'
+__version__ = '1.1.5'
 __version_as_int__ = (100 * 2) + (10 * 0) + (1 * 0)  # Integer representation
 
 # Vocabulary dimension.
