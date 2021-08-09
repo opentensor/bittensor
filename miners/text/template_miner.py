@@ -323,7 +323,6 @@ class Miner:
             
             # ---- reloads previous run ----
             try:
-                #self.save()
                 self.reload()
             except:
                 self.save()
@@ -412,13 +411,13 @@ class Miner:
 
         # ---- Forward pass ----
         inputs = batch['inputs']
-        output = self.nucleus.local_forward (
+        output = self.nucleus.remote_forward (
             inputs = inputs.to( self.device ),
             training = True,
         )
 
         # ---- Backward pass ----
-        output.loss = output.local_target_loss
+        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
         output.loss.backward() # Accumulates gradients on the nucleus.
         clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
         self.optimizer.step() # Applies accumulated gradients.
@@ -622,8 +621,8 @@ class Miner:
             'Loss': colored('{:.4f}'.format(self.epoch_loss), 'yellow'),
             'Best': colored('{:.4f}'.format(self.best_epoch_loss), 'red'),
             'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
-            #'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
-            #'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
+            'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
+            'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
             'nPeers': colored(bittensor.neuron.metagraph.n.item(), 'red'),
             'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
@@ -631,15 +630,15 @@ class Miner:
         }
         if self.config.neuron.use_wandb:
             wandb_info = {
-                #'remote_target_loss':output.remote_target_loss.item(),
-                #'distillation_loss':output.distillation_loss.item(), 
+                'remote_target_loss':output.remote_target_loss.item(),
+                'distillation_loss':output.distillation_loss.item(), 
                 "local_target_loss": output.local_target_loss.item(),
                 'Number of Peers':bittensor.neuron.metagraph.n.item(),
                 'Stake':stake,
                 'Rank':rank,
                 'Incentive':incentive,
                 'Axon QPS':bittensor.neuron.axon.stats.qps.value}
-        """
+
         #removing normalization of chain weights for display
         normalized_chain_weights = F.softmax(self.nucleus.chain_weights)
         for uid in bittensor.neuron.metagraph.uids.tolist():
@@ -653,7 +652,7 @@ class Miner:
                     info[colored(str(uid), 'red')] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
                 if self.config.neuron.use_wandb:
                     wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
-        """
+
         if self.config.neuron.use_wandb and (self.global_step % 10 == 0):
             try:
                 bittensor.neuron.wandb.log(wandb_info)
