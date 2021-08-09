@@ -514,7 +514,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         self.stop()
 
-    def subscribe( self, use_upnpc = False, modality: int = 'bittensor.proto.Modality.TEXT' ) -> 'Axon':
+    def subscribe( self, use_upnpc = False, modality: 'bittensor.proto.Modality' = bittensor.proto.Modality.TEXT ) -> 'Axon':
 
         # Create subtensor connection.
         subtensor = bittensor.subtensor()

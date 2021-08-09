@@ -21,7 +21,7 @@ Bittensor is a p2p-market that rewards the production of machine intelligence wi
 $ pip3 install bittensor
 ```
 
-## Client[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1m6c4_D1FHHcZxnDJCW4F0qORWhXV_hc_?usp=sharing]
+## Client [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1m6c4_D1FHHcZxnDJCW4F0qORWhXV_hc_?usp=sharing)
 
 ```python
 import bittensor
