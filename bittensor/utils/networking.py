@@ -89,7 +89,7 @@ def get_external_ip() -> str:
     """
     # --- Try curl.
     try:
-        external_ip  = os.popen('curl -s ifconfig1.me').readline()
+        external_ip  = os.popen('curl -s ifconfig.me').readline()
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
     except:
