@@ -123,7 +123,6 @@ class Nucleus(nn.Module):
             # local_target_loss: MLM loss between local_target and passed targets.
             # local_target_loss.shape = [1]
             shift_logits = output.local_target[..., :-1, :].contiguous()
-            print(shift_logits.view(-1)[:5],shift_logits.view(-1, shift_logits.size(-1))[:5,:])
             shift_labels = inputs[..., 1:].contiguous()     
             output.local_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
             
@@ -241,7 +240,7 @@ class Miner:
         self.optimizer = torch.optim.SGD(
             [ {"params": self.nucleus.parameters()}],
             lr = self.config.miner.learning_rate,
-            momentum = 0.8,
+            momentum = self.config.miner.momentum,
         )
 
         #Torch scheduler
@@ -267,6 +266,7 @@ class Miner:
         parser.add_argument('--miner.config', type=str, help='If set, defaults are overridden by passed file.')
         parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=1)
         parser.add_argument('--miner.weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25)
+        parser.add_argument('--miner.momentum', type=float, help='optimizer momentum.', default=0.8)
         parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
         parser.add_argument('--miner.n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
         parser.add_argument('--miner.epoch_length', type=int, help='Iterations of training per epoch', default=100)
