@@ -514,7 +514,52 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         self.stop()
 
-    def start(self):
+    def subscribe( self, use_upnpc = False, modality: int = 'bittensor.proto.Modality.TEXT' ) -> 'Axon':
+
+        # Create subtensor connection.
+        subtensor = bittensor.subtensor()
+
+        # ---- Setup UPNPC ----
+        if use_upnpc:
+            bittensor.logging.success(prefix = 'Set upnpc', sufix = '<green>ON</green>')
+            try:
+                self.external_port = bittensor.net.upnpc_create_port_map( port = self.port )
+            except bittensor.net.UPNPCException as upnpc_exception:
+                raise RuntimeError('Failed to hole-punch with upnpc with exception {}'.format( upnpc_exception ))
+        else:
+            bittensor.logging.success(prefix = 'Set upnpc', sufix = '<red>OFF</red>')
+            self.external_port = self.port
+
+        # ---- Get external ip ----
+        try:
+            self.external_ip = bittensor.net.get_external_ip()
+            bittensor.logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format(self.external_ip))
+        except Exception as E:
+            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error:{}', E)
+
+        # ---- Setup Wallet. ----
+        if not self.wallet.has_coldkeypub:
+            self.wallet.create_new_coldkey( n_words = 12, use_password = True )
+        if not self.wallet.has_coldkeypub:
+            raise RuntimeError('The axon must have access to a decrypted coldkeypub')
+        if not self.wallet.has_hotkey:
+            self.wallet.create_new_hotkey( n_words = 12, use_password = False )
+        if not self.wallet.has_hotkey:
+            raise RuntimeError('The axon must have access to a decrypted hotkey')
+
+        # ---- Subscribe to chain ----
+        subscribe_success = subtensor.subscribe(
+                wallet = self.wallet,
+                ip = self.external_ip,
+                port = self.external_port,
+                modality = modality,
+                wait_for_finalization = True,
+                timeout = 4 * bittensor.__blocktime__,
+        )
+        return self
+
+
+    def start(self) -> 'Axon':
         r""" Starts the standalone axon GRPC server thread.
         """
         if self.server != None:
@@ -523,14 +568,15 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         self.server.start()
         logger.success("Axon Started:".ljust(20) + "<blue>{}</blue>", self.ip + ':' + str(self.port))
+        return self
 
-
-    def stop(self):
+    def stop(self) -> 'Axon':
         r""" Stop the axon grpc server.
         """
         if self.server != None:
             self.server.stop( grace = 1 )
             logger.success("Axon Stopped:".ljust(20) + "<blue>{}</blue>", self.ip + ':' + str(self.port))
+        return self
 
 
 

@@ -16,6 +16,9 @@ def test_load_sync_save():
     metagraph.load()
     metagraph.save()
 
+def test_factory():
+    graph = bittensor.metagraph().load().sync().save()
+
 def test_state_dict():
     metagraph = bittensor.metagraph()
     metagraph.load()

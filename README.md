@@ -3,8 +3,8 @@
 # **Bittensor**
 [![Pushing Image to Docker](https://github.com/opentensor/bittensor/actions/workflows/docker_image_push.yml/badge.svg?branch=master)](https://github.com/opentensor/bittensor/actions/workflows/docker_image_push.yml)
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/3rUr6EcvbB)
+[![PyPI version](https://badge.fury.io/py/bittensor.svg)](https://badge.fury.io/py/bittensor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 ---
 
 ### Internet-scale Neural Networks
@@ -15,17 +15,41 @@
 
 Bittensor is a p2p-market that rewards the production of machine intelligence with a digital token called Tao. Peers in the system train models by mining knowledge from unsupervised datasets to share with others. Consumers access the network and distill what they learn into production models. The network is collectively-run, open-source, open-access, decentralized, and incentivized to produce state-of-the-art intelligence. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
 
-# Running a miner
+## Install
 
-Paste the below command in a MacOS Terminal or Ubuntu shell prompt and follow the instructions. The script will install necessary dependencies and then install Bittensor.
+```bash
+$ pip3 install bittensor
 ```
-$ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/opentensor/bittensor/master/scripts/install.sh)"
+
+## Client
+
+```python
+import bittensor
+import torch
+graph = bittensor.metagraph().load().sync().save()
+text = torch.tensor([bittensor.tokenizer().encode( "The quick brown fox jumped over the lazy dog" )], dtype=torch.int64)
+representations, _ = bittensor.dendrite().forward_text(
+    endpoints = graph.endpoints,
+    inputs = [text for _ in graph.endpoints]
+)
+representations = # List[ (1, 9, 512) ... ]
 ```
-If you wish to run bittensor through a docker container, create a new wallet, and run docker-compose:
-```
-$ bin/bittensor-cli new_coldkey                  # Generate default wallet
-$ bin/bittensor-cli new_hotkey                   # Generate default hotkey	
-$ docker-compose up
+
+## Server
+
+```python
+import bittensor
+import torch
+from transformers import BertModel, BertConfig
+
+model = BertModel(BertConfig())
+
+def forward ( pubkey, inputs_x, modality)
+  return torch.model( inputs ).narrow(2, 0, bittensor.__network_dim__)
+
+axon = bittensor.axon(
+    forward_callback = forward,
+).start().subscribe()
 ```
 
 ---
