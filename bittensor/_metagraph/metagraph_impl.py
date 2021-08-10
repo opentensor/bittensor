@@ -64,8 +64,8 @@ class Metagraph( torch.nn.Module ):
         self.uids = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.stake = torch.nn.Parameter( torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.lastemit = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
-        self.weights = torch.nn.ParameterList()
-        self.neurons = torch.nn.ParameterList()
+        self.weights = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
+        self.endpoints = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.cached_endpoints = None
 
     @property
@@ -139,7 +139,7 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ neuron.hotkey for neuron in self.endpoints ]
+        return [ neuron.hotkey for neuron in self.endpoint_objects ]
 
     @property
     def coldkeys( self ) -> List[str]:
@@ -150,7 +150,7 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ neuron.coldkey for neuron in self.endpoints ]
+        return [ neuron.coldkey for neuron in self.endpoint_objects ]
 
     @property
     def modalities( self ) -> List[str]:
@@ -161,7 +161,7 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ neuron.modality for neuron in self.endpoints ]
+        return [ neuron.modality for neuron in self.endpoint_objects ]
 
     @property
     def addresses( self ) -> List[str]:
@@ -172,10 +172,10 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ net.ip__str__( neuron.ip_type, neuron.ip, neuron.port ) for neuron in self.endpoints ]
+        return [ net.ip__str__( neuron.ip_type, neuron.ip, neuron.port ) for neuron in self.endpoint_objects ]
 
     @property
-    def endpoints(self) -> List[ 'bittensor.Endpoint' ]:
+    def endpoint_objects(self) -> List[ 'bittensor.Endpoint' ]:
         r""" Return neuron endpoint information for each neuron.
             
             Returns:
@@ -189,15 +189,28 @@ class Metagraph( torch.nn.Module ):
             return self.cached_endpoints
         else:
             self.cached_endpoints = []
-            for idx, neuron_tensor in enumerate(self.neurons):
+            for neuron_tensor in self.endpoints:
                 try:
-                    # This would only be false if we are the only miner in the network.
                     neuron_endpoint = bittensor.endpoint.from_tensor( neuron_tensor )
                     self.cached_endpoints.append ( neuron_endpoint )
                 except Exception as e:
                     self.cached_endpoints.append ( None )
                     logger.exception('Faulty endpoint tensor: {} got error while trying to serialize as endpoint: {} ', neuron_tensor, e)
             return self.cached_endpoints
+
+    def clear( self ) -> 'Metagraph':
+        r""" Erases Metagraph state.
+        """
+        self.n = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad=False )
+        self.tau = torch.nn.Parameter( torch.tensor( [0.5], dtype=torch.float32), requires_grad=False )
+        self.block = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad=False )
+        self.uids = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
+        self.stake = torch.nn.Parameter( torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.lastemit = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
+        self.weights = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
+        self.endpoints = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
+        self.cached_endpoints = None
+        return self
 
     def load( self, network:str = None  ) -> 'Metagraph':
         r""" Loads this metagraph object's state_dict from bittensor root dir.
@@ -253,20 +266,15 @@ class Metagraph( torch.nn.Module ):
                 state_dict: (:obj:`dict`, required):
                     Metagraph state_dict. Must be same as that created by save_to_path.
         """
-        if 'version' in state_dict:
-            self.version = torch.nn.Parameter( state_dict['version'], requires_grad=False )
-            self.n = torch.nn.Parameter( state_dict['n'], requires_grad=False )
-            self.tau = torch.nn.Parameter( state_dict['tau'], requires_grad=False )
-            self.block = torch.nn.Parameter( state_dict['block'], requires_grad=False )
-            self.uids = torch.nn.Parameter( state_dict['uids'], requires_grad=False )
-            self.stake = torch.nn.Parameter( state_dict['stake'], requires_grad=False )
-            self.lastemit = torch.nn.Parameter( state_dict['lastemit'], requires_grad=False )
-            self.weights = torch.nn.ParameterList([torch.nn.Parameter( state_dict['weights.' + str(i)], requires_grad=False )  for i in range(self.n.item()) ])
-            self.neurons = torch.nn.ParameterList([torch.nn.Parameter( state_dict['neurons.' + str(i)], requires_grad=False )  for i in range(self.n.item()) ])
-        else:
-            # Dont load because we need to force a new reload.
-            pass
-
+        self.version = torch.nn.Parameter( state_dict['version'], requires_grad=False )
+        self.n = torch.nn.Parameter( state_dict['n'], requires_grad=False )
+        self.tau = torch.nn.Parameter( state_dict['tau'], requires_grad=False )
+        self.block = torch.nn.Parameter( state_dict['block'], requires_grad=False )
+        self.uids = torch.nn.Parameter( state_dict['uids'], requires_grad=False )
+        self.stake = torch.nn.Parameter( state_dict['stake'], requires_grad=False )
+        self.lastemit = torch.nn.Parameter( state_dict['lastemit'], requires_grad=False )
+        self.weights = torch.nn.Parameter( state_dict['weights'], requires_grad=False )
+        self.neurons = torch.nn.Parameter( state_dict['endpoints'], requires_grad=False )
         self.cached_endpoints = None
         return self
 
@@ -301,22 +309,27 @@ class Metagraph( torch.nn.Module ):
         self.uids = torch.nn.Parameter( new_uids, requires_grad=False )
         self.stake = torch.nn.Parameter( new_stake, requires_grad=False )
         self.lastemit = torch.nn.Parameter( new_lastemit, requires_grad=False )
-        self.weights = torch.nn.ParameterList()
-        self.neurons = torch.nn.ParameterList()
+        self.weights = torch.nn.Parameter( torch.zeros( [new_n, new_n] , dtype=torch.float32), requires_grad=False )
+        self.endpoints = torch.nn.Parameter( torch.zeros( [new_n, 200] , dtype=torch.int64), requires_grad=False )
         # # Create buffers
         for uid in trange( size ):
              # Fill row from weights.
             row_weights = weight_utils.convert_weight_uids_and_vals_to_tensor( size, chain_weights_uids[uid], chain_weights_vals[uid] )
-            self.weights.append(torch.nn.Parameter( row_weights, requires_grad=False ))
+            self.weights[uid] = row_weights
             
             # Fill Neuron info.
-            neuron_obj = bittensor.endpoint.from_dict( chain_endpoints[uid] )
-            neuron_tensor = neuron_obj.to_tensor()
-            self.neurons.append(torch.nn.Parameter( neuron_tensor, requires_grad=False ))
+            endpoint_obj = bittensor.endpoint.from_dict( chain_endpoints[uid] )
+            endpoint_tensor = endpoint_obj.to_tensor()
+            self.endpoints[uid] = endpoint_tensor
             
         self.cached_endpoints = None
 
         # For contructor.
         return self
+    
+    def __str__(self):
+        return "Metagraph(%s,%s,%s)".format(self.subtensor.network, self.n.item(), self.block.item())
         
+    def __repr__(self):
+        return self.__str__()
         
