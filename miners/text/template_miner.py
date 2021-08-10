@@ -77,7 +77,7 @@ class Nucleus(nn.Module):
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
-        parser.add_argument('--nucleus.punishment', type=int, help='The punishment on the chain weights that do not respond ', default=0.01 )
+        parser.add_argument('--nucleus.punishment', type=float, help='The punishment on the chain weights that do not respond ', default=0.001 )
 
     def init_weights(self):
         initrange = 0.1
@@ -210,7 +210,7 @@ class Nucleus(nn.Module):
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
             self.chain_weights[topk_uids[(return_ops != 0)]] -=  self.config.nucleus.punishment
-            self.chain_weights[self.chain_weights < -10] = -10 #lower bound for chain weights
+            self.chain_weights[self.chain_weights < -1] = -1 #lower bound for chain weights
         # ---- Return response ----- 
         return output
 
@@ -628,7 +628,7 @@ class Miner:
             'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
-            'L-accuracy': colored('{:.4f}'.format(output.local_accuracy.item()), 'red'),
+            'L-accuracy': colored('{}'.format(output.local_accuracy), 'red'),
         }
         if self.config.neuron.use_wandb:
             wandb_info = {
@@ -640,7 +640,7 @@ class Miner:
                 'Rank':rank,
                 'Incentive':incentive,
                 'Axon QPS':bittensor.neuron.axon.stats.qps.value,
-                'local_accuracy':output.local_accuracy.item()
+                'local_accuracy':output.local_accuracy
                 }
 
         #removing normalization of chain weights for display
