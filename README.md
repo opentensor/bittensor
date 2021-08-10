@@ -22,7 +22,7 @@ $ pip3 install bittensor
 ```
 
 ## Client 
-
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1m6c4_D1FHHcZxnDJCW4F0qORWhXV_hc_?usp=sharing)
 ```python
 import bittensor
 import torch
@@ -35,10 +35,9 @@ representations, _ = bittensor.dendrite( wallet ).forward_text(
 )
 representations = # List[ (1, 9, 512) ... x N ]
 ```
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1m6c4_D1FHHcZxnDJCW4F0qORWhXV_hc_?usp=sharing)
 
 ## Server 
-
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12nGV6cmoZNvywb_z6E8CDzdHCQ3F7tpQ?usp=sharing)
 ```python
 import bittensor
 import torch
@@ -58,7 +57,6 @@ axon = bittensor.axon (
 ...
 
 ```
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12nGV6cmoZNvywb_z6E8CDzdHCQ3F7tpQ?usp=sharing)
 
 ---
 
