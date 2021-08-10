@@ -442,7 +442,7 @@ class Miner:
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
         def call(inputs):
-            inputs_x = inputs_x.to( self.device )
+            inputs_x = inputs.to( self.device )
             output = self.nucleus.local_forward (
                 inputs = inputs_x
             )
