@@ -44,6 +44,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         server: 'grpc._Server',
         forward_callback: 'Callable' = None,
         backward_callback: 'Callable' = None,
+        thread_pool: 'futures.ThreadPoolExecutor' = None,
     ):
         r""" Initializes a new Axon tensor processing endpoint.
             
@@ -65,6 +66,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.server = server
         self.forward_callback = forward_callback
         self.backward_callback = backward_callback 
+        self.thread_pool= thread_pool
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -163,7 +165,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
         
         # Make forward call.
         try:
-            response_tensor = self.forward_callback( public_key, inputs_x, modality )
+            future = self.thread_pool.submit(self.forward_callback( public_key, inputs_x, modality ))
+            response_tensor = future.result()
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
