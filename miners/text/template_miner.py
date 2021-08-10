@@ -441,11 +441,16 @@ class Miner:
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
-        inputs_x = inputs_x.to( self.device )
-        output = self.nucleus.local_forward (
-            inputs = inputs_x
-        )
-        return output.local_hidden
+        def call(inputs):
+            inputs_x = inputs_x.to( self.device )
+            output = self.nucleus.local_forward (
+                inputs = inputs_x
+            )
+            return output.local_hidden
+        uid =bittensor.neuron.metagraph.hotkeys.index(pubkey)
+        print(uid,bittensor.neuron.metagraph.S[uid])
+        future = bittensor.neuron.axon.thread_pool.submit(call,inputs=inputs_x,priority=0.01)
+        return future
 
     # ---- Axon Backward call ----
     def backward ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
