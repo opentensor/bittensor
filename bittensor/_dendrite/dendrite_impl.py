@@ -410,8 +410,8 @@ class Dendrite( torch.autograd.Function ):
 
                     inputs (:obj:`Union[str,  List[str], List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
                         Tokenized sentences to send on the wire. Inputs can be one of the following types:
-                            - a single strings, the string will be tokenized using the bittensor tokenizer.
-                            - a list of strings, the strings will be tokenized using the bittensor tokenizer.
+                            - a single string: the string will be tokenized using the bittensor tokenizer.
+                            - a list of strings: the strings will be tokenized using the bittensor tokenizer.
                             - a tensor with shape [batch_size, sequence_len], assumed to be the output of bittensor tokenizer.
                             - a tensor with shape [n, batch_size, sequence_len], the operation will unbind the tensor and pass inputs to endpoints.
                         If inputs are tensors they will be cast to int64 format before sending on the wire.
@@ -515,13 +515,13 @@ class Dendrite( torch.autograd.Function ):
             formatted_inputs = [ tokenizer_tensor for _ in formatted_endpoints ]
 
         # ---- Inputs is a single tensor
-        elif isinstance ( inputs, torch.Tensor ):
+        elif isinstance ( inputs, torch.Tensor ) and len(inputs.shape) < 2:
             inputs = cast_and_check_tensor_input( inputs )
             # Expand to length.
             formatted_inputs = [ inputs for _ in formatted_endpoints]
 
         # ---- Inputs is tensor with shape [n_endpoints, batch_size, sequence_len]
-        elif isinstance ( inputs, torch.Tensor ) and len( inputs.shape ) != 3 and inputs.shape[0] == len( formatted_endpoints ):
+        elif isinstance ( inputs, torch.Tensor ) and len( inputs.shape ) == 3 and inputs.shape[0] == len( formatted_endpoints ):
             # Unbind inputs into list the same length as endpoints.
             formatted_inputs = [ cast_and_check_tensor_input(input) for input in torch.unbind( inputs ) ]
 
@@ -531,8 +531,8 @@ class Dendrite( torch.autograd.Function ):
 
         else:
             error_msg = """ Inputs should have one of the following types:
-                            - a single string, the string will be tokenized using the bittensor tokenizer.
-                            - a list of strings, the strings will be tokenized using the bittensor tokenizer.
+                            - a single string: the string will be tokenized using the bittensor tokenizer.
+                            - a list of strings: the strings will be tokenized using the bittensor tokenizer.
                             - a tensor with shape [batch_size, sequence_len], assumed to be the output of bittensor tokenizer.
                             - a tensor with shape [n, batch_size, sequence_len], the operation will unbind the tensor and pass inputs to endpoints.
                         Got {} """.format(inputs)
@@ -551,7 +551,6 @@ class Dendrite( torch.autograd.Function ):
             timeout = timeout,
             requires_grad = requires_grad,
         )
-        responses = torch.stack( responses, dim=0 )
 
         # Return.
         return responses, codes

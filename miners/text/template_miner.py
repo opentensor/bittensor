@@ -191,12 +191,12 @@ class Nucleus(nn.Module):
         topk_weights, topk_uids = torch.topk( self.chain_weights + noise, real_topk, dim=0 ) 
 
         # ---- Filter endpoints ----
-        endpoints = [bittensor.neuron.metagraph.endpoints[uid] for uid in topk_uids]
+        endpoints = bittensor.neuron.metagraph.endpoints[ topk_uids ]
 
         # ---- Query network ----
         responses, return_ops = bittensor.neuron.dendrite.forward_text ( 
             endpoints = endpoints, 
-            inputs = [inputs.long() for _ in endpoints]
+            inputs = inputs
         )
 
         # ---- Join based on weights ----
