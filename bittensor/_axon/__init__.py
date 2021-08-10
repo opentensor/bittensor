@@ -91,7 +91,8 @@ class axon:
             ip = config.axon.ip,
             port = config.axon.port,
             forward_callback = forward_callback,
-            backward_callback = backward_callback
+            backward_callback = backward_callback,
+            thread_pool= thread_pool
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
         full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
