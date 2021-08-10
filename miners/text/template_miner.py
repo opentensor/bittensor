@@ -447,7 +447,7 @@ class Miner:
                 inputs = inputs_x
             )
             return output.local_hidden
-        uid =bittensor.neuron.metagraph.hotkeys.index(pubkey)
+        uid =bittensor.neuron.metagraph.hotkeys.index(ss58_encode(pubkey))
         print(uid,bittensor.neuron.metagraph.S[uid])
         future = bittensor.neuron.axon.thread_pool.submit(call,inputs=inputs_x,priority=0.01)
         return future
