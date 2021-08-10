@@ -22,6 +22,7 @@ import argparse
 import copy
 import grpc
 import inspect
+import bittensor.utils.ptp as ptp
 
 from . import axon_impl
 
@@ -76,7 +77,7 @@ class axon:
         if wallet == None:
             wallet = bittensor.wallet( config = config )
         if thread_pool == None:
-            thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
+            thread_pool = ptp.ThreadPoolExecutor( max_workers = config.axon.max_workers )
         if server == None:
             server = grpc.server( thread_pool, maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs )
 

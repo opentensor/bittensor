@@ -29,6 +29,7 @@ from typing import List, Tuple, Optional, Callable
 
 import bittensor
 import bittensor.utils.stats as stat_utils
+import bittensor.utils.ptp as ptp
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -45,6 +46,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         forward_callback: 'Callable' = None,
         backward_callback: 'Callable' = None,
         thread_pool: 'futures.ThreadPoolExecutor' = None,
+        priority_queue: 'queue.PriorityQueue' = None
     ):
         r""" Initializes a new Axon tensor processing endpoint.
             
@@ -67,6 +69,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.forward_callback = forward_callback
         self.backward_callback = backward_callback 
         self.thread_pool= thread_pool
+        self.priority_queue = priority_queue
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
