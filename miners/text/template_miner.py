@@ -330,7 +330,7 @@ class Miner:
             while self.epoch < self.config.miner.n_epochs:
                 try:
                     # ---- Train state ----
-                    self.run_epoch()
+                    #self.run_epoch()
 
                     # ---- Set weights on chain ----
                     self.set_chain_weights()
