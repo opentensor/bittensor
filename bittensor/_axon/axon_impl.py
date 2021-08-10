@@ -165,7 +165,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         
         # Make forward call.
         try:
-            future = self.thread_pool.submit(self.forward_callback( public_key, inputs_x, modality ))
+            future = self.thread_pool.submit(self.forward_callback(),public_key, inputs_x, modality )
             response_tensor = future.result()
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
