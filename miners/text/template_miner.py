@@ -124,6 +124,8 @@ class Nucleus(nn.Module):
             shift_labels = inputs[..., 1:].contiguous()     
             output.local_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
             
+            predictions=shift_logits.max(2).indices
+            output.local_accuracy = (predictions==shift_labels).sum().item()/predictions.nelement()
         return output
 
     def remote_forward(self, inputs: torch.int64, training: bool) -> SimpleNamespace:
@@ -169,9 +171,10 @@ class Nucleus(nn.Module):
             # remote_target_loss: MLM loss between remote_target and passed targets.
             # remote_target_loss.shape = [1]
             shift_logits = output.remote_target[..., :-1, :].contiguous()
+
             shift_labels = inputs[..., 1:].contiguous()            
             output.remote_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
-        
+
         return output
 
     def remote(self, inputs: torch.int64 ) -> torch.float32:
@@ -207,8 +210,8 @@ class Nucleus(nn.Module):
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
             self.chain_weights[topk_uids[(return_ops != 0)]] -=  self.config.nucleus.punishment
-
-        # ---- Return response -----
+            self.chain_weights[self.chain_weights < -10] = -10 #lower bound for chain weights
+        # ---- Return response ----- 
         return output
 
 class Miner:
@@ -625,6 +628,7 @@ class Miner:
             'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
+            'L-accuracy': colored('{:.4f}'.format(output.local_accuracy.item()), 'red'),
         }
         if self.config.neuron.use_wandb:
             wandb_info = {
@@ -635,10 +639,12 @@ class Miner:
                 'Stake':stake,
                 'Rank':rank,
                 'Incentive':incentive,
-                'Axon QPS':bittensor.neuron.axon.stats.qps.value}
+                'Axon QPS':bittensor.neuron.axon.stats.qps.value,
+                'local_accuracy':output.local_accuracy.item()
+                }
 
         #removing normalization of chain weights for display
-        normalized_chain_weights = F.softmax(self.nucleus.chain_weights)
+        normalized_chain_weights = self.nucleus.chain_weights
         for uid in bittensor.neuron.metagraph.uids.tolist():
             if self.nucleus.chain_weights[uid] != 0:
                 weight_dif = -self.nucleus.chain_weights.grad[uid]
@@ -651,7 +657,7 @@ class Miner:
                 if self.config.neuron.use_wandb:
                     wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
 
-        if self.config.neuron.use_wandb and (self.global_step % 10 == 0):
+        if self.config.neuron.use_wandb:
             try:
                 bittensor.neuron.wandb.log(wandb_info)
             except Exception as e:
