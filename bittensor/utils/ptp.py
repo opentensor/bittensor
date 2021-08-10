@@ -146,7 +146,7 @@ class ThreadPoolExecutor(_base.Executor):
                                    'interpreter shutdown')
 
             priority = kwargs.get('priority', random.randint(0, sys.maxsize-1))
-            print(priority)
+            print('Priority',priority)
             if 'priority' in kwargs:
                 del kwargs['priority']
 
