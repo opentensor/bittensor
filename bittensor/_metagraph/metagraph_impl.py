@@ -310,7 +310,7 @@ class Metagraph( torch.nn.Module ):
         self.stake = torch.nn.Parameter( new_stake, requires_grad=False )
         self.lastemit = torch.nn.Parameter( new_lastemit, requires_grad=False )
         self.weights = torch.nn.Parameter( torch.zeros( [new_n, new_n] , dtype=torch.float32), requires_grad=False )
-        self.endpoints = torch.nn.Parameter( torch.zeros( [new_n, 200] , dtype=torch.int64), requires_grad=False )
+        self.endpoints = torch.nn.Parameter( torch.zeros( [new_n, 250] , dtype=torch.int64), requires_grad=False )
         # # Create buffers
         for uid in trange( size ):
              # Fill row from weights.
@@ -328,7 +328,7 @@ class Metagraph( torch.nn.Module ):
         return self
     
     def __str__(self):
-        return "Metagraph(%s,%s,%s)".format(self.subtensor.network, self.n.item(), self.block.item())
+        return "Metagraph({},{},{})".format(self.subtensor.network, self.n.item(), self.block.item())
         
     def __repr__(self):
         return self.__str__()

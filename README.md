@@ -27,13 +27,12 @@ $ pip3 install bittensor
 import bittensor
 import torch
 wallet = bittensor.wallet().create()
-graph = bittensor.metagraph().load().sync().save()
-text = torch.tensor([bittensor.tokenizer().encode( "The quick brown fox jumped over the lazy dog" )], dtype=torch.int64)
-representations, _ = bittensor.dendrite( wallet ).forward_text(
+graph = bittensor.metagraph().sync()
+representations, _ = bittensor.dendrite( wallet ).forward_text (
     endpoints = graph.endpoints,
-    inputs = [text for _ in graph.endpoints]
+    inputs = "The quick brown fox jumped over the lazy dog"
 )
-representations = # List[ (1, 9, 512) ... x N ]
+representations = # Tensor with shape (N, 9, 512)
 ```
 
 ## Server 

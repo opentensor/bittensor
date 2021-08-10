@@ -33,26 +33,14 @@ class Endpoint:
         self.modality = modality
     
     def to_tensor( self ) -> torch.LongTensor:  
-        string_json = self.dumps_small()
+        string_json = self.dumps()
         bytes_json = bytes(string_json, 'utf-8')
         ints_json = list(bytes_json)
-        if len(ints_json) > 200:
-            raise ValueError('Endpoint {} representation is too large, got size {} should be less than 200'.format(self, len(ints_json)))
-        ints_json += [-1] * (200 - len(ints_json))
+        if len(ints_json) > 250:
+            raise ValueError('Endpoint {} representation is too large, got size {} should be less than 250'.format(self, len(ints_json)))
+        ints_json += [-1] * (250 - len(ints_json))
         endpoint_tensor = torch.tensor( ints_json, dtype=torch.int64, requires_grad=False)
         return endpoint_tensor
-
-    def dumps_small(self):
-        return json.dumps(
-            {
-                'u': self.uid,
-                'h': self.hotkey,
-                'i': self.ip,
-                't': self.ip_type,
-                'p': self.port,
-                'c': self.coldkey,
-                'm': self.modality,
-            })
 
     def dumps(self):
         return json.dumps(
@@ -70,7 +58,7 @@ class Endpoint:
         return net.ip__str__(self.ip_type, self.ip, self.port)
 
     def __str__(self):
-        return "<endpoint uid: %s hotkey: %s ip: %s modality: %s coldkey: %s>" % (self.uid, self.hotkey, self.ip_str(), self.modality, self.coldkey)
+        return "Endpoint(uid: %s hotkey: %s ip: %s modality: %s coldkey: %s)" % (self.uid, self.hotkey, self.ip_str(), self.modality, self.coldkey)
     
     def __repr__(self):
         return "%s" % (self.hotkey)

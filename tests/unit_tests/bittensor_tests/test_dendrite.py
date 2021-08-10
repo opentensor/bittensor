@@ -1,5 +1,6 @@
 
 
+from bittensor._endpoint import endpoint
 import torch
 import pytest
 import time
@@ -23,6 +24,29 @@ neuron_obj = bittensor.endpoint(
     coldkey = dendrite.wallet.coldkey.public_key,
     modality = 0
 )
+
+def test_dendrite_forward_text_endpoints_tensor():
+    endpoints = neuron_obj.to_tensor()
+    x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
+    resp1, _ = dendrite.forward_text( endpoints, x )
+    assert list(resp1.shape) == [1, 2, 3, bittensor.__network_dim__]
+
+def test_dendrite_forward_text_multiple_endpoints_tensor():
+    endpoints_1 = neuron_obj.to_tensor()
+    endpoints_2 = neuron_obj.to_tensor()
+    endpoints = torch.stack( [endpoints_1, endpoints_2], dim=0)
+    x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
+    resp1, _ = dendrite.forward_text( endpoints, x )
+    assert list(resp1.shape) == [2, 2, 3, bittensor.__network_dim__]
+
+def test_dendrite_forward_text_multiple_endpoints_tensor_list():
+    endpoints_1 = neuron_obj.to_tensor()
+    endpoints_2 = neuron_obj.to_tensor()
+    endpoints_3 = neuron_obj.to_tensor()
+    endpoints = [torch.stack( [endpoints_1, endpoints_2], dim=0), endpoints_3]
+    x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
+    resp1, _ = dendrite.forward_text( endpoints, x )
+    assert list(resp1.shape) == [3, 2, 3, bittensor.__network_dim__]
 
 def test_dendrite_forward_text_singular():
     x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
@@ -143,5 +167,8 @@ if __name__ == "__main__":
     # test_dendrite_forward_text_singular()
     # test_dendrite_forward_text_singular_string()
     # test_dendrite_forward_text_list_string()
-    test_dendrite_forward_text_tensor_list_singular()
-    test_dendrite_forward_text_tensor_list()
+    # test_dendrite_forward_text_tensor_list_singular()
+    # test_dendrite_forward_text_tensor_list()
+    # test_dendrite_forward_text_endpoints_tensor()
+    test_dendrite_forward_text_multiple_endpoints_tensor()
+    test_dendrite_forward_text_multiple_endpoints_tensor_list()

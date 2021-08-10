@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+from bittensor._endpoint import endpoint
 import torch
 from typing import Tuple, List, Union, Optional
 from torch.autograd.function import once_differentiable
@@ -391,7 +392,7 @@ class Dendrite( torch.autograd.Function ):
 
     def forward_text(
             self,
-            endpoints: Union[ List['bittensor.Endpoint'], 'bittensor.Endpoint'] ,
+            endpoints: Union[torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint'],
             inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
             timeout: int = None,
             requires_grad: bool = None
@@ -399,10 +400,13 @@ class Dendrite( torch.autograd.Function ):
         r""" Forward text inputs to a list of neuron endpoints and block until responses or timeout.
 
                 Args:
-                    endpoints (:obj:`Union[List[bittensor.Endpoint], bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
+                    endpoints (:obj:`Union[torch.LongTensor, List[torch.LongTensor], List[bittensor.Endpoint], bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
                         Endpoints to send inputs to. Endpoint can be one of the following types:
-                            - a single endpoint. Inputs will be sent to this endpoint alone.
-                            - a list of endpoints. All inputs will be sent to these endpoints.
+                            - a single endpoint tensor shape [250]
+                            - a set of endpoint tensors shape [n, 250]
+                            - a list of endpoints tensors each of shape [250]
+                            - a single endpoint object. Inputs will be sent to this endpoint alone.
+                            - a list of endpoint objects. All inputs will be sent to these endpoints.
 
                     inputs (:obj:`Union[str,  List[str], List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
                         Tokenized sentences to send on the wire. Inputs can be one of the following types:
@@ -456,8 +460,42 @@ class Dendrite( torch.autograd.Function ):
             formatted_endpoints = [endpoints]
 
         # ---- Endpoints is a list of Endpoints.
-        if isinstance( endpoints, list ) and len( endpoints ) > 0 and isinstance( endpoints[0], bittensor.Endpoint ):
+        elif isinstance( endpoints, list ) and len( endpoints ) > 0 and isinstance( endpoints[0], bittensor.Endpoint ):
             formatted_endpoints = endpoints
+
+        # ---- Endpoints is a torch tensor.
+        elif isinstance( endpoints, torch.LongTensor ):
+            if len(endpoints.shape) == 1:
+                formatted_endpoints = [ bittensor.endpoint.from_tensor( endpoints ) ]
+            elif len(endpoints.shape) == 2:
+                formatted_endpoints = [ bittensor.endpoint.from_tensor( row ) for row in endpoints ]
+            else:
+                error_msg = 'Endpoints tensor should have semantic shape [n, 250], got {}'.format( endpoints )
+                raise ValueError(error_msg)
+
+        # ---- Endpoints is a list of tensors.
+        elif isinstance( endpoints, list ) and len( endpoints ) > 0 and isinstance( endpoints[0], torch.LongTensor ):
+            for tensor in endpoints:
+                if len(tensor.shape) == 1:
+                    formatted_endpoints.append( bittensor.endpoint.from_tensor( tensor ) )
+                elif len(tensor.shape) == 2:
+                    for row in tensor:
+                        formatted_endpoints.append( bittensor.endpoint.from_tensor( row ) )
+                else:
+                    error_msg = 'Endpoints tensor should have semantic shape [n, 250], got {}'.format( tensor )
+                    raise ValueError(error_msg)
+        else:
+            error_msg = """ Endpoints should have one of the following types.
+                            - a single endpoint tensor shape [250]
+                            - a set of endpoint tensors shape [n, 250]
+                            - a list of endpoints tensors each of shape [250]
+                            - a single endpoint object. Inputs will be sent to this endpoint alone.
+                            - a list of endpoint objects. All inputs will be sent to these endpoints.
+                        Got {} """.format(endpoints)
+            raise ValueError(error_msg)
+                        
+
+
 
         # ---- Inputs is a string
         if isinstance( inputs, str ):
@@ -490,6 +528,15 @@ class Dendrite( torch.autograd.Function ):
         # ---- Inputs is a list of tensors
         elif isinstance ( inputs, list ) and len( inputs ) > 0 and isinstance( inputs[0], torch.Tensor ):
             formatted_inputs = [ cast_and_check_tensor_input(input) for input in inputs ]
+
+        else:
+            error_msg = """ Inputs should have one of the following types:
+                            - a single string, the string will be tokenized using the bittensor tokenizer.
+                            - a list of strings, the strings will be tokenized using the bittensor tokenizer.
+                            - a tensor with shape [batch_size, sequence_len], assumed to be the output of bittensor tokenizer.
+                            - a tensor with shape [n, batch_size, sequence_len], the operation will unbind the tensor and pass inputs to endpoints.
+                        Got {} """.format(inputs)
+            raise ValueError(error_msg)
             
         # ---- Check length.
         if len( formatted_inputs ) != len( formatted_endpoints ):
