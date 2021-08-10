@@ -199,7 +199,7 @@ class Metagraph( torch.nn.Module ):
                     logger.exception('Faulty endpoint tensor: {} got error while trying to serialize as endpoint: {} ', neuron_tensor, e)
             return self.cached_endpoints
 
-    def load( self, network:str = None  ):
+    def load( self, network:str = None  ) -> 'Metagraph':
         r""" Loads this metagraph object's state_dict from bittensor root dir.
             Args: 
                 network: (:obj:`str`, required):

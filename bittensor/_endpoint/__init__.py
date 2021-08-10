@@ -51,6 +51,8 @@ class endpoint:
     @staticmethod
     def from_tensor( tensor: torch.LongTensor) -> 'bittensor.Endpoint':
         endpoint_list = tensor.tolist()
+        if -1 in endpoint_list:
+            endpoint_list = endpoint_list[ :endpoint_list.index(-1) + 1]
         endpoint_bytes = bytearray( endpoint_list )
         endpoint_string = endpoint_bytes.decode('utf-8')
         endpoint_dict = json.loads( endpoint_string )

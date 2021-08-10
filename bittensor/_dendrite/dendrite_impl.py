@@ -392,7 +392,7 @@ class Dendrite( torch.autograd.Function ):
     def forward_text(
             self,
             endpoints: Union[ List['bittensor.Endpoint'], 'bittensor.Endpoint'] ,
-            inputs: List[ torch.LongTensor ],
+            inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
             timeout: int = None,
             requires_grad: bool = None
         ) -> Tuple[ Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor]:
@@ -400,80 +400,111 @@ class Dendrite( torch.autograd.Function ):
 
                 Args:
                     endpoints (:obj:`Union[List[bittensor.Endpoint], bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
-                        List or single of endpoints which match the length of inputs. Inputs are sent forward to these endpoints.
+                        Endpoints to send inputs to. Endpoint can be one of the following types:
+                            - a single endpoint. Inputs will be sent to this endpoint alone.
+                            - a list of endpoints. All inputs will be sent to these endpoints.
 
-                    inputs (:obj:`Union[List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
-                        List or single tensors to send to corresponsing neurons. Tensors are text input_ids encoded using the
-                        bittensor tokenizer with shape [batch_size, sequence_len].
+                    inputs (:obj:`Union[str,  List[str], List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
+                        Tokenized sentences to send on the wire. Inputs can be one of the following types:
+                            - a single strings, the string will be tokenized using the bittensor tokenizer.
+                            - a list of strings, the strings will be tokenized using the bittensor tokenizer.
+                            - a tensor with shape [batch_size, sequence_len], assumed to be the output of bittensor tokenizer.
+                            - a tensor with shape [n, batch_size, sequence_len], the operation will unbind the tensor and pass inputs to endpoints.
+                        If inputs are tensors they will be cast to int64 format before sending on the wire.
 
                     timeout (:type:`int`, default = dendrite.timeout `optional`):
-                        Request timeout.
+                        Request timeout. Queries that do not respond will be replaced by zeros.
 
                     requires_grad (:type:`int`, default = dendrite.requires_grad, `optional`):
                         If true, the backward pass triggers passing gradients on the wire.
 
                 Returns:
-                    responses (:obj:`Union[ List[torch.FloatTensor], torch.FloatTensor] ` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                    responses (:obj:`torch.FloatTensor` of shape :obj:`(n, batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Output encodings of inputs produced by remote endpoints. Non-responses are zeroes of input shape plus output dimension.
+                        The first dimension will match the number of endpoints queried.
 
                     codes (:obj:`torch.LongTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                         dendrite call return ops.
 
-            """
-        
-        # Check types.
-        if not isinstance(endpoints, list) and not isinstance(endpoints, bittensor._endpoint.endpoint_impl.Endpoint):
-            raise ValueError('endpoints must be of type list or bittensor.Endpoint. Got {}'.format(type(endpoints)))
+        """
+        # To be filled. Inputs and endpoint must be list with the same number of elements.
+        formatted_inputs = []
+        formatted_endpoints = []
 
-        if not isinstance(inputs, list) and not isinstance(inputs, torch.LongTensor):
-            raise ValueError('inputs must be of type list[torch.LongTensor] or torch.LongTensor. Got {}'.format(type(inputs)))
-        
-        # Format to list.
-        non_list_inputs = False
-        if not isinstance(inputs, list):
-            non_list_inputs = True
-            inputs = [inputs]
+        # <<Helper function>> optional casts and then checks shape of inputs.
+        def cast_and_check_tensor_input( input ) -> torch.LongTensor:
+            if not isinstance ( input, torch.LongTensor):
+                try:
+                    input = input.to( torch.int64 )
+                except Exception as E:
+                    error_msg = 'Error while casting tensor input {} to int64 {}'.format(input, E)
+                    raise ValueError(error_msg)
+            if not ( isinstance(input, torch.cuda.LongTensor) or isinstance(input, torch.LongTensor)) :
+                raise ValueError('input {} must be of type torch.LongTensor. Got {}'.format(input, type(input)))
+            # Expand shape if it is a singlular dimension.
+            if len( input.shape ) == 1:
+                input = input.view(1, -1)
 
-        # Format to list.
-        if not isinstance(endpoints, list):
-            endpoints = [endpoints]
+            # Check shape.
+            if len( input.shape ) != 2:
+                error_msg = 'Text inputs should be rank 2 with semantic shape: [batch_size, sequence_len]'
+                raise ValueError(error_msg)
+            return input 
 
-        # Catch inputs != List and endpoints == List
-        elif non_list_inputs and isinstance(endpoints, list):
-            raise ValueError('endpoints and inputs must be of same type. Got endpoints {} and inputs {} '.format( type(endpoints), type(inputs[0]) ))
+        # ---- Endpoints is singular.
+        if isinstance( endpoints, bittensor.Endpoint ):
+            formatted_endpoints = [endpoints]
 
-        # Check length.
-        if len(inputs) < 1:
-            raise ValueError('inputs list must have atleast one element. Got len {}'.format(len(inputs)))
-        if len(endpoints) < 1:
-            raise ValueError('endpoints list must have atleast one item. Got len {}'.format(len(endpoints)))
-        if len( inputs ) != len( endpoints ):
-            error_msg = 'List of text inputs should have the same length as passed destination endpoints, got {} and {}'.format(len( inputs ), len( endpoints ))
-            raise ValueError(error_msg)
+        # ---- Endpoints is a list of Endpoints.
+        if isinstance( endpoints, list ) and len( endpoints ) > 0 and isinstance( endpoints[0], bittensor.Endpoint ):
+            formatted_endpoints = endpoints
+
+        # ---- Inputs is a string
+        if isinstance( inputs, str ):
+            # Encode to tensors.
+            tokenizer = bittensor.tokenizer()
+            inputs_list = tokenizer.encode( inputs )
+            inputs_tensor = cast_and_check_tensor_input ( torch.tensor( [inputs_list], dtype=torch.int64 ) )
+            # Expand to length.
+            formatted_inputs = [ inputs_tensor for _ in formatted_endpoints ]
+
+        # ---- Inputs is a list of strings.
+        elif isinstance ( inputs, list ) and len( inputs ) > 0 and isinstance( inputs[0], str ):
+            # Encode to tensors.
+            tokenizer = bittensor.tokenizer()
+            tokenized_sentences = tokenizer( inputs, padding=True, truncation=True)['input_ids']
+            tokenizer_tensor = cast_and_check_tensor_input( torch.tensor( tokenized_sentences, dtype=torch.int64 ) )
+            formatted_inputs = [ tokenizer_tensor for _ in formatted_endpoints ]
+
+        # ---- Inputs is a single tensor
+        elif isinstance ( inputs, torch.Tensor ):
+            inputs = cast_and_check_tensor_input( inputs )
+            # Expand to length.
+            formatted_inputs = [ inputs for _ in formatted_endpoints]
+
+        # ---- Inputs is tensor with shape [n_endpoints, batch_size, sequence_len]
+        elif isinstance ( inputs, torch.Tensor ) and len( inputs.shape ) != 3 and inputs.shape[0] == len( formatted_endpoints ):
+            # Unbind inputs into list the same length as endpoints.
+            formatted_inputs = [ cast_and_check_tensor_input(input) for input in torch.unbind( inputs ) ]
+
+        # ---- Inputs is a list of tensors
+        elif isinstance ( inputs, list ) and len( inputs ) > 0 and isinstance( inputs[0], torch.Tensor ):
+            formatted_inputs = [ cast_and_check_tensor_input(input) for input in inputs ]
             
-        # Check list types.
-        if not ( isinstance(inputs[0], torch.cuda.LongTensor) or isinstance(inputs[0], torch.LongTensor)) :
-            raise ValueError('inputs must be of type torch.LongTensor. Got {}'.format(type(inputs[0])))
-        if not isinstance(endpoints[0], bittensor._endpoint.endpoint_impl.Endpoint):
-            raise ValueError('endpoints must be of type bittensor.Endpoint. Got {}'.format(type(endpoints)))
-
-        # Check shape.
-        if len( inputs[0].shape ) != 2:
-            error_msg = 'Text inputs should be rank 2 with semantic shape: [batch_size, sequence_len]'
+        # ---- Check length.
+        if len( formatted_inputs ) != len( formatted_endpoints ):
+            error_msg = 'List of text inputs should have the same length as passed destination endpoints, got {} and {}'.format(len( inputs ), len( endpoints ))
             raise ValueError(error_msg)
 
         # Make calls.
         responses, codes = self._forward(
-            endpoints = endpoints, 
-            inputs = inputs, 
+            endpoints = formatted_endpoints, 
+            inputs = formatted_inputs, 
             modality = bittensor.proto.Modality.TEXT,
             timeout = timeout,
             requires_grad = requires_grad,
         )
-
-        # Format to singletons.
-        if non_list_inputs:
-            responses = responses[0]
+        responses = torch.stack( responses, dim=0 )
 
         # Return.
         return responses, codes
