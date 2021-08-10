@@ -169,7 +169,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # Make forward call.
         try:
             future = self.forward_callback(pubkey = public_key, inputs_x= inputs_x, modality= modality )
-            response_tensor = future.result()
+            response_tensor = future.result() #add timeout feature
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message

@@ -330,13 +330,13 @@ class Miner:
             while self.epoch < self.config.miner.n_epochs:
                 try:
                     # ---- Train state ----
-                    self.run_epoch()
+                    #self.run_epoch()
 
                     # ---- Set weights on chain ----
                     self.set_chain_weights()
 
                     # ---- Checkpoint state ----
-                    self.checkpoint()
+                    #self.checkpoint()
 
                 except KeyboardInterrupt:
                     # --- User ended session ----
@@ -449,7 +449,7 @@ class Miner:
             return output.local_hidden
         uid =bittensor.neuron.metagraph.hotkeys.index(ss58_encode(pubkey))
         print(uid,bittensor.neuron.metagraph.S[uid])
-        future = bittensor.neuron.axon.thread_pool.submit(call,inputs=inputs_x,priority=0.01)
+        future = bittensor.neuron.axon.thread_pool.submit(call,inputs=inputs_x,priority=bittensor.neuron.metagraph.S[uid].item())
         return future
 
     # ---- Axon Backward call ----
