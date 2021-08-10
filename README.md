@@ -13,7 +13,7 @@
 
 </div>
 
-Bittensor is a intelligence market that enables individuals to monetize intelligence production from any computer anywhere in the world. Bittensor uses a decentralized incentive mechanism which ensures currency inflation is distributed to peers which add value to the network. Consumers stake this currency to gain access to this knowledge. The network is collectively-run, open-source, open-access, and decentralized. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
+Bittensor is a intelligence market that enables individuals to monetize intelligence production from any computer anywhere in the world. Bittensor uses a decentralized incentive mechanism which ensures currency inflation is distributed to peers which add value to the network. Consumers stake this currency to gain access to this knowledge. The network is collectively-run, open-source, and open-access. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
 
 ## Install
 
