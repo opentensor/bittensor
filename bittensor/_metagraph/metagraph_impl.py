@@ -199,7 +199,7 @@ class Metagraph( torch.nn.Module ):
                     logger.exception('Faulty endpoint tensor: {} got error while trying to serialize as endpoint: {} ', neuron_tensor, e)
             return self.cached_endpoints
 
-    def load( self, network:str = None  ):
+    def load( self, network:str = None  ) -> 'Metagraph':
         r""" Loads this metagraph object's state_dict from bittensor root dir.
             Args: 
                 network: (:obj:`str`, required):
@@ -213,8 +213,9 @@ class Metagraph( torch.nn.Module ):
             self.load_from_path( path = metagraph_path )
         else:
             logger.warning('Did not load metagraph from path: {}, file does not exist. Run metagraph.save() first.', metagraph_path)
+        return self
 
-    def save( self, network:str = None ):
+    def save( self, network:str = None ) -> 'Metagraph':
         r""" Saves this metagraph object's state_dict under bittensor root dir.
             Args: 
                 network: (:obj:`str`, required):
@@ -222,9 +223,9 @@ class Metagraph( torch.nn.Module ):
         """
         if network == None:
             network = self.subtensor.network
-        self.save_to_path( path = '~/.bittensor/' + str(network) + '.pt')
+        return self.save_to_path( path = '~/.bittensor/', filename = str(network) + '.pt')
 
-    def load_from_path(self, path:str ):
+    def load_from_path(self, path:str ) -> 'Metagraph':
         r""" Loads this metagraph object with state_dict under the specified path.
             Args: 
                 path: (:obj:`str`, required):
@@ -232,19 +233,21 @@ class Metagraph( torch.nn.Module ):
         """
         full_path = os.path.expanduser(path)
         metastate = torch.load( full_path )
-        self.load_from_state_dict( metastate )
+        return self.load_from_state_dict( metastate )
 
-    def save_to_path(self, path:str ):
+    def save_to_path(self, path:str, filename:str ) -> 'Metagraph':
         r""" Saves this metagraph object's state_dict to the specified path.
             Args: 
                 path: (:obj:`str`, required):
                     Path to save state_dict.
         """
         full_path = os.path.expanduser(path)
+        os.makedirs(full_path, exist_ok=True)
         metastate = self.state_dict()
-        torch.save(metastate, full_path)
+        torch.save(metastate, full_path + '/' + filename)
+        return self
 
-    def load_from_state_dict(self, state_dict:dict ):
+    def load_from_state_dict(self, state_dict:dict ) -> 'Metagraph':
         r""" Loads this metagraph object from passed state_dict.
             Args: 
                 state_dict: (:obj:`dict`, required):
@@ -265,8 +268,9 @@ class Metagraph( torch.nn.Module ):
             pass
 
         self.cached_endpoints = None
+        return self
 
-    def sync(self, force: bool = False ):
+    def sync(self, force: bool = False ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.
             Args: 
                 subtensor: (:obj:`bittensor.Subtensor`, optional):
@@ -311,5 +315,8 @@ class Metagraph( torch.nn.Module ):
             self.neurons.append(torch.nn.Parameter( neuron_tensor, requires_grad=False ))
             
         self.cached_endpoints = None
+
+        # For contructor.
+        return self
         
         

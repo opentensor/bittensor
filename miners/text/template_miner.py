@@ -250,7 +250,7 @@ class Miner:
             gamma=0.9
         )
 
-        #bittensor backend
+        # Bittensor backend
         self.neuron = bittensor.init (
             config = self.config,
             root_dir = self.config.miner.full_path,
