@@ -167,7 +167,7 @@ class logging:
         if cls.__debug_on__ or cls.__trace_on__:
             return True
         else:
-            return record["level"].name == "SUCCESS"
+            return record["level"].name != "DEBUG"
 
     @classmethod
     def log_formatter(cls, record):
