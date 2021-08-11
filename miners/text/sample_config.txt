@@ -14,15 +14,15 @@ dendrite.max_worker_threads: 150
 dendrite.requires_grad: true
 dendrite.timeout: 5
 
-logging.debug: false
+logging.debug: true
 logging.logging_dir: ~/.bittensor/miners/
 logging.record_log: false
 logging.trace: false
 
 miner.device: cpu
-miner.epoch_length: 500
-miner.learning_rate: 0.03
-miner.name: gpt2_exodus
+miner.epoch_length: 100
+miner.learning_rate: 1
+miner.name: template_miner
 miner.n_epochs: 500
 miner.reload: false
 miner.restart_on_failure: false

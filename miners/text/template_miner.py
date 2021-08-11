@@ -18,7 +18,7 @@
 """ The Exodus miner.
 
 Example:
-    $ python miners/text/gpt2_exodus.py
+    $ python miners/text/template_miner.py
 
 """
 
@@ -57,12 +57,12 @@ class Nucleus(nn.Module):
         local_hidden_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
         self.local_encoder = TransformerEncoder( local_layers, self.config.nucleus.nlayers )
         self.local_hidden = TransformerEncoder( local_hidden_layers, self.config.nucleus.nlayers )
-        self.local_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ )
+        self.local_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
 
         # Remote Model
         remote_context_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
         self.remote_hidden = TransformerEncoder( remote_context_layers, self.config.nucleus.nlayers )
-        self.remote_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ )
+        self.remote_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
 
         self.loss_fct = nn.CrossEntropyLoss()
         self.chain_weights = nn.Parameter(torch.ones( [0] , requires_grad=True))
@@ -77,14 +77,12 @@ class Nucleus(nn.Module):
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
-        parser.add_argument('--nucleus.punishment', type=int, help='The punishment on the chain weights that do not respond ', default=0.01 )
+        parser.add_argument('--nucleus.punishment', type=float, help='The punishment on the chain weights that do not respond ', default=0.001 )
 
     def init_weights(self):
         initrange = 0.1
         self.remote_decoder.weight.data.uniform_(-initrange, initrange)
-        self.remote_decoder.bias.data.zero_()
         self.local_decoder.weight.data.uniform_(-initrange, initrange)
-        self.local_decoder.bias.data.zero_()
 
     def local_forward(self, inputs: torch.int64, training : bool = True) -> SimpleNamespace:
         """ Forward pass through GPT2 nucleus.
@@ -109,12 +107,12 @@ class Nucleus(nn.Module):
 
         # local_context: hidden layer encoding of sequence with local_context.
         # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.local_context = self.local_encoder( self.embedding( inputs ) )
+        output.local_context = self.local_encoder( self.embedding( inputs ) )* math.sqrt(bittensor.__network_dim__)
 
         if training :
             # local_hidden: local model which learns a new projection from the local_context
             # local_hidden.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.local_hidden = self.local_hidden( output.local_context.detach() )
+            output.local_hidden = self.local_hidden( output.local_context.detach())
 
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
@@ -126,6 +124,8 @@ class Nucleus(nn.Module):
             shift_labels = inputs[..., 1:].contiguous()     
             output.local_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
             
+            predictions=shift_logits.max(2).indices
+            output.local_accuracy = (predictions==shift_labels).sum().item()/predictions.nelement()
         return output
 
     def remote_forward(self, inputs: torch.int64, training: bool) -> SimpleNamespace:
@@ -171,9 +171,10 @@ class Nucleus(nn.Module):
             # remote_target_loss: MLM loss between remote_target and passed targets.
             # remote_target_loss.shape = [1]
             shift_logits = output.remote_target[..., :-1, :].contiguous()
+
             shift_labels = inputs[..., 1:].contiguous()            
             output.remote_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
-        
+
         return output
 
     def remote(self, inputs: torch.int64 ) -> torch.float32:
@@ -200,21 +201,17 @@ class Nucleus(nn.Module):
         )
 
         # ---- Join based on weights ----
-        #print(topk_weights[(return_ops == 0)])
-        joining_uids= [i for i, x in enumerate(return_ops == 0) if x]
+        joining_uids= torch.where(return_ops==0)[0]
         joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 )
-        #print(joining_uids,joining_weights)
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
         for index, joining_weight in enumerate( joining_weights ): 
-            #print(index,joining_uids[index],joining_weights[index],responses[joining_uids[index]].sum(),self.chain_weights[index])
             output += responses[joining_uids[index]].to( self.config.miner.device ) * joining_weight
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
-            #print(self.chain_weights,topk_uids[(return_ops != 0)])
             self.chain_weights[topk_uids[(return_ops != 0)]] -=  self.config.nucleus.punishment
-
-        # ---- Return response -----
+            self.chain_weights[self.chain_weights < -1] = -1 #lower bound for chain weights
+        # ---- Return response ----- 
         return output
 
 class Miner:
@@ -244,16 +241,22 @@ class Miner:
         self.optimizer = torch.optim.SGD(
             [ {"params": self.nucleus.parameters()}],
             lr = self.config.miner.learning_rate,
-            weight_decay = self.config.miner.weight_decay,
+            momentum = self.config.miner.momentum,
+        )
+
+        #Torch scheduler
+        self.scheduler= torch.optim.lr_scheduler.StepLR(self.optimizer,
+            step_size= 100.0,
+            gamma=0.9
         )
 
         # Bittensor backend
-        self.neuron = bittensor.init (  
-                config = self.config,
-                root_dir = self.config.miner.full_path,
-                axon_forward_callback = self.forward,
-                axon_backward_callback = self.backward,
-            ) 
+        self.neuron = bittensor.init (
+            config = self.config,
+            root_dir = self.config.miner.full_path,
+            axon_forward_callback = self.forward,
+            axon_backward_callback = self.backward,
+        ) 
 
     @staticmethod
     def config() -> 'bittensor.Config':
@@ -262,8 +265,9 @@ class Miner:
         # ---- Add miner args.
         parser = argparse.ArgumentParser()
         parser.add_argument('--miner.config', type=str, help='If set, defaults are overridden by passed file.')
-        parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=3e-2)
+        parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=1)
         parser.add_argument('--miner.weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25)
+        parser.add_argument('--miner.momentum', type=float, help='optimizer momentum.', default=0.8)
         parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
         parser.add_argument('--miner.n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
         parser.add_argument('--miner.epoch_length', type=int, help='Iterations of training per epoch', default=100)
@@ -272,7 +276,7 @@ class Miner:
         parser.add_argument('--miner.compute_remote_gradients', action='store_true', help='''Does the miner compute and return gradients from backward queries.''', default=False)
         parser.add_argument('--miner.accumulate_remote_gradients', action='store_true', help='''Does the miner accumulate remote gradients from backward queries.''', default=False)
         parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
-        parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
+        parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template miner')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
 
         bittensor.add_args( parser )
@@ -320,7 +324,6 @@ class Miner:
             
             # ---- reloads previous run ----
             try:
-                self.save()
                 self.reload()
             except:
                 self.save()
@@ -625,6 +628,7 @@ class Miner:
             'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
+            'L-accuracy': colored('{}'.format(output.local_accuracy), 'red'),
         }
         if self.config.neuron.use_wandb:
             wandb_info = {
@@ -635,10 +639,12 @@ class Miner:
                 'Stake':stake,
                 'Rank':rank,
                 'Incentive':incentive,
-                'Axon QPS':bittensor.neuron.axon.stats.qps.value}
+                'Axon QPS':bittensor.neuron.axon.stats.qps.value,
+                'local_accuracy':output.local_accuracy
+                }
 
         #removing normalization of chain weights for display
-        normalized_chain_weights = F.softmax(self.nucleus.chain_weights)
+        normalized_chain_weights = self.nucleus.chain_weights
         for uid in bittensor.neuron.metagraph.uids.tolist():
             if self.nucleus.chain_weights[uid] != 0:
                 weight_dif = -self.nucleus.chain_weights.grad[uid]
@@ -650,7 +656,7 @@ class Miner:
                     info[colored(str(uid), 'red')] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
                 if self.config.neuron.use_wandb:
                     wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
-        
+
         if self.config.neuron.use_wandb:
             try:
                 bittensor.neuron.wandb.log(wandb_info)
