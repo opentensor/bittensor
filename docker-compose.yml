@@ -11,4 +11,4 @@ services:
     
     command: /bin/bash -c "
       cd /bittensor
-      && python3.7 miners/gpt2_genesis.py --subtensor.network kusanagi"
+      && python3.7 miners/text/template_miner.py --subtensor.network akatsuki"
