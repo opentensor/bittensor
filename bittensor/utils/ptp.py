@@ -55,7 +55,7 @@ class _WorkItem(object):
             self.future.set_result(result)
 
 
-NULL_ENTRY = (-sys.maxsize, _WorkItem(None, None, (), {}))
+NULL_ENTRY = (sys.maxsize, _WorkItem(None, None, (), {}))
 
 def _worker(executor_reference, work_queue, initializer, initargs):
     if initializer is not None:
@@ -72,7 +72,7 @@ def _worker(executor_reference, work_queue, initializer, initargs):
             work_item = work_queue.get(block=True)
             priority = work_item[0]
             item = work_item[1]
-            if priority == -sys.maxsize:
+            if priority == sys.maxsize:
                 del item
             elif item is not None:
                 item.run()
@@ -132,6 +132,7 @@ class ThreadPoolExecutor(_base.Executor):
 
         self._max_workers = max_workers
         self._work_queue = queue.PriorityQueue(maxsize = maxsize)
+        self._idle_semaphore = threading.Semaphore(0)
         self._threads = set()
         self._broken = False
         self._shutdown = False
@@ -152,26 +153,29 @@ class ThreadPoolExecutor(_base.Executor):
                 raise RuntimeError('cannot schedule new futures after '
                                    'interpreter shutdown')
 
-            priority = kwargs.get('priority', random.randint(1, sys.maxsize-1))
+            priority = kwargs.get('priority', random.randint(0, sys.maxsize-1))
             if 'priority' in kwargs:
                 del kwargs['priority']
 
             f = _base.Future()
             w = _WorkItem(f, fn, args, kwargs)
 
-            self._work_queue.put((priority, w), block=False)
+            self._work_queue.put((-priority, w), block=False)
             self._adjust_thread_count()
             return f
     submit.__doc__ = _base.Executor.submit.__doc__
 
 
     def _adjust_thread_count(self):
+        # if idle threads are available, don't spin new threads
+        if self._idle_semaphore.acquire(timeout=0):
+            return
+
         # When the executor gets lost, the weakref callback will wake up
         # the worker threads.
         def weakref_cb(_, q=self._work_queue):
             q.put(NULL_ENTRY)
-        # TODO(bquinlan): Should avoid creating new threads if there are more
-        # idle threads than items in the work queue.
+
         num_threads = len(self._threads)
         if num_threads < self._max_workers:
             thread_name = '%s_%d' % (self._thread_name_prefix or self,
