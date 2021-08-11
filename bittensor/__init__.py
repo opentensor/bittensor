@@ -76,6 +76,7 @@ from bittensor._dataloader.dataloader_impl import Dataloader as Dataloader
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 
 import bittensor.utils.networking as net
+import bittensor.utils.ptp as ptp
 
 # Singluar Neuron instance useful for creating simple miners.
 neuron = None
@@ -83,6 +84,7 @@ neuron = None
 def add_args( parser: argparse.ArgumentParser ):
     parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Neuron punches a hole in your router using upnpc''', default=False)
     parser.add_argument('--neuron.use_wandb', action='store_true', help='''Neuron activates its weights and biases powers''', default=False)
+    parser.add_argument('--neuron.max_workers', type=int,  help='''Number of maximum threads in the neuron''',default=10)
     logging.add_args( parser )
     wallet.add_args( parser )
     subtensor.add_args( parser )
@@ -142,6 +144,9 @@ class Neuron():
             wallet = self.wallet,
             forward_callback=axon_forward_callback,
             backward_callback=axon_backward_callback,
+        )
+        self.thread_pool = ptp.ThreadPoolExecutor(
+            max_workers = config.neuron.max_workers
         )
 
     def __enter__(self):

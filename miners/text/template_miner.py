@@ -274,7 +274,7 @@ class Miner:
         parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
         parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='gpt2_exodus')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
-
+        parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=1)
         bittensor.add_args( parser )
         Nucleus.add_args( parser )  
 
@@ -447,10 +447,10 @@ class Miner:
                 inputs = inputs_x
             )
             return output.local_hidden
-        uid =bittensor.neuron.metagraph.hotkeys.index(ss58_encode(pubkey))
-        print(uid,bittensor.neuron.metagraph.S[uid])
-        future = bittensor.neuron.axon.thread_pool.submit(call,inputs=inputs_x,priority=bittensor.neuron.metagraph.S[uid].item())
-        return future
+        uid =self.neuron.metagraph.hotkeys.index(ss58_encode(pubkey))
+        print(uid,self.neuron.metagraph.S[uid])
+        future = self.neuron.thread_pool.submit(call,inputs=inputs_x,priority=bittensor.neuron.metagraph.S[uid].item())
+        return future.result(timeout= self.config.miner.timeout)
 
     # ---- Axon Backward call ----
     def backward ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:

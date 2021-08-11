@@ -77,7 +77,7 @@ class axon:
         if wallet == None:
             wallet = bittensor.wallet( config = config )
         if thread_pool == None:
-            thread_pool = ptp.ThreadPoolExecutor( max_workers = config.axon.max_workers )
+            thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
         if server == None:
             server = grpc.server( thread_pool, maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs )
 
@@ -93,7 +93,6 @@ class axon:
             port = config.axon.port,
             forward_callback = forward_callback,
             backward_callback = backward_callback,
-            thread_pool= thread_pool
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
         full_address = str( config.axon.ip ) + ":" + str( config.axon.port )

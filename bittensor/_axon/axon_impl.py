@@ -69,7 +69,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.forward_callback = forward_callback
         self.backward_callback = backward_callback 
         self.thread_pool= thread_pool
-        self.priority_queue = priority_queue
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -168,8 +167,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         
         # Make forward call.
         try:
-            future = self.forward_callback(pubkey = public_key, inputs_x= inputs_x, modality= modality )
-            response_tensor = future.result() #add timeout feature
+            response_tensor = self.forward_callback(pubkey = public_key, inputs_x= inputs_x, modality= modality )
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
