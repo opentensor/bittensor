@@ -36,11 +36,19 @@ class RollbarHandler:
         else:
             pass
 
+ # Remove default sink.
+try:
+    logger.remove( 0 )
+except:
+    pass
+
 class logging:
-    __initialized__:bool = False 
+    __has_been_inited__:bool = False
     __debug_on__:bool = False
     __trace_on__:bool = False
-    __sink__:int = None
+    __std_sink__:int = None
+    __file_sink__:int = None
+    __rollbar_sink__:int = None
 
     def __new__(
             cls, 
@@ -50,9 +58,8 @@ class logging:
             record_log: bool = None,
             logging_dir: str = None,
         ):
-        if cls.__initialized__:
-            return
-        cls.__initialized__ = True
+
+        cls.__has_been_inited__ = True
 
         if config == None: config = logging.config()
         config = copy.deepcopy(config)
@@ -61,19 +68,22 @@ class logging:
         config.logging.record_log = record_log if record_log != None else config.logging.record_log
         config.logging.logging_dir = logging_dir if logging_dir != None else config.logging.logging_dir
 
-        # Remove all logger sinks.
+        # Remove default sink.
         try:
             logger.remove( 0 )
-
-            # Remove custom sink.
-            if cls.__sink__ != None:
-                logger.remove( cls.__sink__ )
         except:
             pass
 
-
+        # Optionally Remove other sinks.
+        if cls.__std_sink__ != None:
+            logger.remove( cls.__std_sink__ )
+        if cls.__rollbar_sink__ != None:
+            logger.remove( cls.__rollbar_sink__ )
+        if cls.__file_sink__ != None:
+            logger.remove( cls.__file_sink__ )
+        
         # Add filtered sys.stdout.
-        cls.__sink__ = logger.add ( 
+        cls.__std_sink__ = logger.add ( 
             sys.stdout, 
             filter = cls.log_filter, 
             colorize = True, 
@@ -91,7 +101,7 @@ class logging:
             # Rollbar is enabled.
             logger.info("Error reporting enabled using {}:{}", rollbar_token, rollbar_env)
             rollbar.init(rollbar_token, rollbar_env)
-            logger.add (
+            cls.__rollbar_sink__ = logger.add (
                 sink = rollbar_handler,
                 level = 'WARNING',
                 colorize = True, 
@@ -101,23 +111,19 @@ class logging:
             )
 
         cls.set_debug(config.logging.debug)
-        cls.set_trace(config.logging.trace)   
+        cls.set_trace(config.logging.trace) 
+
         # ---- Setup logging to root ----
         if config.logging.record_log: 
             filepath = config.logging.logging_dir + "/logs.log"
-            logger.add (
+            cls.__file_sink__ = logger.add (
                 filepath, 
                 rotation="25 MB", 
                 retention="10 days"
             )
             logger.success('Set record log:'.ljust(20) + '<blue>{}</blue>', filepath)
-        else: logger.success('Set record log:'.ljust(20) + '<red>OFF</red>')  
-   
-
-        # Return internal logger
-        cls.__initialized__ = True
-        return logger.bind( internal=True )
-
+        else: logger.success('Set record log:'.ljust(20) + '<red>OFF</red>')     
+ 
     @classmethod
     def config(cls):
         parser = argparse.ArgumentParser()
@@ -127,10 +133,11 @@ class logging:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         try:
-            parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default=False)
+            parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default=True)
+            parser.add_argument('--logging.no_debug', action='store_false', dest='logging.debug', help='''Turn on bittensor debugging information''', default=True)
             parser.add_argument('--logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default=False)
             parser.add_argument('--logging.record_log', action='store_true', help='''Turns on logging to file.''', default=False)  
-            parser.add_argument('--logging.logging_dir', type=str, help='Logging default root directory.', default='~/.bittensor/miners/')
+            parser.add_argument('--logging.logging_dir', type=str, help='Logging default root directory.', default='~/.bittensor/miners')
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -141,27 +148,23 @@ class logging:
 
     @classmethod
     def set_debug(cls, on: bool = True ):
+        if not cls.__has_been_inited__:
+            cls()
         cls.__debug_on__ = on
-        if not cls.__initialized__:
-            logging( debug = on )
-        else:
-            if on: logging.success( prefix = 'Set debug', sufix = '<green>ON</green>')
-            else:  logging.success( prefix = 'Set debug', sufix = '<red>OFF</red>')
+        if on: logging.success( prefix = 'Set debug', sufix = '<green>ON</green>')
+        else:  logging.success( prefix = 'Set debug', sufix = '<red>OFF</red>')
 
     @classmethod
     def set_trace(cls, on: bool = True):
+        if not cls.__has_been_inited__:
+            cls()
         cls._trace_on__ = on
-        if not cls.__initialized__:
-            logging( trace = on )
-        else:
-            if on: logging.success( prefix = 'Set trace', sufix = '<green>ON</green>')
-            else:  logging.success( prefix = 'Set trace', sufix = '<red>OFF</red>')
+        if on: logging.success( prefix = 'Set trace', sufix = '<green>ON</green>')
+        else:  logging.success( prefix = 'Set trace', sufix = '<red>OFF</red>')
         
     @classmethod
     def log_filter(cls, record ):
         if cls.__debug_on__ or cls.__trace_on__:
-            return True
-        elif record["level"].no >= logger.level('INFO').no:
             return True
         else:
             return False
@@ -228,6 +231,8 @@ class logging:
 
     @classmethod
     def success( cls, prefix:str, sufix:str ):
+        if not cls.__has_been_inited__:
+            cls()
         prefix = prefix + ":"
         prefix = prefix.ljust(20)
         log_msg = prefix + sufix 
@@ -235,6 +240,8 @@ class logging:
 
     @classmethod
     def info( cls, prefix:str, sufix:str ):
+        if not cls.__has_been_inited__:
+            cls()
         prefix = prefix + ":"
         prefix = prefix.ljust(20)
         log_msg = prefix + sufix 

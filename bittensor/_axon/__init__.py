@@ -37,10 +37,10 @@ class axon:
             backward_callback: 'Callable' = None,
             thread_pool: 'futures.ThreadPoolExecutor' = None,
             server: 'grpc._Server' = None,
-            port: int = 8091,
-            ip: str = '127.0.0.1',
-            max_workers: int = 10, 
-            maximum_concurrent_rpcs: int = 400,
+            port: int = None,
+            ip: str = None,
+            max_workers: int = None, 
+            maximum_concurrent_rpcs: int = None,
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
@@ -88,11 +88,13 @@ class axon:
         axon_instance = axon_impl.Axon( 
             wallet = wallet, 
             server = server,
+            ip = config.axon.ip,
+            port = config.axon.port,
             forward_callback = forward_callback,
             backward_callback = backward_callback
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
-        full_address = str( ip ) + ":" + str( port )
+        full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
         server.add_insecure_port( full_address )
         return axon_instance 
 
@@ -107,8 +109,8 @@ class axon:
         try:
             parser.add_argument('--axon.port',default=8091, type=int, 
                     help='''The port this axon endpoint is served on. i.e. 8091''')
-            parser.add_argument('--axon.ip', default='127.0.0.1', type=str, 
-                help='''The local ip this axon binds to. ie. 0.0.0.0''')
+            parser.add_argument('--axon.ip', default='[::]', type=str, 
+                help='''The local ip this axon binds to. ie. [::]''')
             parser.add_argument('--axon.max_workers',default=10, type=int, 
                 help='''The maximum number connection handler threads working simultaneously on this endpoint. 
                         The grpc server distributes new worker threads to service requests up to this number.''')
