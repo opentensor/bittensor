@@ -42,8 +42,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
         ip: str,
         port: int,
         server: 'grpc._Server',
-        forward_callback: 'Callable' = None,
-        backward_callback: 'Callable' = None,
+        forward: 'Callable' = None,
+        backward: 'Callable' = None,
     ):
         r""" Initializes a new Axon tensor processing endpoint.
             
@@ -54,17 +54,17 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     bittensor wallet with hotkey and coldkeypub.
                 server (:obj:`grpc._Server`, `required`):
                     Grpc server endpoint.
-                forward_callback (:obj:`callable`, `optional`):
+                forward (:obj:`callable`, `optional`):
                     function which is called on forward requests.
-                backward_callback (:obj:`callable`, `optional`):
+                backward (:obj:`callable`, `optional`):
                     function which is called on backward requests.
         """
         self.ip = ip
         self.port = port
         self.wallet = wallet
         self.server = server
-        self.forward_callback = forward_callback
-        self.backward_callback = backward_callback 
+        self.forward_callback = forward
+        self.backward_callback = backward 
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -514,7 +514,49 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         self.stop()
 
-    def start(self):
+    def subscribe( self, use_upnpc = False, modality: 'bittensor.proto.Modality' = bittensor.proto.Modality.TEXT, subtensor: 'bittensor.Subtensor' = None) -> 'Axon':
+
+        # Create subtensor connection.
+        if subtensor == None:
+            subtensor = bittensor.subtensor()
+
+        # ---- Setup UPNPC ----
+        if use_upnpc:
+            bittensor.logging.success(prefix = 'Set upnpc', sufix = '<green>ON</green>')
+            try:
+                self.external_port = bittensor.net.upnpc_create_port_map( port = self.port )
+            except bittensor.net.UPNPCException as upnpc_exception:
+                raise RuntimeError('Failed to hole-punch with upnpc with exception {}'.format( upnpc_exception ))
+        else:
+            bittensor.logging.success(prefix = 'Set upnpc', sufix = '<red>OFF</red>')
+            self.external_port = self.port
+
+        # ---- Get external ip ----
+        try:
+            self.external_ip = bittensor.net.get_external_ip()
+            bittensor.logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format(self.external_ip))
+        except Exception as E:
+            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error:{}', E)
+
+        # ---- Setup Wallet. ----
+        self.wallet.create()
+
+        # ---- Subscribe to chain ----
+        subscribe_success = subtensor.subscribe(
+                wallet = self.wallet,
+                ip = self.external_ip,
+                port = self.external_port,
+                modality = modality,
+                wait_for_finalization = True,
+                timeout = 4 * bittensor.__blocktime__,
+        )
+        if not subscribe_success:
+            raise RuntimeError('Failed to subscribe neuron.')
+
+        return self
+
+
+    def start(self) -> 'Axon':
         r""" Starts the standalone axon GRPC server thread.
         """
         if self.server != None:
@@ -523,14 +565,15 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         self.server.start()
         logger.success("Axon Started:".ljust(20) + "<blue>{}</blue>", self.ip + ':' + str(self.port))
+        return self
 
-
-    def stop(self):
+    def stop(self) -> 'Axon':
         r""" Stop the axon grpc server.
         """
         if self.server != None:
             self.server.stop( grace = 1 )
             logger.success("Axon Stopped:".ljust(20) + "<blue>{}</blue>", self.ip + ':' + str(self.port))
+        return self
 
 
 
