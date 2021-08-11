@@ -8,7 +8,7 @@ LABEL bittensor.image.authors="bittensor.com" \
 	bittensor.image.source="https://github.com/opentensor/bittensor.git" \
 	bittensor.image.revision="${VCS_REF}" \
 	bittensor.image.created="${BUILD_DATE}" \
-	bittensor.image.documentation="https://opentensor.bittensor.io"
+	bittensor.image.documentation="https://app.gitbook.com/@opentensor/s/bittensor/"
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y apt-utils curl git cmake build-essential unzip python3-pip  wget iproute2 software-properties-common
