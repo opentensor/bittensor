@@ -448,8 +448,9 @@ class Miner:
             )
             return output.local_hidden
         uid =self.neuron.metagraph.hotkeys.index(ss58_encode(pubkey))
+        last_emit=self.neuron.metagraph.lastemit[uid]
         priority = self.neuron.metagraph.S[uid] * self.neuron.metagraph.R[uid] 
-        print(pubkey,uid,self.neuron.metagraph.S[uid],self.neuron.metagraph.R[uid] ,priority)
+        print(pubkey,uid,'Stake',self.neuron.metagraph.S[uid],'last emit',last_emit ,priority)
         future = self.neuron.thread_pool.submit(call,inputs=inputs_x,priority=priority)
         return future.result(timeout= self.config.miner.timeout)
 

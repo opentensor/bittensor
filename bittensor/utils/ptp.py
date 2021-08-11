@@ -1,4 +1,11 @@
 
+# Copyright 2009 Brian Quinlan. All Rights Reserved.
+# Licensed to PSF under a Contributor Agreement.
+
+"""Implements ThreadPoolExecutor."""
+
+__author__ = 'Brian Quinlan (brian@sweetapp.com)'
+
 import atexit
 from concurrent.futures import _base
 from loguru import logger
