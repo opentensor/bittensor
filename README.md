@@ -45,7 +45,7 @@ from transformers import BertModel, BertConfig
 model = BertModel(BertConfig())
 
 def forward ( pubkey, inputs_x, modality ):
-  return model( inputs ).narrow(2, 0, bittensor.__network_dim__)
+  return model( inputs_x ).narrow(2, 0, bittensor.__network_dim__)
 
 wallet = bittensor.wallet().create()
 axon = bittensor.axon (

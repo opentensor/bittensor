@@ -67,7 +67,7 @@ class Metagraph( torch.nn.Module ):
         self.weights = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.endpoints = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.balances = torch.nn.Parameter( torch.tensor( [], dtype=torch.float32), requires_grad=False )
-        self.endpoint_objects = []
+        self._endpoint_objs = None
 
     @property
     def S(self) -> torch.FloatTensor:
@@ -92,6 +92,16 @@ class Metagraph( torch.nn.Module ):
         I =  (self.tau * self.ranks) / torch.sum(self.ranks)
         I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
         return I.view(self.n)
+
+    @property
+    def incentive(self) -> torch.FloatTensor:
+        r""" Returns neuron incentives: tau * R / sum(R)
+        
+            Returns:
+                incentive (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
+                    Block incentive for each neuron. 
+        """
+        return self.I
 
     @property
     def ranks(self) -> torch.FloatTensor:
@@ -127,9 +137,7 @@ class Metagraph( torch.nn.Module ):
                 W (:obj:`torch.LongFloat` of shape :obj:`(metagraph.n, metagraph.n)`):
                     Weight matrix.
         """
-        if self.n.item() == 0:
-            return torch.tensor( [], dtype=torch.float32 )
-        return torch.stack( [row for row in self.weights], axis = 0 )
+        return self.weights
 
     @property
     def hotkeys( self ) -> List[str]:
@@ -140,7 +148,7 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ neuron.hotkey for neuron in self.endpoint_objects ]
+        return [ neuron.hotkey for neuron in self.endpoint_objs ]
 
     @property
     def coldkeys( self ) -> List[str]:
@@ -151,7 +159,7 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ neuron.coldkey for neuron in self.endpoint_objects ]
+        return [ neuron.coldkey for neuron in self.endpoint_objs ]
 
     @property
     def modalities( self ) -> List[str]:
@@ -162,7 +170,7 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ neuron.modality for neuron in self.endpoint_objects ]
+        return [ neuron.modality for neuron in self.endpoint_objs ]
 
     @property
     def addresses( self ) -> List[str]:
@@ -173,7 +181,22 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ net.ip__str__( neuron.ip_type, neuron.ip, neuron.port ) for neuron in self.endpoint_objects ]
+        return [ net.ip__str__( neuron.ip_type, neuron.ip, neuron.port ) for neuron in self.endpoint_objs ]
+
+    @property
+    def endpoint_objs( self ) -> List['bittensor.Endpoint']:
+        r""" Returns endpoints as objects.
+            Returns:
+                endpoint_obj (:obj:`List[bittensor.Endpoint] of shape :obj:`(metagraph.n)`):
+                    Endpoints as objects.
+        """
+        if self.n.item() == 0:
+            return []
+        elif self._endpoint_objs != None:
+            return self._endpoint_objs
+        else:
+            self._endpoint_objs = [ bittensor.endpoint.from_tensor( tensor ) for tensor in self.endpoints ]
+            return self._endpoint_objs
 
     def clear( self ) -> 'Metagraph':
         r""" Erases Metagraph state.
@@ -187,7 +210,7 @@ class Metagraph( torch.nn.Module ):
         self.weights = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.endpoints = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.balances = torch.nn.Parameter( torch.tensor( [], dtype=torch.float32), requires_grad=False )
-        self.endpoint_objects = []
+        self._endpoint_objs = None
         return self
 
     def load( self, network:str = None  ) -> 'Metagraph':
@@ -238,7 +261,7 @@ class Metagraph( torch.nn.Module ):
         torch.save(metastate, full_path + '/' + filename)
         return self
 
-    def load_from_state_dict(self, state_dict:dict ) -> 'Metagraph':
+    def load_from_state_dict( self, state_dict:dict ) -> 'Metagraph':
         r""" Loads this metagraph object from passed state_dict.
             Args: 
                 state_dict: (:obj:`dict`, required):
@@ -254,20 +277,15 @@ class Metagraph( torch.nn.Module ):
         self.weights = torch.nn.Parameter( state_dict['weights'], requires_grad=False )
         self.endpoints = torch.nn.Parameter( state_dict['endpoints'], requires_grad=False )
         self.balances = torch.nn.Parameter( state_dict['balances'], requires_grad=False )
-        self.endpoint_objects = []
+        self._endpoint_objs = None
         return self
 
-    def sync(self, force: bool = False, block: int = 0) -> 'Metagraph':
+    def sync ( self, block: int = None ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.
-            Args: 
-                subtensor: (:obj:`bittensor.Subtensor`, optional):
-                    Subtensor chain interface obbject. If None, creates a default connection.
-                force (bool):
-                    force syncs all nodes on the graph.
         """
 
         # Query chain info.
-        for i in trange(10):
+        for i in trange(7):
             if i == 0:
                 chain_lastemit = dict( self.subtensor.get_last_emit(block=block) ) #  Optional[ List[Tuple[uid, lastemit]] ]
             if i == 1:
@@ -283,15 +301,15 @@ class Metagraph( torch.nn.Module ):
             if i == 6:
                 chain_balances = self.subtensor.get_balances(block = block)
 
-        # Build new state.
+        # Build state.
         size = len(chain_stake)
         new_n = torch.tensor( [size], dtype=torch.int64)
         new_block = torch.tensor( [chain_block], dtype=torch.int64)
         new_uids = torch.tensor( range(size) ,  dtype=torch.int64)
-
-        # Set params.
         new_stake = torch.tensor([ float(chain_stake[uid])/float(1000000000) for uid in range( size ) ], dtype=torch.float32)
         new_lastemit = torch.tensor( [chain_lastemit[uid] for uid in range( size ) ], dtype=torch.int64)
+
+        # Set params.
         self.n = torch.nn.Parameter( new_n, requires_grad=False )
         self.block = torch.nn.Parameter( new_block, requires_grad=False )
         self.uids = torch.nn.Parameter( new_uids, requires_grad=False )
@@ -300,6 +318,7 @@ class Metagraph( torch.nn.Module ):
         self.weights = torch.nn.Parameter( torch.zeros( [new_n, new_n] , dtype=torch.float32), requires_grad=False )
         self.endpoints = torch.nn.Parameter( torch.zeros( [new_n, 250] , dtype=torch.int64), requires_grad=False )
         self.balances = torch.nn.Parameter( torch.zeros( [new_n] , dtype=torch.float32), requires_grad=False )
+        self._endpoint_objs = []
 
         # Fill values for weights and endpoint information.
         for uid in range( size ):
@@ -311,9 +330,9 @@ class Metagraph( torch.nn.Module ):
             endpoint_obj = bittensor.endpoint.from_dict( chain_endpoints[uid] )
             endpoint_tensor = endpoint_obj.to_tensor()
             self.endpoints[uid] = endpoint_tensor
-            self.endpoint_objects.append( endpoint_obj )
+            self._endpoint_objs.append( endpoint_obj )
 
-        # Bring in coldkey balances.
+        # Fill balances.
         for cold in chain_balances.keys():
             try:
                 uid = self.coldkeys.index( cold )
