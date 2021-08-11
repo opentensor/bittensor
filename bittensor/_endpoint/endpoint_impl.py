@@ -58,10 +58,10 @@ class Endpoint:
         return net.ip__str__(self.ip_type, self.ip, self.port)
 
     def __str__(self):
-        return "Endpoint(uid: %s hotkey: %s ip: %s modality: %s coldkey: %s)" % (self.uid, self.hotkey, self.ip_str(), self.modality, self.coldkey)
+        return "Endpoint (uid: %s hotkey: %s ip: %s modality: %s coldkey: %s) " % (self.uid, self.hotkey, self.ip_str(), self.modality, self.coldkey)
     
     def __repr__(self):
-        return "%s" % (self.hotkey)
+        return self.__str__()
 
 
 

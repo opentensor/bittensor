@@ -16,9 +16,10 @@
 # DEALINGS IN THE SOFTWARE.
 import random
 import time
+from substrateinterface.base import Keypair
 import torch
 
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import bittensor
 import bittensor.utils.networking as net
@@ -56,6 +57,15 @@ class Subtensor:
         self.network = network
         self.chain_endpoint = chain_endpoint
         self.substrate = substrate
+
+    def __str__(self) -> str:
+        if self.network == self.chain_endpoint:
+            return "Subtensor ({})".format( self.chain_endpoint )
+        else:
+            return "Subtensor ({}:{})".format( self.network, self.chain_endpoint )
+
+    def __repr__(self) -> str:
+        return self.__str__()
   
     def endpoint_for_network( 
             self,
@@ -486,7 +496,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             return self._submit_and_check_extrinsic ( extrinsic, wait_for_inclusion, wait_for_finalization, timeout )
 
 
-    def get_balance(self, address: str) -> Balance:
+    def get_balance(self, address: str, block: int = None) -> Balance:
         r""" Returns the token balance for the passed ss58_address address
         Args:
             address (Substrate address format, default = 42):
@@ -500,7 +510,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 module='System',
                 storage_function='Account',
                 params=[address],
-                block_hash=None
+                block_hash = None if block == None else substrate.get_block_hash( block )
             )
             balance_info = result.get('result')
             if not balance_info:
@@ -518,30 +528,38 @@ To run a local node (See: docs/running_a_validator.md) \n
         with self.substrate as substrate:
             return substrate.get_block_number(None)
 
-    def get_active(self) -> List[Tuple[str, int]]:
+
+    def get_balances(self, block: int = None) -> Dict[str, float]:
+        with self.substrate as substrate:
+            result = substrate.iterate_map (
+                module='System',
+                storage_function='Account',
+                block_hash = None if block == None else substrate.get_block_hash( block )
+            )
+            return_dict = {}
+            for r in result:
+                balance = float( r[1]['data']['free'] ) / float(1000000000)
+                return_dict[r[0]] = balance
+            return return_dict
+
+    def get_active(self, block: int = None) -> List[Tuple[str, int]]:
         r""" Returns a list of (public key, uid) pairs one for each active peer on chain.
+        Args:
+            blcok (int, default = None):
+                Retrieve data at this block.
         Returns:
             active (List[Tuple[str, int]]):
                 List of active peers.
         """
         with self.substrate as substrate:
-            result =  substrate.iterate_map(
+            result =  substrate.iterate_map (
                 module='SubtensorModule',
                 storage_function='Active',
+                block_hash = None if block == None else substrate.get_block_hash( block )
             )
             return result
 
-    def stake(self) -> List[Tuple[int, int]]:
-        r""" Returns a list of (uid, stake) pairs one for each active peer on chain.
-        Returns:
-            stake (List[Tuple[int, int]]):
-                List of stake values.
-        """
-        loop = asyncio.get_event_loop()
-        loop.set_debug(enabled=True)
-        return loop.run_until_complete(self.async_get_stake())
-
-    def get_stake(self) -> List[Tuple[int, int]]:
+    def get_stake(self, block: int = None) -> List[Tuple[int, int]]:
         r""" Returns a list of (uid, stake) pairs one for each active peer on chain.
         Returns:
             stake (List[Tuple[int, int]]):
@@ -549,65 +567,70 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         
         with self.substrate as substrate:
-            result = substrate.iterate_map(
+            result = substrate.iterate_map (
                 module='SubtensorModule',
                 storage_function='Stake',
+                block_hash = None if block == None else substrate.get_block_hash( block )
             )
             return result
 
-    def get_last_emit(self) -> List[Tuple[int, int]]:
+    def get_last_emit(self, block: int = None) -> List[Tuple[int, int]]:
         r""" Returns a list of (uid, last emit) pairs for each active peer on chain.
         Returns:
             last_emit (List[Tuple[int, int]]):
                 List of last emit values.
         """
         with self.substrate as substrate:
-            result = substrate.iterate_map(
+            result = substrate.iterate_map (
                 module='SubtensorModule',
-                storage_function='LastEmit'
+                storage_function='LastEmit',
+                block_hash = None if block == None else substrate.get_block_hash( block )
             )
             return result
 
-    def get_weight_vals(self) -> List[Tuple[int, List[int]]]:
+    def get_weight_vals(self, block: int = None) -> List[Tuple[int, List[int]]]:
         r""" Returns a list of (uid, weight vals) pairs for each active peer on chain.
         Returns:
             weight_vals (List[Tuple[int, List[int]]]):
                 List of weight val pairs.
         """
         with self.substrate as substrate:
-            result = substrate.iterate_map(
+            result = substrate.iterate_map (
                 module='SubtensorModule',
-                storage_function='WeightVals'
+                storage_function='WeightVals',
+                block_hash = None if block == None else substrate.get_block_hash( block )
             )
             return result
 
-    def get_weight_uids(self) -> List[Tuple[int, int]]:
+    def get_weight_uids(self, block: int = None) -> List[Tuple[int, int]]:
         r""" Returns a list of (uid, weight uids) pairs for each active peer on chain.
         Returns:
             weight_uids (List[Tuple[int, List[int]]]):
                 List of weight uid pairs
         """
         with self.substrate as substrate:
-            result = substrate.iterate_map(
+            result = substrate.iterate_map (
                 module='SubtensorModule',
-                storage_function='WeightUids'
+                storage_function='WeightUids',
+                block_hash = None if block == None else substrate.get_block_hash( block )
             )
             return result
 
-    def neurons(self) -> List[Tuple[int, dict]]: 
+    def neurons(self, block: int = None) -> List[Tuple[int, dict]]: 
         r""" Returns a list of neuron from the chain. 
         Returns:
             neuron (List[Tuple[int, dict]]):
                 List of neuron objects.
         """
         with self.substrate as substrate:
-            neurons = substrate.iterate_map(
+            neurons = substrate.iterate_map (
                 module='SubtensorModule',
-                storage_function='Neurons'
+                storage_function='Neurons',
+                block_hash = None if block == None else substrate.get_block_hash( block )
             )
             return neurons
 
-    def get_uid_for_pubkey(self, pubkey = str) -> int: 
+    def get_uid_for_pubkey(self, pubkey = str, block: int = None) -> int: 
         r""" Returns the uid of the peer given passed public key string.
         Args:
             pubkey (str):
@@ -620,13 +643,14 @@ To run a local node (See: docs/running_a_validator.md) \n
             result = substrate.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='Active',
-                params=[pubkey]
+                params=[pubkey],
+                block_hash = None if block == None else substrate.get_block_hash( block )
             )
             if result['result'] is None:
                 return None
             return int(result['result'])
 
-    def get_neuron_for_uid(self, uid) -> dict:
+    def get_neuron_for_uid(self, uid, block: int = None) -> dict:
         r""" Returns the neuron metadata of the peer with the passed uid.
         Args:
             uid (int):
@@ -640,11 +664,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             result = substrate.get_runtime_state(
                     module='SubtensorModule',
                     storage_function='Neurons',
-                    params=[uid]
+                    params=[uid],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
             )
             return result['result']
 
-    def get_stake_for_uid(self, uid) -> Balance:
+    def get_stake_for_uid(self, uid, block: int = None) -> Balance:
         r""" Returns the staked token amount of the peer with the passed uid.
         Args:
             uid (int):
@@ -658,14 +683,15 @@ To run a local node (See: docs/running_a_validator.md) \n
             stake = substrate.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='Stake',
-                params = [uid]
+                params = [uid],
+                block_hash = None if block == None else substrate.get_block_hash( block )
             )
             result = stake['result']
             if not result:
                 return Balance(0)
             return Balance(result)
 
-    def weight_uids_for_uid(self, uid) -> List[int]:
+    def weight_uids_for_uid(self, uid, block: int = None) -> List[int]:
         r""" Returns the weight uids of the peer with the passed uid.
         Args:
             uid (int):
@@ -678,11 +704,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             result = substrate.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='WeightUids',
-                params = [uid]
+                params = [uid],
+                block_hash = None if block == None else substrate.get_block_hash( block )
             )
             return result['result']
 
-    def weight_vals_for_uid(self, uid) -> List[int]:
+    def weight_vals_for_uid(self, uid, block: int = None) -> List[int]:
         r""" Returns the weight vals of the peer with the passed uid.
         Args:
             uid (int):
@@ -695,11 +722,12 @@ To run a local node (See: docs/running_a_validator.md) \n
             result = substrate.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='WeightVals',
-                params = [uid]
+                params = [uid],
+                block_hash = None if block == None else substrate.get_block_hash( block )
             )
             return result['result']
 
-    def get_last_emit_data_for_uid(self, uid) -> int:
+    def get_last_emit_data_for_uid(self, uid, block: int = None) -> int:
         r""" Returns the last emit of the peer with the passed uid.
         Args:
             uid (int):
@@ -712,6 +740,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             result = substrate.get_runtime_state(
                 module='SubtensorModule',
                 storage_function='LastEmit',
-                params = [uid]
+                params = [uid],
+                block_hash = None if block == None else substrate.get_block_hash( block )
             )
         return result['result']

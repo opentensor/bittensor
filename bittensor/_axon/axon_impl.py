@@ -74,6 +74,12 @@ class Axon( bittensor.grpc.BittensorServicer ):
             qps_per_pubkey = {},
         )
 
+    def __str__(self) -> str:
+        return "Axon({}:{}:{})".format(self.ip, self.port, self.wallet.hotkey.publickey)
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
     def Forward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
             Forward is equivalent to a 'forward' pass through a neural network.
