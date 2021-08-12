@@ -454,7 +454,7 @@ class Miner:
             )
             return output.local_hidden
 
-        uid =self.neuron.metagraph.hotkeys.index(pubkey)
+        uid =self.neuron.metagraph.hotkeys.index(ss58_encode(pubkey))
         priority = self.neuron.metagraph.S[uid]
         future = self.thread_pool.submit(call,inputs=inputs_x,priority=priority)
         return future.result(timeout= self.config.miner.timeout)
@@ -510,7 +510,7 @@ class Miner:
                         )[0]
                         return grads_dy
 
-            uid =self.neuron.metagraph.hotkeys.index(pubkey)
+            uid =self.neuron.metagraph.hotkeys.index(ss58_encode(pubkey))
             priority = self.neuron.metagraph.S[uid]
             future = self.thread_pool.submit(call,inputs=inputs_x,grad=grads_dy,priority=priority)
             return future.result(timeout= self.config.miner.timeout)            
