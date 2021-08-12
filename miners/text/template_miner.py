@@ -482,13 +482,12 @@ class Miner:
         if self.config.miner.compute_remote_gradients:
             def call(input,grad):
                 with torch.enable_grad():
-                    import pdb;pdb.set_trace()
                     inputs_x = input.to( self.device )
                     grads_dy = grad.to( self.device )
                     print(inputs_x.type(),inputs_x.sum())
                     # ---- Set up inputs for gradient computations.
                     #inputs_x.requires_grad = True
-                    outputs_y = self.nucleus.local_forward( inputs = inputs_x ).to( self.device )
+                    outputs_y = self.nucleus.local_forward( inputs = inputs_x ).to( self.device ).local_context
 
                     # ---- The backward call will accumulate gradients on our parameters.
                     if self.config.miner.accumulate_remote_gradients:
