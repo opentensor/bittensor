@@ -520,21 +520,41 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         self.stop()
 
-    def subscribe( self, use_upnpc = False, modality: 'bittensor.proto.Modality' = bittensor.proto.Modality.TEXT, subtensor: 'bittensor.Subtensor' = None) -> 'Axon':
+    def subscribe( 
+            self, 
+            use_upnpc: bool = False, 
+            modality: 'bittensor.proto.Modality' = bittensor.proto.Modality.TEXT, 
+            subtensor: 'bittensor.Subtensor' = None,
+            network: str = None,
+            chain_endpoint: str = None,
+        ) -> 'Axon':
+        r""" Subscribes this Axon servicing endpoint to the passed network using it's wallet.
+            Args:
+                use_upnpc (:type:bool, `optional`): 
+                    If true, subscribes the axon attempts port forward through your router before 
+                    subscribing.
+                modality (:type:bool, `optional`): 
+                    Which network modality are we subscribing to. Defaults to 0 for TEXT.
+                subtensor (:obj:`bittensor.Subtensor`, `optional`): 
+                    Chain connection through which to subscribe.
+                network (default='akatsuki', type=str)
+                    If subtensor is not set, uses this network flag to create the subtensor connection.
+                chain_endpoint (default=None, type=str)
+                    Overrides the network argument if not set.
+        """   
 
         # Create subtensor connection.
         if subtensor == None:
-            subtensor = bittensor.subtensor()
+            subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint)
 
         # ---- Setup UPNPC ----
         if use_upnpc:
-            bittensor.logging.success(prefix = 'Set upnpc', sufix = '<green>ON</green>')
             try:
                 self.external_port = bittensor.net.upnpc_create_port_map( port = self.port )
+                bittensor.logging.success(prefix = 'UPNPC', sufix = '<red>OPEN</red>')
             except bittensor.net.UPNPCException as upnpc_exception:
                 raise RuntimeError('Failed to hole-punch with upnpc with exception {}'.format( upnpc_exception ))
         else:
-            bittensor.logging.success(prefix = 'Set upnpc', sufix = '<red>OFF</red>')
             self.external_port = self.port
 
         # ---- Get external ip ----
@@ -560,7 +580,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
             raise RuntimeError('Failed to subscribe neuron.')
 
         return self
-
 
     def start(self) -> 'Axon':
         r""" Starts the standalone axon GRPC server thread.

@@ -46,7 +46,7 @@ class subtensor:
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.subtensor.config()
-                network (default='kusanagi', type=str)
+                network (default='akatsuki', type=str)
                     The subtensor network flag. The likely choices are:
                             -- kusanagi (testing network)
                             -- akatsuki (main network)

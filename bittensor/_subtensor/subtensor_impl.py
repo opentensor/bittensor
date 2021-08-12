@@ -45,7 +45,7 @@ class Subtensor:
             Args:
                 substrate (:obj:`SubstrateInterface`, `required`): 
                     substrate websocket client.
-                network (default='kusanagi', type=str)
+                network (default='akatsuki', type=str)
                     The subtensor network flag. The likely choices are:
                             -- kusanagi (test network)
                             -- akatsuki (main network)

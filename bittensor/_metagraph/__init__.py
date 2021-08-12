@@ -38,6 +38,14 @@ class metagraph:
                     bittensor.metagraph.config()
                 subtensor (:obj:`bittensor.Subtensor`, `optional`): 
                     bittensor subtensor chain connection.
+                network (default='kusanagi', type=str)
+                    The subtensor network flag. The likely choices are:
+                            -- kusanagi (testing network)
+                            -- akatsuki (main network)
+                    If this option is set it overloads subtensor.chain_endpoint with 
+                    an entry point node from that network.
+                chain_endpoint (default=None, type=str)
+                    The subtensor endpoint flag. If set, overrides the network argument.
         """      
         if config == None: config = metagraph.config()
         config = copy.deepcopy(config)
