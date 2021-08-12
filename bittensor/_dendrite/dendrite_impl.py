@@ -515,7 +515,7 @@ class Dendrite( torch.autograd.Function ):
             formatted_inputs = [ tokenizer_tensor for _ in formatted_endpoints ]
 
         # ---- Inputs is a single tensor
-        elif isinstance ( inputs, torch.Tensor ) and len(inputs.shape) < 2:
+        elif isinstance ( inputs, torch.Tensor ) and len(inputs.shape) <= 2:
             inputs = cast_and_check_tensor_input( inputs )
             # Expand to length.
             formatted_inputs = [ inputs for _ in formatted_endpoints]

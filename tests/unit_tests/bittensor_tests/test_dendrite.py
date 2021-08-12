@@ -170,5 +170,6 @@ if __name__ == "__main__":
     # test_dendrite_forward_text_tensor_list_singular()
     # test_dendrite_forward_text_tensor_list()
     # test_dendrite_forward_text_endpoints_tensor()
-    test_dendrite_forward_text_multiple_endpoints_tensor()
-    test_dendrite_forward_text_multiple_endpoints_tensor_list()
+    # test_dendrite_forward_text_multiple_endpoints_tensor()
+    # test_dendrite_forward_text_multiple_endpoints_tensor_list()
+    test_dendrite_forward_text_endpoints_tensor()
