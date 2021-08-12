@@ -29,7 +29,6 @@ from typing import List, Tuple, Optional, Callable
 
 import bittensor
 import bittensor.utils.stats as stat_utils
-import bittensor.utils.ptp as ptp
 
 from loguru import logger
 logger = logger.opt(colors=True)

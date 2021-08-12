@@ -453,10 +453,9 @@ class Miner:
                 inputs = inputs_x
             )
             return output.local_hidden
+            
         uid =self.neuron.metagraph.hotkeys.index(pubkey)
-        last_emit=self.neuron.metagraph.lastemit[uid]
         priority = self.neuron.metagraph.S[uid]
-        print(pubkey,uid,'Stake',self.neuron.metagraph.S[uid],'last emit',last_emit ,priority)
         future = self.thread_pool.submit(call,inputs=inputs_x,priority=priority)
         return future.result(timeout= self.config.miner.timeout)
 
@@ -481,34 +480,39 @@ class Miner:
                     The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
         """
         if self.config.miner.compute_remote_gradients:
-            with torch.enable_grad():
+            def call(input,grad):
+                with torch.enable_grad():
 
-                # ---- Set up inputs for gradient computations.
-                inputs_x.requires_grad = True
-                inputs_x = inputs_x.to( self.device )
-                grads_dy = grads_dy.to( self.device )
-                outputs_y = self.nucleus.local_forward( inputs = inputs_x ).to( self.device )
+                    inputs_x = input.to( self.device )
+                    grads_dy = grad.to( self.device )
+                    # ---- Set up inputs for gradient computations.
+                    inputs_x.requires_grad = True
+                    outputs_y = self.nucleus.local_forward( inputs = inputs_x ).to( self.device )
 
-                # ---- The backward call will accumulate gradients on our parameters.
-                if self.config.miner.accumulate_remote_gradients:
-                    torch.autograd.backward (
-                        tensors = [outputs_y],
-                        grad_tensors = [grads_dy]
-                    )
-                    return inputs_x.grad if inputs_x.grad != None else None
+                    # ---- The backward call will accumulate gradients on our parameters.
+                    if self.config.miner.accumulate_remote_gradients:
+                        torch.autograd.backward (
+                            tensors = [outputs_y],
+                            grad_tensors = [grads_dy]
+                        )
+                        return inputs_x.grad if inputs_x.grad != None else None
 
-                # ---- The backward call will simply compute the gradients without accumulating them.
-                else:
-                    grads_dy = torch.autograd.grad (
-                        outputs = outputs_y,
-                        inputs = inputs_x,
-                        grad_outputs = grads_dy,
-                        only_inputs = True,
-                        create_graph = False,
-                        retain_graph = False
-                    )[0]
-                    return grads_dy
+                    # ---- The backward call will simply compute the gradients without accumulating them.
+                    else:
+                        grads_dy = torch.autograd.grad (
+                            outputs = outputs_y,
+                            inputs = inputs_x,
+                            grad_outputs = grads_dy,
+                            only_inputs = True,
+                            create_graph = False,
+                            retain_graph = False
+                        )[0]
+                        return grads_dy
 
+            uid =self.neuron.metagraph.hotkeys.index(pubkey)
+            priority = self.neuron.metagraph.S[uid]
+            future = self.thread_pool.submit(call,inputs=inputs_x,grad=grads_dy,priority=priority)
+            return future.result(timeout= self.config.miner.timeout)            
         # if ! compute_remote_gradients, NO-OP.
         else:
             return None

@@ -78,7 +78,6 @@ from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
 import bittensor.utils.networking as net
-import bittensor.utils.ptp as ptp
 
 # Singluar Neuron instance useful for creating simple miners.
 neuron = None

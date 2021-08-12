@@ -22,7 +22,6 @@ import argparse
 import copy
 import grpc
 import inspect
-import bittensor.utils.ptp as ptp
 
 from . import axon_impl
 
