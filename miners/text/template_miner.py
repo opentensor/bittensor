@@ -482,7 +482,7 @@ class Miner:
         if self.config.miner.compute_remote_gradients:
             def call(input,grad):
                 with torch.enable_grad():
-                    inputs_x = input.to( self.device ).float()
+                    inputs_x = input.to( self.device )
                     grads_dy = grad.to( self.device )
                     print(inputs_x.type(),inputs_x.sum())
                     # ---- Set up inputs for gradient computations.
