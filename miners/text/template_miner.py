@@ -488,7 +488,7 @@ class Miner:
                     # ---- Set up inputs for gradient computations.
                     #inputs_x.requires_grad = True
                     outputs_y = self.nucleus.local_forward( inputs = inputs_x ).to( self.device ).local_context
-
+                    print(outputs_y.size())
                     # ---- The backward call will accumulate gradients on our parameters.
                     if self.config.miner.accumulate_remote_gradients:
                         torch.autograd.backward (
