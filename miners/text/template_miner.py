@@ -487,7 +487,7 @@ class Miner:
                     grads_dy = grad.to( self.device )
                     print(inputs_x.type(),inputs_x.sum())
                     # ---- Set up inputs for gradient computations.
-                    inputs_x.requires_grad = True
+                    #inputs_x.requires_grad = True
                     outputs_y = self.nucleus.local_forward( inputs = inputs_x ).to( self.device )
 
                     # ---- The backward call will accumulate gradients on our parameters.
