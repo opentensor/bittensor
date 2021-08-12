@@ -261,7 +261,7 @@ class Metagraph( torch.nn.Module ):
         torch.save(metastate, full_path + '/' + filename)
         return self
 
-    def load_from_state_dict( self, state_dict:dict ) -> 'Metagraph':
+    def load_from_state_dict(self, state_dict:dict ) -> 'Metagraph':
         r""" Loads this metagraph object from passed state_dict.
             Args: 
                 state_dict: (:obj:`dict`, required):

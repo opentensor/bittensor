@@ -55,6 +55,22 @@ def ip_to_int(str_val: str) -> int:
     """
     return int(netaddr.IPAddress(str_val))
 
+def ip_version(str_val: str) -> int:
+    r""" Returns the ip version (IPV4 or IPV6).
+        arg:
+            str_val (:tyep:`str`, `required):
+                The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
+
+        Returns:
+            int_val  (:type:`int128`, `required`):
+                The ip version (Either 4 or 6 for IPv4/IPv6)
+
+        Raises:
+            netaddr.core.AddrFormatError (Exception):
+                Raised when the passed str_val is not a valid ip string value.
+    """
+    return int(netaddr.IPAddress(str_val).version)
+
 def ip__str__(ip_type:int, ip_str:str, port:int):
     return "/ipv%i/%s:%i" % (ip_type, ip_str, port)
 

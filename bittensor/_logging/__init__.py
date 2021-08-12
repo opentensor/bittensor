@@ -1,18 +1,18 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import os
@@ -51,7 +51,7 @@ class logging:
     __rollbar_sink__:int = None
 
     def __new__(
-            cls, 
+            cls,
             config: 'bittensor.Config' = None,
             debug: bool = None,
             trace: bool = None,
@@ -81,15 +81,15 @@ class logging:
             logger.remove( cls.__rollbar_sink__ )
         if cls.__file_sink__ != None:
             logger.remove( cls.__file_sink__ )
-        
+
         # Add filtered sys.stdout.
-        cls.__std_sink__ = logger.add ( 
-            sys.stdout, 
-            filter = cls.log_filter, 
-            colorize = True, 
-            enqueue = True, 
-            backtrace = True, 
-            diagnose = True, 
+        cls.__std_sink__ = logger.add (
+            sys.stdout,
+            filter = cls.log_filter,
+            colorize = True,
+            enqueue = True,
+            backtrace = True,
+            diagnose = True,
             format = cls.log_formatter
         )
 
@@ -104,26 +104,26 @@ class logging:
             cls.__rollbar_sink__ = logger.add (
                 sink = rollbar_handler,
                 level = 'WARNING',
-                colorize = True, 
-                enqueue = True, 
-                backtrace = True, 
-                diagnose = True, 
+                colorize = True,
+                enqueue = True,
+                backtrace = True,
+                diagnose = True,
             )
 
         cls.set_debug(config.logging.debug)
-        cls.set_trace(config.logging.trace) 
+        cls.set_trace(config.logging.trace)
 
         # ---- Setup logging to root ----
-        if config.logging.record_log: 
+        if config.logging.record_log:
             filepath = config.logging.logging_dir + "/logs.log"
             cls.__file_sink__ = logger.add (
-                filepath, 
-                rotation="25 MB", 
+                filepath,
+                rotation="25 MB",
                 retention="10 days"
             )
             logger.success('Set record log:'.ljust(20) + '<blue>{}</blue>', filepath)
-        else: logger.success('Set record log:'.ljust(20) + '<red>OFF</red>')     
- 
+        else: logger.success('Set record log:'.ljust(20) + '<red>OFF</red>')
+
     @classmethod
     def config(cls):
         parser = argparse.ArgumentParser()
@@ -136,7 +136,7 @@ class logging:
             parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default=True)
             parser.add_argument('--logging.no_debug', action='store_false', dest='logging.debug', help='''Turn on bittensor debugging information''', default=True)
             parser.add_argument('--logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default=False)
-            parser.add_argument('--logging.record_log', action='store_true', help='''Turns on logging to file.''', default=False)  
+            parser.add_argument('--logging.record_log', action='store_true', help='''Turns on logging to file.''', default=False)
             parser.add_argument('--logging.logging_dir', type=str, help='Logging default root directory.', default='~/.bittensor/miners')
         except argparse.ArgumentError:
             # re-parsing arguments.
@@ -161,13 +161,13 @@ class logging:
         cls._trace_on__ = on
         if on: logging.success( prefix = 'Set trace', sufix = '<green>ON</green>')
         else:  logging.success( prefix = 'Set trace', sufix = '<red>OFF</red>')
-        
+
     @classmethod
     def log_filter(cls, record ):
         if cls.__debug_on__ or cls.__trace_on__:
             return True
         else:
-            return False
+            return record["level"].name != "DEBUG"
 
     @classmethod
     def log_formatter(cls, record):
@@ -235,7 +235,7 @@ class logging:
             cls()
         prefix = prefix + ":"
         prefix = prefix.ljust(20)
-        log_msg = prefix + sufix 
+        log_msg = prefix + sufix
         logger.success( log_msg )
 
     @classmethod
@@ -253,5 +253,5 @@ class logging:
             cls()
         prefix = prefix + ":"
         prefix = prefix.ljust(20)
-        log_msg = prefix + sufix 
+        log_msg = prefix + sufix
         logger.info( log_msg )
