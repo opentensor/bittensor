@@ -453,7 +453,7 @@ class Miner:
                 inputs = inputs_x
             )
             return output.local_hidden
-            
+
         uid =self.neuron.metagraph.hotkeys.index(pubkey)
         priority = self.neuron.metagraph.S[uid]
         future = self.thread_pool.submit(call,inputs=inputs_x,priority=priority)
@@ -486,7 +486,7 @@ class Miner:
                     inputs_x = input.to( self.device )
                     grads_dy = grad.to( self.device )
                     # ---- Set up inputs for gradient computations.
-                    inputs_x.requires_grad = True
+                    #inputs_x.requires_grad = True
                     outputs_y = self.nucleus.local_forward( inputs = inputs_x ).to( self.device )
 
                     # ---- The backward call will accumulate gradients on our parameters.
