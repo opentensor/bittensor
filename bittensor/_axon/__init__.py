@@ -33,8 +33,8 @@ class axon:
             cls, 
             config: 'bittensor.config' = None,
             wallet: 'bittensor.Wallet' = None,
-            forward_callback: 'Callable' = None,
-            backward_callback: 'Callable' = None,
+            forward: 'Callable' = None,
+            backward: 'Callable' = None,
             thread_pool: 'futures.ThreadPoolExecutor' = None,
             server: 'grpc._Server' = None,
             port: int = None,
@@ -48,9 +48,9 @@ class axon:
                     bittensor.axon.config()
                 wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                forward_callback (:obj:`callable`, `optional`):
+                forward (:obj:`callable`, `optional`):
                     function which is called on forward requests.
-                backward_callback (:obj:`callable`, `optional`):
+                backward (:obj:`callable`, `optional`):
                     function which is called on backward requests.
                 thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
                     Threadpool used for processing server queries.
@@ -80,18 +80,18 @@ class axon:
         if server == None:
             server = grpc.server( thread_pool, maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs )
 
-        if forward_callback != None:
-            axon.check_forward_callback(forward_callback)
-        if backward_callback != None:
-            axon.check_backward_callback(backward_callback)
+        if forward != None:
+            axon.check_forward_callback(forward)
+        if backward != None:
+            axon.check_backward_callback(backward)
 
         axon_instance = axon_impl.Axon( 
             wallet = wallet, 
             server = server,
             ip = config.axon.ip,
             port = config.axon.port,
-            forward_callback = forward_callback,
-            backward_callback = backward_callback,
+            forward = forward,
+            backward = backward
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
         full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
@@ -126,7 +126,6 @@ class axon:
     def check_config(cls, config: 'bittensor.Config' ):
         assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
         bittensor.wallet.check_config( config )
-
 
     @staticmethod
     def check_backward_callback( backward_callback:Callable ):

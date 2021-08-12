@@ -20,8 +20,8 @@ import wandb
 import os
 
 # Bittensor code and protocol version.
-__version__ = '2.0.0'
-__version_as_int__ = (100 * 2) + (10 * 0) + (1 * 0)  # Integer representation
+__version__ = '1.1.8'
+__version_as_int__ = (100 * 1) + (10 * 1) + (1 * 8)  # Integer representation
 
 # Vocabulary dimension.
 #__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
@@ -143,58 +143,18 @@ class Neuron():
         self.axon = axon (
             config = self.config,
             wallet = self.wallet,
-            forward_callback=axon_forward_callback,
-            backward_callback=axon_backward_callback,
+            forward = axon_forward_callback,
+            backward = axon_backward_callback,
         )
 
     def __enter__(self):
-        # ---- Setup UPNPC ----
-        if self.config.neuron.use_upnpc:
-            logging.success(prefix = 'Set upnpc', sufix = '<green>ON</green>')
-            try:
-                self.external_port = net.upnpc_create_port_map( port = self.axon.port )
-            except net.UPNPCException as upnpc_exception:
-                raise RuntimeError('Failed to hole-punch with upnpc')
-        else:
-            logging.success(prefix = 'Set upnpc', sufix = '<red>OFF</red>')
-            self.external_port = self.config.axon.port
-
-        # ---- Get external ip ----
-        try:
-            self.external_ip = net.get_external_ip()
-            logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format(self.external_ip))
-        except Exception as E:
-            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error:{}', E)
-
         # ---- Setup Wallet. ----
-        if not self.wallet.has_coldkeypub:
-            self.wallet.create_new_coldkey( n_words = 12, use_password = True )
-        if not self.wallet.has_coldkeypub:
-            raise RuntimeError('Miner must have access to a decrypted coldkeypub')
-        if not self.wallet.has_hotkey:
-            self.wallet.create_new_hotkey( n_words = 12, use_password = False )
-        if not self.wallet.has_hotkey:
-            raise RuntimeError('Miner must have access to a decrypted hotkey')
-
-        # ---- Subscribe to chain ----
-        subscribe_success = self.subtensor.subscribe(
-                wallet = self.wallet,
-                ip = self.external_ip,
-                port = self.external_port,
-                modality = proto.Modality.TEXT,
-                wait_for_finalization = True,
-                timeout = 4 * __blocktime__,
+        self.wallet.create()
+        self.metagraph.load().sync().save()
+        self.axon.start().subscribe (
+            use_upnpc = self.config.neuron.use_upnpc, 
+            subtensor = self.subtensor
         )
-        
-        if not subscribe_success:
-            raise RuntimeError('Failed to subscribe neuron.')
-
-        # --- Update metagraph ----
-        self.metagraph.load()
-        self.metagraph.sync()
-
-        # ---- Starting axon ----
-        self.axon.start()
 
         # --- Init wandb ----
         if self.config.neuron.use_wandb:
