@@ -59,6 +59,7 @@ from bittensor._serializer import serializer as serializer
 from bittensor._dataloader import dataloader as dataloader
 from bittensor._receptor import receptor_pool as receptor_pool
 from bittensor._wandb import wandb as wandb
+from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
@@ -74,6 +75,7 @@ from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._dataloader.dataloader_impl import Dataloader as Dataloader
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
+from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
 import bittensor.utils.networking as net
 import bittensor.utils.ptp as ptp
@@ -144,9 +146,6 @@ class Neuron():
             wallet = self.wallet,
             forward_callback=axon_forward_callback,
             backward_callback=axon_backward_callback,
-        )
-        self.thread_pool = ptp.ThreadPoolExecutor(
-            max_workers = config.neuron.max_workers
         )
 
     def __enter__(self):

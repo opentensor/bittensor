@@ -105,7 +105,7 @@ class BrokenThreadPool(_base.BrokenExecutor):
     """
 
 
-class ThreadPoolExecutor(_base.Executor):
+class PriorityThreadPoolExecutor(_base.Executor):
 
     # Used to assign unique thread names when thread_name_prefix is not supplied.
     _counter = itertools.count().__next__

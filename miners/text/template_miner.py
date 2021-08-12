@@ -255,6 +255,11 @@ class Miner:
                 axon_backward_callback = self.backward,
             ) 
 
+        #bittensor priority thread pool 
+        self.thread_pool = bittensor.prioritythreadpool(
+            config = self.config
+        )
+
     @staticmethod
     def config() -> 'bittensor.Config':
         r""" Fills a config namespace object with defaults or information from the command line.
@@ -276,8 +281,9 @@ class Miner:
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=1)
         bittensor.add_args( parser )
-        Nucleus.add_args( parser )  
-
+        Nucleus.add_args( parser ) 
+        bittensor.prioritythreadpool.add_args( parser )
+ 
         # ---- Loads config_file and updates defaults
         config_file_path = vars(parser.parse_known_args()[0])['miner.config']
         if config_file_path:
@@ -447,11 +453,11 @@ class Miner:
                 inputs = inputs_x
             )
             return output.local_hidden
-        uid =self.neuron.metagraph.hotkeys.index(ss58_encode(pubkey))
+        uid =self.neuron.metagraph.hotkeys.index(pubkey)
         last_emit=self.neuron.metagraph.lastemit[uid]
-        priority = self.neuron.metagraph.S[uid] * self.neuron.metagraph.R[uid] 
+        priority = self.neuron.metagraph.S[uid]
         print(pubkey,uid,'Stake',self.neuron.metagraph.S[uid],'last emit',last_emit ,priority)
-        future = self.neuron.thread_pool.submit(call,inputs=inputs_x,priority=priority)
+        future = self.thread_pool.submit(call,inputs=inputs_x,priority=priority)
         return future.result(timeout= self.config.miner.timeout)
 
     # ---- Axon Backward call ----
