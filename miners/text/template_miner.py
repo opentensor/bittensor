@@ -479,38 +479,22 @@ class Miner:
                 outputs (:obj:`torch.FloatTensor`, `optional`):
                     The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
         """
-        if self.config.miner.compute_remote_gradients:
+        if self.config.miner.accumulate_remote_gradients:
             def call(input,grad):
                 with torch.enable_grad():
-                    inputs_x = input.to( self.device )
-                    grads_dy = grad.to( self.device )
-                    print(inputs_x.type(),inputs_x.sum())
                     # ---- Set up inputs for gradient computations.
-                    inputs_x.requires_grad = True
                     outputs_y = self.nucleus.local_forward( inputs = inputs_x ).local_context.to( self.device )
                     # ---- The backward call will accumulate gradients on our parameters.
-                    if self.config.miner.accumulate_remote_gradients:
-                        torch.autograd.backward (
-                            tensors = [outputs_y],
-                            grad_tensors = [grads_dy]
-                        )
-                        return inputs_x.grad if inputs_x.grad != None else None
-
-                    # ---- The backward call will simply compute the gradients without accumulating them.
-                    else:
-                        grads_dy = torch.autograd.grad (
-                            outputs = outputs_y,
-                            inputs = inputs_x,
-                            grad_outputs = grads_dy,
-                            only_inputs = True,
-                            create_graph = False,
-                            retain_graph = False
-                        )[0]
-                        return grads_dy
+                
+                    torch.autograd.backward (
+                        tensors = [outputs_y],
+                        grad_tensors = [grads_dy]
+                    )
+                    return inputs_x.grad if inputs_x.grad != None else None                    
 
             uid =self.neuron.metagraph.hotkeys.index(ss58_encode(pubkey))
             priority = self.neuron.metagraph.S[uid]
-            future = self.thread_pool.submit(call,input=inputs_x,grad=grads_dy,priority=priority)
+            future = self.thread_pool.submit(call, input=inputs_x.to( self.device ), grad=grads_dy.to( self.device ), priority=priority)
             return future.result(timeout= self.config.miner.timeout)            
         # if ! compute_remote_gradients, NO-OP.
         else:
