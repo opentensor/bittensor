@@ -512,7 +512,7 @@ class Miner:
 
             uid =self.neuron.metagraph.hotkeys.index(ss58_encode(pubkey))
             priority = self.neuron.metagraph.S[uid]
-            future = self.thread_pool.submit(call,inputs=inputs_x,grad=grads_dy,priority=priority)
+            future = self.thread_pool.submit(call,input=inputs_x,grad=grads_dy,priority=priority)
             return future.result(timeout= self.config.miner.timeout)            
         # if ! compute_remote_gradients, NO-OP.
         else:
