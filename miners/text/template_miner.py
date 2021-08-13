@@ -622,6 +622,8 @@ class Miner:
             'Loss': colored('{:.4f}'.format(self.epoch_loss), 'yellow'),
             'Best': colored('{:.4f}'.format(self.best_epoch_loss), 'red'),
             'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
+            'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
+            'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
             'nPeers': colored(bittensor.neuron.metagraph.n.item(), 'red'),
             'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
@@ -630,6 +632,8 @@ class Miner:
         }
         if self.config.neuron.use_wandb:
             wandb_info = {
+                'remote_target_loss':output.remote_target_loss.item(),
+                'distillation_loss':output.distillation_loss.item(),
                 "local_target_loss": output.local_target_loss.item(),
                 'Number of Peers':bittensor.neuron.metagraph.n.item(),
                 'Stake':stake,
