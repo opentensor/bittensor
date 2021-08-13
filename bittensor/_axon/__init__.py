@@ -97,8 +97,8 @@ class axon:
             server = server,
             ip = config.axon.ip,
             port = config.axon.port,
-            forwards = forward,
-            backwards = backward,
+            forwards = forwards,
+            backwards = backwards,
             modality = modality,
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
