@@ -253,8 +253,8 @@ class Miner:
         self.neuron = bittensor.init (
             config = self.config,
             root_dir = self.config.miner.full_path,
-            axon_forward_callback = self.forward_text,
-            axon_backward_callback = self.backward_text,
+            axon_forward_callback = self.forward,
+            axon_backward_callback = self.backward,
             modality=bittensor.proto.Modality.TEXT
         ) 
 
