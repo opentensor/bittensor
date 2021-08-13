@@ -41,6 +41,7 @@ class axon:
             ip: str = None,
             max_workers: int = None, 
             maximum_concurrent_rpcs: int = None,
+            modality: int = None,
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
@@ -85,13 +86,20 @@ class axon:
         if backward != None:
             axon.check_backward_callback(backward)
 
+        forwards = [None, None, None]
+        backwards = [None, None, None]
+
+        forwards[modality] = forward
+        backwards[modality] = backward
+
         axon_instance = axon_impl.Axon( 
             wallet = wallet, 
             server = server,
             ip = config.axon.ip,
             port = config.axon.port,
-            forward = forward,
-            backward = backward
+            forwards = forward,
+            backwards = backward,
+            modality = modality,
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
         full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
@@ -130,27 +138,23 @@ class axon:
     @staticmethod
     def check_backward_callback( backward_callback:Callable ):
         if not inspect.ismethod(backward_callback) and not inspect.isfunction(backward_callback):
-            raise ValueError('The axon backward callback must be a function with signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:, got {}'.format(backward_callback))        
-        if len( inspect.signature(backward_callback).parameters) != 4:
-            raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
+            raise ValueError('The axon backward callback must be a function with signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:, got {}'.format(backward_callback))        
+        if len( inspect.signature(backward_callback).parameters) != 3:
+            raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
         if 'pubkey' not in inspect.signature(backward_callback).parameters:
-            raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
+            raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
         if 'inputs_x' not in inspect.signature(backward_callback).parameters:
-            raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
+            raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
         if 'grads_dy' not in inspect.signature(backward_callback).parameters:
-            raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
-        if 'modality' not in inspect.signature(backward_callback).parameters:
-            raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
+            raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
 
     @staticmethod
     def check_forward_callback( forward_callback:Callable ):
         if not inspect.ismethod(forward_callback) and not inspect.isfunction(forward_callback):
-            raise ValueError('The axon forward callback must be a function with signature Callable[pubkey:str, inputs_x: torch.Tensor, modality:int] -> torch.FloatTensor:, got {}'.format(forward_callback))   
-        if len( inspect.signature(forward_callback).parameters) != 3:
-            raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor, modality:int] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
+            raise ValueError('The axon forward callback must be a function with signature Callable[pubkey:str, inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(forward_callback))   
+        if len( inspect.signature(forward_callback).parameters) != 2:
+            raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
         if 'pubkey' not in inspect.signature(forward_callback).parameters:
-            raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor, modality:int] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
+            raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
         if 'inputs_x' not in inspect.signature(forward_callback).parameters:
-            raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor, modality:int] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
-        if 'modality' not in inspect.signature(forward_callback).parameters:
-            raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor, modality:int] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
+            raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))

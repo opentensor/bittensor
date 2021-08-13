@@ -42,8 +42,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
         ip: str,
         port: int,
         server: 'grpc._Server',
-        forward: 'Callable' = None,
-        backward: 'Callable' = None,
+        forwards: tuple  = None,
+        backwards: tuple = None,
+        modality: int = None
     ):
         r""" Initializes a new Axon tensor processing endpoint.
             
@@ -63,8 +64,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.port = port
         self.wallet = wallet
         self.server = server
-        self.forward_callback = forward
-        self.backward_callback = backward 
+        self.forward_callback = forwards
+        self.backward_callback = backwards
+        self.modality = modality 
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -73,6 +75,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             out_bytes_per_pubkey = {},
             qps_per_pubkey = {},
         )
+
 
     def Forward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
@@ -157,13 +160,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         """
         # Check forward has been subscribed.
-        if self.forward_callback == None:
+        if self.forward_callback[modality] == None:
             message = "Forward callback is not yet subscribed on this axon."
             return None, bittensor.proto.ReturnCode.NotImplemented, message
         
         # Make forward call.
         try:
-            response_tensor = self.forward_callback(pubkey = public_key, inputs_x= inputs_x, modality= modality )
+            response_tensor = self.forward_callback[modality](pubkey = public_key, inputs_x= inputs_x)
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
@@ -203,13 +206,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     message associated with forward call, potentially error, or 'success'.
         """
         # Check backward has been subscribed.
-        if self.backward_callback == None:
+        if self.backward_callback[modality] == None:
             message = "Backward callback is not yet subscribed on this axon."
             return None, bittensor.proto.ReturnCode.NotImplemented, message
         
         # Make backward call.
         try:
-            response_tensor = self.backward_callback( public_key, inputs_x, grads_dy, modality)
+            response_tensor = self.backward_callback[modality]( public_key, inputs_x, grads_dy)
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
@@ -514,7 +517,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         self.stop()
 
-    def subscribe( self, use_upnpc = False, modality: 'bittensor.proto.Modality' = bittensor.proto.Modality.TEXT, subtensor: 'bittensor.Subtensor' = None) -> 'Axon':
+    def subscribe( self, use_upnpc = False, modality: 'bittensor.proto.Modality' = None, subtensor: 'bittensor.Subtensor' = None) -> 'Axon':
 
         # Create subtensor connection.
         if subtensor == None:

@@ -118,10 +118,12 @@ class Neuron():
             root_dir: str = '',
             axon_forward_callback: 'Callable' = None,
             axon_backward_callback: 'Callable' = None,
+            modality: 'int' = None,
         ):
         if config == None: config = default_config()
         self.config = config
         self.root_dir = root_dir
+        self.modality= modality
         logging (
             config = self.config,
             logging_dir = root_dir,
@@ -145,6 +147,7 @@ class Neuron():
             wallet = self.wallet,
             forward = axon_forward_callback,
             backward = axon_backward_callback,
+            modality = modality,
         )
 
     def __enter__(self):
@@ -153,7 +156,8 @@ class Neuron():
         self.metagraph.load().sync().save()
         self.axon.start().subscribe (
             use_upnpc = self.config.neuron.use_upnpc, 
-            subtensor = self.subtensor
+            subtensor = self.subtensor,
+            modality =  self.modality
         )
 
         # --- Init wandb ----
@@ -177,6 +181,7 @@ def init(
         root_dir: str = None,
         axon_forward_callback: 'Callable' = None,
         axon_backward_callback: 'Callable' = None,
+        modality: int = None
     ) -> Neuron:
 
     global neuron
@@ -185,6 +190,7 @@ def init(
         root_dir = root_dir,
         axon_forward_callback = axon_forward_callback,
         axon_backward_callback = axon_backward_callback,
+        modality = modality
     )
     return neuron
 
