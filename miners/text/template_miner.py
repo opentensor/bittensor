@@ -41,7 +41,6 @@ import torch.nn as nn
 
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
-from substrateinterface.utils.ss58 import ss58_encode
 
 class Nucleus(nn.Module):
 
@@ -340,13 +339,13 @@ class Miner:
             while self.epoch < self.config.miner.n_epochs:
                 try:
                     # ---- Train state ----
-                    #self.run_epoch()
+                    self.run_epoch()
 
                     # ---- Set weights on chain ----
                     self.set_chain_weights()
 
                     # ---- Checkpoint state ----
-                    #self.checkpoint()
+                    self.checkpoint()
 
                 except KeyboardInterrupt:
                     # --- User ended session ----
@@ -419,13 +418,13 @@ class Miner:
 
         # ---- Forward pass ----
         inputs = batch['inputs']
-        output = self.nucleus.local_forward (
+        output = self.nucleus.remote_forward (
             inputs = inputs.to( self.device ),
             training = True,
         )
 
         # ---- Backward pass ----
-        output.loss = output.local_target_loss 
+        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
         output.loss.backward() # Accumulates gradients on the nucleus.
         clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
         self.optimizer.step() # Applies accumulated gradients.
@@ -434,7 +433,7 @@ class Miner:
         return output
 
     # ---- Axon Forward call ----
-    def forward_text ( self, pubkey:str, inputs_x: torch.FloatTensor) -> torch.FloatTensor:
+    def forward ( self, pubkey:str, inputs_x: torch.FloatTensor) -> torch.FloatTensor:
         r""" Subscribed to an axon servicing endpoint: processes forward messages from the wire.
             The arguments reflect an RPC request from another miner in the network, the response tensor
             should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
@@ -458,13 +457,13 @@ class Miner:
             )
             return output.local_hidden
 
-        uid =self.neuron.metagraph.hotkeys.index(ss58_encode(pubkey))
+        uid =self.neuron.metagraph.hotkeys.index(pubkey)
         priority = self.neuron.metagraph.S[uid]
         future = self.thread_pool.submit(call,inputs=inputs_x,priority=priority)
         return future.result(timeout= self.config.miner.timeout)
 
     # ---- Axon Backward call ----
-    def backward_text ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:
+    def backward ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:
         r""" Subscribed to an axon servicing endpoint: Processes backward messages from the wire.
             Arguments reflect an RPC backward request from another miner in the network, the response tensor
             should be the gradients of the miner's nucleus w.r.t to the inputs_x and the passed output grads_dy.
@@ -496,7 +495,7 @@ class Miner:
                     )
                     return inputs_x.grad if inputs_x.grad != None else None                    
 
-            uid =self.neuron.metagraph.hotkeys.index(ss58_encode(pubkey))
+            uid =self.neuron.metagraph.hotkeys.index(pubkey)
             priority = self.neuron.metagraph.S[uid]
             future = self.thread_pool.submit(call, input=inputs_x.to( self.device ), grad=grads_dy.to( self.device ), priority=priority)
             return future.result(timeout= self.config.miner.timeout)            
@@ -612,7 +611,7 @@ class Miner:
     def logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
         r""" Called after every training step. Displays miner state to screen.
         """
-        self_uid = bittensor.neuron.metagraph.hotkeys.index( ss58_encode(bittensor.neuron.wallet.hotkey.public_key) )
+        self_uid = bittensor.neuron.metagraph.hotkeys.index( bittensor.neuron.wallet.hotkey.public_key )
         stake = bittensor.neuron.metagraph.S[ self_uid ].item()
         rank = bittensor.neuron.metagraph.R[ self_uid ].item()
         incentive = bittensor.neuron.metagraph.I[ self_uid ].item()
