@@ -156,8 +156,7 @@ class Neuron():
         self.metagraph.load().sync().save()
         self.axon.start().subscribe (
             use_upnpc = self.config.neuron.use_upnpc, 
-            subtensor = self.subtensor,
-            modality =  self.modality
+            subtensor = self.subtensor
         )
 
         # --- Init wandb ----

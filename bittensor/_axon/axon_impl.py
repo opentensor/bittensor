@@ -42,8 +42,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
         ip: str,
         port: int,
         server: 'grpc._Server',
-        forwards: tuple  = None,
-        backwards: tuple = None,
+        forwards: List  = [],
+        backwards: List = [],
         modality: int = None
     ):
         r""" Initializes a new Axon tensor processing endpoint.
@@ -55,10 +55,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     bittensor wallet with hotkey and coldkeypub.
                 server (:obj:`grpc._Server`, `required`):
                     Grpc server endpoint.
-                forward (:obj:`callable`, `optional`):
-                    function which is called on forward requests.
-                backward (:obj:`callable`, `optional`):
-                    function which is called on backward requests.
+                forward (:obj:list of `callable`, `optional`):
+                    list of functions which is called on forward requests.
+                backward (:obj:list of `callable`, `optional`):
+                    list of functions which is called on backward requests.
         """
         self.ip = ip
         self.port = port
@@ -444,7 +444,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         bittensor.logging.rpc_log( axon=True, forward=False, is_response=True, code=code, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=list(outputs_serialized.shape), message=None )
         return outputs_serialized, code, message
 
-    def attach( self, servicer:object ):
+    def attach( self, servicer:object, modality:int):
         """
             Attaches the forward and backward callbacks to the passed object.
 
@@ -452,10 +452,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 servicer (:object:`object`, `required`): 
                     object with callbacks servicer.forward and servicer.backward
         """
-        self.forward_callback = self.attach_forward_callback( servicer.forward )
-        self.backward_callback = self.attach_backward_callback( servicer.backward )
+        self.forward_callback = self.attach_forward_callback( servicer.forward , modality)
+        self.backward_callback = self.attach_backward_callback( servicer.backward , modality)
 
-    def attach_forward_callback(self, forward_callback: Callable[ [str, torch.Tensor, int], torch.Tensor ] ):
+    def attach_forward_callback(self, forward_callback: Callable[ [str, torch.Tensor, int], torch.Tensor ] , modality: int):
         """ Assigns the forward_callback.
 
             Returns:
@@ -464,9 +464,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         # TODO(const): type checking.
         bittensor.axon.check_forward_callback(forward_callback)
-        self.forward_callback = forward_callback
+        self.forward_callback[modality] = forward_callback
 
-    def attach_backward_callback(self, backward_callback: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ] ):
+    def attach_backward_callback(self, backward_callback: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ], modality: int ):
         """ Assigns the backward_callback call to this neuron.
 
             Returns:
@@ -475,7 +475,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         # TODO(const): type checking.
         bittensor.axon.check_backward_callback(backward_callback)
-        self.backward_callback = backward_callback
+        self.backward_callback[modality] = backward_callback
 
     def update_stats_for_request(self, request, response):
         self.stats.qps.update(1)
@@ -517,7 +517,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         self.stop()
 
-    def subscribe( self, use_upnpc = False, modality: 'bittensor.proto.Modality' = None, subtensor: 'bittensor.Subtensor' = None) -> 'Axon':
+    def subscribe( self, use_upnpc = False, subtensor: 'bittensor.Subtensor' = None) -> 'Axon':
 
         # Create subtensor connection.
         if subtensor == None:
@@ -549,7 +549,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 wallet = self.wallet,
                 ip = self.external_ip,
                 port = self.external_port,
-                modality = modality,
+                modality = self.modality,
                 wait_for_finalization = True,
                 timeout = 4 * bittensor.__blocktime__,
         )
