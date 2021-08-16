@@ -76,6 +76,11 @@ class Axon( bittensor.grpc.BittensorServicer ):
             qps_per_pubkey = {},
         )
 
+    def __str__(self) -> str:
+        return "Axon ({}:{}:{})".format(self.ip, self.port, self.wallet.hotkey.publickey)
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
     def Forward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
@@ -492,45 +497,45 @@ class Axon( bittensor.grpc.BittensorServicer ):
             self.stats.out_bytes_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
             self.stats.qps_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(1, 0.01)
 
-    def __str__(self):
-        total_in_bytes_str = colored('\u290B {:.1f}'.format((self.stats.total_in_bytes.value * 8)/1000), 'green')
-        total_out_bytes_str = colored('\u290A {:.1f}'.format((self.stats.total_out_bytes.value * 8)/1000), 'red')
-        qps_str = colored("{:.3f}".format(float(self.stats.qps.value)), 'blue')
-        return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
-
-    def __rich__(self):
-        total_in_bytes_str = '[red]\u290B{:.1f}[/red]'.format((self.stats.total_in_bytes.value * 8)/1000)
-        total_out_bytes_str = '[green]\u290A{:.1f}[/green]'.format((self.stats.total_out_bytes.value * 8)/1000)
-        qps_str = "[blue]{:.3f}[/blue]".format(float(self.stats.qps.value))
-        return "(" + qps_str + "q/s|" + total_out_bytes_str + "/" + total_in_bytes_str + "kB/s" + ")"
-    
-    def __to_tensorboard__(self, tensorboard, global_step):
-        total_in_bytes = (self.stats.total_in_bytes.value * 8)/1000
-        total_out_bytes = (self.stats.total_out_bytes.value * 8)/1000
-        tensorboard.add_scalar("Axon/total_in_bytes", total_in_bytes, global_step)
-        tensorboard.add_scalar("Axon/total_out_bytes", total_out_bytes, global_step)
-        tensorboard.add_scalar("Axon/Queries/Sec", self.stats.qps.value, global_step)
-
     def __del__(self):
         r""" Called when this axon is deleted, ensures background threads shut down properly.
         """
         self.stop()
 
-    def subscribe( self, use_upnpc = False, subtensor: 'bittensor.Subtensor' = None) -> 'Axon':
+    def subscribe( 
+            self, 
+            use_upnpc: bool = False, 
+            subtensor: 'bittensor.Subtensor' = None,
+            network: str = None,
+            chain_endpoint: str = None,
+        ) -> 'Axon':
+        r""" Subscribes this Axon servicing endpoint to the passed network using it's wallet.
+            Args:
+                use_upnpc (:type:bool, `optional`): 
+                    If true, subscribes the axon attempts port forward through your router before 
+                    subscribing.
+                modality (:type:bool, `optional`): 
+                    Which network modality are we subscribing to. Defaults to 0 for TEXT.
+                subtensor (:obj:`bittensor.Subtensor`, `optional`): 
+                    Chain connection through which to subscribe.
+                network (default='akatsuki', type=str)
+                    If subtensor is not set, uses this network flag to create the subtensor connection.
+                chain_endpoint (default=None, type=str)
+                    Overrides the network argument if not set.
+        """   
 
         # Create subtensor connection.
         if subtensor == None:
-            subtensor = bittensor.subtensor()
+            subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint)
 
         # ---- Setup UPNPC ----
         if use_upnpc:
-            bittensor.logging.success(prefix = 'Set upnpc', sufix = '<green>ON</green>')
             try:
                 self.external_port = bittensor.net.upnpc_create_port_map( port = self.port )
+                bittensor.logging.success(prefix = 'UPNPC', sufix = '<red>OPEN</red>')
             except bittensor.net.UPNPCException as upnpc_exception:
                 raise RuntimeError('Failed to hole-punch with upnpc with exception {}'.format( upnpc_exception ))
         else:
-            bittensor.logging.success(prefix = 'Set upnpc', sufix = '<red>OFF</red>')
             self.external_port = self.port
 
         # ---- Get external ip ----
@@ -556,7 +561,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
             raise RuntimeError('Failed to subscribe neuron.')
 
         return self
-
 
     def start(self) -> 'Axon':
         r""" Starts the standalone axon GRPC server thread.

@@ -19,6 +19,7 @@ from os import name
 import bittensor
 import argparse
 import copy
+from substrateinterface import Keypair
 
 from . import metagraph_impl
 
@@ -29,6 +30,7 @@ class metagraph:
             config: 'bittensor.config' = None,
             subtensor: 'bittensor.Subtensor' = None,
             network: str = None,
+            chain_endpoint: str = None,
         ) -> 'bittensor.Metagraph':
         r""" Creates a new bittensor.Metagraph object from passed arguments.
             Args:
@@ -36,12 +38,19 @@ class metagraph:
                     bittensor.metagraph.config()
                 subtensor (:obj:`bittensor.Subtensor`, `optional`): 
                     bittensor subtensor chain connection.
+                network (default='kusanagi', type=str)
+                    The subtensor network flag. The likely choices are:
+                            -- kusanagi (testing network)
+                            -- akatsuki (main network)
+                    If this option is set it overloads subtensor.chain_endpoint with 
+                    an entry point node from that network.
+                chain_endpoint (default=None, type=str)
+                    The subtensor endpoint flag. If set, overrides the network argument.
         """      
         if config == None: config = metagraph.config()
         config = copy.deepcopy(config)
-        config.subtensor.network = network if network != None else config.subtensor.network
         if subtensor == None:
-            subtensor = bittensor.subtensor( config = config )
+            subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint )
         return metagraph_impl.Metagraph( subtensor = subtensor )
 
     @classmethod   
