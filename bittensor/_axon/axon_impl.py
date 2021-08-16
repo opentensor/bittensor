@@ -66,7 +66,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.server = server
         self.forward_callback = forwards
         self.backward_callback = backwards
-        self.modality = modality 
+        self.modality = modality if modality != None else self.find_modality()
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -176,7 +176,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
             message = "Error calling forward callback: {}".format(e)
             code = bittensor.proto.ReturnCode.UnknownException
             return response_tensor, code, message 
-
 
     def _call_backward(
             self, 
@@ -578,7 +577,20 @@ class Axon( bittensor.grpc.BittensorServicer ):
             logger.success("Axon Stopped:".ljust(20) + "<blue>{}</blue>", self.ip + ':' + str(self.port))
         return self
 
+    def find_modality(self):
+        r""" Detects modality from forward callbacks
+        """
+        modality_list= [index for index, v in enumerate(self.forward_callback) if v != None]
 
-
-
-
+        if len(modality_list) > 1:
+            raise NotImplementedError('Multiple modality detected. We do not currently support multi-modality miners.')
+        elif len(modality_list) == 1:
+            if modality_list[0] == 0:
+                return bittensor.proto.Modality.TEXT
+            if modality_list[0] == 1:
+                return bittensor.proto.Modality.IMAGE
+            if modality_list[0] == 2:
+                return bittensor.proto.Modality.TENSOR
+        elif len(modality_list) == 0:
+            logger.warning('No modality detected. Defaulting to the text modality')
+            return bittensor.proto.Modality.TEXT

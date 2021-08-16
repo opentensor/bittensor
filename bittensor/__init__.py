@@ -116,14 +116,16 @@ class Neuron():
     def __init__(self, 
             config: 'Config',
             root_dir: str = '',
-            axon_forward_callback: 'Callable' = None,
-            axon_backward_callback: 'Callable' = None,
-            modality: 'int' = None,
+            forward_text: 'Callable' = None,
+            backward_text: 'Callable' = None,
+            forward_image: 'Callable' = None,
+            backward_image: 'Callable' = None,
+            forward_tensor: 'Callable' = None,
+            backward_tensor: 'Callable' = None,
         ):
         if config == None: config = default_config()
         self.config = config
         self.root_dir = root_dir
-        self.modality= modality
         logging (
             config = self.config,
             logging_dir = root_dir,
@@ -145,9 +147,12 @@ class Neuron():
         self.axon = axon (
             config = self.config,
             wallet = self.wallet,
-            forward = axon_forward_callback,
-            backward = axon_backward_callback,
-            modality = modality,
+            forward_text = forward_text,
+            backward_text = backward_text,
+            forward_image = forward_image,
+            backward_image = backward_image,
+            forward_tensor = forward_tensor,
+            backward_tensor = backward_tensor,
         )
 
     def __enter__(self):
@@ -178,18 +183,24 @@ class Neuron():
 def init( 
         config: 'Config' = None,
         root_dir: str = None,
-        axon_forward_callback: 'Callable' = None,
-        axon_backward_callback: 'Callable' = None,
-        modality: int = None
+        forward_text: 'Callable' = None,
+        backward_text: 'Callable' = None,
+        forward_image: 'Callable' = None,
+        backward_image: 'Callable' = None,
+        forward_tensor: 'Callable' = None,
+        backward_tensor: 'Callable' = None,
     ) -> Neuron:
 
     global neuron
     neuron = Neuron( 
         config = config,
         root_dir = root_dir,
-        axon_forward_callback = axon_forward_callback,
-        axon_backward_callback = axon_backward_callback,
-        modality = modality
+        forward_text = forward_text,
+        backward_text = backward_text,
+        forward_image = forward_image,
+        backward_image = backward_image,
+        forward_tensor = forward_tensor,
+        backward_tensor = backward_tensor,
     )
     return neuron
 

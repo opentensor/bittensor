@@ -33,8 +33,12 @@ class axon:
             cls, 
             config: 'bittensor.config' = None,
             wallet: 'bittensor.Wallet' = None,
-            forward: 'Callable' = None,
-            backward: 'Callable' = None,
+            forward_text: 'Callable' = None,
+            backward_text: 'Callable' = None,
+            forward_image: 'Callable' = None,
+            backward_image: 'Callable' = None,
+            forward_tensor: 'Callable' = None,
+            backward_tensor: 'Callable' = None,
             thread_pool: 'futures.ThreadPoolExecutor' = None,
             server: 'grpc._Server' = None,
             port: int = None,
@@ -81,16 +85,13 @@ class axon:
         if server == None:
             server = grpc.server( thread_pool, maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs )
 
-        if forward != None:
-            axon.check_forward_callback(forward)
-        if backward != None:
-            axon.check_backward_callback(backward)
+        if forward_text != None:
+            axon.check_forward_text_callback(forward_text)
+        if backward_text != None:
+            axon.check_backward_text_callback(backward_text)
 
-        forwards = [None, None, None]
-        backwards = [None, None, None]
-
-        forwards[modality] = forward
-        backwards[modality] = backward
+        forwards = [forward_text, forward_image, forward_tensor]
+        backwards = [backward_text, backward_image, backward_tensor]
 
         axon_instance = axon_impl.Axon( 
             wallet = wallet, 
@@ -136,7 +137,7 @@ class axon:
         bittensor.wallet.check_config( config )
 
     @staticmethod
-    def check_backward_callback( backward_callback:Callable ):
+    def check_backward_text_callback( backward_callback:Callable ):
         if not inspect.ismethod(backward_callback) and not inspect.isfunction(backward_callback):
             raise ValueError('The axon backward callback must be a function with signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:, got {}'.format(backward_callback))        
         if len( inspect.signature(backward_callback).parameters) != 3:
@@ -149,7 +150,7 @@ class axon:
             raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
 
     @staticmethod
-    def check_forward_callback( forward_callback:Callable ):
+    def check_forward_text_callback( forward_callback:Callable ):
         if not inspect.ismethod(forward_callback) and not inspect.isfunction(forward_callback):
             raise ValueError('The axon forward callback must be a function with signature Callable[pubkey:str, inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(forward_callback))   
         if len( inspect.signature(forward_callback).parameters) != 2:
@@ -158,3 +159,4 @@ class axon:
             raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
         if 'inputs_x' not in inspect.signature(forward_callback).parameters:
             raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
+            

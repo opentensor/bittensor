@@ -254,9 +254,8 @@ class Miner:
         self.neuron = bittensor.init (
             config = self.config,
             root_dir = self.config.miner.full_path,
-            axon_forward_callback = self.forward,
-            axon_backward_callback = self.backward,
-            modality=bittensor.proto.Modality.TEXT
+            forward_text = self.forward_text,
+            backward_text = self.backward_text,
         ) 
 
         #bittensor priority thread pool 
@@ -434,7 +433,7 @@ class Miner:
         return output
 
     # ---- Axon Forward call ----
-    def forward ( self, pubkey:str, inputs_x: torch.FloatTensor) -> torch.FloatTensor:
+    def forward_text ( self, pubkey:str, inputs_x: torch.FloatTensor) -> torch.FloatTensor:
         r""" Subscribed to an axon servicing endpoint: processes forward messages from the wire.
             The arguments reflect an RPC request from another miner in the network, the response tensor
             should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
@@ -464,7 +463,7 @@ class Miner:
         return future.result(timeout= self.config.miner.timeout)
 
     # ---- Axon Backward call ----
-    def backward ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:
+    def backward_text ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:
         r""" Subscribed to an axon servicing endpoint: Processes backward messages from the wire.
             Arguments reflect an RPC backward request from another miner in the network, the response tensor
             should be the gradients of the miner's nucleus w.r.t to the inputs_x and the passed output grads_dy.
