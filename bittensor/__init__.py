@@ -20,8 +20,8 @@ import wandb
 import os
 
 # Bittensor code and protocol version.
-__version__ = '1.1.8'
-__version_as_int__ = (100 * 1) + (10 * 1) + (1 * 8)  # Integer representation
+__version__ = '1.2.0'
+__version_as_int__ = (100 * 1) + (10 * 2) + (1 * 0)  # Integer representation
 
 # Vocabulary dimension.
 #__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.

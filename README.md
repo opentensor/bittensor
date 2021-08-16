@@ -13,7 +13,7 @@
 
 </div>
 
-Bittensor is a intelligence market that enables individuals to monetize intelligence production from any computer anywhere in the world. Bittensor uses a decentralized incentive mechanism which ensures currency inflation is distributed to peers which add value to the network. Consumers stake this currency to gain access to this knowledge. The network is collectively-run, open-source, and open-access. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
+Bittensor is a decentralized market that enables individuals to monetize intelligence production from any computer anywhere in the world. Intelligence production is validated by the other peers in the network and rewarded through token inflation. Consumers stake this currency to gain access to the produced knowledge. Bittensor is collectively-run, open-source, and open-access. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
 
 ## Install
 
@@ -27,13 +27,12 @@ $ pip3 install bittensor
 import bittensor
 import torch
 wallet = bittensor.wallet().create()
-graph = bittensor.metagraph().load().sync().save()
-text = torch.tensor([bittensor.tokenizer().encode( "The quick brown fox jumped over the lazy dog" )], dtype=torch.int64)
-representations, _ = bittensor.dendrite( wallet ).forward_text(
+graph = bittensor.metagraph().sync()
+representations, _ = bittensor.dendrite( wallet ).forward_text (
     endpoints = graph.endpoints,
-    inputs = [text for _ in graph.endpoints]
+    inputs = "The quick brown fox jumped over the lazy dog"
 )
-representations = # List[ (1, 9, 512) ... x N ]
+representations = # Tensor with shape (N, 9, 512)
 ```
 
 ## Server 
@@ -46,7 +45,7 @@ from transformers import BertModel, BertConfig
 model = BertModel(BertConfig())
 
 def forward ( pubkey, inputs_x, modality ):
-  return model( inputs ).narrow(2, 0, bittensor.__network_dim__)
+  return model( inputs_x ).narrow(2, 0, bittensor.__network_dim__)
 
 wallet = bittensor.wallet().create()
 axon = bittensor.axon (
