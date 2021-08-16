@@ -331,9 +331,11 @@ class Miner:
             # ---- reloads previous run ----
             try:
                 self.reload()
+                self.neuron.axon.check()
             except:
                 self.save()
                 self.reload()
+                self.neuron.axon.check()
 
             # --- Run until n_epochs ----
             while self.epoch < self.config.miner.n_epochs:

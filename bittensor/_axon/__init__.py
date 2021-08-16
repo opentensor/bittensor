@@ -22,7 +22,7 @@ import argparse
 import copy
 import grpc
 import inspect
-
+import torch
 from . import axon_impl
 
 
@@ -85,11 +85,6 @@ class axon:
         if server == None:
             server = grpc.server( thread_pool, maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs )
 
-        if forward_text != None:
-            axon.check_forward_text_callback(forward_text)
-        if backward_text != None:
-            axon.check_backward_text_callback(backward_text)
-
         forwards = [forward_text, forward_image, forward_tensor]
         backwards = [backward_text, backward_image, backward_tensor]
 
@@ -137,7 +132,7 @@ class axon:
         bittensor.wallet.check_config( config )
 
     @staticmethod
-    def check_backward_text_callback( backward_callback:Callable ):
+    def check_backward_callback( backward_callback:Callable, modality:int, pubkey:str = '_' ):
         if not inspect.ismethod(backward_callback) and not inspect.isfunction(backward_callback):
             raise ValueError('The axon backward callback must be a function with signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:, got {}'.format(backward_callback))        
         if len( inspect.signature(backward_callback).parameters) != 3:
@@ -148,9 +143,24 @@ class axon:
             raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
         if 'grads_dy' not in inspect.signature(backward_callback).parameters:
             raise ValueError('The axon backward callback must have signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
+ 
+        if modality == bittensor.proto.Modality.TEXT:
+            sample_input = torch.randint(0,1,(3, 3))
+            grads_raw = torch.rand(3, 3, bittensor.__network_dim__)
+            backward_callback(pubkey,sample_input,sample_input)
+
+        if modality == bittensor.proto.Modality.IMAGE:
+            sample_input = torch.rand(1,1,3,512,512)
+            grads_raw = torch.rand(512, 512, bittensor.__network_dim__)
+            backward_callback(pubkey,sample_input,sample_input)
+
+        if modality == bittensor.proto.Modality.TENSOR:
+            sample_input = torch.rand(1,1,1)
+            grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
+            backward_callback(pubkey,sample_input,grads_raw)
 
     @staticmethod
-    def check_forward_text_callback( forward_callback:Callable ):
+    def check_forward_callback( forward_callback:Callable, modality:int, pubkey:str = '_'):
         if not inspect.ismethod(forward_callback) and not inspect.isfunction(forward_callback):
             raise ValueError('The axon forward callback must be a function with signature Callable[pubkey:str, inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(forward_callback))   
         if len( inspect.signature(forward_callback).parameters) != 2:
@@ -159,4 +169,15 @@ class axon:
             raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
         if 'inputs_x' not in inspect.signature(forward_callback).parameters:
             raise ValueError('The axon forward callback must have signature Callable[pubkey:str, inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
+        
+        if modality == bittensor.proto.Modality.TEXT:
+            sample_input = torch.randint(0,1,(3, 3))
+            forward_callback(pubkey,sample_input)
+
+        if modality == bittensor.proto.Modality.IMAGE:
+            sample_input = torch.rand(1,1,3,512,512)
+            forward_callback(pubkey,sample_input)
             
+        if modality == bittensor.proto.Modality.TENSOR:
+            sample_input = torch.rand(1,1,1)
+            forward_callback(pubkey,sample_input)

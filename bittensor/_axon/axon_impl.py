@@ -29,6 +29,7 @@ from typing import List, Tuple, Optional, Callable
 
 import bittensor
 import bittensor.utils.stats as stat_utils
+from substrateinterface.utils.ss58 import ss58_encode
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -467,7 +468,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     Forward function called on recieving a forward request.
         """
         # TODO(const): type checking.
-        bittensor.axon.check_forward_callback(forward_callback)
+        bittensor.axon.check_forward_callback(forward_callback,modality)
         self.forward_callback[modality] = forward_callback
 
     def attach_backward_callback(self, backward_callback: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ], modality: int ):
@@ -478,7 +479,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                      Backward callback called on recieving a backward request.
         """
         # TODO(const): type checking.
-        bittensor.axon.check_backward_callback(backward_callback)
+        bittensor.axon.check_backward_callback(backward_callback,modality)
         self.backward_callback[modality] = backward_callback
 
     def update_stats_for_request(self, request, response):
@@ -598,3 +599,16 @@ class Axon( bittensor.grpc.BittensorServicer ):
         elif len(modality_list) == 0:
             logger.warning('No modality detected. Defaulting to the text modality')
             return bittensor.proto.Modality.TEXT
+    
+    def check(self):
+        r""" Checks axon's forward and backward callbacks 
+        """
+        pubkey = ss58_encode(self.wallet.hotkey.public_key)
+        for index,forward in enumerate(self.forward_callback):
+            if forward != None:
+                bittensor.axon.check_forward_callback(forward,index,pubkey)
+        for index, backward in  enumerate(self.backward_callback):
+            if backward != None:
+                bittensor.axon.check_backward_callback(backward,index,pubkey)
+        
+        return self
