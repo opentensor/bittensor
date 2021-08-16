@@ -1,5 +1,6 @@
 
 
+from bittensor._endpoint import endpoint
 import torch
 import pytest
 import time
@@ -23,6 +24,83 @@ neuron_obj = bittensor.endpoint(
     coldkey = dendrite.wallet.coldkey.public_key,
     modality = 0
 )
+
+def test_dendrite_forward_text_endpoints_tensor():
+    endpoints = neuron_obj.to_tensor()
+    x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
+    resp1, _ = dendrite.forward_text( endpoints, x )
+    assert list(torch.stack(resp1, dim=0).shape) == [1, 2, 3, bittensor.__network_dim__]
+
+def test_dendrite_forward_text_multiple_endpoints_tensor():
+    endpoints_1 = neuron_obj.to_tensor()
+    endpoints_2 = neuron_obj.to_tensor()
+    endpoints = torch.stack( [endpoints_1, endpoints_2], dim=0)
+    x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
+    resp1, _ = dendrite.forward_text( endpoints, x )
+    assert list(torch.stack(resp1, dim=0).shape) == [2, 2, 3, bittensor.__network_dim__]
+
+def test_dendrite_forward_text_multiple_endpoints_tensor_list():
+    endpoints_1 = neuron_obj.to_tensor()
+    endpoints_2 = neuron_obj.to_tensor()
+    endpoints_3 = neuron_obj.to_tensor()
+    endpoints = [torch.stack( [endpoints_1, endpoints_2], dim=0), endpoints_3]
+    x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
+    resp1, _ = dendrite.forward_text( endpoints, x )
+    assert list(torch.stack(resp1, dim=0).shape) == [3, 2, 3, bittensor.__network_dim__]
+
+def test_dendrite_forward_text_singular():
+    x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
+    resp1, _ = dendrite.forward_text( [neuron_obj], x )
+    assert list(torch.stack(resp1, dim=0).shape) == [1, 2, 3, bittensor.__network_dim__]
+    resp2, _ = dendrite.forward_text( [neuron_obj], [x] )
+    assert list(torch.stack(resp2, dim=0).shape) == [1, 2, 3, bittensor.__network_dim__]
+    resp3, _ = dendrite.forward_text( [neuron_obj, neuron_obj], x )
+    assert list(torch.stack(resp3, dim=0).shape) == [2, 2, 3, bittensor.__network_dim__]
+    with pytest.raises(ValueError):
+        dendrite.forward_text( [neuron_obj, neuron_obj], [x] )
+
+def test_dendrite_forward_text_singular_no_batch_size():
+    x = torch.tensor( [ 1,2,3 ] )
+    resp1, _ = dendrite.forward_text( [neuron_obj], x )
+    assert list(torch.stack(resp1, dim=0).shape) == [1, 1, 3, bittensor.__network_dim__]
+    resp2, _ = dendrite.forward_text( [neuron_obj], [x] )
+    assert list(torch.stack(resp2, dim=0).shape) == [1, 1, 3, bittensor.__network_dim__]
+    resp3, _ = dendrite.forward_text( [neuron_obj, neuron_obj], x )
+    assert list(torch.stack(resp3, dim=0).shape) == [2, 1, 3, bittensor.__network_dim__]
+    with pytest.raises(ValueError):
+        dendrite.forward_text( [neuron_obj, neuron_obj], [x] )
+
+def test_dendrite_forward_text_tensor_list_singular():
+    x = [ torch.tensor( [ 1,2,3 ] ) for _ in range(2) ]
+    with pytest.raises(ValueError):
+        resp1, _ = dendrite.forward_text( [neuron_obj], x )
+    resp1, _ = dendrite.forward_text( [neuron_obj, neuron_obj], x )
+    assert list(torch.stack(resp1, dim=0).shape) == [2, 1, 3, bittensor.__network_dim__]
+
+def test_dendrite_forward_text_tensor_list():
+    x = [ torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] ) for _ in range(2) ]
+    with pytest.raises(ValueError):
+        resp1, _ = dendrite.forward_text( [neuron_obj], x )
+    resp1, _ = dendrite.forward_text( [neuron_obj, neuron_obj], x )
+    assert list(torch.stack(resp1, dim=0).shape) == [2, 2, 3, bittensor.__network_dim__]
+
+def test_dendrite_forward_text_singular_string():
+    x = "the cat"
+    resp1, _ = dendrite.forward_text( [neuron_obj], x )
+    assert list(torch.stack(resp1, dim=0).shape) == [1, 1, 2, bittensor.__network_dim__]
+    resp2, _ = dendrite.forward_text( [neuron_obj], [x] )
+    assert list(torch.stack(resp2, dim=0).shape) == [1, 1, 2, bittensor.__network_dim__]
+    resp3, _ = dendrite.forward_text( [neuron_obj, neuron_obj], x )
+    assert list(torch.stack(resp3, dim=0).shape) == [2, 1, 2, bittensor.__network_dim__]
+    resp4, _ = dendrite.forward_text( [neuron_obj, neuron_obj], [x] )
+    assert list(torch.stack(resp4, dim=0).shape) == [2, 1, 2, bittensor.__network_dim__]
+
+def test_dendrite_forward_text_list_string():
+    x = ["the cat", 'the dog', 'the very long sentence that needs to be padded']
+    resp1, _ = dendrite.forward_text( [neuron_obj], x )
+    assert list(torch.stack(resp1, dim=0).shape) == [1, 3, 9, bittensor.__network_dim__]
+    resp2, _ = dendrite.forward_text( [neuron_obj, neuron_obj], x )
+    assert list(torch.stack(resp2, dim=0).shape) == [2, 3, 9, bittensor.__network_dim__]
 
 def test_dendrite_forward_tensor_shape_error():
     x = torch.rand(3, 3, 3, dtype=torch.float32)
@@ -84,4 +162,14 @@ if __name__ == "__main__":
     # test_dendrite_forward_text ()
     # test_dendrite_forward_image ()
     # test_dendrite_forward_tensor ()
-    test_dendrite_backoff ()
+    # test_dendrite_backoff ()
+    # test_dendrite_forward_text_singular_no_batch_size()
+    # test_dendrite_forward_text_singular()
+    # test_dendrite_forward_text_singular_string()
+    # test_dendrite_forward_text_list_string()
+    # test_dendrite_forward_text_tensor_list_singular()
+    # test_dendrite_forward_text_tensor_list()
+    # test_dendrite_forward_text_endpoints_tensor()
+    # test_dendrite_forward_text_multiple_endpoints_tensor()
+    # test_dendrite_forward_text_multiple_endpoints_tensor_list()
+    test_dendrite_forward_text_endpoints_tensor()

@@ -21,17 +21,24 @@ import bittensor
 
 class tokenizer:
 
+    cached_tokenizer_for_version: dict = {}
+
     def __new__( cls, version: str = None ):
         if version == None:
             version = bittensor.__version__
-        return tokenizer.get_tokenizer_for_version( version )
+        if version not in cls.cached_tokenizer_for_version:
+            tokenizer = cls.get_tokenizer_for_version( version )
+            cls.cached_tokenizer_for_version[ version ] = tokenizer
+        else:
+            tokenizer = cls.cached_tokenizer_for_version[ version ]
+        return tokenizer
         
     # Tokenizer
     # NOTE (const): tokenizers are guaranteed to improve and expand as time progresses. We version the tokenizer here.
     # neurons must be aware that versions will increase and be ready to convert between tokenizers.
     # TODO (const): Add functionality to allow tokenizer conversion. i.e. for input token conversion.
-    @staticmethod
-    def get_tokenizer_for_version( version = bittensor.__version__ ):
+    @classmethod
+    def get_tokenizer_for_version( cls, version = bittensor.__version__ ):
 
         tokenizer = GPT2Tokenizer.from_pretrained("gpt2", local_files_only=False)
         tokenizer.padding_side = "left"
