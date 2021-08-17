@@ -147,12 +147,12 @@ class axon:
         if modality == bittensor.proto.Modality.TEXT:
             sample_input = torch.randint(0,1,(3, 3))
             grads_raw = torch.rand(3, 3)
-            backward_callback(pubkey,sample_input,sample_input)
+            backward_callback(pubkey,sample_input,grads_raw)
 
         if modality == bittensor.proto.Modality.IMAGE:
             sample_input = torch.rand(1,1,3,512,512)
             grads_raw = torch.rand(512, 512, bittensor.__network_dim__)
-            backward_callback(pubkey,sample_input,sample_input)
+            backward_callback(pubkey,sample_input,grads_raw)
 
         if modality == bittensor.proto.Modality.TENSOR:
             sample_input = torch.rand(1,1,1)
