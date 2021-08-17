@@ -488,12 +488,12 @@ class Miner:
             def call(input,grad):
                 with torch.enable_grad():
                     # ---- Set up inputs for gradient computations.
-                    outputs_y = self.nucleus.local_forward( inputs = inputs_x ).local_context.to( self.device )
+                    outputs_y = self.nucleus.local_forward( inputs = input ).local_context.to( self.device )
                     # ---- The backward call will accumulate gradients on our parameters.
                 
                     torch.autograd.backward (
                         tensors = [outputs_y],
-                        grad_tensors = [grads_dy]
+                        grad_tensors = [grad]
                     )
                     return inputs_x.grad if inputs_x.grad != None else None                    
 
