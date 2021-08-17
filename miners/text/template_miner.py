@@ -536,9 +536,13 @@ class Miner:
         state_dict = self.get_saved_state()
 
         # --- loads and syncs metagraph
-        bittensor.neuron.metagraph.load()
-        bittensor.neuron.metagraph.sync()
-        bittensor.neuron.metagraph.save()
+        try:
+            bittensor.neuron.metagraph.load()
+            bittensor.neuron.metagraph.sync()
+            bittensor.neuron.metagraph.save()
+        except:
+            bittensor.neuron.metagraph.sync()
+            bittensor.neuron.metagraph.save()
 
         # ---- Load training state.
         self.epoch = state_dict['epoch']
