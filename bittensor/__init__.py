@@ -158,7 +158,10 @@ class Neuron():
     def __enter__(self):
         # ---- Setup Wallet. ----
         self.wallet.create()
-        self.metagraph.load().sync().save()
+        try:
+            self.metagraph.load().sync().save()
+        except:
+            self.metagraph.sync().save()
         self.axon.start().subscribe (
             use_upnpc = self.config.neuron.use_upnpc, 
             subtensor = self.subtensor
