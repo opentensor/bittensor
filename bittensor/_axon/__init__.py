@@ -196,6 +196,8 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
     def intercept_service(self, continuation, handler_call_details):
         meta = handler_call_details.invocation_metadata
+        print(meta)
+        logger.info(meta[0])
 
         if meta and meta[0] == self._valid_metadata:
             return continuation(handler_call_details)
