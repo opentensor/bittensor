@@ -83,7 +83,10 @@ class axon:
         if thread_pool == None:
             thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
         if server == None:
-            server = grpc.server( thread_pool, maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs )
+            server = grpc.server( thread_pool,
+                                  interceptors=(AuthInterceptor('access_key'),),
+                                  maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
+                                )
 
         forwards = [forward_text, forward_image, forward_tensor]
         backwards = [backward_text, backward_image, backward_tensor]
@@ -181,3 +184,20 @@ class axon:
         if modality == bittensor.proto.Modality.TENSOR:
             sample_input = torch.rand(1,1,1)
             forward_callback(pubkey,sample_input)
+
+class AuthInterceptor(grpc.ServerInterceptor):
+    def __init__(self, key):
+        self._valid_metadata = ('rpc-auth-header', key)
+
+        def deny(_, context):
+            context.abort(grpc.StatusCode.UNAUTHENTICATED, 'Invalid key')
+
+        self._deny = grpc.unary_unary_rpc_method_handler(deny)
+
+    def intercept_service(self, continuation, handler_call_details):
+        meta = handler_call_details.invocation_metadata
+
+        if meta and meta[0] == self._valid_metadata:
+            return continuation(handler_call_details)
+        else:
+            return self._deny
