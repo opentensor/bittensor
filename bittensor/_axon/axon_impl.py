@@ -104,7 +104,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         tensor, code, message = self._forward( request )
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
-            hotkey = self.wallet.hotkey.public_key, 
+            hotkey = self.wallet.pubkey, 
             return_code = code,
             message = message,
             tensors = [tensor] if tensor is not None else [],
@@ -132,7 +132,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         tensor, code, message = self._backward( request )
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
-            hotkey = self.wallet.hotkey.public_key, 
+            hotkey = self.wallet.pubkey, 
             return_code = code,
             message = message,
             tensors = [tensor] if tensor is not None else [],
@@ -603,7 +603,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
     def check(self):
         r""" Checks axon's forward and backward callbacks 
         """
-        pubkey = ss58_encode(self.wallet.hotkey.public_key)
+        pubkey = self.wallet.pubkey
         for index,forward in enumerate(self.forward_callback):
             if forward != None:
                 bittensor.axon.check_forward_callback(forward,index,pubkey)

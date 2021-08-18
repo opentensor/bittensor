@@ -239,7 +239,7 @@ class Receptor(nn.Module):
             # ---- Build request ----
             request = bittensor.proto.TensorMessage (
                 version = bittensor.__version_as_int__,
-                hotkey = ss58_encode(self.wallet.hotkey.public_key),
+                hotkey = self.wallet.pubkey,
                 nounce = self.nounce,
                 signature = self.signature,
                 tensors = [serialized_inputs]
@@ -414,7 +414,7 @@ class Receptor(nn.Module):
         try:
             request = bittensor.proto.TensorMessage(
                 version = bittensor.__version_as_int__,
-                hotkey = ss58_encode(self.wallet.hotkey.public_key),
+                hotkey = self.wallet.pubkey,
                 nounce = self.nounce,
                 signature = self.signature,
                 tensors = [serialized_inputs, serialized_grads]

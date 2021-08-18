@@ -27,10 +27,10 @@ logger = logger.opt(colors=True)
 
 import bittensor
 from substrateinterface import Keypair
+from substrateinterface.utils.ss58 import ss58_encode
 from bittensor.utils.cli_utils import cli_utils
 from bittensor._crypto import encrypt, is_encrypted, decrypt_data, KeyError
 from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
-from bittensor._crypto.keyfiles import KeyFileError, load_keypair_from_data
 
 class Wallet():
     """
@@ -208,6 +208,20 @@ class Wallet():
             os.path.join(self._path_string, self._name_string)
         )
         return os.path.join(full_path, "hotkeys", self._hotkey_string)
+
+    @property
+    def pubkey(self) -> str:
+        r""" Loads the hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey and returns encoded public key.
+            Returns:
+                pubkey (Str):
+                    ss58 encoded public key of the hotkey loaded from config arguments.
+            Raises:
+                KeyFileError: Raised if the file is corrupt of non-existent.
+                KeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
+        """
+        if self._hotkey == None:
+            self._hotkey = self._load_hotkey()
+        return ss58_encode(self._hotkey.public_key)
 
     def _load_coldkeypub(self) -> str:
         if not os.path.isfile( self.coldkeypubfile ):

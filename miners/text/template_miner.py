@@ -617,7 +617,7 @@ class Miner:
     def logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
         r""" Called after every training step. Displays miner state to screen.
         """
-        self_uid = bittensor.neuron.metagraph.hotkeys.index( ss58_encode(bittensor.neuron.wallet.hotkey.public_key ))
+        self_uid = bittensor.neuron.metagraph.hotkeys.index(bittensor.neuron.wallet.pubkey)
         stake = bittensor.neuron.metagraph.S[ self_uid ].item()
         rank = bittensor.neuron.metagraph.R[ self_uid ].item()
         incentive = bittensor.neuron.metagraph.I[ self_uid ].item()
@@ -655,11 +655,11 @@ class Miner:
             if self.nucleus.chain_weights[uid] != 0:
                 weight_dif = -self.nucleus.chain_weights.grad[uid]
                 if weight_dif > 0:
-                    info[colored(str(uid), 'green')] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'green')
+                    info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'green')
                 elif weight_dif == 0:
                     info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'white')
                 else:
-                    info[colored(str(uid), 'red')] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
+                    info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
                 if self.config.neuron.use_wandb:
                     wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
         if self.config.neuron.use_wandb:
