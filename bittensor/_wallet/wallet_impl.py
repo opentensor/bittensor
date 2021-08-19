@@ -131,7 +131,23 @@ class Wallet():
             print (e)
             return bittensor.Balance(0)
 
-    def add_stake( self, 
+    def subscribe ( 
+        self,
+        axon: 'bittensor.Axon',
+        subtensor: 'bittensor.Subtensor' = None,
+    ):
+        # ---- Subscribe to chain ----
+        subscribe_success = subtensor.subscribe(
+                wallet = self,
+                ip = axon.external_ip,
+                port = axon.external_port,
+                wait_for_finalization = True,
+        )
+        if not subscribe_success:
+            raise RuntimeError('Failed to subscribe neuron.')
+        
+
+    def add_stake ( self, 
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -165,7 +181,7 @@ class Wallet():
             subtensor = bittensor.subtensor()
         return subtensor.add_stake( wallet = self, amount = amount, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
 
-    def remove_stake( self, 
+    def remove_stake ( self, 
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,

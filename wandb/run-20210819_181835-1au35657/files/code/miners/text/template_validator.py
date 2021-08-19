@@ -27,7 +27,6 @@ import torch
 import time
 import wandb
 import datetime
-from termcolor import colored
 import torch.nn.functional as F
 from qqdm import qqdm, format_str
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
@@ -89,13 +88,13 @@ def main( config ):
             self.loss_fct = torch.nn.CrossEntropyLoss()
             self.chain_weights = torch.nn.Parameter(torch.ones( [ metagraph.n.item() ] , requires_grad=True))
 
-        def forward( self, inputs ):
+        def forward( self ):
             remote_hidden = self.remote( inputs.to( device ) )
             encoded_hidden = self.encoder( remote_hidden )
             decoded_targets = self.decoder ( encoded_hidden )
 
             # Compute loss.
-            shift_logits = decoded_targets[..., :-1, :].contiguous()
+            shift_logits = decoded_targets.local_target[..., :-1, :].contiguous()
             shift_labels = inputs[..., 1:].contiguous()     
             loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
             return loss, decoded_targets
@@ -127,7 +126,7 @@ def main( config ):
             return output
 
     # Create validator model.
-    validator = Validator( config = config).to(device)
+    validator = Validator( config = config)
 
     # Create our optimizer.
     optimizer = torch.optim.SGD(
@@ -144,7 +143,7 @@ def main( config ):
             group = wallet.hotkey.ss58_address[:20],
             save_code = True
         ):
-        wandb.watch( validator, log = 'all', log_freq = 10 )
+        wandb.watch( validator.chain_weights, log = 'all', log_freq = 10 )
 
         # --- Run Forever.
         while True:
@@ -153,38 +152,26 @@ def main( config ):
             batches = dataset.dataloader( config.miner.epoch_length )
             progress_bar = qqdm(enumerate(batches), total=len(batches), desc=format_str('blue', f'Epoch Progress'))
             for _, (inputs) in progress_bar:
-
-                # Training step.
-                optimizer.zero_grad() 
                 loss, _ = validator( inputs )
                 loss.backward()
                 optimizer.step()
-
-                # Take topk chain weights.
-                real_topk = min( config.miner.n_topk_chain_weights, metagraph.n.item() ) 
-                topk_weights, topk_uids = torch.topk( validator.chain_weights, k = real_topk )
-                normalized_topk_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
-
-                # Step logs.
-                info = { 'Loss': colored('{:.4f}'.format(loss.item()), 'green')}
-                for uid in range( metagraph.n.item() ):
-                    weight_grad = validator.chain_weights.grad[ uid ]
-                    info[ str(uid) ] = colored('{:.4f}'.format(normalized_topk_weights[ uid ]), 'green' if weight_grad < 0 else 'red')
-                progress_bar.set_infos( info )
+                optimizer.zero_grad() 
 
             # ---  Set mechanism weights.
-            subtensor.set_weights (
+            real_topk = min( config.miner.n_topk_chain_weights, metagraph.n.item() ) 
+            topk_weights, topk_uids = torch.topk( validator.chain_weights, k = real_topk )
+            normalized_topk_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
+            did_set = subtensor.set_weights(
                 uids = topk_uids,
                 weights = normalized_topk_weights,
-                wait_for_inclusion = False,
+                wait_for_inclusion = True,
                 wallet = wallet,
             )    
 
             # --- Sync + reshape.      
             metagraph.sync().save()
-            chain_growth = metagraph.n.item() - torch.numel(validator.chain_weights)
-            expanded_weights = torch.nn.Parameter(torch.cat( [validator.chain_weights, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)]))
-            validator.chain_weights = expanded_weights.to(device)
+            chain_growth = metagraph.n.item() - torch.numel(chain_growth)
+            validator.chain_weights = torch.nn.Parameter(torch.cat( [validator.chain_weights, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)]))
             optimizer = torch.optim.SGD(
                 [ {"params": validator.parameters()} ],
                 lr = config.miner.learning_rate,
@@ -199,8 +186,8 @@ def main( config ):
                 'Rank': metagraph.R[ uid ].item(),
                 'Incentive': metagraph.I[ uid ].item(),
             } 
-            for uid_j, val in enumerate(validator.chain_weights.tolist()):
-                wand_data[ 'w_{},{}'.format( uid, uid_j ) ] = val
+            for uid_j, val in enumerate(metagraph.W[uid,:].tolist()):
+                wand_data[ 'w_\{{},{}\}'.format( uid, uid_j ) ] = val
             wandb.log( wand_data )
             time.sleep( 10 * bittensor.__blocktime__ )
 

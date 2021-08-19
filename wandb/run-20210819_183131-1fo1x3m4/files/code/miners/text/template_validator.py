@@ -160,29 +160,27 @@ def main( config ):
                 loss.backward()
                 optimizer.step()
 
-                # Take topk chain weights.
-                real_topk = min( config.miner.n_topk_chain_weights, metagraph.n.item() ) 
-                topk_weights, topk_uids = torch.topk( validator.chain_weights, k = real_topk )
-                normalized_topk_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
-
                 # Step logs.
-                info = { 'Loss': colored('{:.4f}'.format(loss.item()), 'green')}
+                info = { 'Loss': colored('{:.4f}'.format(loss.item()), 'gree')}
                 for uid in range( metagraph.n.item() ):
                     weight_grad = validator.chain_weights.grad[ uid ]
-                    info[ str(uid) ] = colored('{:.4f}'.format(normalized_topk_weights[ uid ]), 'green' if weight_grad < 0 else 'red')
+                    info[ uid ] = colored('{:.4f}'.format(weight_grad), 'green' if weight_grad < 0 else 'red')
                 progress_bar.set_infos( info )
 
             # ---  Set mechanism weights.
-            subtensor.set_weights (
+            real_topk = min( config.miner.n_topk_chain_weights, metagraph.n.item() ) 
+            topk_weights, topk_uids = torch.topk( validator.chain_weights, k = real_topk )
+            normalized_topk_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
+            did_set = subtensor.set_weights(
                 uids = topk_uids,
                 weights = normalized_topk_weights,
-                wait_for_inclusion = False,
+                wait_for_inclusion = True,
                 wallet = wallet,
             )    
 
             # --- Sync + reshape.      
             metagraph.sync().save()
-            chain_growth = metagraph.n.item() - torch.numel(validator.chain_weights)
+            chain_growth = metagraph.n.item() - torch.numel(chain_growth)
             expanded_weights = torch.nn.Parameter(torch.cat( [validator.chain_weights, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)]))
             validator.chain_weights = expanded_weights.to(device)
             optimizer = torch.optim.SGD(
@@ -199,8 +197,8 @@ def main( config ):
                 'Rank': metagraph.R[ uid ].item(),
                 'Incentive': metagraph.I[ uid ].item(),
             } 
-            for uid_j, val in enumerate(validator.chain_weights.tolist()):
-                wand_data[ 'w_{},{}'.format( uid, uid_j ) ] = val
+            for uid_j, val in enumerate(metagraph.W[uid,:].tolist()):
+                wand_data[ 'w_\{{},{}\}'.format( uid, uid_j ) ] = val
             wandb.log( wand_data )
             time.sleep( 10 * bittensor.__blocktime__ )
 

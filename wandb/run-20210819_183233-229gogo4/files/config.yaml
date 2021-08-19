@@ -1,0 +1,79 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.12.0
+    code_path: code/miners/text/template_validator.py
+    framework: huggingface
+    huggingface_version: 4.5.1
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    python_version: 3.8.11
+    start_time: 1629415953
+    t:
+      1:
+      - 1
+      - 11
+      2:
+      - 1
+      - 11
+      3:
+      - 1
+      - 2
+      4: 3.8.11
+      5: 0.12.0
+      6: 4.5.1
+      8:
+      - 5
+dataloader:
+  desc: null
+  value:
+    batch_size: 10
+    block_size: 20
+    dataset: genesis
+    max_corpus_size: 1000000.0
+    num_workers: 0
+dendrite:
+  desc: null
+  value:
+    max_active_receptors: 500
+    max_worker_threads: 150
+    requires_grad: true
+    timeout: 5
+logging:
+  desc: null
+  value:
+    debug: true
+    logging_dir: ~/.bittensor/miners
+    record_log: false
+    trace: false
+miner:
+  desc: null
+  value:
+    device: cpu
+    epoch_length: 3
+    learning_rate: 1
+    momentum: 0.8
+    n_topk_chain_weights: 100
+    topk: 20
+nucleus:
+  desc: null
+  value:
+    dropout: 0.2
+    nhead: 2
+    nhid: 200
+    nlayers: 2
+    punishment: 0.001
+    topk: 20
+subtensor:
+  desc: null
+  value:
+    chain_endpoint: null
+    network: akatsuki
+wallet:
+  desc: null
+  value:
+    hotkey: default
+    name: default
+    path: ~/.bittensor/wallets/

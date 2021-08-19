@@ -117,17 +117,16 @@ def main( config ):
             group = wallet.hotkey.ss58_address[:20],
             save_code = True
         ):
-        wandb.watch( model, log = 'all', log_freq = 10 )
 
         # --- Run Forever.
         while True:
             metagraph.sync().save()
             uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
             wandb_data = {
-                'Stake': metagraph.S[ uid ].item(),
-                'Rank': metagraph.R[ uid ].item(),
-                'Incentive': metagraph.I[ uid ].item(),
-                'Axon QPS': axon.stats.qps.value
+                'stake': metagraph.S[ uid ].item(),
+                'rank': metagraph.R[ uid ].item(),
+                'incentive': metagraph.I[ uid ].item(),
+                'axon QPS': axon.stats.qps.value
             } 
             for uid_i, val in enumerate(metagraph.W[:,uid].tolist()):
                 wandb_data[ 'w_{},{}'.format(uid_i, uid) ] = val

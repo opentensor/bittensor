@@ -424,7 +424,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             if wait_for_inclusion or wait_for_finalization:
                 response.process_events()
                 if response.is_success:
-                    bittensor.logging.success( 'Set weights', list(zip(weight_uids.tolist(), weight_vals.tolist())))
+                    bittensor.logging.success( 'Set weights', str(list(zip(weight_uids, weight_vals))))
                     return True
                 else:
                     bittensor.logging.warning( 'Failed to set weights:', str(response.error_message) )

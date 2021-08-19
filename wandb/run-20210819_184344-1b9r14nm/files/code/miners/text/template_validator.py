@@ -173,10 +173,10 @@ def main( config ):
                 progress_bar.set_infos( info )
 
             # ---  Set mechanism weights.
-            subtensor.set_weights (
+            did_set = subtensor.set_weights(
                 uids = topk_uids,
                 weights = normalized_topk_weights,
-                wait_for_inclusion = False,
+                wait_for_inclusion = True,
                 wallet = wallet,
             )    
 
@@ -199,8 +199,8 @@ def main( config ):
                 'Rank': metagraph.R[ uid ].item(),
                 'Incentive': metagraph.I[ uid ].item(),
             } 
-            for uid_j, val in enumerate(validator.chain_weights.tolist()):
-                wand_data[ 'w_{},{}'.format( uid, uid_j ) ] = val
+            for uid_j, val in enumerate(metagraph.W[uid,:].tolist()):
+                wand_data[ 'w_\{{},{}\}'.format( uid, uid_j ) ] = val
             wandb.log( wand_data )
             time.sleep( 10 * bittensor.__blocktime__ )
 

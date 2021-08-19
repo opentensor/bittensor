@@ -173,10 +173,10 @@ def main( config ):
                 progress_bar.set_infos( info )
 
             # ---  Set mechanism weights.
-            subtensor.set_weights (
+            did_set = subtensor.set_weights(
                 uids = topk_uids,
                 weights = normalized_topk_weights,
-                wait_for_inclusion = False,
+                wait_for_inclusion = True,
                 wallet = wallet,
             )    
 
