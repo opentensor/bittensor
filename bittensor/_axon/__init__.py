@@ -199,7 +199,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
     def intercept_service(self, continuation, handler_call_details):
         meta = handler_call_details.invocation_metadata
         try: 
-            print(meta)
+            print(meta[0])
             key = meta[1]
             print(key)
             #message = meta[1]
