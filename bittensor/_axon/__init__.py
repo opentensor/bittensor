@@ -200,12 +200,14 @@ class AuthInterceptor(grpc.ServerInterceptor):
         meta = handler_call_details.invocation_metadata
         try: 
             print(meta[0])
-            key = meta[1]
-            print(key)
+            key = meta[1].value
+            print(key[:48],key[48:])
             #message = meta[1]
-            #_keypair = self.keypair(ss58_address=key)
-            print(key.key,key.value)
-        except:
+            _keypair = self.keypair(ss58_address=key[:48])
+            verification = _keypair.verify(key[48:],'Bittensor Skynet 2022')
+            print(verification)
+        except Exception as e:
+            print(e)
             return self._deny
 
         if meta and meta[0] == self._valid_metadata:
