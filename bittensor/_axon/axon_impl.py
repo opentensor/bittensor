@@ -610,5 +610,4 @@ class Axon( bittensor.grpc.BittensorServicer ):
         for index, backward in  enumerate(self.backward_callback):
             if backward != None:
                 bittensor.axon.check_backward_callback(backward,index,pubkey)
-        
         return self
