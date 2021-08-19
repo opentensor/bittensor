@@ -50,7 +50,19 @@ class endpoint:
     
     @staticmethod
     def from_tensor( tensor: torch.LongTensor) -> 'bittensor.Endpoint':
+        if len(tensor.shape) == 2:
+            if tensor.shape[0] != 1:
+                error_msg = 'Endpoints tensor should have a single first dimension or none got {}'.format( tensor.shape[0] )
+                raise ValueError(error_msg)
+            tensor = tensor[0]
+
+        if tensor.shape[0] != 250:
+            error_msg = 'Endpoints tensor should be length 250, got {}'.format( tensor.shape[0] )
+            raise ValueError(error_msg)
+            
         endpoint_list = tensor.tolist()
+        if -1 in endpoint_list:
+            endpoint_list = endpoint_list[ :endpoint_list.index(-1)]
         endpoint_bytes = bytearray( endpoint_list )
         endpoint_string = endpoint_bytes.decode('utf-8')
         endpoint_dict = json.loads( endpoint_string )

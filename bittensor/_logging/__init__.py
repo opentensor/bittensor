@@ -239,6 +239,15 @@ class logging:
         logger.success( log_msg )
 
     @classmethod
+    def warning( cls, prefix:str, sufix:str ):
+        if not cls.__has_been_inited__:
+            cls()
+        prefix = prefix + ":"
+        prefix = prefix.ljust(20)
+        log_msg = prefix + sufix 
+        logger.warning( log_msg )
+
+    @classmethod
     def info( cls, prefix:str, sufix:str ):
         if not cls.__has_been_inited__:
             cls()
