@@ -19,8 +19,6 @@ def test_wallet_keypair():
     the_wallet.hotkey
     the_wallet.coldkeypub
 
-def test_wallet_add_stake():
-
 def test_wallet_uid():
     uid = the_wallet.get_uid()
     assert uid == -1 
