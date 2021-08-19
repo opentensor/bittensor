@@ -111,6 +111,7 @@ def main( config ):
             name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
             project = wallet.coldkeypub[:20],
             group = wallet.hotkey.ss58_address[:20],
+            dir = '~/.bittensor/wandb',
             save_code = True
         ):
         wandb.watch( model, log = 'all', log_freq = 10 )
