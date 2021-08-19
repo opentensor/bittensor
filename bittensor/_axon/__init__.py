@@ -204,7 +204,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             print(key[:48],key[48:])
             #message = meta[1]
             _keypair = self.keypair(ss58_address=key[:48])
-            verification = _keypair.verify(key[48:],'Bittensor Skynet 2022')
+            verification = _keypair.verify('Bittensor Skynet 2022',key[48:])
             print(verification)
         except Exception as e:
             print(e)
