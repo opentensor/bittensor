@@ -60,9 +60,9 @@ class Subtensor:
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
-            return "Subtensor ({})".format( self.chain_endpoint )
+            return "Subtensor({})".format( self.chain_endpoint )
         else:
-            return "Subtensor ({}:{})".format( self.network, self.chain_endpoint )
+            return "Subtensor({}, {})".format( self.network, self.chain_endpoint )
 
     def __repr__(self) -> str:
         return self.__str__()

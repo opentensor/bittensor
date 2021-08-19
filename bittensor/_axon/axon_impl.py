@@ -63,6 +63,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.port = port
         self.wallet = wallet
         self.server = server
+        self.started = False
         self.forward_callback = forward
         self.backward_callback = backward 
         self.stats = SimpleNamespace(
@@ -75,7 +76,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         )
 
     def __str__(self) -> str:
-        return "Axon ({}:{}:{})".format(self.ip, self.port, self.wallet.hotkey.public_key)
+        return "Axon({}, {}, {}, {})".format( self.ip, self.port, self.wallet.hotkey.ss58_address, "started" if self.started else "stopped")
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -571,6 +572,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         self.server.start()
         logger.success("Axon Started:".ljust(20) + "<blue>{}</blue>", self.ip + ':' + str(self.port))
+        self.started = True
         return self
 
     def stop(self) -> 'Axon':
@@ -579,6 +581,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         if self.server != None:
             self.server.stop( grace = 1 )
             logger.success("Axon Stopped:".ljust(20) + "<blue>{}</blue>", self.ip + ':' + str(self.port))
+        self.started = False
         return self
 
 

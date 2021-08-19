@@ -347,7 +347,7 @@ class Metagraph( torch.nn.Module ):
         return self
     
     def __str__(self):
-        return "Metagraph ({},{},{})".format(self.n.item(), self.block.item(), self.subtensor.network)
+        return "Metagraph({}, {}, {})".format(self.n.item(), self.block.item(), self.subtensor.network)
         
     def __repr__(self):
         return self.__str__()
