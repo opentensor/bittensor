@@ -21,6 +21,7 @@ Example:
     $ python miners/text/template_miner.py
 
 """
+import time
 
 import argparse
 import bittensor
@@ -341,13 +342,13 @@ class Miner:
             while self.epoch < self.config.miner.n_epochs:
                 try:
                     # ---- Train state ----
-                    self.run_epoch()
+                    #self.run_epoch()
 
                     # ---- Set weights on chain ----
-                    self.set_chain_weights()
-
+                    #self.set_chain_weights()
+                    time.sleep(10)
                     # ---- Checkpoint state ----
-                    self.checkpoint()
+                    #self.checkpoint()
 
                 except KeyboardInterrupt:
                     # --- User ended session ----
