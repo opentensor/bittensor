@@ -198,12 +198,11 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
     def intercept_service(self, continuation, handler_call_details):
         meta = handler_call_details.invocation_metadata
+        print(meta)
         if meta and meta[0] == self._valid_metadata:
             try: 
-                print(meta)
                 message = meta[1].value
                 print("pubkey:",message[:48],"signature:",message[48:])
-                #message = meta[1]
                 _keypair = self.keypair(ss58_address=message[:48])
                 verification = _keypair.verify('Bittensor Skynet 2022',message[48:])
                 if verification:
@@ -211,6 +210,5 @@ class AuthInterceptor(grpc.ServerInterceptor):
             except Exception as e:
                 print(e)
                 return self._deny
-                
         else:
             return self._deny
