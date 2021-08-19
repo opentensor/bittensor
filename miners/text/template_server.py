@@ -27,7 +27,6 @@ import torch
 import time
 import wandb
 import datetime
-from torch.nn.utils import clip_grad_norm_
 from transformers import BertModel, BertConfig
 
 def config ():
@@ -35,6 +34,7 @@ def config ():
     parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=1)
     parser.add_argument('--miner.momentum', type=float, help='optimizer momentum.', default=0.8)
     parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
+    parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
     bittensor.wallet.add_args( parser )
     bittensor.axon.add_args( parser )
     bittensor.subtensor.add_args( parser )
@@ -55,6 +55,8 @@ def main( config ):
     ).load().sync().save()
 
     # Instantiate the model we are going to serve on the network.
+    # Miner training device.
+    device = torch.device( device = config.miner.device)
     model = BertModel( 
         BertConfig (
             vocab_size = bittensor.__vocab_size__,
@@ -74,7 +76,8 @@ def main( config ):
             position_embedding_type = "absolute",
             use_cache = True,
         )
-    )
+    ).to( device )
+
     # Create our optimizer.
     optimizer = torch.optim.SGD(
         [ {"params": model.parameters()} ],
@@ -84,16 +87,16 @@ def main( config ):
 
     # Define our forward function.
     def forward_text ( pubkey, inputs_x, modality ):
-        return model( inputs_x )
+        return model( inputs_x.to(device) ).last_hidden_state
 
     # Define our backward function.
-    def backward_text ( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ):
+    def backward_text ( pubkey:str, inputs_x, grads_dy, modality ):
         with torch.enable_grad():
             inputs_x.requires_grad = True
-            outputs_y = model( inputs_x )
+            outputs_y = model( inputs_x.to(device) ).last_hidden_state
             torch.autograd.backward (
-                tensors = [ outputs_y ],
-                grad_tensors = [ grads_dy ]
+                tensors = [ outputs_y.to(device) ],
+                grad_tensors = [ grads_dy.to(device) ]
             )
             optimizer.step() # Applies accumulated gradients.
             optimizer.zero_grad() 
@@ -111,7 +114,6 @@ def main( config ):
             name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
             project = wallet.coldkeypub[:20],
             group = wallet.hotkey.ss58_address[:20],
-            dir = '~/.bittensor/wandb',
             save_code = True
         ):
         wandb.watch( model, log = 'all', log_freq = 10 )
