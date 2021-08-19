@@ -200,10 +200,10 @@ class AuthInterceptor(grpc.ServerInterceptor):
         meta = handler_call_details.invocation_metadata
         try: 
             print(meta)
-            key = meta[1]['bittensor'][:48]
-            message = meta[1]['bittensor'][48:]
+            key = meta[1]
+            #message = meta[1]
             _keypair = self.keypair(ss58_address=key)
-            print(key,message)
+            print(key.key,key.value)
         except:
             return self._deny
 
