@@ -75,7 +75,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         )
 
     def __str__(self) -> str:
-        return "Axon ({}:{}:{})".format(self.ip, self.port, self.wallet.hotkey.publickey)
+        return "Axon ({}:{}:{})".format(self.ip, self.port, self.wallet.hotkey.public_key)
 
     def __repr__(self) -> str:
         return self.__str__()
