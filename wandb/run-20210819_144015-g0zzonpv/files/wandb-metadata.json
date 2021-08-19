@@ -1,0 +1,22 @@
+{
+    "os": "macOS-11.4-x86_64-i386-64bit",
+    "python": "3.8.11",
+    "heartbeatAt": "2021-08-19T19:40:17.600868",
+    "startedAt": "2021-08-19T19:40:15.754391",
+    "docker": null,
+    "cpu_count": 16,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "./miners/text/template_client.py",
+    "codePath": "miners/text/template_client.py",
+    "git": {
+        "remote": "https://github.com/opentensor/bittensor.git",
+        "commit": "e4ddb77aeedd72f95a1f17474b4247ba02153b6a"
+    },
+    "email": "jake@bittensor.com",
+    "root": "/Users/const/Workspace/bittensor",
+    "host": "Jacobs-MacBook-Pro.local",
+    "username": "const",
+    "executable": "/usr/local/opt/python@3.8/bin/python3.8"
+}

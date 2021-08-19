@@ -556,7 +556,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 port = self.external_port,
                 modality = modality,
                 wait_for_finalization = True,
-                timeout = 4 * bittensor.__blocktime__,
         )
         if not subscribe_success:
             raise RuntimeError('Failed to subscribe neuron.')

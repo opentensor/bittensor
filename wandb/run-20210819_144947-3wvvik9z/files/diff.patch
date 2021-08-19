@@ -1,0 +1,12 @@
+diff --git a/bittensor/_axon/axon_impl.py b/bittensor/_axon/axon_impl.py
+index 3f0715e..573410b 100644
+--- a/bittensor/_axon/axon_impl.py
++++ b/bittensor/_axon/axon_impl.py
+@@ -556,7 +556,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
+                 port = self.external_port,
+                 modality = modality,
+                 wait_for_finalization = True,
+-                timeout = 4 * bittensor.__blocktime__,
+         )
+         if not subscribe_success:
+             raise RuntimeError('Failed to subscribe neuron.')
