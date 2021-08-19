@@ -85,7 +85,7 @@ class axon:
             thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
         if server == None:
             server = grpc.server( thread_pool,
-                                  interceptors=(AuthInterceptor('access_key',Keypair),),
+                                  interceptors=(AuthInterceptor('Bittensor',Keypair),),
                                   maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
                                 )
 
@@ -198,19 +198,19 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
     def intercept_service(self, continuation, handler_call_details):
         meta = handler_call_details.invocation_metadata
-        try: 
-            print(meta[0])
-            key = meta[1].value
-            print(key[:48],key[48:])
-            #message = meta[1]
-            _keypair = self.keypair(ss58_address=key[:48])
-            verification = _keypair.verify('Bittensor Skynet 2022',key[48:])
-            print(verification)
-        except Exception as e:
-            print(e)
-            return self._deny
-
         if meta and meta[0] == self._valid_metadata:
-            return continuation(handler_call_details)
+            try: 
+                print(meta)
+                message = meta[1].value
+                print("pubkey:",message[:48],"signature:",message[48:])
+                #message = meta[1]
+                _keypair = self.keypair(ss58_address=message[:48])
+                verification = _keypair.verify('Bittensor Skynet 2022',message[48:])
+                if verification:
+                    return continuation(handler_call_details)
+            except Exception as e:
+                print(e)
+                return self._deny
+                
         else:
             return self._deny
