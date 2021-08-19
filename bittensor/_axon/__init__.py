@@ -201,8 +201,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
         try: 
             print(meta)
             key = meta[1]
+            print(key)
             #message = meta[1]
-            _keypair = self.keypair(ss58_address=key)
+            #_keypair = self.keypair(ss58_address=key)
             print(key.key,key.value)
         except:
             return self._deny
