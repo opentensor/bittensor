@@ -15,10 +15,10 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-""" The Exodus base client.
+""" The Exodus base validator
 
 Example:
-    $ python miners/text/template_client.py
+    $ python miners/text/template_validator.py
 
 """
 import argparse
@@ -50,10 +50,11 @@ def main( config ):
     # Load/Create our bittensor wallet.
     wallet = bittensor.wallet( config = config ).create()
 
+    # Connect to the chain.
+    subtensor = bittensor.subtensor( config = config )
+
     # Load/Sync/Save our metagraph.
-    metagraph = bittensor.metagraph ( 
-        subtensor = bittensor.subtensor( config = config )
-    ).load().sync().save()
+    metagraph = bittensor.metagraph ( subtensor = subtensor ).load().sync().save()
 
     # Instantiate the model we are going to serve on the network.
     # Miner training device.
@@ -86,29 +87,6 @@ def main( config ):
         momentum = config.miner.momentum,
     )
 
-    # Define our forward function.
-    def forward_text ( pubkey, inputs_x, modality ):
-        return model( inputs_x.to(device) ).last_hidden_state
-
-    # Define our backward function.
-    def backward_text ( pubkey:str, inputs_x, grads_dy, modality ):
-        with torch.enable_grad():
-            inputs_x.requires_grad = True
-            outputs_y = model( inputs_x.to(device) ).last_hidden_state
-            torch.autograd.backward (
-                tensors = [ outputs_y.to(device) ],
-                grad_tensors = [ grads_dy.to(device) ]
-            )
-            optimizer.step() # Applies accumulated gradients.
-            optimizer.zero_grad() 
-
-    # Create our axon server and subscribe it to the network.
-    axon = bittensor.axon (
-        wallet = wallet,
-        forward = forward_text,
-        backward = backward_text,
-    ).start().subscribe()
-
     # --- Init Wandb.
     with wandb.init (
             config = config, 
@@ -123,16 +101,16 @@ def main( config ):
         while True:
             metagraph.sync().save()
             uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
-            wandb_data = {
+            wand_data = {
                 'Stake': metagraph.S[ uid ].item(),
                 'Rank': metagraph.R[ uid ].item(),
                 'Incentive': metagraph.I[ uid ].item(),
                 'Axon QPS': axon.stats.qps.value
             } 
             for uid_i, val in enumerate(metagraph.W[:,uid].tolist()):
-                wandb_data[ 'w_{},{}'.format(uid_i, uid) ] = val
-            wandb.log( wandb_data )
-            time.sleep( 10 * bittensor.__blocktime__ )
+                wand_data[ 'w_\{{},{}\}'.format(uid_i, uid) ] = val
+            wandb.log( wand_data )
+            time.sleep( 30 * bittensor.__blocktime__ )
 
 if __name__ == "__main__":
     conf = config()

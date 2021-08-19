@@ -132,7 +132,7 @@ def main( config ):
             for uid_i, val in enumerate(metagraph.W[:,uid].tolist()):
                 wandb_data[ 'w_{},{}'.format(uid_i, uid) ] = val
             wandb.log( wandb_data )
-            time.sleep( 10 * bittensor.__blocktime__ )
+            time.sleep( 30 * bittensor.__blocktime__ )
 
 if __name__ == "__main__":
     conf = config()
