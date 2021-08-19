@@ -24,6 +24,7 @@ import grpc
 import inspect
 import torch
 from . import axon_impl
+from substrateinterface import Keypair
 
 
 
@@ -84,7 +85,7 @@ class axon:
             thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
         if server == None:
             server = grpc.server( thread_pool,
-                                  interceptors=(AuthInterceptor('access_key'),),
+                                  interceptors=(AuthInterceptor('access_key',Keypair),),
                                   maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
                                 )
 
@@ -186,8 +187,9 @@ class axon:
             forward_callback(pubkey,sample_input)
 
 class AuthInterceptor(grpc.ServerInterceptor):
-    def __init__(self, key):
+    def __init__(self, key,keypair):
         self._valid_metadata = ('rpc-auth-header', key)
+        self.keypair = keypair
 
         def deny(_, context):
             context.abort(grpc.StatusCode.UNAUTHENTICATED, 'Invalid key')
@@ -196,7 +198,14 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
     def intercept_service(self, continuation, handler_call_details):
         meta = handler_call_details.invocation_metadata
-        print(meta)
+        try: 
+            print(meta)
+            key = meta['bittensor'][:48]
+            message = meta['bittensor'][48:]
+            _keypair = self.keypair(ss58_address=key)
+            print(key,message)
+        except:
+            return self._deny
 
         if meta and meta[0] == self._valid_metadata:
             return continuation(handler_call_details)
