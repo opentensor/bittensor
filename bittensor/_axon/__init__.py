@@ -190,6 +190,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
     def __init__(self, key,keypair):
         self._valid_metadata = ('rpc-auth-header', key)
         self.keypair = keypair
+        self.nounce_dic = {}
 
         def deny(_, context):
             context.abort(grpc.StatusCode.UNAUTHENTICATED, 'Invalid key')
@@ -201,12 +202,24 @@ class AuthInterceptor(grpc.ServerInterceptor):
         print(meta)
         if meta and meta[0] == self._valid_metadata:
             try: 
-                nounce, pubkey, message = meta[1].value.split('bxx')
+                nounce, pubkey, message = meta[1].value.split('bitxx')
                 print("nounce",nounce,"pubkey:",pubkey,"signature:",message)
+
+                data_time = datetime.strptime(nounce,'%m%d%Y%H%M')
                 _keypair = self.keypair(ss58_address=pubkey)
-                verification = _keypair.verify(pubkey,message)
-                if verification:
-                    return continuation(handler_call_details)
+
+                if pubkey in self.nounce_dic.keys():
+                    prev_data_time = self.nounce_dic[pubkey]
+                else:
+                    self.nounce_dic[pubkey] = data_time
+
+                if data_time - prev_data_time >= 0:
+                    verification = _keypair.verify(nounce+pubkey,message)
+                    if verification:
+                        return continuation(handler_call_details)
+                else:
+                    return self._deny
+                    
             except Exception as e:
                 print(e)
                 return self._deny
