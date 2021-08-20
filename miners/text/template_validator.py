@@ -73,11 +73,11 @@ def main( config ):
     # Create Dendrite.
     dendrite = bittensor.dendrite( config = config )
 
-    # Genesis dataset.
+    # Load genesis dataset.
     dataset = bittensor.dataloader ( config = config )
 
     # Build Device.
-    device = torch.device( device = config.miner.device)
+    device = torch.device( device = config.miner.device )
 
     # Instantiate validator model.
     class Validator(torch.nn.Module):
@@ -127,7 +127,7 @@ def main( config ):
             return output
 
     # Create validator model.
-    validator = Validator( config = config).to(device)
+    validator = Validator( config = config ).to( device )
 
     # Create our optimizer.
     optimizer = torch.optim.SGD(
@@ -140,8 +140,8 @@ def main( config ):
     with wandb.init (
             config = config, 
             name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
-            project = wallet.coldkeypub[:20],
-            group = wallet.hotkey.ss58_address[:20],
+            project = wallet.coldkeypub[:8],
+            group = wallet.hotkey.ss58_address[:8],
             save_code = True
         ):
         wandb.watch( validator, log = 'all', log_freq = 10 )

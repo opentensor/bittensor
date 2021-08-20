@@ -43,6 +43,7 @@ def config ():
     return bittensor.config( parser )
 
 def main( config ):
+    print (config)
 
     # Init bittensor logging.
     bittensor.logging( config = config )
@@ -112,8 +113,8 @@ def main( config ):
     with wandb.init (
             config = config, 
             name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
-            project = wallet.coldkeypub[:20],
-            group = wallet.hotkey.ss58_address[:20],
+            project = wallet.coldkeypub[:8],
+            group = wallet.hotkey.ss58_address[:8],
             save_code = True
         ):
 
@@ -133,6 +134,4 @@ def main( config ):
             time.sleep( 10 * bittensor.__blocktime__ )
 
 if __name__ == "__main__":
-    conf = config()
-    print (conf)
-    main( conf )
+    main( config() )
