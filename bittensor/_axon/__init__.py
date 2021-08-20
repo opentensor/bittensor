@@ -201,10 +201,10 @@ class AuthInterceptor(grpc.ServerInterceptor):
         print(meta)
         if meta and meta[0] == self._valid_metadata:
             try: 
-                message = meta[1].value
-                print("pubkey:",message[:48],"signature:",message[48:])
-                _keypair = self.keypair(ss58_address=message[:48])
-                verification = _keypair.verify('Bittensor Skynet 2022',message[48:])
+                nounce, pubkey, message = meta[1].value.split('bxx')
+                print("nounce",nounce,"pubkey:",pubkey,"signature:",message)
+                _keypair = self.keypair(ss58_address=pubkey])
+                verification = _keypair.verify(pubkey,message)
                 if verification:
                     return continuation(handler_call_details)
             except Exception as e:
