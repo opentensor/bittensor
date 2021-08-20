@@ -93,7 +93,6 @@ def main( config ):
     # Define our backward function.
     def backward_text ( pubkey:str, inputs_x, grads_dy, modality ):
         with torch.enable_grad():
-            inputs_x.requires_grad = True
             outputs_y = model( inputs_x.to(device) ).last_hidden_state
             torch.autograd.backward (
                 tensors = [ outputs_y.to(device) ],
