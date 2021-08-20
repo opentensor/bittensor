@@ -25,6 +25,7 @@ import inspect
 import torch
 from . import axon_impl
 from substrateinterface import Keypair
+from datetime import datetime
 
 
 
@@ -219,7 +220,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
                         return continuation(handler_call_details)
                 else:
                     return self._deny
-                    
+
             except Exception as e:
                 print(e)
                 return self._deny
