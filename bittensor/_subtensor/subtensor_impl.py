@@ -583,7 +583,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
             if result['result'] is None:
-                return None
+                return 0
             return int(result['result'])
 
     def get_neuron_for_uid(self, uid, block: int = None) -> dict:
