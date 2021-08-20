@@ -201,7 +201,7 @@ def main( config ):
                 'Incentive': metagraph.I[ uid ].item(),
             } 
             for uid_j, val in enumerate(validator.chain_weights.tolist()):
-                wand_data[ 'w_{},{}'.format( uid, uid_j ) ] = val
+                if val != 0: wand_data[ 'w_{},{}'.format( uid, uid_j ) ] = val
             wandb.log( wand_data )
 
 if __name__ == "__main__":
