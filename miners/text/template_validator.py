@@ -203,7 +203,6 @@ def main( config ):
             for uid_j, val in enumerate(validator.chain_weights.tolist()):
                 wand_data[ 'w_{},{}'.format( uid, uid_j ) ] = val
             wandb.log( wand_data )
-            time.sleep( 10 * bittensor.__blocktime__ )
 
 if __name__ == "__main__":
     main( config() )
