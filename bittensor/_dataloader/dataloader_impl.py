@@ -1,18 +1,18 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
@@ -55,8 +55,8 @@ class Dataloader():
             status_forcelist=(500, 502, 504),
             session=None,
         ):
-        """ Creates a retriable session for request calls. This enables 
-        automatic retries and back-off retries should any request calls fail. 
+        """ Creates a retriable session for request calls. This enables
+        automatic retries and back-off retries should any request calls fail.
 
         Args:
             retries (int, optional): Maximum number of retries. Defaults to 3.
@@ -65,7 +65,7 @@ class Dataloader():
             session ([type], optional): Session for which to set up the retries. Defaults to None.
 
         Returns:
-            requests.Session(): A Requests Session object set up for retries and backoff. 
+            requests.Session(): A Requests Session object set up for retries and backoff.
         """
 
         session = session or requests.Session()
@@ -80,9 +80,9 @@ class Dataloader():
         session.mount('http://', adapter)
         session.mount('https://', adapter)
         return session
-    
+
     def retrieve_directory(self, dir_hash: str):
-        """Connects to Infura IPFS gateway and retrieves the directory of 
+        """Connects to Infura IPFS gateway and retrieves the directory of
         genesis datasets.
 
         Returns:
@@ -97,9 +97,9 @@ class Dataloader():
 
         if response.status_code == 200:
             directory = response.json()
-        
+
         return directory
-    
+
     def __len__(self):
         """ Returns length of the dataset that the dataloader is processing
         """
@@ -111,9 +111,9 @@ class Dataloader():
         pass
 
 class GenesisTextDataloader( Dataloader ):
-    
-    def __init__( 
-        self, 
+
+    def __init__(
+        self,
         block_size,
         batch_size,
         max_corpus_size,
@@ -127,15 +127,15 @@ class GenesisTextDataloader( Dataloader ):
         self.num_workers = num_workers
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
         self.dataset = dataset
-        
+
         # Retrieve a random slice of the genesis dataset
         self.data = []
 
         # Used to refresh corpus if we've exhausted the whole dataset
         self.refresh_corpus = True
-    
+
     def retrieve_text_file(self, file_hash: str):
-        """Connects to Infura IPFS gateway and retrieves the contents of 
+        """Connects to Infura IPFS gateway and retrieves the contents of
         a genesis text file.
 
         Returns:
@@ -150,14 +150,14 @@ class GenesisTextDataloader( Dataloader ):
 
         if response.status_code == 200:
             directory = response
-        
-        return directory       
+
+        return directory
 
     def construct_text_corpus(self):
         """Connects to Infura IPFS gateway and retrieves the directory of genesis datasets.
-        
+
         Returns:
-            string: Contents of the text file. 
+            string: Contents of the text file.
         """
         try:
             logger.success("Retrieving a dataset files from the IPFS gateway...")
@@ -171,7 +171,7 @@ class GenesisTextDataloader( Dataloader ):
                 directory = self.retrieve_directory(self.test_text_dataset_hash)
             elif self.dataset == 'validation':
                 directory = self.retrieve_directory(self.validation_text_dataset_hash)
-            
+
             data_corpus = []
             # Pick a random dataset file and return its contents
             if directory and 'links' in directory.keys():
@@ -191,12 +191,12 @@ class GenesisTextDataloader( Dataloader ):
                     data_corpus.extend(file_contents.text.split())
                     total_dataset_size += int(random_dataset_file['Size'])
 
-                    # Retrieve next file descriptor                     
+                    # Retrieve next file descriptor
                     random_dataset_file = random.choice(directory['links'])
                     filename = random_dataset_file['Name']
-                
+
                 return data_corpus
-                
+
 
             logger.error("It appears the directory is empty... Restart your miner to try again.")
             return None
@@ -204,14 +204,14 @@ class GenesisTextDataloader( Dataloader ):
             logger.error("Ran into exception when trying to retrieve dataset from IPFS: {}".format(ex))
 
         return None
-    
-      
+
+
     def dataloader(self, epoch_length=None):
         """ Creates a torch dataloader out of a subclass of this class.
 
         Args:
-            epoch_length (int, optional): The epoch length of the miner. If this length is not set or if it is larger than the dataset, 
-            then a dataloader for the entire dataset is returned. Otherwise, a dataloader for a subset of the dataset of epoch_length 
+            epoch_length (int, optional): The epoch length of the miner. If this length is not set or if it is larger than the dataset,
+            then a dataloader for the entire dataset is returned. Otherwise, a dataloader for a subset of the dataset of epoch_length
             is returned. Defaults to None.
 
         Returns:
@@ -223,24 +223,24 @@ class GenesisTextDataloader( Dataloader ):
             self.data = self.construct_text_corpus()
             self.refresh_corpus = False
 
-        # If epoch_length is set then we just need a slice of 
-        # the dataset we downloaded of length epoch_length. 
+        # If epoch_length is set then we just need a slice of
+        # the dataset we downloaded of length epoch_length.
         if epoch_length and epoch_length < len(self.data):
-            
-            # Set up upper bound of indices to fit the batch size we want. 
-            idx_bound = epoch_length * self.batch_size 
+
+            # Set up upper bound of indices to fit the batch size we want.
+            idx_bound = epoch_length * self.batch_size
             if idx_bound < len(self):
                 # Collect enough random indices to batch together using batch_size into epoch_length batches
                 random_start = random.randint(0, len(self) - idx_bound)
                 indices = list(range(random_start, random_start + idx_bound))
-                
+
                 subset = Subset(self, indices)
-                
+
                 # Clear out these indices from our current corpus
                 try:
                     del self.data[random_start: random_start + idx_bound]
                 except Exception:
-                    # There is too little data left over for us to delete according to our epoch_length, 
+                    # There is too little data left over for us to delete according to our epoch_length,
                     # let's get more data!
                     self.refresh_corpus = True
             else:
@@ -248,21 +248,24 @@ class GenesisTextDataloader( Dataloader ):
                 return DataLoader(self,
                             shuffle=True,
                             batch_size=self.batch_size,
-                            num_workers=self.num_workers)
+                            num_workers=self.num_workers,
+                            drop_last=True)
 
 
             # Set up dataloader
             return DataLoader(subset,
                             batch_size=self.batch_size,
-                            num_workers=self.num_workers)
-        
+                            num_workers=self.num_workers,
+                            drop_last=True)
+
         # If epoch_length is not set or it is higher than the total size of the dataset,
         #  then just shuffle dataset and return the whole thing.
         self.refresh_corpus = True
         return DataLoader(self,
                             shuffle=True,
                             batch_size=self.batch_size,
-                            num_workers=self.num_workers)
+                            num_workers=self.num_workers,
+                            drop_last=True)
 
     def __len__(self):
         """Returns length of dataset minus the block size
@@ -296,4 +299,4 @@ class GenesisTextDataloader( Dataloader ):
             return None
 
         x = torch.tensor(dix, dtype=torch.long)
-        return x    
+        return x
