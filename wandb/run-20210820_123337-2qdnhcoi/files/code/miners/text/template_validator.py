@@ -168,8 +168,8 @@ def main( config ):
 
                 # Step logs.
                 info = { 'Loss': colored('{:.4f}'.format(loss.item()), 'green')}
-                for weight, uid_j in list(zip(final_weights.tolist(), topk_uids.tolist())):
-                    if weight > 0.001: info[ str(uid_j) ] = colored('{:.4f}'.format( weight ), 'green' if validator.chain_weights.grad[ uid_j ] < 0 else 'red')
+                for weight, uid in list(zip(final_weights.tolist(), topk_uids.tolist())):
+                    if weight > 0.001: info[ str(uid) ] = colored('{:.4f}'.format( weight ), 'green' if validator.chain_weights.grad[ uid ] < 0 else 'red')
                 progress_bar.set_infos( info )
 
             # ---  Set mechanism weights.
