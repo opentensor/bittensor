@@ -13,7 +13,7 @@
 
 </div>
 
-Bittensor is a decentralized market that enables individuals to monetize intelligence production from any computer anywhere in the world. Intelligence production is validated by the other peers in the network and rewarded through token inflation. Consumers stake this currency to gain access to the produced knowledge. Bittensor is collectively-run, open-source, and open-access. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
+Bittensor is a market which monetizes intelligence production accross the internet. Validators price this information by learning to speculate on its value against unsupervised objectives. Producers who perform well are rewarded with token inflation. Consumers purchase this currency to gain access to network. Bittensor is collectively-run, open-source, and open-access. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
 
 ## Install
 
@@ -21,7 +21,7 @@ Bittensor is a decentralized market that enables individuals to monetize intelli
 $ pip3 install bittensor
 ```
 
-## Client 
+## Consumer 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1m6c4_D1FHHcZxnDJCW4F0qORWhXV_hc_?usp=sharing)
 ```python
 import bittensor
@@ -32,29 +32,64 @@ representations, _ = bittensor.dendrite( wallet = wallet ).forward_text (
     endpoints = graph.endpoints,
     inputs = "The quick brown fox jumped over the lazy dog"
 )
-representations = # Tensor with shape (N, 9, 512)
+representations = // N tensors with shape (1, 9, 512)
+...
+// Distill model. 
+...
+loss.backward() // Accumulate gradients on endpoints.
 ```
 
-## Server 
+## Producer
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12nGV6cmoZNvywb_z6E8CDzdHCQ3F7tpQ?usp=sharing)
 ```python
 import bittensor
 import torch
 from transformers import BertModel, BertConfig
 
-model = BertModel(BertConfig())
+model = BertModel( BertConfig(vocab_size = bittensor.__vocab_size__, hidden_size = bittensor.__network_dim__) )
+optimizer = torch.optim.SGD( [ {"params": model.parameters()} ], lr = 0.01 )
 
-def forward ( pubkey, inputs_x, modality ):
-  return model( inputs_x ).narrow(2, 0, bittensor.__network_dim__)
+def forward_text( pubkey, inputs_x ):
+    return model( inputs_x )
+  
+def backward_text( pubkey, inputs_x, grads_dy ):
+    with torch.enable_grad():
+        outputs_y = model( inputs_x.to(device) ).last_hidden_state
+        torch.autograd.backward (
+            tensors = [ outputs_y.to(device) ],
+            grad_tensors = [ grads_dy.to(device) ]
+        )
+        optimizer.step()
+        optimizer.zero_grad() 
 
 wallet = bittensor.wallet().create()
 axon = bittensor.axon (
     wallet = wallet,
-    forward = forward,
+    forward_text = forward_text,
+    backward_text = backward_text
 ).start().subscribe()
+```
 
-...
+## Validator 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1m6c4_D1FHHcZxnDJCW4F0qORWhXV_hc_?usp=sharing)
+```python
+import bittensor
+import torch
 
+graph = bittensor.metagraph().sync()
+dataset = bittensor.dataloader()
+chain_weights = torch.ones( [graph.n.item()], dtype = torch.float32 )
+
+for batch in dataset.dataloader( 10 ):
+    ...
+    // Train chain_weights.
+    ...
+bittensor.subtensor().set_weights (
+    weights = chain_weights,
+    uids = graph.uids,
+    wait_for_inclusion = True,
+    wallet = bittensor.wallet(),
+)
 ```
 
 ---
