@@ -28,6 +28,7 @@ import time
 import wandb
 import datetime
 from termcolor import colored
+from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from qqdm import qqdm, format_str
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
@@ -40,6 +41,7 @@ def config ():
     parser.add_argument('--miner.epoch_length', type=int, help='Iterations of training per epoch', default=100)
     parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
     parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
+    parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
     parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
     parser.add_argument('--nucleus.punishment', type=float, help='The punishment on the chain weights that do not respond ', default=0.001 )
     parser.add_argument('--nucleus.nhid', type=int, help='the dimension of the feedforward network model in nn.TransformerEncoder', default=200)
@@ -61,7 +63,7 @@ def main( config ):
 
     # Load/Create our bittensor wallet.
     wallet = bittensor.wallet( config = config ).create()
-    
+
     # Connect to the chain.
     subtensor = bittensor.subtensor( config = config )
 
@@ -156,6 +158,7 @@ def main( config ):
                 optimizer.zero_grad() 
                 loss, _ = validator( inputs )
                 loss.backward()
+                clip_grad_norm_(validator.parameters(), config.miner.clip_gradients)
                 optimizer.step()
 
                 # Take topk chain weights.
