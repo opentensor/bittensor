@@ -203,7 +203,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             try: 
                 nounce, pubkey, message = meta[1].value.split('bxx')
                 print("nounce",nounce,"pubkey:",pubkey,"signature:",message)
-                _keypair = self.keypair(ss58_address=pubkey])
+                _keypair = self.keypair(ss58_address=pubkey)
                 verification = _keypair.verify(pubkey,message)
                 if verification:
                     return continuation(handler_call_details)
