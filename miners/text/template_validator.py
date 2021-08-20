@@ -61,9 +61,7 @@ def main( config ):
 
     # Load/Create our bittensor wallet.
     wallet = bittensor.wallet( config = config ).create()
-    if wallet.get_balance().rao > 0:
-        wallet.add_stake()
-
+    
     # Connect to the chain.
     subtensor = bittensor.subtensor( config = config )
 
