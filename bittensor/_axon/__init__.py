@@ -25,7 +25,7 @@ import inspect
 import torch
 from . import axon_impl
 from substrateinterface import Keypair
-from datetime import datetime
+from datetime import datetime,timedelta
 
 
 
@@ -213,8 +213,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
                     prev_data_time = self.nounce_dic[pubkey]
                 else:
                     self.nounce_dic[pubkey] = data_time
+                    prev_data_time = self.nounce_dic[pubkey]
 
-                if data_time - prev_data_time >= 0:
+                if data_time - prev_data_time >= timedelta(seconds=0):
                     verification = _keypair.verify(nounce+pubkey,message)
                     if verification:
                         return continuation(handler_call_details)
