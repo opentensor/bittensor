@@ -24,9 +24,9 @@ Example:
 import argparse
 import bittensor
 import torch
-import time
 import wandb
 import datetime
+import os
 from termcolor import colored
 from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
@@ -142,6 +142,7 @@ def main( config ):
             name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
             project = wallet.coldkeypub[:8],
             group = wallet.hotkey.ss58_address[:8],
+            dir = os.path.expanduser('~/.bittensor/'),
             save_code = True
         ):
         wandb.watch( validator, log = 'all', log_freq = 10 )
