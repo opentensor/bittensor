@@ -72,17 +72,17 @@ message TensorMessage {
 	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
 	// SIZE: 256-bits (32-bytes)
 	string hotkey = 2;
-
+	
 	// Tensors: [REQUIRED] 1 or more tensors passed on the wire.
 	// SIZE: variable.
 	// NOTE: During backward calls the tensors should be ordered [input_1, input_2, ... grad_1, grad_2, ...] 
-	repeated Tensor tensors = 3;
+	repeated Tensor tensors = 5;
 
 	// Return codes from Backward and Forward call.
-	ReturnCode return_code = 4; 
+	ReturnCode return_code = 6; 
 
 	// Message associated with return code.
-	string message = 5; 
+	string message = 7; 
 }
 
 // Return codes from Backward and Forward call.
