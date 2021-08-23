@@ -211,8 +211,8 @@ class AuthInterceptor(grpc.ServerInterceptor):
         """
         meta = handler_call_details.invocation_metadata
         print(meta)
-
-        if meta and meta[0] == self._valid_metadata:
+        print(meta[0])
+        if meta[0] == self._valid_metadata:
             try: 
                 nounce, pubkey, message = meta[1].value.split('bitxx')
                 print("nounce",nounce,"pubkey:",pubkey,"signature:",message)
