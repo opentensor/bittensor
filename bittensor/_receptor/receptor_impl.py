@@ -255,7 +255,7 @@ class Receptor(nn.Module):
                                              metadata = (
                                                         ('rpc-auth-header','Bittensor'),
                                                         ('bittensor-signature',self.sign()),
-                                                        ('bittensor-version',bittensor.__version_as_int__),
+                                                        ('bittensor-version',str(bittensor.__version_as_int__)),
                                                         ))
                 self.stats.forward_bytes_in.update(sys.getsizeof(response))
                 self.stats.forward_elapsed_time.update((time.time() - start_time))
@@ -433,7 +433,7 @@ class Receptor(nn.Module):
                                           metadata = (
                                                     ('rpc-auth-header','Bittensor'),
                                                     ('bittensor-signature',self.sign()),
-                                                    ('bittensor-version',bittensor.__version_as_int__),
+                                                    ('bittensor-version',str(bittensor.__version_as_int__)),
                                                     ))
 
             # Get message
