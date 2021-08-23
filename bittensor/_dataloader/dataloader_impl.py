@@ -18,6 +18,7 @@
 import bittensor
 import torch
 import random
+import os
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -119,6 +120,7 @@ class GenesisTextDataloader( Dataloader ):
         max_corpus_size,
         num_workers,
         dataset,
+        data_dir
     ):
         super(GenesisTextDataloader, self).__init__()
         self.block_size = block_size
@@ -127,12 +129,51 @@ class GenesisTextDataloader( Dataloader ):
         self.num_workers = num_workers
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
         self.dataset = dataset
+        self.data_dir = data_dir
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
 
         # Used to refresh corpus if we've exhausted the whole dataset
         self.refresh_corpus = True
+
+        if not os.path.isdir(os.path.expanduser(data_dir)):
+            os.makedirs(os.path.expanduser(data_dir))
+
+    def get_text(self, file_hash: str, file_name: str):
+        """
+        Load the data from disk if it is already in the the data_dir,
+        else download it from  IPFS using retrieve_text_file and save it
+
+        Returns:
+            str: the data as string
+        """
+        text = ''
+        full_path = os.path.expanduser(os.path.join(self.data_dir, file_name))
+
+        # Load text from path
+        if (os.path.exists(full_path)):
+            try:
+                with open(full_path, mode='r') as f:
+                    text = f.read()
+                logger.success("Loaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
+            except Exception as e:
+                pass
+
+        # Download text
+        if (text == ''):
+            text = self.retrieve_text_file(file_hash).text
+            logger.success("Downloaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
+
+            # Saving text
+            try:
+                with open(full_path, mode = 'w+') as f:
+                    f.write(text)
+                    logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_name))
+            except Exception as e:
+                    logger.warning("Could not save:".ljust(20) + "<blue>{}</blue>".format(file_name))
+
+        return text
 
     def retrieve_text_file(self, file_hash: str):
         """Connects to Infura IPFS gateway and retrieves the contents of
@@ -147,7 +188,6 @@ class GenesisTextDataloader( Dataloader ):
         directory = None
 
         response = Dataloader.requests_retry_session(session=session).post(self.file_cat)
-
         if response.status_code == 200:
             directory = response
 
@@ -173,30 +213,33 @@ class GenesisTextDataloader( Dataloader ):
                 directory = self.retrieve_directory(self.validation_text_dataset_hash)
 
             data_corpus = []
+
+            # Generate a random order of the directories
+            directory_order = list(range(len(directory['links'])))
+            random.shuffle(directory_order)
+
             # Pick a random dataset file and return its contents
             if directory and 'links' in directory.keys():
                 # Let's construct a dataset!
-                random_dataset_file = random.choice(directory['links'])
-                filename = random_dataset_file['Name']
+                random_dataset_file = directory['links'][directory_order[0]]
+                file_name = random_dataset_file['Name']
                 total_dataset_size = 0
 
                 # Make sure the file we chose satisfies our maximum file size requirement
+                i = 1
                 while total_dataset_size <= self.max_corpus_size:
                     # Find file hash
                     random_dataset_file_hash = random_dataset_file['Cid']['/']
-
-                    # Retrieve file contents
-                    file_contents = self.retrieve_text_file(random_dataset_file_hash)
-                    logger.success("Added:".ljust(20) + "<blue>{}</blue>".format(filename))
-                    data_corpus.extend(file_contents.text.split())
+                    text = self.get_text(random_dataset_file_hash, file_name)
+                    data_corpus.extend(text.split())
                     total_dataset_size += int(random_dataset_file['Size'])
 
                     # Retrieve next file descriptor
-                    random_dataset_file = random.choice(directory['links'])
-                    filename = random_dataset_file['Name']
+                    random_dataset_file = directory['links'][directory_order[i]]
+                    file_name = random_dataset_file['Name']
+                    i += 1
 
                 return data_corpus
-
 
             logger.error("It appears the directory is empty... Restart your miner to try again.")
             return None
@@ -204,7 +247,6 @@ class GenesisTextDataloader( Dataloader ):
             logger.error("Ran into exception when trying to retrieve dataset from IPFS: {}".format(ex))
 
         return None
-
 
     def dataloader(self, epoch_length=None):
         """ Creates a torch dataloader out of a subclass of this class.
@@ -217,7 +259,6 @@ class GenesisTextDataloader( Dataloader ):
         Returns:
             torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
         """
-
         # If we've exhausted the dataset, retrieve another corpus.
         if self.refresh_corpus or len(self.data) <= self.block_size:
             self.data = self.construct_text_corpus()

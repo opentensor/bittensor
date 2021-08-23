@@ -3,18 +3,18 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
@@ -48,10 +48,11 @@ class dataloader:
             batch_size = config.dataloader.batch_size,
             max_corpus_size = config.dataloader.max_corpus_size,
             num_workers = config.dataloader.num_workers,
-            dataset= config.dataloader.dataset,
+            dataset = config.dataloader.dataset,
+            data_dir = config.dataloader.data_dir
         )
 
-    @classmethod   
+    @classmethod
     def config(cls) -> 'bittensor.Config':
         parser = argparse.ArgumentParser()
         dataloader.add_args( parser )
@@ -65,16 +66,16 @@ class dataloader:
             parser.add_argument('--dataloader.max_corpus_size', default=1e+6, type=int, help='Maximum amount of data to download from IPFS into memory for training.')
             parser.add_argument('--dataloader.num_workers', default=0, type=int, help='Number of workers for data loader.')
             parser.add_argument('--dataloader.dataset', default='genesis', type=str, help='Which datasets to use (genesis or wikitext)).')
+            parser.add_argument('--dataloader.data_dir', default='~/.bittensor/data/', type=str, help='Where to save and load the data.')
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
 
 
-    @classmethod   
+    @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
         assert config.dataloader.batch_size > 0, 'Batch size must be larger than 0'
         assert config.dataloader.block_size > 0, 'Block size must be larger than 0'
         assert config.dataloader.max_corpus_size > 0, 'max_corpus_size must be larger than 0'
         assert config.dataloader.num_workers >= 0, 'num_workers must be equal to or larger than 0'
         assert config.dataloader.dataset in ['genesis','wikitext','test','validation'], 'dataset must be one of the following choices: genesis, wikitext, test, or validation'
-
