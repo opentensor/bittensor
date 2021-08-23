@@ -100,7 +100,6 @@ class Subtensor:
 
 
     def connect( self, timeout: int = 10, failure = True ) -> bool:
-        start_time = time.time()
         attempted_endpoints = []
         while True:
             def connection_error_message():
@@ -127,7 +126,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
             # --- Attempt connection ----
             try:
-                with self.substrate as substrate:
+                with self.substrate:
                     logger.success("Network:".ljust(20) + "<blue>{}</blue>", self.network)
                     logger.success("Endpoint:".ljust(20) + "<blue>{}</blue>", ws_chain_endpoint)
                     return True
