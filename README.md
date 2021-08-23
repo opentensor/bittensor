@@ -28,7 +28,7 @@ import bittensor
 import torch
 wallet = bittensor.wallet().create()
 graph = bittensor.metagraph().sync()
-representations, _ = bittensor.dendrite( wallet ).forward_text (
+representations, _ = bittensor.dendrite( wallet = wallet ).forward_text (
     endpoints = graph.endpoints,
     inputs = "The quick brown fox jumped over the lazy dog"
 )

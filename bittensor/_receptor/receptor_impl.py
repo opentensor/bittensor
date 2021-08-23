@@ -238,7 +238,13 @@ class Receptor(nn.Module):
             # ---- Build request ----
             request = bittensor.proto.TensorMessage (
                 version = bittensor.__version_as_int__,
+<<<<<<< HEAD
                 hotkey = self.wallet.pubkey,
+=======
+                hotkey = ss58_encode(self.wallet.hotkey.public_key),
+                nounce = self.nounce,
+                signature = self.signature,
+>>>>>>> origin/master
                 tensors = [serialized_inputs]
             )
         
@@ -423,7 +429,13 @@ class Receptor(nn.Module):
         try:
             request = bittensor.proto.TensorMessage(
                 version = bittensor.__version_as_int__,
+<<<<<<< HEAD
                 hotkey = self.wallet.pubkey,
+=======
+                hotkey = ss58_encode(self.wallet.hotkey.public_key),
+                nounce = self.nounce,
+                signature = self.signature,
+>>>>>>> origin/master
                 tensors = [serialized_inputs, serialized_grads]
             )
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=bittensor.proto.ReturnCode.Success, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=None)
