@@ -210,6 +210,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             publickey and encodes the time at which the signature was created.
         """
         meta = handler_call_details.invocation_metadata
+        print(meta)
         if meta[0] == self._valid_metadata:
             try: 
                 nounce, pubkey, message = meta[1].value.split('bitxx')
