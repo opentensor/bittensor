@@ -214,7 +214,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             try: 
                 nounce, pubkey, message = meta[1].value.split('bitxx')
 
-                data_time = datetime.strptime(nounce,'%m%d%Y%H%M')
+                data_time = datetime.strptime(nounce,'%m%d%Y%H%M%S%f')
                 _keypair = self.keypair(ss58_address=pubkey)
                 
                 #checking the time of creation, compared to previous messages
@@ -222,12 +222,15 @@ class AuthInterceptor(grpc.ServerInterceptor):
                     prev_data_time = self.nounce_dic[pubkey]
                 else:
                     self.nounce_dic[pubkey] = data_time
-                    prev_data_time = self.nounce_dic[pubkey]
-
-                if data_time - prev_data_time > timedelta(seconds=1):
-                    self.nounce_dic[pubkey] = data_time
 
                     #decrypting the message and verify that message is correct
+                    verification = _keypair.verify(nounce+pubkey,message)
+                    if verification:
+                        return continuation(handler_call_details)
+
+                if data_time - prev_data_time >= timedelta(milliseconds=1):
+                    self.nounce_dic[pubkey] = data_time
+
                     verification = _keypair.verify(nounce+pubkey,message)
                     if verification:
                         return continuation(handler_call_details)

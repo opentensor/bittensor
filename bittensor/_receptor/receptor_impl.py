@@ -539,4 +539,4 @@ class Receptor(nn.Module):
         r"""creates a string representation of the time
         """
         nounce = datetime.now()
-        return nounce.strftime(format= '%m%d%Y%H%M')
+        return nounce.strftime(format= '%m%d%Y%H%M%S%f')
