@@ -210,6 +210,8 @@ class AuthInterceptor(grpc.ServerInterceptor):
             publickey and encodes the time at which the signature was created.
         """
         meta = handler_call_details.invocation_metadata._asdict()
+        print(meta)
+        print(meta['rpc-auth-header'])
         if meta['rpc-auth-header'] == self.key:
             try: 
                 print(meta)
@@ -240,6 +242,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
                     return self._deny
 
             except Exception as e:
+                print(e)
                 return self._deny
         else:
             return self._deny
