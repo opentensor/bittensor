@@ -222,17 +222,19 @@ class AuthInterceptor(grpc.ServerInterceptor):
                     prev_data_time = self.nounce_dic[pubkey]
                 else:
                     self.nounce_dic[pubkey] = data_time
+                    prev_data_time = self.nounce_dic[pubkey]
 
-                if data_time - prev_data_time >= timedelta(milliseconds=0):
+                if data_time - prev_data_time >= timedelta(seconds=0):
                     self.nounce_dic[pubkey] = data_time
 
+                    #decrypting the message and verify that message is correct
                     verification = _keypair.verify(nounce+pubkey,message)
                     if verification:
                         return continuation(handler_call_details)
                 else:
                     return self._deny
 
-            except Exception as e:
+            except:
                 return self._deny
         else:
             return self._deny
