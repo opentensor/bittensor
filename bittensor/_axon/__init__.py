@@ -212,6 +212,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
         meta = handler_call_details.invocation_metadata
         if meta[0] == self._valid_metadata:
             try: 
+                print(meta[1])
+                print(meta[1].value)
+                print(meta[1].key)
                 nounce, pubkey, message = meta[1].value.split('bitxx')
 
                 data_time = datetime.strptime(nounce,'%m%d%Y%H%M%S%f')
