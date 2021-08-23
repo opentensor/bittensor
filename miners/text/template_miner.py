@@ -342,13 +342,13 @@ class Miner:
             while self.epoch < self.config.miner.n_epochs:
                 try:
                     # ---- Train state ----
-                    #self.run_epoch()
+                    self.run_epoch()
 
                     # ---- Set weights on chain ----
-                    #self.set_chain_weights()
-                    time.sleep(10)
+                    self.set_chain_weights()
+
                     # ---- Checkpoint state ----
-                    #self.checkpoint()
+                    self.checkpoint()
 
                 except KeyboardInterrupt:
                     # --- User ended session ----

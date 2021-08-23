@@ -298,13 +298,12 @@ class Receptor(nn.Module):
                     message = 'grpc.StatusCode.UNAVAILABLE'
                     bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message)
                     return zeros, code, message
-                
-                elif e.code() == grpc.StatusCode.UNAUTHENTICATED:
-                    code = bittensor.proto.ReturnCode.Unauthenticated
-                    message = 'grpc.StatusCode.UNAUTHENTICATED'
-                    bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
-                    return zeros, code, message
 
+                elif grpc_code == grpc.StatusCode.UNAUTHENTICATED:
+                    code = bittensor.proto.ReturnCode.InvalidRequest
+                    message = 'grpc.StatusCode.UNAUTHENTICATED'
+                    bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message)
+                    return zeros, code, message
                 else:
                     code = bittensor.proto.ReturnCode.UnknownException
                     message = 'GRPC error code: {}'.format( grpc_code )
@@ -456,7 +455,7 @@ class Receptor(nn.Module):
                 return zeros, code, message
             
             elif e.code() == grpc.StatusCode.UNAUTHENTICATED:
-                code = bittensor.proto.ReturnCode.Unauthenticated
+                code = bittensor.proto.ReturnCode.InvalidRequest
                 message = 'grpc.StatusCode.UNAUTHENTICATED'
                 bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
                 return zeros, code, message
