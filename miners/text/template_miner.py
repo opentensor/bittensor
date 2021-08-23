@@ -272,7 +272,7 @@ class Miner:
 
         #Torch scheduler
         self.scheduler= torch.optim.lr_scheduler.StepLR(self.optimizer,
-            step_size= 100.0,
+            step_size= 1.0,
             gamma=0.9
         )
 
@@ -280,8 +280,13 @@ class Miner:
         self.neuron = bittensor.init (
             config = self.config,
             root_dir = self.config.miner.full_path,
-            axon_forward_callback = self.forward,
-            axon_backward_callback = self.backward,
+            forward_text = self.forward_text,
+            backward_text = self.backward_text,
+        ) 
+
+        #bittensor priority thread pool 
+        self.thread_pool = bittensor.prioritythreadpool(
+            config = self.config
         )
 
     @staticmethod
@@ -304,10 +309,11 @@ class Miner:
         parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
         parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template miner')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
-
+        parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=1)
         bittensor.add_args( parser )
-        Nucleus.add_args( parser )
-
+        Nucleus.add_args( parser ) 
+        bittensor.prioritythreadpool.add_args( parser )
+ 
         # ---- Loads config_file and updates defaults
         config_file_path = vars(parser.parse_known_args()[0])['miner.config']
         if config_file_path:
@@ -351,9 +357,11 @@ class Miner:
             # ---- reloads previous run ----
             try:
                 self.reload()
+                self.neuron.axon.check()
             except:
                 self.save()
                 self.reload()
+                self.neuron.axon.check()
 
             # --- Run until n_epochs ----
             while self.epoch < self.config.miner.n_epochs:
@@ -455,7 +463,7 @@ class Miner:
         return output
 
     # ---- Axon Forward call ----
-    def forward ( self, pubkey:str, inputs_x: torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+    def forward_text ( self, pubkey:str, inputs_x: torch.FloatTensor) -> torch.FloatTensor:
         r""" Subscribed to an axon servicing endpoint: processes forward messages from the wire.
             The arguments reflect an RPC request from another miner in the network, the response tensor
             should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
@@ -472,14 +480,20 @@ class Miner:
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
-        inputs_x = inputs_x.to( self.device )
-        output = self.nucleus.local_forward (
-            inputs = inputs_x
-        )
-        return output.local_hidden
+        def call(inputs):
+            inputs_x = inputs.to( self.device )
+            output = self.nucleus.local_forward (
+                inputs = inputs_x
+            )
+            return output.local_hidden
+
+        uid =self.neuron.metagraph.hotkeys.index(pubkey)
+        priority = self.neuron.metagraph.S[uid]
+        future = self.thread_pool.submit(call,inputs=inputs_x,priority=priority)
+        return future.result(timeout= self.config.miner.timeout)
 
     # ---- Axon Backward call ----
-    def backward ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ) -> torch.FloatTensor:
+    def backward_text ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:
         r""" Subscribed to an axon servicing endpoint: Processes backward messages from the wire.
             Arguments reflect an RPC backward request from another miner in the network, the response tensor
             should be the gradients of the miner's nucleus w.r.t to the inputs_x and the passed output grads_dy.
@@ -498,35 +512,23 @@ class Miner:
                 outputs (:obj:`torch.FloatTensor`, `optional`):
                     The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
         """
-        if self.config.miner.compute_remote_gradients:
-            with torch.enable_grad():
-
-                # ---- Set up inputs for gradient computations.
-                inputs_x.requires_grad = True
-                inputs_x = inputs_x.to( self.device )
-                grads_dy = grads_dy.to( self.device )
-                outputs_y = self.nucleus.local_forward( inputs = inputs_x ).to( self.device )
-
-                # ---- The backward call will accumulate gradients on our parameters.
-                if self.config.miner.accumulate_remote_gradients:
+        if self.config.miner.accumulate_remote_gradients:
+            def call(input,grad):
+                with torch.enable_grad():
+                    # ---- Set up inputs for gradient computations.
+                    outputs_y = self.nucleus.local_forward( inputs = input ).local_context.to( self.device )
+                    # ---- The backward call will accumulate gradients on our parameters.
+                
                     torch.autograd.backward (
                         tensors = [outputs_y],
-                        grad_tensors = [grads_dy]
+                        grad_tensors = [grad]
                     )
-                    return inputs_x.grad if inputs_x.grad != None else None
+                    return inputs_x.grad if inputs_x.grad != None else None                    
 
-                # ---- The backward call will simply compute the gradients without accumulating them.
-                else:
-                    grads_dy = torch.autograd.grad (
-                        outputs = outputs_y,
-                        inputs = inputs_x,
-                        grad_outputs = grads_dy,
-                        only_inputs = True,
-                        create_graph = False,
-                        retain_graph = False
-                    )[0]
-                    return grads_dy
-
+            uid =self.neuron.metagraph.hotkeys.index(pubkey)
+            priority = self.neuron.metagraph.S[uid]
+            future = self.thread_pool.submit(call, input=inputs_x.to( self.device ), grad=grads_dy.to( self.device ), priority=priority)
+            return future.result(timeout= self.config.miner.timeout)            
         # if ! compute_remote_gradients, NO-OP.
         else:
             return None
@@ -562,9 +564,13 @@ class Miner:
         state_dict = self.get_saved_state()
 
         # --- loads and syncs metagraph
-        bittensor.neuron.metagraph.load()
-        bittensor.neuron.metagraph.sync()
-        bittensor.neuron.metagraph.save()
+        try:
+            bittensor.neuron.metagraph.load()
+            bittensor.neuron.metagraph.sync()
+            bittensor.neuron.metagraph.save()
+        except:
+            bittensor.neuron.metagraph.sync()
+            bittensor.neuron.metagraph.save()
 
         # ---- Load training state.
         self.epoch = state_dict['epoch']
@@ -639,7 +645,7 @@ class Miner:
     def logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
         r""" Called after every training step. Displays miner state to screen.
         """
-        self_uid = bittensor.neuron.metagraph.hotkeys.index( ss58_encode(bittensor.neuron.wallet.hotkey.public_key) )
+        self_uid = bittensor.neuron.metagraph.hotkeys.index( ss58_encode(bittensor.neuron.wallet.hotkey.public_key ))
         stake = bittensor.neuron.metagraph.S[ self_uid ].item()
         rank = bittensor.neuron.metagraph.R[ self_uid ].item()
         incentive = bittensor.neuron.metagraph.I[ self_uid ].item()
@@ -684,7 +690,6 @@ class Miner:
                     info[colored(str(uid), 'red')] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
                 if self.config.neuron.use_wandb:
                     wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
-
         if self.config.neuron.use_wandb:
             try:
                 bittensor.neuron.wandb.log(wandb_info)

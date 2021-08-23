@@ -29,6 +29,7 @@ from typing import List, Tuple, Optional, Callable
 
 import bittensor
 import bittensor.utils.stats as stat_utils
+from substrateinterface.utils.ss58 import ss58_encode
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -42,8 +43,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
         ip: str,
         port: int,
         server: 'grpc._Server',
-        forward: 'Callable' = None,
-        backward: 'Callable' = None,
+        forwards: List  = [],
+        backwards: List = [],
+        modality: int = None
     ):
         r""" Initializes a new Axon tensor processing endpoint.
             
@@ -54,17 +56,18 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     bittensor wallet with hotkey and coldkeypub.
                 server (:obj:`grpc._Server`, `required`):
                     Grpc server endpoint.
-                forward (:obj:`callable`, `optional`):
-                    function which is called on forward requests.
-                backward (:obj:`callable`, `optional`):
-                    function which is called on backward requests.
+                forward (:obj:list of `callable`, `optional`):
+                    list of functions which is called on forward requests.
+                backward (:obj:list of `callable`, `optional`):
+                    list of functions which is called on backward requests.
         """
         self.ip = ip
         self.port = port
         self.wallet = wallet
         self.server = server
-        self.forward_callback = forward
-        self.backward_callback = backward 
+        self.forward_callback = forwards
+        self.backward_callback = backwards
+        self.modality = modality if modality != None else self.find_modality()
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -163,13 +166,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         """
         # Check forward has been subscribed.
-        if self.forward_callback == None:
+        if self.forward_callback[modality] == None:
             message = "Forward callback is not yet subscribed on this axon."
             return None, bittensor.proto.ReturnCode.NotImplemented, message
         
         # Make forward call.
         try:
-            response_tensor = self.forward_callback( public_key, inputs_x, modality )
+            response_tensor = self.forward_callback[modality](pubkey = public_key, inputs_x= inputs_x)
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
@@ -179,7 +182,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
             message = "Error calling forward callback: {}".format(e)
             code = bittensor.proto.ReturnCode.UnknownException
             return response_tensor, code, message 
-
 
     def _call_backward(
             self, 
@@ -209,13 +211,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     message associated with forward call, potentially error, or 'success'.
         """
         # Check backward has been subscribed.
-        if self.backward_callback == None:
+        if self.backward_callback[modality] == None:
             message = "Backward callback is not yet subscribed on this axon."
             return None, bittensor.proto.ReturnCode.NotImplemented, message
         
         # Make backward call.
         try:
-            response_tensor = self.backward_callback( public_key, inputs_x, grads_dy, modality)
+            response_tensor = self.backward_callback[modality]( public_key, inputs_x, grads_dy)
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
@@ -447,7 +449,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         bittensor.logging.rpc_log( axon=True, forward=False, is_response=True, code=code, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=list(outputs_serialized.shape), message=None )
         return outputs_serialized, code, message
 
-    def attach( self, servicer:object ):
+    def attach( self, servicer:object, modality:int):
         """
             Attaches the forward and backward callbacks to the passed object.
 
@@ -455,10 +457,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 servicer (:object:`object`, `required`): 
                     object with callbacks servicer.forward and servicer.backward
         """
-        self.forward_callback = self.attach_forward_callback( servicer.forward )
-        self.backward_callback = self.attach_backward_callback( servicer.backward )
+        self.forward_callback = self.attach_forward_callback( servicer.forward , modality)
+        self.backward_callback = self.attach_backward_callback( servicer.backward , modality)
 
-    def attach_forward_callback(self, forward_callback: Callable[ [str, torch.Tensor, int], torch.Tensor ] ):
+    def attach_forward_callback(self, forward_callback: Callable[ [str, torch.Tensor, int], torch.Tensor ] , modality: int):
         """ Assigns the forward_callback.
 
             Returns:
@@ -466,10 +468,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     Forward function called on recieving a forward request.
         """
         # TODO(const): type checking.
-        bittensor.axon.check_forward_callback(forward_callback)
-        self.forward_callback = forward_callback
+        bittensor.axon.check_forward_callback(forward_callback,modality)
+        self.forward_callback[modality] = forward_callback
 
-    def attach_backward_callback(self, backward_callback: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ] ):
+    def attach_backward_callback(self, backward_callback: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ], modality: int ):
         """ Assigns the backward_callback call to this neuron.
 
             Returns:
@@ -477,8 +479,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
                      Backward callback called on recieving a backward request.
         """
         # TODO(const): type checking.
-        bittensor.axon.check_backward_callback(backward_callback)
-        self.backward_callback = backward_callback
+        bittensor.axon.check_backward_callback(backward_callback,modality)
+        self.backward_callback[modality] = backward_callback
 
     def update_stats_for_request(self, request, response):
         self.stats.qps.update(1)
@@ -504,7 +506,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
     def subscribe( 
             self, 
             use_upnpc: bool = False, 
-            modality: 'bittensor.proto.Modality' = bittensor.proto.Modality.TEXT, 
             subtensor: 'bittensor.Subtensor' = None,
             network: str = None,
             chain_endpoint: str = None,
@@ -553,7 +554,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 wallet = self.wallet,
                 ip = self.external_ip,
                 port = self.external_port,
-                modality = modality,
+                modality = self.modality,
                 wait_for_finalization = True,
                 timeout = 4 * bittensor.__blocktime__,
         )
@@ -581,7 +582,33 @@ class Axon( bittensor.grpc.BittensorServicer ):
             logger.success("Axon Stopped:".ljust(20) + "<blue>{}</blue>", self.ip + ':' + str(self.port))
         return self
 
+    def find_modality(self):
+        r""" Detects modality from forward callbacks
+        """
+        modality_list= [index for index, v in enumerate(self.forward_callback) if v != None]
 
-
-
-
+        if len(modality_list) > 1:
+            raise NotImplementedError('Multiple modality detected. We do not currently support multi-modality miners.')
+        elif len(modality_list) == 1:
+            if modality_list[0] == 0:
+                return bittensor.proto.Modality.TEXT
+            if modality_list[0] == 1:
+                return bittensor.proto.Modality.IMAGE
+            if modality_list[0] == 2:
+                return bittensor.proto.Modality.TENSOR
+        elif len(modality_list) == 0:
+            logger.warning('No modality detected. Defaulting to the text modality')
+            return bittensor.proto.Modality.TEXT
+    
+    def check(self):
+        r""" Checks axon's forward and backward callbacks 
+        """
+        pubkey = ss58_encode(self.wallet.hotkey.public_key)
+        for index,forward in enumerate(self.forward_callback):
+            if forward != None:
+                bittensor.axon.check_forward_callback(forward,index,pubkey)
+        for index, backward in  enumerate(self.backward_callback):
+            if backward != None:
+                bittensor.axon.check_backward_callback(backward,index,pubkey)
+        
+        return self
