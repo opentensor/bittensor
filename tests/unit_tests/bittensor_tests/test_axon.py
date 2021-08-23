@@ -24,10 +24,10 @@ def test_forward_not_implemented():
     response, code, message = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.NotImplemented
 
-def test_forward_success():
-    def forward( pubkey:str, inputs_x: torch.FloatTensor, modality:int ):
+def test_forward_tensor_success():
+    def forward( pubkey:str, inputs_x: torch.FloatTensor):
         return torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
-    axon.attach_forward_callback( forward )
+    axon.attach_forward_callback( forward, modality=2)
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
@@ -98,9 +98,9 @@ def test_forward_tensor_shape_error():
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
 def test_forward_deserialization():
-    def forward( pubkey:str, inputs_x: torch.Tensor, modality:int ):
+    def forward( pubkey:str, inputs_x: torch.Tensor):
         return None
-    axon.attach_forward_callback( forward )
+    axon.attach_forward_callback( forward, modality = bittensor.proto.Modality.TENSOR)
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
@@ -197,9 +197,9 @@ def test_backward_grad_inputs_shape_error():
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
 def test_backward_response_deserialization_error():
-    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ):
+    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ):
         return None
-    axon.attach_backward_callback( backward )
+    axon.attach_backward_callback( backward,modality=bittensor.proto.Modality.TENSOR)
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
     serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -214,9 +214,9 @@ def test_backward_response_deserialization_error():
     assert code == bittensor.proto.ReturnCode.EmptyResponse
 
 def test_backward_response_success():
-    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ):
+    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
         return torch.zeros( [1, 1, 1])
-    axon.attach_backward_callback( backward )
+    axon.attach_backward_callback( backward,modality = bittensor.proto.Modality.TENSOR )
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
     serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -231,13 +231,13 @@ def test_backward_response_success():
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_grpc_forward_works():
-    def forward( pubkey:str, inputs_x:torch.FloatTensor, modality:int ):
+    def forward( pubkey:str, inputs_x:torch.FloatTensor):
         return torch.zeros( [1, 1, 1])
     axon = bittensor.axon (
         port = 8080,
         ip = '127.0.0.1',
     )
-    axon.attach_forward_callback( forward )
+    axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TENSOR )
     axon.start()
 
     channel = grpc.insecure_channel(
@@ -260,14 +260,14 @@ def test_grpc_forward_works():
     axon.stop()
 
 def test_grpc_backward_works():
-    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, modality:int ):
+    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
         return torch.zeros( [1, 1, 1])
 
     axon = bittensor.axon (
         port = 8080,
         ip = '127.0.0.1',
     )
-    axon.attach_backward_callback( backward )
+    axon.attach_backward_callback( backward , modality = bittensor.proto.Modality.TENSOR)
     axon.start()
 
     channel = grpc.insecure_channel(
