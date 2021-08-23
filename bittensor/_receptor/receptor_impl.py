@@ -21,10 +21,11 @@ from bittensor.utils.codes import code_to_color
 import grpc
 import sys
 import time
+
 import torch
 import torch.nn as nn
 import traceback
-
+from datetime import datetime
 from types import SimpleNamespace
 from torch.autograd.function import once_differentiable
 from typing import Tuple, List, Optional
@@ -72,8 +73,6 @@ class Receptor(nn.Module):
         self.endpoint = endpoint # Endpoint information.
         self.channel = channel
         self.stub = stub
-        self.signature = None # Call signature.
-        self.nounce = None # Call nounce.
         self.backoff = 0 # Number o queries to backoff.
         self.next_backoff = 1 # Next backoff level.
         self.stats = SimpleNamespace(
@@ -240,8 +239,6 @@ class Receptor(nn.Module):
             request = bittensor.proto.TensorMessage (
                 version = bittensor.__version_as_int__,
                 hotkey = self.wallet.pubkey,
-                nounce = self.nounce,
-                signature = self.signature,
                 tensors = [serialized_inputs]
             )
         
@@ -251,7 +248,14 @@ class Receptor(nn.Module):
                 self.stats.forward_qps.update(1)
                 self.stats.forward_bytes_out.update(sys.getsizeof(request))
                 bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=bittensor.proto.ReturnCode.Success, pubkey=self.endpoint.hotkey, inputs=list(serialized_inputs.shape), outputs=None, message=None )
-                response = self.stub.Forward(request, timeout = timeout)
+
+                #forwarding grpc request to the server
+                response = self.stub.Forward(request = request, 
+                                             timeout = timeout,
+                                             metadata = (
+                                                        ('rpc-auth-header','Bittensor'),
+                                                        ('bittensor-signature',self.sign()),
+                                                        ))
                 self.stats.forward_bytes_in.update(sys.getsizeof(response))
                 self.stats.forward_elapsed_time.update((time.time() - start_time))
 
@@ -293,6 +297,12 @@ class Receptor(nn.Module):
                     code = bittensor.proto.ReturnCode.Unavailable
                     message = 'grpc.StatusCode.UNAVAILABLE'
                     bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message)
+                    return zeros, code, message
+                
+                elif e.code() == grpc.StatusCode.UNAUTHENTICATED:
+                    code = bittensor.proto.ReturnCode.Unauthenticated
+                    message = 'grpc.StatusCode.UNAUTHENTICATED'
+                    bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
                     return zeros, code, message
 
                 else:
@@ -415,12 +425,15 @@ class Receptor(nn.Module):
             request = bittensor.proto.TensorMessage(
                 version = bittensor.__version_as_int__,
                 hotkey = self.wallet.pubkey,
-                nounce = self.nounce,
-                signature = self.signature,
                 tensors = [serialized_inputs, serialized_grads]
             )
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=bittensor.proto.ReturnCode.Success, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=None)
-            response = self.stub.Backward(request, timeout = timeout)
+            response = self.stub.Backward(request = request, 
+                                          timeout = timeout,
+                                          metadata = (
+                                                    ('rpc-auth-header','Bittensor'),
+                                                    ('bittensor-signature',self.sign()),
+                                                    ))
 
             # Get message
             try:
@@ -439,6 +452,12 @@ class Receptor(nn.Module):
             elif e.code() == grpc.StatusCode.UNAVAILABLE:
                 code = bittensor.proto.ReturnCode.Unavailable
                 message = 'grpc.StatusCode.UNAVAILABLE'
+                bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
+                return zeros, code, message
+            
+            elif e.code() == grpc.StatusCode.UNAUTHENTICATED:
+                code = bittensor.proto.ReturnCode.Unauthenticated
+                message = 'grpc.StatusCode.UNAUTHENTICATED'
                 bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
                 return zeros, code, message
 
@@ -506,3 +525,18 @@ class Receptor(nn.Module):
         message = 'success'
         bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=list(outputs.shape), message=None)
         return outputs, code, message
+
+    def sign(self):
+        r""" Uses the wallet pubkey to sign a message containing the pubkey and the time
+        """
+        nounce = self.nounce()
+        message  = nounce+str(self.wallet.pubkey) 
+        spliter = 'bitxx'
+        signature = spliter.join([nounce,str(self.wallet.pubkey),self.wallet.hotkey.sign(message)])
+        return signature
+    
+    def nounce(self):
+        r"""creates a string representation of the time
+        """
+        nounce = datetime.now()
+        return nounce.strftime(format= '%m%d%Y%H%M')

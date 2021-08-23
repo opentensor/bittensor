@@ -188,7 +188,14 @@ class axon:
             forward_callback(pubkey,sample_input)
 
 class AuthInterceptor(grpc.ServerInterceptor):
-    def __init__(self, key,keypair):
+    def __init__(self,keypair, key:str = 'Bittensor'):
+        r""" Creates a new server interceptor that authenticates incoming messages from passed arguments.
+        Args:
+            key (str, `optional`):
+                 key for authentication header in the metadata (default= Bittensor)
+            keypair (:obj:`callable`, `optional`): 
+                Substrate interface keypair object
+        """
         self._valid_metadata = ('rpc-auth-header', key)
         self.keypair = keypair
         self.nounce_dic = {}
@@ -199,23 +206,28 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self._deny = grpc.unary_unary_rpc_method_handler(deny)
 
     def intercept_service(self, continuation, handler_call_details):
+        r""" Authentication between bittensor nodes. A signature is created using
+            publickey and encodes the time at which the signature was created.
+        """
         meta = handler_call_details.invocation_metadata
-        print(meta)
         if meta and meta[0] == self._valid_metadata:
             try: 
                 nounce, pubkey, message = meta[1].value.split('bitxx')
-                print("nounce",nounce,"pubkey:",pubkey,"signature:",message)
 
                 data_time = datetime.strptime(nounce,'%m%d%Y%H%M')
                 _keypair = self.keypair(ss58_address=pubkey)
-
+                
+                #checking the time of creation, compared to previous messages
                 if pubkey in self.nounce_dic.keys():
                     prev_data_time = self.nounce_dic[pubkey]
                 else:
                     self.nounce_dic[pubkey] = data_time
                     prev_data_time = self.nounce_dic[pubkey]
 
-                if data_time - prev_data_time >= timedelta(seconds=0):
+                if data_time - prev_data_time > timedelta(seconds=1):
+                    self.nounce_dic[pubkey] = data_time
+
+                    #decrypting the message and verify that message is correct
                     verification = _keypair.verify(nounce+pubkey,message)
                     if verification:
                         return continuation(handler_call_details)
@@ -223,7 +235,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
                     return self._deny
 
             except Exception as e:
-                print(e)
                 return self._deny
         else:
             return self._deny

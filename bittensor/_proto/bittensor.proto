@@ -73,39 +73,16 @@ message TensorMessage {
 	// SIZE: 256-bits (32-bytes)
 	string hotkey = 2;
 
-	// Nounce: [OPTIONAL] Incrementing nounce to identify message ordering.
-	// Used ensure with signature to protect against spoofing attacks.
-	// Likely a timestamp.
-	// i.e. nounce = nounce + 1 
-	// SIZE: 32-bits (4-bytes)
-	int64 nounce = 3;
-
-	// Signature: [OPTIONAL] Digital signature linking the nounce neuron_key.
-	// Prevents spoofing attacks where an adversary sends messages as other peers.
-	// NOTE: this field does not link the signature to the tensor inputs. New signatures do not need
-	// to be generated for each message and can be periodically created with a new incrementing nounce.
-	// Endpoints ensure that that signature is correct and that nounce is incrementing.
-	// $ python
-	// >>> from cryptography.hazmat.backends import default_backend
-	// >>> from cryptography.hazmat.primitives import hashes
-	// >>> digest = hashes.Hash(hashes.SHA1(), backend=default_backend())
-	// >>> digest.update(public_key.encode('utf-8'))
-	// >>> digest.update(bytes(nounce))
-	// >>> digest = digest.finalize()
-	// signature = private_key.sign(digest) # to create.
-	// >>> assert (nounce >= last_nounce) and neuron_key.verify(signature, digest) # to verify.
-	bytes signature = 4;
-
 	// Tensors: [REQUIRED] 1 or more tensors passed on the wire.
 	// SIZE: variable.
 	// NOTE: During backward calls the tensors should be ordered [input_1, input_2, ... grad_1, grad_2, ...] 
-	repeated Tensor tensors = 5;
+	repeated Tensor tensors = 3;
 
 	// Return codes from Backward and Forward call.
-	ReturnCode return_code = 6; 
+	ReturnCode return_code = 4; 
 
 	// Message associated with return code.
-	string message = 7; 
+	string message = 5; 
 }
 
 // Return codes from Backward and Forward call.
@@ -132,6 +109,7 @@ enum ReturnCode {
 	ResponseIncompatibleVersion = 19; // The request handler is incompatible with the request version.
 	SenderUnknown = 20; // The requester is not known by the reciever. 
 	UnknownException = 21; // Unknown exception.
+	Unauthenticated = 22; // Authentication failed.
 }
 
 // A serialized tensor object created using the serializer class.
