@@ -62,6 +62,18 @@ class Wallet():
         self._coldkey = None
         self._coldkeypub = None
 
+    def create(self) -> 'Wallet':
+        # ---- Setup Wallet. ----
+        if not self.has_coldkeypub:
+            self.create_new_coldkey( n_words = 12, use_password = True )
+        if not self.has_coldkeypub:
+            raise RuntimeError('The axon must have access to a decrypted coldkeypub')
+        if not self.has_hotkey:
+            self.create_new_hotkey( n_words = 12, use_password = False )
+        if not self.has_hotkey:
+            raise RuntimeError('The axon must have access to a decrypted hotkey')
+        return self
+
     def assert_hotkey(self):
         r""" Checks for a valid hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or exits.
         """
@@ -302,7 +314,7 @@ class Wallet():
         path = os.path.expanduser(path)
         return os.path.exists(path)
 
-    def create_coldkey_from_uri(self, uri:str, use_password: bool = True, overwrite:bool = False):
+    def create_coldkey_from_uri(self, uri:str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
          # Create directory 
         dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
         if not os.path.exists( dir_path ):
@@ -327,8 +339,9 @@ class Wallet():
         # Save
         cli_utils.save_keys( self.coldkeyfile, coldkey_data )
         cli_utils.set_file_permissions( self.coldkeyfile )
+        return self
 
-    def create_hotkey_from_uri( self, uri:str, use_password: bool = True, overwrite:bool = False):  
+    def create_hotkey_from_uri( self, uri:str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
         # Create directory 
         dir_path = os.path.expanduser(
             os.path.join(self._path_string, self._name_string, "hotkeys")
@@ -354,9 +367,9 @@ class Wallet():
         # Save
         cli_utils.save_keys( self.hotkeyfile, hotkey_data )
         cli_utils.set_file_permissions( self.hotkeyfile )
+        return self
 
-
-    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False):    
+    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
         if not os.path.exists( dir_path ):
@@ -381,8 +394,9 @@ class Wallet():
         # Save
         cli_utils.save_keys( self.coldkeyfile, coldkey_data )
         cli_utils.set_file_permissions( self.coldkeyfile )
+        return self
 
-    def create_new_hotkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False):  
+    def create_new_hotkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
         # Create directory 
         dir_path = os.path.expanduser(
             os.path.join(self._path_string, self._name_string, "hotkeys")
@@ -408,8 +422,9 @@ class Wallet():
         # Save
         cli_utils.save_keys( self.hotkeyfile, hotkey_data )
         cli_utils.set_file_permissions( self.hotkeyfile )
+        return self
 
-    def regenerate_coldkey( self, mnemonic: str, use_password: bool,  overwrite:bool = False):
+    def regenerate_coldkey( self, mnemonic: str, use_password: bool,  overwrite:bool = False) -> 'Wallet':
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
         if not os.path.exists( dir_path ):
@@ -433,8 +448,9 @@ class Wallet():
         # Save
         cli_utils.save_keys( self.coldkeyfile, coldkey_data ) 
         cli_utils.set_file_permissions( self.coldkeyfile )
+        return self
 
-    def regenerate_hotkey( self, mnemonic: str, use_password: bool = True, overwrite:bool = False):
+    def regenerate_hotkey( self, mnemonic: str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string, "hotkeys"))
         if not os.path.exists( dir_path ):
@@ -457,6 +473,7 @@ class Wallet():
         # Save
         cli_utils.save_keys( self.hotkeyfile, hotkey_data )
         cli_utils.set_file_permissions( self.hotkeyfile )
+        return self
 
     def to_dict(self, keypair):
         return {

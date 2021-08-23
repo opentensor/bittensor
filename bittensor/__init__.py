@@ -20,8 +20,8 @@ import wandb
 import os
 
 # Bittensor code and protocol version.
-__version__ = '2.0.0'
-__version_as_int__ = (100 * 2) + (10 * 0) + (1 * 0)  # Integer representation
+__version__ = '1.2.0'
+__version_as_int__ = (100 * 1) + (10 * 2) + (1 * 0)  # Integer representation
 
 # Vocabulary dimension.
 #__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
@@ -59,6 +59,7 @@ from bittensor._serializer import serializer as serializer
 from bittensor._dataloader import dataloader as dataloader
 from bittensor._receptor import receptor_pool as receptor_pool
 from bittensor._wandb import wandb as wandb
+from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
@@ -74,6 +75,7 @@ from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._dataloader.dataloader_impl import Dataloader as Dataloader
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
+from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
 import bittensor.utils.networking as net
 
@@ -83,6 +85,7 @@ neuron = None
 def add_args( parser: argparse.ArgumentParser ):
     parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Neuron punches a hole in your router using upnpc''', default=False)
     parser.add_argument('--neuron.use_wandb', action='store_true', help='''Neuron activates its weights and biases powers''', default=False)
+    parser.add_argument('--neuron.max_workers', type=int,  help='''Number of maximum threads in the neuron''',default=10)
     logging.add_args( parser )
     wallet.add_args( parser )
     subtensor.add_args( parser )
@@ -113,8 +116,12 @@ class Neuron():
     def __init__(self, 
             config: 'Config',
             root_dir: str = '',
-            axon_forward_callback: 'Callable' = None,
-            axon_backward_callback: 'Callable' = None,
+            forward_text: 'Callable' = None,
+            backward_text: 'Callable' = None,
+            forward_image: 'Callable' = None,
+            backward_image: 'Callable' = None,
+            forward_tensor: 'Callable' = None,
+            backward_tensor: 'Callable' = None,
         ):
         if config == None: config = default_config()
         self.config = config
@@ -140,58 +147,25 @@ class Neuron():
         self.axon = axon (
             config = self.config,
             wallet = self.wallet,
-            forward_callback=axon_forward_callback,
-            backward_callback=axon_backward_callback,
+            forward_text = forward_text,
+            backward_text = backward_text,
+            forward_image = forward_image,
+            backward_image = backward_image,
+            forward_tensor = forward_tensor,
+            backward_tensor = backward_tensor,
         )
 
     def __enter__(self):
-        # ---- Setup UPNPC ----
-        if self.config.neuron.use_upnpc:
-            logging.success(prefix = 'Set upnpc', sufix = '<green>ON</green>')
-            try:
-                self.external_port = net.upnpc_create_port_map( port = self.axon.port )
-            except net.UPNPCException as upnpc_exception:
-                raise RuntimeError('Failed to hole-punch with upnpc')
-        else:
-            logging.success(prefix = 'Set upnpc', sufix = '<red>OFF</red>')
-            self.external_port = self.config.axon.port
-
-        # ---- Get external ip ----
-        try:
-            self.external_ip = net.get_external_ip()
-            logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format(self.external_ip))
-        except Exception as E:
-            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error:{}', E)
-
         # ---- Setup Wallet. ----
-        if not self.wallet.has_coldkeypub:
-            self.wallet.create_new_coldkey( n_words = 12, use_password = True )
-        if not self.wallet.has_coldkeypub:
-            raise RuntimeError('Miner must have access to a decrypted coldkeypub')
-        if not self.wallet.has_hotkey:
-            self.wallet.create_new_hotkey( n_words = 12, use_password = False )
-        if not self.wallet.has_hotkey:
-            raise RuntimeError('Miner must have access to a decrypted hotkey')
-
-        # ---- Subscribe to chain ----
-        subscribe_success = self.subtensor.subscribe(
-                wallet = self.wallet,
-                ip = self.external_ip,
-                port = self.external_port,
-                modality = proto.Modality.TEXT,
-                wait_for_finalization = True,
-                timeout = 4 * __blocktime__,
+        self.wallet.create()
+        try:
+            self.metagraph.load().sync().save()
+        except:
+            self.metagraph.sync().save()
+        self.axon.start().subscribe (
+            use_upnpc = self.config.neuron.use_upnpc, 
+            subtensor = self.subtensor
         )
-        
-        if not subscribe_success:
-            raise RuntimeError('Failed to subscribe neuron.')
-
-        # --- Update metagraph ----
-        self.metagraph.load()
-        self.metagraph.sync()
-
-        # ---- Starting axon ----
-        self.axon.start()
 
         # --- Init wandb ----
         if self.config.neuron.use_wandb:
@@ -212,16 +186,24 @@ class Neuron():
 def init( 
         config: 'Config' = None,
         root_dir: str = None,
-        axon_forward_callback: 'Callable' = None,
-        axon_backward_callback: 'Callable' = None,
+        forward_text: 'Callable' = None,
+        backward_text: 'Callable' = None,
+        forward_image: 'Callable' = None,
+        backward_image: 'Callable' = None,
+        forward_tensor: 'Callable' = None,
+        backward_tensor: 'Callable' = None,
     ) -> Neuron:
 
     global neuron
     neuron = Neuron( 
         config = config,
         root_dir = root_dir,
-        axon_forward_callback = axon_forward_callback,
-        axon_backward_callback = axon_backward_callback,
+        forward_text = forward_text,
+        backward_text = backward_text,
+        forward_image = forward_image,
+        backward_image = backward_image,
+        forward_tensor = forward_tensor,
+        backward_tensor = backward_tensor,
     )
     return neuron
 

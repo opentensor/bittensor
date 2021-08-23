@@ -16,6 +16,9 @@ def test_load_sync_save():
     metagraph.load()
     metagraph.save()
 
+def test_factory():
+    graph = bittensor.metagraph().load().sync().save()
+
 def test_state_dict():
     metagraph = bittensor.metagraph()
     metagraph.load()
@@ -25,8 +28,8 @@ def test_state_dict():
     assert 'lastemit' in state
     assert 'block' in state
     assert 'tau' in state
-    assert 'weights.0' in state
-    assert 'neurons.0' in state
+    assert 'weights' in state
+    assert 'endpoints' in state
 
 
 

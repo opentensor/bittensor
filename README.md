@@ -3,8 +3,8 @@
 # **Bittensor**
 [![Pushing Image to Docker](https://github.com/opentensor/bittensor/actions/workflows/docker_image_push.yml/badge.svg?branch=master)](https://github.com/opentensor/bittensor/actions/workflows/docker_image_push.yml)
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/3rUr6EcvbB)
+[![PyPI version](https://badge.fury.io/py/bittensor.svg)](https://badge.fury.io/py/bittensor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 ---
 
 ### Internet-scale Neural Networks
@@ -13,19 +13,48 @@
 
 </div>
 
-Bittensor is a p2p-market that rewards the production of machine intelligence with a digital token called Tao. Peers in the system train models by mining knowledge from unsupervised datasets to share with others. Consumers access the network and distill what they learn into production models. The network is collectively-run, open-source, open-access, decentralized, and incentivized to produce state-of-the-art intelligence. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
+Bittensor is a decentralized market that enables individuals to monetize intelligence production from any computer anywhere in the world. Intelligence production is validated by the other peers in the network and rewarded through token inflation. Consumers stake this currency to gain access to the produced knowledge. Bittensor is collectively-run, open-source, and open-access. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
 
-# Running a miner
+## Install
 
-Paste the below command in a MacOS Terminal or Ubuntu shell prompt and follow the instructions. The script will install necessary dependencies and then install Bittensor.
+```bash
+$ pip3 install bittensor
 ```
-$ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/opentensor/bittensor/master/scripts/install.sh)"
+
+## Client 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1m6c4_D1FHHcZxnDJCW4F0qORWhXV_hc_?usp=sharing)
+```python
+import bittensor
+import torch
+wallet = bittensor.wallet().create()
+graph = bittensor.metagraph().sync()
+representations, _ = bittensor.dendrite( wallet = wallet ).forward_text (
+    endpoints = graph.endpoints,
+    inputs = "The quick brown fox jumped over the lazy dog"
+)
+representations = # Tensor with shape (N, 9, 512)
 ```
-If you wish to run bittensor through a docker container, create a new wallet, and run docker-compose:
-```
-$ bin/bittensor-cli new_coldkey                  # Generate default wallet
-$ bin/bittensor-cli new_hotkey                   # Generate default hotkey	
-$ docker-compose up
+
+## Server 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12nGV6cmoZNvywb_z6E8CDzdHCQ3F7tpQ?usp=sharing)
+```python
+import bittensor
+import torch
+from transformers import BertModel, BertConfig
+
+model = BertModel(BertConfig())
+
+def forward ( pubkey, inputs_x, modality ):
+  return model( inputs_x ).narrow(2, 0, bittensor.__network_dim__)
+
+wallet = bittensor.wallet().create()
+axon = bittensor.axon (
+    wallet = wallet,
+    forward = forward,
+).start().subscribe()
+
+...
+
 ```
 
 ---
