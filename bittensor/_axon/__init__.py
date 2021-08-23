@@ -196,7 +196,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             keypair (:obj:`callable`, `optional`): 
                 Substrate interface keypair object
         """
-        self._valid_metadata = ('rpc-auth-header', key)
+        self.key = key
         self.keypair = keypair
         self.nounce_dic = {}
 
@@ -209,13 +209,13 @@ class AuthInterceptor(grpc.ServerInterceptor):
         r""" Authentication between bittensor nodes. A signature is created using
             publickey and encodes the time at which the signature was created.
         """
-        meta = handler_call_details.invocation_metadata
-        if meta[0] == self._valid_metadata:
+        meta = handler_call_details.invocation_metadata._asdict()
+        if meta['rpc-auth-header'] == self.key:
             try: 
-                print(meta[1])
-                print(meta[1].value)
-                print(meta[1].key)
-                nounce, pubkey, message = meta[1].value.split('bitxx')
+                print(meta)
+                print(meta.keys())
+                print(meta['bittensor-signature'])
+                nounce, pubkey, message = meta['bittensor-signature'].split('bitxx')
 
                 data_time = datetime.strptime(nounce,'%m%d%Y%H%M%S%f')
                 _keypair = self.keypair(ss58_address=pubkey)
