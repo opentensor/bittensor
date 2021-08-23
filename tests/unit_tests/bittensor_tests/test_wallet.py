@@ -21,7 +21,7 @@ def test_wallet_keypair():
 
 def test_wallet_uid():
     uid = the_wallet.get_uid()
-    assert uid == -1 
+    assert uid == 0 
 
     s = bittensor.subtensor()
     s.get_uid_for_pubkey = MagicMock( return_value = 10 )
