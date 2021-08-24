@@ -345,8 +345,8 @@ class Miner:
                     #self.run_epoch()
 
                     # ---- Set weights on chain ----
-                    self.set_chain_weights()
-
+                    #self.set_chain_weights()
+                    time.time(10)
                     # ---- Checkpoint state ----
                     #self.checkpoint()
 
