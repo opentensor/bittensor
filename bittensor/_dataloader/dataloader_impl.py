@@ -83,7 +83,7 @@ class Dataloader():
         return session
 
     def retrieve_directory(self, dir_hash: str):
-        """Connects to Infura IPFS gateway and retrieves the directory of
+        """Connects to Pinata IPFS gateway and retrieves the directory of
         genesis datasets.
 
         Returns:
@@ -158,7 +158,7 @@ class GenesisTextDataloader( Dataloader ):
                     text = f.read()
                 logger.success("Loaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
             except Exception as e:
-                pass
+                logger.warning("Load failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
 
         # Download text
         if (text == ''):
@@ -171,12 +171,12 @@ class GenesisTextDataloader( Dataloader ):
                     f.write(text)
                     logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_name))
             except Exception as e:
-                    logger.warning("Could not save:".ljust(20) + "<blue>{}</blue>".format(file_name))
+                    logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
 
         return text
 
     def retrieve_text_file(self, file_hash: str):
-        """Connects to Infura IPFS gateway and retrieves the contents of
+        """Connects to Pinata IPFS gateway and retrieves the contents of
         a genesis text file.
 
         Returns:
@@ -194,7 +194,7 @@ class GenesisTextDataloader( Dataloader ):
         return directory
 
     def construct_text_corpus(self):
-        """Connects to Infura IPFS gateway and retrieves the directory of genesis datasets.
+        """Connects to Pinata IPFS gateway and retrieves the directory of genesis datasets.
 
         Returns:
             string: Contents of the text file.
