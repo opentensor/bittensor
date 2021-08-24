@@ -48,6 +48,7 @@ class axon:
             max_workers: int = None, 
             maximum_concurrent_rpcs: int = None,
             modality: int = None,
+            blacklist: 'Callable' = None,
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
@@ -79,14 +80,13 @@ class axon:
         config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
         config.axon.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.axon.maximum_concurrent_rpcs
         axon.check_config( config )
-
         if wallet == None:
             wallet = bittensor.wallet( config = config )
         if thread_pool == None:
             thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
         if server == None:
             server = grpc.server( thread_pool,
-                                  interceptors=(AuthInterceptor(black_list=['5FC6iTwsR3oJs4db92uBTjPBs6HuA1H4bPCs6aGbvdLxa88m']),),
+                                  interceptors=(AuthInterceptor(blacklist=blacklist),),
                                   maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
                                 )
 
@@ -188,18 +188,18 @@ class axon:
             forward_callback(pubkey,sample_input)
 
 class AuthInterceptor(grpc.ServerInterceptor):
-    def __init__(self, key:str = 'Bittensor',black_list:List = []):
+    def __init__(self, key:str = 'Bittensor',blacklist:List = []):
         r""" Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
             key (str, `optional`):
                  key for authentication header in the metadata (default= Bittensor)
-            black_list (List, `optional`): 
-                Substrate interface keypair object
+            black_list (Fucntion, `optional`): 
+                black list function that prevents certain pubkeys from sending messages
         """
         self._valid_metadata = ('rpc-auth-header', key)
         self.nounce_dic = {}
         self.message = 'Invalid key'
-        self.black_list = black_list
+        self.blacklist = blacklist
         def deny(_, context):
             context.abort(grpc.StatusCode.UNAUTHENTICATED, self.message)
 
@@ -218,6 +218,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             self.signature_checking(meta)
 
             self.black_list_checking(meta)
+
             return continuation(handler_call_details)
 
         except Exception as e:
@@ -266,7 +267,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
     def black_list_checking(self,meta):
         _, pubkey, _ = meta[1].value.split('bitxx')
-        if pubkey in self.black_list:
-            raise Exception('Black_listed')
+        if self.blacklist == None:
+            pass
+        elif self.blacklist(pubkey):
+            raise Exception('Black listed')
         else:
             pass
