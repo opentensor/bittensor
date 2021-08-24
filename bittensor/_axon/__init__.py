@@ -216,6 +216,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         except Exception as e:
             print(e)
             self.deny(message=e)
+            return self.error
 
 
     def vertification(self,meta):
@@ -260,4 +261,4 @@ class AuthInterceptor(grpc.ServerInterceptor):
         def _deny(_, context,message):
             context.abort(grpc.StatusCode.UNAUTHENTICATED, message)
 
-        grpc.unary_unary_rpc_method_handler(_deny(message=message))
+        self.error = grpc.unary_unary_rpc_method_handler(_deny(message=message))
