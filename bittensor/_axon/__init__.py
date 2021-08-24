@@ -218,7 +218,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
                 nounce, pubkey, message = meta[1].value.split('bitxx')
                 
-                if vertification(nounce,pubkey,message):
+                if self.vertification(nounce,pubkey,message):
                     return continuation(handler_call_details)
                 else:
                     return self._deny 
