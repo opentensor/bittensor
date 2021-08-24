@@ -210,27 +210,23 @@ class AuthInterceptor(grpc.ServerInterceptor):
         """
         meta = handler_call_details.invocation_metadata
         print(meta)
-        if meta[0] == self._valid_metadata:
-            try: 
-                #version checking
-                if bittensor.__version_as_int__ != int(meta[2].value):
-                    return self._deny
+        try: 
+            #version checking
+            self.version_checking(meta)
 
-                nounce, pubkey, message = meta[1].value.split('bitxx')
-                
-                if self.vertification(nounce,pubkey,message):
-                    return continuation(handler_call_details)
-                else:
-                    return self._deny 
-            except Exception as e:
-                print(e)
-                return self._deny
-        else:
+            self.signature_checking(meta)
+
+            return continuation(handler_call_details)
+
+        except Exception as e:
+            print(e.message)
             return self._deny
 
-    def vertification(self,nounce, pubkey, message):
+
+    def vertification(self,meta):
         r"""
         """
+        nounce, pubkey, message = meta[1].value.split('bitxx')
         data_time = datetime.strptime(nounce,'%m%d%Y%H%M%S%f')
         _keypair = Keypair(ss58_address=pubkey)
         print(_keypair)
@@ -244,8 +240,22 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
                 #decrypting the message and verify that message is correct
                 verification = _keypair.verify(nounce+pubkey,message)
+            else:
+                verification = False
         else:
             self.nounce_dic[pubkey] = data_time
             verification = _keypair.verify(nounce+pubkey,message)
 
         return verification
+
+    def signature_checking(self,meta):
+        if vertification(meta):
+            pass
+        else:
+            raise Exception('Incorrect Signature')
+
+    def version_checking(self,meta):
+        if meta[0] == self._valid_metadata and bittensor.__version_as_int__ == int(meta[2].value):
+            pass
+        else:
+            raise Exception('Incorrect Metadata/version')
