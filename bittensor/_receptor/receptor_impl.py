@@ -31,6 +31,7 @@ from typing import Tuple, List, Optional
 
 import bittensor
 import bittensor.utils.stats as stat_utils
+from substrateinterface.utils.ss58 import ss58_encode
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -244,7 +245,7 @@ class Receptor(nn.Module):
             # ---- Build request ----
             request = bittensor.proto.TensorMessage (
                 version = bittensor.__version_as_int__,
-                hotkey = self.wallet.hotkey.public_key,
+                hotkey = ss58_encode(self.wallet.hotkey.public_key),
                 nounce = self.nounce,
                 signature = self.signature,
                 tensors = [serialized_inputs]
@@ -419,7 +420,7 @@ class Receptor(nn.Module):
         try:
             request = bittensor.proto.TensorMessage(
                 version = bittensor.__version_as_int__,
-                hotkey = self.wallet.hotkey.public_key,
+                hotkey = ss58_encode(self.wallet.hotkey.public_key),
                 nounce = self.nounce,
                 signature = self.signature,
                 tensors = [serialized_inputs, serialized_grads]

@@ -2,11 +2,11 @@ import bittensor
 from unittest.mock import MagicMock
 import os
 
-the_wallet = bittensor.wallet(
+the_wallet = bittensor.wallet (
     path = '/tmp/pytest',
     name = 'pytest',
     hotkey = 'pytest',
-) 
+)
 
 def test_create_wallet():
     the_wallet.create_new_coldkey( use_password=False, overwrite = True )
@@ -49,3 +49,8 @@ def test_wallet_balance():
 
 test_create_wallet()
 test_wallet_keypair()
+test_wallet_balance()
+test_wallet_stake()
+test_wallet_uid()
+test_wallet_keypair()
+test_create_wallet()
