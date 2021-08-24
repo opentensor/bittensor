@@ -673,8 +673,11 @@ class Miner:
         progress_bar.set_infos( info )
 
     def blacklist(self,pubkey:str) -> bool:
+        r"""Axon security blacklisting
+        Currently, this is not turned on, since no one has stake in the network.
+        """
         uid =self.neuron.metagraph.hotkeys.index(pubkey)
-        if self.neuron.metagraph.S[uid] < 1:
+        if self.neuron.metagraph.S[uid] < 0:
             return True
         else:
             return False
