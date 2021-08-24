@@ -86,7 +86,7 @@ class axon:
             thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
         if server == None:
             server = grpc.server( thread_pool,
-                                  interceptors=(AuthInterceptor(),),
+                                  interceptors=(AuthInterceptor(black_list=['5FC6iTwsR3oJs4db92uBTjPBs6HuA1H4bPCs6aGbvdLxa88m']),),
                                   maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
                                 )
 
