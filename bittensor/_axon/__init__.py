@@ -215,7 +215,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
         except Exception as e:
             print(e)
-            return self.deny(message=e)
+            self.deny(message=e)
 
 
     def vertification(self,meta):
