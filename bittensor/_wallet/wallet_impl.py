@@ -131,7 +131,6 @@ class Wallet():
             print (e)
             return bittensor.Balance(0)
 
-<<<<<<< HEAD
     def subscribe ( 
         self,
         axon: 'bittensor.Axon',
@@ -149,9 +148,6 @@ class Wallet():
         
 
     def add_stake ( self, 
-=======
-    def add_stake( self, 
->>>>>>> babf0e36c0be87e87a2a6db2be57c32fa0e5cf48
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -185,11 +181,7 @@ class Wallet():
             subtensor = bittensor.subtensor()
         return subtensor.add_stake( wallet = self, amount = amount, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
 
-<<<<<<< HEAD
-    def remove_stake ( self, 
-=======
     def remove_stake( self, 
->>>>>>> babf0e36c0be87e87a2a6db2be57c32fa0e5cf48
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
