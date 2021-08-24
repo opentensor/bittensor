@@ -76,7 +76,7 @@ class Nucleus(nn.Module):
         # Local Model
         local_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
         local_hidden_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
-        # self.local_pos_encoder = PositionalEncoding(bittensor.__network_dim__, self.config.nucleus.dropout)
+        self.local_pos_encoder = PositionalEncoding(bittensor.__network_dim__, self.config.nucleus.dropout)
         self.local_encoder = TransformerEncoder( local_layers, self.config.nucleus.nlayers )
         self.local_hidden = TransformerEncoder( local_hidden_layers, self.config.nucleus.nlayers )
         self.local_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
@@ -130,10 +130,10 @@ class Nucleus(nn.Module):
         # local_context: hidden layer encoding of sequence with local_context.
         # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         output.local_context = self.local_encoder( self.embedding( inputs ) )* math.sqrt(bittensor.__network_dim__)
-        print(output.local_context.shape)
 
-        # output.local_context = self.local_pos_encoder(output.local_context)
-        # print(output.local_context.shape)
+        # local_context: adding positional encoding to local_context.
+        # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        output.local_context = self.local_pos_encoder(output.local_context)
 
         if training :
             # local_hidden: local model which learns a new projection from the local_context
@@ -437,7 +437,7 @@ class Miner:
         self.optimizer.zero_grad()
 
         # ---- Forward pass ----
-        # here
+        
         inputs = batch['inputs']
         output = self.nucleus.remote_forward (
             inputs = inputs.to( self.device ),
@@ -445,7 +445,7 @@ class Miner:
         )
 
         # ---- Backward pass ----
-        # here
+        
         output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
         output.loss.backward() # Accumulates gradients on the nucleus.
         clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)

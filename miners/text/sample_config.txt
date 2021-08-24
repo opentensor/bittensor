@@ -19,16 +19,17 @@ logging.logging_dir: ~/.bittensor/miners/
 logging.record_log: false
 logging.trace: false
 
+miner.learning_rate: 0.001
+miner.name: template_miner_local_lr0001_bs2_pe
+miner.batch_size_train: 2
+
 miner.device: cpu
 miner.epoch_length: 100
-miner.learning_rate: 1
-miner.name: template_miner
 miner.n_epochs: 500
 miner.reload: false
 miner.restart_on_failure: false
 miner.weight_decay: 0.25
 miner.accumulate_remote_gradients: false
-miner.batch_size_train: 2
 miner.clip_gradients: 1.0
 miner.compute_remote_gradients: false
 
@@ -36,10 +37,11 @@ neuron.use_upnpc: false
 neuron.use_wandb: false
 neuron.api_key: default
 
+nucleus.dropout: 0.3
+
 nucleus.nhid: 200
 nucleus.nhead: 2
 nucleus.nlayers: 2
-nucleus.dropout: 0.3
 nucleus.topk: 30
 
 subtensor.chain_endpoint: null
