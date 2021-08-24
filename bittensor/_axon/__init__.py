@@ -188,17 +188,18 @@ class axon:
             forward_callback(pubkey,sample_input)
 
 class AuthInterceptor(grpc.ServerInterceptor):
-    def __init__(self, key:str = 'Bittensor'):
+    def __init__(self, key:str = 'Bittensor',black_list:List = []):
         r""" Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
             key (str, `optional`):
                  key for authentication header in the metadata (default= Bittensor)
-            keypair (:obj:`callable`, `optional`): 
+            black_list (List, `optional`): 
                 Substrate interface keypair object
         """
         self._valid_metadata = ('rpc-auth-header', key)
         self.nounce_dic = {}
         self.message = 'Invalid key'
+        self.black_list = black_list
         def deny(_, context):
             context.abort(grpc.StatusCode.UNAUTHENTICATED, self.message)
 
@@ -216,6 +217,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
             self.signature_checking(meta)
 
+            self.black_list_checking(meta)
             return continuation(handler_call_details)
 
         except Exception as e:
@@ -228,6 +230,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         r"""
         """
         nounce, pubkey, message = meta[1].value.split('bitxx')
+        print('nouce', nounce, 'pubkey',pubkey)
         data_time = datetime.strptime(nounce,'%m%d%Y%H%M%S%f')
         _keypair = Keypair(ss58_address=pubkey)
         print(_keypair)
@@ -260,3 +263,10 @@ class AuthInterceptor(grpc.ServerInterceptor):
             pass
         else:
             raise Exception('Incorrect Metadata/version')
+
+    def black_list_checking(self,meta):
+        _, pubkey, _ = meta[1].value.split('bitxx')
+        if pubkey in self.black_list:
+            raise Exception('Black_listed')
+        else:
+            pass
