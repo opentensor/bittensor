@@ -86,7 +86,7 @@ class axon:
             thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
         if server == None:
             server = grpc.server( thread_pool,
-                                  interceptors=(AuthInterceptor(Keypair),),
+                                  interceptors=(AuthInterceptor(),),
                                   maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
                                 )
 
@@ -188,7 +188,7 @@ class axon:
             forward_callback(pubkey,sample_input)
 
 class AuthInterceptor(grpc.ServerInterceptor):
-    def __init__(self,keypair, key:str = 'Bittensor'):
+    def __init__(self, key:str = 'Bittensor'):
         r""" Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
             key (str, `optional`):
@@ -197,7 +197,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 Substrate interface keypair object
         """
         self._valid_metadata = ('rpc-auth-header', key)
-        self.keypair = keypair
         self.nounce_dic = {}
 
         def deny(_, context):
@@ -214,33 +213,35 @@ class AuthInterceptor(grpc.ServerInterceptor):
             try: 
                 #version checking
                 if bittensor.__version_as_int__ != int(meta[2].value):
-                    self._deny
-
-                nounce, pubkey, message = meta[1].value.split('bitxx')
-
-                data_time = datetime.strptime(nounce,'%m%d%Y%H%M%S%f')
-                _keypair = self.keypair(ss58_address=pubkey)
-                
-                #checking the time of creation, compared to previous messages
-                if pubkey in self.nounce_dic.keys():
-                    prev_data_time = self.nounce_dic[pubkey]
-                else:
-                    self.nounce_dic[pubkey] = data_time
-                    verification = _keypair.verify(nounce+pubkey,message)
-                    if verification:
-                        return continuation(handler_call_details)
-
-                if data_time - prev_data_time >= timedelta(milliseconds=1):
-                    self.nounce_dic[pubkey] = data_time
-
-                    #decrypting the message and verify that message is correct
-                    verification = _keypair.verify(nounce+pubkey,message)
-                    if verification:
-                        return continuation(handler_call_details)
-                else:
                     return self._deny
 
+                nounce, pubkey, message = meta[1].value.split('bitxx')
+                
+                if vertification(nounce,pubkey,message):
+                    return continuation(handler_call_details)
+                else:
+                    return self._deny 
             except Exception as e:
                 return self._deny
         else:
             return self._deny
+
+    def vertification(self,nounce, pubkey, message):
+        r"""
+        """
+        data_time = datetime.strptime(nounce,'%m%d%Y%H%M%S%f')
+        _keypair = Keypair(ss58_address=pubkey)
+        
+        #checking the time of creation, compared to previous messages
+        if pubkey in self.nounce_dic.keys():
+            prev_data_time = self.nounce_dic[pubkey]
+            if data_time - prev_data_time >= timedelta(milliseconds=1):
+                self.nounce_dic[pubkey] = data_time
+
+                #decrypting the message and verify that message is correct
+                verification = _keypair.verify(nounce+pubkey,message)
+        else:
+            self.nounce_dic[pubkey] = data_time
+            verification = _keypair.verify(nounce+pubkey,message)
+
+        return verification
