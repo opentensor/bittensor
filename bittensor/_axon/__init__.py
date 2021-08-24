@@ -219,7 +219,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             return continuation(handler_call_details)
 
         except Exception as e:
-            print(e.message)
+            print(e)
             return self._deny
 
 
