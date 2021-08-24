@@ -198,6 +198,11 @@ class AuthInterceptor(grpc.ServerInterceptor):
         """
         self._valid_metadata = ('rpc-auth-header', key)
         self.nounce_dic = {}
+        self.message = 'Invalid key'
+        def deny(_, context):
+            context.abort(grpc.StatusCode.UNAUTHENTICATED, self.message)
+
+        self._deny = grpc.unary_unary_rpc_method_handler(deny)
 
     def intercept_service(self, continuation, handler_call_details):
         r""" Authentication between bittensor nodes. A signature is created using
@@ -215,8 +220,8 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
         except Exception as e:
             print(e)
-            self.deny(message=str(e))
-            return self.error
+            self.message = str(e)
+            return self._deny
 
 
     def vertification(self,meta):
@@ -255,10 +260,3 @@ class AuthInterceptor(grpc.ServerInterceptor):
             pass
         else:
             raise Exception('Incorrect Metadata/version')
-
-    def deny(self,message='Invalid key'):
-
-        def _deny(_, context,message):
-            context.abort(grpc.StatusCode.UNAUTHENTICATED, message)
-
-        self.error = grpc.unary_unary_rpc_method_handler(_deny(message=message))
