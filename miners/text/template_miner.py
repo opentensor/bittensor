@@ -346,7 +346,7 @@ class Miner:
 
                     # ---- Set weights on chain ----
                     #self.set_chain_weights()
-                    time.time(10)
+                    time.sleep(10)
                     # ---- Checkpoint state ----
                     #self.checkpoint()
 
