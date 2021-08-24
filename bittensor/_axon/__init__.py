@@ -199,11 +199,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self._valid_metadata = ('rpc-auth-header', key)
         self.nounce_dic = {}
 
-        def deny(_, context):
-            context.abort(grpc.StatusCode.UNAUTHENTICATED, 'Invalid key')
-
-        self._deny = grpc.unary_unary_rpc_method_handler(deny)
-
     def intercept_service(self, continuation, handler_call_details):
         r""" Authentication between bittensor nodes. A signature is created using
             publickey and encodes the time at which the signature was created.
@@ -220,7 +215,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
         except Exception as e:
             print(e)
-            return self._deny
+            return self.deny(message=e)
 
 
     def vertification(self,meta):
@@ -249,7 +244,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         return verification
 
     def signature_checking(self,meta):
-        if vertification(meta):
+        if self.vertification(meta):
             pass
         else:
             raise Exception('Incorrect Signature')
@@ -259,3 +254,10 @@ class AuthInterceptor(grpc.ServerInterceptor):
             pass
         else:
             raise Exception('Incorrect Metadata/version')
+
+    def deny(self,message):
+
+        def _deny(_, context,message='Invalid key'):
+            context.abort(grpc.StatusCode.UNAUTHENTICATED, message)
+
+        return grpc.unary_unary_rpc_method_handler(_deny(message=message))
