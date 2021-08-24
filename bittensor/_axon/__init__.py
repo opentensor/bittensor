@@ -255,9 +255,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
         else:
             raise Exception('Incorrect Metadata/version')
 
-    def deny(self,message):
+    def deny(self,message='Invalid key'):
 
-        def _deny(_, context,message='Invalid key'):
+        def _deny(_, context,message):
             context.abort(grpc.StatusCode.UNAUTHENTICATED, message)
 
-        return grpc.unary_unary_rpc_method_handler(_deny(message=message))
+        grpc.unary_unary_rpc_method_handler(_deny(message=message))
