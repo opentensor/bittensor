@@ -674,7 +674,7 @@ class Miner:
 
     def blacklist(self,pubkey:str) -> bool:
         uid =self.neuron.metagraph.hotkeys.index(pubkey)
-        if self.neuron.metagraph.S[uid] < 0:
+        if self.neuron.metagraph.S[uid] < 1:
             return True
         else:
             return False
