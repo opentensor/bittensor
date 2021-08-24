@@ -206,8 +206,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self._deny = grpc.unary_unary_rpc_method_handler(deny)
 
     def intercept_service(self, continuation, handler_call_details):
-        r""" Authentication between bittensor nodes. A signature is created using
-            publickey and encodes the time at which the signature was created.
+        r""" Authentication between bittensor nodes. Intercepts messages and checks them
         """
         meta = handler_call_details.invocation_metadata
         print(meta)
@@ -228,7 +227,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
 
     def vertification(self,meta):
-        r"""
+        r"""vertification of signature in metadata. Uses the pubkey and nounce
         """
         nounce, pubkey, message = meta[1].value.split('bitxx')
         print('nouce', nounce, 'pubkey',pubkey)
@@ -254,18 +253,24 @@ class AuthInterceptor(grpc.ServerInterceptor):
         return verification
 
     def signature_checking(self,meta):
+        r""" Calls the vertification of the signature and raises an error if failed
+        """
         if self.vertification(meta):
             pass
         else:
             raise Exception('Incorrect Signature')
 
     def version_checking(self,meta):
+        r""" Checks the header and version in the metadata
+        """
         if meta[0] == self._valid_metadata and bittensor.__version_as_int__ == int(meta[2].value):
             pass
         else:
             raise Exception('Incorrect Metadata/version')
 
     def black_list_checking(self,meta):
+        r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey 
+        """
         _, pubkey, _ = meta[1].value.split('bitxx')
         if self.blacklist == None:
             pass

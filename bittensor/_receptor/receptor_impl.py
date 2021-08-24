@@ -302,7 +302,7 @@ class Receptor(nn.Module):
 
                 elif grpc_code == grpc.StatusCode.UNAUTHENTICATED:
                     code = bittensor.proto.ReturnCode.Unauthenticated
-                    message = 'grpc.StatusCode.UNAUTHENTICATED'
+                    message = 'grpc.StatusCode.UNAUTHENTICATED'+': '+ rpc_error_call.details()
                     bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message)
                     return zeros, code, message
                 else:
@@ -458,7 +458,7 @@ class Receptor(nn.Module):
             
             elif e.code() == grpc.StatusCode.UNAUTHENTICATED:
                 code = bittensor.proto.ReturnCode.Unauthenticated
-                message = 'grpc.StatusCode.UNAUTHENTICATED'
+                message = 'grpc.StatusCode.UNAUTHENTICATED'+': '+ e.details()
                 bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
                 return zeros, code, message
 

@@ -257,6 +257,7 @@ class Miner:
             root_dir = self.config.miner.full_path,
             forward_text = self.forward_text,
             backward_text = self.backward_text,
+            blacklist = self.blacklist
         ) 
 
         #bittensor priority thread pool 
@@ -342,13 +343,13 @@ class Miner:
             while self.epoch < self.config.miner.n_epochs:
                 try:
                     # ---- Train state ----
-                    #self.run_epoch()
+                    self.run_epoch()
 
                     # ---- Set weights on chain ----
-                    #self.set_chain_weights()
-                    time.sleep(10)
+                    self.set_chain_weights()
+
                     # ---- Checkpoint state ----
-                    #self.checkpoint()
+                    self.checkpoint()
 
                 except KeyboardInterrupt:
                     # --- User ended session ----
@@ -670,6 +671,13 @@ class Miner:
                 logger.warning('Failed to update weights and biases with error:{}', e)
 
         progress_bar.set_infos( info )
+
+    def blacklist(self,pubkey:str) -> bool:
+        uid =self.neuron.metagraph.hotkeys.index(pubkey)
+        if self.neuron.metagraph.S[uid] < 0:
+            return True
+        else:
+            return False
 
 if __name__ == "__main__":
     Miner().run()
