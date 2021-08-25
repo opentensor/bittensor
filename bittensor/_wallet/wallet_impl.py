@@ -130,7 +130,7 @@ class Wallet():
             print (e)
             return bittensor.Balance(0)
 
-    def add_stake( self, 
+    def add_stake ( self, 
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
