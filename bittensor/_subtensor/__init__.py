@@ -110,7 +110,9 @@ class subtensor:
         if network == "akatsuki":
             # Get first network in akatsuki entrypoints, which is main
             return bittensor.__akatsuki_entrypoints__[0]
-    
-        # Kusanagi testnet
-        return bittensor.__kusanagi_entrypoints__[0]
+        elif network == "kusanagi":
+            # Kusanagi testnet
+            return bittensor.__kusanagi_entrypoints__[0]
+        else:
+            return bittensor.__local_entrypoints__[0]
             

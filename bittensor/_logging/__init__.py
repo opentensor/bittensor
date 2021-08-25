@@ -133,7 +133,7 @@ class logging:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         try:
-            parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default=True)
+            parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default=False)
             parser.add_argument('--logging.no_debug', action='store_false', dest='logging.debug', help='''Turn on bittensor debugging information''', default=True)
             parser.add_argument('--logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default=False)
             parser.add_argument('--logging.record_log', action='store_true', help='''Turns on logging to file.''', default=False)
@@ -167,7 +167,7 @@ class logging:
         if cls.__debug_on__ or cls.__trace_on__:
             return True
         else:
-            return record["level"].name != "DEBUG"
+            return False
 
     @classmethod
     def log_formatter(cls, record):
@@ -246,6 +246,15 @@ class logging:
         prefix = prefix.ljust(20)
         log_msg = prefix + sufix 
         logger.warning( log_msg )
+
+    @classmethod
+    def error( cls, prefix:str, sufix:str ):
+        if not cls.__has_been_inited__:
+            cls()
+        prefix = prefix + ":"
+        prefix = prefix.ljust(20)
+        log_msg = prefix + sufix 
+        logger.error( log_msg )
 
     @classmethod
     def info( cls, prefix:str, sufix:str ):

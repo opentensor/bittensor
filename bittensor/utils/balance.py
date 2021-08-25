@@ -15,8 +15,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+from termcolor import colored
+
 class Balance:
-    unit = "Tao"
+    unit = "\u03C4"
     rao : int
     tao: float
 
@@ -32,7 +34,10 @@ class Balance:
         return self.tao
 
     def __str__(self):
-        return "{unit:s} {balance:.9f}".format(unit=self.unit, balance=self.tao)
+        return "\u03C4" + str(self.tao)
+
+    def __repr__(self):
+        return self.__str__()
 
     def __eq__(self, other):
         return self.rao == other.rao
