@@ -210,7 +210,8 @@ class Wallet():
         """ Transfers Tao from this wallet's coldkey to the destination address.
             Args:
                 dest(`type`:str, required):
-                    The destination address either encoded as a ss58 or ed255 public key string.
+                    The destination address either encoded as a ss58 or ed255 public-key string of 
+                    secondary account.
                 amount_tao (float, required):
                     amount of tao to transfer or a bittensor balance object.
                 wait_for_inclusion (bool):
