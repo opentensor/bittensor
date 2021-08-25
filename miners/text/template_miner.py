@@ -21,7 +21,6 @@ Example:
     $ python miners/text/template_miner.py
 
 """
-import time
 
 import argparse
 import bittensor

@@ -209,19 +209,19 @@ class AuthInterceptor(grpc.ServerInterceptor):
         r""" Authentication between bittensor nodes. Intercepts messages and checks them
         """
         meta = handler_call_details.invocation_metadata
-        print(meta)
         try: 
             #version checking
             self.version_checking(meta)
 
+            #signature checking
             self.signature_checking(meta)
 
+            #blacklist checking
             self.black_list_checking(meta)
 
             return continuation(handler_call_details)
 
         except Exception as e:
-            print(e)
             self.message = str(e)
             return self._deny
 
