@@ -219,14 +219,17 @@ class Metagraph( torch.nn.Module ):
                 network: (:obj:`str`, required):
                     Name of state_dict to load, defaults to kusanagi
         """
-        if network == None:
-            network = self.subtensor.network
-        metagraph_path = '~/.bittensor/' + str(network) + '.pt'
-        metagraph_path = os.path.expanduser(metagraph_path)
-        if os.path.isfile(metagraph_path):
-            self.load_from_path( path = metagraph_path )
-        else:
-            logger.warning('Did not load metagraph from path: {}, file does not exist. Run metagraph.save() first.', metagraph_path)
+        try:
+            if network == None:
+                network = self.subtensor.network
+            metagraph_path = '~/.bittensor/' + str(network) + '.pt'
+            metagraph_path = os.path.expanduser(metagraph_path)
+            if os.path.isfile(metagraph_path):
+                self.load_from_path( path = metagraph_path )
+            else:
+                logger.warning('Did not load metagraph from path: {}, file does not exist. Run metagraph.save() first.', metagraph_path)
+        except Exception as e:
+            logger.exception(e)
         return self
 
     def save( self, network:str = None ) -> 'Metagraph':
@@ -344,7 +347,7 @@ class Metagraph( torch.nn.Module ):
         return self
     
     def __str__(self):
-        return "Metagraph ({},{},{})".format(self.n.item(), self.block.item(), self.subtensor.network)
+        return "Metagraph({}, {}, {})".format(self.n.item(), self.block.item(), self.subtensor.network)
         
     def __repr__(self):
         return self.__str__()

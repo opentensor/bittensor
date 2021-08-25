@@ -60,9 +60,9 @@ class Subtensor:
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
-            return "Subtensor ({})".format( self.chain_endpoint )
+            return "Subtensor({})".format( self.chain_endpoint )
         else:
-            return "Subtensor ({}:{})".format( self.network, self.chain_endpoint )
+            return "Subtensor({}, {})".format( self.network, self.chain_endpoint )
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -411,6 +411,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or uncluded in the block.
                 If we did not wait for finalization / inclusion, the response is true.
         """
+        bittensor.logging.success( 'Setting weights', str(list(zip(uids.tolist(), weights.tolist()))))
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit( uids, weights )
         with self.substrate as substrate:
             call = substrate.compose_call(
@@ -423,12 +424,13 @@ To run a local node (See: docs/running_a_validator.md) \n
             if wait_for_inclusion or wait_for_finalization:
                 response.process_events()
                 if response.is_success:
-                    bittensor.logging.success( 'Set weights', list(zip(weight_uids.tolist(), weight_vals.tolist())))
+                    bittensor.logging.success( prefix = 'Weights Set', sufix = '<green>True</green>')
                     return True
                 else:
-                    bittensor.logging.warning( 'Failed to set weights:', str(response.error_message) )
+                    bittensor.logging.warning(  prefix = 'Weights Set', sufix = '<green>False: </green>' + str(response.error_message) )
                     return False
             else:
+                bittensor.logging.warning( prefix = 'Weights Set', sufix = '<yellow>Unknown (non-waiting)</yellow>')
                 return True
 
     def get_balance(self, address: str, block: int = None) -> Balance:
