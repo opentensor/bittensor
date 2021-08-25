@@ -214,11 +214,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
         if self.backward_callback[modality] == None:
             message = "Backward callback is not yet subscribed on this axon."
             return None, bittensor.proto.ReturnCode.NotImplemented, message
-        
-        # Check if modality is text, if it is, return none
-        if modality == bittensor.proto.Modality.TEXT:
-            message = "Backward callback cannot be computed on TEXT data."
-            return None, bittensor.proto.ReturnCode.NotImplemented, message
 
         # Make backward call.
         try:
