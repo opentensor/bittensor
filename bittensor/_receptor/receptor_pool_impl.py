@@ -40,6 +40,12 @@ class ReceptorPool ( torch.nn.Module ):
         self.max_active_receptors = max_active_receptors
         self.receptors = {}
 
+    def __str__(self):
+        return "ReceptorPool({},{})".format(len(self.receptors), self.max_active_receptors)
+
+    def __repr__(self):
+        return self.__str__()
+
     def forward(
             self, 
             endpoints: List['bittensor.Endpoint'],
