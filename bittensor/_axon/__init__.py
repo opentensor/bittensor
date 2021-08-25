@@ -230,11 +230,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
         r"""vertification of signature in metadata. Uses the pubkey and nounce
         """
         nounce, pubkey, message = meta[1].value.split('bitxx')
-        print('nouce', nounce, 'pubkey',pubkey)
         data_time = datetime.strptime(nounce,'%m%d%Y%H%M%S%f')
         _keypair = Keypair(ss58_address=pubkey)
-        print(_keypair)
-        print(data_time)
+
         
         #checking the time of creation, compared to previous messages
         if pubkey in self.nounce_dic.keys():
