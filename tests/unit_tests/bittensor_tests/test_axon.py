@@ -10,9 +10,9 @@ wallet =  bittensor.wallet (
 ) 
 def sign(wallet):
     nounce = datetime.now().strftime(format= '%m%d%Y%H%M%S%f')
-    message  = nounce+str(wallet.pubkey) 
+    message  = nounce+str(wallet.hotkey.ss58_address) 
     spliter = 'bitxx'
-    signature = spliter.join([nounce,str(wallet.pubkey),wallet.hotkey.sign(message)])
+    signature = spliter.join([nounce,str(wallet.hotkey.ss58_address),wallet.hotkey.sign(message)])
     return signature
 
 

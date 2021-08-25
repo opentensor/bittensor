@@ -286,6 +286,8 @@ class Miner:
         parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template miner')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=1)
+        parser.add_argument('--miner.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
+
         bittensor.add_args( parser )
         Nucleus.add_args( parser ) 
         bittensor.prioritythreadpool.add_args( parser )
@@ -619,7 +621,7 @@ class Miner:
     def logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
         r""" Called after every training step. Displays miner state to screen.
         """
-        self_uid = bittensor.neuron.metagraph.hotkeys.index(bittensor.neuron.wallet.pubkey)
+        self_uid = bittensor.neuron.metagraph.hotkeys.index(bittensor.neuron.wallet.hotkey.ss58_address)
         stake = bittensor.neuron.metagraph.S[ self_uid ].item()
         rank = bittensor.neuron.metagraph.R[ self_uid ].item()
         incentive = bittensor.neuron.metagraph.I[ self_uid ].item()
@@ -673,11 +675,11 @@ class Miner:
         progress_bar.set_infos( info )
 
     def blacklist(self,pubkey:str) -> bool:
-        r"""Axon security blacklisting
-        Currently, this is not turned on, since no one has stake in the network.
+        r"""Axon security blacklisting, used to blacklist message from low stake members
+        Currently, this is not turned on.
         """
         uid =self.neuron.metagraph.hotkeys.index(pubkey)
-        if self.neuron.metagraph.S[uid] < 0:
+        if self.neuron.metagraph.S[uid] < self.config.miner.blacklist:
             return True
         else:
             return False

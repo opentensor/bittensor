@@ -347,20 +347,6 @@ class Wallet():
         )
         return os.path.join(full_path, "hotkeys", self._hotkey_string)
 
-    @property
-    def pubkey(self) -> str:
-        r""" Loads the hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey and returns encoded public key.
-            Returns:
-                pubkey (Str):
-                    ss58 encoded public key of the hotkey loaded from config arguments.
-            Raises:
-                KeyFileError: Raised if the file is corrupt of non-existent.
-                KeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
-        """
-        if self._hotkey == None:
-            self._hotkey = self._load_hotkey()
-        return ss58_encode(self._hotkey.public_key)
-
     def _load_coldkeypub(self) -> str:
         if not os.path.isfile( self.coldkeypubfile ):
             logger.critical("coldkeypubfile  {} does not exist".format( self.coldkeypubfile ))

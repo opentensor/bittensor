@@ -238,7 +238,7 @@ class Receptor(nn.Module):
             # ---- Build request ----
             request = bittensor.proto.TensorMessage (
                 version = bittensor.__version_as_int__,
-                hotkey = self.wallet.pubkey,
+                hotkey = self.wallet.hotkey.ss58_address,
                 tensors = [serialized_inputs]
             )
         
@@ -424,7 +424,7 @@ class Receptor(nn.Module):
         try:
             request = bittensor.proto.TensorMessage(
                 version = bittensor.__version_as_int__,
-                hotkey = self.wallet.pubkey,
+                hotkey = self.wallet.hotkey.ss58_address,
                 tensors = [serialized_inputs, serialized_grads]
             )
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=bittensor.proto.ReturnCode.Success, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=None)
@@ -531,9 +531,9 @@ class Receptor(nn.Module):
         r""" Uses the wallet pubkey to sign a message containing the pubkey and the time
         """
         nounce = self.nounce()
-        message  = nounce+str(self.wallet.pubkey) 
+        message  = nounce+str(self.wallet.hotkey.ss58_address) 
         spliter = 'bitxx'
-        signature = spliter.join([nounce,str(self.wallet.pubkey),self.wallet.hotkey.sign(message)])
+        signature = spliter.join([nounce,str(self.wallet.hotkey.ss58_address),self.wallet.hotkey.sign(message)])
         return signature
     
     def nounce(self):
