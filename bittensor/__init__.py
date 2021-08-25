@@ -34,6 +34,19 @@ __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __s
 # Substrate chain block time (seconds).
 __blocktime__ = 6
 
+# Hardcoded entry point nodes. 
+__kusanagi_entrypoints__ = [
+    "test.kusanagi.bittensor.com:9944" 
+]
+
+__akatsuki_entrypoints__ = [
+    "main.akatsuki.bittensor.com:9944"
+]
+
+__local_entrypoints__ = [
+    '127.0.0.1:9944'
+]
+
 # ---- Config ----
 from bittensor._config import config as config
 
@@ -184,16 +197,3 @@ def init(
         axon_backward_callback = axon_backward_callback,
     )
     return neuron
-
-# Hardcoded entry point nodes. 
-__kusanagi_entrypoints__ = [
-    "test.kusanagi.bittensor.com:9944" 
-]
-
-__akatsuki_entrypoints__ = [
-    "main.akatsuki.bittensor.com:9944"
-]
-
-__local_entrypoints__ = [
-    '127.0.0.1:9944'
-]
