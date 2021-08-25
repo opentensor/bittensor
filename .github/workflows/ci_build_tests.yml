@@ -41,6 +41,8 @@ jobs:
         ./scripts/build_protos.sh
     - name: Run Unit Tests
       run: pytest ./tests/unit_tests
+    - name: Run Integration Tests
+      run: pytest ./tests/integration_tests
     - name: Run Miners
       run: python tests/miners/text/test_gpt2_exodus.py
     - name: Run dataloader tests
