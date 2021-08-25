@@ -26,7 +26,9 @@ from loguru import logger
 logger = logger.opt(colors=True)
 
 import bittensor
+from typing import Tuple, List, Union, Optional
 from substrateinterface import Keypair
+from substrateinterface.utils.ss58 import ss58_encode
 from bittensor.utils.cli_utils import cli_utils
 from bittensor._crypto import encrypt, is_encrypted, decrypt_data, KeyError
 from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
@@ -62,7 +64,144 @@ class Wallet():
         self._coldkey = None
         self._coldkeypub = None
 
+    def __str__(self):
+        return "Wallet ({}, {}, {})".format(self._name_string, self._hotkey_string, self._path_string)
+    
+    def __repr__(self):
+        return self.__str__()
+
+    def get_uid ( self, subtensor: 'bittensor.Subtensor' = None ) -> int:
+        """ Returns this wallet's hotkey uid or -1 if the hotkey is not subscribed.
+            Args:
+                subtensor( 'bittensor.Subtensor' ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+            Return:
+                uid (int):
+                    Network uid.
+        """
+        try:
+            if subtensor == None:
+                subtensor = bittensor.subtensor()
+            hotkey_uid = int(subtensor.get_uid_for_pubkey( self.hotkey.public_key ))
+            if hotkey_uid == None:
+                return -1
+            else:
+                return int(hotkey_uid)
+        except Exception as e:
+            return -1
+
+    def get_stake ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
+        """ Returns this wallet's staking balance from passed subtensor connection.
+            Args:
+                subtensor( 'bittensor.Subtensor' ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+            Return:
+                balance (bittensor.utils.balance.Balance):
+                    Stake account balance
+        """
+        try:
+            if subtensor == None:
+                subtensor = bittensor.subtensor()
+            self.assert_hotkey()
+            hotkey_uid = self.get_uid()
+            if hotkey_uid == -1:
+                return bittensor.Balance(0)               
+            stake = subtensor.get_stake_for_uid( hotkey_uid )
+            return stake
+        except Exception as e:
+            print (e)
+            return bittensor.Balance(0)
+
+    def get_balance ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
+        """ Returns this wallet's coldkey balance from passed subtensor connection.
+            Args:
+                subtensor( 'bittensor.Subtensor' ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+            Return:
+                balance (bittensor.utils.balance.Balance):
+                    Coldkey account balance
+        """
+        try:
+            if subtensor == None:
+                subtensor = bittensor.subtensor()
+            self.assert_coldkeypub()
+            amount_balance = subtensor.get_balance( ss58_encode(self.coldkeypub) )
+            return amount_balance
+        except Exception as e:
+            print (e)
+            return bittensor.Balance(0)
+
+    def add_stake( self, 
+        amount: Union[float, bittensor.Balance] = None, 
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        subtensor: 'bittensor.Subtensor' = None 
+    ) -> bool:
+        """ Stakes tokens from this wallet's coldkey onto it's hotkey.
+            Args:
+                amount_tao (float):
+                    amount of tao to stake or bittensor balance object. If None, stakes all available balance.
+                wait_for_inclusion (bool):
+                    if set, waits for the extrinsic to enter a block before returning true, 
+                    or returns false if the extrinsic fails to enter the block within the timeout.   
+                wait_for_finalization (bool):
+                    if set, waits for the extrinsic to be finalized on the chain before returning true,
+                    or returns false if the extrinsic fails to be finalized within the timeout.
+                subtensor( `bittensor.Subtensor` ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+            Returns:
+                success (bool):
+                    flag is true if extrinsic was finalized or uncluded in the block. 
+                    If we did not wait for finalization / inclusion, the response is true.
+        """
+        self.assert_coldkey()
+        self.assert_coldkeypub()
+        self.assert_hotkey()
+        if amount == None:
+            amount = self.get_balance()
+        if not isinstance(amount, bittensor.Balance):
+            amount = bittensor.utils.balance.Balance.from_float( amount )
+        if subtensor == None:
+            subtensor = bittensor.subtensor()
+        return subtensor.add_stake( wallet = self, amount = amount, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
+
+    def remove_stake( self, 
+        amount: Union[float, bittensor.Balance] = None, 
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        subtensor: 'bittensor.Subtensor' = None 
+    ) -> bool:
+        """ Removes stake from this wallet's hotkey and moves them onto it's coldkey balance.
+            Args:
+                amount_tao (float):
+                    amount of tao to unstake or bittensor balance object. If None, unstakes all available hotkey balance.
+                wait_for_inclusion (bool):
+                    if set, waits for the extrinsic to enter a block before returning true, 
+                    or returns false if the extrinsic fails to enter the block within the timeout.   
+                wait_for_finalization (bool):
+                    if set, waits for the extrinsic to be finalized on the chain before returning true,
+                    or returns false if the extrinsic fails to be finalized within the timeout.
+                subtensor( `bittensor.Subtensor` ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+            Returns:
+                success (bool):
+                    flag is true if extrinsic was finalized or uncluded in the block. 
+                    If we did not wait for finalization / inclusion, the response is true.
+        """
+        self.assert_coldkey()
+        self.assert_coldkeypub()
+        self.assert_hotkey()
+        if amount == None:
+            amount = self.get_stake()
+        if not isinstance(amount, bittensor.Balance):
+            amount = bittensor.utils.balance.Balance.from_float( amount )
+        if subtensor == None:
+            subtensor = bittensor.subtensor()
+        return subtensor.unstake( wallet = self, amount = amount, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
+
     def create(self) -> 'Wallet':
+        """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+        """
         # ---- Setup Wallet. ----
         if not self.has_coldkeypub:
             self.create_new_coldkey( n_words = 12, use_password = True )
