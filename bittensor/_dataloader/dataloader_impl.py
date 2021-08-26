@@ -203,25 +203,31 @@ class GenesisTextDataloader( Dataloader ):
             logger.success("Retrieving a dataset files from the IPFS gateway...")
 
             # Retrieves the directory for the given dataset
-            if self.dataset == 'genesis':
-                directory = self.retrieve_directory(self.genesis_text_dataset_hash)
-            elif self.dataset == 'wikitext':
-                directory = self.retrieve_directory(self.wikitext_text_dataset_hash)
+            if self.dataset == 'train':
+                directory_links = []
+                for hash in [self.genesis_text_dataset_hash, self.wikitext_text_dataset_hash]:
+                    dir = self.retrieve_directory(hash)
+                    if dir and 'links' in dir.keys():
+                        directory_links.extend(dir['links'])
+
             elif self.dataset == 'test':
-                directory = self.retrieve_directory(self.test_text_dataset_hash)
+                if dir and 'links' in dir.keys():
+                    directory_links = self.retrieve_directory(self.test_text_dataset_hash)['links']
+
             elif self.dataset == 'validation':
-                directory = self.retrieve_directory(self.validation_text_dataset_hash)
+                if dir and 'links' in dir.keys():
+                    directory_links = self.retrieve_directory(self.validation_text_dataset_hash)['links']
 
             data_corpus = []
 
             # Generate a random order of the directories
-            directory_order = list(range(len(directory['links'])))
+            directory_order = list(range(len(directory_links)))
             random.shuffle(directory_order)
 
             # Pick a random dataset file and return its contents
-            if directory and 'links' in directory.keys():
+            if directory_links:
                 # Let's construct a dataset!
-                random_dataset_file = directory['links'][directory_order[0]]
+                random_dataset_file = directory_links[directory_order[0]]
                 file_name = random_dataset_file['Name']
                 total_dataset_size = 0
 
@@ -235,7 +241,7 @@ class GenesisTextDataloader( Dataloader ):
                     total_dataset_size += int(random_dataset_file['Size'])
 
                     # Retrieve next file descriptor
-                    random_dataset_file = directory['links'][directory_order[i]]
+                    random_dataset_file = directory_links[directory_order[i]]
                     file_name = random_dataset_file['Name']
                     i += 1
 
@@ -259,8 +265,9 @@ class GenesisTextDataloader( Dataloader ):
         Returns:
             torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
         """
+        scale = 2.1
         # If we've exhausted the dataset, retrieve another corpus.
-        if self.refresh_corpus or len(self.data) <= self.block_size:
+        if self.refresh_corpus or len(self) < (epoch_length * self.batch_size) * scale:
             self.data = self.construct_text_corpus()
             self.refresh_corpus = False
 
@@ -270,9 +277,9 @@ class GenesisTextDataloader( Dataloader ):
 
             # Set up upper bound of indices to fit the batch size we want.
             idx_bound = epoch_length * self.batch_size
-            if idx_bound < len(self):
+            if idx_bound * scale< len(self):
                 # Collect enough random indices to batch together using batch_size into epoch_length batches
-                random_start = random.randint(0, len(self) - idx_bound)
+                random_start = random.randint(0, len(self) - round(idx_bound * 2.1))
                 indices = list(range(random_start, random_start + idx_bound))
 
                 subset = Subset(self, indices)

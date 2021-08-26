@@ -65,7 +65,7 @@ class dataloader:
             parser.add_argument('--dataloader.block_size', default=20, type=int, help='Number of text items to pull for each example..')
             parser.add_argument('--dataloader.max_corpus_size', default=1e+6, type=int, help='Maximum amount of data to download from IPFS into memory for training.')
             parser.add_argument('--dataloader.num_workers', default=0, type=int, help='Number of workers for data loader.')
-            parser.add_argument('--dataloader.dataset', default='genesis', type=str, help='Which datasets to use (genesis or wikitext)).')
+            parser.add_argument('--dataloader.dataset', default='train', type=str, help='Which datasets to use (genesis or wikitext)).')
             parser.add_argument('--dataloader.data_dir', default='~/.bittensor/data/', type=str, help='Where to save and load the data.')
         except argparse.ArgumentError:
             # re-parsing arguments.
@@ -78,4 +78,4 @@ class dataloader:
         assert config.dataloader.block_size > 0, 'Block size must be larger than 0'
         assert config.dataloader.max_corpus_size > 0, 'max_corpus_size must be larger than 0'
         assert config.dataloader.num_workers >= 0, 'num_workers must be equal to or larger than 0'
-        assert config.dataloader.dataset in ['genesis','wikitext','test','validation'], 'dataset must be one of the following choices: genesis, wikitext, test, or validation'
+        assert config.dataloader.dataset in ['train','test','validation'], 'dataset must be one of the following choices: genesis, wikitext, test, or validation'

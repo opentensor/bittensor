@@ -9,6 +9,7 @@ dataloader.block_size: 20
 dataloader.max_corpus_size: 1000000.0
 dataloader.num_workers: 0
 dataloader.data_dir: ~/.bittensor/data/
+dataloader.dataset: train
 
 dendrite.max_active_receptors: 500
 dendrite.max_worker_threads: 150
@@ -20,10 +21,9 @@ logging.logging_dir: ~/.bittensor/miners/
 logging.record_log: false
 logging.trace: false
 
-miner.learning_rate: 0.001
-miner.name: template_miner_local_lr0001_bs2_pe
+miner.learning_rate: 1
+miner.name: template_miner
 miner.batch_size_train: 2
-
 miner.device: cpu
 miner.epoch_length: 100
 miner.n_epochs: 500
@@ -39,7 +39,6 @@ neuron.use_wandb: false
 neuron.api_key: default
 
 nucleus.dropout: 0.3
-
 nucleus.nhid: 200
 nucleus.nhead: 2
 nucleus.nlayers: 2
