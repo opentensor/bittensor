@@ -308,7 +308,7 @@ class Miner:
         parser.add_argument('--miner.compute_remote_gradients', action='store_true', help='''Does the miner compute and return gradients from backward queries.''', default=False)
         parser.add_argument('--miner.accumulate_remote_gradients', action='store_true', help='''Does the miner accumulate remote gradients from backward queries.''', default=False)
         parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
-        parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template miner')
+        parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template_miner')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=1)
         parser.add_argument('--miner.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
@@ -360,10 +360,12 @@ class Miner:
             # ---- reloads previous run ----
             try:
                 self.reload()
+                self.checkpoint()
                 self.neuron.axon.check()
             except:
                 self.save()
                 self.reload()
+                self.checkpoint()
                 self.neuron.axon.check()
 
             # --- Run until n_epochs ----
@@ -545,6 +547,9 @@ class Miner:
         bittensor.neuron.metagraph.load()
         bittensor.neuron.metagraph.sync()
         bittensor.neuron.metagraph.save()
+
+        chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.chain_weights.shape[0]
+        self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
 
         # Checks if epochs managed to diverage
         if not math.isfinite(self.epoch_loss):
