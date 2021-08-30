@@ -358,7 +358,7 @@ class Receptor(nn.Module):
         bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=list(outputs.shape), message=None)
         return outputs, code, message
 
-    def backward(
+    def _call_backward(
             self,
             inputs_x: torch.Tensor, 
             grads_dy: torch.FloatTensor, 
