@@ -31,6 +31,7 @@ from torch.utils.data import Subset
 from loguru import logger
 logger = logger.opt(colors=True)
 
+
 class Dataloader():
     def __init__(self):
         # IPFS hash of the genesis dataset
@@ -157,7 +158,7 @@ class GenesisTextDataloader( Dataloader ):
                 with open(full_path, mode='r') as f:
                     text = f.read()
                 logger.success("Loaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
-            except Exception as e:
+            except Exception:
                 logger.warning("Load failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
 
         # Download text
@@ -170,7 +171,7 @@ class GenesisTextDataloader( Dataloader ):
                 with open(full_path, mode = 'w+') as f:
                     f.write(text)
                     logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_name))
-            except Exception as e:
+            except Exception:
                     logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
 
         return text
