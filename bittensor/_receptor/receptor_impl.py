@@ -143,7 +143,7 @@ class Receptor(nn.Module):
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
                     Return code associated with forward call.
         """
-        outputs, code, message = self._call_forward( 
+        outputs, code, _ = self._call_forward( 
             inputs = inputs, 
             modality = modality, 
             timeout = timeout 
@@ -183,7 +183,7 @@ class Receptor(nn.Module):
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
                     Return code associated with backward call.
         """
-        outputs, code, message = self._call_backward( 
+        outputs, code, _ = self._call_backward( 
             inputs_x = inputs_x, 
             grads_dy = grads_dy, 
             modality = modality,
