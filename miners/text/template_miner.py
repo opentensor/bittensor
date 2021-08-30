@@ -687,11 +687,11 @@ class Miner:
         normalized_chain_weights = self.nucleus.chain_weights
         for uid in bittensor.neuron.metagraph.uids.tolist():
             if self.nucleus.chain_weights[uid] != 0:
-                if self.nucleus.chain_weights.grad:
+                if any(self.nucleus.chain_weights.grad):
                     weight_dif = -self.nucleus.chain_weights.grad[uid]
                 else:
                     weight_dif = 0
-                    
+
                 if weight_dif > 0:
                     info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'green')
                 elif weight_dif == 0:
