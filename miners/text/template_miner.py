@@ -360,12 +360,10 @@ class Miner:
             # ---- reloads previous run ----
             try:
                 self.reload()
-                self.checkpoint()
                 self.neuron.axon.check()
             except:
                 self.save()
                 self.reload()
-                self.checkpoint()
                 self.neuron.axon.check()
 
             # --- Run until n_epochs ----
@@ -689,7 +687,11 @@ class Miner:
         normalized_chain_weights = self.nucleus.chain_weights
         for uid in bittensor.neuron.metagraph.uids.tolist():
             if self.nucleus.chain_weights[uid] != 0:
-                weight_dif = -self.nucleus.chain_weights.grad[uid]
+                if self.nucleus.chain_weights.grad:
+                    weight_dif = -self.nucleus.chain_weights.grad[uid]
+                else:
+                    weight_dif = 0
+                    
                 if weight_dif > 0:
                     info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'green')
                 elif weight_dif == 0:
