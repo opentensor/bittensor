@@ -36,7 +36,6 @@ class config:
             parser = ArgumentParser()
 
         params = parser.parse_known_args()[0]
-        config_file = None
         config = config_impl.Config()
 
         # 3. Splits params on dot syntax i.e neuron.axon_port
@@ -101,7 +100,7 @@ class config:
                     path_items = yaml.safe_load(f)
                     path_items = munch.munchify(path_items)
                     path_items = config_impl.Config( path_items )
-                except yaml.YAMLError as exc:
+                except yaml.YAMLError:
                     logger.error('CONFIG: cannot parse passed configuration file at {}', path)
                     raise config.InvalidConfigFile
         return path_items
