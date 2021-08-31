@@ -21,9 +21,6 @@ from munch import Munch
 class Config ( Munch ):
 
     def __init__(self, loaded_config = None ):
-
-        # (this comment will be removed) param loaded_config is added for load_from_relative_path() in config.__init__.py
-        # and load_from_relative_path() was not called anywhere
         if loaded_config:
             raise NotImplementedError('Function load_from_relative_path is not fully implemented.')
         pass
