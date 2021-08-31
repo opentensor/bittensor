@@ -444,7 +444,7 @@ class Wallet():
     def __save_keypair(keypair : 'Keypair', path : str):
         path = os.path.expanduser(path)
         with open(path, 'w') as file:
-            json.dump(Wallet.to_dict(keypair), file)
+            json.dump(Wallet("", "", "").to_dict(keypair), file)
             file.close()
         os.chmod(path, stat.S_IWUSR | stat.S_IRUSR)
 
