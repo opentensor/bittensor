@@ -457,8 +457,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 servicer (:object:`object`, `required`): 
                     object with callbacks servicer.forward and servicer.backward
         """
-        self.forward_callback = self.attach_forward_callback( servicer.forward , modality)
-        self.backward_callback = self.attach_backward_callback( servicer.backward , modality)
+        self.attach_forward_callback( servicer.forward , modality)
+        self.attach_backward_callback( servicer.backward , modality)
 
     def attach_forward_callback(self, forward_callback: Callable[ [str, torch.Tensor, int], torch.Tensor ] , modality: int):
         """ Assigns the forward_callback.
