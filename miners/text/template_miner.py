@@ -30,6 +30,8 @@ import traceback
 import os
 import sys
 import yaml
+from memory_profiler import profile
+from memory_profiler import memory_usage
 
 from termcolor import colored
 from typing import List
@@ -153,7 +155,6 @@ class Nucleus(nn.Module):
             predictions=shift_logits.max(2).indices
             output.local_accuracy = (predictions==shift_labels).sum().item()/predictions.nelement()
         return output
-
     def remote_forward(self, inputs: torch.int64, training: bool) -> SimpleNamespace:
         """ Forward pass inputs and labels through the GPT2 module and into the remote network.
         Args:
@@ -342,14 +343,15 @@ class Miner:
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
-
+    
     def run( self ):
         r""" Miner main loop.
         """
         # ---- Build Bittensor neuron ----
         with self.neuron:
             if self.config.neuron.use_wandb:
-                bittensor.neuron.wandb.watch([self.nucleus.local_hidden, self.nucleus.local_encoder, self.nucleus.remote_hidden], self.nucleus.loss_fct, log ='all', log_freq=10 )
+                pass
+                #bittensor.neuron.wandb.watch([self.nucleus.local_hidden, self.nucleus.local_encoder, self.nucleus.remote_hidden], self.nucleus.loss_fct, log ='all', log_freq=10 )
 
             # ---- Init run state ----
             self.epoch = 0
@@ -377,7 +379,6 @@ class Miner:
 
                     # ---- Checkpoint state ----
                     self.checkpoint()
-
                 except KeyboardInterrupt:
                     # --- User ended session ----
                     break
@@ -542,9 +543,7 @@ class Miner:
         last_saved = self.get_saved_state()
         if last_saved == None or last_saved['epoch_loss'] >= self.epoch_loss:
             self.save()
-        bittensor.neuron.metagraph.load()
-        bittensor.neuron.metagraph.sync()
-        bittensor.neuron.metagraph.save()
+        bittensor.neuron.metagraph.load().sync().save()
 
         chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.chain_weights.shape[0]
         self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
@@ -687,7 +686,7 @@ class Miner:
         normalized_chain_weights = self.nucleus.chain_weights
         for uid in bittensor.neuron.metagraph.uids.tolist():
             if self.nucleus.chain_weights[uid] != 0:
-                if any(self.nucleus.chain_weights.grad):
+                if self.nucleus.chain_weights.grad != None:
                     weight_dif = -self.nucleus.chain_weights.grad[uid]
                 else:
                     weight_dif = 0
@@ -700,7 +699,7 @@ class Miner:
                     info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
                 if self.config.neuron.use_wandb:
                     wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
-        if self.config.neuron.use_wandb:
+        if self.config.neuron.use_wandb and iteration % 50 = 1:
             try:
                 bittensor.neuron.wandb.log(wandb_info)
             except Exception as e:
