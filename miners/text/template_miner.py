@@ -150,7 +150,7 @@ class Nucleus(nn.Module):
             shift_labels = inputs[..., 1:].contiguous()
             output.local_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
-            predictions=shift_logits.max(2).indices
+            predictions=shift_logits.detach().max(2).indices
             output.local_accuracy = (predictions==shift_labels).sum().item()/predictions.nelement()
         return output
     def remote_forward(self, inputs: torch.int64, training: bool) -> SimpleNamespace:
@@ -213,7 +213,7 @@ class Nucleus(nn.Module):
         """
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
         real_topk = min( self.config.nucleus.topk, bittensor.neuron.metagraph.n.item() )
-        noise = torch.normal( 0, torch.std(self.chain_weights).item()+0.0000001, size=( self.chain_weights.size())).to( self.config.miner.device )
+        noise = torch.normal( 0, torch.std(self.chain_weights.detach()).item()+0.0000001, size=( self.chain_weights.size())).to( self.config.miner.device )
         topk_weights, topk_uids = torch.topk( self.chain_weights + noise, real_topk, dim=0 )
 
         # ---- Filter endpoints ----
@@ -230,7 +230,7 @@ class Nucleus(nn.Module):
         joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 )
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
         for index, joining_weight in enumerate( joining_weights ):
-            output += responses[joining_uids[index]].to( self.config.miner.device ) * joining_weight
+            output += responses[joining_uids[index]].detach().to( self.config.miner.device ) * joining_weight
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
@@ -341,7 +341,7 @@ class Miner:
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
-    
+
     def run( self ):
         r""" Miner main loop.
         """
@@ -349,7 +349,7 @@ class Miner:
         with self.neuron:
             if self.config.neuron.use_wandb:
                 pass
-                #bittensor.neuron.wandb.watch([self.nucleus.local_hidden, self.nucleus.local_encoder, self.nucleus.remote_hidden], self.nucleus.loss_fct, log ='all', log_freq=10 )
+                #bittensor.neuron.wandb.watch([self.nucleus.local_hidden, self.nucleus.local_encoder, self.nucleus.remote_hidden], self.nucleus.loss_fct, log ='all', log_freq=100 )
 
             # ---- Init run state ----
             self.epoch = 0
@@ -377,6 +377,7 @@ class Miner:
 
                     # ---- Checkpoint state ----
                     self.checkpoint()
+
                 except KeyboardInterrupt:
                     # --- User ended session ----
                     break
@@ -456,8 +457,8 @@ class Miner:
 
         # ---- Backward pass ----
         
-        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-        output.loss.backward() # Accumulates gradients on the nucleus.
+        loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+        loss.backward() # Accumulates gradients on the nucleus.
         clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
         self.optimizer.step() # Applies accumulated gradients.
 
@@ -487,7 +488,7 @@ class Miner:
             output = self.nucleus.local_forward (
                 inputs = inputs_x
             )
-            return output.local_hidden
+            return output.local_hidden.detach()
 
         uid =self.neuron.metagraph.hotkeys.index(pubkey)
         priority = self.neuron.metagraph.S[uid]
@@ -544,6 +545,7 @@ class Miner:
         bittensor.neuron.metagraph.load().sync().save()
 
         chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.chain_weights.shape[0]
+        print(chain_growth)
         self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
 
         # Checks if epochs managed to diverage
@@ -620,13 +622,12 @@ class Miner:
             bittensor.logging.success(prefix='Saved model', sufix='<blue>{}/model.torch</blue>'.format( self.config.miner.full_path ) )
         except Exception as e:
             logger.exception('Failed to save model with error:{}', e)
-
     def set_chain_weights( self ):
         r""" Sets the chain weights.
         """
         try:
             real_topk = min( self.config.miner.n_topk_chain_weights , bittensor.neuron.metagraph.n.item() )
-            topk_weights, topk_uids = torch.topk( self.nucleus.chain_weights, k = real_topk )
+            topk_weights, topk_uids = torch.topk( self.nucleus.chain_weights.detach(), k = real_topk )
             normalized_topk_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
             did_set = bittensor.neuron.subtensor.set_weights(
                 uids = topk_uids,
@@ -635,7 +636,7 @@ class Miner:
                 wallet = bittensor.neuron.wallet,
             )
             if did_set:
-                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(self.nucleus.chain_weights.tolist()))
+                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(self.nucleus.chain_weights.detach().tolist()))
             else:
                 logger.warning('Failed to set weights on chain.')
                 bittensor.neuron.subtensor = bittensor.subtensor( config = self.config.subtensor )
@@ -681,11 +682,11 @@ class Miner:
                 }
 
         #removing normalization of chain weights for display
-        normalized_chain_weights = self.nucleus.chain_weights
+        normalized_chain_weights = self.nucleus.chain_weights.detach()
         for uid in bittensor.neuron.metagraph.uids.tolist():
-            if self.nucleus.chain_weights[uid] != 0:
+            if self.nucleus.chain_weights.detach()[uid] < 0:
                 if self.nucleus.chain_weights.grad != None:
-                    weight_dif = -self.nucleus.chain_weights.grad[uid]
+                    weight_dif = -self.nucleus.chain_weights.grad[uid].detach()
                 else:
                     weight_dif = 0
 
@@ -710,7 +711,7 @@ class Miner:
         Currently, this is not turned on.
         """
         uid =self.neuron.metagraph.hotkeys.index(pubkey)
-        if self.neuron.metagraph.S[uid] < self.config.miner.blacklist:
+        if self.neuron.metagraph.S[uid].item() < self.config.miner.blacklist:
             return True
         else:
             return False
