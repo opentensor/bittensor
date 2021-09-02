@@ -40,7 +40,7 @@ class cli:
                     bittensor executor object, used to execute cli options.
         """
         if config == None: config = cli.config()
-        config = config; cli.check_config( config ); print (config)
+        config = config; cli.check_config( config )
         
         if executor == None:
             executor = bittensor.executor( config = config )
