@@ -31,6 +31,8 @@ import os
 import sys
 import yaml
 
+import tracemalloc
+
 from termcolor import colored
 from typing import List
 from qqdm import qqdm, format_str
@@ -213,7 +215,7 @@ class Nucleus(nn.Module):
         """
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
         real_topk = min( self.config.nucleus.topk, bittensor.neuron.metagraph.n.item() )
-        noise = torch.normal( 0, torch.std(self.chain_weights.detach()).item()+0.0000001, size=( self.chain_weights.size())).to( self.config.miner.device )
+        noise = torch.normal( 0, torch.std(self.chain_weights).item()+0.0000001, size=( self.chain_weights.size())).to( self.config.miner.device )
         topk_weights, topk_uids = torch.topk( self.chain_weights + noise, real_topk, dim=0 )
 
         # ---- Filter endpoints ----
@@ -341,10 +343,11 @@ class Miner:
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
-
+    
     def run( self ):
         r""" Miner main loop.
         """
+        tracemalloc.start()
         # ---- Build Bittensor neuron ----
         with self.neuron:
             if self.config.neuron.use_wandb:
@@ -359,6 +362,7 @@ class Miner:
 
             # ---- reloads previous run ----
             try:
+                self.save()
                 self.reload()
                 self.neuron.axon.check()
             except:
@@ -377,10 +381,22 @@ class Miner:
 
                     # ---- Checkpoint state ----
                     self.checkpoint()
+                    
+                    if self.epoch == 1:
+                        snapshot1 = tracemalloc.take_snapshot()
+                        top_stats = snapshot1.statistics('lineno')
 
-                except KeyboardInterrupt:
-                    # --- User ended session ----
-                    break
+                        for stat in top_stats[:20]:
+                            logger.info(stat)
+                    elif self.epoch > 1:
+                        snapshot2 = tracemalloc.take_snapshot()
+                        
+                        top_stats = snapshot2.compare_to(snapshot1, 'lineno')
+
+                        logger.info(self.epoch)
+                        for stat in top_stats[:20]:
+                            logger.info(stat)
+                        snapshot1 = snapshot2
 
                 except Exception as e:
                     # --- Unknown error ----
@@ -457,8 +473,8 @@ class Miner:
 
         # ---- Backward pass ----
         
-        loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-        loss.backward() # Accumulates gradients on the nucleus.
+        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+        output.loss.backward() # Accumulates gradients on the nucleus.
         clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
         self.optimizer.step() # Applies accumulated gradients.
 
@@ -488,7 +504,7 @@ class Miner:
             output = self.nucleus.local_forward (
                 inputs = inputs_x
             )
-            return output.local_hidden.detach()
+            return output.local_hidden
 
         uid =self.neuron.metagraph.hotkeys.index(pubkey)
         priority = self.neuron.metagraph.S[uid]
@@ -545,7 +561,6 @@ class Miner:
         bittensor.neuron.metagraph.load().sync().save()
 
         chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.chain_weights.shape[0]
-        print(chain_growth)
         self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
 
         # Checks if epochs managed to diverage
@@ -622,6 +637,7 @@ class Miner:
             bittensor.logging.success(prefix='Saved model', sufix='<blue>{}/model.torch</blue>'.format( self.config.miner.full_path ) )
         except Exception as e:
             logger.exception('Failed to save model with error:{}', e)
+
     def set_chain_weights( self ):
         r""" Sets the chain weights.
         """
@@ -636,7 +652,7 @@ class Miner:
                 wallet = bittensor.neuron.wallet,
             )
             if did_set:
-                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(self.nucleus.chain_weights.detach().tolist()))
+                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(self.nucleus.chain_weights.tolist()))
             else:
                 logger.warning('Failed to set weights on chain.')
                 bittensor.neuron.subtensor = bittensor.subtensor( config = self.config.subtensor )
@@ -684,9 +700,9 @@ class Miner:
         #removing normalization of chain weights for display
         normalized_chain_weights = self.nucleus.chain_weights.detach()
         for uid in bittensor.neuron.metagraph.uids.tolist():
-            if self.nucleus.chain_weights.detach()[uid] < 0:
+            if self.nucleus.chain_weights[uid].item() > 0:
                 if self.nucleus.chain_weights.grad != None:
-                    weight_dif = -self.nucleus.chain_weights.grad[uid].detach()
+                    weight_dif = -self.nucleus.chain_weights.grad[uid].item()
                 else:
                     weight_dif = 0
 
