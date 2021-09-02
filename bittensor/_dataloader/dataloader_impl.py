@@ -161,8 +161,6 @@ class GenesisTextDataloader( Dataloader ):
 
         if response.status_code != 200:
             logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(dir_hash))
-            response_message = str(response.status_code) + response.content.decode("utf-8")
-            logger.warning("Folder retrieval response:".ljust(20) + "<blue>{}</blue>".format(response_message))
         else:
             directory = response.json()
             if directory and 'links' in directory.keys():
@@ -199,8 +197,6 @@ class GenesisTextDataloader( Dataloader ):
 
             if response.status_code != 200:
                 logger.warning("Failed to retrieve file, ignoring file:".ljust(20) + "<blue>{}</blue>".format(file_name))
-                response_message = str(response.status_code) + response.content.decode("utf-8")
-                logger.warning("File retrieval response:".ljust(20) + "<blue>{}</blue>".format(response_message))
             else:
                 text = response.text
                 logger.success("Downloaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
