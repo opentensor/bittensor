@@ -386,7 +386,7 @@ class Miner:
                         snapshot1 = tracemalloc.take_snapshot()
                         top_stats = snapshot1.statistics('lineno')
 
-                        for stat in top_stats[:20]:
+                        for stat in top_stats[:30]:
                             logger.info(stat)
                     elif self.epoch > 1:
                         snapshot2 = tracemalloc.take_snapshot()
@@ -394,8 +394,8 @@ class Miner:
                         top_stats = snapshot2.compare_to(snapshot1, 'lineno')
 
                         logger.info(self.epoch)
-                        for stat in top_stats[:20]:
-                            logger.info(stat)
+                        for stat in top_stats[:30]:
+                            logger.info(str(stat))
                         snapshot1 = snapshot2
 
                 except Exception as e:
