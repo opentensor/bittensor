@@ -47,8 +47,8 @@ class Dataloader():
         self.text_dataset_hashes = [
             self.genesis_text_dataset_hash, 
             self.wikitext_text_dataset_hash, 
-            self.email_text_dataset_hash, 
-            self.book_corpus_text_dataset_hash 
+            # self.email_text_dataset_hash, 
+            # self.book_corpus_text_dataset_hash 
         ]
         # Used to retrieve directory contentx
         self.dag_get = 'https://gateway.pinata.cloud/api/v0/dag/get'
