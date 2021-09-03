@@ -30,8 +30,8 @@ import traceback
 import os
 import sys
 import yaml
+import wandb
 
-import tracemalloc
 
 from termcolor import colored
 from typing import List
@@ -343,16 +343,20 @@ class Miner:
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
-    
+
     def run( self ):
         r""" Miner main loop.
         """
-        tracemalloc.start()
         # ---- Build Bittensor neuron ----
         with self.neuron:
             if self.config.neuron.use_wandb:
-                pass
-                #bittensor.neuron.wandb.watch([self.nucleus.local_hidden, self.nucleus.local_encoder, self.nucleus.remote_hidden], self.nucleus.loss_fct, log ='all', log_freq=100 )
+                bittensor.wandb(
+                    config = self.config,
+                    cold_pubkey = self.neuron.wallet.coldkeypub,
+                    hot_pubkey = self.neuron.wallet.hotkey.public_key,
+                    root_dir = self.neuron.root_dir
+                )
+
 
             # ---- Init run state ----
             self.epoch = 0
@@ -381,22 +385,7 @@ class Miner:
 
                     # ---- Checkpoint state ----
                     self.checkpoint()
-                    
-                    if self.epoch == 1:
-                        snapshot1 = tracemalloc.take_snapshot()
-                        top_stats = snapshot1.statistics('lineno')
 
-                        for stat in top_stats[:30]:
-                            logger.info(stat)
-                    elif self.epoch > 1:
-                        snapshot2 = tracemalloc.take_snapshot()
-                        
-                        top_stats = snapshot2.compare_to(snapshot1, 'lineno')
-
-                        logger.info(self.epoch)
-                        for stat in top_stats[:30]:
-                            logger.info(str(stat))
-                        snapshot1 = snapshot2
 
                 except Exception as e:
                     # --- Unknown error ----
@@ -415,7 +404,7 @@ class Miner:
         total_epoch_loss = 0.0
         epoch_batches = self.dataset.dataloader( self.config.miner.epoch_length )
         progress_bar = qqdm(enumerate(epoch_batches), total=len(epoch_batches), desc=format_str('blue', f'Epoch Progress'))
-        for iteration, (inputs) in progress_bar:
+        for iteration, (inputs) in enumerate(epoch_batches):
 
             # ---- Forward / Backward ----
             output = self.train ( batch = { 'inputs': inputs } )
@@ -645,7 +634,8 @@ class Miner:
             real_topk = min( self.config.miner.n_topk_chain_weights , bittensor.neuron.metagraph.n.item() )
             topk_weights, topk_uids = torch.topk( self.nucleus.chain_weights.detach(), k = real_topk )
             normalized_topk_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
-            did_set = bittensor.neuron.subtensor.set_weights(
+            did_set = bittensor.neuron.subtensor.timeout_set_weights(
+                timeout=5,
                 uids = topk_uids,
                 weights = normalized_topk_weights,
                 wait_for_inclusion = True,
@@ -655,8 +645,6 @@ class Miner:
                 bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(self.nucleus.chain_weights.tolist()))
             else:
                 logger.warning('Failed to set weights on chain.')
-                bittensor.neuron.subtensor = bittensor.subtensor( config = self.config.subtensor )
-                bittensor.neuron.subtensor.connect()
 
         except Exception as e:
             logger.error('Failure setting weights on chain with error: {}', e)
@@ -714,13 +702,13 @@ class Miner:
                     info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
                 if self.config.neuron.use_wandb:
                     wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
-        if self.config.neuron.use_wandb and iteration % 50 == 1:
+        if self.config.neuron.use_wandb and iteration % 50 == 5:
             try:
-                bittensor.neuron.wandb.log(wandb_info)
+                wandb.log(wandb_info)
             except Exception as e:
                 logger.warning('Failed to update weights and biases with error:{}', e)
 
-        progress_bar.set_infos( info )
+        #progress_bar.set_infos( info )
 
     def blacklist(self,pubkey:str) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
