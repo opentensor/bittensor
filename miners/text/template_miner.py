@@ -282,6 +282,7 @@ class Miner:
             root_dir = self.config.miner.full_path,
             forward_text = self.forward_text,
             backward_text = self.backward_text,
+            blacklist = self.blacklist
         ) 
 
         #bittensor priority thread pool 
@@ -310,6 +311,8 @@ class Miner:
         parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template miner')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=1)
+        parser.add_argument('--miner.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
+
         bittensor.add_args( parser )
         Nucleus.add_args( parser ) 
         bittensor.prioritythreadpool.add_args( parser )
@@ -645,7 +648,7 @@ class Miner:
     def logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
         r""" Called after every training step. Displays miner state to screen.
         """
-        self_uid = bittensor.neuron.metagraph.hotkeys.index( ss58_encode(bittensor.neuron.wallet.hotkey.public_key ))
+        self_uid = bittensor.neuron.metagraph.hotkeys.index(bittensor.neuron.wallet.hotkey.ss58_address)
         stake = bittensor.neuron.metagraph.S[ self_uid ].item()
         rank = bittensor.neuron.metagraph.R[ self_uid ].item()
         incentive = bittensor.neuron.metagraph.I[ self_uid ].item()
@@ -683,11 +686,11 @@ class Miner:
             if self.nucleus.chain_weights[uid] != 0:
                 weight_dif = -self.nucleus.chain_weights.grad[uid]
                 if weight_dif > 0:
-                    info[colored(str(uid), 'green')] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'green')
+                    info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'green')
                 elif weight_dif == 0:
                     info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'white')
                 else:
-                    info[colored(str(uid), 'red')] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
+                    info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
                 if self.config.neuron.use_wandb:
                     wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
         if self.config.neuron.use_wandb:
@@ -697,6 +700,16 @@ class Miner:
                 logger.warning('Failed to update weights and biases with error:{}', e)
 
         progress_bar.set_infos( info )
+
+    def blacklist(self,pubkey:str) -> bool:
+        r"""Axon security blacklisting, used to blacklist message from low stake members
+        Currently, this is not turned on.
+        """
+        uid =self.neuron.metagraph.hotkeys.index(pubkey)
+        if self.neuron.metagraph.S[uid] < self.config.miner.blacklist:
+            return True
+        else:
+            return False
 
 if __name__ == "__main__":
     Miner().run()
