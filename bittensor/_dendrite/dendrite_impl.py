@@ -65,6 +65,12 @@ class Dendrite( torch.autograd.Function ):
         self.wallet = wallet
         self.receptor_pool = receptor_pool
 
+    def __str__(self):
+        return "Dendrite({}, {})".format(self.wallet.hotkey.ss58_address, self.receptor_pool)
+
+    def __repr__(self):
+        return self.__str__()
+
     @staticmethod
     def forward(
             ctx, 

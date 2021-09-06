@@ -58,6 +58,7 @@ import bittensor._proto.bittensor_pb2 as proto
 import bittensor._proto.bittensor_pb2_grpc as grpc
 
 # ---- Factories -----
+from bittensor.utils.balance import Balance as Balance
 from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon
 from bittensor._wallet import wallet as wallet
@@ -72,6 +73,7 @@ from bittensor._serializer import serializer as serializer
 from bittensor._dataloader import dataloader as dataloader
 from bittensor._receptor import receptor_pool as receptor_pool
 from bittensor._wandb import wandb as wandb
+from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
@@ -87,6 +89,7 @@ from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._dataloader.dataloader_impl import Dataloader as Dataloader
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
+from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
 import bittensor.utils.networking as net
 
@@ -96,6 +99,7 @@ neuron = None
 def add_args( parser: argparse.ArgumentParser ):
     parser.add_argument('--neuron.use_upnpc', action='store_true', help='''Neuron punches a hole in your router using upnpc''', default=False)
     parser.add_argument('--neuron.use_wandb', action='store_true', help='''Neuron activates its weights and biases powers''', default=False)
+    parser.add_argument('--neuron.max_workers', type=int,  help='''Number of maximum threads in the neuron''',default=10)
     logging.add_args( parser )
     wallet.add_args( parser )
     subtensor.add_args( parser )
@@ -126,8 +130,13 @@ class Neuron():
     def __init__(self, 
             config: 'Config',
             root_dir: str = '',
-            axon_forward_callback: 'Callable' = None,
-            axon_backward_callback: 'Callable' = None,
+            forward_text: 'Callable' = None,
+            backward_text: 'Callable' = None,
+            forward_image: 'Callable' = None,
+            backward_image: 'Callable' = None,
+            forward_tensor: 'Callable' = None,
+            backward_tensor: 'Callable' = None,
+            blacklist: 'Callable' = None,
         ):
         if config == None: config = default_config()
         self.config = config
@@ -153,14 +162,22 @@ class Neuron():
         self.axon = axon (
             config = self.config,
             wallet = self.wallet,
-            forward = axon_forward_callback,
-            backward = axon_backward_callback,
+            forward_text = forward_text,
+            backward_text = backward_text,
+            forward_image = forward_image,
+            backward_image = backward_image,
+            forward_tensor = forward_tensor,
+            backward_tensor = backward_tensor,
+            blacklist = blacklist,
         )
 
     def __enter__(self):
         # ---- Setup Wallet. ----
         self.wallet.create()
-        self.metagraph.load().sync().save()
+        try:
+            self.metagraph.load().sync().save()
+        except:
+            self.metagraph.sync().save()
         self.axon.start().subscribe (
             use_upnpc = self.config.neuron.use_upnpc, 
             subtensor = self.subtensor
@@ -185,15 +202,25 @@ class Neuron():
 def init( 
         config: 'Config' = None,
         root_dir: str = None,
-        axon_forward_callback: 'Callable' = None,
-        axon_backward_callback: 'Callable' = None,
+        forward_text: 'Callable' = None,
+        backward_text: 'Callable' = None,
+        forward_image: 'Callable' = None,
+        backward_image: 'Callable' = None,
+        forward_tensor: 'Callable' = None,
+        backward_tensor: 'Callable' = None,
+        blacklist: 'Callable' = None,
     ) -> Neuron:
 
     global neuron
     neuron = Neuron( 
         config = config,
         root_dir = root_dir,
-        axon_forward_callback = axon_forward_callback,
-        axon_backward_callback = axon_backward_callback,
+        forward_text = forward_text,
+        backward_text = backward_text,
+        forward_image = forward_image,
+        backward_image = backward_image,
+        forward_tensor = forward_tensor,
+        backward_tensor = backward_tensor,
+        blacklist = blacklist
     )
     return neuron
