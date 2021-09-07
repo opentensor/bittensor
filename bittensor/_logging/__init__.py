@@ -171,7 +171,7 @@ class logging:
         if cls.__debug_on__ or cls.__trace_on__:
             return True
         else:
-            return record["level"].name != "DEBUG"
+            return False
 
     @classmethod
     def log_formatter(cls, record):
@@ -262,6 +262,15 @@ class logging:
         prefix = prefix.ljust(20)
         log_msg = prefix + sufix 
         logger.warning( log_msg )
+
+    @classmethod
+    def error( cls, prefix:str, sufix:str ):
+        if not cls.__has_been_inited__:
+            cls()
+        prefix = prefix + ":"
+        prefix = prefix.ljust(20)
+        log_msg = prefix + sufix 
+        logger.error( log_msg )
 
     @classmethod
     def info( cls, prefix:str, sufix:str ):

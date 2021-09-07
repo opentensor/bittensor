@@ -720,5 +720,15 @@ class Miner:
         else:
             return False
 
+    def blacklist(self,pubkey:str) -> bool:
+        r"""Axon security blacklisting, used to blacklist message from low stake members
+        Currently, this is not turned on.
+        """
+        uid =self.neuron.metagraph.hotkeys.index(pubkey)
+        if self.neuron.metagraph.S[uid] < self.config.miner.blacklist:
+            return True
+        else:
+            return False
+
 if __name__ == "__main__":
     Miner().run()

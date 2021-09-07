@@ -130,7 +130,7 @@ class Wallet():
             print (e)
             return bittensor.Balance(0)
 
-    def add_stake ( self, 
+    def stake( self, 
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -164,7 +164,7 @@ class Wallet():
             subtensor = bittensor.subtensor()
         return subtensor.add_stake( wallet = self, amount = amount, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
 
-    def remove_stake( self, 
+    def unstake( self, 
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -197,6 +197,47 @@ class Wallet():
         if subtensor == None:
             subtensor = bittensor.subtensor()
         return subtensor.unstake( wallet = self, amount = amount, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
+
+    def transfer( 
+        self, 
+        dest:str,
+        amount: Union[float, bittensor.Balance] , 
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        subtensor: 'bittensor.Subtensor' = None 
+    ) -> bool:
+        """ Transfers Tao from this wallet's coldkey to the destination address.
+            Args:
+                dest(`type`:str, required):
+                    The destination address either encoded as a ss58 or ed255 public-key string of 
+                    secondary account.
+                amount_tao (float, required):
+                    amount of tao to transfer or a bittensor balance object.
+                wait_for_inclusion (bool):
+                    if set, waits for the extrinsic to enter a block before returning true, 
+                    or returns false if the extrinsic fails to enter the block within the timeout.   
+                wait_for_finalization (bool):
+                    if set, waits for the extrinsic to be finalized on the chain before returning true,
+                    or returns false if the extrinsic fails to be finalized within the timeout.
+                subtensor( `bittensor.Subtensor` ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+            Returns:
+                success (bool):
+                    flag is true if extrinsic was finalized or uncluded in the block. 
+                    If we did not wait for finalization / inclusion, the response is true.
+        """
+        self.assert_coldkey()
+        self.assert_coldkeypub()
+        self.assert_hotkey()
+        if not isinstance(amount, bittensor.Balance):
+            amount = bittensor.utils.balance.Balance.from_float( amount )
+        balance = self.get_balance()
+        if amount > balance:
+            bittensor.logging.error(prefix='Transfer', sufix='Not enough balance to transfer: {} > {}'.format(amount, balance))
+            return False
+        if subtensor == None:
+            subtensor = bittensor.subtensor()
+        return subtensor.transfer( wallet = self, amount = amount, dest = dest, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
 
     def create(self) -> 'Wallet':
         """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
