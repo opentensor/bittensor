@@ -99,8 +99,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response (bittensor.proto.TensorMessage): 
                     proto response carring the nucleus forward output or None under failure.
         """
-        # TODO(const): check signature
-        # TODO(const): black and white listing.
         tensor, code, message = self._forward( request )
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
@@ -467,7 +465,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 forward_callback (:callabl:`Callable[ [str, torch.Tensor, int], torch.Tensor `, `required`): 
                     Forward function called on recieving a forward request.
         """
-        # TODO(const): type checking.
         bittensor.axon.check_forward_callback(forward_callback,modality)
         self.forward_callback[modality] = forward_callback
 
@@ -478,7 +475,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 backward_callback (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
                      Backward callback called on recieving a backward request.
         """
-        # TODO(const): type checking.
         bittensor.axon.check_backward_callback(backward_callback,modality)
         self.backward_callback[modality] = backward_callback
 
