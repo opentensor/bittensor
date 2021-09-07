@@ -366,7 +366,6 @@ class Miner:
 
             # ---- reloads previous run ----
             try:
-                self.save()
                 self.reload()
                 self.neuron.axon.check()
             except:
