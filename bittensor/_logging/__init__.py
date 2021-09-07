@@ -118,11 +118,11 @@ class logging:
             filepath = config.logging.logging_dir + "/logs.log"
             cls.__file_sink__ = logger.add (
                 filepath,
-                filter = cls.log_filter,
+                filter = cls.log_save_filter,
                 enqueue = True,
                 backtrace = True,
                 diagnose = True,
-                format = cls.log_formatter,
+                format = cls.log_save_formatter,
                 rotation="25 MB",
                 retention="10 days"
             )
@@ -171,7 +171,14 @@ class logging:
         if cls.__debug_on__ or cls.__trace_on__:
             return True
         else:
-            return False
+            return record["level"].name != "DEBUG"
+
+    @classmethod
+    def log_save_filter(cls, record ):
+        if cls.__debug_on__ or cls.__trace_on__:
+            return True
+        else:
+            return record["level"].name != "DEBUG"
 
     @classmethod
     def log_formatter(cls, record):

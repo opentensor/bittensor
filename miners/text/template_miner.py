@@ -155,6 +155,7 @@ class Nucleus(nn.Module):
             predictions=shift_logits.detach().max(2).indices
             output.local_accuracy = (predictions==shift_labels).sum().item()/predictions.nelement()
         return output
+
     def remote_forward(self, inputs: torch.int64, training: bool) -> SimpleNamespace:
         """ Forward pass inputs and labels through the GPT2 module and into the remote network.
         Args:
@@ -387,6 +388,11 @@ class Miner:
                     self.checkpoint()
 
 
+
+                except KeyboardInterrupt:
+                    # --- User ended session ----
+                    break
+
                 except Exception as e:
                     # --- Unknown error ----
                     logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
@@ -404,7 +410,7 @@ class Miner:
         total_epoch_loss = 0.0
         epoch_batches = self.dataset.dataloader( self.config.miner.epoch_length )
         progress_bar = qqdm(enumerate(epoch_batches), total=len(epoch_batches), desc=format_str('blue', f'Epoch Progress'))
-        for iteration, (inputs) in enumerate(epoch_batches):
+        for iteration, (inputs) in progress_bar:
 
             # ---- Forward / Backward ----
             output = self.train ( batch = { 'inputs': inputs } )
@@ -574,12 +580,10 @@ class Miner:
 
         # --- loads and syncs metagraph
         try:
-            bittensor.neuron.metagraph.load()
-            bittensor.neuron.metagraph.sync()
-            bittensor.neuron.metagraph.save()
+            bittensor.neuron.metagraph.load().sync().save()
+
         except:
-            bittensor.neuron.metagraph.sync()
-            bittensor.neuron.metagraph.save()
+            bittensor.neuron.metagraph.sync().save()
 
         # ---- Load training state.
         self.epoch = state_dict['epoch']
@@ -708,17 +712,7 @@ class Miner:
             except Exception as e:
                 logger.warning('Failed to update weights and biases with error:{}', e)
 
-        #progress_bar.set_infos( info )
-
-    def blacklist(self,pubkey:str) -> bool:
-        r"""Axon security blacklisting, used to blacklist message from low stake members
-        Currently, this is not turned on.
-        """
-        uid =self.neuron.metagraph.hotkeys.index(pubkey)
-        if self.neuron.metagraph.S[uid].item() < self.config.miner.blacklist:
-            return True
-        else:
-            return False
+        progress_bar.set_infos( info )
 
     def blacklist(self,pubkey:str) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members

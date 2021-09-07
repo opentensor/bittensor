@@ -39,6 +39,7 @@ class wandb:
             root_dir: str = None
         ):
         if config == None: config = wandb.config()
+        config = copy.deepcopy( config )
         config.neuron.api_key = api_key if api_key != None else config.neuron.api_key
         config.wandb.name = name if name != None else config.wandb.name
         config.wandb.project = project if project != None else config.wandb.project
@@ -57,7 +58,7 @@ class wandb:
         os.environ["WANDB_RUN_GROUP"] = config.wandb.run_group if config.wandb.run_group != 'default' else hot_pubkey
         os.environ["WANDB_DIR"] = config.wandb.directory if config.wandb.directory != 'default' else root_dir
 
-        wb.init()
+        wb.init(config = config, config_exclude_keys = ['neuron'])
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
