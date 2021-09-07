@@ -32,7 +32,6 @@ import sys
 import yaml
 import wandb
 
-
 from termcolor import colored
 from typing import List
 from qqdm import qqdm, format_str
@@ -387,8 +386,6 @@ class Miner:
                     # ---- Checkpoint state ----
                     self.checkpoint()
 
-
-
                 except KeyboardInterrupt:
                     # --- User ended session ----
                     break
@@ -690,9 +687,9 @@ class Miner:
                 }
 
         #removing normalization of chain weights for display
-        normalized_chain_weights = self.nucleus.chain_weights.detach()
+        normalized_chain_weights =  F.softmax (self.nucleus.chain_weights.detach())
         for uid in bittensor.neuron.metagraph.uids.tolist():
-            if self.nucleus.chain_weights[uid].item() > 0:
+            if normalized_chain_weights[uid].item() > 0:
                 if self.nucleus.chain_weights.grad != None:
                     weight_dif = -self.nucleus.chain_weights.grad[uid].item()
                 else:
@@ -706,7 +703,7 @@ class Miner:
                     info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
                 if self.config.neuron.use_wandb:
                     wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
-        if self.config.neuron.use_wandb and iteration % 50 == 5:
+        if self.config.neuron.use_wandb and iteration % 100 == 1:
             try:
                 wandb.log(wandb_info)
             except Exception as e:
