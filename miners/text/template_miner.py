@@ -616,7 +616,7 @@ class Miner:
                 'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
                 'network': bittensor.neuron.subtensor.network # Save Network
             }
-            torch.save( state_dict, "{}/model.torch".format( self.config.miner.full_path, self.epoch_loss ) )
+            torch.save( state_dict, "{}/model.torch".format( self.config.miner.full_path ) )
             bittensor.logging.success(prefix='Saved model', sufix='<blue>{}/model.torch</blue>'.format( self.config.miner.full_path ) )
         except Exception as e:
             logger.exception('Failed to save model with error:{}', e)

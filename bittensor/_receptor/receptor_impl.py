@@ -142,7 +142,7 @@ class Receptor(nn.Module):
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
                     Return code associated with forward call.
         """
-        outputs, code, message = self._call_forward( 
+        outputs, code, _ = self._call_forward( 
             inputs = inputs, 
             modality = modality, 
             timeout = timeout 
@@ -182,7 +182,7 @@ class Receptor(nn.Module):
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
                     Return code associated with backward call.
         """
-        outputs, code, message = self._call_backward( 
+        outputs, code, _ = self._call_backward( 
             inputs_x = inputs_x, 
             grads_dy = grads_dy, 
             modality = modality,
@@ -368,7 +368,7 @@ class Receptor(nn.Module):
         bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=list(outputs.shape), message=None)
         return outputs, code, message
 
-    def backward(
+    def _call_backward(
             self,
             inputs_x: torch.Tensor, 
             grads_dy: torch.FloatTensor, 
