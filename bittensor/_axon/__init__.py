@@ -24,6 +24,8 @@ import grpc
 import inspect
 import torch
 from . import axon_impl
+from substrateinterface import Keypair
+from datetime import datetime,timedelta
 
 
 
@@ -46,6 +48,7 @@ class axon:
             max_workers: int = None, 
             maximum_concurrent_rpcs: int = None,
             modality: int = None,
+            blacklist: 'Callable' = None,
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
@@ -77,13 +80,15 @@ class axon:
         config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
         config.axon.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.axon.maximum_concurrent_rpcs
         axon.check_config( config )
-
         if wallet == None:
             wallet = bittensor.wallet( config = config )
         if thread_pool == None:
             thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
         if server == None:
-            server = grpc.server( thread_pool, maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs )
+            server = grpc.server( thread_pool,
+                                  interceptors=(AuthInterceptor(blacklist=blacklist),),
+                                  maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
+                                )
 
         forwards = [forward_text, forward_image, forward_tensor]
         backwards = [backward_text, backward_image, backward_tensor]
@@ -181,3 +186,93 @@ class axon:
         if modality == bittensor.proto.Modality.TENSOR:
             sample_input = torch.rand(1,1,1)
             forward_callback(pubkey,sample_input)
+
+class AuthInterceptor(grpc.ServerInterceptor):
+    def __init__(self, key:str = 'Bittensor',blacklist:List = []):
+        r""" Creates a new server interceptor that authenticates incoming messages from passed arguments.
+        Args:
+            key (str, `optional`):
+                 key for authentication header in the metadata (default= Bittensor)
+            black_list (Fucntion, `optional`): 
+                black list function that prevents certain pubkeys from sending messages
+        """
+        self._valid_metadata = ('rpc-auth-header', key)
+        self.nounce_dic = {}
+        self.message = 'Invalid key'
+        self.blacklist = blacklist
+        def deny(_, context):
+            context.abort(grpc.StatusCode.UNAUTHENTICATED, self.message)
+
+        self._deny = grpc.unary_unary_rpc_method_handler(deny)
+
+    def intercept_service(self, continuation, handler_call_details):
+        r""" Authentication between bittensor nodes. Intercepts messages and checks them
+        """
+        meta = handler_call_details.invocation_metadata
+        try: 
+            #version checking
+            self.version_checking(meta)
+
+            #signature checking
+            self.signature_checking(meta)
+
+            #blacklist checking
+            self.black_list_checking(meta)
+
+            return continuation(handler_call_details)
+
+        except Exception as e:
+            self.message = str(e)
+            return self._deny
+
+
+    def vertification(self,meta):
+        r"""vertification of signature in metadata. Uses the pubkey and nounce
+        """
+        nounce, pubkey, message = meta[1].value.split('bitxx')
+        data_time = datetime.strptime(nounce,'%m%d%Y%H%M%S%f')
+        _keypair = Keypair(ss58_address=pubkey)
+
+        
+        #checking the time of creation, compared to previous messages
+        if pubkey in self.nounce_dic.keys():
+            prev_data_time = self.nounce_dic[pubkey]
+            if data_time - prev_data_time >= timedelta(milliseconds=1):
+                self.nounce_dic[pubkey] = data_time
+
+                #decrypting the message and verify that message is correct
+                verification = _keypair.verify(nounce+pubkey,message)
+            else:
+                verification = False
+        else:
+            self.nounce_dic[pubkey] = data_time
+            verification = _keypair.verify(nounce+pubkey,message)
+
+        return verification
+
+    def signature_checking(self,meta):
+        r""" Calls the vertification of the signature and raises an error if failed
+        """
+        if self.vertification(meta):
+            pass
+        else:
+            raise Exception('Incorrect Signature')
+
+    def version_checking(self,meta):
+        r""" Checks the header and version in the metadata
+        """
+        if meta[0] == self._valid_metadata and bittensor.__version_as_int__ == int(meta[2].value):
+            pass
+        else:
+            raise Exception('Incorrect Metadata/version')
+
+    def black_list_checking(self,meta):
+        r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey 
+        """
+        _, pubkey, _ = meta[1].value.split('bitxx')
+        if self.blacklist == None:
+            pass
+        elif self.blacklist(pubkey):
+            raise Exception('Black listed')
+        else:
+            pass

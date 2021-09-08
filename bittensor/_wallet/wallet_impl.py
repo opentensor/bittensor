@@ -32,7 +32,6 @@ from substrateinterface.utils.ss58 import ss58_encode
 from bittensor.utils.cli_utils import cli_utils
 from bittensor._crypto import encrypt, is_encrypted, decrypt_data, KeyError
 from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
-from bittensor._crypto.keyfiles import KeyFileError, load_keypair_from_data
 
 class Wallet():
     """

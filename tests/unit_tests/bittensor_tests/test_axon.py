@@ -1,12 +1,21 @@
 import torch
 import grpc
 import bittensor
+from datetime import datetime
 
 wallet =  bittensor.wallet (
     path = '/tmp/pytest',
     name = 'pytest',
     hotkey = 'pytest',
 ) 
+def sign(wallet):
+    nounce = datetime.now().strftime(format= '%m%d%Y%H%M%S%f')
+    message  = nounce+str(wallet.hotkey.ss58_address) 
+    spliter = 'bitxx'
+    signature = spliter.join([nounce,str(wallet.hotkey.ss58_address),wallet.hotkey.sign(message)])
+    return signature
+
+
 wallet.create_new_coldkey( use_password=False, overwrite = True)
 wallet.create_new_hotkey( use_password=False, overwrite = True)
 
@@ -254,7 +263,13 @@ def test_grpc_forward_works():
         hotkey = '1092310312914',
         tensors = [inputs_serialized]
     )
-    response = stub.Forward(request)
+    response = stub.Forward(request,
+                            metadata = (
+                                        ('rpc-auth-header','Bittensor'),
+                                        ('bittensor-signature',sign(axon.wallet)),
+                                        ('bittensor-version',str(bittensor.__version_as_int__)),
+                                        ))
+
     outputs = serializer.deserialize(response.tensors[0], to_type=bittensor.proto.TensorType.TORCH)
     assert outputs.tolist() == [[[0]]]
     axon.stop()
@@ -286,11 +301,84 @@ def test_grpc_backward_works():
         hotkey = '1092310312914',
         tensors = [inputs_serialized, grads_serialized]
     )
-    response = stub.Backward(request)
+    response = stub.Backward(request,
+                             metadata = (
+                                    ('rpc-auth-header','Bittensor'),
+                                    ('bittensor-signature',sign(axon.wallet)),
+                                    ('bittensor-version',str(bittensor.__version_as_int__)),
+                                    ))
     outputs = serializer.deserialize(response.tensors[0], to_type=bittensor.proto.TensorType.TORCH)
     assert outputs.tolist() == [[[0]]]
     axon.stop()
 
+def test_grpc_forward_fails():
+    def forward( pubkey:str, inputs_x:torch.FloatTensor):
+        return torch.zeros( [1, 1, 1])
+    axon = bittensor.axon (
+        port = 8080,
+        ip = '127.0.0.1',
+    )
+    axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TENSOR )
+    axon.start()
+
+    channel = grpc.insecure_channel(
+            '127.0.0.1:8080',
+            options=[('grpc.max_send_message_length', -1),
+                     ('grpc.max_receive_message_length', -1)])
+    stub = bittensor.grpc.BittensorStub( channel )
+
+    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version_as_int__,
+        hotkey = '1092310312914',
+        tensors = [inputs_serialized]
+    )
+    try:
+        response = stub.Forward(request)
+    except grpc.RpcError as rpc_error_call:
+        grpc_code = rpc_error_call.code()
+        assert grpc_code == grpc.StatusCode.UNAUTHENTICATED
+
+    axon.stop()
+
+def test_grpc_backward_fails():
+    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
+        return torch.zeros( [1, 1, 1])
+
+    axon = bittensor.axon (
+        port = 8080,
+        ip = '127.0.0.1',
+    )
+    axon.attach_backward_callback( backward , modality = bittensor.proto.Modality.TENSOR)
+    axon.start()
+
+    channel = grpc.insecure_channel(
+            '127.0.0.1:8080',
+            options=[('grpc.max_send_message_length', -1),
+                     ('grpc.max_receive_message_length', -1)])
+    stub = bittensor.grpc.BittensorStub( channel )
+
+    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
+    grads_raw = torch.rand(3, 3, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version_as_int__,
+        hotkey = '1092310312914',
+        tensors = [inputs_serialized, grads_serialized]
+    )
+    
+    try:
+        response = stub.Backward(request)
+    except grpc.RpcError as rpc_error_call:
+        grpc_code = rpc_error_call.code()
+        assert grpc_code == grpc.StatusCode.UNAUTHENTICATED
+
+
+    axon.stop()
 
 if __name__ == "__main__":
     test_forward_not_implemented()
@@ -311,4 +399,5 @@ if __name__ == "__main__":
     test_backward_response_success()
     test_grpc_forward_works()
     test_grpc_backward_works()
-    
+    test_grpc_forward_fails()
+    test_grpc_backward_fails()
