@@ -86,7 +86,7 @@ class Wallet():
                 return -1
             else:
                 return int(hotkey_uid)
-        except Exception as e:
+        except Exception:
             return -1
 
     def get_stake ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
@@ -432,7 +432,7 @@ class Wallet():
                 logger.critical("Invalid password")
                 raise KeyError("Invalid password")
 
-            except KeyFileError as e:
+            except KeyFileError:
                 logger.critical("Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt")
 
@@ -464,7 +464,7 @@ class Wallet():
                 logger.critical("Invalid password")
                 raise KeyError("Invalid password")
 
-            except KeyFileError as e:
+            except KeyFileError:
                 logger.critical("Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt")
 
@@ -484,7 +484,7 @@ class Wallet():
     def __save_keypair(keypair : 'Keypair', path : str):
         path = os.path.expanduser(path)
         with open(path, 'w') as file:
-            json.dump(Wallet.to_dict(keypair), file)
+            json.dump(Wallet("", "", "").to_dict(keypair), file)
             file.close()
         os.chmod(path, stat.S_IWUSR | stat.S_IRUSR)
 
