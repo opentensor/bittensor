@@ -192,7 +192,6 @@ class GenesisTextDataloader( Dataloader ):
 
         # Download text
         if (text == None):
-
             response = self.retrieve_text_file(file_hash)
 
             if response.status_code != 200:
