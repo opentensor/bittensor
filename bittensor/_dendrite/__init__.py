@@ -1,3 +1,5 @@
+""" Create and init class dendrite, which quries endpoints with tensors.
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -14,10 +16,10 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
-import bittensor
 import argparse
 import copy
 
+import bittensor
 from . import dendrite_impl
 
 class dendrite:
@@ -58,7 +60,8 @@ class dendrite:
                     A bittensor receptor pool object which maintains a set of connections to other peers in the network and operates as
                     a normal torch.nn.Module. By default this object is created with the dendrite config.
         """
-        if config == None: config = dendrite.config()
+        if config == None: 
+            config = dendrite.config()
         config = copy.deepcopy(config)
         config.dendrite.timeout = timeout if timeout != None else config.dendrite.timeout
         config.dendrite.ip = requires_grad if requires_grad != None else config.dendrite.requires_grad
@@ -82,6 +85,8 @@ class dendrite:
 
     @classmethod   
     def config(cls) -> 'bittensor.Config':
+        """ 
+        """
         parser = argparse.ArgumentParser()
         dendrite.add_args( parser )
         return bittensor.config( parser )
