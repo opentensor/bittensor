@@ -17,6 +17,7 @@
 
 import argparse
 import os
+from typing import Callable
 
 # Bittensor code and protocol version.
 __version__ = '1.2.0'
