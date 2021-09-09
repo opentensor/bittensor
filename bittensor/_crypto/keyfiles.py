@@ -1,7 +1,7 @@
 """ Function for loading secretSeed 
 """
-from substrateinterface import Keypair
 import json
+from substrateinterface import Keypair
 from loguru import logger
 
 class KeyFileError(Exception):
@@ -9,6 +9,8 @@ class KeyFileError(Exception):
     """
 
 def load_keypair_from_data(data) -> Keypair:
+    """ Get keypair from data seed
+    """
     try:
         data = json.loads(data)
         if "secretSeed" not in data:
