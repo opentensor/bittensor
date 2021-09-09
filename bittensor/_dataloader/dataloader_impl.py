@@ -1,3 +1,5 @@
+""" Implementation for the dataloader and GenesisTextDataloader class, which handles dataloading from ipfs
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -15,24 +17,27 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-import torch
-import random
 import os
+import random
 
-import requests
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
-
-from loguru import logger
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Subset
+import torch
+
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+import requests
+
 
 from loguru import logger
+import bittensor
+
 logger = logger.opt(colors=True)
 
 
 class Dataloader():
+    """ Implementation for the dataloader class, which handles dataloading from ipfs
+    """
     def __init__(self):
         # IPFS hash of the genesis dataset
         # TODO (shibshib): Find a proper way to set this as config instead of hardcoding it.
@@ -105,15 +110,14 @@ class Dataloader():
     def __len__(self):
         """ Returns length of the dataset that the dataloader is processing
         """
-        pass
 
     def __getitem__(self, idx):
-        """returns the next batch from the dataset.
+        """ Returns the next batch from the dataset.
         """
-        pass
 
 class GenesisTextDataloader( Dataloader ):
-
+    """ One kind of dataloader that caters for the data from ipfs 
+    """
     def __init__(
         self,
         block_size,
@@ -123,7 +127,7 @@ class GenesisTextDataloader( Dataloader ):
         dataset,
         data_dir
     ):
-        super(GenesisTextDataloader, self).__init__()
+        super().__init__()
         self.block_size = block_size
         self.batch_size = batch_size
         self.max_corpus_size = max_corpus_size
@@ -153,7 +157,7 @@ class GenesisTextDataloader( Dataloader ):
         full_path = os.path.expanduser(os.path.join(self.data_dir, file_name))
 
         # Load text from path
-        if (os.path.exists(full_path)):
+        if os.path.exists(full_path):
             try:
                 with open(full_path, mode='r') as f:
                     text = f.read()
@@ -162,7 +166,7 @@ class GenesisTextDataloader( Dataloader ):
                 logger.warning("Load failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
 
         # Download text
-        if (text == ''):
+        if text == '':
             text = self.retrieve_text_file(file_hash).text
             logger.success("Downloaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
 
@@ -172,7 +176,7 @@ class GenesisTextDataloader( Dataloader ):
                     f.write(text)
                     logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_name))
             except Exception:
-                    logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
+                logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
 
         return text
 
@@ -250,8 +254,8 @@ class GenesisTextDataloader( Dataloader ):
 
             logger.error("It appears the directory is empty... Restart your miner to try again.")
             return None
-        except Exception as ex:
-            logger.error("Ran into exception when trying to retrieve dataset from IPFS: {}".format(ex))
+        except Exception as e:
+            logger.error("Ran into exception when trying to retrieve dataset from IPFS: {}".format(e))
 
         return None
 
@@ -331,7 +335,7 @@ class GenesisTextDataloader( Dataloader ):
                 idx: index of data input
 
             Returns:
-                x
+                torch.tensor(dix)
         """
         chunk = self.data[idx:idx + self.block_size]
 
@@ -347,5 +351,4 @@ class GenesisTextDataloader( Dataloader ):
         if len(dix) == 0:
             return None
 
-        x = torch.tensor(dix, dtype=torch.long)
-        return x
+        return torch.tensor(dix, dtype=torch.long)
