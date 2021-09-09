@@ -15,16 +15,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
 import math
-import torch
 
 from concurrent.futures import ThreadPoolExecutor
-from types import SimpleNamespace
-from typing import Tuple, List, Union, Optional
-import bittensor.utils.stats as stat_utils
+from typing import Tuple, List
 
+import torch
 from loguru import logger
+
+import bittensor
+
 logger = logger.opt(colors=True)
 
 class ReceptorPool ( torch.nn.Module ):
@@ -210,4 +210,3 @@ class ReceptorPool ( torch.nn.Module ):
             self.receptors[ receptor.endpoint.hotkey ] = receptor
 
         return receptor
-

@@ -15,13 +15,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-import argparse
-import copy
-import grpc
-import bittensor.utils.networking as net
 from concurrent.futures import ThreadPoolExecutor
 
+import grpc
+
+import bittensor
+import bittensor.utils.networking as net
 from . import receptor_impl
 
 class receptor:
@@ -36,7 +35,7 @@ class receptor:
             wallet = bittensor.wallet()
         try:
             external_ip = str(net.get_external_ip())
-        except:
+        except Exception:
             pass
         finally:
             external_ip = None
@@ -88,4 +87,3 @@ class receptor_pool:
             thread_pool = thread_pool,
             max_active_receptors = max_active_receptors
         )
-

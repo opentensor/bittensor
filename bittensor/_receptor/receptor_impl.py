@@ -16,25 +16,21 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from bittensor._endpoint import endpoint
-from bittensor.utils.codes import code_to_color
-import grpc
 import sys
+
 import time
+from datetime import datetime
+from types import SimpleNamespace
+from typing import Tuple
 
 import torch
 import torch.nn as nn
-import traceback
-from datetime import datetime
-from types import SimpleNamespace
-from torch.autograd.function import once_differentiable
-from typing import Tuple, List, Optional
+import grpc
+from loguru import logger
 
 import bittensor
 import bittensor.utils.stats as stat_utils
-from substrateinterface.utils.ss58 import ss58_encode
 
-from loguru import logger
 logger = logger.opt(colors=True)
 
 # dummy tensor that triggers autograd in a RemoteExpert
@@ -269,13 +265,13 @@ class Receptor(nn.Module):
                 # Get message
                 try:
                     response_message = response.message 
-                except:
+                except Exception:
                     response_message = ''
 
                 # ---- Catch non-code ----
                 try:
                     bittensor_code = response.return_code
-                except:
+                except Exception:
                     code = bittensor.proto.ReturnCode.UnknownException
                     message = 'no return code.'
                     bittensor.logging.rpc_log( axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=response_message  )
@@ -344,13 +340,15 @@ class Receptor(nn.Module):
                 return zeros, code, message
         
             # ---- Check response shape ----
-            if  outputs.size(0) != inputs.size(0) \
-                or outputs.size(1) != inputs.size(1) \
-                or outputs.size(2) != bittensor.__network_dim__:
-                    code = bittensor.proto.ReturnCode.ResponseShapeException
-                    message = "output.shape:{} does not match inputs:{}".format(outputs.shape, inputs.shape)
-                    bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=list(outputs.shape), message=message)
-                    return zeros, code, message
+            if  (
+                outputs.size(0) != inputs.size(0) or
+                outputs.size(1) != inputs.size(1)or 
+                outputs.size(2) != bittensor.__network_dim__
+                ):
+                code = bittensor.proto.ReturnCode.ResponseShapeException
+                message = "output.shape:{} does not match inputs:{}".format(outputs.shape, inputs.shape)
+                bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=list(outputs.shape), message=message)
+                return zeros, code, message
 
             # ---- Safe catch NaNs and replace with 0.0 ----
             outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
@@ -445,7 +443,7 @@ class Receptor(nn.Module):
             # Get message
             try:
                 response_message = response.message 
-            except:
+            except Exception:
                 response_message = ''
 
         # ---- Catch GRPC Errors ----
@@ -484,7 +482,7 @@ class Receptor(nn.Module):
         # ---- Catch Code Errors ----
         try:
             bittensor_code = response.return_code
-        except:
+        except Exception:
             code = bittensor.proto.ReturnCode.UnknownException
             message = 'no response code.'
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
@@ -547,3 +545,4 @@ class Receptor(nn.Module):
         """
         nounce = datetime.now()
         return nounce.strftime(format= '%m%d%Y%H%M%S%f')
+        
