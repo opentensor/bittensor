@@ -1,9 +1,12 @@
+""" Function for loading secretSeed 
+"""
 from substrateinterface import Keypair
 import json
 from loguru import logger
 
 class KeyFileError(Exception):
-    pass
+    """ Overwrite the built-in KeyError
+    """
 
 def load_keypair_from_data(data) -> Keypair:
     try:
@@ -14,4 +17,4 @@ def load_keypair_from_data(data) -> Keypair:
         return Keypair.create_from_seed(data['secretSeed'])
     except BaseException as e:
         logger.debug(e)
-        raise KeyFileError("Keyfile corrupt")
+        raise KeyFileError("Keyfile corrupt") from e
