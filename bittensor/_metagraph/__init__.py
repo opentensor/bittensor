@@ -1,3 +1,6 @@
+""" Create and init metagraph, 
+which maintains chain state as a torch.nn.Module.
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -16,15 +19,18 @@
 # DEALINGS IN THE SOFTWARE.
 
 from os import name
-import bittensor
 import argparse
 import copy
+
 from substrateinterface import Keypair
 
+import bittensor
 from . import metagraph_impl
 
 class metagraph:
-
+    """ create and init metagraph, 
+    which maintains chain state as a torch.nn.module.
+    """
     def __new__(
             cls, 
             config: 'bittensor.config' = None,
@@ -47,7 +53,8 @@ class metagraph:
                 chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the network argument.
         """      
-        if config == None: config = metagraph.config()
+        if config == None: 
+            config = metagraph.config()
         config = copy.deepcopy(config)
         if subtensor == None:
             subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint )
@@ -55,12 +62,18 @@ class metagraph:
 
     @classmethod   
     def config(cls) -> 'bittensor.Config':
+        """ Get config from teh argument parser
+        Return: bittensor.config object
+        """
         parser = argparse.ArgumentParser()
         metagraph.add_args( parser )
         return bittensor.config( parser )
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
+        """ Add specific arguments from parser, 
+        which is the identical to subtensor  
+        """
         try:
             bittensor.subtensor.add_args( parser )
         except argparse.ArgumentError:
@@ -69,4 +82,7 @@ class metagraph:
 
     @classmethod   
     def check_config( cls, config: 'bittensor.Config' ):
+        """ Check config,
+        which is identical to subtensor
+        """
         assert config.subtensor

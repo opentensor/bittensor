@@ -1,3 +1,5 @@
+""" Maintains chain state as a torch.nn.Module.
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -16,11 +18,12 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import torch
-from tqdm import trange
 
+from typing import List
+from tqdm import trange
 from loguru import logger
-from typing import List, Tuple, List
+
+import torch
 
 import bittensor
 import bittensor.utils.networking as net
@@ -340,7 +343,7 @@ class Metagraph( torch.nn.Module ):
             try:
                 uid = self.coldkeys.index( cold )
                 self.balances[uid] = chain_balances[cold]
-            except:
+            except Exception:
                 pass
             
         # For contructor.
