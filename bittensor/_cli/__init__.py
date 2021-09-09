@@ -1,3 +1,6 @@
+"""
+Create and init the CLI class, which handles the coldkey, hotkey and money transfer 
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -15,18 +18,20 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-import argparse
-import copy
 import sys
 
+import argparse
+from loguru import logger
+
+import bittensor
 from . import cli_impl
 
-from loguru import logger
 logger = logger.opt(colors=True)
 
 class cli:
-
+    """
+    Create and init the CLI class, which handles the coldkey, hotkey and tau transfer 
+    """
     def __new__(
             cls, 
             config: 'bittensor.Config' = None,
@@ -39,8 +44,9 @@ class cli:
                 executor (:obj:`bittensor.executor.executor`, `optional`):
                     bittensor executor object, used to execute cli options.
         """
-        if config == None: config = cli.config()
-        config = config; cli.check_config( config )
+        if config == None: 
+            config = cli.config()
+        cli.check_config( config )
         
         if executor == None:
             executor = bittensor.executor( config = config )
@@ -52,7 +58,9 @@ class cli:
 
     @staticmethod   
     def config() -> 'bittensor.config':
-
+        """ From the argument parser, add config to bittensor.executor and local config 
+            Return: bittensor.config object
+        """
         parser = argparse.ArgumentParser(description="Bittensor cli", usage="bittensor-cli <command> <command args>", add_help=True)
         parser._positionals.title = "commands"
 
@@ -242,22 +250,25 @@ class cli:
 
     @staticmethod   
     def check_config (config: 'bittensor.Config'):
+        """ Check if the essential condig exist under different command
+        """
         if config.command == "transfer":
             if not config.dest:
                 logger.critical("The --dest argument is required for this command")
             if not config.amount:
                 logger.critical("The --amount argument is required for this command")
-                quit()
+                sys.exit()
         elif config.command == "unstake":
             if not config.unstake_all:
                 if config.uid is None:
                     logger.critical("The --uid argument is required for this command")
                 if not config.amount:
                     logger.critical("The --amount argument is required for this command")
-                    quit()
+                    sys.exit()
         elif config.command == "stake":
             if config.uid is None:
                 logger.critical("The --uid argument is required for this command")
             if config.amount is None:
                 logger.critical("The --amount argument is required for this command")
-                quit()
+                sys.exit()
+                
