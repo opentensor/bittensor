@@ -22,16 +22,17 @@ import re
 import stat
 import sys
 
+from typing import Union
 from loguru import logger
-logger = logger.opt(colors=True)
-
-import bittensor
-from typing import Tuple, List, Union, Optional
 from substrateinterface import Keypair
 from substrateinterface.utils.ss58 import ss58_encode
+
+import bittensor
 from bittensor.utils.cli_utils import cli_utils
 from bittensor._crypto import encrypt, is_encrypted, decrypt_data, KeyError
 from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
+
+logger = logger.opt(colors=True)
 
 class Wallet():
     """
@@ -258,7 +259,7 @@ class Wallet():
         """
         try:
             assert self.has_hotkey
-        except:
+        except Exception:
             sys.exit(1)
         
     def assert_coldkey(self):
@@ -266,7 +267,7 @@ class Wallet():
         """
         try:
             assert self.has_coldkey
-        except:
+        except Exception:
             sys.exit(1)
 
     def assert_coldkeypub(self):
@@ -274,7 +275,7 @@ class Wallet():
         """
         try:
             assert self.has_coldkeypub
-        except:
+        except Exception:
             sys.exit(1)
 
     @property
@@ -372,17 +373,23 @@ class Wallet():
 
     @property
     def coldkeyfile(self) -> str:
+        """ Return the path where coldkey was stored
+        """
         full_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
         return os.path.join(full_path, "coldkey")
 
     @property
     def coldkeypubfile(self) -> str:
+        """ Return the path where coldkey public key was stored
+        """
         full_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
         file_name = os.path.join(full_path, "coldkeypub.txt")
         return file_name
 
     @property
     def hotkeyfile(self) -> str:
+        """ Return the path where hotkey was stored
+        """
         full_path = os.path.expanduser(
             os.path.join(self._path_string, self._name_string)
         )
@@ -430,11 +437,11 @@ class Wallet():
                 hotkey = load_keypair_from_data(data)
             except KeyError:
                 logger.critical("Invalid password")
-                raise KeyError("Invalid password")
+                raise KeyError("Invalid password") from KeyError
 
             except KeyFileError:
                 logger.critical("Keyfile corrupt")
-                raise KeyFileError("Keyfile corrupt")
+                raise KeyFileError("Keyfile corrupt") from KeyFileError
 
             logger.success("Loaded hotkey:".ljust(20) + "<blue>{}</blue>".format(hotkey.public_key))
             return hotkey
@@ -462,11 +469,11 @@ class Wallet():
 
             except KeyError:
                 logger.critical("Invalid password")
-                raise KeyError("Invalid password")
+                raise KeyError("Invalid password") from KeyError
 
             except KeyFileError:
                 logger.critical("Keyfile corrupt")
-                raise KeyFileError("Keyfile corrupt")
+                raise KeyFileError("Keyfile corrupt") from KeyFileError
 
             logger.success("Loaded coldkey:".ljust(20) + "<blue>{}</blue>".format(coldkey.public_key))
             return coldkey
