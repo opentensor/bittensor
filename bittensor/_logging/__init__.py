@@ -118,6 +118,11 @@ class logging:
             filepath = config.logging.logging_dir + "/logs.log"
             cls.__file_sink__ = logger.add (
                 filepath,
+                filter = cls.log_save_filter,
+                enqueue = True,
+                backtrace = True,
+                diagnose = True,
+                format = cls.log_save_formatter,
                 rotation="25 MB",
                 retention="10 days"
             )
@@ -134,7 +139,6 @@ class logging:
     def add_args(cls, parser: argparse.ArgumentParser):
         try:
             parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default=False)
-            parser.add_argument('--logging.no_debug', action='store_false', dest='logging.debug', help='''Turn on bittensor debugging information''', default=True)
             parser.add_argument('--logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default=False)
             parser.add_argument('--logging.record_log', action='store_true', help='''Turns on logging to file.''', default=False)
             parser.add_argument('--logging.logging_dir', type=str, help='Logging default root directory.', default='~/.bittensor/miners')
@@ -170,6 +174,13 @@ class logging:
             return record["level"].name != "DEBUG"
 
     @classmethod
+    def log_save_filter(cls, record ):
+        if cls.__debug_on__ or cls.__trace_on__:
+            return True
+        else:
+            return record["level"].name != "DEBUG"
+
+    @classmethod
     def log_formatter(cls, record):
         extra = record['extra']
         if 'rpc' in extra:
@@ -180,6 +191,18 @@ class logging:
             return log_format
         else:
             return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | <level>{level: ^16}</level> | {message}\n"
+   
+    @classmethod
+    def log_save_formatter(cls, record):
+        extra = record['extra']
+        if 'rpc' in extra:
+            log_format = "{time:YYYY-MM-DD HH:mm:ss.SSS} | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[inputs]} | {extra[key_str]} | {extra[rpc_message]} \n"
+            return log_format
+        if 'receptor' in extra:
+            log_format = "{time:YYYY-MM-DD HH:mm:ss.SSS} | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
+            return log_format
+        else:
+            return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | {message}\n"
 
     @classmethod
     def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs:list = [], outputs:list = [], message:str = ''):
