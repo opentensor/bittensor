@@ -6,16 +6,17 @@
 
 __author__ = 'Brian Quinlan (brian@sweetapp.com)'
 
-import atexit
+import os
+import sys
+
 from concurrent.futures import _base
-from loguru import logger
 import itertools
 import queue
 import random
 import threading
 import weakref
-import os
-import sys
+
+from loguru import logger
 
 # Workers are created as daemon threads. This is done to allow the interpreter
 # to exit when there are still idle threads in a ThreadPoolExecutor's thread

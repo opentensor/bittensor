@@ -37,7 +37,8 @@ class prioritythreadpool:
                 maxsize (default=-1, type=int)
                     The maximum number of tasks in the priority queue
         """        
-        if config == None: config = prioritythreadpool.config()
+        if config == None: 
+            config = prioritythreadpool.config()
         config = copy.deepcopy( config )
         config.threadpool.max_workers = max_workers if max_workers != None else config.threadpool.max_workers
         config.threadpool.maxsize = maxsize if maxsize != None else config.threadpool.maxsize
@@ -48,6 +49,8 @@ class prioritythreadpool:
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
+        """ Accept specific arguments from parser
+        """
         try:
             parser.add_argument('--threadpool.max_workers', type = int, help='''maximum number of threads in thread pool''', default=10)
             parser.add_argument('--threadpool.maxsize', type=int, help='''maximum size of tasks in priority queue''', default=-1)
@@ -58,11 +61,16 @@ class prioritythreadpool:
     
     @classmethod   
     def config(cls) -> 'bittensor.Config':
+        """ Get config from the argument parser
+            Return: bittensor.config object 
+        """
         parser = argparse.ArgumentParser()
         prioritythreadpool.add_args( parser )
         return bittensor.config( parser )
     
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
+        """ Check config for threadpool worker number and size
+        """
         assert isinstance(config.threadpool.max_workers, int), 'threadpool.max_workers must be a int'
         assert isinstance(config.threadpool.maxsize, int), 'threadpool.maxsize must be a int'
