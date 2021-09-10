@@ -273,7 +273,7 @@ class Miner:
 
         #Torch scheduler
         self.scheduler= torch.optim.lr_scheduler.StepLR(self.optimizer,
-            step_size= 1.0,
+            step_size= 10.0,
             gamma=0.9
         )
 
@@ -356,6 +356,7 @@ class Miner:
                     hot_pubkey = self.neuron.wallet.hotkey.public_key,
                     root_dir = self.neuron.root_dir
                 )
+                wandb.watch([self.nucleus.local_hidden, self.nucleus.local_encoder], self.nucleus.loss_fct, log ='all', log_freq=500 )
 
 
             # ---- Init run state ----
@@ -366,6 +367,7 @@ class Miner:
 
             # ---- reloads previous run ----
             try:
+                self.save()
                 self.reload()
                 self.neuron.axon.check()
             except:

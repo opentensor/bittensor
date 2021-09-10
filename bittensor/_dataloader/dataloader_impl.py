@@ -327,6 +327,7 @@ class GenesisTextDataloader( Dataloader ):
 
             # Set up dataloader
             return DataLoader(subset,
+                            shuffle=True,
                             batch_size=self.batch_size,
                             num_workers=self.num_workers,
                             drop_last=True)
