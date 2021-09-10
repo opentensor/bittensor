@@ -1,3 +1,5 @@
+""" A exponential moving average that updates values based on time since last update.
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -17,14 +19,17 @@
 
 import time
 
-# A moving average that updates values based on time since last update.
 class timed_rolling_avg():
+    """ A exponential moving average that updates values based on time since last update.
+    """
     def __init__(self, initial_value, alpha):
         self.value = initial_value
         self.alpha = alpha
         self.last_update = time.time()
 
     def update(self, new_value):
+        """ Update self.value (the moving average) with the new_value 
+        """
         now = time.time()
         time_delta = now - self.last_update
         self.last_update = now

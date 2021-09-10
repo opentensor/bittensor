@@ -1,3 +1,5 @@
+""" Image transformation functions, including normalizing, flipping and cropping.
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -139,24 +141,24 @@ class RandomCrop:
         else:
             padded = tensor
 
-        w, h = padded.size(2), padded.size(3)
-        th, tw = self.size, self.size
-        if w == tw and h == th:
+        width, height = padded.size(2), padded.size(3)
+        width_out, height_out = self.size, self.size
+        if width == width_out and height == height_out:
             i, j = 0, 0
         else:
             i = torch.randint(0,
-                              h - th + 1, (tensor.size(0),),
+                              height - height_out + 1, (tensor.size(0),),
                               device=self.device)
             j = torch.randint(0,
-                              w - tw + 1, (tensor.size(0),),
+                              width - width_out + 1, (tensor.size(0),),
                               device=self.device)
 
-        rows = torch.arange(th, dtype=torch.long, device=self.device) + i[:,
+        rows = torch.arange(height_out, dtype=torch.long, device=self.device) + i[:,
                                                                           None]
-        columns = torch.arange(tw, dtype=torch.long,
+        columns = torch.arange(width_out, dtype=torch.long,
                                device=self.device) + j[:, None]
         padded = padded.permute(1, 0, 2, 3)
         padded = padded[:,
                         torch.arange(tensor.size(0))[:, None, None],
-                        rows[:, torch.arange(th)[:, None]], columns[:, None]]
+                        rows[:, torch.arange(height_out)[:, None]], columns[:, None]]
         return padded.permute(1, 0, 2, 3)
