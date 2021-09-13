@@ -478,29 +478,7 @@ class Wallet():
 
             logger.success("Loaded coldkey:".ljust(20) + "<blue>{}</blue>".format(coldkey.public_key))
             return coldkey
-
-    @staticmethod
-    def __is_world_readable(path):
-        st = os.stat(path)
-        return st.st_mode & stat.S_IROTH
-
-    @staticmethod
-    def __create_keypair() -> Keypair:
-        return Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-
-    @staticmethod
-    def __save_keypair(keypair : 'Keypair', path : str):
-        path = os.path.expanduser(path)
-        with open(path, 'w') as file:
-            json.dump(Wallet("", "", "").to_dict(keypair), file)
-            file.close()
-        os.chmod(path, stat.S_IWUSR | stat.S_IRUSR)
-
-    @staticmethod
-    def __has_keypair(path):
-        path = os.path.expanduser(path)
-        return os.path.exists(path)
-
+            
     def create_coldkey_from_uri(self, uri:str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
         """ create cold key from uri, encrypt with user's password and save the file
         """
