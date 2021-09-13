@@ -154,6 +154,9 @@ class PriorityThreadPoolExecutor(_base.Executor):
                                    'interpreter shutdown')
 
             priority = kwargs.get('priority', random.randint(0, 1000000))
+            if priority == 0:
+                print(priority)
+                priority = random.randint(0, 100)
             eplison = random.uniform(0,0.01) * priority
             if 'priority' in kwargs:
                 del kwargs['priority']
