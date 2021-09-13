@@ -421,7 +421,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 account balance
         """
         with self.substrate as substrate:
-            result = substrate.get_runtime_state(
+            result = substrate.query(
                 module='System',
                 storage_function='Account',
                 params=[address],

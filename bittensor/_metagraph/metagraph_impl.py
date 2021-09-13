@@ -266,7 +266,7 @@ class Metagraph( torch.nn.Module ):
         incentive = []
         inflation = []
         dividends = []
-        lastupdates = []
+        last_updates = []
         endpoints = []
         weights = []
         bonds = []
@@ -281,8 +281,8 @@ class Metagraph( torch.nn.Module ):
             consensus.append( n.consensus / float(1000000000) )
             incentive.append( n.incentive / float(1000000000) )
             inflation.append( n.inflation / float(1000000000) )
-            dividends.append( n.dividends / float(1000000000) )
-            lastupdates.append( n.last_update / float(1000000000) )
+            dividends.append( n.dividends )
+            last_updates.append( n.last_update )
             endpoint =  bittensor.endpoint(
                 uid = int(n.uid), 
                 hotkey = str(n.hotkey), 
@@ -317,7 +317,7 @@ class Metagraph( torch.nn.Module ):
         tincentive = torch.tensor( incentive, dtype=torch.float32 )
         tinflation = torch.tensor( inflation, dtype=torch.float32 )
         tdividends = torch.tensor( dividends, dtype=torch.float32 )
-        tlastupdate = torch.tensor( lastupdates, dtype=torch.int64 )
+        tlast_update = torch.tensor( last_updates, dtype=torch.int64 )
         tbonds = torch.tensor( bonds, dtype=torch.int64 )
         tweights = torch.tensor( weights, dtype=torch.float32 )
         tendpoints = torch.tensor( endpoints, dtype=torch.int64 )
@@ -334,7 +334,7 @@ class Metagraph( torch.nn.Module ):
         self.inflation = torch.nn.Parameter( tinflation, requires_grad=False )
         self.dividends = torch.nn.Parameter( tdividends, requires_grad=False )
         self.active = torch.nn.Parameter( tactive, requires_grad=False )
-        self.lastupdate = torch.nn.Parameter( tlastupdate, requires_grad=False )
+        self.last_update = torch.nn.Parameter( tlast_update, requires_grad=False )
         self.weights = torch.nn.Parameter( tweights, requires_grad=False )
         self.bonds = torch.nn.Parameter( tbonds, requires_grad=False )
         self.endpoints = torch.nn.Parameter( tendpoints, requires_grad=False )
