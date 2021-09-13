@@ -94,50 +94,11 @@ class Wallet():
                 uid (int):
                     Network uid.
         """
-<<<<<<< HEAD
         neuron = self.get_neuron(subtensor)
         if neuron.is_null:
-=======
-        try:
-            if subtensor == None:
-                subtensor = bittensor.subtensor()
-            hotkey_uid = int(subtensor.get_uid_for_pubkey( self.hotkey.public_key ))
-            if hotkey_uid == None:
-                return -1
-            else:
-                return int(hotkey_uid)
-        except Exception:
->>>>>>> 95f28578dee50c7cc5fb2eddd3c05674df355edc
             return -1
         else:
             return neuron.uid
-
-
-    def get_balance ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
-        """ Returns this wallet's coldkey balance from passed subtensor connection.
-            Args:
-                subtensor( 'bittensor.Subtensor' ):
-                    Bittensor subtensor connection. Overrides with defaults if None.
-            Return:
-                balance (bittensor.utils.balance.Balance):
-                    Coldkey account balance
-        """
-<<<<<<< HEAD
-        neuron = self.get_neuron(subtensor)
-        if neuron.is_null:
-=======
-        try:
-            if subtensor == None:
-                subtensor = bittensor.subtensor()
-            self.assert_coldkeypub()
-            amount_balance = subtensor.get_balance( ss58_encode(self.coldkeypub) )
-            return amount_balance
-        except Exception as e:
-            print (e)
->>>>>>> 95f28578dee50c7cc5fb2eddd3c05674df355edc
-            return bittensor.Balance(0)
-        else:
-            return bittensor.Balance(neuron.stake)
 
     def get_stake ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
         """ Returns this wallet's staking balance from passed subtensor connection.
@@ -148,18 +109,11 @@ class Wallet():
                 balance (bittensor.utils.balance.Balance):
                     Stake account balance
         """
-        try:
-            if subtensor == None:
-                subtensor = bittensor.subtensor()
-            self.assert_hotkey()
-            hotkey_uid = self.get_uid()
-            if hotkey_uid == -1:
-                return bittensor.Balance(0)               
-            stake = subtensor.get_stake_for_uid( hotkey_uid )
-            return stake
-        except Exception as e:
-            print (e)
+        neuron = self.get_neuron(subtensor)
+        if neuron.is_null:
             return bittensor.Balance(0)
+        else:
+            return bittensor.Balance(neuron.stake)
 
     def stake( self, 
         amount: Union[float, bittensor.Balance] = None, 
