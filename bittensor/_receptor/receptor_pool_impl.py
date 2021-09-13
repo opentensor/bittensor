@@ -17,7 +17,6 @@
 
 import math
 
-from concurrent.futures import ThreadPoolExecutor
 from typing import Tuple, List
 
 import torch
@@ -35,6 +34,7 @@ class ReceptorPool ( torch.nn.Module ):
         thread_pool: 'ThreadPoolExecutor',
         max_active_receptors: int
     ):
+        super().__init__()
         self.wallet = wallet
         self.thread_pool = thread_pool
         self.max_active_receptors = max_active_receptors
