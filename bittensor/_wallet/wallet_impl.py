@@ -1,4 +1,5 @@
-
+""" Implementation of the wallet class, which manages balances with staking and transfer. Also manages hotkey and coldkey.
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -29,7 +30,7 @@ from substrateinterface.utils.ss58 import ss58_encode
 
 import bittensor
 from bittensor.utils.cli_utils import cli_utils
-from bittensor._crypto import encrypt, is_encrypted, decrypt_data, KeyError
+from bittensor._crypto import encrypt, is_encrypted, decrypt_data, CryptoKeyError
 from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
 
 logger = logger.opt(colors=True)
@@ -286,11 +287,11 @@ class Wallet():
                     True if the hotkey can be loaded from config arguments or False
         """
         try:
-            self.hotkey
-            return True
+            if self.hotkey:
+                return True
         except KeyFileError:
             return False
-        except KeyError:
+        except CryptoKeyError:
             return False
         except Exception:
             return False
@@ -303,11 +304,11 @@ class Wallet():
                     True if the coldkey can be loaded from config arguments or False
         """
         try:
-            self.coldkey
-            return True
+            if self.coldkey:
+                return True
         except KeyFileError:
             return False
-        except KeyError:
+        except CryptoKeyError:
             return False
         except Exception:
             return False
@@ -320,11 +321,11 @@ class Wallet():
                     True if the coldkeypub can be loaded from config arguments or False
         """
         try:
-            self.coldkeypub
-            return True
+            if self.coldkeypub:
+                return True
         except KeyFileError:
             return False
-        except KeyError:
+        except CryptoKeyError:
             return False
         except Exception:
             return False
@@ -337,7 +338,7 @@ class Wallet():
                     hotkey loaded from config arguments.
             Raises:
                 KeyFileError: Raised if the file is corrupt of non-existent.
-                KeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
+                CryptoKeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
         """
         if self._hotkey == None:
             self._hotkey = self._load_hotkey()
@@ -351,7 +352,7 @@ class Wallet():
                     colkey loaded from config arguments.
             Raises:
                 KeyFileError: Raised if the file is corrupt of non-existent.
-                KeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
+                CryptoKeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
         """
         if self._coldkey == None:
             self._coldkey = self._load_coldkey( )
@@ -365,7 +366,7 @@ class Wallet():
                     colkeypub loaded from config arguments.
             Raises:
                 KeyFileError: Raised if the file is corrupt of non-existent.
-                KeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
+                CryptoKeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
         """
         if self._coldkeypub == None:
             self._coldkeypub = self._load_coldkeypub( )
@@ -435,13 +436,13 @@ class Wallet():
                     logger.info("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
                 hotkey = load_keypair_from_data(data)
-            except KeyError:
+            except CryptoKeyError:
                 logger.critical("Invalid password")
-                raise KeyError("Invalid password") from KeyError
+                raise CryptoKeyError("Invalid password") from CryptoKeyError()
 
             except KeyFileError:
                 logger.critical("Keyfile corrupt")
-                raise KeyFileError("Keyfile corrupt") from KeyFileError
+                raise KeyFileError("Keyfile corrupt") from KeyFileError()
 
             logger.success("Loaded hotkey:".ljust(20) + "<blue>{}</blue>".format(hotkey.public_key))
             return hotkey
@@ -467,13 +468,13 @@ class Wallet():
                     data = decrypt_data(password, data)
                 coldkey = load_keypair_from_data(data)
 
-            except KeyError:
+            except CryptoKeyError:
                 logger.critical("Invalid password")
-                raise KeyError("Invalid password") from KeyError
+                raise CryptoKeyError("Invalid password") from CryptoKeyError()
 
             except KeyFileError:
                 logger.critical("Keyfile corrupt")
-                raise KeyFileError("Keyfile corrupt") from KeyFileError
+                raise KeyFileError("Keyfile corrupt") from KeyFileError()
 
             logger.success("Loaded coldkey:".ljust(20) + "<blue>{}</blue>".format(coldkey.public_key))
             return coldkey
@@ -501,7 +502,9 @@ class Wallet():
         return os.path.exists(path)
 
     def create_coldkey_from_uri(self, uri:str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
-         # Create directory 
+        """ create cold key from uri, encrypt with user's password and save the file
+        """
+        # Create directory 
         dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
         if not os.path.exists( dir_path ):
             os.makedirs( dir_path )
@@ -528,6 +531,8 @@ class Wallet():
         return self
 
     def create_hotkey_from_uri( self, uri:str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+        """ Create hotkey from uri, encrypt with user's password and save the file
+        """
         # Create directory 
         dir_path = os.path.expanduser(
             os.path.join(self._path_string, self._name_string, "hotkeys")
@@ -556,6 +561,8 @@ class Wallet():
         return self
 
     def create_new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+        """ Create coldkey with mnemonic, encrypt with user's password and save the file
+        """
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
         if not os.path.exists( dir_path ):
@@ -583,6 +590,8 @@ class Wallet():
         return self
 
     def create_new_hotkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+        """ Create hotkey with mnemonic, encrypt with user's password and save the file
+        """
         # Create directory 
         dir_path = os.path.expanduser(
             os.path.join(self._path_string, self._name_string, "hotkeys")
@@ -611,6 +620,8 @@ class Wallet():
         return self
 
     def regenerate_coldkey( self, mnemonic: str, use_password: bool,  overwrite:bool = False) -> 'Wallet':
+        """ Retrieve coldkey with mnemonic, encrypt with user's password and save the file
+        """
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
         if not os.path.exists( dir_path ):
@@ -637,6 +648,8 @@ class Wallet():
         return self
 
     def regenerate_hotkey( self, mnemonic: str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
+        """ Retrieve hotkey with mnemonic, encrypt with user's password and save the file
+        """
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string, "hotkeys"))
         if not os.path.exists( dir_path ):
@@ -662,6 +675,8 @@ class Wallet():
         return self
 
     def to_dict(self, keypair):
+        """ Convert the keypair to dictionary with accountId, publicKey, secretPhrase, secretSeed, and ss58Address  
+        """
         return {
             'accountId': keypair.public_key,
             'publicKey': keypair.public_key,

@@ -28,7 +28,7 @@ from loguru import logger
 from substrateinterface import Keypair
 from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
 from termcolor import colored
-from bittensor._crypto import encrypt, is_encrypted, decrypt_data, KeyError
+from bittensor._crypto import encrypt, is_encrypted, decrypt_data, CryptoKeyError
 from bittensor.utils import Cli
 
 class cli_utils():
@@ -46,7 +46,7 @@ class cli_utils():
 
                 return load_keypair_from_data(data)
 
-        except KeyError:
+        except CryptoKeyError:
             print(colored("Invalid password", 'red'))
             quit()
         except KeyFileError as e:
