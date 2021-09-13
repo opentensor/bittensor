@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import random
 import torch
+from multiprocessing import Process
 
 from typing import List, Tuple, Dict, Union
 
@@ -536,4 +537,43 @@ To run a local node (See: docs/running_a_validator.md) \n
                 neuron object associated with uid or None if it does not exist.
         """
         return self.neuron_for_pubkey ( wallet.hotkey.ss58_address )
-       
+
+    def timeout_set_weights(
+            self, 
+            timeout,
+            wallet: 'bittensor.wallet',
+            uids: torch.LongTensor,
+            weights: torch.FloatTensor,
+            wait_for_inclusion:bool = False,
+        ) -> bool:
+        r""" wrapper for set weights function that includes a timeout component
+        Args:
+            wallet (bittensor.wallet):
+                bittensor wallet object.
+            uids (torch.LongTensor):
+                uint64 uids of destination neurons.
+            weights (torch.FloatTensor):
+                weights to set which must floats and correspond to the passed uids.
+            wait_for_inclusion (bool):
+                if set, waits for the extrinsic to enter a block before returning true,
+                or returns false if the extrinsic fails to enter the block within the timeout.
+            timeout (int):
+                time that this call waits for either finalization of inclusion.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or included in the block.
+        """
+        set_weights = Process(target= self.set_weights, kwargs={
+                                                            'uids':uids,
+                                                            'weights': weights,
+                                                            'wait_for_inclusion': wait_for_inclusion,
+                                                            'wallet' : wallet,
+                                                            })
+        set_weights.start()
+        set_weights.join(timeout=timeout)
+        set_weights.terminate()
+
+        if set_weights.exitcode == 0:
+            return True
+        
+        raise Exception('Timeout')

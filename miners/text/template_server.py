@@ -105,8 +105,8 @@ def main( config ):
     # Create our axon server and subscribe it to the network.
     axon = bittensor.axon (
         wallet = wallet,
-        forward = forward_text,
-        backward = backward_text,
+        forward_text = forward_text,
+        backward_text = backward_text,
     ).start().subscribe()
 
     # --- Init Wandb.

@@ -86,8 +86,28 @@ class Wallet():
                 return -1
             else:
                 return int(hotkey_uid)
-        except Exception as e:
+        except Exception:
             return -1
+
+
+    def get_balance ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
+        """ Returns this wallet's coldkey balance from passed subtensor connection.
+            Args:
+                subtensor( 'bittensor.Subtensor' ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+            Return:
+                balance (bittensor.utils.balance.Balance):
+                    Coldkey account balance
+        """
+        try:
+            if subtensor == None:
+                subtensor = bittensor.subtensor()
+            self.assert_coldkeypub()
+            amount_balance = subtensor.get_balance( ss58_encode(self.coldkeypub) )
+            return amount_balance
+        except Exception as e:
+            print (e)
+            return bittensor.Balance(0)
 
     def get_stake ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
         """ Returns this wallet's staking balance from passed subtensor connection.
@@ -107,25 +127,6 @@ class Wallet():
                 return bittensor.Balance(0)               
             stake = subtensor.get_stake_for_uid( hotkey_uid )
             return stake
-        except Exception as e:
-            print (e)
-            return bittensor.Balance(0)
-
-    def get_balance ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
-        """ Returns this wallet's coldkey balance from passed subtensor connection.
-            Args:
-                subtensor( 'bittensor.Subtensor' ):
-                    Bittensor subtensor connection. Overrides with defaults if None.
-            Return:
-                balance (bittensor.utils.balance.Balance):
-                    Coldkey account balance
-        """
-        try:
-            if subtensor == None:
-                subtensor = bittensor.subtensor()
-            self.assert_coldkeypub()
-            amount_balance = subtensor.get_balance( ss58_encode(self.coldkeypub) )
-            return amount_balance
         except Exception as e:
             print (e)
             return bittensor.Balance(0)
@@ -432,7 +433,7 @@ class Wallet():
                 logger.critical("Invalid password")
                 raise KeyError("Invalid password")
 
-            except KeyFileError as e:
+            except KeyFileError:
                 logger.critical("Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt")
 
@@ -464,7 +465,7 @@ class Wallet():
                 logger.critical("Invalid password")
                 raise KeyError("Invalid password")
 
-            except KeyFileError as e:
+            except KeyFileError:
                 logger.critical("Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt")
 
@@ -484,7 +485,7 @@ class Wallet():
     def __save_keypair(keypair : 'Keypair', path : str):
         path = os.path.expanduser(path)
         with open(path, 'w') as file:
-            json.dump(Wallet.to_dict(keypair), file)
+            json.dump(Wallet("", "", "").to_dict(keypair), file)
             file.close()
         os.chmod(path, stat.S_IWUSR | stat.S_IRUSR)
 
