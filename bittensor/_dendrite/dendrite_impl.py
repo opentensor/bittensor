@@ -24,6 +24,7 @@ from torch.autograd.function import once_differentiable
 from loguru import logger
 
 import bittensor
+from bittensor._endpoint.endpoint_impl import Endpoint
 
 logger = logger.opt(colors=True)
 
@@ -255,7 +256,7 @@ class Dendrite( torch.autograd.Function ):
                     dendrite call return ops.
         """
          # Check types.
-        if not isinstance(endpoints, list) and not isinstance(endpoints, bittensor._endpoint.endpoint_impl.Endpoint):
+        if not isinstance(endpoints, list) and not isinstance(endpoints, Endpoint):
             raise ValueError('endpoints must be of type list or bittensor.Endpoint. Got {}'.format(type(endpoints)))
 
         if not isinstance(inputs, list) and not isinstance(inputs, torch.FloatTensor):
@@ -287,7 +288,7 @@ class Dendrite( torch.autograd.Function ):
         # Check list types.
         if not isinstance(inputs[0], torch.FloatTensor):
             raise ValueError('inputs must be of type torch.FloatTensor. Got {}'.format(type(inputs[0])))
-        if not isinstance(endpoints[0], bittensor._endpoint.endpoint_impl.Endpoint):
+        if not isinstance(endpoints[0], Endpoint):
             raise ValueError('endpoints must be of type bittensor.Endpoint. Got {}'.format(type(endpoints)))
 
         # Check shape.
@@ -342,7 +343,7 @@ class Dendrite( torch.autograd.Function ):
                     dendrite call return ops.
         """
         # Check types.
-        if not isinstance(endpoints, list) and not isinstance(endpoints, bittensor._endpoint.endpoint_impl.Endpoint):
+        if not isinstance(endpoints, list) and not isinstance(endpoints, Endpoint):
             raise ValueError('endpoints must be of type list or bittensor.Endpoint. Got {}'.format(type(endpoints)))
 
         if not isinstance(inputs, list) and not isinstance(inputs, torch.FloatTensor):
@@ -374,7 +375,7 @@ class Dendrite( torch.autograd.Function ):
         # Check list types.
         if not isinstance(inputs[0], torch.FloatTensor):
             raise ValueError('inputs must be of type torch.FloatTensor. Got {}'.format(type(inputs[0])))
-        if not isinstance(endpoints[0], bittensor._endpoint.endpoint_impl.Endpoint):
+        if not isinstance(endpoints[0], Endpoint):
             raise ValueError('endpoints must be of type bittensor.Endpoint. Got {}'.format(type(endpoints)))
 
         # Check shape.
@@ -454,7 +455,7 @@ class Dendrite( torch.autograd.Function ):
                     tensor_input = tensor_input.to( torch.int64 )
                 except Exception as E:
                     error_msg = 'Error while casting tensor input {} to int64 {}'.format(tensor_input, E)
-                    raise ValueError(error_msg)
+                    raise ValueError(error_msg) from ValueError()
             if not ( isinstance(tensor_input, torch.cuda.LongTensor) or isinstance(tensor_input, torch.LongTensor)) :
                 raise ValueError('input {} must be of type torch.LongTensor. Got {}'.format(tensor_input, type(tensor_input)))
             # Expand shape if it is a singlular dimension.
@@ -522,7 +523,7 @@ class Dendrite( torch.autograd.Function ):
         elif isinstance ( inputs, list ) and len( inputs ) > 0 and isinstance( inputs[0], str ):
             # Encode to tensors.
             tokenizer = bittensor.tokenizer()
-            tokenized_sentences = tokenizer( inputs, padding=True, truncation=True)['input_ids']
+            tokenized_sentences = tokenizer.encode( inputs, padding=True, truncation=True)['input_ids']
             tokenizer_tensor = cast_and_check_tensor_input( torch.tensor( tokenized_sentences, dtype=torch.int64 ) )
             formatted_inputs = [ tokenizer_tensor for _ in formatted_endpoints ]
 
