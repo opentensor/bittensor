@@ -213,9 +213,10 @@ class logging:
             return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | <level>{level: ^16}</level> | {message}\n"
 
     @classmethod
-    def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs:list = [], outputs:list = [], message:str = ''):
+    def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs:list = None, outputs:list = None, message:str = ''):
         """ Debug logging for the communication between endpoints with axon/dendrite 
         """
+
         if axon:
             prefix = "Axon"
         else:
