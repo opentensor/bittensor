@@ -19,7 +19,6 @@
 import os
 import stat
 import json
-import bittensor
 import getpass
 import random
 import string
@@ -29,6 +28,8 @@ from substrateinterface import Keypair
 from termcolor import colored
 
 def may_write_to_path( full_path:str, overwrite, force_through_user_input):
+    """ Return our permission to write at full_path
+    """
     if not os.access( full_path, os.W_OK ):
         return False
     if not os.access( os.path.dirname (full_path), os.W_OK ) :
@@ -43,10 +44,14 @@ def may_write_to_path( full_path:str, overwrite, force_through_user_input):
             return False
 
 def set_file_permissions(path):
+    """ Set the permission of the file path as read and write by owner
+    """
     os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
-    pass
 
 def validate_password(password):
+    """ Check the strength of the password
+    Return True if the password pass, else false
+    """
     policy = PasswordPolicy.from_names(
         strength=0.20,
         entropybits=10,
@@ -69,6 +74,9 @@ def validate_password(password):
     return True
 
 def input_password( force_through_user_input ):
+    """ Get password for wallet from user input with validation
+    if force_through_user_input is true, then return a randomly generated password
+    """
     valid = False
     if force_through_user_input:
         generated_password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
@@ -80,9 +88,11 @@ def input_password( force_through_user_input ):
     return password
 
 def write_pubkey_to_text_file( full_path, keypair:Keypair, overwrite ):
+    """ 
+    """
     pub_fullpath = os.path.expanduser( full_path ) + "pub.txt",
     if not may_write_to_path( pub_fullpath, overwrite ):
-        print(colored("No write access for {}" % pub_fullpath, 'red'))
+        print(colored(f"No write access for {pub_fullpath}", 'red'))
     with open(pub_fullpath, "w") as pubfile:
         pubfile.write( keypair.public_key.strip() )
 
@@ -156,7 +166,7 @@ def create_new_encrypted_keypair (
     # Check write permissions.
     full_path = os.path.expanduser(os.path.join(path, name))
     if not may_write_to_path( full_path, overwrite ):
-        print(colored("No write access for {}" % full_path, 'red'))
+        print(colored(f"No write access for {full_path}", 'red'))
 
     # Create Key.
     keypair = generate_new_keypair( n_words )
