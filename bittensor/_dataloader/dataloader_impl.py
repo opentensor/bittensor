@@ -31,18 +31,26 @@ from torch.utils.data import Subset
 from loguru import logger
 logger = logger.opt(colors=True)
 
+
 class Dataloader():
     def __init__(self):
         # IPFS hash of the genesis dataset
         # TODO (shibshib): Find a proper way to set this as config instead of hardcoding it.
         # More dataset hashes can be added as we add directories for other modalities.
-        self.genesis_text_dataset_hash = "QmXwfPoh2QFYqC6cYcW8kzyd9ruFfhnUi2kVBkdhawjUzj"
+        self.genesis_text_dataset_hash = 'QmXwfPoh2QFYqC6cYcW8kzyd9ruFfhnUi2kVBkdhawjUzj'
         self.wikitext_text_dataset_hash = 'QmRjFNn3XpYMycVzTE4YcVcxk45vNZcTAjKmtEqPLKwAWd'
+        self.email_text_dataset_hash = 'QmWnqorfUGg3Cm4dLt8crcceTfa4LsTas5JXzR6w6SJgEK'
+        self.book_corpus_text_dataset_hash = 'QmXtmQEYcUse3bNkFDiLAVBRzRWtLfVMiJUZntUD88tekw'
         self.test_text_dataset_hash = 'QmRhWSMPQzTiWcdGYy8vpRMxSxCAKDJBaXvmum4fjkF7cJ'
         self.validation_text_dataset_hash = 'QmQnE8wBmxKgNteFkZ1RAdZFit16iSeHwX6zSpYfwFmAuG'
 
+        self.text_dataset_hashes = [
+            self.genesis_text_dataset_hash, 
+            self.wikitext_text_dataset_hash, 
+        ]
         # Used to retrieve directory contentx
         self.dag_get = 'https://gateway.pinata.cloud/api/v0/dag/get'
+
         # Used to retrieve file contents
         self.file_cat = 'https://gateway.pinata.cloud/api/v0/cat'
 
@@ -92,14 +100,10 @@ class Dataloader():
         session = requests.Session()
         params = (('arg', dir_hash),)
         session.params.update(params)
-        directory = None
 
-        response = Dataloader.requests_retry_session(session=session).post(self.dag_get)
+        response = Dataloader.requests_retry_session(session=session).get(self.dag_get)
 
-        if response.status_code == 200:
-            directory = response.json()
-
-        return directory
+        return response
 
     def __len__(self):
         """ Returns length of the dataset that the dataloader is processing
@@ -140,6 +144,28 @@ class GenesisTextDataloader( Dataloader ):
         if not os.path.isdir(os.path.expanduser(data_dir)):
             os.makedirs(os.path.expanduser(data_dir))
 
+    def get_directory_links(self, dir_hash: str, dir_name:str = None):
+        """
+        Check response from retrieve_directory(), 
+        if the response is fine then return the links,
+        else return None
+
+        Returns:
+            list of dict: links 
+        """
+        response = self.retrieve_directory(dir_hash)
+
+        if response.status_code != 200:
+            logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(dir_hash))
+        else:
+            directory = response.json()
+            if directory and 'links' in directory.keys():
+                logger.success("Loaded folder:".ljust(20) + "<blue>{}</blue>".format(dir_hash))
+                return directory['links']
+            else:
+                logger.warning("Directory seems empty, ignoring directory:".ljust(20) + "<blue>{}</blue>". format(dir_hash))
+        return None
+
     def get_text(self, file_hash: str, file_name: str):
         """
         Load the data from disk if it is already in the the data_dir,
@@ -148,7 +174,7 @@ class GenesisTextDataloader( Dataloader ):
         Returns:
             str: the data as string
         """
-        text = ''
+        text = None
         full_path = os.path.expanduser(os.path.join(self.data_dir, file_name))
 
         # Load text from path
@@ -157,21 +183,26 @@ class GenesisTextDataloader( Dataloader ):
                 with open(full_path, mode='r') as f:
                     text = f.read()
                 logger.success("Loaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
-            except Exception as e:
+            except Exception:
                 logger.warning("Load failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
 
         # Download text
-        if (text == ''):
-            text = self.retrieve_text_file(file_hash).text
-            logger.success("Downloaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
+        if (text == None):
+            response = self.retrieve_text_file(file_hash)
 
-            # Saving text
-            try:
-                with open(full_path, mode = 'w+') as f:
-                    f.write(text)
-                    logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_name))
-            except Exception as e:
-                    logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
+            if response.status_code != 200:
+                logger.warning("Failed to retrieve file, ignoring file:".ljust(20) + "<blue>{}</blue>".format(file_name))
+            else:
+                text = response.text
+                logger.success("Downloaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
+                
+                # Saving text
+                try:
+                    with open(full_path, mode = 'w+') as f:
+                        f.write(text)
+                        logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_name))
+                except Exception:
+                        logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
 
         return text
 
@@ -185,13 +216,9 @@ class GenesisTextDataloader( Dataloader ):
         session = requests.Session()
         params = (('arg', file_hash),)
         session.params.update(params)
-        directory = None
-
         response = Dataloader.requests_retry_session(session=session).post(self.file_cat)
-        if response.status_code == 200:
-            directory = response
 
-        return directory
+        return response
 
     def construct_text_corpus(self):
         """Connects to Pinata IPFS gateway and retrieves the directory of genesis datasets.
@@ -205,18 +232,18 @@ class GenesisTextDataloader( Dataloader ):
             # Retrieves the directory for the given dataset
             if self.dataset == 'train':
                 directory_links = []
-                for hash in [self.genesis_text_dataset_hash, self.wikitext_text_dataset_hash]:
-                    dir = self.retrieve_directory(hash)
-                    if dir and 'links' in dir.keys():
-                        directory_links.extend(dir['links'])
+                for dataset_hash in self.text_dataset_hashes: 
+                    dir_links = self.get_directory_links(dataset_hash)
+                    if dir_links:
+                        directory_links.extend(dir_links)
+                if len(directory_links) == 0:
+                    directory_links = None
 
             elif self.dataset == 'test':
-                if dir and 'links' in dir.keys():
-                    directory_links = self.retrieve_directory(self.test_text_dataset_hash)['links']
+                directory_links = self.get_directory_links(self.test_text_dataset_hash)
 
             elif self.dataset == 'validation':
-                if dir and 'links' in dir.keys():
-                    directory_links = self.retrieve_directory(self.validation_text_dataset_hash)['links']
+                directory_links = self.get_directory_links(self.validation_text_dataset_hash)['links']
 
             data_corpus = []
 
@@ -227,22 +254,20 @@ class GenesisTextDataloader( Dataloader ):
             # Pick a random dataset file and return its contents
             if directory_links:
                 # Let's construct a dataset!
-                random_dataset_file = directory_links[directory_order[0]]
-                file_name = random_dataset_file['Name']
                 total_dataset_size = 0
 
                 # Make sure the file we chose satisfies our maximum file size requirement
-                i = 1
+                i = 0
                 while total_dataset_size <= self.max_corpus_size:
                     # Find file hash
-                    random_dataset_file_hash = random_dataset_file['Cid']['/']
-                    text = self.get_text(random_dataset_file_hash, file_name)
-                    data_corpus.extend(text.split())
-                    total_dataset_size += int(random_dataset_file['Size'])
-
-                    # Retrieve next file descriptor
                     random_dataset_file = directory_links[directory_order[i]]
                     file_name = random_dataset_file['Name']
+                    random_dataset_file_hash = random_dataset_file['Cid']['/']
+                    
+                    text = self.get_text(random_dataset_file_hash, file_name)
+                    if text != None:
+                        data_corpus.extend(text.split())
+                        total_dataset_size += int(random_dataset_file['Size'])
                     i += 1
 
                 return data_corpus
