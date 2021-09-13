@@ -1,3 +1,5 @@
+""" Factory method for creating priority threadpool
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -22,6 +24,8 @@ import bittensor
 from . import priority_thread_pool_impl
 
 class prioritythreadpool:
+    """ Factory method for creating priority threadpool
+    """
     def __new__(
             cls,
             config: 'bittensor.config' = None,

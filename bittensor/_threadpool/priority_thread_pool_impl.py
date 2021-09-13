@@ -43,6 +43,8 @@ class _WorkItem(object):
         self.kwargs = kwargs
 
     def run(self):
+        """ Run the given work item
+        """
         if not self.future.set_running_or_notify_cancel():
             return
 
@@ -107,7 +109,8 @@ class BrokenThreadPool(_base.BrokenExecutor):
 
 
 class PriorityThreadPoolExecutor(_base.Executor):
-
+    """ Base threadpool executor with a priority queue 
+    """
     # Used to assign unique thread names when thread_name_prefix is not supplied.
     _counter = itertools.count().__next__
 
@@ -214,6 +217,6 @@ class PriorityThreadPoolExecutor(_base.Executor):
             for t in self._threads:
                 try:
                     t.join(timeout=2)
-                except:
+                except Exception:
                     pass
     shutdown.__doc__ = _base.Executor.shutdown.__doc__
