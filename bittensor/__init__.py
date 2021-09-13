@@ -20,8 +20,8 @@ import os
 from typing import Callable
 
 # Bittensor code and protocol version.
-__version__ = '1.3.0'
-__version_as_int__ = (100 * 1) + (10 * 3) + (1 * 0)  # Integer representation
+__version__ = '1.4.0'
+__version_as_int__ = (100 * 1) + (10 * 4) + (1 * 0)  # Integer representation
 
 # Vocabulary dimension.
 #__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
