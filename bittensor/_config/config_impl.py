@@ -26,6 +26,7 @@ class Config ( Munch ):
     Implementation of the config class, which manages the config of different bittensor modules.
     """
     def __init__(self, loaded_config = None ):
+        super().__init__()
         if loaded_config:
             raise NotImplementedError('Function load_from_relative_path is not fully implemented.')
 
