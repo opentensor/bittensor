@@ -20,16 +20,18 @@ from munch import Munch
 
 class Config ( Munch ):
 
-    def __init__(self):
+    def __init__(self, loaded_config = None ):
+        if loaded_config:
+            raise NotImplementedError('Function load_from_relative_path is not fully implemented.')
         pass
 
     def __repr__(self) -> str:
         return self.__str__()
+    
+    def __str__(self) -> str:
+        return "\n" + yaml.dump(self.toDict())
 
-    def __str__(items) -> str:
-        return "\n" + yaml.dump(items.toDict())
-
-    def toString(items) -> str:
+    def toString(self, items) -> str:
         return "\n" + yaml.dump(items.toDict())
 
     def update_with_kwargs( self, kwargs ):

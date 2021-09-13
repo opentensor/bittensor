@@ -16,8 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import wandb
 import os
+from typing import Callable
 
 # Bittensor code and protocol version.
 __version__ = '1.3.0'
@@ -183,19 +183,8 @@ class Neuron():
             subtensor = self.subtensor
         )
 
-        # --- Init wandb ----
-        if self.config.neuron.use_wandb:
-            self.wandb = wandb(
-                config = self.config,
-                cold_pubkey = self.wallet.coldkeypub,
-                hot_pubkey = self.wallet.hotkey.public_key,
-                root_dir = self.root_dir
-            )
-            
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         self.axon.stop()
-        if self.config.neuron.use_wandb:
-            self.wandb.finish()
             
         print(exc_type, exc_value, exc_traceback)
 
