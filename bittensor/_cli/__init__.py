@@ -62,7 +62,6 @@ class cli:
             Return: bittensor.config object
         """
         parser = argparse.ArgumentParser(description="Bittensor cli", usage="bittensor-cli <command> <command args>", add_help=True)
-        parser._positionals.title = "commands"
 
         cmd_parsers = parser.add_subparsers(dest='command')
         overview_parser = cmd_parsers.add_parser(

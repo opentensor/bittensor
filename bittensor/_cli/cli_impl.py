@@ -21,7 +21,6 @@ Implementation of the CLI class, which handles the coldkey, hotkey and money tra
 import sys
 from loguru import logger
 
-import bittensor
 logger = logger.opt(colors=True)
 
 class CLI:
