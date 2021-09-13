@@ -500,7 +500,7 @@ class Miner:
             return output.local_hidden
 
         uid =self.neuron.metagraph.hotkeys.index(pubkey)
-        priority = self.neuron.metagraph.S[uid]
+        priority = self.neuron.metagraph.S[uid].item()
         future = self.thread_pool.submit(call,inputs=inputs_x,priority=priority)
         return future.result(timeout= self.config.miner.timeout)
 
@@ -538,7 +538,7 @@ class Miner:
                     return inputs_x.grad if inputs_x.grad != None else None                    
 
             uid =self.neuron.metagraph.hotkeys.index(pubkey)
-            priority = self.neuron.metagraph.S[uid]
+            priority = self.neuron.metagraph.S[uid].item()
             future = self.thread_pool.submit(call, input=inputs_x.to( self.device ), grad=grads_dy.to( self.device ), priority=priority)
             return future.result(timeout= self.config.miner.timeout)            
         # if ! compute_remote_gradients, NO-OP.
@@ -717,7 +717,7 @@ class Miner:
         Currently, this is not turned on.
         """
         uid =self.neuron.metagraph.hotkeys.index(pubkey)
-        if self.neuron.metagraph.S[uid] < self.config.miner.blacklist:
+        if self.neuron.metagraph.S[uid].item() < self.config.miner.blacklist:
             return True
         else:
             return False
