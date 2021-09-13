@@ -16,6 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 class Balance:
+    """ Represent bittensor balance of the wallet 
+    """
     unit = "\u03C4"
     rao : int
     tao: float
