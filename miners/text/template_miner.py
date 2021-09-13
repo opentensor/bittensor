@@ -96,8 +96,8 @@ class Nucleus(nn.Module):
         r""" Add custom params to the parser.
         """
         parser.add_argument('--nucleus.nhid', type=int, help='the dimension of the feedforward network model in nn.TransformerEncoder', default=200)
-        parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default=4)
-        parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=4)
+        parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default=2)
+        parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
         parser.add_argument('--nucleus.punishment', type=float, help='The punishment on the chain weights that do not respond ', default=0.001 )
@@ -273,8 +273,8 @@ class Miner:
 
         #Torch scheduler
         self.scheduler= torch.optim.lr_scheduler.StepLR(self.optimizer,
-            step_size= 10.0,
-            gamma=0.9
+            step_size= 1.0,
+            gamma=0.95
         )
 
         # Bittensor backend
