@@ -5,7 +5,7 @@ from substrateinterface import Keypair
 from loguru import logger
 
 class KeyFileError(Exception):
-    """ Overwrite the built-in KeyError
+    """ Overwrite the built-in CryptoKeyError
     """
 
 def load_keypair_from_data(data) -> Keypair:

@@ -8,9 +8,9 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from loguru import logger
 
-class KeyError(Exception):
-    """ Exception for InvalidSignature, InvalidKey and InvalidToken from decryption
-        Overwrite the built-in KeyError
+class CryptoKeyError(Exception):
+    """ Exception for invalid signature, key, token, password, etc 
+        Overwrite the built-in CryptoKeyError
     """
 
 __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
@@ -48,4 +48,4 @@ def decrypt_data(password, data):
     try:
         return decrypt_keypair(data, password)
     except (InvalidSignature, InvalidKey, InvalidToken) as key_error:
-        raise KeyError from key_error
+        raise CryptoKeyError from key_error
