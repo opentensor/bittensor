@@ -1,3 +1,5 @@
+""" Manages a pool of grpc connections as receptors
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -16,7 +18,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import math
-
 from typing import Tuple, List
 
 import torch
@@ -27,7 +28,8 @@ import bittensor
 logger = logger.opt(colors=True)
 
 class ReceptorPool ( torch.nn.Module ):
-
+    """ Manages a pool of grpc connections as receptors
+    """
     def __init__(
         self, 
         wallet: 'bittensor.Wallet',
