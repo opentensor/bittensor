@@ -191,7 +191,7 @@ class GenesisTextDataloader( Dataloader ):
                 logger.warning("Load failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
 
         # Download text
-        if (text == None):
+        if text == None:
             response = self.retrieve_text_file(file_hash)
 
             if response.status_code != 200:
@@ -206,7 +206,7 @@ class GenesisTextDataloader( Dataloader ):
                         f.write(text)
                         logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_name))
                 except Exception:
-                        logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
+                    logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
 
         return text
 
