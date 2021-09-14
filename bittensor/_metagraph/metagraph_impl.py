@@ -42,7 +42,7 @@ class Metagraph( torch.nn.Module ):
             stake (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 Stake balance for each neuron ordered by uid.
                 
-            lastemit (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
+            last_update (:obj:`torch.LongTensor` of shape :obj:`(metagraph.n)`):
                 Last emission call for each neuron ordered by uid.
 
             weights (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n, metagraph.n)`):
@@ -74,7 +74,7 @@ class Metagraph( torch.nn.Module ):
         self.inflation = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.dividends = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.active = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
-        self.lastupdate = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
+        self.last_update = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.weights = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.bonds = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.endpoints = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
@@ -243,7 +243,7 @@ class Metagraph( torch.nn.Module ):
         self.inflation = torch.nn.Parameter( state_dict['inflation'], requires_grad=False )
         self.dividends = torch.nn.Parameter( state_dict['dividends'], requires_grad=False )
         self.active = torch.nn.Parameter( state_dict['active'], requires_grad=False )
-        self.lastupdate = torch.nn.Parameter( state_dict['lastupdate'], requires_grad=False )
+        self.last_update = torch.nn.Parameter( state_dict['last_update'], requires_grad=False )
         self.weights = torch.nn.Parameter( state_dict['weights'], requires_grad=False )
         self.bonds = torch.nn.Parameter( state_dict['bonds'], requires_grad=False )
         self.endpoints = torch.nn.Parameter( state_dict['endpoints'], requires_grad=False )
@@ -253,8 +253,13 @@ class Metagraph( torch.nn.Module ):
     def sync ( self, block: int = None ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.
         """
-        block = self.subtensor.get_current_block()
-        neurons = self.subtensor.neurons()
+        if block == None:
+            block = self.subtensor.get_current_block()
+            n_total = self.subtensor.get_n( )
+            neurons = self.subtensor.neurons()
+        else:
+            n_total = self.subtensor.get_n( block = block )
+            neurons = self.subtensor.neurons( block = block )
 
         # Fill arrays.
         uids = []
@@ -271,7 +276,6 @@ class Metagraph( torch.nn.Module ):
         weights = []
         bonds = []
         self._endpoint_objs = []
-        n_total = len(neurons)
         for n in neurons:
             uids.append( n.uid )
             active.append( n.active )
@@ -306,10 +310,10 @@ class Metagraph( torch.nn.Module ):
                 bonds.append( [0] * n_total )
 
         # Set tensors.
-        tn = torch.tensor( n_total, dtype=torch.float32 )
-        tblock = torch.tensor( block, dtype=torch.float32 )
-        tuids = torch.tensor( uids, dtype=torch.float32 )
-        tactive = torch.tensor( active, dtype=torch.float32 )
+        tn = torch.tensor( n_total, dtype=torch.int64 )
+        tblock = torch.tensor( block, dtype=torch.int64 )
+        tuids = torch.tensor( uids, dtype=torch.int64 )
+        tactive = torch.tensor( active, dtype=torch.int64 )
         tstake = torch.tensor( stake, dtype=torch.float32 )
         tranks = torch.tensor( ranks, dtype=torch.float32 )
         ttrust = torch.tensor( trust, dtype=torch.float32 )
@@ -347,4 +351,5 @@ class Metagraph( torch.nn.Module ):
         
     def __repr__(self):
         return self.__str__()
+
         

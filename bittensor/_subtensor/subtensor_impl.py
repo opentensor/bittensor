@@ -526,6 +526,19 @@ To run a local node (See: docs/running_a_validator.md) \n
                 neuron.is_null = False
             return neuron
 
+    def get_n( self, block: int = None ) -> int: 
+        r""" Returns the number of neurons on the chain at block.
+        Args:
+            block ( int ):
+                The block number to get the neuron count from.
+
+        Returns:
+            n ( int ):
+                the number of neurons subscribed to the chain.
+        """
+        with self.substrate as substrate:
+            return int(substrate.query(  module='SubtensorModule', storage_function = 'N' ).value)
+
     def neuron_for_wallet( self, wallet: 'bittensor.Wallet', block: int = None ) -> SimpleNamespace: 
         r""" Returns a list of neuron from the chain. 
         Args:
