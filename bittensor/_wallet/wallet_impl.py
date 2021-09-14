@@ -20,7 +20,6 @@
 import json
 import os
 import re
-import stat
 import sys
 
 from typing import Union
