@@ -20,8 +20,8 @@ import os
 from typing import Callable
 
 # Bittensor code and protocol version.
-__version__ = '1.2.0'
-__version_as_int__ = (100 * 1) + (10 * 2) + (1 * 0)  # Integer representation
+__version__ = '1.4.0'
+__version_as_int__ = (100 * 1) + (10 * 4) + (1 * 0)  # Integer representation
 
 # Vocabulary dimension.
 #__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
@@ -33,6 +33,19 @@ __network_dim__ = 512 # All network responses have shape = [ __batch_size__, __s
 
 # Substrate chain block time (seconds).
 __blocktime__ = 6
+
+# Hardcoded entry point nodes. 
+__kusanagi_entrypoints__ = [
+    "test.kusanagi.bittensor.com:9944" 
+]
+
+__akatsuki_entrypoints__ = [
+    "main.akatsuki.bittensor.com:9944"
+]
+
+__local_entrypoints__ = [
+    '127.0.0.1:9944'
+]
 
 # ---- Config ----
 from bittensor._config import config as config
@@ -200,16 +213,3 @@ def init(
         blacklist = blacklist
     )
     return neuron
-
-# Hardcoded entry point nodes. 
-__kusanagi_entrypoints__ = [
-    "test.kusanagi.bittensor.com:9944" 
-]
-
-__akatsuki_entrypoints__ = [
-    "main.akatsuki.bittensor.com:9944"
-]
-
-__local_entrypoints__ = [
-    '127.0.0.1:9944'
-]
