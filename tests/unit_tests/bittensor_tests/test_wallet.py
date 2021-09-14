@@ -19,7 +19,28 @@ def test_wallet_keypair():
     the_wallet.hotkey
     the_wallet.coldkeypub
 
+def test_wallet_uid():
+    uid = the_wallet.get_uid()
+    assert uid == 0 
+
+    s = bittensor.subtensor()
+    s.get_uid_for_pubkey = MagicMock( return_value = 10 )
+    
+    uid = the_wallet.get_uid( subtensor = s)
+    assert uid == 10 
+
+def test_wallet_stake():
+    stake = the_wallet.get_stake( )
+    assert stake.rao == 0  # the stake balance is zero, it is not subscribed
+
+    s = bittensor.subtensor()
+    s.get_stake_for_uid = MagicMock( return_value = bittensor.Balance(10) )
+    stake = the_wallet.get_stake( subtensor = s )
+    assert stake.rao == 10  # the stake balance is zero, it is not subscribed
+
 test_create_wallet()
 test_wallet_keypair()
+test_wallet_stake()
+test_wallet_uid()
 test_wallet_keypair()
 test_create_wallet()

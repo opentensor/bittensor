@@ -466,7 +466,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         with self.substrate as substrate:
             neurons = substrate.query_map (
                 module='SubtensorModule',
-                storage_function='Neurons',
+                storage_function='Metagraph',
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
             result = []
@@ -490,7 +490,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 neuron object associated with uid or None if it does not exist.
         """
         with self.substrate as substrate:
-            neuron = dict( substrate.query( module='SubtensorModule',  storage_function='Neurons', params = [ uid ]).value )
+            neuron = dict( substrate.query( module='SubtensorModule',  storage_function='Metagraph', params = [ uid ]).value )
             neuron = SimpleNamespace( **neuron )
             neuron.ip = net.int_to_ip(neuron.ip)
             if neuron.hotkey == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
