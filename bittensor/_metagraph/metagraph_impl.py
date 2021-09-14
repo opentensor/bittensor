@@ -169,9 +169,13 @@ class Metagraph( torch.nn.Module ):
         elif self._endpoint_objs != None:
             return self._endpoint_objs
         else:
-            self._endpoint_objs = [ bittensor.endpoint.from_tensor( tensor ) for tensor in self.endpoints ]
+            for tensor in self.endpoints:
+                try:
+                    obj = bittensor.endpoint.from_tensor( tensor )
+                except:
+                    obj = None
+                self._endpoint_objs.append( obj )
             return self._endpoint_objs
-
 
     def load( self, network:str = None  ) -> 'Metagraph':
         r""" Loads this metagraph object's state_dict from bittensor root dir.
@@ -262,31 +266,31 @@ class Metagraph( torch.nn.Module ):
             neurons = self.subtensor.neurons( block = block )
 
         # Fill arrays.
-        uids = []
-        active = []
-        stake = []
-        ranks = []
-        trust = []
-        consensus = []
-        incentive = []
-        inflation = []
-        dividends = []
-        last_updates = []
-        endpoints = []
-        weights = []
-        bonds = []
-        self._endpoint_objs = []
+        uids = [ i for i in range(n_total) ]
+        active = [ 0 for _ in range(n_total) ]
+        stake = [ 0 for _ in range(n_total) ]
+        ranks = [ 0 for _ in range(n_total) ]
+        trust = [ 0 for _ in range(n_total) ]
+        consensus = [ 0 for _ in range(n_total) ]
+        incentive = [ 0 for _ in range(n_total) ]
+        inflation = [ 0 for _ in range(n_total) ]
+        dividends = [ 0 for _ in range(n_total) ]
+        last_updates = [ -1 for _ in range(n_total) ]
+        endpoints = [ [-1 for _ in range(250) ]  for _ in range(n_total) ]
+        weights = [ [ 0 for _ in range(n_total) ] for _ in range(n_total) ]
+        bonds = [ [0 for _ in range(n_total) ] for _ in range(n_total) ]
+        self._endpoint_objs = [ None for _ in range(n_total) ]
         for n in neurons:
-            uids.append( n.uid )
-            active.append( n.active )
-            stake.append( n.stake / float(1000000000) )
-            ranks.append( n.rank / float(1000000000) )
-            trust.append( n.trust / float(1000000000) )
-            consensus.append( n.consensus / float(1000000000) )
-            incentive.append( n.incentive / float(1000000000) )
-            inflation.append( n.inflation / float(1000000000) )
-            dividends.append( n.dividends )
-            last_updates.append( n.last_update )
+            uids[n.uid] = n.uid 
+            active[n.uid] = n.active
+            stake[n.uid] = n.stake / float(1000000000)
+            ranks[n.uid] = n.rank / float(1000000000)
+            trust[n.uid] =n.trust / float(1000000000)
+            consensus[n.uid] = n.consensus / float(1000000000)
+            incentive[n.uid] = n.incentive / float(1000000000)
+            inflation[n.uid] =n.inflation / float(1000000000)
+            dividends[n.uid] =n.dividends
+            last_updates[n.uid] = n.last_update
             endpoint =  bittensor.endpoint(
                 uid = int(n.uid), 
                 hotkey = str(n.hotkey), 
@@ -296,18 +300,18 @@ class Metagraph( torch.nn.Module ):
                 modality = int(n.modality), 
                 coldkey = str(n.coldkey) 
             )
-            self._endpoint_objs.append( endpoint )
-            endpoints.append( endpoint.to_tensor().tolist())
+            self._endpoint_objs[n.uid] = endpoint 
+            endpoints[n.uid] = endpoint.to_tensor().tolist()
             if len(n.weights) > 0:
                 w_uids, w_weights = zip(*n.weights)
-                weights.append( bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( n_total, w_uids, w_weights ).tolist() )
+                weights[n.uid] = bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( n_total, w_uids, w_weights ).tolist()
             else:
-                weights.append( [0] * n_total )
+                weights[n.uid] = [0] * n_total
             if len(n.bonds) > 0:
                 b_uids, b_bonds = zip(*n.bonds)
-                bonds.append( bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( n_total, b_uids, b_bonds ).tolist() )
+                bonds[n.uid] = bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( n_total, b_uids, b_bonds ).tolist()
             else:
-                bonds.append( [0] * n_total )
+                bonds[n.uid] = [0] * n_total
 
         # Set tensors.
         tn = torch.tensor( n_total, dtype=torch.int64 )
