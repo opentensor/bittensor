@@ -89,6 +89,26 @@ class Wallet():
         except Exception:
             return -1
 
+
+    def get_balance ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
+        """ Returns this wallet's coldkey balance from passed subtensor connection.
+            Args:
+                subtensor( 'bittensor.Subtensor' ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+            Return:
+                balance (bittensor.utils.balance.Balance):
+                    Coldkey account balance
+        """
+        try:
+            if subtensor == None:
+                subtensor = bittensor.subtensor()
+            self.assert_coldkeypub()
+            amount_balance = subtensor.get_balance( ss58_encode(self.coldkeypub) )
+            return amount_balance
+        except Exception as e:
+            print (e)
+            return bittensor.Balance(0)
+
     def get_stake ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
         """ Returns this wallet's staking balance from passed subtensor connection.
             Args:
@@ -107,25 +127,6 @@ class Wallet():
                 return bittensor.Balance(0)               
             stake = subtensor.get_stake_for_uid( hotkey_uid )
             return stake
-        except Exception as e:
-            print (e)
-            return bittensor.Balance(0)
-
-    def get_balance ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
-        """ Returns this wallet's coldkey balance from passed subtensor connection.
-            Args:
-                subtensor( 'bittensor.Subtensor' ):
-                    Bittensor subtensor connection. Overrides with defaults if None.
-            Return:
-                balance (bittensor.utils.balance.Balance):
-                    Coldkey account balance
-        """
-        try:
-            if subtensor == None:
-                subtensor = bittensor.subtensor()
-            self.assert_coldkeypub()
-            amount_balance = subtensor.get_balance( ss58_encode(self.coldkeypub) )
-            return amount_balance
         except Exception as e:
             print (e)
             return bittensor.Balance(0)
