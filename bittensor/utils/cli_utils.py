@@ -28,12 +28,12 @@ from loguru import logger
 from substrateinterface import Keypair
 
 from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
-from bittensor._crypto import is_encrypted, decrypt_data, KeyError
-from bittensor.utils import Cli
+from bittensor._crypto import is_encrypted, decrypt_data, CryptoKeyError
 
 class cli_utils():
     """ Utils for cli, eg. create and validate wallet dir/password/keypair name
     """
+
     @staticmethod
     def load_key(path) -> Keypair:
         """ Get Keypair from the path, where passward has to be provided
@@ -43,13 +43,13 @@ class cli_utils():
             with open(path, 'rb') as file:
                 data = file.read()
                 if is_encrypted(data):
-                    password = Cli.ask_password()
+                    password = cli_utils.ask_password()
                     print("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
 
                 return load_keypair_from_data(data)
 
-        except KeyError:
+        except CryptoKeyError:
             print(colored("Invalid password", 'red'))
             quit()
         except KeyFileError as e:
@@ -191,7 +191,7 @@ class cli_utils():
 
     @staticmethod
     def write_pubkey_to_text_file( keyfile, pubkey_str:str ):
-        """ same as function name 
+        """ Write  public key to text file
         """
         keyfile = os.path.expanduser(keyfile)
         with open(keyfile + "pub.txt", "w") as pubfile:
@@ -207,6 +207,12 @@ class cli_utils():
             valid = cli_utils.validate_password(password)
 
         return password
+
+    @staticmethod
+    def ask_password():
+        """ Ask user to input a password
+        """
+        return getpass.getpass("Enter password to unlock key: ")
 
     @staticmethod
     def validate_password(password):
