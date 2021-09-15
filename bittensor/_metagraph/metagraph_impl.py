@@ -72,6 +72,28 @@ class Metagraph( torch.nn.Module ):
         self.balances = torch.nn.Parameter( torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self._endpoint_objs = None
 
+    def forward(self, row_weight, uid):
+        """
+        in: weight update to one of the row
+        out: updated incentive row 
+        """
+        if self.n.item() == 0:
+            return torch.tensor([], dtype=torch.float32)
+        
+        if row_weight.size() != self.n.item():
+            return torch.tensor([], dtype=torch.float32)
+        
+        weight = self.W.detach().clone()
+        weight[uid,:] = row_weight
+        
+        S = self.S.view(self.n, 1)
+        Wt = torch.transpose(weight, 0, 1)
+        R = torch.matmul(Wt, S).view(self.n)
+
+        I =  (self.tau * R) / torch.sum(R)
+        I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
+        return I.view(self.n)
+
     @property
     def S(self) -> torch.FloatTensor:
         r""" Returns neurons stake values.
