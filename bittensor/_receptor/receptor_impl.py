@@ -231,6 +231,12 @@ class Receptor(nn.Module):
                 bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message )
                 return zeros, code, message
 
+            elif self.endpoint.uid == -1:
+                code = bittensor.proto.ReturnCode.EmptyRequest
+                message = 'bad endpoint'
+                bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message )
+                return zeros, code, message
+
             # ---- Inputs Serialization ----
             try:
                 serializer = bittensor.serializer( bittensor.proto.Serializer.MSGPACK )
@@ -405,6 +411,12 @@ class Receptor(nn.Module):
         if torch.numel( inputs_x ) == 0:
             code = bittensor.proto.ReturnCode.EmptyRequest
             message = 'empty request'
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
+            return zeros, code, message
+        
+        if self.endpoint.uid == -1:
+            code = bittensor.proto.ReturnCode.EmptyRequest
+            message = 'bad endpoint'
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message)
             return zeros, code, message
 

@@ -279,7 +279,7 @@ class Metagraph( torch.nn.Module ):
         endpoints = [ [-1 for _ in range(250) ]  for _ in range(n_total) ]
         weights = [ [ 0 for _ in range(n_total) ] for _ in range(n_total) ]
         bonds = [ [0 for _ in range(n_total) ] for _ in range(n_total) ]
-        self._endpoint_objs = [ None for _ in range(n_total) ]
+        self._endpoint_objs = [ bittensor.endpoint.dummy() for _ in range(n_total) ]
         for n in neurons:
             uids[n.uid] = n.uid 
             active[n.uid] = n.active
