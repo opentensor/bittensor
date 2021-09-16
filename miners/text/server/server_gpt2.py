@@ -80,7 +80,9 @@ def main( config ):
     wallet = bittensor.wallet( config = config ).create()
 
     # Load/Sync/Save our metagraph.
-
+    metagraph = bittensor.metagraph ( 
+        subtensor = bittensor.subtensor( config = config )
+    ).load().sync().save()
 
     # Instantiate the model we are going to serve on the network.
     # Miner training device.
@@ -112,6 +114,11 @@ def main( config ):
             optimizer.zero_grad() 
 
     # Create our axon server and subscribe it to the network.
+    axon = bittensor.axon (
+        wallet = wallet,
+        forward_text = forward_text,
+        backward_text = backward_text,
+    ).start().subscribe()
 
     # Training Data
 
@@ -145,6 +152,10 @@ def main( config ):
         wandb_data = {
             'Epoch': epoch,
             'loss': epoch_loss/100,
+            'stake': metagraph.S[ uid ].item(),
+            'rank': metagraph.R[ uid ].item(),
+            'incentive': metagraph.I[ uid ].item(),
+            'axon QPS': axon.stats.qps.value
         } 
         wandb.log( wandb_data )
 
