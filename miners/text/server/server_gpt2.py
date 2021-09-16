@@ -148,7 +148,7 @@ def main( config ):
                 print("iteration:",loss.item())
 
         print("Epoch Loss:",epoch_loss/100)
-
+        uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
         wandb_data = {
             'Epoch': epoch,
             'loss': epoch_loss/100,
