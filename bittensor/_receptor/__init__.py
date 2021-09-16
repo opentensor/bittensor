@@ -1,3 +1,5 @@
+""" Factory class for managing grpc connections with axon endpoint
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -24,6 +26,8 @@ import bittensor.utils.networking as net
 from . import receptor_impl
 
 class receptor:
+    """ Create and init the receptor object, which encapsulates a grpc connection to an axon endpoint
+    """
     def __new__( cls, endpoint: 'bittensor.Endpoint', wallet: 'bittensor.Wallet' = None) -> 'bittensor.Receptor':
         r""" Initializes a receptor grpc connection.
             Args:
@@ -60,7 +64,8 @@ class receptor:
         )
 
 class receptor_pool:
-
+    """ Create and init the receptor_pool object, which manage a pool of grpc connections 
+    """
     def __new__( 
             cls, 
             wallet: 'bittensor.Wallet',
