@@ -99,11 +99,11 @@ def main( config ):
     )
 
     # Define our forward function.
-    def forward_text ( pubkey, inputs_x, modality ):
+    def forward_text ( pubkey, inputs_x ):
         return gp_server.encode_forward( inputs_x.to(device) )
 
     # Define our backward function.
-    def backward_text ( pubkey:str, inputs_x, grads_dy, modality ):
+    def backward_text ( pubkey:str, inputs_x, grads_dy ):
         with torch.enable_grad():
             outputs_y = gp_server.encode_forward( inputs_x.to(device) )
             torch.autograd.backward (
