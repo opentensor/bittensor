@@ -41,6 +41,9 @@ jobs:
     - name: Run Miners
       continue-on-error: true
       run: python tests/miners/text/test_gpt2_exodus.py
+    - name: Run Integration Tests
+      continue-on-error: true
+      run: pytest ./tests/integration_tests
     - name: Run dataloader tests
       continue-on-error: true
       run: pytest ./tests/integration_tests/test_dataloader_ipfs.py
