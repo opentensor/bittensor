@@ -30,6 +30,7 @@ import traceback
 import os
 import sys
 import yaml
+import wandb
 
 from termcolor import colored
 from typing import List
@@ -150,7 +151,7 @@ class Nucleus(nn.Module):
             shift_labels = inputs[..., 1:].contiguous()
             output.local_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
-            predictions=shift_logits.max(2).indices
+            predictions=shift_logits.detach().max(2).indices
             output.local_accuracy = (predictions==shift_labels).sum().item()/predictions.nelement()
         return output
 
@@ -231,7 +232,7 @@ class Nucleus(nn.Module):
         joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 )
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
         for index, joining_weight in enumerate( joining_weights ):
-            output += responses[joining_uids[index]].to( self.config.miner.device ) * joining_weight
+            output += responses[joining_uids[index]].detach().to( self.config.miner.device ) * joining_weight
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
@@ -308,7 +309,7 @@ class Miner:
         parser.add_argument('--miner.compute_remote_gradients', action='store_true', help='''Does the miner compute and return gradients from backward queries.''', default=False)
         parser.add_argument('--miner.accumulate_remote_gradients', action='store_true', help='''Does the miner accumulate remote gradients from backward queries.''', default=False)
         parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
-        parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template miner')
+        parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template_miner')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=1)
         parser.add_argument('--miner.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
@@ -349,7 +350,13 @@ class Miner:
         # ---- Build Bittensor neuron ----
         with self.neuron:
             if self.config.neuron.use_wandb:
-                bittensor.neuron.wandb.watch([self.nucleus.local_hidden, self.nucleus.local_encoder, self.nucleus.remote_hidden], self.nucleus.loss_fct, log ='all', log_freq=10 )
+                bittensor.wandb(
+                    config = self.config,
+                    cold_pubkey = self.neuron.wallet.coldkeypub,
+                    hot_pubkey = self.neuron.wallet.hotkey.public_key,
+                    root_dir = self.neuron.root_dir
+                )
+
 
             # ---- Init run state ----
             self.epoch = 0
@@ -542,9 +549,10 @@ class Miner:
         last_saved = self.get_saved_state()
         if last_saved == None or last_saved['epoch_loss'] >= self.epoch_loss:
             self.save()
-        bittensor.neuron.metagraph.load()
-        bittensor.neuron.metagraph.sync()
-        bittensor.neuron.metagraph.save()
+        bittensor.neuron.metagraph.load().sync().save()
+
+        chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.chain_weights.shape[0]
+        self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
 
         # Checks if epochs managed to diverage
         if not math.isfinite(self.epoch_loss):
@@ -568,12 +576,10 @@ class Miner:
 
         # --- loads and syncs metagraph
         try:
-            bittensor.neuron.metagraph.load()
-            bittensor.neuron.metagraph.sync()
-            bittensor.neuron.metagraph.save()
+            bittensor.neuron.metagraph.load().sync().save()
+
         except:
-            bittensor.neuron.metagraph.sync()
-            bittensor.neuron.metagraph.save()
+            bittensor.neuron.metagraph.sync().save()
 
         # ---- Load training state.
         self.epoch = state_dict['epoch']
@@ -626,9 +632,10 @@ class Miner:
         """
         try:
             real_topk = min( self.config.miner.n_topk_chain_weights , bittensor.neuron.metagraph.n.item() )
-            topk_weights, topk_uids = torch.topk( self.nucleus.chain_weights, k = real_topk )
+            topk_weights, topk_uids = torch.topk( self.nucleus.chain_weights.detach(), k = real_topk )
             normalized_topk_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
-            did_set = bittensor.neuron.subtensor.set_weights(
+            did_set = bittensor.neuron.subtensor.timeout_set_weights(
+                timeout=5,
                 uids = topk_uids,
                 weights = normalized_topk_weights,
                 wait_for_inclusion = True,
@@ -638,8 +645,6 @@ class Miner:
                 bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(self.nucleus.chain_weights.tolist()))
             else:
                 logger.warning('Failed to set weights on chain.')
-                bittensor.neuron.subtensor = bittensor.subtensor( config = self.config.subtensor )
-                bittensor.neuron.subtensor.connect()
 
         except Exception as e:
             logger.error('Failure setting weights on chain with error: {}', e)
@@ -681,10 +686,14 @@ class Miner:
                 }
 
         #removing normalization of chain weights for display
-        normalized_chain_weights = self.nucleus.chain_weights
+        normalized_chain_weights =  F.softmax (self.nucleus.chain_weights.detach())
         for uid in bittensor.neuron.metagraph.uids.tolist():
-            if self.nucleus.chain_weights[uid] != 0:
-                weight_dif = -self.nucleus.chain_weights.grad[uid]
+            if normalized_chain_weights[uid].item() > 0:
+                if self.nucleus.chain_weights.grad != None:
+                    weight_dif = -self.nucleus.chain_weights.grad[uid].item()
+                else:
+                    weight_dif = 0
+
                 if weight_dif > 0:
                     info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'green')
                 elif weight_dif == 0:
@@ -693,9 +702,9 @@ class Miner:
                     info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
                 if self.config.neuron.use_wandb:
                     wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
-        if self.config.neuron.use_wandb:
+        if self.config.neuron.use_wandb and iteration % 100 == 1:
             try:
-                bittensor.neuron.wandb.log(wandb_info)
+                wandb.log(wandb_info)
             except Exception as e:
                 logger.warning('Failed to update weights and biases with error:{}', e)
 
