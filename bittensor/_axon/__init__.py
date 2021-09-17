@@ -272,6 +272,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         _, pubkey, _ = meta[1].value.split('bitxx')
         if self.blacklist == None:
             pass
+        #TODO: Turn on blacklisting
         elif self.blacklist(pubkey):
             raise Exception('Black listed')
         else:
