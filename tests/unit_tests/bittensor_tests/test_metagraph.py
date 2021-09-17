@@ -25,11 +25,13 @@ def test_state_dict():
     state = metagraph.state_dict()
     assert 'uids' in state
     assert 'stake' in state
-    assert 'lastemit' in state
+    assert 'last_update' in state
     assert 'block' in state
     assert 'tau' in state
     assert 'weights' in state
     assert 'endpoints' in state
+
+test_load_sync_save()
 
 
 
