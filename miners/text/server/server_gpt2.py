@@ -42,7 +42,7 @@ class server(torch.nn.Module):
         
     def forward(self, inputs):
         pre_hidden = self.pretrained(inputs).last_hidden_state
-        encoded_hidden = self.mapping(pre_hidden)
+        encoded_hidden = self.mapping(pre_hidden.detach())
         decoded_targets = self.decoder(encoded_hidden)
         
         shift_logits = decoded_targets[..., :-1, :].contiguous()
@@ -58,7 +58,7 @@ class server(torch.nn.Module):
 
 def config ():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=0.01)
+    parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=0.1)
     parser.add_argument('--miner.momentum', type=float, help='optimizer momentum.', default=0.8)
     parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
     parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
