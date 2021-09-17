@@ -31,18 +31,23 @@ from qqdm import qqdm
 from transformers import GPT2Model
 from torch.nn.utils import clip_grad_norm_
 import os
+import torch.nn.functional as F
 
 class server(torch.nn.Module):
-    def __init__(self, pretrained,dimension,final_dim ):
+    def __init__(self, pretrained,pre_dimension,final_dim ):
         super(server, self).__init__()
         self.pretrained = pretrained
-        self.mapping = torch.nn.Linear( dimension, final_dim)
+        self.final_dim =  final_dim
+        self.pre_dimension = pre_dimension
+        #self.mapping = torch.nn.Linear( pre_dimension, final_dim)
         self.decoder = torch.nn.Linear( final_dim, bittensor.__vocab_size__ , bias=False)
         self.loss_fct = torch.nn.CrossEntropyLoss()
         
     def forward(self, inputs):
         pre_hidden = self.pretrained(inputs).last_hidden_state
-        encoded_hidden = self.mapping(pre_hidden.detach())
+        padding_l = (self.final_dim-self.pre_dimension)//2
+        padding_r = (self.final_dim-self.pre_dimension) - padding_l
+        encoded_hidden = F.pad(pre_hidden, (padding_l, padding_r),  "constant", 0)
         decoded_targets = self.decoder(encoded_hidden)
         
         shift_logits = decoded_targets[..., :-1, :].contiguous()
@@ -52,7 +57,9 @@ class server(torch.nn.Module):
     
     def encode_forward(self,inputs):
         pre_hidden = self.pretrained(inputs).last_hidden_state
-        encoded_hidden = self.mapping(pre_hidden)
+        padding_l = (self.final_dim-self.pre_dimension)//2
+        padding_r = (self.final_dim-self.pre_dimension) - padding_l
+        encoded_hidden = F.pad(pre_hidden, (padding_l, padding_r),  "constant", 0)
         return encoded_hidden
 
 
