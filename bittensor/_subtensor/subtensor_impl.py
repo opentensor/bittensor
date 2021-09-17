@@ -457,80 +457,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return_dict[r[0]] = balance
             return return_dict
 
-    def get_active(self, block: int = None) -> List[Tuple[str, int]]:
-        r""" Returns a list of (public key, uid) pairs one for each active peer on chain.
-        Args:
-            blcok (int, default = None):
-                Retrieve data at this block.
-        Returns:
-            active (List[Tuple[str, int]]):
-                List of active peers.
-        """
-        with self.substrate as substrate:
-            result =  substrate.iterate_map (
-                module='SubtensorModule',
-                storage_function='Active',
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return result
-
-    def get_stake(self, block: int = None) -> List[Tuple[int, int]]:
-        r""" Returns a list of (uid, stake) pairs one for each active peer on chain.
-        Returns:
-            stake (List[Tuple[int, int]]):
-                List of stake values.
-        """
-        
-        with self.substrate as substrate:
-            result = substrate.iterate_map (
-                module='SubtensorModule',
-                storage_function='Stake',
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return result
-
-    def get_last_emit(self, block: int = None) -> List[Tuple[int, int]]:
-        r""" Returns a list of (uid, last emit) pairs for each active peer on chain.
-        Returns:
-            last_emit (List[Tuple[int, int]]):
-                List of last emit values.
-        """
-        with self.substrate as substrate:
-            result = substrate.iterate_map (
-                module='NeuronMetadata',
-                storage_function='last_update',
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return result
-
-    def get_weight_vals(self, block: int = None) -> List[Tuple[int, List[int]]]:
-        r""" Returns a list of (uid, weight vals) pairs for each active peer on chain.
-        Returns:
-            weight_vals (List[Tuple[int, List[int]]]):
-                List of weight val pairs.
-        """
-        with self.substrate as substrate:
-            result = substrate.iterate_map (
-                module='SubtensorModule',
-                storage_function='WeightVals',
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return result
-
-    def get_weight_uids(self, block: int = None) -> List[Tuple[int, int]]:
-        r""" Returns a list of (uid, weight uids) pairs for each active peer on chain.
-        Returns:
-            weight_uids (List[Tuple[int, List[int]]]):
-                List of weight uid pairs
-        """
-        with self.substrate as substrate:
-            result = substrate.iterate_map (
-                module='SubtensorModule',
-                storage_function='WeightUids',
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return result
-
     def neurons(self, block: int = None) -> List[Tuple[int, dict]]: 
         r""" Returns a list of neuron from the chain. 
         Returns:
@@ -622,14 +548,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron ( dict(NeuronMetadata) ):
                 neuron object associated with uid or None if it does not exist.
         """
-        with self.substrate as substrate:
-            result = substrate.get_runtime_state(
-                module='NeuronMetadata',
-                storage_function='last_update',
-                params = [uid],
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-        return result['result']
+        return self.neuron_for_pubkey ( wallet.hotkey.ss58_address )
 
     def timeout_set_weights(
             self, 
