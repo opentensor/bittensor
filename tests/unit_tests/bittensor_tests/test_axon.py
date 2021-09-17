@@ -382,7 +382,6 @@ def test_grpc_backward_fails():
 
 if __name__ == "__main__":
     test_forward_not_implemented()
-    test_forward_success()
     test_forward_empty_request()
     test_forward_deserialization_error()
     test_forward_text_shape_error()
