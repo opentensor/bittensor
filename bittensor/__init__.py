@@ -29,7 +29,7 @@ __vocab_size__ = 50378
 
 # Tensor dimension.
 # NOTE (const): if/when this increases peers must be responsible for trimming or expanding output to this size.
-__network_dim__ = 512 # All network responses have shape = [ __batch_size__, __sequence_dim__, __network_dim__ ]
+__network_dim__ = 1024 # All network responses have shape = [ __batch_size__, __sequence_dim__, __network_dim__ ]
 
 # Substrate chain block time (seconds).
 __blocktime__ = 6

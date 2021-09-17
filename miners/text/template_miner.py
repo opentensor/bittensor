@@ -139,7 +139,7 @@ class Nucleus(nn.Module):
         if training :
             # local_hidden: local model which learns a new projection from the local_context
             # local_hidden.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.local_hidden = self.local_hidden( output.local_context)
+            output.local_hidden = self.local_hidden( output.local_context.detach())
 
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
@@ -213,6 +213,8 @@ class Nucleus(nn.Module):
             outputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`):
                 Joined hidden layer responses from peers.
         """
+        # ---- Active nodes ----
+
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
         real_topk = min( self.config.nucleus.topk, bittensor.neuron.metagraph.n.item() )
         noise = torch.normal( 0, torch.std(self.chain_weights).item()+0.0000001, size=( self.chain_weights.size())).to( self.config.miner.device )
@@ -637,7 +639,7 @@ class Miner:
             topk_weights, topk_uids = torch.topk( self.nucleus.chain_weights.detach(), k = real_topk )
             normalized_topk_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
             did_set = bittensor.neuron.subtensor.timeout_set_weights(
-                timeout=5,
+                timeout=10,
                 uids = topk_uids,
                 weights = normalized_topk_weights,
                 wait_for_inclusion = True,
