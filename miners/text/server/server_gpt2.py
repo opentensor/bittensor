@@ -151,8 +151,6 @@ def main( config ):
             clip_grad_norm_(gp_server.parameters(), 1.0)
             optimizer.step()
             epoch_loss += loss.item()
-            if iteration % 10 == 1:
-                print("iteration:",loss.item())
 
         print("Epoch Loss:",epoch_loss/100)
         uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
