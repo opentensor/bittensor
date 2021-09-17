@@ -46,7 +46,6 @@ class wandb:
         config.wandb.tags = tags if tags != None else config.wandb.tags
         config.wandb.run_group = run_group if run_group != None else config.wandb.run_group
         config.wandb.directory = directory if directory != None else config.wandb.directory
-        config.wandb.offline = offline if offline != None else config.wandb.offline
         wandb.check_config( config )
 
         if config.neuron.api_key != 'default':
@@ -58,9 +57,8 @@ class wandb:
         os.environ["WANDB_TAGS"] = config.wandb.tags 
         os.environ["WANDB_RUN_GROUP"] = config.wandb.run_group if config.wandb.run_group != 'default' else hot_pubkey
         os.environ["WANDB_DIR"] = config.wandb.directory if config.wandb.directory != 'default' else root_dir
-        os.environ["WANDB_MODE"] = 'offline' if config.wandb.offline else 'run'
 
-        return wb.init(config = config, config_exclude_keys = ['neuron'], save_code = True)
+        wb.init(config = config, config_exclude_keys = ['neuron'])
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
