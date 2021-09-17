@@ -15,19 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 import random
-import time
-from substrateinterface.base import Keypair
 import torch
 from multiprocessing import Process
 
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 
 import bittensor
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
 from substrateinterface import SubstrateInterface
-from substrateinterface.exceptions import SubstrateRequestException
 from bittensor.utils.balance import Balance
+from types import SimpleNamespace
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -150,28 +148,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 else:
                     return False
 
-    def is_subscribed(self, wallet: 'bittensor.wallet', ip: str, port: int) -> bool:
-        r""" Returns true if the bittensor endpoint is already subscribed with the wallet and metadata.
-        Args:
-            wallet (bittensor.wallet):
-                bittensor wallet object.
-            ip (str):
-                endpoint host port i.e. 192.122.31.4
-            port (int):
-                endpoint port number i.e. 9221
-        """
-        uid = self.get_uid_for_pubkey( wallet.hotkey.public_key )
-        if uid != None:
-            neuron = self.get_neuron_for_uid( uid )
-            if neuron['ip'] == net.ip_to_int(ip) and neuron['port'] == port:
-                return True
-            else:
-                logger.warning('IP does not match, resubscribing with new IP')
-                return False
-        else:
-            logger.warning('No previous subscription found with this hotkey. Initalizing subscription..')
-            return False
-
     def subscribe(
             self, 
             wallet: 'bittensor.wallet',
@@ -203,8 +179,9 @@ To run a local node (See: docs/running_a_validator.md) \n
                 If we did not wait for finalization / inclusion, the response is true.
         """
 
-        if self.is_subscribed( wallet, ip, port ):
-            logger.success( "Subscribed with".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
+        neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
+        if not neuron.is_null and neuron.ip == ip and neuron.port == port:
+            logger.success( "Already subscribed".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.public_key, wallet.coldkeypub ))
             return True
 
         ip_as_int  = net.ip_to_int(ip)
@@ -212,6 +189,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         # TODO(const): subscribe with version too.
         params = {
+            'version': bittensor.__version_as_int__,
             'ip': ip_as_int,
             'port': port, 
             'ip_type': ip_version,
@@ -444,7 +422,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 account balance
         """
         with self.substrate as substrate:
-            result = substrate.get_runtime_state(
+            result = substrate.query(
                 module='System',
                 storage_function='Account',
                 params=[address],
@@ -466,7 +444,6 @@ To run a local node (See: docs/running_a_validator.md) \n
         with self.substrate as substrate:
             return substrate.get_block_number(None)
 
-
     def get_balances(self, block: int = None) -> Dict[str, float]:
         with self.substrate as substrate:
             result = substrate.iterate_map (
@@ -480,80 +457,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return_dict[r[0]] = balance
             return return_dict
 
-    def get_active(self, block: int = None) -> List[Tuple[str, int]]:
-        r""" Returns a list of (public key, uid) pairs one for each active peer on chain.
-        Args:
-            blcok (int, default = None):
-                Retrieve data at this block.
-        Returns:
-            active (List[Tuple[str, int]]):
-                List of active peers.
-        """
-        with self.substrate as substrate:
-            result =  substrate.iterate_map (
-                module='SubtensorModule',
-                storage_function='Active',
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return result
-
-    def get_stake(self, block: int = None) -> List[Tuple[int, int]]:
-        r""" Returns a list of (uid, stake) pairs one for each active peer on chain.
-        Returns:
-            stake (List[Tuple[int, int]]):
-                List of stake values.
-        """
-        
-        with self.substrate as substrate:
-            result = substrate.iterate_map (
-                module='SubtensorModule',
-                storage_function='Stake',
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return result
-
-    def get_last_emit(self, block: int = None) -> List[Tuple[int, int]]:
-        r""" Returns a list of (uid, last emit) pairs for each active peer on chain.
-        Returns:
-            last_emit (List[Tuple[int, int]]):
-                List of last emit values.
-        """
-        with self.substrate as substrate:
-            result = substrate.iterate_map (
-                module='SubtensorModule',
-                storage_function='LastEmit',
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return result
-
-    def get_weight_vals(self, block: int = None) -> List[Tuple[int, List[int]]]:
-        r""" Returns a list of (uid, weight vals) pairs for each active peer on chain.
-        Returns:
-            weight_vals (List[Tuple[int, List[int]]]):
-                List of weight val pairs.
-        """
-        with self.substrate as substrate:
-            result = substrate.iterate_map (
-                module='SubtensorModule',
-                storage_function='WeightVals',
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return result
-
-    def get_weight_uids(self, block: int = None) -> List[Tuple[int, int]]:
-        r""" Returns a list of (uid, weight uids) pairs for each active peer on chain.
-        Returns:
-            weight_uids (List[Tuple[int, List[int]]]):
-                List of weight uid pairs
-        """
-        with self.substrate as substrate:
-            result = substrate.iterate_map (
-                module='SubtensorModule',
-                storage_function='WeightUids',
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return result
-
     def neurons(self, block: int = None) -> List[Tuple[int, dict]]: 
         r""" Returns a list of neuron from the chain. 
         Returns:
@@ -561,127 +464,91 @@ To run a local node (See: docs/running_a_validator.md) \n
                 List of neuron objects.
         """
         with self.substrate as substrate:
-            neurons = substrate.iterate_map (
+            neurons = substrate.query_map (
                 module='SubtensorModule',
                 storage_function='Neurons',
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
-            return neurons
+            result = []
+            for n in neurons:
+                n = SimpleNamespace( **dict(n[1].value) )
+                if n.hotkey == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
+                    n.is_null = True
+                else:
+                    n.is_null = False
+                result.append( n )
+            return result
 
-    def get_uid_for_pubkey(self, pubkey = str, block: int = None) -> int: 
-        r""" Returns the uid of the peer given passed public key string.
+    def neuron_for_uid( self, uid: int, block: int = None ) -> Union[ dict, None]: 
+        r""" Returns a list of neuron from the chain. 
         Args:
-            pubkey (str):
-                String encoded public key.
+            uid ( int ):
+                The uid of the neuron to query for.
+
         Returns:
-            uid (int):
-                uid of peer with hotkey equal to passed public key.
+            neuron (dict(NeuronMetadata)):
+                neuron object associated with uid or None if it does not exist.
         """
         with self.substrate as substrate:
-            result = substrate.get_runtime_state(
+            neuron = dict( substrate.query( module='SubtensorModule',  storage_function='Neurons', params = [ uid ]).value )
+            neuron = SimpleNamespace( **neuron )
+            neuron.ip = net.int_to_ip(neuron.ip)
+            if neuron.hotkey == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
+                neuron.is_null = True
+            else:
+                neuron.is_null = False
+            return neuron
+
+    def neuron_for_pubkey( self, ss58_hotkey: str, block: int = None ) -> SimpleNamespace: 
+        r""" Returns a list of neuron from the chain. 
+        Args:
+            ss58_hotkey ( str ):
+                The hotkey to query for a neuron.
+
+        Returns:
+            neuron ( dict(NeuronMetadata) ):
+                neuron object associated with uid or None if it does not exist.
+        """
+        with self.substrate as substrate:
+            result = substrate.query (
                 module='SubtensorModule',
-                storage_function='Active',
-                params=[pubkey],
+                storage_function='Hotkeys',
+                params = [ ss58_hotkey ],
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
-            if result['result'] is None:
-                return 0
-            return int(result['result'])
+            
+            # Get response uid. This will be zero if it doesn't exist.
+            uid = int(result.value)
+            neuron = self.neuron_for_uid( uid, block)
+            if neuron.hotkey != ss58_hotkey:
+                neuron.is_null = True
+            else:
+                neuron.is_null = False
+            return neuron
 
-    def get_neuron_for_uid(self, uid, block: int = None) -> dict:
-        r""" Returns the neuron metadata of the peer with the passed uid.
+    def get_n( self, block: int = None ) -> int: 
+        r""" Returns the number of neurons on the chain at block.
         Args:
-            uid (int):
-                Uid to query for metadata.
-        Returns:
-            metadata (Dict):
-                Dict in list form containing metadata of associated uid.
-        """
-        
-        with self.substrate as substrate:
-            result = substrate.get_runtime_state(
-                    module='SubtensorModule',
-                    storage_function='Neurons',
-                    params=[uid],
-                    block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return result['result']
+            block ( int ):
+                The block number to get the neuron count from.
 
-    def get_stake_for_uid(self, uid, block: int = None) -> Balance:
-        r""" Returns the staked token amount of the peer with the passed uid.
-        Args:
-            uid (int):
-                Uid to query for metadata.
         Returns:
-            stake (int):
-                Amount of staked token.
-        """
-        
-        with self.substrate as substrate:
-            stake = substrate.get_runtime_state(
-                module='SubtensorModule',
-                storage_function='Stake',
-                params = [uid],
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            result = stake['result']
-            if not result:
-                return Balance(0)
-            return Balance(result)
-
-    def weight_uids_for_uid(self, uid, block: int = None) -> List[int]:
-        r""" Returns the weight uids of the peer with the passed uid.
-        Args:
-            uid (int):
-                Uid to query for metadata.
-        Returns:
-            weight_uids (List[int]):
-                Weight uids for passed uid.
+            n ( int ):
+                the number of neurons subscribed to the chain.
         """
         with self.substrate as substrate:
-            result = substrate.get_runtime_state(
-                module='SubtensorModule',
-                storage_function='WeightUids',
-                params = [uid],
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return result['result']
+            return int(substrate.query(  module='SubtensorModule', storage_function = 'N' ).value)
 
-    def weight_vals_for_uid(self, uid, block: int = None) -> List[int]:
-        r""" Returns the weight vals of the peer with the passed uid.
+    def neuron_for_wallet( self, wallet: 'bittensor.Wallet', block: int = None ) -> SimpleNamespace: 
+        r""" Returns a list of neuron from the chain. 
         Args:
-            uid (int):
-                Uid to query for metadata.
+            wallet ( `bittensor.Wallet` ):
+                Checks to ensure that the passed wallet is subscribed.
         Returns:
-            weight_vals (List[int]):
-                Weight vals for passed uid.
+            neuron ( dict(NeuronMetadata) ):
+                neuron object associated with uid or None if it does not exist.
         """
-        with self.substrate as substrate:
-            result = substrate.get_runtime_state(
-                module='SubtensorModule',
-                storage_function='WeightVals',
-                params = [uid],
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return result['result']
-
-    def get_last_emit_data_for_uid(self, uid, block: int = None) -> int:
-        r""" Returns the last emit of the peer with the passed uid.
-        Args:
-            uid (int):
-                Uid to query for metadata.
-        Returns:
-            last_emit (int):
-                Last emit block numebr
-        """
-        with self.substrate as substrate:
-            result = substrate.get_runtime_state(
-                module='SubtensorModule',
-                storage_function='LastEmit',
-                params = [uid],
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-        return result['result']
+        return self.neuron_for_pubkey ( wallet.hotkey.ss58_address )
 
     def timeout_set_weights(
             self, 
