@@ -94,7 +94,7 @@ def main( config ):
     # Instantiate the model we are going to serve on the network.
     # Miner training device.
     device = torch.device( device = config.miner.device)
-    pretrained = GPT2Model.from_pretrained("gpt2-medium").to( device )
+    pretrained = GPT2Model.from_pretrained("gpt2").to( device )
     hidd_dimension = pretrained.config.n_embd
 
     gp_server = server(pretrained,hidd_dimension,bittensor.__network_dim__)
