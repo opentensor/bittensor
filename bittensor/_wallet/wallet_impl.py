@@ -31,7 +31,7 @@ from typing import Tuple, List, Union, Optional
 from substrateinterface import Keypair
 from substrateinterface.utils.ss58 import ss58_encode
 from bittensor.utils.cli_utils import cli_utils
-from bittensor._crypto import encrypt, is_encrypted, decrypt_data, KeyError
+from bittensor._crypto import encrypt, is_encrypted, decrypt_data, CryptoKeyError
 from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
 
 class Wallet():
@@ -274,7 +274,7 @@ class Wallet():
             return True
         except KeyFileError:
             return False
-        except KeyError:
+        except CryptoKeyError:
             return False
         except Exception:
             return False
@@ -291,7 +291,7 @@ class Wallet():
             return True
         except KeyFileError:
             return False
-        except KeyError:
+        except CryptoKeyError:
             return False
         except Exception:
             return False
@@ -308,7 +308,7 @@ class Wallet():
             return True
         except KeyFileError:
             return False
-        except KeyError:
+        except CryptoKeyError:
             return False
         except Exception:
             return False
@@ -321,7 +321,7 @@ class Wallet():
                     hotkey loaded from config arguments.
             Raises:
                 KeyFileError: Raised if the file is corrupt of non-existent.
-                KeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
+                CryptoKeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
         """
         if self._hotkey == None:
             self._hotkey = self._load_hotkey()
@@ -335,7 +335,7 @@ class Wallet():
                     colkey loaded from config arguments.
             Raises:
                 KeyFileError: Raised if the file is corrupt of non-existent.
-                KeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
+                CryptoKeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
         """
         if self._coldkey == None:
             self._coldkey = self._load_coldkey( )
@@ -349,7 +349,7 @@ class Wallet():
                     colkeypub loaded from config arguments.
             Raises:
                 KeyFileError: Raised if the file is corrupt of non-existent.
-                KeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
+                CryptoKeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
         """
         if self._coldkeypub == None:
             self._coldkeypub = self._load_coldkeypub( )
@@ -409,13 +409,13 @@ class Wallet():
             try:
                 # Try hotkey load.
                 if is_encrypted(data):
-                    password = bittensor.utils.Cli.ask_password()
+                    password = cli_utils.ask_password()
                     logger.info("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
                 hotkey = load_keypair_from_data(data)
-            except KeyError:
+            except CryptoKeyError:
                 logger.critical("Invalid password")
-                raise KeyError("Invalid password")
+                raise CryptoKeyError("Invalid password")
 
             except KeyFileError:
                 logger.critical("Keyfile corrupt")
@@ -440,14 +440,14 @@ class Wallet():
             try:
                 # Try key load.
                 if is_encrypted(data):
-                    password = bittensor.utils.Cli.ask_password()
+                    password = cli_utils.ask_password()
                     logger.info("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
                 coldkey = load_keypair_from_data(data)
 
-            except KeyError:
+            except CryptoKeyError:
                 logger.critical("Invalid password")
-                raise KeyError("Invalid password")
+                raise CryptoKeyError("Invalid password")
 
             except KeyFileError:
                 logger.critical("Keyfile corrupt")
