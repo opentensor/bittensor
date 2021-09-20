@@ -290,7 +290,7 @@ class GenesisTextDataloader( Dataloader ):
         Returns:
             torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
         """
-        scale = 2.1
+        scale = 1
         # If we've exhausted the dataset, retrieve another corpus.
         if self.refresh_corpus or len(self) < (epoch_length * self.batch_size) * scale:
             self.data = self.construct_text_corpus()
@@ -298,13 +298,13 @@ class GenesisTextDataloader( Dataloader ):
 
         # If epoch_length is set then we just need a slice of
         # the dataset we downloaded of length epoch_length.
-        if epoch_length and epoch_length < len(self.data):
+        if epoch_length:
 
             # Set up upper bound of indices to fit the batch size we want.
             idx_bound = epoch_length * self.batch_size
-            if idx_bound * scale< len(self):
+            if idx_bound * scale < len(self):
                 # Collect enough random indices to batch together using batch_size into epoch_length batches
-                random_start = random.randint(0, len(self) - round(idx_bound * 2.1))
+                random_start = random.randint(0, len(self) - round(idx_bound * scale))
                 indices = list(range(random_start, random_start + idx_bound))
 
                 subset = Subset(self, indices)
@@ -327,6 +327,7 @@ class GenesisTextDataloader( Dataloader ):
 
             # Set up dataloader
             return DataLoader(subset,
+                            shuffle=True,
                             batch_size=self.batch_size,
                             num_workers=self.num_workers,
                             drop_last=True)
@@ -357,19 +358,9 @@ class GenesisTextDataloader( Dataloader ):
             Returns:
                 x
         """
-        chunk = self.data[idx:idx + self.block_size]
+        start_idx = (idx*self.block_size)%len(self)
+        end_idx = start_idx + self.block_size
 
-        dix = []
-        block_num=0
-        while block_num < self.block_size and len(chunk) > block_num:
-            tokenized = self.tokenizer(chunk[block_num], padding=True, truncation=True)['input_ids']
-            for t in tokenized:
-                if block_num < self.block_size:
-                    dix.append(t)
-                    block_num += 1
+        tokenized_text = torch.tensor(self.tokenizer(" ".join(self.data[start_idx:end_idx]), padding=True, truncation=True)['input_ids'], dtype=torch.long)
 
-        if len(dix) == 0:
-            return None
-
-        x = torch.tensor(dix, dtype=torch.long)
-        return x
+        return tokenized_text[:self.block_size]
