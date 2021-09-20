@@ -214,6 +214,7 @@ class Nucleus(nn.Module):
                 Joined hidden layer responses from peers.
         """
 
+        # ---- Get active peers and their weights ---- 
         active_uids = torch.where(bittensor.neuron.metagraph.active > 0)[0]
         active_chain_weights = self.chain_weights[active_uids]
 
