@@ -21,6 +21,7 @@ import os
 import re
 import stat
 import sys
+from types import SimpleNamespace
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -30,7 +31,7 @@ from typing import Tuple, List, Union, Optional
 from substrateinterface import Keypair
 from substrateinterface.utils.ss58 import ss58_encode
 from bittensor.utils.cli_utils import cli_utils
-from bittensor._crypto import encrypt, is_encrypted, decrypt_data, KeyError
+from bittensor._crypto import encrypt, is_encrypted, decrypt_data, CryptoKeyError
 from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
 
 class Wallet():
@@ -69,6 +70,21 @@ class Wallet():
     def __repr__(self):
         return self.__str__()
 
+    def get_neuron ( self, subtensor: 'bittensor.Subtensor' = None ) -> SimpleNamespace:
+        """ Returns this wallet's neuron information from subtensor.
+            Args:
+                subtensor( 'bittensor.Subtensor' ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+            Return:
+                neuron (SimpleNamespace):
+                    neuron account on the chain.
+        """
+        if subtensor == None:
+            subtensor = bittensor.subtensor()
+        self.assert_hotkey()             
+        neuron = subtensor.neuron_for_wallet( self )
+        return neuron
+
     def get_uid ( self, subtensor: 'bittensor.Subtensor' = None ) -> int:
         """ Returns this wallet's hotkey uid or -1 if the hotkey is not subscribed.
             Args:
@@ -78,16 +94,11 @@ class Wallet():
                 uid (int):
                     Network uid.
         """
-        try:
-            if subtensor == None:
-                subtensor = bittensor.subtensor()
-            hotkey_uid = int(subtensor.get_uid_for_pubkey( self.hotkey.public_key ))
-            if hotkey_uid == None:
-                return -1
-            else:
-                return int(hotkey_uid)
-        except Exception:
+        neuron = self.get_neuron(subtensor)
+        if neuron.is_null:
             return -1
+        else:
+            return neuron.uid
 
     def get_stake ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
         """ Returns this wallet's staking balance from passed subtensor connection.
@@ -98,37 +109,11 @@ class Wallet():
                 balance (bittensor.utils.balance.Balance):
                     Stake account balance
         """
-        try:
-            if subtensor == None:
-                subtensor = bittensor.subtensor()
-            self.assert_hotkey()
-            hotkey_uid = self.get_uid()
-            if hotkey_uid == -1:
-                return bittensor.Balance(0)               
-            stake = subtensor.get_stake_for_uid( hotkey_uid )
-            return stake
-        except Exception as e:
-            print (e)
+        neuron = self.get_neuron(subtensor)
+        if neuron.is_null:
             return bittensor.Balance(0)
-
-    def get_balance ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
-        """ Returns this wallet's coldkey balance from passed subtensor connection.
-            Args:
-                subtensor( 'bittensor.Subtensor' ):
-                    Bittensor subtensor connection. Overrides with defaults if None.
-            Return:
-                balance (bittensor.utils.balance.Balance):
-                    Coldkey account balance
-        """
-        try:
-            if subtensor == None:
-                subtensor = bittensor.subtensor()
-            self.assert_coldkeypub()
-            amount_balance = subtensor.get_balance( ss58_encode(self.coldkeypub) )
-            return amount_balance
-        except Exception as e:
-            print (e)
-            return bittensor.Balance(0)
+        else:
+            return bittensor.Balance(neuron.stake)
 
     def stake( self, 
         amount: Union[float, bittensor.Balance] = None, 
@@ -289,7 +274,7 @@ class Wallet():
             return True
         except KeyFileError:
             return False
-        except KeyError:
+        except CryptoKeyError:
             return False
         except Exception:
             return False
@@ -306,7 +291,7 @@ class Wallet():
             return True
         except KeyFileError:
             return False
-        except KeyError:
+        except CryptoKeyError:
             return False
         except Exception:
             return False
@@ -323,7 +308,7 @@ class Wallet():
             return True
         except KeyFileError:
             return False
-        except KeyError:
+        except CryptoKeyError:
             return False
         except Exception:
             return False
@@ -336,7 +321,7 @@ class Wallet():
                     hotkey loaded from config arguments.
             Raises:
                 KeyFileError: Raised if the file is corrupt of non-existent.
-                KeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
+                CryptoKeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
         """
         if self._hotkey == None:
             self._hotkey = self._load_hotkey()
@@ -350,7 +335,7 @@ class Wallet():
                     colkey loaded from config arguments.
             Raises:
                 KeyFileError: Raised if the file is corrupt of non-existent.
-                KeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
+                CryptoKeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
         """
         if self._coldkey == None:
             self._coldkey = self._load_coldkey( )
@@ -364,7 +349,7 @@ class Wallet():
                     colkeypub loaded from config arguments.
             Raises:
                 KeyFileError: Raised if the file is corrupt of non-existent.
-                KeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
+                CryptoKeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
         """
         if self._coldkeypub == None:
             self._coldkeypub = self._load_coldkeypub( )
@@ -424,13 +409,13 @@ class Wallet():
             try:
                 # Try hotkey load.
                 if is_encrypted(data):
-                    password = bittensor.utils.Cli.ask_password()
+                    password = cli_utils.ask_password()
                     logger.info("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
                 hotkey = load_keypair_from_data(data)
-            except KeyError:
+            except CryptoKeyError:
                 logger.critical("Invalid password")
-                raise KeyError("Invalid password")
+                raise CryptoKeyError("Invalid password")
 
             except KeyFileError:
                 logger.critical("Keyfile corrupt")
@@ -455,14 +440,14 @@ class Wallet():
             try:
                 # Try key load.
                 if is_encrypted(data):
-                    password = bittensor.utils.Cli.ask_password()
+                    password = cli_utils.ask_password()
                     logger.info("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
                 coldkey = load_keypair_from_data(data)
 
-            except KeyError:
+            except CryptoKeyError:
                 logger.critical("Invalid password")
-                raise KeyError("Invalid password")
+                raise CryptoKeyError("Invalid password")
 
             except KeyFileError:
                 logger.critical("Keyfile corrupt")
