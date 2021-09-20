@@ -1,3 +1,6 @@
+"""
+Implementation of the CLI class, which handles the coldkey, hotkey and money transfer 
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -16,14 +19,15 @@
 # DEALINGS IN THE SOFTWARE.
 
 import sys
-import argparse
-import bittensor
-
-
 from loguru import logger
+
+import bittensor
 logger = logger.opt(colors=True)
 
 class CLI:
+    """
+    Implementation of the CLI class, which handles the coldkey, hotkey and money transfer 
+    """
     def __init__(self, config: 'bittensor.Config', executor: 'bittensor.executor.Executor' ):
         r""" Initialized a bittensor.CLI object.
             Args:
@@ -36,6 +40,8 @@ class CLI:
         self.executor = executor
 
     def run ( self ):
+        """ Execute the command from config 
+        """
         if self.config.command == "transfer":
             self.executor.transfer( amount_tao=self.config.amount, destination=self.config.dest)
         elif self.config.command == "unstake":
@@ -57,4 +63,4 @@ class CLI:
             self.executor.regenerate_hotkey( mnemonic=self.config.mnemonic, use_password=self.config.use_password )
         else:
             logger.critical("The command {} not implemented".format( self.config.command ))
-            quit()
+            sys.exit()

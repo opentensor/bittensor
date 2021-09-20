@@ -1,4 +1,5 @@
-
+""" Create and init the GenesisTextDataloader class, which handles dataloading from ipfs
+"""
 
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
@@ -18,14 +19,15 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import bittensor
 import copy
-
 from munch import Munch
+
+import bittensor
 from . import dataloader_impl
 
 class dataloader:
-
+    """ Create and init the GenesisTextDataloader class, which handles dataloading from ipfs
+    """
     def __new__(
             cls,
             config: 'bittensor.config' = None,
@@ -35,7 +37,8 @@ class dataloader:
             num_workers: int = None,
             dataset: str=None
         ):
-        if config == None: config = dataloader.config()
+        if config == None: 
+            config = dataloader.config()
         config = copy.deepcopy( config )
         config.dataloader.block_size = block_size if block_size != None else config.dataloader.block_size
         config.dataloader.batch_size = batch_size if batch_size != None else config.dataloader.batch_size
@@ -54,12 +57,17 @@ class dataloader:
 
     @classmethod
     def config(cls) -> 'bittensor.Config':
+        """ Get config from the argument parser 
+            Return: bittensor.config object
+        """
         parser = argparse.ArgumentParser()
         dataloader.add_args( parser )
         return bittensor.config( parser )
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
+        """ Accept specific arguments from parser
+        """
         try:
             parser.add_argument('--dataloader.batch_size', default=10, type=int, help='Batch size.')
             parser.add_argument('--dataloader.block_size', default=20, type=int, help='Number of text items to pull for each example..')
@@ -74,6 +82,8 @@ class dataloader:
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
+        """ Check config for batch size, block size, corpus size, num_workers and dataset
+        """
         assert config.dataloader.batch_size > 0, 'Batch size must be larger than 0'
         assert config.dataloader.block_size > 0, 'Block size must be larger than 0'
         assert config.dataloader.max_corpus_size > 0, 'max_corpus_size must be larger than 0'
