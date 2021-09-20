@@ -213,7 +213,6 @@ class Nucleus(nn.Module):
             outputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `optional`):
                 Joined hidden layer responses from peers.
         """
-        # ---- Active nodes ----
 
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
         real_topk = min( self.config.nucleus.topk, bittensor.neuron.metagraph.n.item() )
