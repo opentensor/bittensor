@@ -1,3 +1,5 @@
+""" Utils for handling local network with ip and ports. 
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -15,11 +17,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import os
+import urllib
+
 import miniupnpc
 import netaddr
-import os
 import requests
-import urllib
 
 from loguru import logger
 
@@ -72,6 +75,8 @@ def ip_version(str_val: str) -> int:
     return int(netaddr.IPAddress(str_val).version)
 
 def ip__str__(ip_type:int, ip_str:str, port:int):
+    """ Return a formatted ip string
+    """
     return "/ipv%i/%s:%i" % (ip_type, ip_str, port)
 
 class ExternalIPNotFound(Exception):
@@ -92,7 +97,7 @@ def get_external_ip() -> str:
         external_ip  = os.popen('curl -s ifconfig.me').readline()
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
-    except:
+    except Exception:
         pass
 
     # --- Try ipify
@@ -100,7 +105,7 @@ def get_external_ip() -> str:
         external_ip = requests.get('https://api.ipify.org').text
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
-    except:
+    except Exception:
         pass
 
     # --- Try AWS
@@ -108,7 +113,7 @@ def get_external_ip() -> str:
         external_ip = requests.get('https://checkip.amazonaws.com').text.strip()
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
-    except:
+    except Exception:
         pass
 
     # --- Try myip.dnsomatic 
@@ -116,7 +121,7 @@ def get_external_ip() -> str:
         external_ip  = os.popen('curl -s myip.dnsomatic.com').readline()
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
-    except:
+    except Exception:
         pass    
 
     # --- Try urllib ipv6 (Doesn't work yet)
@@ -124,7 +129,7 @@ def get_external_ip() -> str:
         external_ip = urllib.request.urlopen('https://ident.me').read().decode('utf8')
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
-    except:
+    except Exception:
         pass
 
     # --- Try Wikipedia ipv6 (Doesn't work yet)
@@ -132,7 +137,7 @@ def get_external_ip() -> str:
         external_ip = requests.get('https://www.wikipedia.org').headers['X-Client-IP']
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
-    except:
+    except Exception:
         pass
 
     raise ExternalIPNotFound
@@ -155,15 +160,15 @@ def upnpc_delete_port_map(external_port: int):
     """
     try:
         logger.info('UPNPC: Deleting port map {}', external_port)
-        u = miniupnpc.UPnP()
-        u.discoverdelay = 200
-        u.discover()
-        u.selectigd()
-        u.deleteportmapping(external_port, 'TCP')
+        upnp = miniupnpc.UPnP()
+        upnp.discoverdelay = 200
+        upnp.discover()
+        upnp.selectigd()
+        upnp.deleteportmapping(external_port, 'TCP')
         logger.info('UPNPC: Delete Success')
 
     except Exception as e:
-        raise UPNPCException(e)
+        raise UPNPCException(e) from e
 
 def upnpc_create_port_map(port: int):
     r""" Creates a upnpc port map on your router from passed external_port to local port.
@@ -181,35 +186,35 @@ def upnpc_create_port_map(port: int):
                 Raised if UPNPC port mapping fails, for instance, if upnpc is not enabled on your router.
     """
     try:
-        u = miniupnpc.UPnP()
-        u.discoverdelay = 200
+        upnp = miniupnpc.UPnP()
+        upnp.discoverdelay = 200
         logger.debug('UPNPC: Using UPnP to open a port on your router ...')
-        logger.debug('UPNPC: Discovering... delay={}ms', u.discoverdelay)
-        ndevices = u.discover()
-        u.selectigd()
+        logger.debug('UPNPC: Discovering... delay={}ms', upnp.discoverdelay)
+        ndevices = upnp.discover()
+        upnp.selectigd()
         logger.debug('UPNPC: ' + str(ndevices) + ' device(s) detected')
 
-        ip = u.lanaddr
-        external_ip = u.externalipaddress()
+        ip = upnp.lanaddr
+        external_ip = upnp.externalipaddress()
 
         logger.debug('UPNPC: your local ip address: ' + str(ip))
         logger.debug('UPNPC: your external ip address: ' + str(external_ip))
-        logger.debug('UPNPC: status = ' + str(u.statusinfo()) + " connection type = " + str(u.connectiontype()))
+        logger.debug('UPNPC: status = ' + str(upnp.statusinfo()) + " connection type = " + str(upnp.connectiontype()))
 
         # find a free port for the redirection
         external_port = port
-        rc = u.getspecificportmapping(external_port, 'TCP')
+        rc = upnp.getspecificportmapping(external_port, 'TCP')
         while rc != None and external_port < 65536:
             external_port += 1
-            rc = u.getspecificportmapping(external_port, 'TCP')
+            rc = upnp.getspecificportmapping(external_port, 'TCP')
         if rc != None:
             raise UPNPCException("UPNPC: No available external ports for port mapping.")
 
         logger.info('UPNPC: trying to redirect remote: {}:{} => local: {}:{} over TCP', external_ip, external_port, ip, port)
-        u.addportmapping(external_port, 'TCP', ip, port, 'Bittensor: %u' % external_port, '')
+        upnp.addportmapping(external_port, 'TCP', ip, port, 'Bittensor: %u' % external_port, '')
         logger.info('UPNPC: Create Success')
 
         return external_port
 
     except Exception as e:
-        raise UPNPCException(e)
+        raise UPNPCException(e) from e

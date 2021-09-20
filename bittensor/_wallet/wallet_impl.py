@@ -409,7 +409,7 @@ class Wallet():
             try:
                 # Try hotkey load.
                 if is_encrypted(data):
-                    password = bittensor.utils.Cli.ask_password()
+                    password = cli_utils.ask_password()
                     logger.info("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
                 hotkey = load_keypair_from_data(data)
@@ -440,7 +440,7 @@ class Wallet():
             try:
                 # Try key load.
                 if is_encrypted(data):
-                    password = bittensor.utils.Cli.ask_password()
+                    password = cli_utils.ask_password()
                     logger.info("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
                 coldkey = load_keypair_from_data(data)
