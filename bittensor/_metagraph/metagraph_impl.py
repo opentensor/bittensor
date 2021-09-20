@@ -77,7 +77,7 @@ class Metagraph( torch.nn.Module ):
         self.weights = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.bonds = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.endpoints = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
-        self.uids = torch.nn.Parameter( [], dtype = torch.int64,requires_grad=False )
+        self.uids = torch.nn.Parameter( torch.tensor([], dtype = torch.int64),requires_grad=False )
         self._endpoint_objs = None
 
     def clear( self ) -> 'Metagraph':
