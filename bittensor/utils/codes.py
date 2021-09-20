@@ -1,3 +1,5 @@
+""" utils for rpc log, convert return code to string with color for the log
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -15,14 +17,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor 
-import torch
 from loguru import logger
+import bittensor 
+
 logger = logger.opt(colors=True)
 
 def code_to_string( code: bittensor.proto.ReturnCode ) -> str:
+    """ Return code -> string
+    """
     if code == 0: 
-	    return 'Success'
+        return 'Success'
     elif code == 1:
         return 'Timeout'
     elif code == 2:
@@ -69,8 +73,10 @@ def code_to_string( code: bittensor.proto.ReturnCode ) -> str:
         return 'UnknownCode'
 
 def code_to_color( code: bittensor.proto.ReturnCode ) -> str:
+    """ Return code -> color
+    """
     if code == 0: 
-	    return 'bold green'
+        return 'bold green'
     elif code == 1:
         return 'dim yellow'
     elif code == 2:
@@ -117,8 +123,10 @@ def code_to_color( code: bittensor.proto.ReturnCode ) -> str:
         return 'red'
 
 def code_to_loguru_color( code: bittensor.proto.ReturnCode ) -> str:
+    """ Return code -> loguru color
+    """
     if code == 0: 
-	    return 'green'
+        return 'green'
     elif code == 1:
         return 'yellow'
     elif code == 2:
@@ -165,6 +173,8 @@ def code_to_loguru_color( code: bittensor.proto.ReturnCode ) -> str:
         return 'red'
 
 def rpc_log( axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs, outputs, message:str ):
+    """ Standardized rpc logging
+    """
     if axon:
         log_msg = '<white>Axon</white>     '
     else:

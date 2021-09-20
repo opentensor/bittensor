@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from loguru import logger
 import base64
 
-class KeyError(Exception):
+class CryptoKeyError(Exception):
     pass
 
 __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
@@ -33,4 +33,4 @@ def decrypt_data(password, data):
     try:
         return decrypt_keypair(data, password)
     except (InvalidSignature, InvalidKey, InvalidToken):
-        raise KeyError
+        raise CryptoKeyError
