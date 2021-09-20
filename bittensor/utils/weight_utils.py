@@ -1,3 +1,5 @@
+""" Conversion for weight between chain representation and torch tensor
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -15,8 +17,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import torch
 from typing import Tuple, List
+import torch
 
 def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: List[int] ):
     r""" Converts weights and uids from chain representation into a torch tensor (inverse operation from convert_weights_and_uids_for_emit)
@@ -77,4 +79,4 @@ def convert_weights_and_uids_for_emit( uids: torch.LongTensor, weights: torch.Fl
             weight_vals.append( uint32_val )
             weight_uids.append( uid_i ) 
 
-    return weight_uids, weight_vals 
+    return weight_uids, weight_vals
