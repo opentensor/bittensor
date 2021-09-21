@@ -41,17 +41,17 @@ class server(torch.nn.Module):
         self.pretrained = pretrained
         self.final_dim =  final_dim
         self.pre_dimension = pre_dimension
-        self.mapping = torch.nn.Linear( pre_dimension, final_dim)
+        #self.mapping = torch.nn.Linear( pre_dimension, final_dim)
         self.decoder = torch.nn.Linear( final_dim, bittensor.__vocab_size__ , bias=False)
         self.loss_fct = torch.nn.CrossEntropyLoss()
         
     def forward(self, inputs,target):
         pre_hidden = self.pretrained(inputs).last_hidden_state
         down= F.interpolate(pre_hidden.unsqueeze(1),size=[20,768])
-        #padding_l = (self.final_dim-self.pre_dimension)//2
-        #padding_r = (self.final_dim-self.pre_dimension) - padding_l
-        #encoded_hidden = F.pad(down.squeeze(1).detach(), (padding_l, padding_r),  "constant", 0)
-        encoded_hidden = self.mapping(down.squeeze(1).detach())
+        padding_l = (self.final_dim-self.pre_dimension)//2
+        padding_r = (self.final_dim-self.pre_dimension) - padding_l
+        encoded_hidden = F.pad(down.squeeze(1).detach(), (padding_l, padding_r),  "constant", 0)
+        #encoded_hidden = self.mapping(down.squeeze(1).detach())
         decoded_targets = self.decoder(encoded_hidden)
         
         shift_logits = decoded_targets[..., :-1, :].contiguous()
