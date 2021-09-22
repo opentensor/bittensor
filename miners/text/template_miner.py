@@ -179,7 +179,7 @@ class Nucleus(nn.Module):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len (or block_size), bittensor.__network_dim__]
-        output.remote_context = self.remote( inputs )
+        output.remote_context, output.quested_peers, output.responded_peers = self.remote( inputs )
 
         # remote_hidden: projects from the remote_context
         # remote_hidden.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
@@ -235,17 +235,24 @@ class Nucleus(nn.Module):
 
         # ---- Join based on weights ----
         joining_uids= torch.where(return_ops==0)[0]
-        joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 )
-        output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
+        joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 ) 
+        output_context = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
         for index, joining_weight in enumerate( joining_weights ):
-            output += responses[joining_uids[index]].detach().to( self.config.miner.device ) * joining_weight
+            output_context += responses[joining_uids[index]].detach().to( self.config.miner.device ) * joining_weight
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
             self.chain_weights[topk_uids[(return_ops != 0)]] -=  self.config.nucleus.punishment
             self.chain_weights[self.chain_weights < -1] = -1 #lower bound for chain weights
+
         # ---- Return response -----
-        return output
+        output_quested_peers = torch.zeros(bittensor.neuron.metagraph.n.item())
+        output_quested_peers[topk_idx] = 1
+        
+        output_responded_peers = torch.zeros(bittensor.neuron.metagraph.n.item())
+        output_responded_peers[topk_idx[joining_uids]] = 1
+
+        return output_context, output_quested_peers, output_responded_peers
 
 class Miner:
 
@@ -409,6 +416,8 @@ class Miner:
         r""" Runs a single training epoch pulled from the dataloader.
         """
         # --- Init Epoch ----
+        self.quested_peers_count = 0
+        self.responded_peers_count = 0 
         total_epoch_loss = 0.0
         epoch_batches = self.dataset.dataloader( self.config.miner.epoch_length )
         progress_bar = qqdm(enumerate(epoch_batches), total=len(epoch_batches), desc=format_str('blue', f'Epoch Progress'))
@@ -417,6 +426,8 @@ class Miner:
             # ---- Forward / Backward ----
             output = self.train ( batch = { 'inputs': inputs } )
             total_epoch_loss += output.local_target_loss.item()
+            self.quested_peers_count += output.quested_peers
+            self.responded_peers_count += output.responded_peers
 
             # ---- Logs ----
             self.logs (
@@ -682,17 +693,18 @@ class Miner:
             wandb_info = {
                 'remote_target_loss':output.remote_target_loss.item(),
                 'distillation_loss':output.distillation_loss.item(),
-                "local_target_loss": output.local_target_loss.item(),
+                'local_target_loss': output.local_target_loss.item(),
+                'local_accuracy':output.local_accuracy,
                 'Number of Peers':bittensor.neuron.metagraph.n.item(),
                 'Stake':stake,
                 'Rank':rank,
                 'Incentive':incentive,
                 'Axon QPS':bittensor.neuron.axon.stats.qps.value,
-                'local_accuracy':output.local_accuracy
                 }
 
         #removing normalization of chain weights for display
         normalized_chain_weights =  F.softmax (self.nucleus.chain_weights.detach())
+        respond_rate = self.responded_peers_count / self.quested_peers_count
         for uid in bittensor.neuron.metagraph.uids.tolist():
             if normalized_chain_weights[uid].item() > 0:
                 if self.nucleus.chain_weights.grad != None:
@@ -707,7 +719,13 @@ class Miner:
                 else:
                     info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
                 if self.config.neuron.use_wandb:
-                    wandb_info['Chain weights:' + str(uid)]= normalized_chain_weights[uid]
+                    wandb_info[f'Chain weights (norm) uid: {str(uid)}']= normalized_chain_weights[uid]
+                    wandb_info[f'Chain weights uid: {str(uid)}']= self.nucleus.chain_weights[uid]
+
+                    wandb_info[f'Quested uid: {str(uid)}']= output.quested_peers[uid]
+                    wandb_info[f'Responded uid: {str(uid)}']= output.responded_peers[uid]
+                    wandb_info[f'Respond rate uid: {str(uid)}']= respond_rate[uid]
+
         if self.config.neuron.use_wandb and iteration % 100 == 1:
             try:
                 wandb.log(wandb_info)
