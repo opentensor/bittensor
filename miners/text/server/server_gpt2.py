@@ -91,6 +91,8 @@ class server(torch.nn.Module):
         self.token_remap = token_remap if token_remap != None else self.remapping_token
         self.axon = None
 
+        self.mutex = Lock()
+
         if padding == False:
             self.mapping = torch.nn.Linear( self.pre_dimension, self.final_dim)
 
@@ -150,11 +152,9 @@ class server(torch.nn.Module):
             should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
 
             Args:
-                pubkey ( str, `required`):
-                    The public key of the caller.
-                inputs_x ( :obj:`torch.Tensor`, `required`):
+                inputs ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
-                modality ( bittensor.proto.Modality, `required`):
+                tokenizer ( huggingface.tokenizer, `required`):
                     modality of inputs e.g. bittensor.proto.Modality.TEXT.
 
             Returns:
@@ -183,11 +183,9 @@ class server(torch.nn.Module):
     def remapping_token(self,input, old_tokenizer):
         r""" Default remapping of tokenizers; decodes the message and then remaps the message using a new tokenizer
             Args:
-                pubkey ( str, `required`):
-                    The public key of the caller.
                 inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
-                modality ( bittensor.proto.Modality, `required`):
+                old_tokenizer ( huggingface.tokenizer, `required`):
                     modality of inputs e.g. bittensor.proto.Modality.TEXT.
 
         
@@ -222,14 +220,13 @@ class server(torch.nn.Module):
     def backward_text (self, pubkey:str, inputs_x, grads_dy ):
         with torch.enable_grad():
             with torch.autograd.set_detect_anomaly(True):
-                mutex = Lock()
-                mutex.acquire()
+                self.mutex.acquire()
                 outputs_y = self.encode_forward( inputs_x.to(self.device) )
                 torch.autograd.backward (
                     tensors = [ outputs_y.to(self.device) ],
                     grad_tensors = [ grads_dy.to(self.device) ]
                 )
-                mutex.release()
+                self.mutex.release()
                 #self.optimizer.step() # Applies accumulated gradients.
                 #self.optimizer.zero_grad() 
     
