@@ -1,3 +1,6 @@
+"""
+Create and init the config class, which manages the config of different bittensor modules.
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -16,57 +19,63 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import yaml
-import munch
-import bittensor
 from argparse import ArgumentParser
 
+import yaml
+import munch
+from loguru import logger
+
+import bittensor
 from . import config_impl
 
-from loguru import logger
 logger = logger.opt(colors=True)
     
 class config:
-
+    """
+    Create and init the config class, which manages the config of different bittensor modules.
+    """
     class InvalidConfigFile(Exception):
-        pass
+        """ In place of YAMLError
+        """
 
     def __new__( cls, parser: ArgumentParser = None):
         if parser == None:
             parser = ArgumentParser()
 
         params = parser.parse_known_args()[0]
-        config = config_impl.Config()
+        _config = config_impl.Config()
 
-        # 3. Splits params on dot syntax i.e neuron.axon_port
+        # Splits params on dot syntax i.e neuron.axon_port
         for arg_key, arg_val in params.__dict__.items():
             split_keys = arg_key.split('.')
             
             if len(split_keys) == 1:
-                config[arg_key] = arg_val
+                _config[arg_key] = arg_val
             else:
-                if hasattr(config, split_keys[0]):
-                    section = getattr(config, split_keys[0])
+                if hasattr(_config, split_keys[0]):
+                    section = getattr(_config, split_keys[0])
                 
                     if not hasattr(section, split_keys[1]):
-                        head = config
+                        head = _config
                         for key in split_keys[:-1]:
-                            if key not in config:
+                            if key not in _config:
                                 head[key] = config_impl.Config()
                             head = head[key] 
                         head[split_keys[-1]] = arg_val
                 else:
-                    head = config
+                    head = _config
                     for key in split_keys[:-1]:
-                        if key not in config:
+                        if key not in _config:
                             head[key] = config_impl.Config()
                         head = head[key] 
                     head[split_keys[-1]] = arg_val
 
-        return config
+        return _config
 
     @staticmethod
     def full():
+        """ From the parser, add arguments to multiple bittensor sub-modules
+        """
         parser = ArgumentParser()
         bittensor.wallet.add_args( parser )
         bittensor.subtensor.add_args( parser )
@@ -100,9 +109,7 @@ class config:
                     path_items = yaml.safe_load(f)
                     path_items = munch.munchify(path_items)
                     path_items = config_impl.Config( path_items )
-                except yaml.YAMLError:
+                except yaml.YAMLError as yaml_error:
                     logger.error('CONFIG: cannot parse passed configuration file at {}', path)
-                    raise config.InvalidConfigFile
+                    raise config.InvalidConfigFile from yaml_error
         return path_items
-
-
