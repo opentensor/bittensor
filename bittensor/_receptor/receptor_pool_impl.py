@@ -1,3 +1,5 @@
+""" Manages a pool of grpc connections as receptors
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -15,26 +17,26 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
 import math
+from typing import Tuple, List
+
 import torch
-
-from concurrent.futures import ThreadPoolExecutor
-from types import SimpleNamespace
-from typing import Tuple, List, Union, Optional
-import bittensor.utils.stats as stat_utils
-
 from loguru import logger
+
+import bittensor
+
 logger = logger.opt(colors=True)
 
 class ReceptorPool ( torch.nn.Module ):
-
+    """ Manages a pool of grpc connections as receptors
+    """
     def __init__(
         self, 
         wallet: 'bittensor.Wallet',
         thread_pool: 'ThreadPoolExecutor',
         max_active_receptors: int
     ):
+        super().__init__()
         self.wallet = wallet
         self.thread_pool = thread_pool
         self.max_active_receptors = max_active_receptors
@@ -210,4 +212,3 @@ class ReceptorPool ( torch.nn.Module ):
             self.receptors[ receptor.endpoint.hotkey ] = receptor
 
         return receptor
-

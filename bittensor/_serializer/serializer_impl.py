@@ -1,3 +1,5 @@
+""" An interface for serializing and deserializing bittensor tensors"""
+
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -15,13 +17,9 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-""" An interface for serializing and deserializing bittensor tensors"""
 import torch
 import msgpack
 import msgpack_numpy
-
-from loguru import logger
-from typing import Dict, List, Any
 
 import bittensor
 
@@ -101,25 +99,32 @@ class Serializer(object):
             raise bittensor.serializer.SerializationTypeNotImplementedException("Deserialization to type {} not implemented.".format(to_type))
 
     def serialize_from_tensorflow(self, tensorflow_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
+        """ tensorflow -> bittensor.proto.Tensor """
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
     def serialize_from_torch(self, torch_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
+        """ torch -> bittensor.proto.Tensor """
         raise bittensor.serializer.SerializationTypeNotImplementedException
     
     def serialize_from_numpy(self, numpy_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
+        """ numpy -> bittensor.proto.Tensor """
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
     def deserialize_to_torch(self, tensor_pb2: bittensor.proto.Tensor) -> torch.Tensor:
+        """ bittensor.proto.Tensor -> torch """
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
     def deserialize_to_tensorflow(self, tensor_pb2: bittensor.proto.Tensor) -> object:
+        """ bittensor.proto.Tensor -> tensorflow """
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
     def deserialize_to_numpy(self, tensor_pb2: bittensor.proto.Tensor) -> object:
+        """ bittensor.proto.Tensor -> numpy """
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
 class MSGPackSerializer( Serializer ):
-
+    """ Make conversion between torch and bittensor.proto.torch
+    """
     def serialize_from_torch(self, torch_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
         """ Serializes a torch.Tensor to an bittensor Tensor proto.
 
@@ -166,5 +171,3 @@ class MSGPackSerializer( Serializer ):
         numpy_object = msgpack.unpackb(torch_proto.buffer, object_hook=msgpack_numpy.decode).copy()
         torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)
         return torch_object.type(dtype)
-
-
