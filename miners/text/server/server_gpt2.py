@@ -113,7 +113,7 @@ class server(torch.nn.Module):
         pre_hidden = self.pre_model(inputs).last_hidden_state
 
         if self.interpolate:
-            down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1].item(),self.final_dim]).squeeze(1)
+            down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],self.final_dim]).squeeze(1)
         elif self.mapping_function:
             down = self.mapping_function(pre_hidden)
         else:
