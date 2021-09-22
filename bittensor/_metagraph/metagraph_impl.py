@@ -145,10 +145,14 @@ class Metagraph( torch.nn.Module ):
 
     @property
     def B(self) -> torch.FloatTensor:
+        """ Bonds
+        """
         return self.bonds
     
     @property
     def W(self) -> torch.FloatTensor:
+        """ Weights
+        """
         return self.weights
 
     @property
@@ -393,5 +397,3 @@ class Metagraph( torch.nn.Module ):
         
     def __repr__(self):
         return self.__str__()
-
-        
