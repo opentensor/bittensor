@@ -98,7 +98,7 @@ class server(torch.nn.Module):
             encoded_hidden = F.pad(down, (padding_l, padding_r),  "constant", 0)
         else:
             encoded_hidden = self.mapping(down)
-
+        print(encoded_hidden.size())
         decoded_targets = self.decoder(encoded_hidden)
         
         shift_logits = decoded_targets[..., :-1, :].contiguous()
@@ -113,7 +113,7 @@ class server(torch.nn.Module):
         pre_hidden = self.pre_model(inputs).last_hidden_state
 
         if self.interpolate:
-            down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],self.final_dim]).squeeze(1)
+            down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],pre_hidden.size()[2]],mode=self.inter_degree).squeeze(1)
         elif self.mapping_function:
             down = self.mapping_function(pre_hidden)
         else:
