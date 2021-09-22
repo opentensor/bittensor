@@ -49,8 +49,28 @@ class server(torch.nn.Module):
                 mapping_function = None,
                 token_remap = None,
                 checking= None):
-        r""""
-        
+        r"""" Creates a server that serves up a pretrained miner on the bittensor network
+        Args:
+                config (:obj:`bittensor.Config`, `required`): 
+                    bittensor.server.config()
+                pretrained (:obj:string , `optional`):
+                    name of the pretrained model from huggingface to use
+                padding (:obj:bool, `optional`):
+                    If the server should pad out to match the hidden units that the bittensor network is using
+                    If set to False, it will instead create a mapping layer to do the same thing.
+                interpolate (:obj:bool, `optional`):
+                    If the server should interpolate between sequence length differences.
+                    If set to false, there should be a mapping function that takes care of the differnces
+                inter_degree (:obj:str, `optional`):
+                    The Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)
+                model (:obj:torch.module, `optional`):
+                    Overrides the huggingface pretrained model with your own pretrained model
+                tokenizer (:obj:huggingface.tokenizer, `optional`):
+                    Overrides the huggingface tokenizer with your tokenizer
+                mapping_function (:obj:Callable, `optional`):
+                    Custom mapping function that maps between sequence length differences between tokenizers
+                token_remap (:obj:Callable, `optional`):
+                    Custom function that maps between tokenizers
         """
         super(server, self).__init__()
         if config == None: config = server.config()
@@ -88,7 +108,7 @@ class server(torch.nn.Module):
         if self.interpolate:
             down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],pre_hidden.size()[2]],mode=self.inter_degree).squeeze(1)
         elif self.mapping_function:
-            down = self.mapping_function(pre_hidden)
+            down = self.mapping_function(pre_hidden,sen_len)
         else:
             raise Exception('interpolation off but no mapping function found. Please attach a mapping function')
 
@@ -162,8 +182,8 @@ class server(torch.nn.Module):
                     tensors = [ outputs_y.to(self.device) ],
                     grad_tensors = [ grads_dy.to(self.device) ]
                 )
-                self.optimizer.step() # Applies accumulated gradients.
-                self.optimizer.zero_grad() 
+                #self.optimizer.step() # Applies accumulated gradients.
+                #self.optimizer.zero_grad() 
     
     def check(self):
         assert self.tokenizer.name_or_path == self.pre_model.name_or_path, 'incorrect model ({}) and tokenizer ({})'.format(self.pre_model.name_or_path,self.tokenizer.name_or_path)
@@ -239,9 +259,9 @@ def main( config ):
         for iteration, inputs in enumerate(epoch_batches):
             optimizer.zero_grad()
             loss, _ = gp_server( inputs )
-            #loss.backward()
+            loss.backward()
             clip_grad_norm_(gp_server.parameters(), 1.0)
-            #optimizer.step()
+            optimizer.step()
             epoch_loss += loss.item()
             if iteration % 10 == 0:
                 print('iteration {} loss'.format(iteration),loss.item())
