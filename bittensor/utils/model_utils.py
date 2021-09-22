@@ -1,3 +1,5 @@
+""" Saving and loading model
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -19,9 +21,12 @@ from loguru import logger
 import torch
 
 class ModelInformationNotFoundException(Exception):
-    pass
+    """ Exception when properties eg. epoch/loss/model_state_dict/optimizer_state_dict could not be found from model info
+    """
 
 class ModelToolbox:
+    """ Saving and loading model
+    """
     def __init__(self, model_class, optimizer_class):
         self.model_class = model_class
         self.optimizer_class = optimizer_class
@@ -78,5 +83,3 @@ class ModelToolbox:
 
 
         return model, optimizer
-
-

@@ -1,3 +1,5 @@
+""" Maintains chain state as a torch.nn.Module.
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -16,11 +18,12 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import torch
-from tqdm import trange
 
+from typing import List
+from tqdm import trange
 from loguru import logger
-from typing import List, Tuple, List
+
+import torch
 
 import bittensor
 import bittensor.utils.networking as net
@@ -78,31 +81,66 @@ class Metagraph( torch.nn.Module ):
         self.weights = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.bonds = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.endpoints = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
+        self.uids = torch.nn.Parameter( torch.tensor([], dtype = torch.int64),requires_grad=False )
         self._endpoint_objs = None
         return self
 
+    def forward(self, row_weight, uid):
+        """
+        in: weight update to one of the row
+        out: updated incentive row 
+        """
+        if self.n.item() == 0:
+            return torch.tensor([], dtype=torch.float32)
+        
+        if row_weight.size() != self.n.item():
+            return torch.tensor([], dtype=torch.float32)
+        
+        weight = self.W.detach().clone()
+        weight[uid,:] = row_weight
+        
+        S = self.S.view(self.n, 1)
+        Wt = torch.transpose(weight, 0, 1)
+        R = torch.matmul(Wt, S).view(self.n)
+
+        I =  (self.tau * R) / torch.sum(R)
+        I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
+        return I.view(self.n)
+
     @property
     def S(self) -> torch.FloatTensor:
+        """ Stake
+        """
         return self.stake
 
     @property
     def R(self) -> torch.FloatTensor:
+        """ Rank
+        """
         return self.ranks
 
     @property
     def I(self) -> torch.FloatTensor:
+        """ Incentive
+        """
         return self.incentive
 
     @property
     def C(self) -> torch.FloatTensor:
+        """ Consensus
+        """
         return self.consensus
 
     @property
     def T(self) -> torch.FloatTensor:
+        """ Trust
+        """
         return self.trust
 
     @property
     def D(self) -> torch.FloatTensor:
+        """ Dividends
+        """
         return self.dividends
 
     @property
@@ -172,7 +210,7 @@ class Metagraph( torch.nn.Module ):
             for tensor in self.endpoints:
                 try:
                     obj = bittensor.endpoint.from_tensor( tensor )
-                except:
+                except Exception:
                     obj = None
                 self._endpoint_objs.append( obj )
             return self._endpoint_objs
