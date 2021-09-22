@@ -33,6 +33,7 @@ from qqdm import qqdm
 from transformers import AutoModel,AutoTokenizer
 from torch.nn.utils import clip_grad_norm_
 from torch.nn.utils.rnn import pad_sequence
+from threading import Thread, Lock
 
 import os
 import torch.nn.functional as F
@@ -70,7 +71,7 @@ class server(torch.nn.Module):
                 mapping_function (:obj:Callable, `optional`):
                     Custom mapping function that maps between sequence length differences between tokenizers
                 token_remap (:obj:Callable, `optional`):
-                    Custom function that maps between tokenizers
+                    Custom function that maps between tokenizers (defaults to self.remapping_token)
         """
         super(server, self).__init__()
         if config == None: config = server.config()
@@ -101,6 +102,23 @@ class server(torch.nn.Module):
         
         
     def forward(self, inputs,tokenizer=None):
+        """
+            Forward pass through the pretrained model. 
+
+            Args:
+                pubkey ( str, `required`):
+                    The public key of the caller.
+                inputs ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+                tokenizer (:obj:'huggingface.tokenizer', optional):
+                    The tokenizer which was used to tokenize the inputs
+             Returns:
+                loss (:obj:`torch.FloatTensor`):
+                    MLM loss from the inputs
+                decoded_targets (:obj:`torch.FloatTensor`):
+                    Decoded predictions of the next token in the sentence.
+
+        """
         sen_len = inputs.size()
         inputs_remapped = self.token_remap(inputs,tokenizer)
         pre_hidden = self.pre_model(inputs_remapped).last_hidden_state
@@ -127,6 +145,22 @@ class server(torch.nn.Module):
         return loss, decoded_targets
     
     def encode_forward(self,inputs,tokenizer=None):
+        r""" Subscribed to an axon servicing endpoint: processes forward messages from the wire.
+            The arguments reflect an RPC request from another miner in the network, the response tensor
+            should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
+
+            Args:
+                pubkey ( str, `required`):
+                    The public key of the caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
+
+            Returns:
+                outputs (:obj:`torch.FloatTensor`):
+                    The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
+        """
         sen_len = inputs.size()
         inputs = self.token_remap(inputs,tokenizer)
         pre_hidden = self.pre_model(inputs).last_hidden_state
@@ -147,6 +181,17 @@ class server(torch.nn.Module):
         return encoded_hidden
 
     def remapping_token(self,input, old_tokenizer):
+        r""" Default remapping of tokenizers; decodes the message and then remaps the message using a new tokenizer
+            Args:
+                pubkey ( str, `required`):
+                    The public key of the caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+                modality ( bittensor.proto.Modality, `required`):
+                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
+
+        
+        """
         if old_tokenizer == None:
             old_tokenizer = bittensor.tokenizer()
         new_data = []
@@ -177,17 +222,21 @@ class server(torch.nn.Module):
     def backward_text (self, pubkey:str, inputs_x, grads_dy ):
         with torch.enable_grad():
             with torch.autograd.set_detect_anomaly(True):
+                mutex = Lock()
+                mutex.acquire()
                 outputs_y = self.encode_forward( inputs_x.to(self.device) )
                 torch.autograd.backward (
                     tensors = [ outputs_y.to(self.device) ],
                     grad_tensors = [ grads_dy.to(self.device) ]
                 )
+                mutex.release()
                 #self.optimizer.step() # Applies accumulated gradients.
                 #self.optimizer.zero_grad() 
     
     def check(self):
         assert self.tokenizer.name_or_path == self.pre_model.name_or_path, 'incorrect model ({}) and tokenizer ({})'.format(self.pre_model.name_or_path,self.tokenizer.name_or_path)
-
+        if self.interpolate == False:
+            assert self.mapping_function != None, 'Incorrect '
 
     @staticmethod
     def config ():
