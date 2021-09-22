@@ -192,7 +192,6 @@ class server(torch.nn.Module):
         return bittensor.config( parser )
 
 def main( config ):
-    
 
     # Load/Create our bittensor wallet.
     wallet = bittensor.wallet( config = config ).create()
@@ -204,7 +203,7 @@ def main( config ):
 
     # Instantiate the model we are going to serve on the network.
     # Miner training device.
-    gp_server = server(pretrained='gpt2')
+    gp_server = server(config=config)
 
     # Create our optimizer.
     optimizer = torch.optim.SGD(
@@ -244,6 +243,8 @@ def main( config ):
             clip_grad_norm_(gp_server.parameters(), 1.0)
             optimizer.step()
             epoch_loss += loss.item()
+            if iteration % 10 == 0:
+                print('iteration {} loss'.format(iteration),loss.item())
 
         print("Epoch Loss:",epoch_loss/100)
         uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
