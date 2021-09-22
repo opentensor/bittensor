@@ -91,7 +91,6 @@ class server(torch.nn.Module):
         self.token_remap = token_remap if token_remap != None else self.remapping_token
         self.axon = None
 
-        self.mutex = Lock()
 
         if padding == False:
             self.mapping = torch.nn.Linear( self.pre_dimension, self.final_dim)
@@ -220,13 +219,13 @@ class server(torch.nn.Module):
     def backward_text (self, pubkey:str, inputs_x, grads_dy ):
         with torch.enable_grad():
             with torch.autograd.set_detect_anomaly(True):
-                self.mutex.acquire()
+                mutex.acquire()
                 outputs_y = self.encode_forward( inputs_x.to(self.device) )
                 torch.autograd.backward (
                     tensors = [ outputs_y.to(self.device) ],
                     grad_tensors = [ grads_dy.to(self.device) ]
                 )
-                self.mutex.release()
+                mutex.release()
                 #self.optimizer.step() # Applies accumulated gradients.
                 #self.optimizer.zero_grad() 
     
@@ -280,6 +279,7 @@ def main( config ):
 
     # Create our axon server and subscribe it to the network.
     gp_server.start(wallet,optimizer)
+    mutex = Lock()
 
     # Training Data
     dataload = bittensor.dataloader()
@@ -307,11 +307,14 @@ def main( config ):
             loss, _ = gp_server( inputs )
             loss.backward()
 
+            mutex.acquire()
+            clip_grad_norm_(gp_server.parameters(), 1.0)
+            optimizer.step()
+            optimizer.zero_grad()
+            mutex.release()
+
             epoch_loss += loss.item()
             if iteration % 10 == 0:
-                clip_grad_norm_(gp_server.parameters(), 1.0)
-                optimizer.step()
-                optimizer.zero_grad()
                 print('iteration {} loss'.format(iteration),loss.item())
 
         print("Epoch Loss:",epoch_loss/100)
