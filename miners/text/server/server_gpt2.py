@@ -241,7 +241,7 @@ def main( config ):
             loss, _ = gp_server( inputs )
             loss.backward()
             clip_grad_norm_(gp_server.parameters(), 1.0)
-            optimizer.step()
+            #optimizer.step()
             epoch_loss += loss.item()
             if iteration % 10 == 0:
                 print('iteration {} loss'.format(iteration),loss.item())
