@@ -98,7 +98,6 @@ class server(torch.nn.Module):
             encoded_hidden = F.pad(down, (padding_l, padding_r),  "constant", 0)
         else:
             encoded_hidden = self.mapping(down)
-        print(encoded_hidden.size())
         decoded_targets = self.decoder(encoded_hidden)
         
         shift_logits = decoded_targets[..., :-1, :].contiguous()
@@ -157,13 +156,14 @@ class server(torch.nn.Module):
     # Define our backward function.
     def backward_text (self, pubkey:str, inputs_x, grads_dy ):
         with torch.enable_grad():
-            outputs_y = self.encode_forward( inputs_x.to(self.device) )
-            torch.autograd.backward (
-                tensors = [ outputs_y.to(self.device) ],
-                grad_tensors = [ grads_dy.to(self.device) ]
-            )
-            self.optimizer.step() # Applies accumulated gradients.
-            self.optimizer.zero_grad() 
+            with torch.autograd.set_detect_anomaly(True):
+                outputs_y = self.encode_forward( inputs_x.to(self.device) )
+                torch.autograd.backward (
+                    tensors = [ outputs_y.to(self.device) ],
+                    grad_tensors = [ grads_dy.to(self.device) ]
+                )
+                self.optimizer.step() # Applies accumulated gradients.
+                self.optimizer.zero_grad() 
     
     def check(self):
         assert self.tokenizer.name_or_path == self.pre_model.name_or_path, 'incorrect model ({}) and tokenizer ({})'.format(self.pre_model.name_or_path,self.tokenizer.name_or_path)
