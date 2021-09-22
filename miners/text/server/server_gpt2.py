@@ -239,7 +239,7 @@ def main( config ):
         for iteration, inputs in enumerate(epoch_batches):
             optimizer.zero_grad()
             loss, _ = gp_server( inputs )
-            loss.backward()
+            #loss.backward()
             clip_grad_norm_(gp_server.parameters(), 1.0)
             #optimizer.step()
             epoch_loss += loss.item()
