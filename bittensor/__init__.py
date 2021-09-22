@@ -20,7 +20,7 @@ import os
 from typing import Callable
 
 # Bittensor code and protocol version.
-__version__ = '1.4.0'
+__version__ = '1.5.0'
 __version_as_int__ = (100 * 1) + (10 * 4) + (1 * 0)  # Integer representation
 
 # Vocabulary dimension.
