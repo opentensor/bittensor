@@ -303,13 +303,15 @@ def main( config ):
         epoch_loss = 0
         epoch_batches = dataload.dataloader(epoch_length=100)
         for iteration, inputs in enumerate(epoch_batches):
-            optimizer.zero_grad()
+
             loss, _ = gp_server( inputs )
             loss.backward()
-            clip_grad_norm_(gp_server.parameters(), 1.0)
-            optimizer.step()
+
             epoch_loss += loss.item()
             if iteration % 10 == 0:
+                clip_grad_norm_(gp_server.parameters(), 1.0)
+                optimizer.step()
+                optimizer.zero_grad()
                 print('iteration {} loss'.format(iteration),loss.item())
 
         print("Epoch Loss:",epoch_loss/100)
