@@ -219,13 +219,11 @@ class server(torch.nn.Module):
     def backward_text (self, pubkey:str, inputs_x, grads_dy ):
         with torch.enable_grad():
             with torch.autograd.set_detect_anomaly(True):
-                mutex.acquire()
                 outputs_y = self.encode_forward( inputs_x.to(self.device) )
                 torch.autograd.backward (
                     tensors = [ outputs_y.to(self.device) ],
                     grad_tensors = [ grads_dy.to(self.device) ]
                 )
-                mutex.release()
                 #self.optimizer.step() # Applies accumulated gradients.
                 #self.optimizer.zero_grad() 
     
