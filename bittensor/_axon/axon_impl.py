@@ -325,6 +325,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
                 return None, code, message
 
+            # ---- Catch empty ----
+            if outputs == TimeoutError:
+                code = bittensor.proto.ReturnCode.EmptyResponse
+                message = 'Timeout Error (Not Enough Priority)'
+                bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
+                return None, code, message
+
             # ---- Serialize response ----
             try:
                 serializer = bittensor.serializer ( bittensor.proto.Serializer.MSGPACK )

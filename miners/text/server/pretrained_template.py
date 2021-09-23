@@ -224,7 +224,6 @@ class server(torch.nn.Module):
         try:
             return future.result(timeout= self.config.server.timeout)
         except Exception as e:
-            print(e)
             return e
 
 
