@@ -727,8 +727,8 @@ class Miner:
                     wandb_info[f'Quested uid: {str(uid)}']= output.quested_peers[uid]
                     wandb_info[f'Responded uid: {str(uid)}']= output.responded_peers[uid]
                     wandb_info[f'Respond rate uid: {str(uid)}']= respond_rate[uid]
-                    wandb_info[f'Axon in byte uid: {str(uid)}']= bittensor.neuron.axon.stats.total_in_bytes[uid]
-                    wandb_info[f'Axon out byte uid: {str(uid)}']= bittensor.neuron.axon.stats.total_out_bytes[uid]
+                    wandb_info[f'Axon in byte uid: {str(uid)}']= bittensor.neuron.axon.stats.in_bytes_per_pubkey[uid]
+                    wandb_info[f'Axon out byte uid: {str(uid)}']= bittensor.neuron.axon.stats.out_bytes_per_pubkey[uid]
 
         if self.config.neuron.use_wandb and iteration % 100 == 1:
             try:
