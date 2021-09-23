@@ -356,7 +356,7 @@ class Miner:
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
 
-    def sync (self ):
+    def sync (self, current_block ):
         """ Miner sync with metagraph and update chain weight
         """
         # ---- Set weights on chain ----
@@ -367,7 +367,7 @@ class Miner:
         chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.chain_weights.shape[0]
         self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
         
-        bittensor.logging.success( prefix = 'Synced with metagraph', sufix = '<blue>Block: {}</blue>'.format( current_block ))
+        # logger.debug( prefix = 'Synced with metagraph', sufix = '<blue>Block: {}</blue>'.format( current_block ))
         
     
     def run( self ):
@@ -495,8 +495,8 @@ class Miner:
         # ---- Sync with metagraph ----
         current_block = self.neuron.subtensor.get_current_block()
         block_diff = current_block - self.last_sync_block
-        if block_diff >= self.config.neuron.sync_block_time:
-            self.sync()
+        if block_diff >= self.config.miner.sync_block_time:
+            self.sync(current_block)
             self.last_sync_block = current_block
 
         # ---- Update global loss ----
