@@ -178,8 +178,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
         except Exception as e:
             response_tensor = None
             message = "Error calling forward callback: {}".format(e)
+            print(message)
             code = bittensor.proto.ReturnCode.UnknownException
-            return response_tensor, code, message 
+            raise e
 
     def _call_backward(
             self, 
@@ -224,6 +225,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             response_tensor = None
             message = "Error calling backward callback: {}".format(e)
             code = bittensor.proto.ReturnCode.UnknownException
+
             return response_tensor, code, message 
             
     def _forward(self, request):
@@ -325,7 +327,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 return None, code, message
 
             # ---- Catch empty ----
-            if outputs == TimeoutError:
+            if message == TimeoutError:
                 code = bittensor.proto.ReturnCode.EmptyResponse
                 message = 'Timeout Error (Not Enough Priority)'
                 bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
