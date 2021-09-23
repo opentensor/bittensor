@@ -720,7 +720,7 @@ class Miner:
                     info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
                 if self.config.neuron.use_wandb:
                     wandb_info[f'Chain weights (norm) uid: {str(uid)}']= normalized_chain_weights[uid]
-                    wandb_info[f'Chain weights uid: {str(uid)}']= self.nucleus.chain_weights[uid]
+                    wandb_info[f'Chain weights (w/o norm) uid: {str(uid)}']= self.nucleus.chain_weights[uid]
 
                     wandb_info[f'Quested uid: {str(uid)}']= output.quested_peers[uid]
                     wandb_info[f'Responded uid: {str(uid)}']= output.responded_peers[uid]
