@@ -367,7 +367,7 @@ class Miner:
         chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.chain_weights.shape[0]
         self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
         
-        # logger.debug( prefix = 'Synced with metagraph', sufix = '<blue>Block: {}</blue>'.format( current_block ))
+        logger.debug( f'Synced with metagraph <blue>Block: {current_block}</blue>')
         
     
     def run( self ):
