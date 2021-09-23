@@ -367,7 +367,7 @@ class Miner:
         chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.chain_weights.shape[0]
         self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
         
-        logger.debug( f'Synced with metagraph <blue>Block: {current_block}</blue>')
+        bittensor.logging.success( 'Synced metagraph:', 'Block: {}'.format(current_block))
         
     
     def run( self ):
@@ -443,6 +443,13 @@ class Miner:
             )
             self.global_step += 1
 
+            # ---- Sync with metagraph ----
+            current_block = self.neuron.subtensor.get_current_block()
+            block_diff = current_block - self.last_sync_block
+            if block_diff >= self.config.miner.sync_block_time:
+                self.sync(current_block)
+                self.last_sync_block = current_block
+
         self.epoch_loss = total_epoch_loss / self.config.miner.epoch_length
         self.epoch += 1
 
@@ -492,13 +499,6 @@ class Miner:
         clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
         self.optimizer.step() # Applies accumulated gradients.
         
-        # ---- Sync with metagraph ----
-        current_block = self.neuron.subtensor.get_current_block()
-        block_diff = current_block - self.last_sync_block
-        if block_diff >= self.config.miner.sync_block_time:
-            self.sync(current_block)
-            self.last_sync_block = current_block
-
         # ---- Update global loss ----
         return output
 
