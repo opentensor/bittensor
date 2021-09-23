@@ -200,7 +200,7 @@ class server(torch.nn.Module):
                             backward_text = self.backward_text,
                         )
             self.metagraph = metagraph
-            self.threadpool = bittensor.prioritythreadpool(cofig=self.config)
+            self.threadpool = bittensor.prioritythreadpool(config=self.config)
             self.axon.start().subscribe()
 
     # Define our forward function.
