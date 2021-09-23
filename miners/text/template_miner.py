@@ -700,8 +700,8 @@ class Miner:
                 'Rank':rank,
                 'Incentive':incentive,
                 'Axon QPS':bittensor.neuron.axon.stats.qps.value,
-                'Axon in bytes (total)':bittensor.neuron.axon.stats.total_in_bytes,
-                'Axon out bytes (total)':bittensor.neuron.axon.stats.total_out_bytes,
+                'Axon in bytes (total)':bittensor.neuron.axon.stats.total_in_bytes.value,
+                'Axon out bytes (total)':bittensor.neuron.axon.stats.total_out_bytes.value,
                 }
 
         #removing normalization of chain weights for display
