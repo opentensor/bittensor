@@ -199,10 +199,11 @@ class server(torch.nn.Module):
         new_data = pad_sequence(new_data,batch_first=True)
         return new_data
     
-    def start(self,wallet,optimizer):
+    def start(self,wallet,optimizer,mutex):
         if self.axon != None:
             self.axon.start().subscribe()
         else:
+            self.mutex = mutex
             self.optimizer = optimizer
             self.axon = bittensor.axon (
                             wallet = wallet,
@@ -219,11 +220,13 @@ class server(torch.nn.Module):
     def backward_text (self, pubkey:str, inputs_x, grads_dy ):
         with torch.enable_grad():
             with torch.autograd.set_detect_anomaly(True):
+                self.mutex.acquire()
                 outputs_y = self.encode_forward( inputs_x.to(self.device) )
                 torch.autograd.backward (
                     tensors = [ outputs_y.to(self.device) ],
                     grad_tensors = [ grads_dy.to(self.device) ]
                 )
+                self.mutex.release()
                 #self.optimizer.step() # Applies accumulated gradients.
                 #self.optimizer.zero_grad() 
     
@@ -276,8 +279,9 @@ def main( config ):
     )
 
     # Create our axon server and subscribe it to the network.
-    gp_server.start(wallet,optimizer)
     mutex = Lock()
+    gp_server.start(wallet,optimizer,mutex)
+    
 
     # Training Data
     dataload = bittensor.dataloader()
@@ -303,12 +307,14 @@ def main( config ):
         for iteration, inputs in enumerate(epoch_batches):
 
             loss, _ = gp_server( inputs )
-            loss.backward()
+            
 
             mutex.acquire()
+            loss.backward()
             clip_grad_norm_(gp_server.parameters(), 1.0)
             optimizer.step()
             optimizer.zero_grad()
+            print('step')
             mutex.release()
 
             epoch_loss += loss.item()
