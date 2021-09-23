@@ -224,7 +224,7 @@ class server(torch.nn.Module):
         try:
             return future.result(timeout= self.config.server.timeout)
         except:
-            return TimeoutError
+            return future.exception()
 
 
     # Define our backward function.
