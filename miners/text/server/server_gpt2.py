@@ -18,7 +18,7 @@
 """ The Exodus base client.
 
 Example:
-    $ python miners/text/template_client.py
+    $ python miners/text/server/template_client.py
 
 """
 import argparse
@@ -76,10 +76,13 @@ class server(torch.nn.Module):
         super(server, self).__init__()
         if config == None: config = server.config()
         self.config = config;print(config)
+        
+        #setting up pretrained model
         self.pretrained = pretrained if pretrained != None else config.server.pretrained
         self.pre_model = model if model != None else AutoModel.from_pretrained(self.pretrained)
         self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.pretrained)
 
+        #parameters of the models
         self.final_dim =  bittensor.__network_dim__
         self.pre_dimension = self.pre_model.config.hidden_size
         self.device = config.server.device
@@ -97,18 +100,17 @@ class server(torch.nn.Module):
 
         self.decoder = torch.nn.Linear( self.final_dim, bittensor.__vocab_size__ , bias=False)
         self.loss_fct = torch.nn.CrossEntropyLoss()
-
+        
+        #checking if the parameters of the server makes sense
         if self.checking:
             self.check()
         
         
     def forward(self, inputs,tokenizer=None):
         """
-            Forward pass through the whole server model. Returns 
+            Forward pass through the whole server model. Returns the loss and decoded predictions.
 
             Args:
-                pubkey ( str, `required`):
-                    The public key of the caller.
                 inputs ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
                 tokenizer (:obj:'huggingface.tokenizer', optional):
@@ -129,14 +131,13 @@ class server(torch.nn.Module):
         return loss, decoded_targets
     
     def encode_forward(self,inputs,tokenizer=None):
-        r""" Subscribed to an axon servicing endpoint: processes forward messages from the wire.
-            The arguments reflect an RPC request from another miner in the network, the response tensor
-            should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
+        r""" Forward pass through the pretrained model and possible mappings between hidden units. 
+             The response tensor should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
 
             Args:
                 inputs ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
-                tokenizer ( huggingface.tokenizer, `required`):
+                tokenizer ( huggingface.tokenizer, `optional`):
                     The tokenizer which was used to tokenize the inputs
 
             Returns:
@@ -168,9 +169,7 @@ class server(torch.nn.Module):
                 inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
                 old_tokenizer ( huggingface.tokenizer, `required`):
-                    The tokenizer which was used to tokenize the inputs
-
-        
+                    The tokenizer which was used to tokenize the input  (defaults to bittensor tokenizer if none is given)
         """
         if old_tokenizer == None:
             old_tokenizer = bittensor.tokenizer()
@@ -183,6 +182,13 @@ class server(torch.nn.Module):
         return new_data
     
     def start(self,wallet,optimizer):
+        r""" Starts the server and subscribes to the chain. 
+            Args:
+                wallet ( :obj:`bittensor.wallet`, `required`):
+                    bittensor wallet that is attached to the axon
+                optimizer ( torch.optimizer, `required`):
+                    The optimizer which is used to optimize the parameters of the model
+        """
         if self.axon != None:
             self.axon.start().subscribe()
         else:
@@ -197,10 +203,36 @@ class server(torch.nn.Module):
 
     # Define our forward function.
     def forward_text (self, pubkey, inputs_x ):
+        r""" Forward function that is called when the axon recieves a forward request from other peers
+            Args:
+                pubkey ( str, `required`):
+                    The public key of the caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+
+            Returns:
+                outputs (:obj:`torch.FloatTensor`):
+                    The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
+        """ 
         return self.encode_forward( inputs_x.to(self.device) )
 
     # Define our backward function.
     def backward_text (self, pubkey:str, inputs_x, grads_dy ):
+        r"""Backwards function that is called when the axon recieves a backwards request from other peers.
+            Updates the server parameters with gradients through the chain.
+
+            Args:
+                pubkey ( str, `required`):
+                    The public key of the caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs from previous forward call.
+                grads_dy ( :obj:`torch.Tensor`, `required`):
+                    torch grads of forward output.
+                    
+            Returns:
+                outputs (:obj:`torch.FloatTensor`, `optional`):
+                    The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
+        """
         with torch.enable_grad():
             with torch.autograd.set_detect_anomaly(True):
                 self.mutex.acquire()
@@ -210,13 +242,16 @@ class server(torch.nn.Module):
                     grad_tensors = [ grads_dy.to(self.device) ]
                 )
                 self.mutex.release()
-                #self.optimizer.step() # Applies accumulated gradients.
-                #self.optimizer.zero_grad() 
-    
+
+                return inputs_x.grad if inputs_x.grad != None else None 
+
     def check(self):
+        r"""Checks the server settings
+        
+        """
         assert self.tokenizer.name_or_path == self.pre_model.name_or_path, 'incorrect model ({}) and tokenizer ({})'.format(self.pre_model.name_or_path,self.tokenizer.name_or_path)
         if self.interpolate == False:
-            assert self.mapping_function != None, 'Incorrect '
+            assert self.mapping_function != None, 'Incorrect Settings; needs atleast one mapping function for sequence length changes'
 
     @staticmethod
     def config ():
@@ -253,7 +288,7 @@ def main( config ):
     # Instantiate the model we are going to serve on the network.
     # Miner training device.
     gp_server = server(config=config)
-
+    mutex = Lock()
     # Create our optimizer.
     optimizer = torch.optim.SGD(
         [ {"params": gp_server.parameters()} ],
@@ -262,7 +297,6 @@ def main( config ):
     )
 
     # Create our axon server and subscribe it to the network.
-    mutex = Lock()
     gp_server.start(wallet,optimizer)
     
 
@@ -282,9 +316,8 @@ def main( config ):
         root_dir = full_path
     )
 
-    # --- Run Forever.
+    # --- Run 
     for epoch in range(10000):
-        print("epoch:",epoch)
         epoch_loss = 0
         epoch_batches = dataload.dataloader(epoch_length=100)
         for iteration, inputs in enumerate(epoch_batches):
@@ -297,14 +330,12 @@ def main( config ):
             clip_grad_norm_(gp_server.parameters(), 1.0)
             optimizer.step()
             optimizer.zero_grad()
-            print('step')
             mutex.release()
 
             epoch_loss += loss.item()
             if iteration % 10 == 0:
                 print('iteration {} loss'.format(iteration),loss.item())
 
-        print("Epoch Loss:",epoch_loss/100)
         uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
         wandb_data = {
             'Epoch': epoch,
@@ -314,6 +345,7 @@ def main( config ):
             'incentive': metagraph.I[ uid ].item(),
         } 
         wandb.log( wandb_data )
+        logger.info(wandb_data)
 
 if __name__ == "__main__":
     main( server.config() )

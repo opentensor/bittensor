@@ -491,8 +491,6 @@ class Miner:
                     The public key of the caller.
                 inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
-                modality ( bittensor.proto.Modality, `required`):
-                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
 
             Returns:
                 outputs (:obj:`torch.FloatTensor`):
@@ -523,9 +521,7 @@ class Miner:
                     torch inputs from previous forward call.
                 grads_dy ( :obj:`torch.Tensor`, `required`):
                     torch grads of forward output.
-                modality ( bittensor.proto.Modality, `required`):
-                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
-
+                    
             Returns:
                 outputs (:obj:`torch.FloatTensor`, `optional`):
                     The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
