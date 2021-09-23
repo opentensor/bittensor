@@ -320,10 +320,8 @@ def main( config ):
         epoch_batches = dataload.dataloader(epoch_length=100)
         for iteration, inputs in enumerate(epoch_batches):
 
-            loss, _ = gp_server( inputs )
-            
-
             mutex.acquire()
+            loss, _ = gp_server( inputs )
             loss.backward()
             clip_grad_norm_(gp_server.parameters(), 1.0)
             optimizer.step()
