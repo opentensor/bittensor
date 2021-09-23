@@ -247,10 +247,10 @@ class Nucleus(nn.Module):
 
         # ---- Return response -----
         output_quested_peers = torch.zeros(bittensor.neuron.metagraph.n.item())
-        output_quested_peers[topk_idx] = 1
+        output_quested_peers[topk_uids] = 1
         
         output_responded_peers = torch.zeros(bittensor.neuron.metagraph.n.item())
-        output_responded_peers[topk_idx[joining_uids]] = 1
+        output_responded_peers[topk_uids[joining_uids]] = 1
 
         return output_context, output_quested_peers, output_responded_peers
 
@@ -700,6 +700,8 @@ class Miner:
                 'Rank':rank,
                 'Incentive':incentive,
                 'Axon QPS':bittensor.neuron.axon.stats.qps.value,
+                'Axon in bytes (total)':bittensor.neuron.axon.stats.total_in_bytes,
+                'Axon out bytes (total)':bittensor.neuron.axon.stats.total_out_bytes,
                 }
 
         #removing normalization of chain weights for display
@@ -725,6 +727,8 @@ class Miner:
                     wandb_info[f'Quested uid: {str(uid)}']= output.quested_peers[uid]
                     wandb_info[f'Responded uid: {str(uid)}']= output.responded_peers[uid]
                     wandb_info[f'Respond rate uid: {str(uid)}']= respond_rate[uid]
+                    wandb_info[f'Axon in byte uid: {str(uid)}']= bittensor.neuron.axon.stats.total_in_bytes[uid]
+                    wandb_info[f'Axon out byte uid: {str(uid)}']= bittensor.neuron.axon.stats.total_out_bytes[uid]
 
         if self.config.neuron.use_wandb and iteration % 100 == 1:
             try:
