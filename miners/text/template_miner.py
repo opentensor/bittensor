@@ -707,7 +707,9 @@ class Miner:
         #removing normalization of chain weights for display
         normalized_chain_weights =  F.softmax (self.nucleus.chain_weights.detach())
         respond_rate = self.responded_peers_count / self.quested_peers_count
+        endpoints = bittensor.neuron.metagraph.endpoint_objs
         for uid in bittensor.neuron.metagraph.uids.tolist():
+            pubkey = endpoints[uid].hotkey
             if normalized_chain_weights[uid].item() > 0:
                 if self.nucleus.chain_weights.grad != None:
                     weight_dif = -self.nucleus.chain_weights.grad[uid].item()
@@ -727,8 +729,8 @@ class Miner:
                     wandb_info[f'Quested uid: {str(uid)}']= output.quested_peers[uid]
                     wandb_info[f'Responded uid: {str(uid)}']= output.responded_peers[uid]
                     wandb_info[f'Respond rate uid: {str(uid)}']= respond_rate[uid]
-                    wandb_info[f'Axon in byte uid: {str(uid)}']= bittensor.neuron.axon.stats.in_bytes_per_pubkey[uid]
-                    wandb_info[f'Axon out byte uid: {str(uid)}']= bittensor.neuron.axon.stats.out_bytes_per_pubkey[uid]
+                    wandb_info[f'Axon in byte uid: {str(uid)}']= bittensor.neuron.axon.stats.in_bytes_per_pubkey[pubkey]
+                    wandb_info[f'Axon out byte uid: {str(uid)}']= bittensor.neuron.axon.stats.out_bytes_per_pubkey[pubkey]
 
         if self.config.neuron.use_wandb and iteration % 100 == 1:
             try:
