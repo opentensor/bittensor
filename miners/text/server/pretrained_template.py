@@ -220,7 +220,7 @@ class server(torch.nn.Module):
             return self.encode_forward( inputs )
         uid =self.metagraph.hotkeys.index(pubkey)
         priority = self.metagraph.S[uid].item()
-        future = self.thread_pool.submit(call,inputs=inputs_x.to(self.device),priority=priority)
+        future = self.threadpool.submit(call,inputs=inputs_x.to(self.device),priority=priority)
         return future.result(timeout= self.config.server.timeout)
 
 
@@ -253,7 +253,7 @@ class server(torch.nn.Module):
                     self.mutex.release()
         uid =self.metagraph.hotkeys.index(pubkey)
         priority = self.metagraph.S[uid].item()
-        future = self.thread_pool.submit(call, input=inputs_x.to( self.device ), grad=grads_dy.to( self.device ), priority=priority)
+        future = self.threadpool.submit(call, input=inputs_x.to( self.device ), grad=grads_dy.to( self.device ), priority=priority)
         return future.result(timeout= self.config.server.timeout)
 
     def check(self):
