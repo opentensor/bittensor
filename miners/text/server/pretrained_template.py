@@ -224,7 +224,7 @@ class server(torch.nn.Module):
         try:
             return future.result(timeout= self.config.server.timeout)
         except:
-            raise TimeoutError
+            return TimeoutError
 
 
     # Define our backward function.
@@ -260,7 +260,7 @@ class server(torch.nn.Module):
         try:
             return future.result(timeout= self.config.server.timeout)
         except Exception:
-            raise TimeoutError
+            return TimeoutError
 
     def check(self):
         r"""Checks the server settings

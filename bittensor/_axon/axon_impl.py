@@ -178,7 +178,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
         except Exception as e:
             response_tensor = None
             message = "Error calling forward callback: {}".format(e)
-            print(message)
             code = bittensor.proto.ReturnCode.UnknownException
             raise e
 
@@ -340,7 +339,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
             except Exception as e:
                 code = bittensor.proto.ReturnCode.ResponseDeserializationException
                 message = e
-                print(e)
                 bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
                 return None, code, message
 
