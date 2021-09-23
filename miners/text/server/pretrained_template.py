@@ -221,7 +221,11 @@ class server(torch.nn.Module):
         uid =self.metagraph.hotkeys.index(pubkey)
         priority = self.metagraph.S[uid].item()
         future = self.threadpool.submit(call,inputs=inputs_x.to(self.device),priority=priority)
-        return future.result(timeout= self.config.server.timeout)
+        try:
+            return future.result(timeout= self.config.server.timeout)
+        except Exception as e:
+            print(e)
+            return e
 
 
     # Define our backward function.
