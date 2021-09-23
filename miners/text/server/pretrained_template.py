@@ -223,8 +223,8 @@ class server(torch.nn.Module):
         future = self.threadpool.submit(call,inputs=inputs_x.to(self.device),priority=priority)
         try:
             return future.result(timeout= self.config.server.timeout)
-        except Exception as e:
-            return e
+        except:
+            raise TimeoutError
 
 
     # Define our backward function.
@@ -260,7 +260,7 @@ class server(torch.nn.Module):
         try:
             return future.result(timeout= self.config.server.timeout)
         except Exception:
-            return Exception
+            raise TimeoutError
 
     def check(self):
         r"""Checks the server settings
