@@ -181,7 +181,7 @@ class server(torch.nn.Module):
         new_data = pad_sequence(new_data,batch_first=True)
         return new_data
     
-    def start(self,wallet,optimizer,mutex):
+    def start(self,wallet,optimizer,mutex,metagraph):
         r""" Starts the server and subscribes to the chain. 
             Args:
                 wallet ( :obj:`bittensor.wallet`, `required`):
@@ -199,6 +199,8 @@ class server(torch.nn.Module):
                             forward_text = self.forward_text,
                             backward_text = self.backward_text,
                         )
+            self.metagraph = metagraph
+            self.threadpool = bittensor.prioritythreadpool(cofig=self.config)
             self.axon.start().subscribe()
 
     # Define our forward function.
@@ -214,7 +216,13 @@ class server(torch.nn.Module):
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """ 
-        return self.encode_forward( inputs_x.to(self.device) )
+        def call(inputs):
+            return self.encode_forward( inputs )
+        uid =self.metagraph.hotkeys.index(pubkey)
+        priority = self.metagraph.S[uid].item()
+        future = self.thread_pool.submit(call,inputs=inputs_x.to(self.device),priority=priority)
+        return future.result(timeout= self.config.server.timeout)
+
 
     # Define our backward function.
     def backward_text (self, pubkey:str, inputs_x, grads_dy ):
@@ -233,19 +241,23 @@ class server(torch.nn.Module):
                 outputs (:obj:`torch.FloatTensor`, `optional`):
                     The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
         """
-        with torch.enable_grad():
-            with torch.autograd.set_detect_anomaly(True):
-                self.mutex.acquire()
-                outputs_y = self.encode_forward( inputs_x.to(self.device) )
-                torch.autograd.backward (
-                    tensors = [ outputs_y.to(self.device) ],
-                    grad_tensors = [ grads_dy.to(self.device) ]
-                )
-                self.mutex.release()
+        def call(input,grad):
+            with torch.enable_grad():
+                with torch.autograd.set_detect_anomaly(True):
+                    self.mutex.acquire()
+                    outputs_y = self.encode_forward( input )
+                    torch.autograd.backward (
+                        tensors = [ outputs_y ],
+                        grad_tensors = [ grad ]
+                    )
+                    self.mutex.release()
+        uid =self.metagraph.hotkeys.index(pubkey)
+        priority = self.metagraph.S[uid].item()
+        future = self.thread_pool.submit(call, input=inputs_x.to( self.device ), grad=grads_dy.to( self.device ), priority=priority)
+        return future.result(timeout= self.config.server.timeout)
 
     def check(self):
         r"""Checks the server settings
-        
         """
         assert self.tokenizer.name_or_path == self.pre_model.name_or_path, 'incorrect model ({}) and tokenizer ({})'.format(self.pre_model.name_or_path,self.tokenizer.name_or_path)
         if self.interpolate == False:
@@ -264,6 +276,7 @@ class server(torch.nn.Module):
         parser.add_argument('--server.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
         parser.add_argument('--server.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template_server')
         parser.add_argument('--server.checking', type=bool, help='To check if server settings are correct',default='True')
+        parser.add_argument('--server.timeout', type=int, help='Number of seconds to wait for axon request', default=1)
 
 
         bittensor.wallet.add_args( parser )
@@ -271,6 +284,8 @@ class server(torch.nn.Module):
         bittensor.subtensor.add_args( parser )
         bittensor.logging.add_args( parser )
         bittensor.wandb.add_args(parser)
+        bittensor.prioritythreadpool.add_args( parser )
+
         return bittensor.config( parser )
 
 def main( config ):
@@ -296,7 +311,7 @@ def main( config ):
     )
 
     # Create our axon server and subscribe it to the network.
-    gp_server.start(wallet,optimizer,mutex)
+    gp_server.start(wallet,optimizer,mutex,metagraph)
     
 
     # Training Data
