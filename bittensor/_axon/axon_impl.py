@@ -177,7 +177,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         except Exception as e:
             response_tensor = None
-            print(e)
+            print('error detected',e)
             message = "Error calling forward callback: {}".format(e)
             code = bittensor.proto.ReturnCode.UnknownException
             return response_tensor, code, message 
