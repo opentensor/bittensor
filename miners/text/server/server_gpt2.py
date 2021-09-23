@@ -199,11 +199,11 @@ class server(torch.nn.Module):
         new_data = pad_sequence(new_data,batch_first=True)
         return new_data
     
-    def start(self,wallet,optimizer,mutex):
+    def start(self,wallet,optimizer):
         if self.axon != None:
             self.axon.start().subscribe()
         else:
-            self.mutex = mutex
+            self.mutex = Lock()
             self.optimizer = optimizer
             self.axon = bittensor.axon (
                             wallet = wallet,
@@ -280,7 +280,7 @@ def main( config ):
 
     # Create our axon server and subscribe it to the network.
     mutex = Lock()
-    gp_server.start(wallet,optimizer,mutex)
+    gp_server.start(wallet,optimizer)
     
 
     # Training Data
