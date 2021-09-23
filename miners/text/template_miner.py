@@ -299,7 +299,6 @@ class Miner:
         )
 
         # ---- Init how often to sync with metagraph, value will be overriden by config----  
-        self.sync_time = 30
         self.last_sync_block = 0
 
     @staticmethod
@@ -360,25 +359,16 @@ class Miner:
     def sync (self ):
         """ Miner sync with metagraph and update chain weight
         """
+        # ---- Set weights on chain ----
+        self.set_chain_weights()
 
-        current_block = self.neuron.subtensor.get_current_block()
-        block_diff = current_block - self.last_sync_block
-        if block_diff >= self.config.neuron.sync_block_time:
-            
-            # ---- Set weights on chain ----
-            self.set_chain_weights()
-
-            # ---- Sync with metagraph ----
-            bittensor.neuron.metagraph.load().sync().save()
-            chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.chain_weights.shape[0]
-            self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
-            
-            bittensor.logging.success( prefix = 'Synced with metagraph', sufix = '<blue>Block: {}</blue>'.format( current_block ))
-            
-            # ---- Set another timer with estimated sync_time ----
-            self.last_sync_block = current_block
-            self.sync_time = round((self.sync_time/block_diff)*(self.config.neuron.sync_block_time)) + 2
-            signal.setitimer(signal.ITIMER_REAL, self.sync_time)
+        # ---- Sync with metagraph ----
+        bittensor.neuron.metagraph.load().sync().save()
+        chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.chain_weights.shape[0]
+        self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
+        
+        bittensor.logging.success( prefix = 'Synced with metagraph', sufix = '<blue>Block: {}</blue>'.format( current_block ))
+        
     
     def run( self ):
         r""" Miner main loop.
@@ -408,9 +398,6 @@ class Miner:
                 self.save()
                 self.reload()
                 self.neuron.axon.check()
-
-            signal.signal(signal.SIGALRM, self.sync)
-            signal.setitimer(signal.ITIMER_REAL, self.sync_time) 
 
             # --- Run until n_epochs ----
             while self.epoch < self.config.miner.n_epochs:
@@ -504,6 +491,13 @@ class Miner:
         output.loss.backward() # Accumulates gradients on the nucleus.
         clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
         self.optimizer.step() # Applies accumulated gradients.
+        
+        # ---- Sync with metagraph ----
+        current_block = self.neuron.subtensor.get_current_block()
+        block_diff = current_block - self.last_sync_block
+        if block_diff >= self.config.neuron.sync_block_time:
+            self.sync()
+            self.last_sync_block = current_block
 
         # ---- Update global loss ----
         return output
