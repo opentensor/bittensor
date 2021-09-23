@@ -243,8 +243,6 @@ class server(torch.nn.Module):
                 )
                 self.mutex.release()
 
-                return inputs_x.grad if inputs_x.grad != None else None 
-
     def check(self):
         r"""Checks the server settings
         
@@ -330,7 +328,6 @@ def main( config ):
             clip_grad_norm_(gp_server.parameters(), 1.0)
             optimizer.step()
             optimizer.zero_grad()
-            print('step')
             mutex.release()
 
             epoch_loss += loss.item()
