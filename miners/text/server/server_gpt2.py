@@ -104,7 +104,7 @@ class server(torch.nn.Module):
         
     def forward(self, inputs,tokenizer=None):
         """
-            Forward pass through the pretrained model. 
+            Forward pass through the whole server model. Returns 
 
             Args:
                 pubkey ( str, `required`):
@@ -120,24 +120,7 @@ class server(torch.nn.Module):
                     Decoded predictions of the next token in the sentence.
 
         """
-        sen_len = inputs.size()
-        inputs_remapped = self.token_remap(inputs,tokenizer)
-        pre_hidden = self.pre_model(inputs_remapped).last_hidden_state
-
-        if self.interpolate:
-            down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],pre_hidden.size()[2]],mode=self.inter_degree).squeeze(1)
-        elif self.mapping_function:
-            down = self.mapping_function(pre_hidden,sen_len)
-        else:
-            raise Exception('interpolation off but no mapping function found. Please attach a mapping function')
-
-        if self.padding:
-            padding_l = (self.final_dim-self.pre_dimension)//2
-            padding_r = (self.final_dim-self.pre_dimension) - padding_l
-            encoded_hidden = F.pad(down, (padding_l, padding_r),  "constant", 0)
-        else:
-            encoded_hidden = self.mapping(down)
-        decoded_targets = self.decoder(encoded_hidden)
+        decoded_targets = self.decoder(self.encode_forward(inputs,tokenizer))
         
         shift_logits = decoded_targets[..., :-1, :].contiguous()
         shift_labels = inputs[..., 1:].contiguous()     
@@ -154,7 +137,7 @@ class server(torch.nn.Module):
                 inputs ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
                 tokenizer ( huggingface.tokenizer, `required`):
-                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
+                    The tokenizer which was used to tokenize the inputs
 
             Returns:
                 outputs (:obj:`torch.FloatTensor`):
@@ -185,7 +168,7 @@ class server(torch.nn.Module):
                 inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
                 old_tokenizer ( huggingface.tokenizer, `required`):
-                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
+                    The tokenizer which was used to tokenize the inputs
 
         
         """
