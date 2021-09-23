@@ -254,7 +254,10 @@ class server(torch.nn.Module):
         uid =self.metagraph.hotkeys.index(pubkey)
         priority = self.metagraph.S[uid].item()
         future = self.threadpool.submit(call, input=inputs_x.to( self.device ), grad=grads_dy.to( self.device ), priority=priority)
-        return future.result(timeout= self.config.server.timeout)
+        try:
+            return future.result(timeout= self.config.server.timeout)
+        except Exception:
+            return Exception
 
     def check(self):
         r"""Checks the server settings
