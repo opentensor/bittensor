@@ -181,7 +181,7 @@ class server(torch.nn.Module):
         new_data = pad_sequence(new_data,batch_first=True)
         return new_data
     
-    def start(self,wallet,optimizer):
+    def start(self,wallet,optimizer,mutex):
         r""" Starts the server and subscribes to the chain. 
             Args:
                 wallet ( :obj:`bittensor.wallet`, `required`):
@@ -192,7 +192,7 @@ class server(torch.nn.Module):
         if self.axon != None:
             self.axon.start().subscribe()
         else:
-            self.mutex = Lock()
+            self.mutex = mutex
             self.optimizer = optimizer
             self.axon = bittensor.axon (
                             wallet = wallet,
@@ -285,8 +285,9 @@ def main( config ):
 
     # Instantiate the model we are going to serve on the network.
     # Miner training device.
-    gp_server = server(config=config)
     mutex = Lock()
+    gp_server = server(config=config)
+    
     # Create our optimizer.
     optimizer = torch.optim.SGD(
         [ {"params": gp_server.parameters()} ],
@@ -295,7 +296,7 @@ def main( config ):
     )
 
     # Create our axon server and subscribe it to the network.
-    gp_server.start(wallet,optimizer)
+    gp_server.start(wallet,optimizer,mutex)
     
 
     # Training Data
