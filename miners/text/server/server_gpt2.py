@@ -330,11 +330,10 @@ def main( config ):
             clip_grad_norm_(gp_server.parameters(), 1.0)
             optimizer.step()
             optimizer.zero_grad()
+            print('step')
             mutex.release()
 
             epoch_loss += loss.item()
-            if iteration % 10 == 0:
-                print('iteration {} loss'.format(iteration),loss.item())
 
         uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
         wandb_data = {
