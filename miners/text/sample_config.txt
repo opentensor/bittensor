@@ -14,7 +14,7 @@ dataloader.dataset: train
 dendrite.max_active_receptors: 500
 dendrite.max_worker_threads: 150
 dendrite.requires_grad: true
-dendrite.timeout: 5
+dendrite.timeout: 10
 
 logging.debug: false
 logging.logging_dir: ~/.bittensor/miners/
@@ -43,6 +43,7 @@ nucleus.nhid: 200
 nucleus.nhead: 2
 nucleus.nlayers: 2
 nucleus.topk: 30
+nucleus.punishment: 0.0001
 
 subtensor.chain_endpoint: null
 subtensor.network: akatsuki
