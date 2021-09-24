@@ -365,6 +365,7 @@ def main( config ):
                 'rank': metagraph.R[ uid ].item(),
                 'incentive': metagraph.I[ uid ].item(),
             } 
+            gp_server.metagraph.sync().save()
             wandb.log( wandb_data )
             logger.info(wandb_data)
             chain_weights[uid] = 1 
