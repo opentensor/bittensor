@@ -379,9 +379,10 @@ def main( config ):
                 )
             except Exception as e:
                 logger.error('Failure setting weights on chain with error: {}', e)
-                
+
     except KeyboardInterrupt:
         # --- User ended session ----
+        server.axon.stop()
         break
 
 
