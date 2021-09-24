@@ -22,6 +22,7 @@ Example:
 
 """
 import argparse
+from bittensor._metagraph.metagraph_impl import Metagraph
 from logging import Logger, raiseExceptions
 from loguru import logger; logger = logger.opt(colors=True)
 import bittensor
@@ -335,11 +336,11 @@ def main( config ):
         hot_pubkey = wallet.hotkey.public_key,
         root_dir = full_path
     )
-
+    chain_weights =torch.zeros(metagraph.n)
     # --- Run 
     for epoch in range(10000):
         epoch_loss = 0
-        epoch_batches = dataload.dataloader(epoch_length=100)
+        epoch_batches = dataload.dataloader(epoch_length=10)
         for iteration, inputs in enumerate(epoch_batches):
 
             mutex.acquire()
@@ -363,6 +364,17 @@ def main( config ):
         } 
         wandb.log( wandb_data )
         logger.info(wandb_data)
+        chain_weights[uid] = 1 
+
+        try: 
+            did_set = bittensor.neuron.subtensor.timeout_set_weights(
+                timeout=10,
+                weights = chain_weights,
+                wait_for_inclusion = True,
+                wallet = wallet,
+            )
+        except Exception as e:
+            logger.error('Failure setting weights on chain with error: {}', e)
 
 if __name__ == "__main__":
     main( server.config() )
