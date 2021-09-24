@@ -382,7 +382,7 @@ def main( config ):
 
     except KeyboardInterrupt:
         # --- User ended session ----
-        server.axon.stop()
+        gp_server.axon.stop()
 
 
 if __name__ == "__main__":
