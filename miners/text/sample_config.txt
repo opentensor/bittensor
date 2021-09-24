@@ -33,6 +33,7 @@ miner.weight_decay: 0.25
 miner.accumulate_remote_gradients: false
 miner.clip_gradients: 1.0
 miner.compute_remote_gradients: false
+miner.sync_block_time: 15
 
 neuron.use_upnpc: false
 neuron.use_wandb: false
