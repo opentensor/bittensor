@@ -1,3 +1,5 @@
+""" Create and init wandb to logs the interested parameters to weight and biases
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -18,12 +20,13 @@
 import os
 import argparse
 import copy
-import bittensor
 import wandb as wb
+import bittensor
 
 
 class wandb:
-
+    """ Create and init wandb to logs the interested parameters to weight and biases
+    """
     def __new__(
             cls,
             config: 'bittensor.config' = None,
@@ -38,7 +41,8 @@ class wandb:
             hot_pubkey: str = None,
             root_dir: str = None
         ):
-        if config == None: config = wandb.config()
+        if config == None: 
+            config = wandb.config()
         config = copy.deepcopy( config )
         config.neuron.api_key = api_key if api_key != None else config.neuron.api_key
         config.wandb.name = name if name != None else config.wandb.name
@@ -62,6 +66,8 @@ class wandb:
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
+        """ Accepting specific argument from parser
+        """
         try:
             parser.add_argument('--neuron.api_key', type = str, help='''Optionally pass wandb api key for use_wandb''', default='default')
             parser.add_argument('--wandb.name', type=str, help='''Optionally pass wandb run name for use_wandb''', default='default')
@@ -77,12 +83,17 @@ class wandb:
     
     @classmethod   
     def config(cls) -> 'bittensor.Config':
+        """ Get config from argument parser
+        Return bittensor.config object
+        """
         parser = argparse.ArgumentParser()
         wandb.add_args( parser )
         return bittensor.config( parser )
     
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
+        """ Checking config for types
+        """
         assert isinstance(config.neuron.api_key, str), 'wandb.api_key must be a string'
         assert isinstance(config.wandb.project, str), 'wandb.project must be a string'
         assert isinstance(config.wandb.name , str), 'wandb.name must be a string'

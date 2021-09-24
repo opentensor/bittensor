@@ -1,3 +1,5 @@
+""" Create and init Axon, whcih services Forward and Backward requests from other neurons.
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -15,21 +17,23 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from concurrent import futures
-from typing import List, Tuple, Optional, Callable
-import bittensor
 import argparse
 import copy
-import grpc
 import inspect
-import torch
-from . import axon_impl
-from substrateinterface import Keypair
+from concurrent import futures
 from datetime import datetime,timedelta
+from typing import List, Callable
 
+import torch
+import grpc
+from substrateinterface import Keypair
 
+import bittensor
+from . import axon_impl
 
 class axon:
+    """ Create and init Axon, whcih services Forward and Backward requests from other neurons.
+    """
 
     def __new__(
             cls, 
@@ -73,7 +77,8 @@ class axon:
                 maximum_concurrent_rpcs (:type:`int`, `optional`):
                     Maximum allowed concurrently processed RPCs.
         """              
-        if config == None: config = axon.config()
+        if config == None: 
+            config = axon.config()
         config = copy.deepcopy(config)
         config.axon.port = port if port != None else config.axon.port
         config.axon.ip = ip if ip != None else config.axon.ip
@@ -109,12 +114,17 @@ class axon:
 
     @classmethod   
     def config(cls) -> 'bittensor.Config':
+        """ Get config from the argument parser
+        Return: bittensor.config object
+        """
         parser = argparse.ArgumentParser()
         axon.add_args( parser )
         return bittensor.config( parser )
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
+        """ Accept specific arguments from parser
+        """
         try:
             parser.add_argument('--axon.port',default=8091, type=int, 
                     help='''The port this axon endpoint is served on. i.e. 8091''')
@@ -133,11 +143,15 @@ class axon:
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
+        """ Check config for axon port and wallet
+        """
         assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
         bittensor.wallet.check_config( config )
 
     @staticmethod
     def check_backward_callback( backward_callback:Callable, modality:int, pubkey:str = '_' ):
+        """ Check and test axon backward callback function
+        """
         if not inspect.ismethod(backward_callback) and not inspect.isfunction(backward_callback):
             raise ValueError('The axon backward callback must be a function with signature Callable[pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:, got {}'.format(backward_callback))        
         if len( inspect.signature(backward_callback).parameters) != 3:
@@ -166,6 +180,8 @@ class axon:
 
     @staticmethod
     def check_forward_callback( forward_callback:Callable, modality:int, pubkey:str = '_'):
+        """ Check and test axon forward callback function
+        """
         if not inspect.ismethod(forward_callback) and not inspect.isfunction(forward_callback):
             raise ValueError('The axon forward callback must be a function with signature Callable[pubkey:str, inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(forward_callback))   
         if len( inspect.signature(forward_callback).parameters) != 2:
@@ -188,6 +204,8 @@ class axon:
             forward_callback(pubkey,sample_input)
 
 class AuthInterceptor(grpc.ServerInterceptor):
+    """ Creates a new server interceptor that authenticates incoming messages from passed arguments.
+    """
     def __init__(self, key:str = 'Bittensor',blacklist:List = []):
         r""" Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
@@ -196,6 +214,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             black_list (Fucntion, `optional`): 
                 black list function that prevents certain pubkeys from sending messages
         """
+        super().__init__()
         self._valid_metadata = ('rpc-auth-header', key)
         self.nounce_dic = {}
         self.message = 'Invalid key'
