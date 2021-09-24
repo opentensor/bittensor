@@ -340,44 +340,50 @@ def main( config ):
         root_dir = full_path
     )
     chain_weights =torch.zeros(metagraph.n)
-    # --- Run 
-    for epoch in range(10000):
-        epoch_loss = 0
-        epoch_batches = dataload.dataloader(epoch_length=10)
-        for iteration, inputs in enumerate(epoch_batches):
+    try:
+        # --- Run 
+        for epoch in range(10000):
+            epoch_loss = 0
+            epoch_batches = dataload.dataloader(epoch_length=10)
+            for iteration, inputs in enumerate(epoch_batches):
 
-            mutex.acquire()
-            loss, _ = gp_server( inputs )
-            loss.backward()
-            clip_grad_norm_(gp_server.parameters(), 1.0)
-            optimizer.step()
-            optimizer.zero_grad()
-            print('step')
-            mutex.release()
+                mutex.acquire()
+                loss, _ = gp_server( inputs )
+                loss.backward()
+                clip_grad_norm_(gp_server.parameters(), 1.0)
+                optimizer.step()
+                optimizer.zero_grad()
+                print('step')
+                mutex.release()
 
-            epoch_loss += loss.item()
+                epoch_loss += loss.item()
 
-        uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
-        wandb_data = {
-            'Epoch': epoch,
-            'loss': epoch_loss/100,
-            'stake': metagraph.S[ uid ].item(),
-            'rank': metagraph.R[ uid ].item(),
-            'incentive': metagraph.I[ uid ].item(),
-        } 
-        wandb.log( wandb_data )
-        logger.info(wandb_data)
-        chain_weights[uid] = 1 
+            uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
+            wandb_data = {
+                'Epoch': epoch,
+                'loss': epoch_loss/100,
+                'stake': metagraph.S[ uid ].item(),
+                'rank': metagraph.R[ uid ].item(),
+                'incentive': metagraph.I[ uid ].item(),
+            } 
+            wandb.log( wandb_data )
+            logger.info(wandb_data)
+            chain_weights[uid] = 1 
 
-        try: 
-            did_set = subtensor.timeout_set_weights(
-                timeout=10,
-                weights = chain_weights,
-                wait_for_inclusion = True,
-                wallet = wallet,
-            )
-        except Exception as e:
-            logger.error('Failure setting weights on chain with error: {}', e)
+            try: 
+                did_set = subtensor.timeout_set_weights(
+                    timeout=10,
+                    weights = chain_weights,
+                    wait_for_inclusion = True,
+                    wallet = wallet,
+                )
+            except Exception as e:
+                logger.error('Failure setting weights on chain with error: {}', e)
+                
+    except KeyboardInterrupt:
+        # --- User ended session ----
+        break
+
 
 if __name__ == "__main__":
     main( server.config() )

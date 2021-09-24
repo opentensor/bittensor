@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 import bittensor
 from transformers import GPT2Tokenizer
-
 import bittensor 
 
 class tokenizer:
@@ -102,3 +101,4 @@ class tokenizer:
         ]
         tokenizer.additional_special_tokens = additional_special_tokens
         return tokenizer
+    
