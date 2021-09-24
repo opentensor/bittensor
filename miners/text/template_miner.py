@@ -435,24 +435,28 @@ class Miner:
         # --- Init Epoch ----
         self.quested_peers_count = 0
         self.responded_peers_count = 0 
+        self.epoch_data_size = 0
         total_epoch_loss = 0.0
+        total_local_target_epoch_loss = 0
+        total_distillation_epoch_loss = 0
+        total_remote_target_epoch_loss = 0
+        
+        self.sync_count = 0
         epoch_batches = self.dataset.dataloader( self.config.miner.epoch_length )
         progress_bar = qqdm(enumerate(epoch_batches), total=len(epoch_batches), desc=format_str('blue', f'Epoch Progress'))
+        
         for iteration, (inputs) in progress_bar:
 
             # ---- Forward / Backward ----
             output = self.train ( batch = { 'inputs': inputs } )
+
             total_epoch_loss += output.local_target_loss.item()
+            total_local_target_epoch_loss += output.local_target_loss.item()
+            total_distillation_epoch_loss += output.distillation_loss.item()
+            total_remote_target_epoch_loss += output.remote_target_loss.item()
             self.quested_peers_count += output.quested_peers
             self.responded_peers_count += output.responded_peers
-
-            # ---- Logs ----
-            self.logs (
-                progress_bar,
-                iteration = iteration,
-                output = output,
-            )
-            self.global_step += 1
+            self.epoch_data_size += input.nelement()
 
             # ---- Sync with metagraph ----
             current_block = self.neuron.subtensor.get_current_block()
@@ -460,8 +464,21 @@ class Miner:
             if block_diff >= self.config.miner.sync_block_time:
                 self.sync(current_block)
                 self.last_sync_block = current_block
+                self.sync_count += 1
+            # ---- Logs ----
+            self.logs (
+                progress_bar,
+                iteration = iteration,
+                output = output,
+            )
+
+            self.global_step += 1
 
         self.epoch_loss = total_epoch_loss / self.config.miner.epoch_length
+        self.local_target_epoch_loss = total_local_target_epoch_loss / self.config.miner.epoch_length
+        self.distillation_epoch_loss = total_distillation_epoch_loss / self.config.miner.epoch_length
+        self.remote_target_epoch_loss = total_remote_target_epoch_loss / self.config.miner.epoch_length
+        
         self.epoch += 1
 
     # ---- Training call ----
@@ -714,6 +731,9 @@ class Miner:
                 'remote_target_loss':output.remote_target_loss.item(),
                 'distillation_loss':output.distillation_loss.item(),
                 'local_target_loss': output.local_target_loss.item(),
+                'remote_target_epoch_loss': self.remote_target_epoch_loss,
+                'distillation_epoch_loss': self.distillation_epoch_loss,
+                'local_target_epoch_loss': self.local_target_epoch_loss,
                 'local_accuracy':output.local_accuracy,
                 'Number of Peers':bittensor.neuron.metagraph.n.item(),
                 'Stake':stake,
@@ -722,6 +742,8 @@ class Miner:
                 'Axon QPS':bittensor.neuron.axon.stats.qps.value,
                 'Axon in bytes (total)':bittensor.neuron.axon.stats.total_in_bytes.value,
                 'Axon out bytes (total)':bittensor.neuron.axon.stats.total_out_bytes.value,
+                'Sync with metagraph': self.sync_count,
+                'Data size': self.epoch_data_size,
                 }
 
         #removing normalization of chain weights for display
