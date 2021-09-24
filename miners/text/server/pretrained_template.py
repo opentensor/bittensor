@@ -297,12 +297,15 @@ class server(torch.nn.Module):
 
 def main( config ):
 
+    # Create Subtensor connection
+    subtensor = bittensor.subtensor(config = config)
+
     # Load/Create our bittensor wallet.
     wallet = bittensor.wallet( config = config ).create()
 
     # Load/Sync/Save our metagraph.
     metagraph = bittensor.metagraph ( 
-        subtensor = bittensor.subtensor( config = config )
+        subtensor = subtensor
     ).load().sync().save()
 
     # Instantiate the model we are going to serve on the network.
@@ -367,7 +370,7 @@ def main( config ):
         chain_weights[uid] = 1 
 
         try: 
-            did_set = bittensor.subtensor.timeout_set_weights(
+            did_set = subtensor.timeout_set_weights(
                 timeout=10,
                 weights = chain_weights,
                 wait_for_inclusion = True,
