@@ -373,6 +373,7 @@ def main( config ):
             try: 
                 did_set = subtensor.timeout_set_weights(
                     timeout=10,
+                    uids=metagraph.uids,
                     weights = chain_weights,
                     wait_for_inclusion = True,
                     wallet = wallet,
