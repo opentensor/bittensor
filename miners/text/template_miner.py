@@ -726,12 +726,12 @@ class Miner:
                     wandb_info[f'Chain weights (norm) uid: {str(uid)}']= normalized_chain_weights[uid]
                     wandb_info[f'Chain weights (w/o norm) uid: {str(uid)}']= self.nucleus.chain_weights[uid]
 
-                    wandb_info[f'Quested uid: {str(uid)}']= output.quested_peers[uid]
-                    wandb_info[f'Responded uid: {str(uid)}']= output.responded_peers[uid]
+                    wandb_info[f'Quested uid: {str(uid)}']= self.quested_peers_count[uid]
+                    wandb_info[f'Responded uid: {str(uid)}']= self.responded_peers_count[uid]
                     wandb_info[f'Respond rate uid: {str(uid)}']= respond_rate[uid]
                     # wandb_info[f'Axon in byte uid: {str(uid)}']= bittensor.neuron.axon.stats.in_bytes_per_pubkey[pubkey]
                     # wandb_info[f'Axon out byte uid: {str(uid)}']= bittensor.neuron.axon.stats.out_bytes_per_pubkey[pubkey]
-
+        
         if self.config.neuron.use_wandb and iteration % 100 == 1:
             try:
                 wandb.log(wandb_info)
