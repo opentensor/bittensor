@@ -1,3 +1,5 @@
+""" Implementation of Axon, services Forward and Backward requests from other neurons.
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -15,23 +17,20 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import grpc
 import sys
-import threading
-import torch
-import queue
-import multiprocessing as mp
-
-from concurrent import futures
-from termcolor import colored
 from types import SimpleNamespace
-from typing import List, Tuple, Optional, Callable
+from typing import List, Tuple, Callable
+
+import torch
+import grpc
+from termcolor import colored
+
+from loguru import logger
+from substrateinterface.utils.ss58 import ss58_encode
 
 import bittensor
 import bittensor.utils.stats as stat_utils
-from substrateinterface.utils.ss58 import ss58_encode
 
-from loguru import logger
 logger = logger.opt(colors=True)
 
 class Axon( bittensor.grpc.BittensorServicer ):
@@ -76,6 +75,11 @@ class Axon( bittensor.grpc.BittensorServicer ):
             out_bytes_per_pubkey = {},
             qps_per_pubkey = {},
         )
+
+        self.external_ip = None
+        self.external_port = None
+        self.started = None
+        
 
     def __str__(self) -> str:
         return "Axon({}, {}, {}, {})".format( self.ip, self.port, self.wallet.hotkey.ss58_address, "started" if self.started else "stopped")
@@ -479,11 +483,14 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.backward_callback[modality] = backward_callback
 
     def update_stats_for_request(self, request, response):
+        """ Save the in_bytes and out_bytes from request and respond to self.stats 
+        """
         self.stats.qps.update(1)
         in_bytes = sys.getsizeof(request)
         out_bytes = sys.getsizeof(response)
         self.stats.total_in_bytes.update(in_bytes)
         self.stats.total_out_bytes.update(out_bytes)
+
         # ---- Check we have a stats column for this peer
         if request.hotkey in self.stats.in_bytes_per_pubkey:
             self.stats.in_bytes_per_pubkey[request.hotkey].update(in_bytes)
@@ -532,7 +539,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 self.external_port = bittensor.net.upnpc_create_port_map( port = self.port )
                 bittensor.logging.success(prefix = 'UPNPC', sufix = '<red>OPEN</red>')
             except bittensor.net.UPNPCException as upnpc_exception:
-                raise RuntimeError('Failed to hole-punch with upnpc with exception {}'.format( upnpc_exception ))
+                raise RuntimeError('Failed to hole-punch with upnpc with exception {}'.format( upnpc_exception )) from upnpc_exception
         else:
             self.external_port = self.port
 
@@ -541,7 +548,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             self.external_ip = bittensor.net.get_external_ip()
             bittensor.logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format(self.external_ip))
         except Exception as E:
-            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error:{}', E)
+            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error: {}'.format(E)) from E
 
         # ---- Setup Wallet. ----
         self.wallet.create()
