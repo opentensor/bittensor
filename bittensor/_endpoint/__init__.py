@@ -1,3 +1,5 @@
+""" Create and init endpoint object, with attr hotkey, coldkey, modality and ip
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -15,14 +17,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import torch
 import json
+import torch
 import bittensor
-from loguru import logger
 
 from . import endpoint_impl
 
 class endpoint:
+    """ Create and init endpoint object, with attr hotkey, coldkey, modality and ip
+    """
 
     def __new__( 
         cls, 
@@ -38,6 +41,8 @@ class endpoint:
 
     @staticmethod
     def from_dict(endpoint_dict: dict) -> 'bittensor.Endpoint':
+        """ Return an endpoint with spec from dictionary
+        """
         return endpoint_impl.Endpoint(
             uid = endpoint_dict['uid'], 
             hotkey = endpoint_dict['hotkey'], 
@@ -50,6 +55,8 @@ class endpoint:
     
     @staticmethod
     def from_tensor( tensor: torch.LongTensor) -> 'bittensor.Endpoint':
+        """ Return an endpoint with spec from tensor
+        """
         if len(tensor.shape) == 2:
             if tensor.shape[0] != 1:
                 error_msg = 'Endpoints tensor should have a single first dimension or none got {}'.format( tensor.shape[0] )
@@ -67,8 +74,3 @@ class endpoint:
         endpoint_string = endpoint_bytes.decode('utf-8')
         endpoint_dict = json.loads( endpoint_string )
         return endpoint.from_dict(endpoint_dict)
-
-
-
-
-
