@@ -283,7 +283,7 @@ class server(torch.nn.Module):
         parser.add_argument('--server.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
         parser.add_argument('--server.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template_server')
         parser.add_argument('--server.checking', type=bool, help='To check if server settings are correct',default='True')
-        parser.add_argument('--server.timeout', type=int, help='Number of seconds to wait for axon request', default=5)
+        parser.add_argument('--server.timeout', type=int, help='Number of seconds to wait for axon request', default=int(bittensor.__blocktime__))
 
 
         bittensor.wallet.add_args( parser )
@@ -353,7 +353,6 @@ def main( config ):
                 clip_grad_norm_(gp_server.parameters(), 1.0)
                 optimizer.step()
                 optimizer.zero_grad()
-                print('step')
                 mutex.release()
 
                 epoch_loss += loss.item()

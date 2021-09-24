@@ -251,7 +251,7 @@ class Receptor(nn.Module):
                 version = bittensor.__version_as_int__,
                 hotkey = self.wallet.hotkey.ss58_address,
                 tensors = [serialized_inputs],
-                uid = self.endpoint.uid,
+                uid = self.wallet.get_uid(),
             )
         
             # ---- Make RPC call ----
@@ -446,7 +446,7 @@ class Receptor(nn.Module):
                 version = bittensor.__version_as_int__,
                 hotkey = self.wallet.hotkey.ss58_address,
                 tensors = [serialized_inputs, serialized_grads],
-                uid = self.endpoint.uid,
+                uid = self.wallet.get_uid(),
             )
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=bittensor.proto.ReturnCode.Success, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=None, uid=self.endpoint.uid)
             response = self.stub.Backward(request = request, 
