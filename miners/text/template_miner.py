@@ -454,6 +454,12 @@ class Miner:
             total_local_target_epoch_loss += output.local_target_loss.item()
             total_distillation_epoch_loss += output.distillation_loss.item()
             total_remote_target_epoch_loss += output.remote_target_loss.item()
+
+            if len(self.quested_peers_count) < len(output.quested_peers):
+                fill = torch.zeros(len(output.quested_peers) - len(self.quested_peers_count))
+                self.quested_peers_count = torch.cat((self.quested_peers_count, fill))
+                self.responded_peers_count = torch.cat((self.responded_peers_count, fill))
+            
             self.quested_peers_count += output.quested_peers
             self.responded_peers_count += output.responded_peers
             self.epoch_data_size += inputs.nelement()
