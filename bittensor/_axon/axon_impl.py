@@ -178,7 +178,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         except Exception as e:
             response_tensor = None
             message = "Error calling forward callback: {}".format(e)
-            if e == 'TimeOutError':
+            if isinstance(e, TimeoutError):
                 print('YES')
                 code = bittensor.proto.ReturnCode.Timeout
             else:
@@ -229,7 +229,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         except Exception as e:
             response_tensor = None
             message = "Error calling backward callback: {}".format(e)
-            if e == 'TimeOutError':
+            if isinstance(e, TimeoutError):
                 code = bittensor.proto.ReturnCode.Timeout
             else:
                 code = bittensor.proto.ReturnCode.UnknownException
