@@ -433,8 +433,8 @@ class Miner:
         r""" Runs a single training epoch pulled from the dataloader.
         """
         # --- Init Epoch ----
-        self.quested_peers_count = 0
-        self.responded_peers_count = 0 
+        self.quested_peers_count = torch.zeros(0)
+        self.responded_peers_count = torch.zeros(0)
         self.epoch_data_size = 0
         total_epoch_loss = 0.0
         total_local_target_epoch_loss = 0
