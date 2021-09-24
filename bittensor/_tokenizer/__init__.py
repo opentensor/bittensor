@@ -71,8 +71,8 @@ class tokenizer:
             "<special8>", # Used by XLM
             "<special9>", # Used by XLM
         ]
-        tokenizer.additional_special_tokens = additional_special_tokens
-        return tokenizer
+        _tokenizer.additional_special_tokens = additional_special_tokens
+        return _tokenizer
     
     @staticmethod
     def prep_tokenizer(tokenizer):
