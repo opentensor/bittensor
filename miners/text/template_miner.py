@@ -732,7 +732,7 @@ class Miner:
                     # wandb_info[f'Axon in byte uid: {str(uid)}']= bittensor.neuron.axon.stats.in_bytes_per_pubkey[pubkey]
                     # wandb_info[f'Axon out byte uid: {str(uid)}']= bittensor.neuron.axon.stats.out_bytes_per_pubkey[pubkey]
         
-        if self.config.neuron.use_wandb and iteration % 90 == 0:
+        if self.config.neuron.use_wandb and (iteration + 1) % (self.config.miner.epoch_length ) == 0:
             try:
                 wandb.log(wandb_info)
             except Exception as e:
