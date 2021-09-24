@@ -367,7 +367,7 @@ def main( config ):
         chain_weights[uid] = 1 
 
         try: 
-            did_set = bittensor.neuron.subtensor.timeout_set_weights(
+            did_set = bittensor.subtensor.timeout_set_weights(
                 timeout=10,
                 weights = chain_weights,
                 wait_for_inclusion = True,
