@@ -76,16 +76,16 @@ message TensorMessage {
 	// Tensors: [REQUIRED] 1 or more tensors passed on the wire.
 	// SIZE: variable.
 	// NOTE: During backward calls the tensors should be ordered [input_1, input_2, ... grad_1, grad_2, ...] 
-	repeated Tensor tensors = 3;
-
-	//uid of the caller
-	int32 uid = 4;
+	repeated Tensor tensors = 5;
 
 	// Return codes from Backward and Forward call.
 	ReturnCode return_code = 6; 
 
 	// Message associated with return code.
 	string message = 7; 
+
+	// Uid of caller
+	int32 uid = 8;
 }
 
 // Return codes from Backward and Forward call.

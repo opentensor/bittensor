@@ -179,11 +179,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
             response_tensor = None
             message = "Error calling forward callback: {}".format(e)
             if isinstance(e, TimeoutError):
-                print('YES')
                 code = bittensor.proto.ReturnCode.Timeout
             else:
-                print("NOOO")
-                print(e)
                 code = bittensor.proto.ReturnCode.UnknownException
             return response_tensor, code, message
 
@@ -256,7 +253,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             if len(request.tensors) == 0:
                 code = bittensor.proto.ReturnCode.EmptyRequest
                 message = "Forward request contains {} tensors, expected 1 tensor in the forward call".format(len(request.tensors))
-                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, pubkey=request.hotkey, inputs=None, outputs=None, message=message )
+                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, pubkey=request.hotkey, inputs=None, outputs=None, message=message, uid=request.uid )
                 return None, code, message
 
             # ---- Check deserialization ----
@@ -268,7 +265,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             except Exception as e:
                 code = bittensor.proto.ReturnCode.RequestDeserializationException
                 message = "Request deserialization exception: {}".format(str(e))
-                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, pubkey=request.hotkey, inputs=None, outputs=None, message=message )
+                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, pubkey=request.hotkey, inputs=None, outputs=None, message=message , uid=request.uid)
                 return None, code, message
 
             # ---- Check shape and modality ----
@@ -317,7 +314,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             # ---- Make nucleus forward call. ----
             code = bittensor.proto.ReturnCode.Success
             message = None
-            bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
+            bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message, uid=request.uid)
             outputs, code, message = self._call_forward( 
                 public_key = request.hotkey, 
                 inputs_x = torch_inputs, 
@@ -345,11 +342,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 return None, code, message
 
         except Exception as e:
-            print("GOD DAMNIT")
-            if e == 'TimeOutError':
-                code = bittensor.proto.ReturnCode.Timeout
-            else:
-                code = bittensor.proto.ReturnCode.UnknownException
+            code = bittensor.proto.ReturnCode.UnknownException
             message = 'exception in processing forward call: {}'.format(e)
             bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
             return None, code, message
