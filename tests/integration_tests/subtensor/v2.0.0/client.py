@@ -1,6 +1,7 @@
 import os
 
 
+import sys
 import time
 import pytest
 import random
@@ -29,7 +30,7 @@ def setup_chain():
     logger.info(path)
     if not path:
         logger.error("make sure the NODE_SUBTENSOR_BIN env var is set and points to the node-subtensor binary")
-        quit()
+        sys.exit()
 
     # Select a port
     port = select_port()
