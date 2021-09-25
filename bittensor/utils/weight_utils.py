@@ -20,6 +20,8 @@
 from typing import Tuple, List
 import torch
 
+U32_MAX = 4294967295
+
 def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: List[int] ):
     r""" Converts weights and uids from chain representation into a torch tensor (inverse operation from convert_weights_and_uids_for_emit)
         Returns:
@@ -32,8 +34,23 @@ def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: Li
     """
     row_weights = torch.zeros( [ n ], dtype=torch.float32 )
     for uid_j, wij in list(zip( uids, weights )):
-        row_weights[ uid_j ] = float( wij ) / float(4294967295)
+        row_weights[ uid_j ] = float( wij ) / float(U32_MAX)
     return row_weights
+
+def convert_bond_uids_and_vals_to_tensor( n: int, uids: List[int], bonds: List[int] ):
+    r""" Converts bond and uids from chain representation into a torch tensor.
+        Returns:
+            n: int:
+                number of neurons on network.
+            uids (:obj:`List[int],`):
+                Tensor of uids as destinations for passed bonds.
+            bonds (:obj:`List[int],`):
+                Tensor of bonds.
+    """
+    row_bonds = torch.zeros( [ n ], dtype=torch.int64 )
+    for uid_j, bij in list(zip( uids, bonds )):
+        row_bonds[ uid_j ] = int( bij ) 
+    return row_bonds
 
 def convert_weights_and_uids_for_emit( uids: torch.LongTensor, weights: torch.FloatTensor ) -> Tuple[List[int], List[int]]:
     r""" Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
