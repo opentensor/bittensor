@@ -296,7 +296,7 @@ class Miner:
         """
         # ---- Add miner args.
         parser = argparse.ArgumentParser()
-        parser.add_argument('--miner.config', type=str, help='If set, defaults are overridden by passed file.')
+        parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
         parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=1)
         parser.add_argument('--miner.weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25)
         parser.add_argument('--miner.momentum', type=float, help='optimizer momentum.', default=0.8)
@@ -312,23 +312,9 @@ class Miner:
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=1)
         parser.add_argument('--miner.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
-
         bittensor.add_args( parser )
         Nucleus.add_args( parser ) 
         bittensor.prioritythreadpool.add_args( parser )
- 
-        # ---- Loads config_file and updates defaults
-        config_file_path = vars(parser.parse_known_args()[0])['miner.config']
-        if config_file_path:
-            config_file_path = os.path.expanduser(config_file_path)
-            try:
-                with open(config_file_path) as f:
-                    params_config = yaml.safe_load(f)
-                    print('Config File Detected at {} updating defaults'.format(config_file_path))
-                    parser.set_defaults(**params_config)
-            except Exception as e:
-                print('Error in loading: {} using default parser settings'.format(e))
-
         return bittensor.config( parser )
 
     @staticmethod
