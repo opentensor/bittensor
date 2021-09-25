@@ -1,3 +1,5 @@
+""" Standardize logging for bittensor
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -16,18 +18,25 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import sys
+
 import argparse
 import copy
+
 import rollbar
-import sys
+from loguru import logger
+
 import bittensor
 
-from loguru import logger
 logger = logger.opt(colors=True)
 
 # Handler which sends messages to a rollbar server.
 class RollbarHandler:
+    """ Handles error report 
+    """
     def write(self, message):
+        """ Report the message with rollbar
+        """
         record = message.record
         if record['level'].name == "WARNING":
             rollbar.report_message(message, 'warning')
@@ -39,10 +48,12 @@ class RollbarHandler:
  # Remove default sink.
 try:
     logger.remove( 0 )
-except:
+except Exception:
     pass
 
 class logging:
+    """ Standardize logging for bittensor
+    """
     __has_been_inited__:bool = False
     __debug_on__:bool = False
     __trace_on__:bool = False
@@ -61,7 +72,8 @@ class logging:
 
         cls.__has_been_inited__ = True
 
-        if config == None: config = logging.config()
+        if config == None: 
+            config = logging.config()
         config = copy.deepcopy(config)
         config.logging.debug = debug if debug != None else config.logging.debug
         config.logging.trace = trace if trace != None else config.logging.trace
@@ -71,7 +83,7 @@ class logging:
         # Remove default sink.
         try:
             logger.remove( 0 )
-        except:
+        except Exception:
             pass
 
         # Optionally Remove other sinks.
@@ -118,6 +130,11 @@ class logging:
             filepath = config.logging.logging_dir + "/logs.log"
             cls.__file_sink__ = logger.add (
                 filepath,
+                filter = cls.log_save_filter,
+                enqueue = True,
+                backtrace = True,
+                diagnose = True,
+                format = cls.log_save_formatter,
                 rotation="25 MB",
                 retention="10 days"
             )
@@ -126,15 +143,19 @@ class logging:
 
     @classmethod
     def config(cls):
+        """ Get config from the argument parser
+            Return: bittensor.config object
+        """
         parser = argparse.ArgumentParser()
         logging.add_args( parser )
         return bittensor.config( parser )
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
+        """ Accept specific arguments fro parser
+        """
         try:
             parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default=False)
-            parser.add_argument('--logging.no_debug', action='store_false', dest='logging.debug', help='''Turn on bittensor debugging information''', default=True)
             parser.add_argument('--logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default=False)
             parser.add_argument('--logging.record_log', action='store_true', help='''Turns on logging to file.''', default=False)
             parser.add_argument('--logging.logging_dir', type=str, help='Logging default root directory.', default='~/.bittensor/miners')
@@ -144,33 +165,54 @@ class logging:
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
+        """ Check config
+        """
         assert config.logging
 
     @classmethod
-    def set_debug(cls, on: bool = True ):
+    def set_debug(cls, debug_on: bool = True ):
+        """ Set debug for the specific cls class 
+        """
         if not cls.__has_been_inited__:
             cls()
-        cls.__debug_on__ = on
-        if on: logging.success( prefix = 'Set debug', sufix = '<green>ON</green>')
-        else:  logging.success( prefix = 'Set debug', sufix = '<red>OFF</red>')
+        cls.__debug_on__ = debug_on
+        if debug_on: 
+            logging.success( prefix = 'Set debug', sufix = '<green>ON</green>')
+        else:  
+            logging.success( prefix = 'Set debug', sufix = '<red>OFF</red>')
 
     @classmethod
-    def set_trace(cls, on: bool = True):
+    def set_trace(cls, debug_on: bool = True):
+        """ Set trace back for the specific cls class 
+        """
         if not cls.__has_been_inited__:
             cls()
-        cls._trace_on__ = on
-        if on: logging.success( prefix = 'Set trace', sufix = '<green>ON</green>')
-        else:  logging.success( prefix = 'Set trace', sufix = '<red>OFF</red>')
+        cls._trace_on__ = debug_on
+        if debug_on: 
+            logging.success( prefix = 'Set trace', sufix = '<green>ON</green>')
+        else:  
+            logging.success( prefix = 'Set trace', sufix = '<red>OFF</red>')
 
     @classmethod
     def log_filter(cls, record ):
+        """ Filter out debug log if debug is not on
+        """
         if cls.__debug_on__ or cls.__trace_on__:
             return True
         else:
-            return False
+            return record["level"].name != "DEBUG"
+
+    @classmethod
+    def log_save_filter(cls, record ):
+        if cls.__debug_on__ or cls.__trace_on__:
+            return True
+        else:
+            return record["level"].name != "DEBUG"
 
     @classmethod
     def log_formatter(cls, record):
+        """ Log with different format according to record['extra']
+        """
         extra = record['extra']
         if 'rpc' in extra:
             log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[inputs]} | {extra[key_str]} | {extra[rpc_message]} \n"
@@ -180,9 +222,24 @@ class logging:
             return log_format
         else:
             return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | <level>{level: ^16}</level> | {message}\n"
+   
+    @classmethod
+    def log_save_formatter(cls, record):
+        extra = record['extra']
+        if 'rpc' in extra:
+            log_format = "{time:YYYY-MM-DD HH:mm:ss.SSS} | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[inputs]} | {extra[key_str]} | {extra[rpc_message]} \n"
+            return log_format
+        if 'receptor' in extra:
+            log_format = "{time:YYYY-MM-DD HH:mm:ss.SSS} | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
+            return log_format
+        else:
+            return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | {message}\n"
 
     @classmethod
-    def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs:list = [], outputs:list = [], message:str = ''):
+    def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs:list = None, outputs:list = None, message:str = ''):
+        """ Debug logging for the communication between endpoints with axon/dendrite 
+        """
+
         if axon:
             prefix = "Axon"
         else:
@@ -219,18 +276,26 @@ class logging:
 
     @classmethod
     def create_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
+        """ Debug logging for the connection between endpoints 
+        """
         logger.debug( 'endpoint', receptor=True, action = '<green>' + 'Connect'.center(16) + '</green>', uid=str(endpoint.uid).center(4), hotkey=endpoint.hotkey, coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(27) )
 
     @classmethod
     def update_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
+        """ Debug logging for updating the connection with endpoint
+        """
         logger.debug( 'endpoint', receptor=True, action = '<blue>' + 'Update'.center(16) + '</blue>', uid=str(endpoint.uid).center(4), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(27) )
 
     @classmethod
     def destroy_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
+        """ Debug logging for destroying connection with endpoint
+        """
         logger.debug( 'endpoint', receptor=True, action = '<red>' + 'Destroy'.center(16) + '</red>', uid=str(endpoint.uid).center(4), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(27) )
 
     @classmethod
     def success( cls, prefix:str, sufix:str ):
+        """ Success logging 
+        """
         if not cls.__has_been_inited__:
             cls()
         prefix = prefix + ":"
@@ -240,6 +305,8 @@ class logging:
 
     @classmethod
     def warning( cls, prefix:str, sufix:str ):
+        """ Warning logging
+        """
         if not cls.__has_been_inited__:
             cls()
         prefix = prefix + ":"
@@ -249,6 +316,8 @@ class logging:
 
     @classmethod
     def error( cls, prefix:str, sufix:str ):
+        """ Error logging
+        """
         if not cls.__has_been_inited__:
             cls()
         prefix = prefix + ":"
@@ -258,6 +327,8 @@ class logging:
 
     @classmethod
     def info( cls, prefix:str, sufix:str ):
+        """ Info logging
+        """
         if not cls.__has_been_inited__:
             cls()
         prefix = prefix + ":"

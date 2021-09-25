@@ -1,3 +1,6 @@
+"""
+Implementation of the config class, which manages the config of different bittensor modules.
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -19,19 +22,27 @@ import yaml
 from munch import Munch
 
 class Config ( Munch ):
-
-    def __init__(self):
-        pass
+    """
+    Implementation of the config class, which manages the config of different bittensor modules.
+    """
+    def __init__(self, loaded_config = None ):
+        super().__init__()
+        if loaded_config:
+            raise NotImplementedError('Function load_from_relative_path is not fully implemented.')
 
     def __repr__(self) -> str:
         return self.__str__()
+    
+    def __str__(self) -> str:
+        return "\n" + yaml.dump(self.toDict())
 
-    def __str__(items) -> str:
-        return "\n" + yaml.dump(items.toDict())
-
-    def toString(items) -> str:
+    def to_string(self, items) -> str:
+        """ Get string from items
+        """
         return "\n" + yaml.dump(items.toDict())
 
     def update_with_kwargs( self, kwargs ):
+        """ Add config to self
+        """
         for key,val in kwargs.items():
             self[key] = val

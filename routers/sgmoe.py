@@ -120,8 +120,8 @@ class SGMOERouter( router.Router ):
         # filtered_uids: (torch.LongTensor): keys filtered by emit.
         # all_uids.shape = [metagraph.n]
         current_block = metagraph.block
-        lastemit = metagraph.lastemit
-        staleness = (current_block - lastemit)
+        last_update = metagraph.last_update
+        staleness = (current_block - last_update)
         filtered_uids = all_uids[torch.where(staleness < self.config.stale_emit_filter)]
         n_filtered = torch.numel(filtered_uids)
 
