@@ -1,3 +1,4 @@
+""" An interface for serializing and deserializing bittensor tensors"""
 
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
@@ -15,7 +16,6 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
-""" An interface for serializing and deserializing bittensor tensors"""
 
 import torch
 import numpy as np
@@ -24,22 +24,19 @@ import bittensor
 from . import serializer_impl
 
 class serializer:
+    """ An interface for serializing and deserializing bittensor tensors"""
 
     class SerializationException (Exception):
         """ Raised during serialization """
-        pass
 
     class DeserializationException (Exception):
         """ Raised during deserialization """
-        pass
 
     class NoSerializerForEnum (Exception):
         """ Raised if there is no serializer for the passed type """
-        pass
 
     class SerializationTypeNotImplementedException (Exception):
         """ Raised if serialization/deserialization is not implemented for the passed object type """
-        pass
     
     def __new__(cls, serialzer_type: bittensor.proto.Serializer = bittensor.proto.Serializer.MSGPACK ) -> 'bittensor.Serializer':
         r"""Returns the correct serializer object for the passed Serializer enum. 

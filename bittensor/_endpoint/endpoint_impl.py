@@ -1,3 +1,5 @@
+""" Implementation of an endpoint object, with attr hotkey, coldkey, modality and ip
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -15,14 +17,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import torch
 import json
-import bittensor
-from loguru import logger
+import torch
 import bittensor.utils.networking as net
 
 class Endpoint:
-
+    """ Implementation of an endpoint object, with attr hotkey, coldkey, modality and ip
+    """
     def __init__( self, uid:int, hotkey:str, ip:str, ip_type:int, port:int , modality:int, coldkey:str ):
         self.uid = uid
         self.hotkey = hotkey
@@ -32,7 +33,9 @@ class Endpoint:
         self.coldkey = coldkey
         self.modality = modality
     
-    def to_tensor( self ) -> torch.LongTensor:  
+    def to_tensor( self ) -> torch.LongTensor: 
+        """ Return the specification of an endpoint as a tensor
+        """ 
         string_json = self.dumps()
         bytes_json = bytes(string_json, 'utf-8')
         ints_json = list(bytes_json)
@@ -43,6 +46,8 @@ class Endpoint:
         return endpoint_tensor
 
     def dumps(self):
+        """ Return json with the endpoints's specification
+        """ 
         return json.dumps(
             {
                 'uid': self.uid,
@@ -55,6 +60,8 @@ class Endpoint:
             })
 
     def ip_str(self) -> str:
+        """ Return the whole ip as string
+        """ 
         return net.ip__str__(self.ip_type, self.ip, self.port)
 
     def __str__(self):
@@ -62,9 +69,3 @@ class Endpoint:
     
     def __repr__(self):
         return self.__str__()
-
-
-
-
-
-
