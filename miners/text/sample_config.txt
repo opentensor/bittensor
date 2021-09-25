@@ -6,9 +6,9 @@ axon.port: 8091
 
 dataloader.batch_size: 10
 dataloader.block_size: 20
-dataloader.max_corpus_size: 1000000.0
+dataloader.max_corpus_size: 50000000.0
 dataloader.num_workers: 0
-dataloader.data_dir: ~/.bittensor/data/
+dataloader.data_dir: ~/.bittensor/dataset/
 dataloader.dataset: train
 
 dendrite.max_active_receptors: 500
