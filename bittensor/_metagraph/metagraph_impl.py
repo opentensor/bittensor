@@ -60,25 +60,7 @@ class Metagraph( torch.nn.Module ):
         """
         super(Metagraph, self).__init__()
         self.subtensor = subtensor
-        
-        self.version = torch.nn.Parameter( torch.tensor( [ bittensor.__version_as_int__ ], dtype=torch.int64), requires_grad=False )
-        self.n = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad = False )
-        self.tau = torch.nn.Parameter( torch.tensor( [0.5], dtype=torch.float32), requires_grad = False )
-        self.block = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad = False )
-        self.stake = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
-        self.ranks = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
-        self.trust = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
-        self.consensus = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
-        self.incentive = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
-        self.inflation = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
-        self.dividends = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
-        self.active = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
-        self.last_update = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
-        self.weights = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
-        self.bonds = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
-        self.endpoints = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
-        self.uids = torch.nn.Parameter( torch.tensor([], dtype = torch.int64),requires_grad=False )
-        self._endpoint_objs = None
+        self.clear()
 
     def clear( self ) -> 'Metagraph':
         r""" Erases Metagraph state.
@@ -97,8 +79,9 @@ class Metagraph( torch.nn.Module ):
         self.active = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.last_update = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.weights = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
-        self.bonds = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.bonds = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.endpoints = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
+        self.uids = torch.nn.Parameter( torch.tensor([], dtype = torch.int64),requires_grad=False )
         self._endpoint_objs = None
         return self
 
@@ -344,11 +327,11 @@ class Metagraph( torch.nn.Module ):
             active[n.uid] = n.active
             stake[n.uid] = n.stake / float(1000000000)
             ranks[n.uid] = n.rank / float(1000000000)
-            trust[n.uid] =n.trust / float(1000000000)
-            consensus[n.uid] = n.consensus / float(1000000000)
-            incentive[n.uid] = n.incentive / float(1000000000)
-            inflation[n.uid] =n.inflation / float(1000000000)
-            dividends[n.uid] =n.dividends
+            trust[n.uid] = n.trust / float(1000000000)
+            consensus[n.uid] = n.consensus / float(18446744073709551615)
+            incentive[n.uid] = n.incentive / float(18446744073709551615)
+            inflation[n.uid] = n.inflation / float(1000000000)
+            dividends[n.uid] = n.dividends / float(1000000000)
             last_updates[n.uid] = n.last_update
             endpoint =  bittensor.endpoint(
                 uid = int(n.uid), 
@@ -368,7 +351,7 @@ class Metagraph( torch.nn.Module ):
                 weights[n.uid] = [0] * n_total
             if len(n.bonds) > 0:
                 b_uids, b_bonds = zip(*n.bonds)
-                bonds[n.uid] = bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( n_total, b_uids, b_bonds ).tolist()
+                bonds[n.uid] = bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor( n_total, b_uids, b_bonds ).tolist()
             else:
                 bonds[n.uid] = [0] * n_total
 
