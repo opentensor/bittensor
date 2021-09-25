@@ -103,7 +103,7 @@ class Executor:
             # Make query and get response.
             if self.wallet.has_hotkey:
                 start_time = time.time()
-                result, code = self.dendrite.forward_text( endpoints = [endpoint], inputs = [torch.zeros((1,1), dtype=torch.int64)] )
+                _, code = self.dendrite.forward_text( endpoints = [endpoint], inputs = [torch.zeros((1,1), dtype=torch.int64)] )
                 end_time = time.time()
                 code_to_string = code_utils.code_to_string(code.item())
                 code_color = code_utils.code_to_color(code.item()) 
@@ -121,9 +121,9 @@ class Executor:
             stake = self.metagraph.S[ uid ].item()
             rank = self.metagraph.R[ uid ].item()
             incentive = self.metagraph.I[ uid ].item()
-            lastemit = int(self.metagraph.block - self.metagraph.lastemit[ uid ])
-            lastemit = "[bold green]" + str(lastemit) if lastemit < 3000 else "[bold red]" + str(lastemit)
-            row = [str(endpoint.uid), endpoint.ip + ':' + str(endpoint.port), '{:.5}'.format(stake),'{:.5}'.format(rank),  '{:.5}'.format(incentive * 14400), str(lastemit), query_time, code_str, endpoint.hotkey]
+            last_update = int(self.metagraph.block - self.metagraph.last_update[ uid ])
+            last_update = "[bold green]" + str(last_update) if last_update < 3000 else "[bold red]" + str(last_update)
+            row = [str(endpoint.uid), endpoint.ip + ':' + str(endpoint.port), '{:.5}'.format(stake),'{:.5}'.format(rank),  '{:.5}'.format(incentive * 14400), str(last_update), query_time, code_str, endpoint.hotkey]
             TABLE_DATA.append(row)
             total_stake += stake
             total_rank += rank
@@ -138,7 +138,6 @@ class Executor:
                 
         console = Console()
         table = Table(show_footer=False)
-        table_centered = Align.center(table)
         table.title = (
             "[bold white]Coldkey.pub:" + str(self.wallet.coldkeypub)
         )
@@ -147,7 +146,7 @@ class Executor:
         table.add_column("[overline white]STAKE (\u03C4)", str(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]RANK (\u03C4)", str(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]INCENTIVE (\u03C4/day)", str(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline white]LastEmit (blocks)", justify='right', no_wrap=True)
+        table.add_column("[overline white]LastUpdate (blocks)", justify='right', no_wrap=True)
         table.add_column("[overline white]Query (sec)", str(total_time), footer_style = "overline white", justify='right', no_wrap=True)
         table.add_column("[overline white]Query (code)", str(total_success), footer_style = "overline white", justify='right', no_wrap=True)
         table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)

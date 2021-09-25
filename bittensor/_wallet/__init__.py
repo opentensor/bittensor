@@ -1,3 +1,5 @@
+""" Create and init wallet that stores coldkey and hotkey
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -15,14 +17,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
 import argparse
 import copy
 
+import bittensor
 from . import wallet_impl
 
 class wallet:
-
+    """ Create and init wallet that stores hot and coldkey
+    """
     def __new__(
             cls, 
             config: 'bittensor.Config' = None,
@@ -42,7 +45,8 @@ class wallet:
                 path (required=False, default='~/.bittensor/wallets/'):
                     The path to your bittensor wallets
         """
-        if config == None: config = wallet.config()
+        if config == None: 
+            config = wallet.config()
         config = copy.deepcopy( config )
         config.wallet.name = name if name != None else config.wallet.name
         config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey
@@ -56,12 +60,17 @@ class wallet:
 
     @classmethod   
     def config(cls) -> 'bittensor.Config':
+        """ Get config from the argument parser
+        Return: bittensor.config object
+        """
         parser = argparse.ArgumentParser()
         wallet.add_args( parser )
         return bittensor.config( parser )
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
+        """ Accept specific arguments from parser
+        """
         try:
             parser.add_argument('--wallet.name',required=False, default='default', help='''The name of the wallet to unlock for running bittensor''')
             parser.add_argument('--wallet.hotkey', required=False, default='default', help='''The name of wallet's hotkey.''')
@@ -72,8 +81,9 @@ class wallet:
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
+        """ Check config for wallet name/hotkey/path
+        """
         assert 'wallet' in config
         assert isinstance(config.wallet.name, str)
         assert isinstance(config.wallet.hotkey, str)
         assert isinstance(config.wallet.path, str)
-
