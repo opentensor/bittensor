@@ -24,11 +24,12 @@ import bittensor
 from . import endpoint_impl
 
 class endpoint:
-    """ Create and init endpoint object, with attr hotkey, coldkey, modality and ip
+    """ Create and init neuron object, with attr hotkey, coldkey, modality and ip
     """
 
     def __new__( 
         cls, 
+        version: int,
         uid:int, 
         hotkey:str, 
         ip:str, 
@@ -37,13 +38,14 @@ class endpoint:
         modality:int, 
         coldkey:str 
     ) -> 'bittensor.Endpoint':
-        return endpoint_impl.Endpoint( uid, hotkey, ip, ip_type, port, modality, coldkey )
+        return endpoint_impl.Endpoint( version, uid, hotkey, ip, ip_type, port, modality, coldkey )
 
     @staticmethod
     def from_dict(endpoint_dict: dict) -> 'bittensor.Endpoint':
         """ Return an endpoint with spec from dictionary
         """
         return endpoint_impl.Endpoint(
+            version = endpoint_dict['version'],
             uid = endpoint_dict['uid'], 
             hotkey = endpoint_dict['hotkey'], 
             port = endpoint_dict['port'],

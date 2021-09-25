@@ -18,6 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+from sys import version
 
 from typing import List
 from tqdm import trange
@@ -334,6 +335,7 @@ class Metagraph( torch.nn.Module ):
             dividends[n.uid] = n.dividends / float(1000000000)
             last_updates[n.uid] = n.last_update
             endpoint =  bittensor.endpoint(
+                version = int(n.version),
                 uid = int(n.uid), 
                 hotkey = str(n.hotkey), 
                 ip_type = int(n.ip_type), 

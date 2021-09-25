@@ -1,3 +1,4 @@
+from sys import version
 import grpc
 import torch
 import bittensor
@@ -13,6 +14,7 @@ wallet.create_new_coldkey(use_password=False, overwrite = True)
 wallet.create_new_hotkey(use_password=False, overwrite = True)
 
 endpoint = bittensor.endpoint(
+    version = bittensor.__version_as_int__,
     uid = 0,
     ip = '0.0.0.0',
     ip_type = 4,

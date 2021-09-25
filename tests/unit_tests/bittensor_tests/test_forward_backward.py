@@ -1,3 +1,4 @@
+from sys import version
 from bittensor._endpoint import endpoint
 import bittensor
 import torch
@@ -11,6 +12,7 @@ dendrite = bittensor.dendrite()
 dendrite.receptor_pool.forward = MagicMock(return_value = [torch.tensor([]), [0]]) 
 dendrite.receptor_pool.backward = MagicMock(return_value = [torch.tensor([]), [0]]) 
 endpoint = bittensor.endpoint(
+    version = bittensor.__version_as_int__,
     uid = 0,
     hotkey = '',
     ip = '0.0.0.0', 

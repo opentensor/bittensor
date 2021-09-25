@@ -16,6 +16,7 @@ wallet.create_new_hotkey(use_password=False, overwrite = True)
 
 dendrite = bittensor.dendrite( wallet = wallet )
 neuron_obj = bittensor.endpoint(
+    version = bittensor.__version_as_int__,
     uid = 0,
     ip = '0.0.0.0',
     ip_type = 4,
@@ -138,6 +139,7 @@ def test_dendrite_forward_tensor():
 def test_dendrite_backoff():
     _dendrite = bittensor.dendrite( wallet = wallet )
     _endpoint_obj = bittensor.endpoint(
+        version = bittensor.__version_as_int__,
         uid = 0,
         ip = '0.0.0.0',
         ip_type = 4,
