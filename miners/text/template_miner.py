@@ -317,7 +317,7 @@ class Miner:
         parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
         parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template_miner')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
-        parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=1)
+        parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=10)
         parser.add_argument('--miner.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
 
         bittensor.add_args( parser )
