@@ -14,8 +14,8 @@ def test_run_template_config():
     def test_forward(cls,pubkey,inputs_x):
         return magic(pubkey,inputs_x)
     
-    PATH = str(pathlib.Path(__file__).parent.resolve()) + '/' + 'test_config.yml'
-    sys.argv = [sys.argv[0], '--miner.config',PATH]
+    PATH = '/tests/miners/text/test_config.yml'
+    sys.argv = [sys.argv[0], '--config', PATH]
     config = Miner.config()
     assert config['miner']['n_epochs'] == 1
     assert config['miner']['epoch_length'] == 2
