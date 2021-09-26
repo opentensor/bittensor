@@ -225,7 +225,12 @@ class Wallet():
             subtensor = bittensor.subtensor()
         return subtensor.transfer( wallet = self, amount = amount, dest = dest, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
 
-    def create(self) -> 'Wallet':
+    def create_if_non_existent( self ) -> 'Wallet':
+        """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+        """
+        return self.create()
+
+    def create( self ) -> 'Wallet':
         """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
         """
         # ---- Setup Wallet. ----
