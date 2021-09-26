@@ -30,7 +30,7 @@ def test_forward_not_implemented():
         version = bittensor.__version_as_int__,
         tensors=[inputs_serialized]
     )
-    response, code, message = axon._forward( request )
+    response, code, call_time, message = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.NotImplemented
 
 def test_forward_tensor_success():
@@ -44,7 +44,7 @@ def test_forward_tensor_success():
         version = bittensor.__version_as_int__,
         tensors=[inputs_serialized]
     )
-    response, code, message = axon._forward( request )
+    response, code, call_time, message = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_forward_empty_request():
@@ -57,7 +57,7 @@ def test_forward_empty_request():
         hotkey = axon.wallet.hotkey.public_key,
         tensors=[]
     )
-    response, code, message = axon._forward( request )
+    response, code, call_time, message = axon._forward( request )
     assert code ==  bittensor.proto.ReturnCode.EmptyRequest
 
 def test_forward_deserialization_error():
@@ -67,7 +67,7 @@ def test_forward_deserialization_error():
         hotkey = axon.wallet.hotkey.public_key,
         tensors=[ x ]
     )
-    response, code, message  = axon._forward( request )
+    response, code, call_time, message  = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.RequestDeserializationException
 
 def test_forward_text_shape_error():
@@ -79,7 +79,7 @@ def test_forward_text_shape_error():
         hotkey = axon.wallet.hotkey.public_key,
         tensors=[ inputs_serialized ]
     )
-    response, code, message  = axon._forward( request )
+    response, code, call_time, message  = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
 def test_forward_image_shape_error():
@@ -91,7 +91,7 @@ def test_forward_image_shape_error():
         hotkey = axon.wallet.hotkey.public_key,
         tensors=[ inputs_serialized ]
     )
-    response, code, message  = axon._forward( request )
+    response, code, call_time, message  = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
 def test_forward_tensor_shape_error():
@@ -103,7 +103,7 @@ def test_forward_tensor_shape_error():
         hotkey = axon.wallet.hotkey.public_key,
         tensors=[ inputs_serialized ]
     )
-    response, code, message  = axon._forward( request )
+    response, code, call_time, message  = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
 def test_forward_deserialization():
@@ -119,7 +119,7 @@ def test_forward_deserialization():
         hotkey = axon.wallet.hotkey.public_key,
         tensors=[inputs_serialized]
     )
-    response, code, message = axon._forward( request )
+    response, code, call_time, message = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.EmptyResponse
 
 def test_backward_invalid_request():
@@ -132,7 +132,7 @@ def test_backward_invalid_request():
         hotkey = axon.wallet.hotkey.public_key,
         tensors=[inputs_serialized]
     )
-    response, code, message = axon._backward( request )
+    response, code, call_time, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.InvalidRequest
 
 
@@ -144,7 +144,7 @@ def test_backward_deserialization_error():
         hotkey = axon.wallet.hotkey.public_key,
         tensors=[ x, g]
     )
-    response, code, message  = axon._backward( request )
+    response, code, call_time, message  = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.RequestDeserializationException
 
 
@@ -159,7 +159,7 @@ def test_backward_text_shape_error():
         hotkey = axon.wallet.hotkey.public_key,
         tensors=[ inputs_serialized, grads_serialized]
     )
-    response, code, message  = axon._backward( request )
+    response, code, call_time, message  = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
 def test_backward_image_shape_error():
@@ -173,7 +173,7 @@ def test_backward_image_shape_error():
         hotkey = axon.wallet.hotkey.public_key,
         tensors=[ inputs_serialized, grads_serialized]
     )
-    response, code, message  = axon._backward( request )
+    response, code, call_time, message  = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
 def test_backward_tensor_shape_error():
@@ -187,7 +187,7 @@ def test_backward_tensor_shape_error():
         hotkey = axon.wallet.hotkey.public_key,
         tensors=[ inputs_serialized, grads_serialized]
     )
-    response, code, message  = axon._backward( request )
+    response, code, call_time, message  = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
 
@@ -202,7 +202,7 @@ def test_backward_grad_inputs_shape_error():
         hotkey = axon.wallet.hotkey.public_key,
         tensors=[ inputs_serialized, grads_serialized]
     )
-    response, code, message = axon._backward( request )
+    response, code, call_time, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
 def test_backward_response_deserialization_error():
@@ -219,7 +219,7 @@ def test_backward_response_deserialization_error():
         hotkey = axon.wallet.hotkey.public_key,
         tensors=[ inputs_serialized, grads_serialized]
     )
-    response, code, message = axon._backward( request )
+    response, code, call_time, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.EmptyResponse
 
 def test_backward_response_success():
@@ -236,7 +236,7 @@ def test_backward_response_success():
         hotkey = axon.wallet.hotkey.public_key,
         tensors=[ inputs_serialized, grads_serialized]
     )
-    response, code, message = axon._backward( request )
+    response, code, call_time, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_grpc_forward_works():

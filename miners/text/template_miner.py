@@ -228,7 +228,7 @@ class Nucleus(nn.Module):
         endpoints = bittensor.neuron.metagraph.endpoints[ topk_uids ]
 
         # ---- Query network ----
-        responses, return_ops = bittensor.neuron.dendrite.forward_text (
+        responses, return_ops, query_times = bittensor.neuron.dendrite.forward_text (
             endpoints = endpoints,
             inputs = inputs
         )
