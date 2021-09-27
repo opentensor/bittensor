@@ -130,7 +130,7 @@ def main( config ):
             swarm_2_ip = '157.230.235.68'
             swarm_3_ip = '157.230.227.198'
             gpt2_ip = '134.122.119.130'
-            for i, e in enumerate(bittensor.neuron.metagraph.endpoint_objs):
+            for i, e in enumerate(metagraph.endpoint_objs):
                 if e.ip in [swarm_1_ip, swarm_2_ip, gpt2_ip]:
                     topk_uids.append(i)
 
@@ -155,11 +155,11 @@ def main( config ):
                 self.chain_weights[topk_uids[(return_ops != 0)]] -= config.nucleus.punishment
                 self.chain_weights[ self.chain_weights < -1 ] = -1 # lower bound for chain weights 
 
-            quested_peers = torch.zeros(bittensor.neuron.metagraph.n.item())
+            quested_peers = torch.zeros(metagraph.n.item())
             quested_peers[topk_uids] = 1
             self.logs.quested_peers_count += quested_peers
 
-            responded_peers = torch.zeros(bittensor.neuron.metagraph.n.item())
+            responded_peers = torch.zeros(metagraph.n.item())
             responded_peers[topk_uids[joining_uids]] = 1
             self.logs.reponded_peers_count += responded_peers
 
@@ -215,6 +215,7 @@ def main( config ):
             validator.logs = SimpleNamespace()
 
             # --- Training step.
+            print (block , subtensor.get_current_block())
             while block >= subtensor.get_current_block():
                 loss, _ = validator( next( dataset ) )
                 loss.backward()

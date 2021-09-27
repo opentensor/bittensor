@@ -43,6 +43,7 @@ nucleus.nhid: 200
 nucleus.nhead: 2
 nucleus.nlayers: 2
 nucleus.topk: 30
+nucleus.punishment: 0
 
 subtensor.chain_endpoint: null
 subtensor.network: akatsuki
