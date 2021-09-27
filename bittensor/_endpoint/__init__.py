@@ -23,6 +23,8 @@ import bittensor
 
 from . import endpoint_impl
 
+ENDPOINT_BUFFER_SIZE = 250
+
 class endpoint:
     """ Create and init neuron object, with attr hotkey, coldkey, modality and ip
     """
@@ -65,8 +67,8 @@ class endpoint:
                 raise ValueError(error_msg)
             tensor = tensor[0]
 
-        if tensor.shape[0] != 250:
-            error_msg = 'Endpoints tensor should be length 250, got {}'.format( tensor.shape[0] )
+        if tensor.shape[0] != ENDPOINT_BUFFER_SIZE:
+            error_msg = 'Endpoints tensor should be length {}, got {}'.format( tensor.shape[0], ENDPOINT_BUFFER_SIZE)
             raise ValueError(error_msg)
             
         endpoint_list = tensor.tolist()
