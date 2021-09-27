@@ -222,7 +222,6 @@ def main( config ):
         for block in progress:
             
             # --- Reset the epoch logs
-            validator.logs = SimpleNamespace()
             validator.logs.quested_peers_count = torch.zeros(0)
             validator.logs.responded_peers_count = torch.zeros(0)
 
@@ -254,8 +253,10 @@ def main( config ):
                 'stake': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green'),
                 'dividends': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green') 
             }
+            
             for weight, uid_j in list(zip(final_weights.tolist(), topk_uids.tolist())):
                 if weight > 0.001: info[ str(uid_j) ] = colored('{:.4f}'.format( weight ), 'green' if validator.chain_weights.grad[ uid_j ] < 0 else 'red')
+            
             progress.set_infos( info )
             
         # ---  Set mechanism weights.
