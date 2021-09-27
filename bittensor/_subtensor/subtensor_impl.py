@@ -220,7 +220,7 @@ To run a local node (See: docs/running_a_validator.md) \n
     def add_stake(
             self, 
             wallet: 'bittensor.wallet',
-            amount: Balance, 
+            amount: Union[Balance, int], 
             wait_for_inclusion: bool = False,
             wait_for_finalization: bool = False,
         ) -> bool:
@@ -229,7 +229,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             wallet (bittensor.wallet):
                 bittensor wallet object.
             amount (bittensor.utils.balance.Balance):
-                amount to stake as bittensor balance
+                amount to stake as bittensor balance, or int interpreted as rao.
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true, 
                 or returns false if the extrinsic fails to enter the block within the timeout.   
@@ -241,6 +241,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or uncluded in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
+        if isinstance(amount, int):
+            amount = bittensor.Balance( amount )
         with self.substrate as substrate:
             call = substrate.compose_call(
                 call_module='SubtensorModule', 
@@ -267,7 +269,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             self, 
             wallet: 'bittensor.wallet',
             dest:str, 
-            amount: Balance, 
+            amount: Union[Balance, int], 
             wait_for_inclusion: bool = False,
             wait_for_finalization: bool = False,
         ) -> bool:
@@ -278,7 +280,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             dest (str):
                 destination public key address of reciever. 
             amount (bittensor.utils.balance.Balance):
-                amount to stake as bittensor balance
+                amount to stake as bittensor balance, or int interpreted as rao.
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true, 
                 or returns false if the extrinsic fails to enter the block within the timeout.   
@@ -290,7 +292,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or uncluded in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
-        
+        if isinstance(amount, int):
+            amount = bittensor.Balance( amount )
         with self.substrate as substrate:
             call = substrate.compose_call(
                 call_module='Balances',
@@ -316,17 +319,16 @@ To run a local node (See: docs/running_a_validator.md) \n
     def unstake(
             self, 
             wallet: 'bittensor.wallet',
-            amount: Balance, 
+            amount: Union[Balance, int], 
             wait_for_inclusion:bool = False, 
-            wait_for_finalization:bool = False,
-            timeout: int = 3 * bittensor.__blocktime__,
+            wait_for_finalization:bool = False
         ) -> bool:
         r""" Removes stake into the wallet coldkey from the specified hotkey uid.
         Args:
             wallet (bittensor.wallet):
                 bittensor wallet object.
             amount (bittensor.utils.balance.Balance):
-                amount to stake as bittensor balance
+                amount to stake as bittensor balance, or int interpreted as rao.
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true, 
                 or returns false if the extrinsic fails to enter the block within the timeout.   
@@ -338,6 +340,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or uncluded in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
+        if isinstance(amount, int):
+            amount = bittensor.Balance( amount )
     
         with self.substrate as substrate:
             call = substrate.compose_call(
@@ -364,8 +368,8 @@ To run a local node (See: docs/running_a_validator.md) \n
     def set_weights(
             self, 
             wallet: 'bittensor.wallet',
-            uids: torch.LongTensor,
-            weights: torch.FloatTensor,
+            uids: Union[torch.LongTensor, list],
+            weights: Union[torch.FloatTensor, list],
             wait_for_inclusion:bool = False,
             wait_for_finalization:bool = False,
         ) -> bool:
@@ -373,9 +377,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         Args:
             wallet (bittensor.wallet):
                 bittensor wallet object.
-            uids (torch.LongTensor):
+            uids (Union[torch.LongTensor, list]):
                 uint64 uids of destination neurons.
-            weights (torch.FloatTensor):
+            weights ( Union[torch.FloatTensor, list]):
                 weights to set which must floats and correspond to the passed uids.
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true,
@@ -390,6 +394,10 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or uncluded in the block.
                 If we did not wait for finalization / inclusion, the response is true.
         """
+        if isinstance( uids, list ):
+            uids = torch.tensor( uids, dtype = torch.int64 )
+        if isinstance( weights, list ):
+            weights = torch.tensor( weights, dtype = torch.float32 )
         bittensor.logging.success( 'Setting weights', str(list(zip(uids.tolist(), weights.tolist()))))
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit( uids, weights )
         with self.substrate as substrate:
@@ -444,7 +452,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         with self.substrate as substrate:
             return substrate.get_block_number(None)
 
-    def get_balances(self, block: int = None) -> Dict[str, float]:
+    def get_balances(self, block: int = None) -> Dict[str, Balance]:
         with self.substrate as substrate:
             result = substrate.iterate_map (
                 module='System',
@@ -453,14 +461,14 @@ To run a local node (See: docs/running_a_validator.md) \n
             )
             return_dict = {}
             for r in result:
-                balance = float( r[1]['data']['free'] ) / float(1000000000)
+                balance = bittensor.Balance( int( r[1]['data']['free'] ) )
                 return_dict[r[0]] = balance
             return return_dict
 
-    def neurons(self, block: int = None) -> List[Tuple[int, dict]]: 
+    def neurons(self, block: int = None) -> List[SimpleNamespace]: 
         r""" Returns a list of neuron from the chain. 
         Returns:
-            neuron (List[Tuple[int, dict]]):
+            neuron (List[SimpleNamespace]):
                 List of neuron objects.
         """
         with self.substrate as substrate:
@@ -479,7 +487,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 result.append( n )
             return result
 
-    def neuron_for_uid( self, uid: int, block: int = None ) -> Union[ dict, None]: 
+    def neuron_for_uid( self, uid: int, block: int = None ) -> Union[ dict, None ]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             uid ( int ):

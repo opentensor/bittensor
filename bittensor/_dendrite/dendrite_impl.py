@@ -1,3 +1,5 @@
+""" Implementation of class dendrite, which quries endpoints with tensors.
+"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -15,13 +17,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from bittensor._endpoint import endpoint
-import torch
 from typing import Tuple, List, Union, Optional
-from torch.autograd.function import once_differentiable
-import bittensor
 
+import torch
+from torch.autograd.function import once_differentiable
 from loguru import logger
+
+import bittensor
+from bittensor._endpoint.endpoint_impl import Endpoint
+
 logger = logger.opt(colors=True)
 
 # dummy tensor that triggers autograd 
@@ -29,6 +33,8 @@ DUMMY = torch.empty(0, requires_grad=True)
 
 # Helper function for filling nill (zero) responses on failures.
 def nill_response_for(inputs):
+    """ Get zero matrix with the same size as inputs
+    """
     if torch.numel(inputs) == 0:
         return torch.tensor([])
     return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=torch.float32)
@@ -61,6 +67,7 @@ class Dendrite( torch.autograd.Function ):
                 receptor_pool (:obj:`bittensor.ReceptorPool`, `required`):
                     bittensor receptor pool
         """
+        super().__init__()
         self.config = config
         self.wallet = wallet
         self.receptor_pool = receptor_pool
@@ -177,46 +184,46 @@ class Dendrite( torch.autograd.Function ):
                 timeout: int = None,
                 requires_grad: bool = None
             ) -> Tuple[torch.LongTensor, List[torch.Tensor]]:
-            r""" Internal Forward tensor inputs to a list of neuron endpoints.
+        r""" Internal Forward tensor inputs to a list of neuron endpoints.
 
-                Args:
-                    endpoints (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
-                        List of remote endpoints which match length of inputs. Tensors from inputs are sent forward to these endpoints.
+            Args:
+                endpoints (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
+                    List of remote endpoints which match length of inputs. Tensors from inputs are sent forward to these endpoints.
 
-                    inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`, `required`):
-                        List of tensors to send to corresponsing endpoints. Tensors are of arbitrary type and shape depending on the
-                        modality.
+                inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`, `required`):
+                    List of tensors to send to corresponsing endpoints. Tensors are of arbitrary type and shape depending on the
+                    modality.
 
-                    modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
-                        Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
+                modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                    Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
 
-                    timeout (int, default = dendrite.timeout, `required`):
-                        request timeout.
+                timeout (int, default = dendrite.timeout, `required`):
+                    request timeout.
 
-                    requires_grad (int, default = dendrite.requires_grad, `optional`):
-                        If true, the backward pass triggers passing gradients on the wire.
+                requires_grad (int, default = dendrite.requires_grad, `optional`):
+                    If true, the backward pass triggers passing gradients on the wire.
 
-                Returns:
-                    codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_endpoints]`, `required`):
-                        dendrite call return codes.
+            Returns:
+                codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_endpoints]`, `required`):
+                    dendrite call return codes.
 
-                    responses (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                        Output encodings of inputs produced by the remote endpoints. Non-responses are zeroes of common shape.
-            """
-            timeout = timeout if timeout != None else self.config.dendrite.timeout 
-            requires_grad = requires_grad if requires_grad != None else self.config.dendrite.requires_grad 
-            forward_response = Dendrite.apply(
-                self,
-                DUMMY, 
-                endpoints, 
-                modality,
-                timeout,
-                requires_grad,
-                *inputs
-            )
-            codes = forward_response[0]
-            tensors = forward_response[1:]
-            return tensors, codes
+                responses (:obj:`List[torch.FloatTensor]` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
+                    Output encodings of inputs produced by the remote endpoints. Non-responses are zeroes of common shape.
+        """
+        timeout = timeout if timeout != None else self.config.dendrite.timeout 
+        requires_grad = requires_grad if requires_grad != None else self.config.dendrite.requires_grad 
+        forward_response = Dendrite.apply(
+            self,
+            DUMMY, 
+            endpoints, 
+            modality,
+            timeout,
+            requires_grad,
+            *inputs
+        )
+        codes = forward_response[0]
+        tensors = forward_response[1:]
+        return tensors, codes
 
     def forward_image(
         self, 
@@ -249,7 +256,7 @@ class Dendrite( torch.autograd.Function ):
                     dendrite call return ops.
         """
          # Check types.
-        if not isinstance(endpoints, list) and not isinstance(endpoints, bittensor._endpoint.endpoint_impl.Endpoint):
+        if not isinstance(endpoints, list) and not isinstance(endpoints, Endpoint):
             raise ValueError('endpoints must be of type list or bittensor.Endpoint. Got {}'.format(type(endpoints)))
 
         if not isinstance(inputs, list) and not isinstance(inputs, torch.FloatTensor):
@@ -281,7 +288,7 @@ class Dendrite( torch.autograd.Function ):
         # Check list types.
         if not isinstance(inputs[0], torch.FloatTensor):
             raise ValueError('inputs must be of type torch.FloatTensor. Got {}'.format(type(inputs[0])))
-        if not isinstance(endpoints[0], bittensor._endpoint.endpoint_impl.Endpoint):
+        if not isinstance(endpoints[0], Endpoint):
             raise ValueError('endpoints must be of type bittensor.Endpoint. Got {}'.format(type(endpoints)))
 
         # Check shape.
@@ -336,7 +343,7 @@ class Dendrite( torch.autograd.Function ):
                     dendrite call return ops.
         """
         # Check types.
-        if not isinstance(endpoints, list) and not isinstance(endpoints, bittensor._endpoint.endpoint_impl.Endpoint):
+        if not isinstance(endpoints, list) and not isinstance(endpoints, Endpoint):
             raise ValueError('endpoints must be of type list or bittensor.Endpoint. Got {}'.format(type(endpoints)))
 
         if not isinstance(inputs, list) and not isinstance(inputs, torch.FloatTensor):
@@ -368,7 +375,7 @@ class Dendrite( torch.autograd.Function ):
         # Check list types.
         if not isinstance(inputs[0], torch.FloatTensor):
             raise ValueError('inputs must be of type torch.FloatTensor. Got {}'.format(type(inputs[0])))
-        if not isinstance(endpoints[0], bittensor._endpoint.endpoint_impl.Endpoint):
+        if not isinstance(endpoints[0], Endpoint):
             raise ValueError('endpoints must be of type bittensor.Endpoint. Got {}'.format(type(endpoints)))
 
         # Check shape.
@@ -442,24 +449,24 @@ class Dendrite( torch.autograd.Function ):
         formatted_endpoints = []
 
         # <<Helper function>> optional casts and then checks shape of inputs.
-        def cast_and_check_tensor_input( input ) -> torch.LongTensor:
-            if not isinstance ( input, torch.LongTensor):
+        def cast_and_check_tensor_input( tensor_input ) -> torch.LongTensor:
+            if not isinstance ( tensor_input, torch.LongTensor):
                 try:
-                    input = input.to( torch.int64 )
+                    tensor_input = tensor_input.to( torch.int64 )
                 except Exception as E:
-                    error_msg = 'Error while casting tensor input {} to int64 {}'.format(input, E)
-                    raise ValueError(error_msg)
-            if not ( isinstance(input, torch.cuda.LongTensor) or isinstance(input, torch.LongTensor)) :
-                raise ValueError('input {} must be of type torch.LongTensor. Got {}'.format(input, type(input)))
+                    error_msg = 'Error while casting tensor input {} to int64 {}'.format(tensor_input, E)
+                    raise ValueError(error_msg) from ValueError()
+            if not ( isinstance(tensor_input, torch.cuda.LongTensor) or isinstance(tensor_input, torch.LongTensor)) :
+                raise ValueError('input {} must be of type torch.LongTensor. Got {}'.format(tensor_input, type(tensor_input)))
             # Expand shape if it is a singlular dimension.
-            if len( input.shape ) == 1:
-                input = input.view(1, -1)
+            if len( tensor_input.shape ) == 1:
+                tensor_input = tensor_input.view(1, -1)
 
             # Check shape.
-            if len( input.shape ) != 2:
+            if len( tensor_input.shape ) != 2:
                 error_msg = 'Text inputs should be rank 2 with semantic shape: [batch_size, sequence_len]'
                 raise ValueError(error_msg)
-            return input 
+            return tensor_input 
 
         # ---- Endpoints is singular.
         if isinstance( endpoints, bittensor.Endpoint ):
@@ -507,7 +514,7 @@ class Dendrite( torch.autograd.Function ):
         if isinstance( inputs, str ):
             # Encode to tensors.
             tokenizer = bittensor.tokenizer()
-            inputs_list = tokenizer.encode( inputs )
+            inputs_list = tokenizer( inputs )['input_ids']
             inputs_tensor = cast_and_check_tensor_input ( torch.tensor( [inputs_list], dtype=torch.int64 ) )
             # Expand to length.
             formatted_inputs = [ inputs_tensor for _ in formatted_endpoints ]
