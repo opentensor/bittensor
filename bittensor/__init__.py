@@ -21,7 +21,8 @@ from typing import Callable
 
 # Bittensor code and protocol version.
 __version__ = '1.5.0'
-__version_as_int__ = (100 * 1) + (10 * 5) + (1 * 0)  # Integer representation
+version_split = __version__.split(".")
+__version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 
 # Vocabulary dimension.
 #__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
