@@ -157,11 +157,18 @@ def main( config ):
 
             quested_peers = torch.zeros(metagraph.n.item())
             quested_peers[topk_uids] = 1
-            self.logs.quested_peers_count += quested_peers
-
+            
             responded_peers = torch.zeros(metagraph.n.item())
             responded_peers[topk_uids[joining_uids]] = 1
-            self.logs.reponded_peers_count += responded_peers
+            
+            if len(quested_peers) > len(self.logs.quested_peers_count):
+                fill = torch.zeros(len(quested_peers) - len(self.logs.quested_peers_count))
+                self.logs.quested_peers_count = torch.cat((self.logs.quested_peers_count, fill))
+                self.logs.responded_peers_count = torch.cat((self.logs.responded_peers_count, fill))
+
+            self.logs.quested_peers_count += quested_peers
+            self.logs.responded_peers_count += quested_peers
+        
 
             return output
 
