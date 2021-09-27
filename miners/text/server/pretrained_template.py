@@ -182,7 +182,7 @@ class server(torch.nn.Module):
         new_data = pad_sequence(new_data,batch_first=True)
         return new_data
     
-    def start(self,wallet,optimizer,mutex,metagraph):
+    def start(self,wallet,optimizer,mutex,metagraph, forward=None, backward=None,blacklist=None):
         r""" Starts the server and subscribes to the chain. 
             Args:
                 wallet ( :obj:`bittensor.wallet`, `required`):
@@ -197,8 +197,9 @@ class server(torch.nn.Module):
             self.optimizer = optimizer
             self.axon = bittensor.axon (
                             wallet = wallet,
-                            forward_text = self.forward_text,
-                            backward_text = self.backward_text,
+                            forward_text = forward if forward != None else self.forward_text,
+                            backward_text = backward if backward != None else self.backward_text,
+                            blacklist= blacklist if blacklist != None else self.blacklist,
                         )
             self.metagraph = metagraph
             self.threadpool = bittensor.prioritythreadpool(config=self.config)
@@ -263,6 +264,16 @@ class server(torch.nn.Module):
         except:
             raise TimeoutError('TimeOutError')
 
+    def blacklist(self,pubkey:str) -> bool:
+        r"""Axon security blacklisting, used to blacklist message from low stake members
+        Currently, this is not turned on.
+        """
+        uid =self.metagraph.hotkeys.index(pubkey)
+        if self.metagraph.S[uid].item() < self.config.server.blacklist:
+            return True
+        else:
+            return False
+
     def check(self):
         r"""Checks the server settings
         """
@@ -284,6 +295,7 @@ class server(torch.nn.Module):
         parser.add_argument('--server.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template_server')
         parser.add_argument('--server.checking', type=bool, help='To check if server settings are correct',default='True')
         parser.add_argument('--server.timeout', type=int, help='Number of seconds to wait for axon request', default=10)
+        parser.add_argument('--server.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
 
 
         bittensor.wallet.add_args( parser )
@@ -360,7 +372,7 @@ def main( config ):
             uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
             wandb_data = {
                 'Epoch': epoch,
-                'loss': epoch_loss/100,
+                'loss': epoch_loss/10,
                 'stake': metagraph.S[ uid ].item(),
                 'rank': metagraph.R[ uid ].item(),
                 'incentive': metagraph.I[ uid ].item(),
