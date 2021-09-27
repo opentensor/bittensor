@@ -122,7 +122,7 @@ def main( config ):
             topk_weights, topk_uids = torch.topk( self.chain_weights + noise, real_topk, dim=0 ) 
 
             # ---- Query network ----
-            responses, return_ops = dendrite.forward_text ( 
+            responses, return_ops, query_times = dendrite.forward_text ( 
                 endpoints = metagraph.endpoints[ topk_uids ], 
                 inputs = inputs
             )

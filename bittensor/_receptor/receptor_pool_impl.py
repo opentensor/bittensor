@@ -54,7 +54,7 @@ class ReceptorPool ( torch.nn.Module ):
             inputs: List[torch.Tensor],
             modality: bittensor.proto.Modality,
             timeout: int
-        ) -> Tuple[List[torch.Tensor], List[int]]:
+        ) -> Tuple[List[torch.Tensor], List[int], List[float]]:
         r""" Forward tensor inputs to endpoints.
 
             Args:
@@ -75,14 +75,18 @@ class ReceptorPool ( torch.nn.Module ):
                 forward_outputs (:obj:`List[torch.FloatTensor]` of shape :obj:`num_endpoints * (batch_size, sequence_len, bittensor.network_size)]`, `required`):
                     Output encodings of tensors produced by remote endpoints. Non-responses are zeroes of common shape.
 
-                forwad_codes (:obj:`List[bittensor.proto.ReturnCodes]` of shape :obj:`(num_endpoints)`, `required`):
+                forward_codes (:obj:`List[bittensor.proto.ReturnCodes]` of shape :obj:`(num_endpoints)`, `required`):
                     dendrite backward call return ops.
+
+                forward_times (:obj:`List[float]` of shape :obj:`(num_endpoints)`, `required`):
+                    dendrite backward call times
         """
         if len(endpoints) != len(inputs):
             raise ValueError('Endpoints must have the same length as passed inputs. Got {} and {}'.format(len(endpoints), len(inputs)))
         # ---- Run threaded calls with executor ----
         forward_outputs = []
         forward_codes = []
+        forward_times = []
         
         # --- Create calls ----
         def _call_receptor_forward_with_args( receptor, inputs, modality ):
@@ -97,12 +101,13 @@ class ReceptorPool ( torch.nn.Module ):
         for result in self.thread_pool.map( lambda args: _call_receptor_forward_with_args(*args), call_args ):
             forward_outputs.append( result[0] )
             forward_codes.append( result[1] )
+            forward_times.append( result[2] )
 
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
         
         # ---- Return ----
-        return forward_outputs, forward_codes
+        return forward_outputs, forward_codes, forward_times
 
     def backward(
                 self, 
@@ -111,7 +116,7 @@ class ReceptorPool ( torch.nn.Module ):
                 grads_dy: List[torch.Tensor],
                 modality: bittensor.proto.Modality,
                 timeout: int
-            ) -> Tuple[List[torch.Tensor], List[int]]:
+            ) -> Tuple[List[torch.Tensor], List[int], List[float]]:
         r""" Backward tensor inputs to endpoints.
 
             Args:
@@ -135,8 +140,11 @@ class ReceptorPool ( torch.nn.Module ):
                 backward_outputs (:obj:`List[torch.FloatTensor]` of shape :obj:`num_endpoints * (batch_size, sequence_len, -1)]`, `required`):
                     gradients of returned from backward call.
 
-                backward_codes (:obj:`torch.LongTensor` of shape :obj:`(num_endpoints)`, `required`):
+                backward_codes (:obj:`List[bittensor.proto.ReturnCodes]` of shape :obj:`(num_endpoints)`, `required`):
                     dendrite call return ops.
+
+                backward_times (:obj:`List[float]` of shape :obj:`(num_endpoints)`, `required`):
+                    dendrite call times.
         """
         if len(endpoints) != len(inputs_x):
             raise ValueError('Endpoints and inputs must have the same length. Got {} and {}'.format(len(endpoints), len(inputs_x)))
@@ -144,7 +152,8 @@ class ReceptorPool ( torch.nn.Module ):
         # ---- Run threaded calls with executor ----
         backward_outputs = []
         backward_codes = []
-        
+        backward_times = []
+
         # --- Create calls ----
         def _call_receptor_backward_with_args( receptor, inputs_x, grads_dy , modality ):
             return receptor.backward( inputs_x = inputs_x, grads_dy = grads_dy, modality = modality, timeout = timeout )
@@ -158,12 +167,13 @@ class ReceptorPool ( torch.nn.Module ):
         for result in self.thread_pool.map( lambda args: _call_receptor_backward_with_args(*args), call_args ):
             backward_outputs.append( result[0] )
             backward_codes.append( result[1] )
+            backward_times.append( result[2] )
 
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
         
         # ---- Return ----
-        return backward_outputs, backward_codes
+        return backward_outputs, backward_codes, backward_times
 
     def _destroy_receptors_over_max_allowed( self ):
         r""" Destroys receptors based on QPS until there are no more than max_active_receptors.
