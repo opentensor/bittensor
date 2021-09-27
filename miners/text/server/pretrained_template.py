@@ -258,7 +258,7 @@ class server(torch.nn.Module):
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """ 
-
+        import pdb; pdb. set_trace()
         return self.encode_forward( inputs_x.to(self.device) )
 
     # Define our backward function.
