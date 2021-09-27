@@ -90,7 +90,6 @@ class server(torch.nn.Module):
         elif self.pretrained == False:
             config = AutoConfig.from_pretrained(self.model_name)
             config.vocab_size= bittensor.__vocab_size__
-            config.hidden_size = bittensor.__network_dim__
             self.pre_model = model if model != None else AutoModel.from_config(config)
             self.tokenizer = bittensor.tokenizer()
 
