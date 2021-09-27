@@ -348,7 +348,6 @@ class Miner:
                     hot_pubkey = self.neuron.wallet.hotkey.public_key,
                     root_dir = self.neuron.root_dir
                 )
-                wandb.watch([self.nucleus.local_hidden, self.nucleus.local_encoder], self.nucleus.loss_fct, log ='all', log_freq=500 )
 
 
             # ---- Init run state ----

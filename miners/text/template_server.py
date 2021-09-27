@@ -29,18 +29,7 @@ import wandb
 import datetime
 from qqdm import qqdm
 from transformers import BertModel, BertConfig
-
-def config ():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=1)
-    parser.add_argument('--miner.momentum', type=float, help='optimizer momentum.', default=0.8)
-    parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
-    parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
-    bittensor.wallet.add_args( parser )
-    bittensor.axon.add_args( parser )
-    bittensor.subtensor.add_args( parser )
-    bittensor.logging.add_args( parser )
-    return bittensor.config( parser )
+from server.pretrained_template import server
 
 def main( config ):
     print (config)
@@ -58,33 +47,15 @@ def main( config ):
 
     # Instantiate the model we are going to serve on the network.
     # Miner training device.
-    device = torch.device( device = config.miner.device)
-    model = BertModel( 
-        BertConfig (
-            vocab_size = bittensor.__vocab_size__,
-            hidden_size = bittensor.__network_dim__,
-            num_hidden_layers = 8,
-            num_attention_heads = 8,
-            intermediate_size = 3072,
-            hidden_act = "gelu",
-            hidden_dropout_prob = 0.1,
-            attention_probs_dropout_prob = 0.1,
-            max_position_embeddings = 512,
-            type_vocab_size = 2,
-            initializer_range = 0.02,
-            layer_norm_eps = 1e-12,
-            pad_token_id = 0,
-            gradient_checkpointing = False,
-            position_embedding_type = "absolute",
-            use_cache = True,
-        )
-    ).to( device )
+    device = torch.device( device = config.server.device)
+    model = server(config=config,model_name='bert-base-uncased',pretrained=False)
+
 
     # Create our optimizer.
     optimizer = torch.optim.SGD(
         [ {"params": model.parameters()} ],
-        lr = config.miner.learning_rate,
-        momentum = config.miner.momentum,
+        lr = config.server.learning_rate,
+        momentum = config.server.momentum,
     )
 
     # Define our forward function.
@@ -134,4 +105,4 @@ def main( config ):
             time.sleep( 10 * bittensor.__blocktime__ )
 
 if __name__ == "__main__":
-    main( config() )
+    main( server.config() )

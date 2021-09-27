@@ -31,7 +31,7 @@ import time
 import wandb
 import datetime
 from qqdm import qqdm
-from transformers import AutoModel,AutoTokenizer
+from transformers import AutoModel,AutoTokenizer,AutoConfig
 from torch.nn.utils import clip_grad_norm_
 from torch.nn.utils.rnn import pad_sequence
 from threading import Thread, Lock
@@ -42,7 +42,8 @@ import torch.nn.functional as F
 class server(torch.nn.Module):
     def __init__(self, 
                 config: 'bittensor.config' = None,
-                pretrained: str = None,
+                pretrained: bool = None,
+                model_name: str = None,
                 padding: bool =None, 
                 interpolate: bool =None,
                 inter_degree: str = None,
@@ -55,7 +56,9 @@ class server(torch.nn.Module):
         Args:
                 config (:obj:`bittensor.Config`, `required`): 
                     bittensor.server.config()
-                pretrained (:obj:string , `optional`):
+                pretrained (:obj:bool , `optional`):
+                    if the model should pretrained or not
+                model_name (:obj:string , `optional`):
                     name of the pretrained model from huggingface to use
                 padding (:obj:bool, `optional`):
                     If the server should pad out to match the hidden units that the bittensor network is using
@@ -79,9 +82,14 @@ class server(torch.nn.Module):
         self.config = config;print(config)
         
         #setting up pretrained model
+        self.model_name = model_name if model_name != None else config.server.model_name
         self.pretrained = pretrained if pretrained != None else config.server.pretrained
-        self.pre_model = model if model != None else AutoModel.from_pretrained(self.pretrained)
-        self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.pretrained)
+        if self.pretrained == True:
+            self.pre_model = model if model != None else AutoModel.from_pretrained(self.model_name)
+            self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name)
+        elif self.pretrained == False:
+            self.pre_model = model if model != None else AutoModel.from_config(AutoConfig.from_pretrained(self.model_name))
+            self.tokenizer = bittensor.tokenizer()
 
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
@@ -103,7 +111,7 @@ class server(torch.nn.Module):
         self.loss_fct = torch.nn.CrossEntropyLoss()
         
         #checking if the parameters of the server makes sense
-        if self.checking:
+        if self.checking and pretrained == True:
             self.check()
         
         
@@ -182,7 +190,7 @@ class server(torch.nn.Module):
         new_data = pad_sequence(new_data,batch_first=True)
         return new_data
     
-    def start(self,wallet,optimizer,mutex,metagraph, forward=None, backward=None,blacklist=None):
+    def start(self,wallet,optimizer,metagraph,mutex=None, forward=None, backward=None,blacklist=None, single_thread= False):
         r""" Starts the server and subscribes to the chain. 
             Args:
                 wallet ( :obj:`bittensor.wallet`, `required`):
@@ -195,14 +203,24 @@ class server(torch.nn.Module):
         else:
             self.mutex = mutex
             self.optimizer = optimizer
-            self.axon = bittensor.axon (
-                            wallet = wallet,
-                            forward_text = forward if forward != None else self.forward_text,
-                            backward_text = backward if backward != None else self.backward_text,
-                            blacklist= blacklist if blacklist != None else self.blacklist,
-                        )
+            if single_thread == False:
+                self.axon = bittensor.axon (
+                                wallet = wallet,
+                                forward_text = forward if forward != None else self.forward_text,
+                                backward_text = backward if backward != None else self.backward_text,
+                                blacklist= blacklist if blacklist != None else self.blacklist,
+                            )
+                self.threadpool = bittensor.prioritythreadpool(config=self.config)
+
+            elif single_thread == True:
+                self.axon = bittensor.axon (
+                                wallet = wallet,
+                                forward_text = forward if forward != None else self.forward_text,
+                                backward_text = backward if backward != None else self.backward_text,
+                                blacklist= blacklist if blacklist != None else self.blacklist,
+                            )
+
             self.metagraph = metagraph
-            self.threadpool = bittensor.prioritythreadpool(config=self.config)
             self.axon.start().subscribe()
 
     # Define our forward function.
@@ -228,6 +246,21 @@ class server(torch.nn.Module):
         except:
             raise TimeoutError('TimeOutError')
 
+    # Define our forward function.
+    def forward_text_single (self, pubkey, inputs_x ):
+        r""" Single threaded version of the Forward function that is called when the axon recieves a forward request from other peers
+            Args:
+                pubkey ( str, `required`):
+                    The public key of the caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+
+            Returns:
+                outputs (:obj:`torch.FloatTensor`):
+                    The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
+        """ 
+
+        return self.encode_forward( inputs_x )
 
     # Define our backward function.
     def backward_text (self, pubkey:str, inputs_x, grads_dy ):
@@ -242,9 +275,6 @@ class server(torch.nn.Module):
                 grads_dy ( :obj:`torch.Tensor`, `required`):
                     torch grads of forward output.
                     
-            Returns:
-                outputs (:obj:`torch.FloatTensor`, `optional`):
-                    The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
         """
         def call(input,grad):
             with torch.enable_grad():
@@ -288,7 +318,8 @@ class server(torch.nn.Module):
         parser.add_argument('--server.momentum', type=float, help='optimizer momentum.', default=0.8)
         parser.add_argument('--server.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
         parser.add_argument('--server.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
-        parser.add_argument('--server.pretrained', type=str, help='pretrained model from hugging face',default='gpt2')
+        parser.add_argument('--server.model_name', type=str, help='pretrained model from hugging face',default='gpt2')
+        parser.add_argument('--server.pretrained', type=bool, help='if the model should be pretrained',default='True')
         parser.add_argument('--server.padding', type=bool, help='To pad out final dimensions',default='True')
         parser.add_argument('--server.interpolate', type=bool, help='To interpolate between sentence length',default='True')
         parser.add_argument('--server.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
