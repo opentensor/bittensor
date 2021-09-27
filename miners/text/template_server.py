@@ -58,27 +58,13 @@ def main( config ):
         momentum = config.server.momentum,
     )
 
-    # Define our forward function.
-    def forward_text ( pubkey, inputs_x, modality ):
-        return model( inputs_x.to(device) ).last_hidden_state
-
-    # Define our backward function.
-    def backward_text ( pubkey:str, inputs_x, grads_dy, modality ):
-        with torch.enable_grad():
-            outputs_y = model( inputs_x.to(device) ).last_hidden_state
-            torch.autograd.backward (
-                tensors = [ outputs_y.to(device) ],
-                grad_tensors = [ grads_dy.to(device) ]
-            )
-            optimizer.step() # Applies accumulated gradients.
-            optimizer.zero_grad() 
-
     # Create our axon server and subscribe it to the network.
-    axon = bittensor.axon (
+    axon = model.start(
         wallet = wallet,
-        forward_text = forward_text,
-        backward_text = backward_text,
-    ).start().subscribe()
+        optimizer= optimizer,
+        metagraph=metagraph,
+        single_thread = True
+    )
 
     # --- Init Wandb.
     with wandb.init (

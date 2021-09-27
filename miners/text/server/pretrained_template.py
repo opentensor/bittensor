@@ -190,7 +190,7 @@ class server(torch.nn.Module):
         new_data = pad_sequence(new_data,batch_first=True)
         return new_data
     
-    def start(self,wallet,optimizer,metagraph,mutex=None, forward=None, backward=None,blacklist=None, single_thread= False):
+    def start(self,wallet=None,optimizer=None,metagraph=None,mutex=None, forward=None, backward=None,blacklist=None, single_thread= False):
         r""" Starts the server and subscribes to the chain. 
             Args:
                 wallet ( :obj:`bittensor.wallet`, `required`):
@@ -215,8 +215,8 @@ class server(torch.nn.Module):
             elif single_thread == True:
                 self.axon = bittensor.axon (
                                 wallet = wallet,
-                                forward_text = forward if forward != None else self.forward_text,
-                                backward_text = backward if backward != None else self.backward_text,
+                                forward_text = forward if forward != None else self.forward_text_single,
+                                backward_text = backward if backward != None else self.backward_text_single,
                                 blacklist= blacklist if blacklist != None else self.blacklist,
                             )
 
@@ -246,7 +246,6 @@ class server(torch.nn.Module):
         except:
             raise TimeoutError('TimeOutError')
 
-    # Define our forward function.
     def forward_text_single (self, pubkey, inputs_x ):
         r""" Single threaded version of the Forward function that is called when the axon recieves a forward request from other peers
             Args:
@@ -260,7 +259,7 @@ class server(torch.nn.Module):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """ 
 
-        return self.encode_forward( inputs_x )
+        return self.encode_forward( inputs_x.to(self.device) )
 
     # Define our backward function.
     def backward_text (self, pubkey:str, inputs_x, grads_dy ):
@@ -293,6 +292,29 @@ class server(torch.nn.Module):
             return future.result(timeout= self.config.server.timeout)
         except:
             raise TimeoutError('TimeOutError')
+
+    def backward_text_single (self, pubkey:str, inputs_x, grads_dy ):
+        r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
+            Updates the server parameters with gradients through the chain.
+
+            Args:
+                pubkey ( str, `required`):
+                    The public key of the caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs from previous forward call.
+                grads_dy ( :obj:`torch.Tensor`, `required`):
+                    torch grads of forward output.
+                    
+        """
+        with torch.enable_grad():
+            with torch.autograd.set_detect_anomaly(True):
+                outputs_y = self.encode_forward( inputs_x.to(self.device) )
+                torch.autograd.backward (
+                    tensors = [ outputs_y ],
+                    grad_tensors = [ grads_dy.to(self.device) ]
+                    )
+                self.optimizer.step()
+                self.optimizer.zero_grad()
 
     def blacklist(self,pubkey:str) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
@@ -364,7 +386,7 @@ def main( config ):
     )
 
     # Create our axon server and subscribe it to the network.
-    gp_server.start(wallet,optimizer,metagraph, mutex=mutex)
+    gp_server.start(wallet=wallet,optimizer=optimizer,metagraph=metagraph, mutex=mutex)
     
 
     # Training Data
