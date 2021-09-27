@@ -139,7 +139,7 @@ def test_dendrite_backoff():
     _dendrite = bittensor.dendrite( wallet = wallet )
     _endpoint_obj = bittensor.endpoint(
         uid = 0,
-        ip = '1.1.1.1',
+        ip = '0.0.0.0',
         ip_type = 4,
         port = 12345,
         hotkey = _dendrite.wallet.hotkey.public_key,
