@@ -186,7 +186,8 @@ def main( config ):
             wandb.log( wandb_data )
             logger.info(wandb_data)
             chain_weights[uid] = 1 
-
+            gp_server.save(full_path)
+            gp_server.load(full_path)
             try: 
                 did_set = subtensor.timeout_set_weights(
                     timeout=10,

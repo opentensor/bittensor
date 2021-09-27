@@ -169,6 +169,32 @@ class server(torch.nn.Module):
         if self.interpolate == False:
             assert self.mapping_function != None, 'Incorrect Settings; needs atleast one mapping function for sequence length changes'
 
+    def save(self, path):
+        try:
+            state_dict = {
+                'model': self.pretrained,
+                'pretrained_model': self.nucleus.state_dict(), # Save nucleus state.
+                'decoder': self.decoder.state_dict()
+            }
+            if self.padding == False:
+                state_dict['mapping'] = self.mapping.state_dict()
+            torch.save( state_dict, "{}/model.torch".format( path) )
+            bittensor.logging.success(prefix='Saved model', sufix='<blue>{}/model.torch</blue>'.format( path ) )
+        except Exception as e:
+            logger.exception('Failed to save model with error:{}', e)
+
+    def load(self, path):
+        try:
+            state_dict=  torch.load("{}/model.torch".format( path ))
+            if self.pretrained == state_dict['model']:
+                self.pre_model.load_state_dict(state_dict['pretrained_model'], strict=False)
+                self.decoder.load_state_dict(state_dict['decoder'])
+                if self.padding == False:
+                    self.mapping.load_state_dict(state_dict['mapping'])
+
+        except Exception as e:
+            logger.warning('No saved model found with error: {}', e)
+
     @staticmethod
     def config ():
         parser = argparse.ArgumentParser()
@@ -195,3 +221,4 @@ class server(torch.nn.Module):
         bittensor.prioritythreadpool.add_args( parser )
 
         return bittensor.config( parser )
+    
