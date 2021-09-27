@@ -88,9 +88,9 @@ class server(torch.nn.Module):
             self.pre_model = model if model != None else AutoModel.from_pretrained(self.model_name)
             self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name)
         elif self.pretrained == False:
-            config = AutoConfig.from_pretrained(self.model_name)
-            config.vocab_size= bittensor.__vocab_size__
-            self.pre_model = model if model != None else AutoModel.from_config(config)
+            model_config = AutoConfig.from_pretrained(self.model_name)
+            model_config.vocab_size= bittensor.__vocab_size__
+            self.pre_model = model if model != None else AutoModel.from_config(model_config)
             self.tokenizer = bittensor.tokenizer()
 
         #parameters of the models

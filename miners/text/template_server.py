@@ -32,7 +32,6 @@ from transformers import BertModel, BertConfig
 from server.pretrained_template import server
 
 def main( config ):
-    print (config)
 
     # Init bittensor logging.
     bittensor.logging( config = config )
