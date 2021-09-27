@@ -182,7 +182,7 @@ def main( config ):
                 'rank': metagraph.R[ uid ].item(),
                 'incentive': metagraph.I[ uid ].item(),
             } 
-            gp_server.metagraph.sync().save()
+            metagraph.sync().save()
             wandb.log( wandb_data )
             logger.info(wandb_data)
             chain_weights[uid] = 1 
@@ -200,7 +200,7 @@ def main( config ):
 
     except KeyboardInterrupt:
         # --- User ended session ----
-        gp_server.axon.stop()
+        axon.stop()
 
 
 if __name__ == "__main__":
