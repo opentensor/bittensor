@@ -47,7 +47,6 @@ def main( config ):
 
     # Instantiate the model we are going to serve on the network.
     # Miner training device.
-    device = torch.device( device = config.server.device)
     model = server(config=config,model_name='bert-base-uncased',pretrained=False)
 
 
@@ -59,7 +58,7 @@ def main( config ):
     )
 
     # Create our axon server and subscribe it to the network.
-    axon = model.start(
+    model.start(
         wallet = wallet,
         optimizer= optimizer,
         metagraph=metagraph,
@@ -72,7 +71,6 @@ def main( config ):
             name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
             project = wallet.coldkeypub[:8],
             group = wallet.hotkey.ss58_address[:8],
-            save_code = True
         ):
 
         # --- Run Forever.
@@ -83,7 +81,7 @@ def main( config ):
                 'stake': metagraph.S[ uid ].item(),
                 'rank': metagraph.R[ uid ].item(),
                 'incentive': metagraph.I[ uid ].item(),
-                'axon QPS': axon.stats.qps.value
+                'axon QPS': model.axon.stats.qps.value
             } 
             for uid_i, val in enumerate(metagraph.W[:,uid].tolist()):
                 wandb_data[ 'w_{},{}'.format(uid_i, uid) ] = val
