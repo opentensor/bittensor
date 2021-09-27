@@ -173,7 +173,7 @@ class server(torch.nn.Module):
         try:
             state_dict = {
                 'model': self.pretrained,
-                'pretrained_model': self.nucleus.state_dict(), # Save nucleus state.
+                'pretrained_model': self.pre_model.state_dict(), 
                 'decoder': self.decoder.state_dict()
             }
             if self.padding == False:
