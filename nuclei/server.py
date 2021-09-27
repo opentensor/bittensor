@@ -192,6 +192,9 @@ class server(torch.nn.Module):
                 if self.padding == False:
                     self.mapping.load_state_dict(state_dict['mapping'])
 
+                bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( path ))
+
+
         except Exception as e:
             logger.warning('No saved model found with error: {}', e)
 

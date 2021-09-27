@@ -83,9 +83,6 @@ message TensorMessage {
 
 	// Message associated with return code.
 	string message = 7; 
-
-	// Uid of caller
-	int32 uid = 8;
 }
 
 // Return codes from Backward and Forward call.

@@ -215,7 +215,7 @@ class logging:
         """
         extra = record['extra']
         if 'rpc' in extra:
-            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[inputs]} | uid:{extra[uid]} | {extra[key_str]} | {extra[rpc_message]} \n"
+            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[inputs]} | {extra[key_str]} | {extra[rpc_message]} \n"
             return log_format
         if 'receptor' in extra:
             log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
@@ -236,7 +236,7 @@ class logging:
             return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | {message}\n"
 
     @classmethod
-    def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs:list = None, outputs:list = None, message:str = '', uid:int = -1):
+    def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs:list = None, outputs:list = None, message:str = ''):
         """ Debug logging for the communication between endpoints with axon/dendrite 
         """
 
@@ -271,7 +271,7 @@ class logging:
 
         rpc_message = message if message != None else 'None'
 
-        logger.debug( 'rpc', rpc=True, prefix=prefix, direction=direction, arrow=arrow,uid=str(uid).center(4), key_str=key_str, code_str=code_str, inputs = inputs, rpc_message = rpc_message)
+        logger.debug( 'rpc', rpc=True, prefix=prefix, direction=direction, arrow=arrow, key_str=key_str, code_str=code_str, inputs = inputs, rpc_message = rpc_message)
 
 
     @classmethod
