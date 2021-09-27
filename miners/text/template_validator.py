@@ -193,7 +193,10 @@ def main( config ):
     global_step = 0
     best_loss = math.inf
     while True:
-        
+
+        total_epoch_loss = math.inf
+        batch_count = 0
+    
         # --- Sync + reshape.      
         metagraph.sync().save()
         chain_growth = metagraph.n.item() - torch.numel( validator.chain_weights )
@@ -205,7 +208,7 @@ def main( config ):
         )
 
         # --- Run epoch.
-        start_block = subtensor.get_current_block()
+        start_block = subtensor.get_current_block() + 1
         end_block = start_block + config.miner.blocks_per_epoch
         blocks = [ block for block in range(start_block, end_block) ]
         progress = qqdm( blocks, total=len(blocks), desc=format_str('white', f'Epoch'))
@@ -213,9 +216,10 @@ def main( config ):
             
             # --- Reset the epoch logs
             validator.logs = SimpleNamespace()
+            validator.logs.quested_peers_count = torch.zeros(0)
+            validator.logs.responded_peers_count = torch.zeros(0)
 
             # --- Training step.
-            print (block , subtensor.get_current_block())
             while block >= subtensor.get_current_block():
                 loss, _ = validator( next( dataset ) )
                 loss.backward()
@@ -223,6 +227,8 @@ def main( config ):
                 optimizer.step()
                 optimizer.zero_grad() 
                 global_step += 1
+                batch_count += 0
+                total_epoch_loss += loss.item()
 
             # Take topk chain weights.
             real_topk = min( config.miner.n_topk_chain_weights, metagraph.n.item() ) 
