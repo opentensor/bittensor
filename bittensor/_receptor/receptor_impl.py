@@ -389,8 +389,9 @@ class Receptor(nn.Module):
         # ---- Return ----
         code = response.return_code
         message = response_message
-        bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=list(outputs.shape), message=None)
-        return outputs, code, message
+        call_time = clock.time() - start_time
+        bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=list(outputs.shape), message=None)
+        return outputs, code, call_time, message
 
     def _call_backward(
             self,
