@@ -75,7 +75,8 @@ def main( config ):
                 optimizer.zero_grad()
 
     # Create our axon server and subscribe it to the network.
-    axon = bittensor.axon (optimizer= optimizer,
+    axon = bittensor.axon (
+        wallet = wallet,
         forward_text = forward_text,
         backward_text = backward_text,
     ).start().subscribe()
