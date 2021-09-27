@@ -364,7 +364,7 @@ def main( config ):
     )
 
     # Create our axon server and subscribe it to the network.
-    gp_server.start(wallet,optimizer,mutex,metagraph)
+    gp_server.start(wallet,optimizer,metagraph, mutex=mutex)
     
 
     # Training Data
