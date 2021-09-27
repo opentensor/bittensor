@@ -29,6 +29,9 @@ import bittensor
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
 
+RAOPERTAO = 18446744073709551615
+U64MAX = 18446744073709551615
+
 class Metagraph( torch.nn.Module ):
     r""" Maintains chain state as a torch.nn.Module.
 
@@ -325,13 +328,13 @@ class Metagraph( torch.nn.Module ):
         for n in neurons:
             uids[n.uid] = n.uid 
             active[n.uid] = n.active
-            stake[n.uid] = n.stake / float(1000000000)
-            ranks[n.uid] = n.rank / float(1000000000)
-            trust[n.uid] = n.trust / float(1000000000)
-            consensus[n.uid] = n.consensus / float(18446744073709551615)
-            incentive[n.uid] = n.incentive / float(18446744073709551615)
-            inflation[n.uid] = n.inflation / float(1000000000)
-            dividends[n.uid] = n.dividends / float(1000000000)
+            stake[n.uid] = n.stake / float(RAOPERTAO)
+            ranks[n.uid] = n.rank / float(RAOPERTAO)
+            trust[n.uid] = n.trust / float(RAOPERTAO)
+            consensus[n.uid] = n.consensus / float(U64MAX)
+            incentive[n.uid] = n.incentive / float(U64MAX)
+            inflation[n.uid] = n.inflation / float(RAOPERTAO)
+            dividends[n.uid] = n.dividends / float(RAOPERTAO)
             last_updates[n.uid] = n.last_update
             endpoint =  bittensor.endpoint(
                 uid = int(n.uid), 
