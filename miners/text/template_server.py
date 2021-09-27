@@ -21,15 +21,12 @@ Example:
     $ python miners/text/template_client.py
 
 """
-import argparse
 import bittensor
 import torch
 import time
 import wandb
 import datetime
-from qqdm import qqdm
-from transformers import BertModel, BertConfig
-from server.pretrained_template import server
+from nuclei.server import server
 
 def main( config ):
 
@@ -43,6 +40,7 @@ def main( config ):
     metagraph = bittensor.metagraph ( 
         subtensor = bittensor.subtensor( config = config )
     ).load().sync().save()
+    
 
     # Instantiate the model we are going to serve on the network.
     # Miner training device.
@@ -56,13 +54,31 @@ def main( config ):
         momentum = config.server.momentum,
     )
 
+    def forward_text (pubkey, inputs_x ):
+        r""" Single threaded version of the Forward function that is called when the axon recieves a forward request from other peers
+        """ 
+        return model.encode_forward( inputs_x )
+
+
+    def backward_text ( pubkey:str, inputs_x, grads_dy ):
+        r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
+            Updates the server parameters with gradients through the chain.             
+        """
+        with torch.enable_grad():
+            with torch.autograd.set_detect_anomaly(True):
+                outputs_y = model.encode_forward( inputs_x )
+                torch.autograd.backward (
+                    tensors = [ outputs_y ],
+                    grad_tensors = [ grads_dy ]
+                    )
+                optimizer.step()
+                optimizer.zero_grad()
+
     # Create our axon server and subscribe it to the network.
-    model.start(
-        wallet = wallet,
-        optimizer= optimizer,
-        metagraph=metagraph,
-        single_thread = True
-    )
+    axon = bittensor.axon (optimizer= optimizer,
+        forward_text = forward_text,
+        backward_text = backward_text,
+    ).start().subscribe()
 
     # --- Init Wandb.
     with wandb.init (
@@ -80,7 +96,7 @@ def main( config ):
                 'stake': metagraph.S[ uid ].item(),
                 'rank': metagraph.R[ uid ].item(),
                 'incentive': metagraph.I[ uid ].item(),
-                'axon QPS': model.axon.stats.qps.value
+                'axon QPS': axon.stats.qps.value
             } 
             for uid_i, val in enumerate(metagraph.W[:,uid].tolist()):
                 wandb_data[ 'w_{},{}'.format(uid_i, uid) ] = val
