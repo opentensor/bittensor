@@ -214,6 +214,7 @@ class server(torch.nn.Module):
         parser.add_argument('--server.checking', type=bool, help='To check if server settings are correct',default='True')
         parser.add_argument('--server.timeout', type=int, help='Number of seconds to wait for axon request', default=10)
         parser.add_argument('--server.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
+        parser.add_argument('--server.blocks_per_epoch', type=int, help='Blocks per epoch', default=30)
 
 
         bittensor.wallet.add_args( parser )
