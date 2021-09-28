@@ -159,43 +159,7 @@ def main( config ):
     )
     chain_weights =torch.zeros(metagraph.n)
 
-    def update():
-        print(interation)
-        if interation == 0:
-            pass
-        else:
-            mutex.acquire()
-            losses.backward()
-            clip_grad_norm_(gp_server.parameters(), 1.0)
-            optimizer.step()
-            optimizer.zero_grad()
-            mutex.release()
 
-            uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
-            wandb_data = {
-                'block': start_block,
-                'loss': losses.item()/interation,
-                'stake': metagraph.S[ uid ].item(),
-                'rank': metagraph.R[ uid ].item(),
-                'incentive': metagraph.I[ uid ].item(),
-            } 
-
-
-            metagraph.sync().save()
-            wandb.log( wandb_data )
-            logger.info(wandb_data)
-            chain_weights[uid] = 1 
-
-            try: 
-                did_set = subtensor.timeout_set_weights(
-                    timeout=10,
-                    uids=metagraph.uids,
-                    weights = chain_weights,
-                    wait_for_inclusion = True,
-                    wallet = wallet,
-                )
-            except Exception as e:
-                logger.error('Failure setting weights on chain with error: {}', e)
 
     try:
         while True:
@@ -214,11 +178,49 @@ def main( config ):
                 else:
                     losses = loss
                 interation += 1
+
             print(subtensor.get_current_block())
-            future = threadpool.submit(update,priority=100000)
-            future.result()
-            gp_server.save(full_path)
-            gp_server.load(full_path)
+            if interation == 0:
+                pass
+            else:
+                def update():
+                    logger.debug('Backpropagation Started: Locking all threads')
+                    mutex.acquire()
+                    losses.backward()
+                    clip_grad_norm_(gp_server.parameters(), 1.0)
+                    optimizer.step()
+                    optimizer.zero_grad()
+                    mutex.release()
+                
+                future = threadpool.submit(update,priority=100000)
+                logger.debug('Backpropagation Successful: Model updated')
+                uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
+                wandb_data = {
+                    'block': start_block,
+                    'loss': losses.item()/interation,
+                    'stake': metagraph.S[ uid ].item(),
+                    'rank': metagraph.R[ uid ].item(),
+                    'incentive': metagraph.I[ uid ].item(),
+                } 
+
+
+                metagraph.sync().save()
+                wandb.log( wandb_data )
+                logger.info(wandb_data)
+                chain_weights[uid] = 1 
+
+                try: 
+                    did_set = subtensor.timeout_set_weights(
+                        timeout=10,
+                        uids=metagraph.uids,
+                        weights = chain_weights,
+                        wait_for_inclusion = True,
+                        wallet = wallet,
+                    )
+                except Exception as e:
+                    logger.error('Failure setting weights on chain with error: {}', e)
+                gp_server.save(full_path)
+                gp_server.load(full_path)
 
     except:
         # --- User ended session ----
