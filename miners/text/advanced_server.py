@@ -162,7 +162,7 @@ def main( config ):
         while True:
             # --- Run 
             dataloader = iter(dataload.dataloader(epoch_length=config.server.blocks_per_epoch))
-            start_block = subtensor.get_current_block() + 10
+            start_block = subtensor.get_current_block() + 1
             interation = 0
             # --- Training step.
             while start_block >= subtensor.get_current_block():
