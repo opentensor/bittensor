@@ -217,7 +217,6 @@ def main( config ):
                     logger.error('Failure setting weights on chain with error: {}', e)
                 gp_server.save(full_path)
                 gp_server.load(full_path)
-                axon.start()
     except Exception as e:
         # --- User ended session ----
         axon.stop()
