@@ -180,6 +180,7 @@ def main( config ):
                 pass
         
             else:
+                axon.stop()
                 logger.info('Backpropagation Started')
                 mutex.acquire()
                 losses.backward()
@@ -217,7 +218,7 @@ def main( config ):
                     logger.error('Failure setting weights on chain with error: {}', e)
                 gp_server.save(full_path)
                 gp_server.load(full_path)
-
+                axon.start()
     except Exception as e:
         # --- User ended session ----
         axon.stop()
