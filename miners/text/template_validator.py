@@ -117,7 +117,7 @@ def main( config ):
             self.encoder = TransformerEncoder( self.layers, config.nucleus.nlayers )
             self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
             self.loss_fct = torch.nn.CrossEntropyLoss()
-            self.chain_weights = torch.nn.Parameter(torch.zeros( [ metagraph.n.item() ] , requires_grad=True))
+            self.chain_weights = torch.nn.Parameter(torch.ones( [ metagraph.n.item() ] , requires_grad=True))
             self.logs = SimpleNamespace()
 
         def forward( self, inputs ):
@@ -273,7 +273,8 @@ def main( config ):
             for weight, uid_j in list(zip(final_weights.tolist(), topk_uids.tolist())):
                 color = 'green' if (validator.chain_weights.grad != None and validator.chain_weights.grad[ uid_j ] < 0) else 'red'
                 if weight > 0.001: info[ str(uid_j) ] = colored('{:.4f}'.format( weight ), color)
-            
+
+            print("\n\n\n\n\n\n\n") 
             progress.set_infos( info )
             
         # ---  Set mechanism weights.
@@ -293,13 +294,13 @@ def main( config ):
 
         respond_rate = validator.logs.responded_peers_count / validator.logs.quested_peers_count
         
-        for weight, uid_j in list(zip(final_weights.tolist(), topk_uids.tolist())):
-            if weight != 0: 
-                wandb_data[ 'w_{},{}'.format( uid, uid_j ) ] = weight
+        for weight_norm, weight_wo_norm, uid_j in list(zip(final_weights.tolist(), topk_weights.tolist(), topk_uids.tolist())):
+            wandb_data[ 'w_norm_{},{}'.format( uid, uid_j ) ] = weight_norm
+            wandb_data[ 'w_wo_norm_{},{}'.format( uid, uid_j ) ] = weight_wo_norm
+            wandb_data[f'Quested uid: {str(uid_j)}']= validator.logs.quested_peers_count[uid_j]
+            wandb_data[f'Responded uid: {str(uid_j)}']= validator.logs.responded_peers_count[uid_j]
+            wandb_data[f'Respond rate uid: {str(uid_j)}']= respond_rate[uid_j]
 
-            wandb_data[f'Quested uid: {str(uid)}']= validator.logs.quested_peers_count[uid]
-            wandb_data[f'Responded uid: {str(uid)}']= validator.logs.responded_peers_count[uid]
-            wandb_data[f'Respond rate uid: {str(uid)}']= respond_rate[uid]
         wandb.log( wandb_data )
         
         # --- Save.
