@@ -194,7 +194,7 @@ def main( config ):
             else:
                 def update():
                     try:
-                        logger.debug('Backpropagation Started: Locking all threads')
+                        #logger.debug('Backpropagation Started: Locking all threads')
                         mutex.acquire()
                         losses.backward()
                         print(gp_server.outputs_cache.size(), gp_server.gradients_cache.size())
@@ -203,7 +203,7 @@ def main( config ):
                         optimizer.zero_grad()
                         gp_server.outputs_cache = None
                         gp_server.gradients_cache = None
-                        logger.debug('Backpropagation Successful: Model updated')
+                        #logger.debug('Backpropagation Successful: Model updated')
                     except Exception as e:
                         raise Exception(e)
                     mutex.release()
