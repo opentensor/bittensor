@@ -185,28 +185,23 @@ def main( config ):
             if interation == 0:
                 pass
             else:
-                def update():
-                    try:
-                        logger.info('Backpropagation Started: Locking all threads')
-                        mutex.acquire()
-                        losses.backward()
-                        if gp_server.outputs_cache != None:
-                            torch.autograd.backward (
-                                tensors = [ gp_server.outputs_cache ],
-                                grad_tensors = [ gp_server.gradients_cache ]
-                            )
-                        clip_grad_norm_(gp_server.parameters(), 1.0)
-                        optimizer.step()
-                        optimizer.zero_grad()
-                        gp_server.outputs_cache = None
-                        gp_server.gradients_cache = None
-                        logger.info('Backpropagation Successful: Model updated')
-                    except Exception as e:
-                        raise Exception(e)
-                    mutex.release()
-                
-                future = threadpool.submit(update,priority=100000)
-                future.result()
+                logger.info('Backpropagation Started: Locking all threads')
+                mutex.acquire()
+                losses.backward()
+                if gp_server.outputs_cache != None:
+                    torch.autograd.backward (
+                        tensors = [ gp_server.outputs_cache ],
+                        grad_tensors = [ gp_server.gradients_cache ]
+                    )
+                clip_grad_norm_(gp_server.parameters(), 1.0)
+                optimizer.step()
+                optimizer.zero_grad()
+                gp_server.outputs_cache = None
+                gp_server.gradients_cache = None
+                logger.info('Backpropagation Successful: Model updated')
+                mutex.release()
+
+            
                 uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
                 wandb_data = {
                     'block': start_block,
