@@ -216,16 +216,28 @@ class Nucleus(nn.Module):
         """
 
         # ---- Get active peers and their weights ---- 
-        active_uids = torch.where(bittensor.neuron.metagraph.active > 0)[0]
-        active_chain_weights = self.chain_weights[active_uids]
+        # active_uids = torch.where(bittensor.neuron.metagraph.active > 0)[0]
+        # active_chain_weights = self.chain_weights[active_uids]
 
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
-        real_topk = min( self.config.nucleus.topk, bittensor.neuron.metagraph.n.item(), len(active_uids))
-        noise = torch.normal( 0, torch.std(active_chain_weights).item()+0.0000001, size=( active_chain_weights.size())).to( self.config.miner.device )
-        topk_weights, topk_idx = torch.topk(active_chain_weights + noise , real_topk, dim=0)
-        topk_uids = active_uids[topk_idx]
+        # real_topk = min( self.config.nucleus.topk, bittensor.neuron.metagraph.n.item())
+        noise = torch.normal( 0, torch.std(self.chain_weights).item()+0.0000001, size=( self.chain_weights.size())).to( self.config.miner.device )
+        # topk_weights, topk_idx = torch.topk(self.chain_weights + noise , real_topk, dim=0)
+        # topk_uids = active_uids[topk_idx]
 
         # ---- Filter endpoints ----
+        topk_uids = []
+        swarm_1_ip = '157.230.231.158'
+        swarm_2_ip = '157.230.235.68'
+        swarm_3_ip = '157.230.227.198'
+        gpt2_ip = '134.122.119.130'
+        for i, e in enumerate(bittensor.neuron.metagraph.endpoint_objs):
+            if e.ip in [swarm_1_ip, swarm_2_ip, swarm_3_ip, gpt2_ip]:
+                topk_uids.append(i)
+
+        topk_uids = torch.tensor(topk_uids)
+        topk_weights = (self.chain_weights+noise)[topk_uids]
+
         endpoints = bittensor.neuron.metagraph.endpoints[ topk_uids ]
 
         # ---- Query network ----
