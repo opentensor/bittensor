@@ -195,9 +195,12 @@ def main( config ):
                     logger.debug('Backpropagation Started: Locking all threads')
                     mutex.acquire()
                     losses.backward()
+                    print(gp_server.outputs_cache.size(), gp_server.gradients_cache.size())
                     clip_grad_norm_(gp_server.parameters(), 1.0)
                     optimizer.step()
                     optimizer.zero_grad()
+                    gp_server.outputs_cache = None
+                    gp_server.gradients_cache = None
                     mutex.release()
                 
                 future = threadpool.submit(update,priority=100000)
