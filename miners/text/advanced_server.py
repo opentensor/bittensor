@@ -162,59 +162,56 @@ def main( config ):
         while True:
             # --- Run 
             dataloader = iter(dataload.dataloader(epoch_length=config.server.blocks_per_epoch))
-            start_block = subtensor.get_current_block()
-            end_block = start_block + config.server.blocks_per_epoch
-            blocks = [ block for block in range(start_block, end_block) ]
-            for block in blocks:
-                interation = 0
-                # --- Training step.
-                while block >= subtensor.get_current_block():
-                    print('step')
-                    print(block)
-                    loss, _ = gp_server( next( dataloader ) )
-                    if interation > 0 : 
-                        losses += loss
-                    else:
-                        losses = loss
-                    interation += 1
-
-                if interation == 0:
-                    pass
+            start_block = subtensor.get_current_block() + config.server.blocks_per_epoch
+            interation = 0
+            # --- Training step.
+            while start_block >= subtensor.get_current_block():
+                print('step')
+                print(start_block)
+                loss, _ = gp_server( next( dataloader ) )
+                if interation > 0 : 
+                    losses += loss
                 else:
-                    mutex.acquire()
-                    losses.backward()
-                    clip_grad_norm_(gp_server.parameters(), 1.0)
-                    optimizer.step()
-                    optimizer.zero_grad()
-                    mutex.release()
+                    losses = loss
+                interation += 1
 
-                    uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
-                    wandb_data = {
-                        'block': block,
-                        'loss': losses.item()/interation,
-                        'stake': metagraph.S[ uid ].item(),
-                        'rank': metagraph.R[ uid ].item(),
-                        'incentive': metagraph.I[ uid ].item(),
-                    } 
+            if interation == 0:
+                pass
+            else:
+                mutex.acquire()
+                losses.backward()
+                clip_grad_norm_(gp_server.parameters(), 1.0)
+                optimizer.step()
+                optimizer.zero_grad()
+                mutex.release()
+
+                uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
+                wandb_data = {
+                    'block': start_block,
+                    'loss': losses.item()/interation,
+                    'stake': metagraph.S[ uid ].item(),
+                    'rank': metagraph.R[ uid ].item(),
+                    'incentive': metagraph.I[ uid ].item(),
+                } 
 
 
-                    metagraph.sync().save()
-                    wandb.log( wandb_data )
-                    logger.info(wandb_data)
-                    chain_weights[uid] = 1 
-                    gp_server.save(full_path)
-                    gp_server.load(full_path)
+                metagraph.sync().save()
+                wandb.log( wandb_data )
+                logger.info(wandb_data)
+                chain_weights[uid] = 1 
+                gp_server.save(full_path)
+                gp_server.load(full_path)
 
-                    try: 
-                        did_set = subtensor.timeout_set_weights(
-                            timeout=10,
-                            uids=metagraph.uids,
-                            weights = chain_weights,
-                            wait_for_inclusion = True,
-                            wallet = wallet,
-                        )
-                    except Exception as e:
-                        logger.error('Failure setting weights on chain with error: {}', e)
+                try: 
+                    did_set = subtensor.timeout_set_weights(
+                        timeout=10,
+                        uids=metagraph.uids,
+                        weights = chain_weights,
+                        wait_for_inclusion = True,
+                        wallet = wallet,
+                    )
+                except Exception as e:
+                    logger.error('Failure setting weights on chain with error: {}', e)
 
     except:
         # --- User ended session ----
