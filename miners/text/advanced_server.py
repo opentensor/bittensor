@@ -208,6 +208,7 @@ def main( config ):
             while start_block >= subtensor.get_current_block():
                 print('step')
                 print(start_block)
+                print(interation)
                 loss, _ = gp_server( next( dataloader ) )
                 if interation > 0 : 
                     losses += loss
@@ -215,7 +216,7 @@ def main( config ):
                     losses = loss
                 interation += 1
 
-            future = threadpool.submit(update,priority=-100000)
+            future = threadpool.submit(update,priority=100000)
             future.result()
 
 
