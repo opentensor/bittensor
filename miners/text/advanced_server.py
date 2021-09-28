@@ -118,7 +118,7 @@ def main( config ):
         priority = metagraph.S[uid].item()
         future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ), priority=priority)
         try:
-            return future.result(timeout= self.config.server.timeout)
+            return future.result(timeout=config.server.timeout)
         except:
             raise TimeoutError('TimeOutError')
 
@@ -142,7 +142,7 @@ def main( config ):
     axon.start().subscribe()
 
     # Training Data
-    dataload = bittensor.dataloader()
+    dataload = bittensor.dataloader(config=config)
     full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.server.name ))
     bittensor.logging( config = config,logging_dir = full_path)
 
@@ -158,15 +158,24 @@ def main( config ):
     )
     chain_weights =torch.zeros(metagraph.n)
     try:
-        # --- Run 
-        for epoch in range(10000):
-            epoch_loss = 0
-            epoch_batches = dataload.dataloader(epoch_length=10)
-            for iteration, inputs in enumerate(epoch_batches):
+        while True:
+            # --- Run 
+            start_block = subtensor.get_current_block()
+            end_block = start_block + config.miner.blocks_per_epoch
+            blocks = [ block for block in range(start_block, end_block) ]
+            for block in blocks:
+                interation = 0
+                # --- Training step.
+                while block >= subtensor.get_current_block():
+                    interation += 1
+                    loss, _ = gp_server( next( dataload ) )
+                    try: 
+                        losses += loss
+                    except:
+                        losses = loss
 
                 mutex.acquire()
-                loss, _ = gp_server( inputs )
-                loss.backward()
+                losses.backward()
                 clip_grad_norm_(gp_server.parameters(), 1.0)
                 optimizer.step()
                 optimizer.zero_grad()
@@ -174,30 +183,33 @@ def main( config ):
 
                 epoch_loss += loss.item()
 
-            uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
-            wandb_data = {
-                'Epoch': epoch,
-                'loss': epoch_loss/10,
-                'stake': metagraph.S[ uid ].item(),
-                'rank': metagraph.R[ uid ].item(),
-                'incentive': metagraph.I[ uid ].item(),
-            } 
-            metagraph.sync().save()
-            wandb.log( wandb_data )
-            logger.info(wandb_data)
-            chain_weights[uid] = 1 
-            gp_server.save(full_path)
-            gp_server.load(full_path)
-            try: 
-                did_set = subtensor.timeout_set_weights(
-                    timeout=10,
-                    uids=metagraph.uids,
-                    weights = chain_weights,
-                    wait_for_inclusion = True,
-                    wallet = wallet,
-                )
-            except Exception as e:
-                logger.error('Failure setting weights on chain with error: {}', e)
+                uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
+                wandb_data = {
+                    'block': block,
+                    'loss': losses/interation,
+                    'stake': metagraph.S[ uid ].item(),
+                    'rank': metagraph.R[ uid ].item(),
+                    'incentive': metagraph.I[ uid ].item(),
+                } 
+
+
+                metagraph.sync().save()
+                wandb.log( wandb_data )
+                logger.info(wandb_data)
+                chain_weights[uid] = 1 
+                gp_server.save(full_path)
+                gp_server.load(full_path)
+                
+                try: 
+                    did_set = subtensor.timeout_set_weights(
+                        timeout=10,
+                        uids=metagraph.uids,
+                        weights = chain_weights,
+                        wait_for_inclusion = True,
+                        wallet = wallet,
+                    )
+                except Exception as e:
+                    logger.error('Failure setting weights on chain with error: {}', e)
 
     except KeyboardInterrupt:
         # --- User ended session ----
