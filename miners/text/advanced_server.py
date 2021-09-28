@@ -187,6 +187,7 @@ def main( config ):
             else:
                 logger.info('Backpropagation Started: Locking all threads')
                 mutex.acquire()
+                import pdb;pdb.set_trace()
                 losses.backward()
                 if gp_server.outputs_cache != None:
                     torch.autograd.backward (
