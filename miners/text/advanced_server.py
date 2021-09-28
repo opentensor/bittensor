@@ -142,7 +142,7 @@ def main( config ):
     axon.start().subscribe()
 
     # Training Data
-    dataload = bittensor.dataloader(config=config)
+    dataload = bittensor.dataloader(config=config).dataloader()
     full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.server.name ))
     bittensor.logging( config = config,logging_dir = full_path)
 
