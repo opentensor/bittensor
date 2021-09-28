@@ -104,7 +104,7 @@ def main( config ):
                     torch grads of forward output.
                     
         """
-        def call(input,grad,mutex):
+        def call(input,grad):
             with torch.enable_grad():
                 with torch.autograd.set_detect_anomaly(True):
                     mutex.acquire()
@@ -117,7 +117,7 @@ def main( config ):
                     mutex.release()
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()
-        future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
+        future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ), priority=priority)
         try:
             return future.result(timeout=gp_server.config.server.timeout)
         except:
@@ -180,7 +180,6 @@ def main( config ):
                 pass
         
             else:
-                axon.stop()
                 logger.info('Backpropagation Started')
                 mutex.acquire()
                 losses.backward()
