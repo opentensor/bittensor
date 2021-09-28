@@ -123,6 +123,7 @@ def main( config ):
                 )
                 gp_server.outputs_cache = None
                 gp_server.gradients_cache = None  
+                bittensor.logging.info('Backwards axon gradient applied')
                 
             mutex.release()
             return torch.ones((input.size()))
