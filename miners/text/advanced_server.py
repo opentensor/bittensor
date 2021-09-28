@@ -184,13 +184,14 @@ def main( config ):
             else:
                 logger.info('Backpropagation Started: Locking all threads')
                 mutex.acquire()
-                losses.backward(retain_graph=True)
+                
                 if gp_server.outputs_cache != None:
-                    
                     torch.autograd.backward (
                         tensors = [ gp_server.outputs_cache ],
-                        grad_tensors = [ gp_server.gradients_cache ]
+                        grad_tensors = [ gp_server.gradients_cache ],
+                        retain_graph=True
                     )
+                losses.backward()
                 clip_grad_norm_(gp_server.parameters(), 1.0)
                 optimizer.step()
                 optimizer.zero_grad()
