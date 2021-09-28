@@ -165,7 +165,7 @@ def main( config ):
         while True:
             # --- Run 
             dataloader = iter(dataload.dataloader(epoch_length=config.server.blocks_per_epoch))
-            end_block = subtensor.get_current_block() + 1
+            end_block = subtensor.get_current_block() + 10
             interation = 0
             # --- Training step.
             while end_block >= subtensor.get_current_block():
@@ -219,9 +219,9 @@ def main( config ):
                 gp_server.load(full_path)
 
     except Exception as e:
-        print(e)
         # --- User ended session ----
         axon.stop()
+        print(e)
 
 
 if __name__ == "__main__":
