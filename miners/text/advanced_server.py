@@ -111,7 +111,8 @@ def main( config ):
                     outputs_y = gp_server.encode_forward( input )
                     torch.autograd.backward (
                         tensors = [ outputs_y ],
-                        grad_tensors = [ grad ]
+                        grad_tensors = [ grad ],
+                        retain_graph=True 
                     )
                     mutex.release()
         uid = metagraph.hotkeys.index(pubkey)
