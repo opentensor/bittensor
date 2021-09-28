@@ -105,14 +105,16 @@ def main( config ):
                     
         """
         def call(input,grad):
+            mutex.acquire()
             outputs_y = gp_server.encode_forward( input )
             if gp_server.outputs_cache == None:
                 gp_server.outputs_cache = outputs_y
-                gp_server.gradients_cache = grads_dy
+                gp_server.gradients_cache = grad
             else:
                 gp_server.outputs_cache = torch.cat((gp_server.outputs_cache, outputs_y),0)
-                gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grads_dy),0)
+                gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grad),0)
                 print(gp_server.outputs_cache.size(),gp_server.gradients_cache.size())
+            mutex.release()
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()
         
