@@ -255,7 +255,7 @@ def main( config ):
             }
             
             for weight, uid_j in list(zip(final_weights.tolist(), topk_uids.tolist())):
-                color = 'green' if validator.chain_weights.grad and validator.chain_weights.grad[ uid_j ] < 0 else 'red'
+                color = 'green' if (validator.chain_weights.grad and validator.chain_weights.grad[ uid_j ] < 0) else 'red'
                 if weight > 0.001: info[ str(uid_j) ] = colored('{:.4f}'.format( weight ), color)
             
             progress.set_infos( info )
@@ -273,8 +273,6 @@ def main( config ):
         wandb_data = {
             'Stake': metagraph.S[ uid ].item(),
             'Dividends': metagraph.D[ uid ].item(),
-            'Axon in bytes (total)':bittensor.neuron.axon.stats.total_in_bytes.value,
-            'Axon out bytes (total)':bittensor.neuron.axon.stats.total_out_bytes.value,
         } 
         for weight, uid_j in list(zip(final_weights.tolist(), topk_uids.tolist())):
             if weight != 0: 
