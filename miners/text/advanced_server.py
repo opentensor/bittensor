@@ -204,7 +204,7 @@ def main( config ):
             
                 uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
                 wandb_data = {
-                    'block': start_block,
+                    'block': end_block,
                     'loss': losses.item()/interation,
                     'stake': metagraph.S[ uid ].item(),
                     'rank': metagraph.R[ uid ].item(),
@@ -230,7 +230,8 @@ def main( config ):
                 gp_server.save(full_path)
                 gp_server.load(full_path)
 
-    except:
+    except Exception as e:
+        print(e)
         # --- User ended session ----
         axon.stop()
 
