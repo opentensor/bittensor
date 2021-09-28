@@ -186,6 +186,7 @@ def main( config ):
                 mutex.acquire()
                 
                 if gp_server.outputs_cache != None:
+                    import pdb;pdb.set_trace()
                     torch.autograd.backward (
                         tensors = [ gp_server.outputs_cache ],
                         grad_tensors = [ gp_server.gradients_cache ],
