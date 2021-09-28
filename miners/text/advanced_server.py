@@ -186,6 +186,7 @@ def main( config ):
             else:
                 logger.info('Backpropagation Started')
                 mutex.acquire()
+                import pdb;pdb.set_trace()
                 torch.autograd.backward (
                     tensors = [ gp_server.outputs_cache ],
                     grad_tensors = [ gp_server.gradients_cache ],
