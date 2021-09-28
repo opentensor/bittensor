@@ -189,8 +189,8 @@ def main( config ):
                     try:
                         logger.info('Backpropagation Started: Locking all threads')
                         mutex.acquire()
+                        import pdb;pdb.set_trace()
                         losses.backward()
-                        print(gp_server.outputs_cache.size(), gp_server.gradients_cache.size())
                         if gp_server.outputs_cache != None:
                             torch.autograd.backward (
                                 tensors = [ gp_server.outputs_cache ],
