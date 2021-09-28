@@ -186,7 +186,7 @@ def main( config ):
                 uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
                 wandb_data = {
                     'block': block,
-                    'loss': losses/interation,
+                    'loss': losses.item()/interation,
                     'stake': metagraph.S[ uid ].item(),
                     'rank': metagraph.R[ uid ].item(),
                     'incentive': metagraph.I[ uid ].item(),
