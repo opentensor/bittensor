@@ -170,13 +170,14 @@ def main( config ):
                 # --- Training step.
                 while block >= subtensor.get_current_block():
                     print('step')
+                    print(block)
                     loss, _ = gp_server( next( dataloader ) )
                     if interation > 0 : 
                         losses += loss
                     else:
                         losses = loss
                     interation += 1
-
+                print(block)
                 mutex.acquire()
                 losses.backward()
                 clip_grad_norm_(gp_server.parameters(), 1.0)
