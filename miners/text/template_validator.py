@@ -270,7 +270,7 @@ def main( config ):
             }
             
             for weight, uid_j in list(zip(final_weights.tolist(), topk_uids.tolist())):
-                color = 'green' if (validator.chain_weights.grad and validator.chain_weights.grad[ uid_j ] < 0) else 'red'
+                color = 'green' if (validator.chain_weights.grad != None and validator.chain_weights.grad[ uid_j ] < 0) else 'red'
                 if weight > 0.001: info[ str(uid_j) ] = colored('{:.4f}'.format( weight ), color)
             
             progress.set_infos( info )
