@@ -115,7 +115,7 @@ def main( config ):
                 gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grad),0)
                 print(gp_server.outputs_cache.size(),gp_server.gradients_cache.size())
             
-            if gp_server.output_cache.size()[0] == 10:
+            if gp_server.outputs_cache.size()[0] == 10:
                 torch.autograd.backward (
                     tensors = [ gp_server.outputs_cache ],
                     grad_tensors = [ gp_server.gradients_cache ],
