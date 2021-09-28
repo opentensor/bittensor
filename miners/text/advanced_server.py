@@ -169,9 +169,9 @@ def main( config ):
                 while block >= subtensor.get_current_block():
                     interation += 1
                     loss, _ = gp_server( next( dataload ) )
-                    try: 
+                    if interation > 0 : 
                         losses += loss
-                    except:
+                    else:
                         losses = loss
 
                 mutex.acquire()
@@ -180,8 +180,6 @@ def main( config ):
                 optimizer.step()
                 optimizer.zero_grad()
                 mutex.release()
-
-                epoch_loss += loss.item()
 
                 uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
                 wandb_data = {
@@ -199,7 +197,7 @@ def main( config ):
                 chain_weights[uid] = 1 
                 gp_server.save(full_path)
                 gp_server.load(full_path)
-                
+
                 try: 
                     did_set = subtensor.timeout_set_weights(
                         timeout=10,
