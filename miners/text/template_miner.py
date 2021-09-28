@@ -371,7 +371,7 @@ class Miner:
 
                     # ---- Run epoch ----
                     total_epoch_loss = 0.0
-                    start_block = self.neuron.subtensor.get_current_block()
+                    start_block = self.neuron.subtensor.get_current_block() + 1
                     end_block = start_block + self.config.miner.epoch_length
                     block_steps = [ start_block + block_delta for block_delta in range(start_block, end_block)]
                     print(block_steps)

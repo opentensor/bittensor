@@ -181,7 +181,7 @@ def main( config ):
         )
 
         # --- Run epoch.
-        start_block = subtensor.get_current_block()
+        start_block = subtensor.get_current_block() + 1
         end_block = start_block + config.miner.blocks_per_epoch
         blocks = [ block for block in range(start_block, end_block) ]
         progress = qqdm( blocks, total=len(blocks), desc=format_str('white', f'Epoch'))
