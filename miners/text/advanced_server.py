@@ -216,6 +216,7 @@ def main( config ):
                 interation += 1
 
             future = threadpool.submit(update,priority=-100000)
+            future.result()
 
 
     except:
