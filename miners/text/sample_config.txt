@@ -14,7 +14,7 @@ dataloader.dataset: train
 dendrite.max_active_receptors: 500
 dendrite.max_worker_threads: 150
 dendrite.requires_grad: true
-dendrite.timeout: 5
+dendrite.timeout: 10
 
 logging.debug: false
 logging.logging_dir: ~/.bittensor/miners/
