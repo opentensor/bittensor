@@ -114,6 +114,15 @@ def main( config ):
                 gp_server.outputs_cache = torch.cat((gp_server.outputs_cache, outputs_y),0)
                 gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grad),0)
                 print(gp_server.outputs_cache.size(),gp_server.gradients_cache.size())
+            
+            if gp_server.output_cache.size()[0] == 10:
+                torch.autograd.backward (
+                    tensors = [ gp_server.outputs_cache ],
+                    grad_tensors = [ gp_server.gradients_cache ],
+                    retain_graph=True
+                )
+                gp_server.outputs_cache = None
+                gp_server.gradients_cache = None
             mutex.release()
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()
@@ -184,20 +193,10 @@ def main( config ):
             else:
                 logger.info('Backpropagation Started: Locking all threads')
                 mutex.acquire()
-                
-                if gp_server.outputs_cache != None:
-                    import pdb;pdb.set_trace()
-                    torch.autograd.backward (
-                        tensors = [ gp_server.outputs_cache ],
-                        grad_tensors = [ gp_server.gradients_cache ],
-                        retain_graph=True
-                    )
                 losses.backward()
                 clip_grad_norm_(gp_server.parameters(), 1.0)
                 optimizer.step()
                 optimizer.zero_grad()
-                gp_server.outputs_cache = None
-                gp_server.gradients_cache = None
                 logger.info('Backpropagation Successful: Model updated')
                 mutex.release()
 
