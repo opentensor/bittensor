@@ -104,7 +104,7 @@ def main( config ):
                     torch grads of forward output.
                     
         """
-        def call(input,grad):
+        def call(input,grad,mutex):
             mutex.acquire()
             outputs_y = gp_server.encode_forward( input )
             if gp_server.outputs_cache == None:
@@ -119,7 +119,7 @@ def main( config ):
         priority = metagraph.S[uid].item()
         
 
-        future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ), priority=priority)
+        future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
         try:
             return future.result(timeout=config.server.timeout)
         except:
