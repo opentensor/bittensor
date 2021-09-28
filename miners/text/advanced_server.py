@@ -160,6 +160,7 @@ def main( config ):
     chain_weights =torch.zeros(metagraph.n)
 
     def update():
+        print(interation)
         if interation == 0:
             pass
         else:
@@ -184,8 +185,6 @@ def main( config ):
             wandb.log( wandb_data )
             logger.info(wandb_data)
             chain_weights[uid] = 1 
-            gp_server.save(full_path)
-            gp_server.load(full_path)
 
             try: 
                 did_set = subtensor.timeout_set_weights(
@@ -215,10 +214,11 @@ def main( config ):
                 else:
                     losses = loss
                 interation += 1
-
+            print(subtensor.get_current_block())
             future = threadpool.submit(update,priority=100000)
             future.result()
-
+            gp_server.save(full_path)
+            gp_server.load(full_path)
 
     except:
         # --- User ended session ----
