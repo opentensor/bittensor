@@ -123,8 +123,9 @@ def main( config ):
                 )
                 gp_server.outputs_cache = None
                 gp_server.gradients_cache = None  
-
+                
             mutex.release()
+            return torch.ones((input.size()))
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()
         
@@ -191,8 +192,8 @@ def main( config ):
                 pass
         
             else:
-                logger.info('Backpropagation Started')
                 mutex.acquire()
+                logger.info('Backpropagation Started')
                 losses.backward()
                 clip_grad_norm_(gp_server.parameters(), 1.0)
                 gp_server.outputs_cache = None
@@ -229,10 +230,11 @@ def main( config ):
                 except Exception as e:
                     logger.error('Failure setting weights on chain with error: {}', e)
 
-    except Exception as e:
+    except KeyboardInterrupt:
         # --- User ended session ----
         axon.stop()
-
+    except Exception as e:
+        print(e)
 
 if __name__ == "__main__":
     main( server.config() )
