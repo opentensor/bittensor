@@ -234,12 +234,13 @@ def main( config ):
         end_block = start_block + config.miner.blocks_per_epoch
         blocks = [ block for block in range(start_block, end_block) ]
         progress = qqdm( blocks, total=len(blocks), desc=format_str('white', f'Epoch'))
+
+        # --- Reset the epoch logs
+        validator.logs.quested_peers_count = torch.zeros(0)
+        validator.logs.responded_peers_count = torch.zeros(0)
+        
         for block in progress:
             
-            # --- Reset the epoch logs
-            validator.logs.quested_peers_count = torch.zeros(0)
-            validator.logs.responded_peers_count = torch.zeros(0)
-
             # --- Training step.
             while block >= subtensor.get_current_block():
                 loss, _ = validator( next( dataset ) )
@@ -289,11 +290,13 @@ def main( config ):
             'Stake': metagraph.S[ uid ].item(),
             'Dividends': metagraph.D[ uid ].item(),
         } 
+
+        respond_rate = validator.logs.responded_peers_count / validator.logs.quested_peers_count
+        
         for weight, uid_j in list(zip(final_weights.tolist(), topk_uids.tolist())):
             if weight != 0: 
                 wandb_data[ 'w_{},{}'.format( uid, uid_j ) ] = weight
 
-            respond_rate = validator.logs.responded_peers_count / validator.logs.quested_peers_count
             wandb_data[f'Quested uid: {str(uid)}']= validator.logs.quested_peers_count[uid]
             wandb_data[f'Responded uid: {str(uid)}']= validator.logs.responded_peers_count[uid]
             wandb_data[f'Respond rate uid: {str(uid)}']= respond_rate[uid]
