@@ -116,6 +116,14 @@ def main( config ):
                     mutex.release()
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()
+        outputs_y = gp_server.encode_forward( inputs_x )
+        print(outputs_y.size(),grads_dy.size())
+        if gp_server.outputs_cache == None:
+            gp_server.outputs_cache = outputs_y
+            gp_server.gradients_cache = grads_dy
+        else:
+            gp_server.outputs_cache = torch.cat((gp_server.outputs_cache, outputs_y),0)
+            gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grads_dy),0)
         #future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ), priority=priority)
         try:
             #return future.result(timeout=config.server.timeout)

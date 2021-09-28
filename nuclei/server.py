@@ -82,6 +82,9 @@ class server(torch.nn.Module):
         self.decoder = torch.nn.Linear( self.final_dim, bittensor.__vocab_size__ , bias=False)
         self.loss_fct = torch.nn.CrossEntropyLoss()
         
+        self.outputs_cache = None
+        self.gradients_cache = None
+
         #checking if the parameters of the server makes sense
         if self.checking and pretrained == True:
             self.check()
