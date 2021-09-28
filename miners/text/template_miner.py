@@ -371,13 +371,16 @@ class Miner:
 
                     # ---- Run epoch ----
                     total_epoch_loss = 0.0
-                    last_block = self.neuron.subtensor.get_current_block()
-                    progress_bar = qqdm([block for block in range(self.config.miner.epoch_length)], total=self.config.miner.epoch_length, desc=format_str('blue', f'Epoch Progress'))
-                    for block_iteration in progress_bar:
+                    start_block = self.neuron.subtensor.get_current_block()
+                    end_block = start_block + self.config.miner.epoch_length
+                    block_steps = [ start_block + block_delta for block_delta in range(start_block, end_block)]
+                    print(block_steps)
+                    progress_bar = qqdm( block_steps, total=len(block_steps), desc=format_str('white', f'Epoch:'))
+                    for block in progress_bar:
 
                         # --- Iterate over batches until the end of the block.
                         current_block = self.neuron.subtensor.get_current_block()
-                        while current_block == last_block:
+                        while block <= current_block:
                             
                             # ---- Forward pass ----
                             inputs = next( self.dataset )
@@ -399,7 +402,7 @@ class Miner:
                         # ---- Block logs.
                         self.logs (
                             progress_bar,
-                            iteration = block_iteration,
+                            iteration = block,
                             output = output,
                         )
                         self.global_step += 1
@@ -421,6 +424,7 @@ class Miner:
 
                 except Exception as e:
                     # --- Unknown error ----
+                    print (e)
                     logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
                     if self.config.miner.restart_on_failure == True:
                         logger.info('Restarting from last saved state.')
