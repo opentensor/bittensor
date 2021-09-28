@@ -161,7 +161,7 @@ def main( config ):
         while True:
             # --- Run 
             start_block = subtensor.get_current_block()
-            end_block = start_block + config.miner.blocks_per_epoch
+            end_block = start_block + config.server.blocks_per_epoch
             blocks = [ block for block in range(start_block, end_block) ]
             for block in blocks:
                 interation = 0
