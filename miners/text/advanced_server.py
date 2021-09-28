@@ -105,7 +105,6 @@ def main( config ):
                     
         """
         def call(input,grad,mutex):
-            mutex.acquire()
             with torch.enable_grad():
                 with torch.autograd.set_detect_anomaly(True):
                     mutex.acquire()
@@ -119,7 +118,7 @@ def main( config ):
         priority = metagraph.S[uid].item()
         future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
         try:
-            return future.result(timeout=config.server.timeout)
+            return future.result(timeout=gp_server.config.server.timeout)
         except:
             raise TimeoutError('TimeOutError')
 
