@@ -202,10 +202,10 @@ def main( config ):
                     optimizer.zero_grad()
                     gp_server.outputs_cache = None
                     gp_server.gradients_cache = None
+                    logger.debug('Backpropagation Successful: Model updated')
                     mutex.release()
                 
                 future = threadpool.submit(update,priority=100000)
-                logger.debug('Backpropagation Successful: Model updated')
                 uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
                 wandb_data = {
                     'block': start_block,
