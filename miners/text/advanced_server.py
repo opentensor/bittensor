@@ -106,28 +106,17 @@ def main( config ):
         """
         def call(input,grad,mutex):
             mutex.acquire()
-            outputs_y = gp_server.encode_forward( input )
-            if gp_server.outputs_cache == None:
-                gp_server.outputs_cache = outputs_y
-                gp_server.gradients_cache = grad
-            else:
-                gp_server.outputs_cache = torch.cat((gp_server.outputs_cache, outputs_y),0)
-                gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grad),0)
-                print(gp_server.outputs_cache.size(),gp_server.gradients_cache.size())
-            
-            if gp_server.outputs_cache.size()[0] == 10:
-                torch.autograd.backward (
-                    tensors = [ gp_server.outputs_cache ],
-                    grad_tensors = [ gp_server.gradients_cache ],
-                    retain_graph=True
-                )
-                gp_server.outputs_cache = None
-                gp_server.gradients_cache = None
-            mutex.release()
+            with torch.enable_grad():
+                with torch.autograd.set_detect_anomaly(True):
+                    mutex.acquire()
+                    outputs_y = gp_server.encode_forward( input )
+                    torch.autograd.backward (
+                        tensors = [ outputs_y ],
+                        grad_tensors = [ grad ]
+                    )
+                    mutex.release()
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()
-        
-
         future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
         try:
             return future.result(timeout=config.server.timeout)
@@ -191,7 +180,7 @@ def main( config ):
                 pass
         
             else:
-                logger.info('Backpropagation Started: Locking all threads')
+                logger.info('Backpropagation Started')
                 mutex.acquire()
                 losses.backward()
                 clip_grad_norm_(gp_server.parameters(), 1.0)
