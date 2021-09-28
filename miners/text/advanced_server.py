@@ -114,7 +114,13 @@ def main( config ):
                 gp_server.outputs_cache = torch.cat((gp_server.outputs_cache, outputs_y),0)
                 gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grad),0)
                 print(gp_server.outputs_cache.size(),gp_server.gradients_cache.size())
-            
+
+            if gp_server.outputs_cache.size(0) == 10:
+                torch.autograd.backward (
+                    tensors = [ gp_server.outputs_cache ],
+                    grad_tensors = [ gp_server.gradients_cache ],
+                    retain_graph=True
+                )
             mutex.release()
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()
@@ -124,7 +130,6 @@ def main( config ):
         try:
             return future.result(timeout=config.server.timeout)
         except:
-            mutex.release()
             raise TimeoutError('TimeOutError')
 
     def blacklist(pubkey:str) -> bool:
@@ -186,12 +191,6 @@ def main( config ):
             else:
                 logger.info('Backpropagation Started')
                 mutex.acquire()
-                if gp_server.outputs_cache != None:
-                    torch.autograd.backward (
-                        tensors = [ gp_server.outputs_cache ],
-                        grad_tensors = [ gp_server.gradients_cache ],
-                        retain_graph=True
-                    )
                 losses.backward()
                 clip_grad_norm_(gp_server.parameters(), 1.0)
                 gp_server.outputs_cache = None
