@@ -168,12 +168,13 @@ def main( config ):
                 interation = 0
                 # --- Training step.
                 while block >= subtensor.get_current_block():
-                    interation += 1
+                    
                     loss, _ = gp_server( next( dataloader ) )
                     if interation > 0 : 
                         losses += loss
                     else:
                         losses = loss
+                    interation += 1
 
                 mutex.acquire()
                 losses.backward()
