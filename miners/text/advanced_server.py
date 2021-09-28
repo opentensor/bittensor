@@ -116,9 +116,10 @@ def main( config ):
                     mutex.release()
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()
-        future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ), priority=priority)
+        #future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ), priority=priority)
         try:
-            return future.result(timeout=config.server.timeout)
+            #return future.result(timeout=config.server.timeout)
+            raise TimeoutError('TimeOutError')
         except:
             raise TimeoutError('TimeOutError')
 
@@ -168,7 +169,7 @@ def main( config ):
                 interation = 0
                 # --- Training step.
                 while block >= subtensor.get_current_block():
-                    
+                    print('step')
                     loss, _ = gp_server( next( dataloader ) )
                     if interation > 0 : 
                         losses += loss
