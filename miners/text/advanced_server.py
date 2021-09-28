@@ -142,7 +142,7 @@ def main( config ):
     axon.start().subscribe()
 
     # Training Data
-    dataload = bittensor.dataloader(config=config).dataloader()
+    dataload = bittensor.dataloader(config=config)
     full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.server.name ))
     bittensor.logging( config = config,logging_dir = full_path)
 
@@ -160,6 +160,7 @@ def main( config ):
     try:
         while True:
             # --- Run 
+            dataloader = iter(dataload.dataloader(epoch_length=config.server.blocks_per_epoch))
             start_block = subtensor.get_current_block()
             end_block = start_block + config.server.blocks_per_epoch
             blocks = [ block for block in range(start_block, end_block) ]
@@ -168,7 +169,7 @@ def main( config ):
                 # --- Training step.
                 while block >= subtensor.get_current_block():
                     interation += 1
-                    loss, _ = gp_server( next( dataload ) )
+                    loss, _ = gp_server( next( dataloader ) )
                     if interation > 0 : 
                         losses += loss
                     else:
