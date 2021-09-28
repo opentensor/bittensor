@@ -29,6 +29,8 @@ import datetime
 from nuclei.server import server
 
 def main( config ):
+    # Create Subtensor connection
+    subtensor = bittensor.subtensor(config = config)
 
     # Init bittensor logging.
     bittensor.logging( config = config )
@@ -91,6 +93,9 @@ def main( config ):
 
         # --- Run Forever.
         while True:
+            end_block = subtensor.get_current_block() + config.server.blocks_per_epoch
+            while end_block >= subtensor.get_current_block():
+                time.sleep( 10 * bittensor.__blocktime__ )
             metagraph.sync().save()
             uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
             wandb_data = {
@@ -102,7 +107,7 @@ def main( config ):
             for uid_i, val in enumerate(metagraph.W[:,uid].tolist()):
                 wandb_data[ 'w_{},{}'.format(uid_i, uid) ] = val
             wandb.log( wandb_data )
-            time.sleep( 10 * bittensor.__blocktime__ )
+            
 
 if __name__ == "__main__":
     main( server.config() )

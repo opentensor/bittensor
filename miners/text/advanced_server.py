@@ -167,13 +167,10 @@ def main( config ):
         while True:
             # --- Run 
             dataloader = iter(dataload.dataloader(epoch_length=config.server.blocks_per_epoch))
-            start_block = subtensor.get_current_block() + 1
+            end_block = subtensor.get_current_block() + 1
             interation = 0
             # --- Training step.
-            while start_block >= subtensor.get_current_block():
-                print('step')
-                print(start_block)
-                print(interation)
+            while end_block >= subtensor.get_current_block():
                 loss, _ = gp_server( next( dataloader ) )
                 if interation > 0 : 
                     losses += loss
@@ -181,19 +178,21 @@ def main( config ):
                     losses = loss
                 interation += 1
 
-            print(subtensor.get_current_block())
             if interation == 0:
                 pass
+        
             else:
                 logger.info('Backpropagation Started: Locking all threads')
                 mutex.acquire()
-                import pdb;pdb.set_trace()
-                losses.backward(retain_graph=True)
+                
                 if gp_server.outputs_cache != None:
+                    losses.backward(retain_graph=True)
                     torch.autograd.backward (
                         tensors = [ gp_server.outputs_cache ],
                         grad_tensors = [ gp_server.gradients_cache ]
                     )
+                else:
+                    losses.backward()
                 clip_grad_norm_(gp_server.parameters(), 1.0)
                 optimizer.step()
                 optimizer.zero_grad()
