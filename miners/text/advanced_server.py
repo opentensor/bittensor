@@ -177,43 +177,46 @@ def main( config ):
                     else:
                         losses = loss
                     interation += 1
-                print(block)
-                mutex.acquire()
-                losses.backward()
-                clip_grad_norm_(gp_server.parameters(), 1.0)
-                optimizer.step()
-                optimizer.zero_grad()
-                mutex.release()
 
-                uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
-                wandb_data = {
-                    'block': block,
-                    'loss': losses.item()/interation,
-                    'stake': metagraph.S[ uid ].item(),
-                    'rank': metagraph.R[ uid ].item(),
-                    'incentive': metagraph.I[ uid ].item(),
-                } 
+                if interation == 0:
+                    pass
+                else:
+                    mutex.acquire()
+                    losses.backward()
+                    clip_grad_norm_(gp_server.parameters(), 1.0)
+                    optimizer.step()
+                    optimizer.zero_grad()
+                    mutex.release()
+
+                    uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
+                    wandb_data = {
+                        'block': block,
+                        'loss': losses.item()/interation,
+                        'stake': metagraph.S[ uid ].item(),
+                        'rank': metagraph.R[ uid ].item(),
+                        'incentive': metagraph.I[ uid ].item(),
+                    } 
 
 
-                metagraph.sync().save()
-                wandb.log( wandb_data )
-                logger.info(wandb_data)
-                chain_weights[uid] = 1 
-                gp_server.save(full_path)
-                gp_server.load(full_path)
+                    metagraph.sync().save()
+                    wandb.log( wandb_data )
+                    logger.info(wandb_data)
+                    chain_weights[uid] = 1 
+                    gp_server.save(full_path)
+                    gp_server.load(full_path)
 
-                try: 
-                    did_set = subtensor.timeout_set_weights(
-                        timeout=10,
-                        uids=metagraph.uids,
-                        weights = chain_weights,
-                        wait_for_inclusion = True,
-                        wallet = wallet,
-                    )
-                except Exception as e:
-                    logger.error('Failure setting weights on chain with error: {}', e)
+                    try: 
+                        did_set = subtensor.timeout_set_weights(
+                            timeout=10,
+                            uids=metagraph.uids,
+                            weights = chain_weights,
+                            wait_for_inclusion = True,
+                            wallet = wallet,
+                        )
+                    except Exception as e:
+                        logger.error('Failure setting weights on chain with error: {}', e)
 
-    except KeyboardInterrupt:
+    except:
         # --- User ended session ----
         axon.stop()
 
