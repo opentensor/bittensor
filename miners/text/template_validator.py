@@ -102,7 +102,7 @@ def main( config ):
             self.encoder = TransformerEncoder( self.layers, config.nucleus.nlayers )
             self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
             self.loss_fct = torch.nn.CrossEntropyLoss()
-            self.chain_weights = torch.nn.Parameter(torch.ones( [ metagraph.n.item() ] , requires_grad=True))
+            self.chain_weights = torch.nn.Parameter(torch.zeros( [ metagraph.n.item() ] , requires_grad=True))
             self.logs = SimpleNamespace()
 
         def forward( self, inputs ):
