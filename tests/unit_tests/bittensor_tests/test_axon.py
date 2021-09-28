@@ -411,7 +411,7 @@ def test_axon_is_destroyed():
     axon2.__del__()
     assert is_port_in_use( port ) == False
 
-    port_3 = 8084
+    port_3 = 8086
     assert is_port_in_use( port_3 ) == False
     axonA = bittensor.axon ( port = port_3 )
     assert is_port_in_use( port_3 ) == True
