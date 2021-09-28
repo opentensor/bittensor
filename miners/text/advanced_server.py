@@ -104,23 +104,27 @@ def main( config ):
                     torch grads of forward output.
                     
         """
-        def call(input,grad):
-            with torch.enable_grad():
-                with torch.autograd.set_detect_anomaly(True):
-                    mutex.acquire()
-                    outputs_y = gp_server.encode_forward( input )
-                    torch.autograd.backward (
-                        tensors = [ outputs_y ],
-                        grad_tensors = [ grad ],
-                        retain_graph=True 
-                    )
-                    mutex.release()
+        def call(input,grad,mutex):
+            mutex.acquire()
+            outputs_y = gp_server.encode_forward( input )
+            if gp_server.outputs_cache == None:
+                gp_server.outputs_cache = outputs_y
+                gp_server.gradients_cache = grad
+            else:
+                gp_server.outputs_cache = torch.cat((gp_server.outputs_cache, outputs_y),0)
+                gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grad),0)
+                print(gp_server.outputs_cache.size(),gp_server.gradients_cache.size())
+            
+            mutex.release()
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()
-        future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ), priority=priority)
+        
+
+        future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
         try:
-            return future.result(timeout=gp_server.config.server.timeout)
+            return future.result(timeout=config.server.timeout)
         except:
+            mutex.release()
             raise TimeoutError('TimeOutError')
 
     def blacklist(pubkey:str) -> bool:
@@ -182,8 +186,15 @@ def main( config ):
             else:
                 logger.info('Backpropagation Started')
                 mutex.acquire()
+                torch.autograd.backward (
+                    tensors = [ gp_server.outputs_cache ],
+                    grad_tensors = [ gp_server.gradients_cache ],
+                    retain_graph=True
+                )
                 losses.backward()
                 clip_grad_norm_(gp_server.parameters(), 1.0)
+                gp_server.outputs_cache = None
+                gp_server.gradients_cache = None
                 optimizer.step()
                 optimizer.zero_grad()
                 logger.info('Backpropagation Successful: Model updated')
@@ -215,12 +226,10 @@ def main( config ):
                     )
                 except Exception as e:
                     logger.error('Failure setting weights on chain with error: {}', e)
-                gp_server.save(full_path)
-                gp_server.load(full_path)
+
     except Exception as e:
         # --- User ended session ----
         axon.stop()
-        print(e)
 
 
 if __name__ == "__main__":
