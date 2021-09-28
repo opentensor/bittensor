@@ -193,19 +193,23 @@ def main( config ):
                 pass
             else:
                 def update():
-                    logger.debug('Backpropagation Started: Locking all threads')
-                    mutex.acquire()
-                    losses.backward()
-                    print(gp_server.outputs_cache.size(), gp_server.gradients_cache.size())
-                    clip_grad_norm_(gp_server.parameters(), 1.0)
-                    optimizer.step()
-                    optimizer.zero_grad()
-                    gp_server.outputs_cache = None
-                    gp_server.gradients_cache = None
-                    logger.debug('Backpropagation Successful: Model updated')
+                    try:
+                        logger.debug('Backpropagation Started: Locking all threads')
+                        mutex.acquire()
+                        losses.backward()
+                        print(gp_server.outputs_cache.size(), gp_server.gradients_cache.size())
+                        clip_grad_norm_(gp_server.parameters(), 1.0)
+                        optimizer.step()
+                        optimizer.zero_grad()
+                        gp_server.outputs_cache = None
+                        gp_server.gradients_cache = None
+                        logger.debug('Backpropagation Successful: Model updated')
+                    except Exception as e:
+                        raise Exception(e)
                     mutex.release()
                 
                 future = threadpool.submit(update,priority=100000)
+                future.result()
                 uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
                 wandb_data = {
                     'block': start_block,
