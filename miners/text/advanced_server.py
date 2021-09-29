@@ -108,27 +108,28 @@ def main( config ):
                     
         """
         def call(input,grad,mutex):
-            mutex.acquire()
-            outputs_y = gp_server.encode_forward( input )
-            if gp_server.outputs_cache == None:
-                gp_server.outputs_cache = outputs_y
-                gp_server.gradients_cache = grad
-            else:
-                gp_server.outputs_cache = torch.cat((gp_server.outputs_cache, outputs_y),0)
-                gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grad),0)
+            with mutex:
+                outputs_y = gp_server.encode_forward( input )
+                if gp_server.outputs_cache == None:
+                    gp_server.outputs_cache = outputs_y
+                    gp_server.gradients_cache = grad
+                else:
+                    gp_server.outputs_cache = torch.cat((gp_server.outputs_cache, outputs_y),0)
+                    gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grad),0)
 
-            if gp_server.outputs_cache.size(0) >= 30:
-                torch.autograd.backward (
-                    tensors = [ gp_server.outputs_cache ],
-                    grad_tensors = [ gp_server.gradients_cache ],
-                    retain_graph=True
-                )
-                gp_server.outputs_cache = None
-                gp_server.gradients_cache = None  
-                logger.info('Backwards axon gradient applied')
-                
-            mutex.release()
-            return torch.ones((grad.size()))
+                if gp_server.outputs_cache.size(0) >= 30:
+                    with torch.autograd.set_detect_anomaly(True):
+                        torch.autograd.backward (
+                            tensors = [ gp_server.outputs_cache ],
+                            grad_tensors = [ gp_server.gradients_cache ],
+                            retain_graph=True
+                        )
+                    gp_server.outputs_cache = None
+                    gp_server.gradients_cache = None  
+                    logger.info('Backwards axon gradient applied')
+                    
+                mutex.release()
+                return torch.ones((grad.size()))
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()
         
@@ -202,24 +203,23 @@ def main( config ):
                     current_block = subtensor.get_current_block()
 
             if interation != 0:
-                mutex.acquire()
-                logger.info('Backpropagation Started')
-                if gp_server.outputs_cache != None:
-                    torch.autograd.backward (
-                        tensors = [ gp_server.outputs_cache ],
-                        grad_tensors = [ gp_server.gradients_cache ],
-                        retain_graph=True
-                    )
+                with mutex:
+                    logger.info('Backpropagation Started')
+                    if gp_server.outputs_cache != None:
+                        torch.autograd.backward (
+                            tensors = [ gp_server.outputs_cache ],
+                            grad_tensors = [ gp_server.gradients_cache ],
+                            retain_graph=True
+                        )
 
-                gp_server.outputs_cache = None
-                gp_server.gradients_cache = None
+                    gp_server.outputs_cache = None
+                    gp_server.gradients_cache = None
 
-                losses.backward()
-                clip_grad_norm_(gp_server.parameters(), 1.0)
-                optimizer.step()
-                optimizer.zero_grad()
-                logger.info('Backpropagation Successful: Model updated')
-                mutex.release()
+                    losses.backward()
+                    clip_grad_norm_(gp_server.parameters(), 1.0)
+                    optimizer.step()
+                    optimizer.zero_grad()
+                    logger.info('Backpropagation Successful: Model updated')
 
 
             wandb_data = {
