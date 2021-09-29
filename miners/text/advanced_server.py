@@ -108,7 +108,7 @@ def main( config ):
                     
         """
         def call(input,grad,mutex):
-            mutex.acquire()
+            mutex.acquire(timeout=config.server.backward_timeout)
             outputs_y = gp_server.encode_forward( input )
             if gp_server.outputs_cache == None:
                 gp_server.outputs_cache = outputs_y
@@ -125,7 +125,7 @@ def main( config ):
                 )
                 gp_server.outputs_cache = None
                 gp_server.gradients_cache = None  
-                bittensor.logging.info('Backwards axon gradient applied')
+                logger.info('Backwards axon gradient applied')
                 
             mutex.release()
             return torch.ones((grad.size()))
