@@ -223,9 +223,9 @@ def main( config ):
 
     wandb_data = {}
     norm_weights = torch.nn.functional.normalize( validator.chain_weights - torch.min( validator.chain_weights ), p = 1, dim = 0)
-    for uid_j, weight_norm, weight_wo_norm in (list(zip(range(metagraph.n.item()), validator.chain_weights.tolist(), norm_weights))):
-        wandb_data[ 'w_norm_{},{}'.format( uid, uid_j ) ] = weight_norm
-        wandb_data[ 'w_wo_norm_{},{}'.format( uid, uid_j ) ] = weight_wo_norm
+    for uid_j, weight_norm, weight_wo_norm in (list(zip(range(metagraph.n.item()), F.softmax(validator.chain_weights).tolist(), norm_weights))):
+        wandb_data[ 'w_norm_{}'.format( uid_j ) ] = weight_norm
+        wandb_data[ 'w_wo_norm_{}'.format( uid_j ) ] = weight_wo_norm
     
     wandb.log( wandb_data )
 
@@ -310,8 +310,8 @@ def main( config ):
         respond_rate = validator.logs.responded_peers_count / validator.logs.quested_peers_count
         
         for weight_norm, weight_wo_norm, uid_j in list(zip(final_weights.tolist(), topk_weights.tolist(), topk_uids.tolist())):
-            wandb_data[ 'w_norm_{},{}'.format( uid, uid_j ) ] = weight_norm
-            wandb_data[ 'w_wo_norm_{},{}'.format( uid, uid_j ) ] = weight_wo_norm
+            wandb_data[ 'w_norm_{}'.format( uid_j ) ] = weight_norm
+            wandb_data[ 'w_wo_norm_{}'.format(  uid_j ) ] = weight_wo_norm
             wandb_data[f'Quested uid: {str(uid_j)}']= validator.logs.quested_peers_count[uid_j]
             wandb_data[f'Responded uid: {str(uid_j)}']= validator.logs.responded_peers_count[uid_j]
             wandb_data[f'Respond rate uid: {str(uid_j)}']= respond_rate[uid_j]
