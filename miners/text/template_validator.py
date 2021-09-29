@@ -222,17 +222,14 @@ def main( config ):
     best_loss = math.inf
 
     wandb_data = {}
-    norm_weights = torch.nn.functional.normalize( validator.chain_weights - torch.min( validator.chain_weights ), p = 1, dim = 0)
-    for uid_j, weight_norm, weight_wo_norm in (list(zip(range(metagraph.n.item()), F.softmax(validator.chain_weights).tolist(), norm_weights))):
+    norm_weights = F.softmax( validator.chain_weights.detach() )
+    for uid_j, weight_norm, weight_wo_norm in (list(zip(range(metagraph.n.item()), norm_weights,validator.chain_weights.tolist()))):
         wandb_data[ 'w_norm_{}'.format( uid_j ) ] = weight_norm
         wandb_data[ 'w_wo_norm_{}'.format( uid_j ) ] = weight_wo_norm
     
     wandb.log( wandb_data )
 
     while True:
-
-        total_epoch_loss = math.inf
-        batch_count = 0
     
         # --- Sync + reshape.      
         metagraph.sync().save()
@@ -253,6 +250,8 @@ def main( config ):
         # --- Reset the epoch logs
         validator.logs.quested_peers_count = torch.zeros(0)
         validator.logs.responded_peers_count = torch.zeros(0)
+        total_epoch_loss = math.inf
+        batch_count = 0
         
         for block in progress:
             
@@ -264,13 +263,12 @@ def main( config ):
                 optimizer.step()
                 optimizer.zero_grad() 
                 global_step += 1
-                batch_count += 0
+                batch_count += 1
                 total_epoch_loss += loss.item()
 
             # Take topk chain weights.
             real_topk = min( config.miner.n_topk_chain_weights, metagraph.n.item() ) 
-            topk_weights, topk_uids = torch.topk( F.softmax( validator.chain_weights ), k = real_topk )
-            final_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
+            topk_norm_weights, topk_uids = torch.topk( F.softmax( validator.chain_weights.detach() ), k = real_topk )
 
             # Step logs.
             info = { 
@@ -285,7 +283,8 @@ def main( config ):
                 'dividends': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green') 
             }
             
-            for weight_norm, weight_wo_norm, uid_j in list(zip(final_weights.tolist(), topk_weights.tolist(),topk_uids.tolist())):
+            for weight_norm, uid_j in list(zip(topk_norm_weights.tolist(),topk_uids.tolist())):
+                weight_wo_norm = validator.chain_weights[uid_j]
                 color = 'green' if (validator.chain_weights.grad != None and validator.chain_weights.grad[ uid_j ] < 0) else 'red'
                 if weight_wo_norm > 0.001: info[ str(uid_j) ] = colored('{:.4f}'.format( weight_wo_norm ), color)
 
@@ -295,7 +294,7 @@ def main( config ):
         # ---  Set mechanism weights.
         subtensor.set_weights (
             uids = topk_uids,
-            weights = final_weights,
+            weights = topk_norm_weights,
             wait_for_inclusion = False,
             wallet = wallet,
         )    
@@ -309,9 +308,9 @@ def main( config ):
 
         respond_rate = validator.logs.responded_peers_count / validator.logs.quested_peers_count
         
-        for weight_norm, weight_wo_norm, uid_j in list(zip(final_weights.tolist(), topk_weights.tolist(), topk_uids.tolist())):
+        for weight_norm, uid_j in list(zip(topk_norm_weights.tolist(), topk_uids.tolist())):
             wandb_data[ 'w_norm_{}'.format( uid_j ) ] = weight_norm
-            wandb_data[ 'w_wo_norm_{}'.format(  uid_j ) ] = weight_wo_norm
+            wandb_data[ 'w_wo_norm_{}'.format(  uid_j ) ] = validator.chain_weights[uid_j]
             wandb_data[f'Quested uid: {str(uid_j)}']= validator.logs.quested_peers_count[uid_j]
             wandb_data[f'Responded uid: {str(uid_j)}']= validator.logs.responded_peers_count[uid_j]
             wandb_data[f'Respond rate uid: {str(uid_j)}']= respond_rate[uid_j]
@@ -319,7 +318,10 @@ def main( config ):
         wandb.log( wandb_data )
         
         # --- Save.
-        if best_loss > loss.item(): best_loss = loss.item(); torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( run.dir ))
+        epoch_loss = total_epoch_loss / batch_count
+        if best_loss > epoch_loss : 
+            best_loss = epoch_loss
+            torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( run.dir ))
         epoch += 1
 
 
