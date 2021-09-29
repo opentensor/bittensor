@@ -436,11 +436,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 params=[address],
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
-            balance_info = result.get('result')
-            if not balance_info:
-                return Balance(0)
-            balance = balance_info['data']['free']
-            return Balance(balance)
+            return Balance( result.value['data']['free'] )
 
     def get_current_block(self) -> int:
         r""" Returns the current block number on the chain.

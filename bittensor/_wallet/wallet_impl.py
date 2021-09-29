@@ -87,13 +87,11 @@ class Wallet():
                 wallet.
         """
         if email == None:
-            email = self._registration_email
+            email = self._email
             if email == None:
                 raise ValueError('You must pass registration email either through wallet initialization or during the register call.')
-        if subtensor == None:
-            subtensor = bittensor.subtensor()
-        if self.is_registered( subtensor = subtensor ):
-            print ('Already registered {}'.format( self.hotkey.ss58_address ))
+        if subtensor == None: subtensor = bittensor.subtensor()
+        if self.is_registered( subtensor = subtensor ): print ('Already registered {}'.format( self.hotkey.ss58_address ))
         else:
             headers = {'Content-type': 'application/json'}
             url = 'http://' + bittensor.__registration_servers__[0] + '/register?email={}&hotkey={}&coldkey={}&hotkey_signature={}&network={}'.format( email, self.hotkey.ss58_address, self.coldkey.ss58_address, 'signaturefaked', subtensor.network)
@@ -120,10 +118,8 @@ class Wallet():
                 is_registered (bool):
                     Is the wallet registered on the chain.
         """
-        if subtensor == None:
-            subtensor = bittensor.subtensor()
+        if subtensor == None: subtensor = bittensor.subtensor()
         return subtensor.is_hotkey_registered( self.hotkey.ss58_address )
-
 
     def get_neuron ( self, subtensor: 'bittensor.Subtensor' = None ) -> SimpleNamespace:
         """ Returns this wallet's neuron information from subtensor.
@@ -134,9 +130,9 @@ class Wallet():
                 neuron (SimpleNamespace):
                     neuron account on the chain.
         """
-        if subtensor == None:
-            subtensor = bittensor.subtensor()
         self.assert_hotkey()             
+        if subtensor == None: subtensor = bittensor.subtensor()
+        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
         neuron = subtensor.neuron_for_wallet( self )
         return neuron
 
@@ -149,7 +145,9 @@ class Wallet():
                 uid (int):
                     Network uid.
         """
-        neuron = self.get_neuron(subtensor)
+        if subtensor == None: subtensor = bittensor.subtensor()
+        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
+        neuron = self.get_neuron(subtensor = subtensor)
         if neuron.is_null:
             return -1
         else:
@@ -164,13 +162,27 @@ class Wallet():
                 balance (bittensor.utils.balance.Balance):
                     Stake account balance
         """
-        neuron = self.get_neuron(subtensor)
+        if subtensor == None: subtensor = bittensor.subtensor()
+        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
+        neuron = self.get_neuron(subtensor = subtensor)
         if neuron.is_null:
             return bittensor.Balance(0)
         else:
             return bittensor.Balance(neuron.stake)
 
-    def stake( self, 
+    def get_balance( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
+        """ Returns this wallet's coldkey balance from passed subtensor connection.
+            Args:
+                subtensor( 'bittensor.Subtensor' ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+            Return:
+                balance (bittensor.utils.balance.Balance):
+                    Coldkey balance.
+        """
+        if subtensor == None: subtensor = bittensor.subtensor()
+        return subtensor.get_balance(address = self.coldkeypub.ss58_address)
+
+    def add_stake( self, 
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -196,15 +208,15 @@ class Wallet():
         self.assert_coldkey()
         self.assert_coldkeypub()
         self.assert_hotkey()
+        if subtensor == None: subtensor = bittensor.subtensor()
+        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
         if amount == None:
             amount = self.get_balance()
         if not isinstance(amount, bittensor.Balance):
             amount = bittensor.utils.balance.Balance.from_float( amount )
-        if subtensor == None:
-            subtensor = bittensor.subtensor()
         return subtensor.add_stake( wallet = self, amount = amount, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
 
-    def unstake( self, 
+    def remove_stake( self, 
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -230,12 +242,12 @@ class Wallet():
         self.assert_coldkey()
         self.assert_coldkeypub()
         self.assert_hotkey()
+        if subtensor == None: subtensor = bittensor.subtensor()
+        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
         if amount == None:
             amount = self.get_stake()
         if not isinstance(amount, bittensor.Balance):
             amount = bittensor.utils.balance.Balance.from_float( amount )
-        if subtensor == None:
-            subtensor = bittensor.subtensor()
         return subtensor.unstake( wallet = self, amount = amount, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
 
     def transfer( 
@@ -269,14 +281,14 @@ class Wallet():
         self.assert_coldkey()
         self.assert_coldkeypub()
         self.assert_hotkey()
+        if subtensor == None: subtensor = bittensor.subtensor()
+        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
         if not isinstance(amount, bittensor.Balance):
             amount = bittensor.utils.balance.Balance.from_float( amount )
         balance = self.get_balance()
         if amount > balance:
             bittensor.logging.error(prefix='Transfer', sufix='Not enough balance to transfer: {} > {}'.format(amount, balance))
             return False
-        if subtensor == None:
-            subtensor = bittensor.subtensor()
         return subtensor.transfer( wallet = self, amount = amount, dest = dest, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
 
     def create_if_non_existent( self, coldkey_use_password:bool = True, hotkey_use_password:bool = True) -> 'Wallet':
