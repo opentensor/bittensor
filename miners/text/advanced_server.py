@@ -199,13 +199,13 @@ def main( config ):
             else:
                 mutex.acquire()
                 logger.info('Backpropagation Started')
-                
-                torch.autograd.backward (
-                    tensors = [ gp_server.outputs_cache ],
-                    grad_tensors = [ gp_server.gradients_cache ],
-                    retain_graph=True
-                )
-                
+                if gp_server.outputs_cache != None:
+                    torch.autograd.backward (
+                        tensors = [ gp_server.outputs_cache ],
+                        grad_tensors = [ gp_server.gradients_cache ],
+                        retain_graph=True
+                    )
+
                 gp_server.outputs_cache = None
                 gp_server.gradients_cache = None
 

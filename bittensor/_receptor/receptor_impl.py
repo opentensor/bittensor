@@ -527,14 +527,19 @@ class Receptor(nn.Module):
             message = 'deserialization exception with error:{}'.format(e)
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
             return zeros, code, message
-
-        # ---- Check response shape is same as inputs ----
-        if  outputs.size(0) != inputs_x.size(0) \
-            or outputs.size(1) != inputs_x.size(1) \
-            or outputs.size(2) != inputs_x.size(2):
-            code = bittensor.proto.ReturnCode.ResponseShapeException 
-            message = 'output shape does not match inputs shape'
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=list(outputs.shape), message=message )
+        try:
+            # ---- Check response shape is same as inputs ----
+            if  outputs.size(0) != inputs_x.size(0) \
+                or outputs.size(1) != inputs_x.size(1) \
+                or outputs.size(2) != inputs_x.size(2):
+                code = bittensor.proto.ReturnCode.ResponseShapeException 
+                message = 'output shape does not match inputs shape'
+                bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=list(outputs.shape), message=message )
+                return zeros, code, message
+        except Exception as e:
+            code = bittensor.proto.ReturnCode.UnknownException
+            message = 'Size Error: {}'.format(e)
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
             return zeros, code, message
 
         # ---- Safe catch NaNs and replace with 0.0 ----
