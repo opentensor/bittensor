@@ -23,23 +23,25 @@ Example:
 """
 import argparse
 import bittensor
+import sys
 import torch
 import time
 import wandb
 import datetime
-from qqdm import qqdm
 from transformers import BertModel, BertConfig
 
 def config ():
     parser = argparse.ArgumentParser()
     parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=1)
     parser.add_argument('--miner.momentum', type=float, help='optimizer momentum.', default=0.8)
+    parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=2)
     parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
     parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
     bittensor.wallet.add_args( parser )
     bittensor.axon.add_args( parser )
     bittensor.subtensor.add_args( parser )
     bittensor.logging.add_args( parser )
+    bittensor.prioritythreadpool.add_args( parser )
     return bittensor.config( parser )
 
 def main( config ):
@@ -87,20 +89,35 @@ def main( config ):
         momentum = config.miner.momentum,
     )
 
+    # Priority thread pool 
+    thread_pool = bittensor.prioritythreadpool(
+        config = config
+    )
+
     # Define our forward function.
     def forward_text ( pubkey, inputs_x, modality ):
-        return model( inputs_x.to(device) ).last_hidden_state
+        def run_call( inputs_x ):
+            return model( inputs_x ).last_hidden_state
+        # Make call based on stake priority.
+        priority = metagraph.S[ metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
+        future = thread_pool.submit( run_call, inputs_x = inputs_x.to( device ), priority = priority )
+        return future.result(timeout = config.miner.timeout )
+
 
     # Define our backward function.
     def backward_text ( pubkey:str, inputs_x, grads_dy, modality ):
-        with torch.enable_grad():
-            outputs_y = model( inputs_x.to(device) ).last_hidden_state
-            torch.autograd.backward (
-                tensors = [ outputs_y.to(device) ],
-                grad_tensors = [ grads_dy.to(device) ]
-            )
-            optimizer.step() # Applies accumulated gradients.
-            optimizer.zero_grad() 
+        def run_call( inputs_x, grads_dy ):
+            with torch.enable_grad():
+                outputs_y = model( inputs_x ).last_hidden_state
+                torch.autograd.backward (
+                    tensors = [ outputs_y ],
+                    grad_tensors = [ grads_dy ]
+                )
+                optimizer.step() # Applies accumulated gradients.
+                optimizer.zero_grad() 
+        # Make call based on stake priority.
+        priority = metagraph.S[ metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
+        thread_pool.submit( run_call, input=inputs_x.to( device ), grad=grads_dy.to( device ), priority = priority )
 
     # Create our axon server and subscribe it to the network.
     axon = bittensor.axon (

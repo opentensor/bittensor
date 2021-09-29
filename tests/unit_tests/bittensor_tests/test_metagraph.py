@@ -1,4 +1,5 @@
 import bittensor
+import torch
 
 def test_create( ):
     global metagraph
@@ -8,6 +9,16 @@ def test_create( ):
 def test_print_empty():
     metagraph = bittensor.metagraph()
     print (metagraph)
+
+def test_forward():
+    meta = bittensor.metagraph()
+    row = torch.ones( (meta.n), dtype = torch.float32 )
+    for i in range( meta.n ):
+        meta(i, row)
+    meta.sync()
+    row = torch.ones( (meta.n), dtype = torch.float32 )
+    for i in range( meta.n ):
+        meta(i, row)
 
 def test_load_sync_save():
     metagraph = bittensor.metagraph()
