@@ -223,10 +223,11 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         if modality == bittensor.proto.Modality.TEXT:
             self.backward_callback[modality]( public_key, inputs_x, grads_dy)
-            response_tensor = torch.ones((grads_dy.size()))
+            response_tensor = torch.ones(inputs_x.size())
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
+            
         # Make backward call.
         try:
             response_tensor = self.backward_callback[modality]( public_key, inputs_x, grads_dy)

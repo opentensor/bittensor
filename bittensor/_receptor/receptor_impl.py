@@ -479,10 +479,6 @@ class Receptor(nn.Module):
                 hotkey = self.wallet.hotkey.ss58_address,
                 tensors = [serialized_inputs, serialized_grads],
             )
-
-            # --- Don't wait for TEXT response ---
-            if modality == bittensor.proto.Modality.TEXT:
-                timeout = 3
             
             call_time = clock.time() - start_time
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=bittensor.proto.ReturnCode.Success, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=None)
@@ -577,9 +573,7 @@ class Receptor(nn.Module):
             return zeros, code, call_time, message
         try:
             # ---- Check response shape is same as inputs ----
-            if  outputs.size(0) != inputs_x.size(0) \
-                or outputs.size(1) != inputs_x.size(1) \
-                or outputs.size(2) != inputs_x.size(2):
+            if  outputs.size() != inputs_x.size():
                 code = bittensor.proto.ReturnCode.ResponseShapeException 
                 message = 'output shape does not match inputs shape'
                 call_time = clock.time() - start_time
