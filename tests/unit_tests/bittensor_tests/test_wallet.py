@@ -38,6 +38,10 @@ def test_wallet_mnemonic_create():
     assert os.path.isfile(the_wallet.hotkeyfile)
     assert os.path.isfile(the_wallet.coldkeypubfile)
 
+def test_wallet_is_registered():
+    the_wallet.is_registered = MagicMock(return_value = True)
+    the_wallet.register( email = 'fake@email.com')
+
 def test_wallet_keypair():  
     the_wallet.hotkey
     the_wallet.coldkeypub
