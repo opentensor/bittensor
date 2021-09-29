@@ -372,7 +372,7 @@ class Receptor(nn.Module):
             # ---- Check response shape ----
             if  (
                 outputs.size(0) != inputs.size(0) or
-                outputs.size(1) != inputs.size(1)or 
+                outputs.size(1) != inputs.size(1) or 
                 outputs.size(2) != bittensor.__network_dim__
                 ):
                 code = bittensor.proto.ReturnCode.ResponseShapeException

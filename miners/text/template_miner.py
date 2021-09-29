@@ -372,17 +372,15 @@ class Miner:
 
                     # ---- Run epoch ----
                     total_epoch_loss = 0.0
-                    start_block = self.neuron.subtensor.get_current_block() + 1
+                    start_block = self.neuron.subtensor.get_current_block()
                     end_block = start_block + self.config.miner.epoch_length
-                    block_steps = [ start_block + block_delta for block_delta in range(start_block, end_block)]
-                    print(block_steps)
+                    block_steps = [ block_delta for block_delta in range(start_block, end_block)]
                     progress_bar = qqdm( block_steps, total=len(block_steps), desc=format_str('white', f'Epoch:'))
                     for block in progress_bar:
-
                         # --- Iterate over batches until the end of the block.
                         current_block = self.neuron.subtensor.get_current_block()
-                        while block <= current_block:
-                            
+                        while block >= current_block:
+
                             # ---- Forward pass ----
                             inputs = next( self.dataset )
                             output = self.nucleus.remote_forward (
@@ -396,9 +394,10 @@ class Miner:
                             output.loss.backward() # Accumulates gradients on the nucleus.
                             clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
 
-                        # ---- Apply and zero accumulated gradients.
-                        self.optimizer.step() 
-                        self.optimizer.zero_grad()
+                            # ---- Apply and zero accumulated gradients.
+                            self.optimizer.step() 
+                            self.optimizer.zero_grad()
+                            current_block = self.neuron.subtensor.get_current_block()
 
                         # ---- Block logs.
                         self.logs (
@@ -407,7 +406,6 @@ class Miner:
                             output = output,
                         )
                         self.global_step += 1
-                        last_block = current_block
 
                     # ---- Update params ----
                     self.epoch_loss = total_epoch_loss / self.config.miner.epoch_length
