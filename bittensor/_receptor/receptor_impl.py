@@ -446,6 +446,11 @@ class Receptor(nn.Module):
                 hotkey = self.wallet.hotkey.ss58_address,
                 tensors = [serialized_inputs, serialized_grads],
             )
+
+            # --- Don't wait for TEXT response ---
+            if modality == bittensor.proto.Modality.TEXT:
+                timeout = 1
+            
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=bittensor.proto.ReturnCode.Success, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=None )
             response = self.stub.Backward(request = request, 
                                           timeout = timeout,
