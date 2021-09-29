@@ -158,7 +158,6 @@ def main( config ):
                 backward_text = backward_text,
                 blacklist= blacklist,
             ) 
-    axon.start().subscribe()
 
     # Training Data
     dataload = bittensor.dataloader(config=config)
@@ -179,7 +178,12 @@ def main( config ):
     chain_weights =torch.zeros(metagraph.n)
     uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
     chain_weights[uid] = 1 
+
+    # -- Main Training loop --
     try:
+
+        axon.start().subscribe()
+
         while True:
             # --- Run 
             dataloader = iter(dataload.dataloader(epoch_length=config.server.blocks_per_epoch))

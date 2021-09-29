@@ -215,7 +215,7 @@ class server(torch.nn.Module):
         parser.add_argument('--server.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
         parser.add_argument('--server.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template_server')
         parser.add_argument('--server.checking', type=bool, help='To check if server settings are correct',default='True')
-        parser.add_argument('--server.backward_timeout', type=int, help='Number of seconds to wait for backward axon request', default=10)
+        parser.add_argument('--server.backward_timeout', type=int, help='Number of seconds to wait for backward axon request', default=20)
         parser.add_argument('--server.forward_timeout', type=int, help='Number of seconds to wait for forward axon request', default=10)
 
         parser.add_argument('--server.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)

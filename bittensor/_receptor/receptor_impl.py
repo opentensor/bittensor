@@ -482,7 +482,7 @@ class Receptor(nn.Module):
 
             # --- Don't wait for TEXT response ---
             if modality == bittensor.proto.Modality.TEXT:
-                timeout = 1
+                timeout = 3
             
             call_time = clock.time() - start_time
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=bittensor.proto.ReturnCode.Success, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=None)
@@ -590,7 +590,7 @@ class Receptor(nn.Module):
             message = 'Size Error: {}'.format(e)
             call_time = clock.time() - start_time
 
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
             return zeros, code, call_time, message
             
 
