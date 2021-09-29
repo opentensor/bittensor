@@ -221,6 +221,12 @@ class Axon( bittensor.grpc.BittensorServicer ):
             message = "Backward callback is not yet subscribed on this axon."
             return None, bittensor.proto.ReturnCode.NotImplemented, message
 
+        if modality == bittensor.proto.Modality.TEXT:
+            self.backward_callback[modality]( public_key, inputs_x, grads_dy)
+            response_tensor = torch.ones((grads_dy.size()))
+            message = "Success"
+            code = bittensor.proto.ReturnCode.Success
+            return response_tensor, code, message
         # Make backward call.
         try:
             response_tensor = self.backward_callback[modality]( public_key, inputs_x, grads_dy)

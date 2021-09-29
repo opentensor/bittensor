@@ -128,15 +128,13 @@ def main( config ):
                     gp_server.gradients_cache = None  
                     logger.info('Backwards axon gradient applied')
                     
-                mutex.release()
-                return torch.ones((grad.size()))
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()
         
 
         future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
         try:
-            return future.result(timeout=config.server.backward_timeout)
+            future.result(timeout=config.server.backward_timeout)
         except concurrent.futures.TimeoutError :
             raise TimeoutError('TimeOutError')
         except Exception as e:
