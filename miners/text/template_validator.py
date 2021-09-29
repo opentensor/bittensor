@@ -55,6 +55,9 @@ def config ():
     parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default=2)
     parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
     parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
+    parser.add_argument('--wandb.project', type=str, help='''Optionally pass wandb project name for use_wandb''', default='default')
+    parser.add_argument('--wandb.run_group', type = str, help='''Optionally pass wandb group name for use_wandb''', default='default')
+    
     bittensor.wallet.add_args( parser )
     bittensor.dendrite.add_args( parser )
     bittensor.subtensor.add_args( parser )
@@ -76,6 +79,7 @@ def config ():
     return bittensor.config( parser )
 
 def main( config ):
+
     print (config)
 
     # Init bittensor logging.
@@ -195,8 +199,8 @@ def main( config ):
     run = wandb.init (
         config = config, 
         name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
-        project = wallet.coldkeypub[:8],
-        group = wallet.hotkey.ss58_address[:8],
+        project = wallet.coldkeypub[:8] if not config.wandb.project else config.wandb.project,
+        group = wallet.hotkey.ss58_address[:8] if not config.wandb.run_group else config.wandb.run_group,
         dir = os.path.expanduser('~/.bittensor/'),
         resume = config.miner.resume,
         save_code = True
