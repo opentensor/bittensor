@@ -225,7 +225,7 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ neuron.hotkey if neuron != None else '' for neuron in self.endpoint_objs ]
+        return [ neuron.hotkey if neuron.hotkey != None else '' for neuron in self.endpoint_objs ]
 
     @property
     def coldkeys( self ) -> List[str]:
@@ -236,7 +236,7 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ neuron.coldkey if neuron != None else '' for neuron in self.endpoint_objs ]
+        return [ neuron.coldkey if neuron.coldkey != None else '' for neuron in self.endpoint_objs ]
 
     @property
     def modalities( self ) -> List[str]:
