@@ -373,13 +373,13 @@ class Miner:
                     total_epoch_loss = 0.0
                     start_block = self.neuron.subtensor.get_current_block()
                     end_block = start_block + self.config.miner.epoch_length
-                    block_steps = [ start_block + block_delta for block_delta in range(start_block, end_block)]
+                    block_steps = [ block_delta for block_delta in range(start_block, end_block)]
                     progress_bar = qqdm( block_steps, total=len(block_steps), desc=format_str('white', f'Epoch:'))
                     for block in progress_bar:
                         # --- Iterate over batches until the end of the block.
                         current_block = self.neuron.subtensor.get_current_block()
                         while block >= current_block:
-                            
+
                             # ---- Forward pass ----
                             inputs = next( self.dataset )
                             output = self.nucleus.remote_forward (
@@ -396,6 +396,7 @@ class Miner:
                             # ---- Apply and zero accumulated gradients.
                             self.optimizer.step() 
                             self.optimizer.zero_grad()
+                            current_block = self.neuron.subtensor.get_current_block()
 
                         # ---- Block logs.
                         self.logs (
