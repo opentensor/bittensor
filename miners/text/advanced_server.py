@@ -117,7 +117,7 @@ def main( config ):
                 gp_server.outputs_cache = torch.cat((gp_server.outputs_cache, outputs_y),0)
                 gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grad),0)
 
-            if gp_server.outputs_cache.size(0) == 30:
+            if gp_server.outputs_cache.size(0) >= 30:
                 torch.autograd.backward (
                     tensors = [ gp_server.outputs_cache ],
                     grad_tensors = [ gp_server.gradients_cache ],
@@ -177,12 +177,13 @@ def main( config ):
     )
 
     chain_weights =torch.zeros(metagraph.n)
-
+    uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
+    chain_weights[uid] = 1 
     try:
         while True:
             # --- Run 
             dataloader = iter(dataload.dataloader(epoch_length=config.server.blocks_per_epoch))
-            end_block = subtensor.get_current_block() + 1
+            end_block = subtensor.get_current_block() + 5
             interation = 0
             # --- Training step.
             while end_block >= subtensor.get_current_block():
@@ -216,32 +217,31 @@ def main( config ):
                 logger.info('Backpropagation Successful: Model updated')
                 mutex.release()
 
+        
+            wandb_data = {
+                'block': end_block,
+                'loss': losses.item()/interation,
+                'stake': metagraph.S[ uid ].item(),
+                'rank': metagraph.R[ uid ].item(),
+                'incentive': metagraph.I[ uid ].item(),
+            } 
+
+
+            metagraph.sync().save()
+            wandb.log( wandb_data )
+            logger.info(wandb_data)
             
-                uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
-                wandb_data = {
-                    'block': end_block,
-                    'loss': losses.item()/interation,
-                    'stake': metagraph.S[ uid ].item(),
-                    'rank': metagraph.R[ uid ].item(),
-                    'incentive': metagraph.I[ uid ].item(),
-                } 
 
-
-                metagraph.sync().save()
-                wandb.log( wandb_data )
-                logger.info(wandb_data)
-                chain_weights[uid] = 1 
-
-                try: 
-                    did_set = subtensor.timeout_set_weights(
-                        timeout=10,
-                        uids=metagraph.uids,
-                        weights = chain_weights,
-                        wait_for_inclusion = True,
-                        wallet = wallet,
-                    )
-                except Exception as e:
-                    logger.error('Failure setting weights on chain with error: {}', e)
+            try: 
+                did_set = subtensor.timeout_set_weights(
+                    timeout=10,
+                    uids=metagraph.uids,
+                    weights = chain_weights,
+                    wait_for_inclusion = True,
+                    wallet = wallet,
+                )
+            except Exception as e:
+                logger.error('Failure setting weights on chain with error: {}', e)
 
     except KeyboardInterrupt:
         # --- User ended session ----
