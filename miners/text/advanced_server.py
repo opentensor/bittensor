@@ -183,7 +183,8 @@ def main( config ):
         while True:
             # --- Run 
             dataloader = iter(dataload.dataloader(epoch_length=config.server.blocks_per_epoch))
-            end_block = subtensor.get_current_block() + 5
+            
+            end_block = subtensor.get_current_block() + 2
             interation = 0
             # --- Training step.
             while end_block >= subtensor.get_current_block():
@@ -194,10 +195,7 @@ def main( config ):
                     losses = loss
                 interation += 1
 
-            if interation == 0:
-                pass
-        
-            else:
+            if interation != 0:
                 mutex.acquire()
                 logger.info('Backpropagation Started')
                 if gp_server.outputs_cache != None:
@@ -217,7 +215,7 @@ def main( config ):
                 logger.info('Backpropagation Successful: Model updated')
                 mutex.release()
 
-        
+
             wandb_data = {
                 'block': end_block,
                 'loss': losses.item()/interation,
