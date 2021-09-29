@@ -34,7 +34,7 @@ from qqdm import qqdm
 from transformers import AutoModel,AutoTokenizer,AutoConfig
 from torch.nn.utils import clip_grad_norm_
 from torch.nn.utils.rnn import pad_sequence
-import concurrent]
+import concurrent
 from threading import Thread, Lock
 from nuclei.server import server
 
