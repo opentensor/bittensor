@@ -14,6 +14,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
+import sys
 import time
 import torch
 
@@ -209,19 +210,19 @@ class Executor:
             if neuron_uid == uid:
                 if cold != self.wallet.coldkeypub:
                     logger.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
-                    quit()
+                    sys.exit()
                 else:
                     endpoint = endpoints[neuron_uid]
         if endpoint == None:
             logger.critical("No Neuron with uid: {} associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
-            quit()
+            sys.exit()
 
 
         unstaking_balance = Balance.from_float( amount_tao )
         stake = self.subtensor.get_stake_for_uid(endpoint.uid)
         if unstaking_balance > stake:
             logger.critical("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format( uid, stake, unstaking_balance))
-            quit()
+            sys.exit()
 
         logger.info("Requesting unstake of \u03C4{} from hotkey: {} to coldkey: {}".format(unstaking_balance.tao, endpoint.hotkey, self.wallet.coldkey.public_key))
         logger.info("Waiting for finalization...")
@@ -250,7 +251,7 @@ class Executor:
         account_balance = self.subtensor.get_balance( self.wallet.coldkey.ss58_address )
         if account_balance < staking_balance:
             logger.critical("Not enough balance (\u03C4{}) to stake \u03C4{}".format(account_balance, staking_balance))
-            quit()
+            sys.exit()
 
         endpoint = None 
         endpoints = self.metagraph.endpoints
@@ -258,12 +259,12 @@ class Executor:
             if neuron_uid == uid:
                 if cold != self.wallet.coldkeypub:
                     logger.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
-                    quit()
+                    sys.exit()
                 else:
                     endpoint = endpoints[neuron_uid]
         if endpoint == None:
             logger.critical("No Neuron with uid: {} associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
-            quit()
+            sys.exit()
 
 
         logger.info("Adding stake of \u03C4{} from coldkey {} to hotkey {}".format( staking_balance.tao, self.wallet.coldkey.public_key, endpoint.hotkey))
@@ -291,7 +292,7 @@ class Executor:
         acount_balance = self.subtensor.get_balance(self.wallet.coldkey.ss58_address)
         if acount_balance < transfer_balance:
             logger.critical("Not enough balance (\u03C4{}) to transfer \u03C4{}".format(acount_balance, transfer_balance))
-            quit()
+            sys.exit()
 
         logger.info("Requesting transfer of \u03C4{}, from coldkey: {} to destination: {}".format(transfer_balance.tao, self.wallet.coldkey.public_key, destination))
         logger.info("Waiting for finalization...")

@@ -1,3 +1,4 @@
+from sys import version
 import grpc
 import torch
 import bittensor
@@ -13,6 +14,7 @@ wallet.create_new_coldkey(use_password=False, overwrite = True)
 wallet.create_new_hotkey(use_password=False, overwrite = True)
 
 endpoint = bittensor.endpoint(
+    version = bittensor.__version_as_int__,
     uid = 0,
     ip = '0.0.0.0',
     ip_type = 4,
@@ -32,26 +34,26 @@ stub = bittensor.grpc.BittensorStub(channel)
 
 def test_receptor_neuron_text():
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, ops = receptor.forward( x, bittensor.proto.Modality.TEXT, timeout=1)
-    print (out, ops)
+    out, ops, time = receptor.forward( x, bittensor.proto.Modality.TEXT, timeout=1)
+    print (out, ops, time)
     assert ops == bittensor.proto.ReturnCode.Unavailable
     assert list(out.shape) == [2, 4, bittensor.__network_dim__]
 
 def test_receptor_neuron_image():
     x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ])
-    out, ops = receptor.forward( x, bittensor.proto.Modality.IMAGE, timeout=1)
+    out, ops, time  = receptor.forward( x, bittensor.proto.Modality.IMAGE, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Unavailable
     assert list(out.shape) == [1, 1, bittensor.__network_dim__]
 
 def test_receptor_neuron_tensor():
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = receptor.forward( x, bittensor.proto.Modality.TENSOR, timeout=1)
+    out, ops, time  = receptor.forward( x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Unavailable
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
 def test_receptor_neuron_request_empty():
     x = torch.tensor([])
-    out, ops = receptor.forward( x, bittensor.proto.Modality.TEXT, timeout=1)
+    out, ops, time  = receptor.forward( x, bittensor.proto.Modality.TEXT, timeout=1)
     assert ops == bittensor.proto.ReturnCode.EmptyRequest
     assert list(out.shape) == [0]
 
@@ -71,7 +73,7 @@ def test_receptor_neuron_mock_server():
     receptor.stub = stub
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
+    out, ops, time  = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Success
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -92,7 +94,7 @@ def test_receptor_neuron_serve_timeout():
     receptor.stub = stub
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
+    out, ops, time  = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Timeout
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -108,7 +110,7 @@ def test_receptor_neuron_serve_empty():
     receptor.stub = stub
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
+    out, ops, time  = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.EmptyResponse
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -125,7 +127,7 @@ def test_receptor_neuron_mock_server_deserialization_error():
     receptor.stub = stub
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
+    out, ops, time  = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.ResponseDeserializationException
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -146,7 +148,7 @@ def test_receptor_neuron_mock_server_shape_error():
     receptor.stub = stub
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
+    out, ops, time  = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.ResponseShapeException
     assert list(out.shape) == [3, 3, bittensor.__network_dim__]
 
@@ -169,7 +171,7 @@ def test_receptor_neuron_server_response_with_nans():
     receptor.stub = stub
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
-    out, ops = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
+    out, ops, time  = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Success
     assert out[0][0][0] == 0
 

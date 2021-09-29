@@ -22,6 +22,7 @@ Example:
 
 """
 import bittensor
+import sys
 import torch
 import time
 import wandb
