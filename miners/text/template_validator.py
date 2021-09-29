@@ -223,7 +223,7 @@ def main( config ):
 
     wandb_data = {}
     norm_weights = F.softmax( validator.chain_weights.detach() )
-    for uid_j, weight_norm, weight_wo_norm in (list(zip(range(metagraph.n.item()), norm_weights,validator.chain_weights.tolist()))):
+    for uid_j, weight_norm, weight_wo_norm in (list(zip(range(metagraph.n.item()), norm_weights ,validator.chain_weights.tolist()))):
         wandb_data[ 'w_norm_{}'.format( uid_j ) ] = weight_norm
         wandb_data[ 'w_wo_norm_{}'.format( uid_j ) ] = weight_wo_norm
     
