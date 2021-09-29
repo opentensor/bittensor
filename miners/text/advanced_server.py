@@ -87,8 +87,10 @@ def main( config ):
         future = threadpool.submit(call,inputs=inputs_x.to(gp_server.device),priority=priority)
         try:
             return future.result(timeout= gp_server.config.server.timeout)
-        except:
+        except TimeoutError:
             raise TimeoutError('TimeOutError')
+        except Exception as e:
+            print('Error found {}'.format(e))
 
     # Define our backward function.
     def backward_text (pubkey:str, inputs_x, grads_dy ):
@@ -134,8 +136,10 @@ def main( config ):
         future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
         try:
             return future.result(timeout=config.server.timeout)
-        except:
+        except TimeoutError:
             raise TimeoutError('TimeOutError')
+        except Exception as e:
+            print('Error found {}'.format(e))
 
     def blacklist(pubkey:str) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
