@@ -301,9 +301,12 @@ def main( config ):
 
         # --- Log.
         metagraph.sync().save()
+        epoch_loss = total_epoch_loss / batch_count
+        
         wandb_data = {
             'Stake': metagraph.S[ uid ].item(),
             'Dividends': metagraph.D[ uid ].item(),
+            'Epoch_loss': epoch_loss
         } 
 
         respond_rate = validator.logs.responded_peers_count / validator.logs.quested_peers_count
@@ -318,7 +321,6 @@ def main( config ):
         wandb.log( wandb_data )
         
         # --- Save.
-        epoch_loss = total_epoch_loss / batch_count
         if best_loss > epoch_loss : 
             best_loss = epoch_loss
             torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( run.dir ))
