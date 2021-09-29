@@ -90,7 +90,7 @@ def main( config ):
         except TimeoutError:
             raise TimeoutError('TimeOutError')
         except Exception as e:
-            print('Error found {}'.format(e))
+            print('Error found {}'.format(repr(e)))
 
     # Define our backward function.
     def backward_text (pubkey:str, inputs_x, grads_dy ):
@@ -139,7 +139,7 @@ def main( config ):
         except TimeoutError:
             raise TimeoutError('TimeOutError')
         except Exception as e:
-            print('Error found {}'.format(e))
+            print('Error found {}'.format(repr(e)))
 
     def blacklist(pubkey:str) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
