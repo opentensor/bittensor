@@ -128,7 +128,7 @@ def main( config ):
                 bittensor.logging.info('Backwards axon gradient applied')
                 
             mutex.release()
-            return torch.ones((input.size()))
+            return torch.ones((grad.size()))
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()
         
