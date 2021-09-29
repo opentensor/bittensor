@@ -87,7 +87,7 @@ def main( config ):
         priority = metagraph.S[uid].item()
         future = threadpool.submit(call,inputs=inputs_x.to(gp_server.device),priority=priority)
         try:
-            return future.result(timeout= gp_server.config.server.timeout)
+            return future.result(timeout= gp_server.config.server.forward_timeout)
         except concurrent.futures.TimeoutError :
             raise TimeoutError('TimeOutError')
         except Exception as e:
@@ -135,7 +135,7 @@ def main( config ):
 
         future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
         try:
-            return future.result(timeout=config.server.timeout)
+            return future.result(timeout=config.server.backward_timeout)
         except concurrent.futures.TimeoutError :
             raise TimeoutError('TimeOutError')
         except Exception as e:
@@ -189,7 +189,6 @@ def main( config ):
             # --- Training step.
             while end_block >= current_block:
                 if current_block != subtensor.get_current_block():
-                    print(interation,current_block)
                     loss, _ = gp_server( next( dataloader ) )
                     if interation > 0 : 
                         losses += loss
