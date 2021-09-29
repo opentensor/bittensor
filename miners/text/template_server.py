@@ -96,7 +96,7 @@ def main( config ):
         while True:
             end_block = subtensor.get_current_block() + config.server.blocks_per_epoch
             while end_block >= subtensor.get_current_block():
-                time.sleep( 10 * bittensor.__blocktime__ )
+                time.sleep( bittensor.__blocktime__ )
             metagraph.sync().save()
             uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
             wandb_data = {
