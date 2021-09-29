@@ -183,17 +183,20 @@ def main( config ):
         while True:
             # --- Run 
             dataloader = iter(dataload.dataloader(epoch_length=config.server.blocks_per_epoch))
-            
-            end_block = subtensor.get_current_block() + 2
+            current_block = subtensor.get_current_block()
+            end_block = current_block + 10
             interation = 0
             # --- Training step.
-            while end_block >= subtensor.get_current_block():
-                loss, _ = gp_server( next( dataloader ) )
-                if interation > 0 : 
-                    losses += loss
-                else:
-                    losses = loss
-                interation += 1
+            while end_block >= current_block:
+                if current_block != subtensor.get_current_block():
+                    print(interation,current_block)
+                    loss, _ = gp_server( next( dataloader ) )
+                    if interation > 0 : 
+                        losses += loss
+                    else:
+                        losses = loss
+                    interation += 1
+                    current_block = subtensor.get_current_block()
 
             if interation != 0:
                 mutex.acquire()
