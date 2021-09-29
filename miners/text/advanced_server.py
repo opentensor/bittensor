@@ -116,7 +116,6 @@ def main( config ):
             else:
                 gp_server.outputs_cache = torch.cat((gp_server.outputs_cache, outputs_y),0)
                 gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grad),0)
-                print(gp_server.outputs_cache.size(),gp_server.gradients_cache.size())
 
             if gp_server.outputs_cache.size(0) == 30:
                 torch.autograd.backward (
@@ -200,10 +199,18 @@ def main( config ):
             else:
                 mutex.acquire()
                 logger.info('Backpropagation Started')
-                losses.backward()
-                clip_grad_norm_(gp_server.parameters(), 1.0)
+                
+                torch.autograd.backward (
+                    tensors = [ gp_server.outputs_cache ],
+                    grad_tensors = [ gp_server.gradients_cache ],
+                    retain_graph=True
+                )
+                
                 gp_server.outputs_cache = None
                 gp_server.gradients_cache = None
+
+                losses.backward()
+                clip_grad_norm_(gp_server.parameters(), 1.0)
                 optimizer.step()
                 optimizer.zero_grad()
                 logger.info('Backpropagation Successful: Model updated')

@@ -46,7 +46,7 @@ def main( config ):
 
     # Instantiate the model we are going to serve on the network.
     # Miner training device.
-    model = server(config=config,model_name='bert-base-uncased',pretrained=False)
+    model = server(config=config,model_name='bert-base-uncased',pretrained=True)
 
 
     # Create our optimizer.
