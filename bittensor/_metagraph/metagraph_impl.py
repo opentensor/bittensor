@@ -247,7 +247,7 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ neuron.modality if neuron != None else '' for neuron in self.endpoint_objs ]
+        return [ neuron.modality if neuron.modality != None else '' for neuron in self.endpoint_objs ]
 
     @property
     def addresses( self ) -> List[str]:
