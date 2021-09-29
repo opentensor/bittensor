@@ -34,6 +34,7 @@ from qqdm import qqdm
 from transformers import AutoModel,AutoTokenizer,AutoConfig
 from torch.nn.utils import clip_grad_norm_
 from torch.nn.utils.rnn import pad_sequence
+import concurrent]
 from threading import Thread, Lock
 from nuclei.server import server
 
@@ -87,7 +88,7 @@ def main( config ):
         future = threadpool.submit(call,inputs=inputs_x.to(gp_server.device),priority=priority)
         try:
             return future.result(timeout= gp_server.config.server.timeout)
-        except TimeoutError:
+        except concurrent.futures.TimeoutError :
             raise TimeoutError('TimeOutError')
         except Exception as e:
             print('Error found {}'.format(repr(e)))
@@ -136,7 +137,7 @@ def main( config ):
         future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
         try:
             return future.result(timeout=config.server.timeout)
-        except TimeoutError:
+        except concurrent.futures.TimeoutError :
             raise TimeoutError('TimeOutError')
         except Exception as e:
             print('Error found {}'.format(repr(e)))
