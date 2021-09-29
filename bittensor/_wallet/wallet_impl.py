@@ -91,12 +91,12 @@ class Wallet():
             if email == None:
                 raise ValueError('You must pass registration email either through wallet initialization or during the register call.')
         if subtensor == None:
-            subtensor = bittensor.subtensor( chain_endpoint = '127.0.0.1:9944' )
+            subtensor = bittensor.subtensor()
         if self.is_registered( subtensor = subtensor ):
             print ('Already registered {}'.format( self.hotkey.ss58_address ))
         else:
             headers = {'Content-type': 'application/json'}
-            url = 'http://localhost:5000/register?email={}&hotkey={}&coldkey={}&hotkey_signature={}&network={}'.format( email, self.hotkey.ss58_address, self.coldkey.ss58_address, 'signaturefaked', subtensor.network)
+            url = 'http://' + bittensor.__registration_servers__[0] + '/register?email={}&hotkey={}&coldkey={}&hotkey_signature={}&network={}'.format( email, self.hotkey.ss58_address, self.coldkey.ss58_address, 'signaturefaked', subtensor.network)
             response = requests.post(url, headers=headers)
             response_str = str(bytes.decode(response.content)) 
             if response_str == 'Email Sent':
