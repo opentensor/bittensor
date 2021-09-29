@@ -42,6 +42,7 @@ def config ():
     parser.add_argument('--miner.resume', action='store_true', help='resume previous trial.', default=False)
     parser.add_argument('--miner.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
     parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=1)
+    parser.add_argument('--miner.learning_rate_chain', type=float, help='Training initial learning rate.', default=1)
     parser.add_argument('--miner.momentum', type=float, help='optimizer momentum.', default=0.8)
     parser.add_argument('--miner.blocks_per_epoch', type=int, help='Blocks per epoch', default=30)
     parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
@@ -200,6 +201,7 @@ def main( config ):
         resume = config.miner.resume,
         save_code = True
     )
+
     wandb.watch( validator, log = 'all', log_freq = 10 )
 
     # Optionally resume.
@@ -214,6 +216,15 @@ def main( config ):
     epoch = 0
     global_step = 0
     best_loss = math.inf
+
+    wandb_data = {}
+    norm_weights = torch.nn.functional.normalize( validator.chain_weights - torch.min( validator.chain_weights ), p = 1, dim = 0)
+    for uid_j, weight_norm, weight_wo_norm in (list(zip(range(metagraph.n.item()), validator.chain_weights.tolist(), norm_weights))):
+        wandb_data[ 'w_norm_{},{}'.format( uid, uid_j ) ] = weight_norm
+        wandb_data[ 'w_wo_norm_{},{}'.format( uid, uid_j ) ] = weight_wo_norm
+    
+    wandb.log( wandb_data )
+
     while True:
 
         total_epoch_loss = math.inf
@@ -224,7 +235,7 @@ def main( config ):
         chain_growth = metagraph.n.item() - torch.numel( validator.chain_weights )
         validator.chain_weights = torch.nn.Parameter(torch.cat( [validator.chain_weights, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)])).to(device)
         optimizer = torch.optim.SGD(
-            [ {"params": validator.parameters()} ],
+            [ {'params': validator.chain_weights, 'lr': config.miner.learning_rate_chain} ],
             lr = config.miner.learning_rate,
             momentum = config.miner.momentum,
         )
@@ -270,9 +281,9 @@ def main( config ):
                 'dividends': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green') 
             }
             
-            for weight, uid_j in list(zip(final_weights.tolist(), topk_uids.tolist())):
+            for weight_norm, weight_wo_norm, uid_j in list(zip(final_weights.tolist(), topk_weights.tolist(),topk_uids.tolist())):
                 color = 'green' if (validator.chain_weights.grad != None and validator.chain_weights.grad[ uid_j ] < 0) else 'red'
-                if weight > 0.001: info[ str(uid_j) ] = colored('{:.4f}'.format( weight ), color)
+                if weight_wo_norm > 0.001: info[ str(uid_j) ] = colored('{:.4f}'.format( weight_wo_norm ), color)
 
             print("\n\n\n\n\n\n\n") 
             progress.set_infos( info )

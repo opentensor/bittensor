@@ -22,6 +22,7 @@ logging.record_log: false
 logging.trace: false
 
 miner.learning_rate: 1
+miner.learning_rate_chain: 1
 miner.name: template_miner
 miner.batch_size_train: 2
 miner.device: cpu
