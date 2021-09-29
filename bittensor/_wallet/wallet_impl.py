@@ -225,16 +225,22 @@ class Wallet():
             subtensor = bittensor.subtensor()
         return subtensor.transfer( wallet = self, amount = amount, dest = dest, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
 
-    def create(self) -> 'Wallet':
+    def create_if_non_existent( self, coldkey_use_password:bool = True, hotkey_use_password:bool = True) -> 'Wallet':
         """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+        """
+        return self.create(coldkey_use_password, hotkey_use_password)
+
+    def create (self, coldkey_use_password:bool = True, hotkey_use_password:bool = True ) -> 'Wallet':
+        """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+
         """
         # ---- Setup Wallet. ----
         if not self.has_coldkeypub:
-            self.create_new_coldkey( n_words = 12, use_password = True )
+            self.create_new_coldkey( n_words = 12, use_password = coldkey_use_password )
         if not self.has_coldkeypub:
             raise RuntimeError('The axon must have access to a decrypted coldkeypub')
         if not self.has_hotkey:
-            self.create_new_hotkey( n_words = 12, use_password = False )
+            self.create_new_hotkey( n_words = 12, use_password = hotkey_use_password )
         if not self.has_hotkey:
             raise RuntimeError('The axon must have access to a decrypted hotkey')
         return self
@@ -464,7 +470,17 @@ class Wallet():
             return coldkey
             
     def create_coldkey_from_uri(self, uri:str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
-        """ create cold key from uri, encrypt with user's password and save the file
+        """ Creates coldkey from suri string, optionally encrypts it with the user's inputed password.
+            Args:
+                uri: (str, required):
+                    URI string to use i.e. /Alice or /Bob
+                use_password (bool, optional):
+                    Is the created key password protected.
+                overwrite (bool, optional): 
+                    Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
+            Returns:
+                wallet (bittensor.Wallet):
+                    this object with newly created coldkey.
         """
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
@@ -493,7 +509,17 @@ class Wallet():
         return self
 
     def create_hotkey_from_uri( self, uri:str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
-        """ Create hotkey from uri, encrypt with user's password and save the file
+        """ Creates hotkey from suri string, optionally encrypts it with the user's inputed password.
+            Args:
+                uri: (str, required):
+                    URI string to use i.e. /Alice or /Bob
+                use_password (bool, optional):
+                    Is the created key password protected.
+                overwrite (bool, optional): 
+                    Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
+            Returns:
+                wallet (bittensor.Wallet):
+                    this object with newly created hotkey.
         """
         # Create directory 
         dir_path = os.path.expanduser(
@@ -522,8 +548,33 @@ class Wallet():
         cli_utils.set_file_permissions( self.hotkeyfile )
         return self
 
+    def new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+        """ Creates a new coldkey, optionally encrypts it with the user's inputed password and saves to disk.
+            Args:
+                n_words: (int, optional):
+                    Number of mnemonic words to use.
+                use_password (bool, optional):
+                    Is the created key password protected.
+                overwrite (bool, optional): 
+                    Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
+            Returns:
+                wallet (bittensor.Wallet):
+                    this object with newly created coldkey.
+        """
+        self.create_new_coldkey( n_words, use_password, overwrite )
+
     def create_new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
-        """ Create coldkey with mnemonic, encrypt with user's password and save the file
+        """ Creates a new coldkey, optionally encrypts it with the user's inputed password and saves to disk.
+            Args:
+                n_words: (int, optional):
+                    Number of mnemonic words to use.
+                use_password (bool, optional):
+                    Is the created key password protected.
+                overwrite (bool, optional): 
+                    Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
+            Returns:
+                wallet (bittensor.Wallet):
+                    this object with newly created coldkey.
         """
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
@@ -551,8 +602,33 @@ class Wallet():
         cli_utils.set_file_permissions( self.coldkeyfile )
         return self
 
+    def new_hotkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+        """ Creates a new hotkey, optionally encrypts it with the user's inputed password and saves to disk.
+            Args:
+                n_words: (int, optional):
+                    Number of mnemonic words to use.
+                use_password (bool, optional):
+                    Is the created key password protected.
+                overwrite (bool, optional): 
+                    Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
+            Returns:
+                wallet (bittensor.Wallet):
+                    this object with newly created hotkey.
+        """
+        self.create_new_hotkey( n_words, use_password, overwrite )
+
     def create_new_hotkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
-        """ Create hotkey with mnemonic, encrypt with user's password and save the file
+        """ Creates a new hotkey, optionally encrypts it with the user's inputed password and saves to disk.
+            Args:
+                n_words: (int, optional):
+                    Number of mnemonic words to use.
+                use_password (bool, optional):
+                    Is the created key password protected.
+                overwrite (bool, optional): 
+                    Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
+            Returns:
+                wallet (bittensor.Wallet):
+                    this object with newly created hotkey.
         """
         # Create directory 
         dir_path = os.path.expanduser(
@@ -581,9 +657,37 @@ class Wallet():
         cli_utils.set_file_permissions( self.hotkeyfile )
         return self
 
-    def regenerate_coldkey( self, mnemonic: str, use_password: bool,  overwrite:bool = False) -> 'Wallet':
-        """ Retrieve coldkey with mnemonic, encrypt with user's password and save the file
+    def regen_coldkey( self, mnemonic: Union[list, str], use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
+        """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file
+            Args:
+                mnemonic: (Union[list, str], optional):
+                    Key mnemonic as list of words or string space separated words.
+                use_password (bool, optional):
+                    Is the created key password protected.
+                overwrite (bool, optional): 
+                    Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
+            Returns:
+                wallet (bittensor.Wallet):
+                    this object with newly created coldkey.
         """
+        self.regenerate_coldkey(mnemonic, use_password, overwrite)
+
+    def regenerate_coldkey( self, mnemonic: Union[list, str], use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
+        """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file
+            Args:
+                mnemonic: (Union[list, str], optional):
+                    Key mnemonic as list of words or string space separated words.
+                use_password (bool, optional):
+                    Is the created key password protected.
+                overwrite (bool, optional): 
+                    Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
+            Returns:
+                wallet (bittensor.Wallet):
+                    this object with newly created coldkey.
+        """
+        if isinstance( mnemonic, str):
+            mnemonic = mnemonic.split()
+
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
         if not os.path.exists( dir_path ):
@@ -609,9 +713,37 @@ class Wallet():
         cli_utils.set_file_permissions( self.coldkeyfile )
         return self
 
-    def regenerate_hotkey( self, mnemonic: str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
-        """ Retrieve hotkey with mnemonic, encrypt with user's password and save the file
+    def regen_hotkey( self, mnemonic: Union[list, str], use_password: bool = True, overwrite:bool = False) -> 'Wallet':
+        """ Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file
+            Args:
+                mnemonic: (Union[list, str], optional):
+                    Key mnemonic as list of words or string space separated words.
+                use_password (bool, optional):
+                    Is the created key password protected.
+                overwrite (bool, optional): 
+                    Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
+            Returns:
+                wallet (bittensor.Wallet):
+                    this object with newly created hotkey.
         """
+        self.regenerate_hotkey(mnemonic, use_password, overwrite)
+
+    def regenerate_hotkey( self, mnemonic: Union[list, str], use_password: bool = True, overwrite:bool = False) -> 'Wallet':
+        """ Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file
+            Args:
+                mnemonic: (Union[list, str], optional):
+                    Key mnemonic as list of words or string space separated words.
+                use_password (bool, optional):
+                    Is the created key password protected.
+                overwrite (bool, optional): 
+                    Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
+            Returns:
+                wallet (bittensor.Wallet):
+                    this object with newly created hotkey.
+        """
+        if isinstance( mnemonic, str):
+            mnemonic = mnemonic.split()
+
         # Create directory 
         dir_path = os.path.expanduser(os.path.join(self._path_string, self._name_string, "hotkeys"))
         if not os.path.exists( dir_path ):
@@ -639,10 +771,16 @@ class Wallet():
     def to_dict(self, keypair):
         """ Convert the keypair to dictionary with accountId, publicKey, secretPhrase, secretSeed, and ss58Address  
         """
+        # Needs this incase the key is URI generated.
+        if keypair.seed_hex == None:
+            secret_seed = "0x" + "0" * 64 
+        else:
+            secret_seed = "0x" + keypair.seed_hex,
+
         return {
             'accountId': keypair.public_key,
             'publicKey': keypair.public_key,
             'secretPhrase': keypair.mnemonic,
-            'secretSeed': "0x" + keypair.seed_hex,
+            'secretSeed': secret_seed,
             'ss58Address': keypair.ss58_address
         }

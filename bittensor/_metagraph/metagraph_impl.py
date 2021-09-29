@@ -18,16 +18,20 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+from sys import version
 
 from typing import List
-from tqdm import trange
 from loguru import logger
 
+import torch.nn.functional as f
 import torch
 
 import bittensor
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
+
+RAOPERTAO = 18446744073709551615
+U64MAX = 18446744073709551615
 
 class Metagraph( torch.nn.Module ):
     r""" Maintains chain state as a torch.nn.Module.
@@ -85,27 +89,84 @@ class Metagraph( torch.nn.Module ):
         self._endpoint_objs = None
         return self
 
-    def forward(self, row_weight, uid):
+    def forward (
+        self, 
+        uid: int, 
+        row_weight: torch.FloatTensor 
+    ) -> torch.FloatTensor:
         """
-        in: weight update to one of the row
-        out: updated incentive row 
+        Returns a dividend vector for a change in weights by computing the full incenvite function.
+            Args:
+                uid (int):
+                    uid to set weights.
+                row_weights: (torch.FloatTensor, shape =(n)):
+                    normalized row to replace at uid.
+            Returns:
+                dividends (torch.FloatTensor):
+                    Dividends for the entire network.
         """
+
+        # Return if there are no neurons.
         if self.n.item() == 0:
             return torch.tensor([], dtype=torch.float32)
+
+        # Raise if the passed weights are badly shaped.
+        if torch.numel( row_weight ) != self.n.item():
+            raise ValueError('Passed weight update must have the dimension of a row in W. Got {}, expected {}', row_weight.size(), self.n.item())
+
+        # Reshape to fit weights.
+        row_weight = row_weight.view( self.n )
+
+        # Normalize row.
+        if torch.abs( torch.sum( row_weight ) - 1 ) > 0.0001:
+            row_weight = f.normalize(row_weight, p=1, dim=0)
         
-        if row_weight.size() != self.n.item():
-            return torch.tensor([], dtype=torch.float32)
-        
+        # Raise if the passed weights are badly shaped.
+        if uid >= self.n.item():
+            raise ValueError('Passed uid does not exist in the graph. Got {} > {}', uid, self.n.item())
+
         weight = self.W.detach().clone()
         weight[uid,:] = row_weight
         
+        # Compute ranks.
         S = self.S.view(self.n, 1)
         Wt = torch.transpose(weight, 0, 1)
         R = torch.matmul(Wt, S).view(self.n)
 
-        I =  (self.tau * R) / torch.sum(R)
-        I = torch.where(torch.isnan(I), torch.zeros_like(I), I)
-        return I.view(self.n)
+        # Compute trust.
+        T  = torch.matmul((Wt != 0).float(), S).view(self.n)
+
+        # Compute consensus.
+        rho = 10
+        kappa = 0.5
+        # Return if there is no stake.
+        if torch.sum( self.S )  == 0:
+            C = torch.sigmoid( rho * (T - kappa) ).view(self.n)
+        else:
+            C = torch.sigmoid( rho * (T / torch.sum(S) - kappa) ).view(self.n)
+
+        # Compute incentive.
+        Incentive = (R * C).view(self.n)
+        print (Incentive)
+
+        # Compute inflation.
+        if torch.sum(Incentive) == 0:
+            Inflation = torch.zeros( (self.n.item()), dtype=torch.float32 ).view(self.n)
+        else:
+            Inflation = (self.tau * Incentive).view(self.n)
+        print (Inflation)
+
+        # Compute bonds.
+        B = self.B.detach().clone().float()
+        B_norm = f.normalize(B, p=1, dim=1)
+        print (B_norm)
+
+        # Dividends
+        D = torch.matmul( B_norm.view(self.n, self.n), Inflation.view(self.n, 1) ).view(self.n) + 0.5 * Inflation.view(self.n)
+        print (D)
+
+        # Return dividends.
+        return D.view(self.n)
 
     @property
     def S(self) -> torch.FloatTensor:
@@ -325,15 +386,16 @@ class Metagraph( torch.nn.Module ):
         for n in neurons:
             uids[n.uid] = n.uid 
             active[n.uid] = n.active
-            stake[n.uid] = n.stake / float(1000000000)
-            ranks[n.uid] = n.rank / float(1000000000)
-            trust[n.uid] = n.trust / float(1000000000)
-            consensus[n.uid] = n.consensus / float(18446744073709551615)
-            incentive[n.uid] = n.incentive / float(18446744073709551615)
-            inflation[n.uid] = n.inflation / float(1000000000)
-            dividends[n.uid] = n.dividends / float(1000000000)
+            stake[n.uid] = n.stake / float(RAOPERTAO)
+            ranks[n.uid] = n.rank / float(RAOPERTAO)
+            trust[n.uid] = n.trust / float(RAOPERTAO)
+            consensus[n.uid] = n.consensus / float(U64MAX)
+            incentive[n.uid] = n.incentive / float(U64MAX)
+            inflation[n.uid] = n.inflation / float(RAOPERTAO)
+            dividends[n.uid] = n.dividends / float(RAOPERTAO)
             last_updates[n.uid] = n.last_update
             endpoint =  bittensor.endpoint(
+                version = int(n.version),
                 uid = int(n.uid), 
                 hotkey = str(n.hotkey), 
                 ip_type = int(n.ip_type), 
@@ -346,12 +408,12 @@ class Metagraph( torch.nn.Module ):
             endpoints[n.uid] = endpoint.to_tensor().tolist()
             if len(n.weights) > 0:
                 w_uids, w_weights = zip(*n.weights)
-                weights[n.uid] = bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( n_total, w_uids, w_weights ).tolist()
+                weights[n.uid] = weight_utils.convert_weight_uids_and_vals_to_tensor( n_total, w_uids, w_weights ).tolist()
             else:
                 weights[n.uid] = [0] * n_total
             if len(n.bonds) > 0:
                 b_uids, b_bonds = zip(*n.bonds)
-                bonds[n.uid] = bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor( n_total, b_uids, b_bonds ).tolist()
+                bonds[n.uid] = weight_utils.convert_bond_uids_and_vals_to_tensor( n_total, b_uids, b_bonds ).tolist()
             else:
                 bonds[n.uid] = [0] * n_total
 
