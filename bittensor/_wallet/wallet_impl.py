@@ -18,6 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import json
+from multiprocessing import Value
 import os
 import re
 import sys
@@ -49,20 +50,24 @@ class Wallet():
         self,
         name:str,
         path:str,
-        hotkey:str 
+        hotkey:str,
+        email:str = None
     ):
         r""" Init bittensor wallet object containing a hot and coldkey.
             Args:
-                name (required=False, default='default):
+                name (required=True, default='default):
                     The name of the wallet to unlock for running bittensor
-                hotkey (required=False, default='default):
+                hotkey (required=True, default='default):
                     The name of hotkey used to running the miner.
-                path (required=False, default='~/.bittensor/wallets/'):
+                path (required=True, default='~/.bittensor/wallets/'):
                     The path to your bittensor wallets
+                email (required=False, default=None):
+                    Registration email.
         """
         self._name_string = name
         self._path_string = path
         self._hotkey_string = hotkey
+        self._email = email
         self._hotkey = None
         self._coldkey = None
         self._coldkeypub = None
@@ -73,7 +78,7 @@ class Wallet():
     def __repr__(self):
         return self.__str__()
 
-    def register ( self, email:str, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Wallet':
+    def register ( self, email:str = None, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Wallet':
         """ Registers this wallet on the chain.
             Args:
                 subtensor( 'bittensor.Subtensor' ):
@@ -81,6 +86,10 @@ class Wallet():
             Return:
                 wallet.
         """
+        if email == None:
+            email = self._registration_email
+            if email == None:
+                raise ValueError('You must pass registration email either through wallet initialization or during the register call.')
         if subtensor == None:
             subtensor = bittensor.subtensor( chain_endpoint = '127.0.0.1:9944' )
         if self.is_registered( subtensor = subtensor ):
