@@ -56,7 +56,7 @@ def main( config ):
     ).load().sync().save()
 
     # Instantiate the model we are going to serve on the network.
-    # Miner training device.
+    # Creating a threading lock for updates to the model
     mutex = Lock()
     gp_server = server(config=config)
     
@@ -149,7 +149,7 @@ def main( config ):
         else:
             return False
 
-    # Create our axon server and subscribe it to the network.
+    # Create our axon server
     axon = bittensor.axon (
                 wallet = wallet,
                 forward_text = forward_text,
@@ -173,13 +173,14 @@ def main( config ):
         root_dir = full_path
     )
 
+    # --- creating our chain weights
     chain_weights =torch.zeros(metagraph.n)
     uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
     chain_weights[uid] = 1 
 
     # -- Main Training loop --
     try:
-
+        # --  subscribe axon to the network.
         axon.start().subscribe()
 
         while True:
@@ -199,6 +200,7 @@ def main( config ):
                     interation += 1
                     current_block = subtensor.get_current_block()
 
+            # --- Update parameters
             if interation != 0:
                 with mutex:
                     logger.info('Backpropagation Started')
@@ -218,7 +220,7 @@ def main( config ):
                     optimizer.zero_grad()
                     logger.info('Backpropagation Successful: Model updated')
 
-
+            # --- logging data
             wandb_data = {
                 'block': end_block,
                 'loss': losses.item()/interation,
@@ -227,12 +229,12 @@ def main( config ):
                 'incentive': metagraph.I[ uid ].item(),
             } 
 
-
+            # wandb syncing and update metagraph
             metagraph.sync().save()
             wandb.log( wandb_data )
             logger.info(wandb_data)
             
-
+            # --- setting weights
             try: 
                 did_set = subtensor.timeout_set_weights(
                     timeout=10,
