@@ -80,14 +80,14 @@ wallet.create_new_coldkey(use_password=False, overwrite = True)
 wallet.create_new_hotkey(use_password=False, overwrite = True)
 wallet.new_coldkey( use_password=False, overwrite = True )
 wallet.new_hotkey( use_password=False, overwrite = True )
-
+"""
 def test_subscribe():
     class success():
         def __init__(self):
             self.is_success = True
         def process_events(self):
             return True
-
+    neuron = subtensor.neuron_for_uid( 0 ).coldkey
     subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
     success= subtensor.subscribe(wallet,
                         ip='127.0.0.1',
@@ -113,7 +113,7 @@ def test_subscribe_failed():
                         modality=0
                         )
     assert fail == False
-
+"""
 def test_unstake():
     class success():
         def __init__(self):
@@ -202,7 +202,56 @@ def test_transfer_failed():
                         wait_for_inclusion = True
                         )
     assert fail == False
-    
+
+def test_set_weights():
+    chain_weights = [0]
+    class success():
+        def __init__(self):
+            self.is_success = True
+        def process_events(self):
+            return True
+    neuron = subtensor.neuron_for_uid( 0 )
+    subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
+    success= subtensor.set_weights(wallet=wallet,
+                        uids=[neuron.uid],
+                        weights=chain_weights,
+                        )
+    assert success == True
+
+def test_set_weights_failed():
+    class failed():
+        def __init__(self):
+            self.is_success = False
+            self.error_message = 'Mock'
+        def process_events(self):
+            return True
+    neuron = subtensor.neuron_for_uid( 0 )
+    chain_weights = [0]
+    subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed()) 
+
+    fail= subtensor.set_weights(wallet=wallet,
+                        uids=[neuron.uid],
+                        weights=chain_weights,
+                        wait_for_inclusion = True
+                        )
+    assert fail == False
+
+def test_timeout_set_weights():
+    chain_weights = [0]
+    class success():
+        def __init__(self):
+            self.is_success = True
+        def process_events(self):
+            return True
+    neuron = subtensor.neuron_for_uid( 0 )
+    subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
+    success= subtensor.timeout_set_weights(wallet=wallet,
+                        uids=[neuron.uid],
+                        weights=chain_weights,
+                        timeout=10,
+                        )
+    assert success == True
+
 # def test_weight_uids( ):
 #     weight_uids = subtensor.weight_uids_for_uid(0)
 #     assert(type(weight_uids) == list)
