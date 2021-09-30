@@ -198,8 +198,7 @@ def main( config ):
 
             # Take topk chain weights.
             real_topk = min( config.miner.n_topk_chain_weights, metagraph.n.item() ) 
-            topk_weights, topk_uids = torch.topk( F.softmax( validator.chain_weights ), k = real_topk )
-            final_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
+            topk_norm_weights, topk_uids = torch.topk( F.softmax( validator.chain_weights ), k = real_topk )
 
             # Step logs.
             info = { 
@@ -213,14 +212,23 @@ def main( config ):
                 'stake': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green'),
                 'dividends': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green') 
             }
-            for weight, uid_j in list(zip(final_weights.tolist(), topk_uids.tolist())):
+            for weight, uid_j in list(zip(topk_norm_weights.tolist(), topk_uids.tolist())):
                 if weight > 0.001: info[ str(uid_j) ] = colored('{:.4f}'.format( weight ), 'green' if validator.chain_weights.grad[ uid_j ] < 0 else 'red')
             progress.set_infos( info )
+
+        
+        # --- fisher info
+        def get_fisher_info(loss, w):
+            dc_i1 = torch.autograd.grad(loss, w, create_graph=True)[0]
+            dc_i2 = torch.autograd.grad(dc_i1, w)[0]
+            return dc_i2*(w**2)/2  
+
+        fisher_info = topk_norm_weights.apply_(lambda w : get_fisher_info(loss, w))
             
         # ---  Set mechanism weights.
         subtensor.set_weights (
             uids = topk_uids,
-            weights = final_weights,
+            weights = fisher_info,
             wait_for_inclusion = False,
             wallet = wallet,
         )    
