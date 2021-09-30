@@ -22,48 +22,52 @@ def test_network_overrides():
     subtensor = bittensor.subtensor(network='akatsuki', config=config)
     assert subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
 
-# def test_connect_failure( ):
-#     subtensor = bittensor.Subtensor(
-#         chain_endpoint = "this is the endpoint"
-#     )
-#     with pytest.raises(ValueError):
-#         subtensor.connect(timeout = 1)
+def test_connect_no_failure( ):
+     subtensor = bittensor.subtensor(
+         network = "kusanagi"
+     )
+     subtensor.connect(timeout = 1, failure=False)
 
-# def test_connect_no_failure( ):
-#     subtensor = bittensor.Subtensor(
-#         network = "kusanagi"
-#     )
-#     subtensor.connect(timeout = 1, failure=False)
+subtensor = bittensor.subtensor(
+     network = 'akatsuki'
+)
+subtensor.substrate.
 
-# subtensor = bittensor.Subtensor(
-#     network = 'kusanagi'
-# )
-# def test_connect_success( ):
-#     subtensor.connect()
+def test_connect_success( ):
+     subtensor.connect()
 
-# def test_neurons( ):
-#     neurons = subtensor.neurons()
-#     assert len(neurons) > 0
-#     assert type(neurons[0][0]) == int
-#     assert type(neurons[0][1]['ip']) == int
-#     assert type(neurons[0][1]['port']) == int
-#     assert type(neurons[0][1]['ip_type']) == int
-#     assert type(neurons[0][1]['uid']) == int
-#     assert type(neurons[0][1]['modality']) == int
-#     assert type(neurons[0][1]['hotkey']) == str
-#     assert type(neurons[0][1]['coldkey']) == str
+def test_neurons( ):
+     neurons = subtensor.neurons()
+     assert len(neurons) > 0
+     assert type(neurons[0].ip) == int
+     assert type(neurons[0].port) == int
+     assert type(neurons[0].ip_type) == int
+     assert type(neurons[0].uid) == int
+     assert type(neurons[0].modality) == int
+     assert type(neurons[0].hotkey) == str
+     assert type(neurons[0].coldkey) == str
 
-#     neuron = subtensor.get_neuron_for_uid( 0 )
-#     assert neurons[0][1]['ip'] == neuron['ip']
-#     assert neurons[0][1]['port'] == neuron['port']
-#     assert neurons[0][1]['ip_type'] == neuron['ip_type']
-#     assert neurons[0][1]['uid'] == neuron['uid']
-#     assert neurons[0][1]['modality'] == neuron['modality']
-#     assert neurons[0][1]['hotkey'] == neuron['hotkey']
-#     assert neurons[0][1]['coldkey'] == neuron['coldkey']
+     neuron = subtensor.neuron_for_uid( 0 )
+     assert neurons.ip == neuron['ip']
+     assert neurons.port == neuron['port']
+     assert neurons.ip_type == neuron['ip_type']
+     assert neurons.uid == neuron['uid']
+     assert neurons.modality == neuron['modality']
+     assert neurons.hotkey == neuron['hotkey']
+     assert neurons.coldkey == neuron['coldkey']
 
-# def test_stake( ):
-#     assert(type(subtensor.get_stake_for_uid(0)) == bittensor.utils.balance.Balance)
+     neuron = subtensor.neuron_for_pubkey(neuron.hotkey)
+     assert neurons.ip == neuron['ip']
+     assert neurons.port == neuron['port']
+     assert neurons.ip_type == neuron['ip_type']
+     assert neurons.uid == neuron['uid']
+     assert neurons.modality == neuron['modality']
+     assert neurons.hotkey == neuron['hotkey']
+     assert neurons.coldkey == neuron['coldkey']
+     
+def test_get_current_block():
+     block = subtensor.get_current_block()
+     assert (type(block) == int)
 
 # def test_weight_uids( ):
 #     weight_uids = subtensor.weight_uids_for_uid(0)
@@ -78,10 +82,6 @@ def test_network_overrides():
 # def test_last_emit( ):
 #     last_emit = subtensor.get_last_emit_data_for_uid(0)
 #     assert(type(last_emit) == int)
-
-# def test_get_current_block():
-#     block = subtensor.get_current_block()
-#     assert (type(block) == int)
 
 # def test_get_active():
 #     active = subtensor.get_active()
