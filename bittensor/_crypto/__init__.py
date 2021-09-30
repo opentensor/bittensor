@@ -1,5 +1,7 @@
 """ Functions for encryption and decryption of data with password
 """
+import os
+import stat
 import base64
 from cryptography.exceptions import InvalidSignature, InvalidKey
 from cryptography.fernet import Fernet, InvalidToken
@@ -7,6 +9,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from loguru import logger
+from ansible_vault import Vault
 
 class CryptoKeyError(Exception):
     """ Exception for invalid signature, key, token, password, etc 
@@ -15,12 +18,15 @@ class CryptoKeyError(Exception):
 
 __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
 
-def encrypt(data, password):
+def encrypt(data, password, full_path):
     """ Encrypt the data with password
     """
-    key = __generate_key(password)
-    cipher_suite = Fernet(key)
-    return cipher_suite.encrypt(data)
+    vault = Vault(password)
+    vault.dump( data, open( full_path, 'w') )
+    return 
+    # key = __generate_key(password)
+    # cipher_suite = Fernet(key)
+    # return cipher_suite.encrypt(data)
 
 def decrypt_keypair(data, password):
     """ Decrypt the data with password

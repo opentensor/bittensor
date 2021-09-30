@@ -24,6 +24,7 @@ from . import subtensor_impl
 custom_type_registry = {
         "runtime_id": 2,
         "types": {
+            "Balance": "u64",
             "NeuronMetadataOf": {
                 "type": "struct",
                 "type_mapping": [
