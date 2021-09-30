@@ -653,7 +653,7 @@ class Wallet():
             hotkey_data = json.dumps(self.to_dict(self._hotkey)).encode()
 
         # Save
-        cli_utils.save_keys( self.hotkeyfile, hotkey_data )
+        # cli_utils.save_keys( self.hotkeyfile, hotkey_data )
         cli_utils.set_file_permissions( self.hotkeyfile )
         return self
 

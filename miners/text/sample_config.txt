@@ -16,7 +16,7 @@ dendrite.max_worker_threads: 150
 dendrite.requires_grad: true
 dendrite.timeout: 5
 
-logging.debug: false
+logging.debug: true
 logging.logging_dir: ~/.bittensor/miners/
 logging.record_log: false
 logging.trace: false

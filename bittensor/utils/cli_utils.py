@@ -212,8 +212,9 @@ class cli_utils():
     def ask_password():
         """ Ask user to input a password
         """
-        return getpass.getpass("Enter password to unlock key: ")
-
+        password = getpass.getpass("Enter password to unlock key: ")
+        print(password)
+        return password
     @staticmethod
     def validate_password(password):
         """ The policy to validate the strength of password
