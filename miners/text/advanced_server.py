@@ -37,7 +37,7 @@ from torch.nn.utils.rnn import pad_sequence
 import concurrent
 from threading import Thread, Lock
 from nuclei.server import server
-
+import sys
 import os
 import torch.nn.functional as F
 
@@ -84,7 +84,7 @@ def main( config ):
         def call(inputs):
             return gp_server.encode_forward( inputs )
         uid = metagraph.hotkeys.index(pubkey)
-        priority = metagraph.S[uid].item()
+        priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
         future = threadpool.submit(call,inputs=inputs_x.to(gp_server.device),priority=priority)
         try:
             return future.result(timeout= gp_server.config.server.forward_timeout)
@@ -129,7 +129,7 @@ def main( config ):
                     logger.info('Backwards axon gradient applied')
                     
         uid = metagraph.hotkeys.index(pubkey)
-        priority = metagraph.S[uid].item()
+        priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
         
 
         try:
