@@ -1,5 +1,6 @@
 import bittensor
 import pytest
+from unittest.mock import MagicMock
 
 def test_create():
     subtensor = bittensor.subtensor()
@@ -31,7 +32,6 @@ def test_connect_no_failure( ):
 subtensor = bittensor.subtensor(
      network = 'akatsuki'
 )
-subtensor.substrate.
 
 def test_connect_success( ):
      subtensor.connect()
@@ -48,26 +48,71 @@ def test_neurons( ):
      assert type(neurons[0].coldkey) == str
 
      neuron = subtensor.neuron_for_uid( 0 )
-     assert neurons.ip == neuron['ip']
-     assert neurons.port == neuron['port']
-     assert neurons.ip_type == neuron['ip_type']
-     assert neurons.uid == neuron['uid']
-     assert neurons.modality == neuron['modality']
-     assert neurons.hotkey == neuron['hotkey']
-     assert neurons.coldkey == neuron['coldkey']
+     assert type(neuron.ip) == str
+     assert type(neuron.port) == int
+     assert type(neuron.ip_type) == int
+     assert type(neuron.uid) == int
+     assert type(neuron.modality) == int
+     assert type(neuron.hotkey) == str
+     assert type(neuron.coldkey) == str
 
      neuron = subtensor.neuron_for_pubkey(neuron.hotkey)
-     assert neurons.ip == neuron['ip']
-     assert neurons.port == neuron['port']
-     assert neurons.ip_type == neuron['ip_type']
-     assert neurons.uid == neuron['uid']
-     assert neurons.modality == neuron['modality']
-     assert neurons.hotkey == neuron['hotkey']
-     assert neurons.coldkey == neuron['coldkey']
-     
+     assert type(neuron.ip) == str
+     assert type(neuron.port) == int
+     assert type(neuron.ip_type) == int
+     assert type(neuron.uid) == int
+     assert type(neuron.modality) == int
+     assert type(neuron.hotkey) == str
+     assert type(neuron.coldkey) == str
+
+
 def test_get_current_block():
      block = subtensor.get_current_block()
      assert (type(block) == int)
+
+
+wallet =  bittensor.wallet(
+    path = '/tmp/pytest',
+    name = 'pytest',
+    hotkey = 'pytest',
+) 
+wallet.create_new_coldkey(use_password=False, overwrite = True)
+wallet.create_new_hotkey(use_password=False, overwrite = True)
+
+
+
+def test_subscribe():
+    class subscription():
+        def __init__(self):
+            self.is_success = True
+        def process_events(self):
+            return True
+
+    subtensor.substrate.submit_extrinsic = MagicMock(return_value = subscription()) 
+    success= subtensor.subscribe(wallet,
+                        ip='127.0.0.1',
+                        port=8080,
+                        modality=0
+                        )
+    assert success == True
+
+
+def test_subscribe_failed():
+    class subscription_failed():
+        def __init__(self):
+            self.is_success = False
+            self.error_message = 'Mock'
+        def process_events(self):
+            return True
+
+    subtensor.substrate.submit_extrinsic = MagicMock(return_value = subscription_failed()) 
+
+    fail= subtensor.subscribe(wallet,
+                        ip='127.0.0.1',
+                        port=8080,
+                        modality=0
+                        )
+    assert fail == False
 
 # def test_weight_uids( ):
 #     weight_uids = subtensor.weight_uids_for_uid(0)
