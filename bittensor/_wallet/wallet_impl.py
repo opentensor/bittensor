@@ -300,6 +300,12 @@ class Wallet():
         """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
 
         """
+        return self.create(coldkey_use_password, hotkey_use_password)
+
+    def create (self, coldkey_use_password:bool = True, hotkey_use_password:bool = True ) -> 'Wallet':
+        """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+
+        """
         # ---- Setup Wallet. ----
         if not self.has_coldkeypub:
             self.create_new_coldkey( n_words = 12, use_password = coldkey_use_password )
