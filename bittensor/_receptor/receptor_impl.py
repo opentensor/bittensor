@@ -574,6 +574,7 @@ class Receptor(nn.Module):
         try:
             # ---- Check response shape is same as inputs ----
             if  outputs.size() != inputs_x.size():
+
                 code = bittensor.proto.ReturnCode.ResponseShapeException 
                 message = 'output shape does not match inputs shape'
                 call_time = clock.time() - start_time
@@ -587,8 +588,6 @@ class Receptor(nn.Module):
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
             return zeros, code, call_time, message
             
-
-
         # ---- Safe catch NaNs and replace with 0.0 ----
         outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
    
