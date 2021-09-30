@@ -78,3 +78,7 @@ class endpoint:
         endpoint_string = endpoint_bytes.decode('utf-8')
         endpoint_dict = json.loads( endpoint_string )
         return endpoint.from_dict(endpoint_dict)
+        
+    @staticmethod
+    def dummy():
+        return endpoint_impl.Endpoint(uid=-1,version=0, hotkey = "", ip_type = 4, ip = '0.0.0.0', port = 0, modality= 0, coldkey = "")
