@@ -131,6 +131,7 @@ class Endpoint:
         return net.ip__str__(self.ip_type, self.ip, self.port)
 
     def __eq__ (self, other: 'Endpoint'):
+        
         if self.version == other.version and self.uid == other.uid and self.ip == other.ip and self.port == other.port and self.ip_type == other.ip_type and  self.coldkey == other.coldkey and self.hotkey == other.hotkey and self.modality == other.modality:
             return True
         else:
