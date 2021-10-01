@@ -344,14 +344,14 @@ def test_get_balance():
     neuron = neurons[ 0 ]
     balance= subtensor.get_balance(address=neuron.hotkey)
     assert type(balance) == bittensor.utils.balance.Balance
-"""
+
 def test_get_balances():
     subtensor = bittensor.subtensor()
     balance= subtensor.get_balances()
     assert type(balance) == dict
     for i in balance:
         assert type(balance[i]) == bittensor.utils.balance.Balance
-"""
+
 def test_get_uid_for_hotkey():
     neurons = subtensor.neurons()
     neuron = neurons[ 0 ]
