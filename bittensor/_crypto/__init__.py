@@ -37,18 +37,14 @@ def decrypt_file(password, full_path):
             data = f.read()
             
             if  data[:14] == b'$ANSIBLE_VAULT':
-                print("found ansible wallet")
                 vault = Vault(password)
                 data = vault.load(open(full_path).read())
-                print(data)
                 return data
 
             elif data[:6] == b"gAAAAA":
-                print('found old wallet!')
                 key = __generate_key(password)
                 cipher_suite = Fernet(key)
                 data = cipher_suite.decrypt(data)
-                print(data)
                 encrypt_to_file(data, password, full_path)
             
             else:
