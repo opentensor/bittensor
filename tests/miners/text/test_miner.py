@@ -12,7 +12,6 @@ def test_run_template():
     def test_forward(cls,pubkey,inputs_x):
         print ('call')
         return magic(pubkey,inputs_x)
-    i = 0
 
     # mimic the get block function
     class block():
@@ -30,15 +29,13 @@ def test_run_template():
     config = Miner.config()
     config.miner.n_epochs = 1
     config.miner.epoch_length = 2
-    print ('start')
     with mock.patch.object(Miner,'forward_text',new=test_forward):
-        print ('create')
-        gpt2_exodus_miner = Miner( config = config )
-        with mock.patch.object(gpt2_exodus_miner.neuron.subtensor, 'get_current_block', new=block.block):
+        miner = Miner( config = config )
+        with mock.patch.object(miner.neuron.subtensor, 'get_current_block', new=block.block):
             bittensor.neuron.subtensor.connect = MagicMock(return_value = True)  
             bittensor.neuron.subtensor.is_connected = MagicMock(return_value = True)      
             bittensor.neuron.subtensor.subscribe = MagicMock(return_value = True)  
-            gpt2_exodus_miner.run()
+            miner.run()
 
             assert magic.call_count == 1
             assert isinstance(magic.call_args[0][0],str)

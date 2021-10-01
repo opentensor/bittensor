@@ -134,6 +134,10 @@ class subtensor:
         elif network == "kusanagi":
             # Kusanagi testnet
             return bittensor.__kusanagi_entrypoints__[0]
+        elif network == "local":
+            # Kusanagi testnet
+            return bittensor.__local_entrypoints__[0]
+
         else:
             return bittensor.__local_entrypoints__[0]
             
