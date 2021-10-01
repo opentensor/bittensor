@@ -47,3 +47,4 @@ tqdm
 qqdm
 wandb>=0.11.1
 substrate-interface>=0.13.11
+ansible_vault>=2.1
