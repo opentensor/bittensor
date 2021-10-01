@@ -47,7 +47,6 @@ def config ():
     parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
     parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
     parser.add_argument('--nucleus.noise_multiplier', type=float, help='Noise standard deviation multiplier. Increases query exploration.', default=1.0)
-    parser.add_argument('--nucleus.punishment', type=float, help='The punishment on the chain weights that do not respond ', default=0.001 )
     parser.add_argument('--nucleus.nhid', type=int, help='the dimension of the feedforward network model in nn.TransformerEncoder', default=200)
     parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default=2)
     parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
@@ -106,8 +105,8 @@ def main( config ):
 
         def forward ( self, inputs ):
             # Apply model.
-            remote_hidden = self.remote( inputs.to( device ) )
-            encoded_hidden = self.encoder( remote_hidden )
+            query_hidden = self.query( inputs.to( device ) )
+            encoded_hidden = self.encoder( query_hidden )
             decoded_targets = self.decoder ( encoded_hidden )
 
             # Compute loss.
@@ -125,7 +124,7 @@ def main( config ):
             validator_scores =  peer_weights_d2 * (self.peer_weights**2)/2  
             return validator_scores
 
-        def remote ( self, inputs ):
+        def query ( self, inputs ):
             # ---- Topk Weights ---- (TODO: check if the gaussians are enough to disrupt the chain weights)
             real_topk = min( config.nucleus.topk, metagraph.n.item() ) 
             noise = torch.normal( 0, config.nucleus.noise_multiplier * torch.std( self.peer_weights ).item()+0.0000001, size=( self.peer_weights.size())).to( device )
