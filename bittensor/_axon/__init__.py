@@ -280,10 +280,10 @@ class AuthInterceptor(grpc.ServerInterceptor):
     def version_checking(self,meta):
         r""" Checks the header and version in the metadata
         """
-        if meta[0] == self._valid_metadata and bittensor.__version_as_int__ == int(meta[2].value):
+        if meta[0] == self._valid_metadata and bittensor.__version_as_int__ <= int(meta[2].value) + 10:
             pass
         else:
-            raise Exception('Incorrect Metadata/version')
+            raise Exception('Incorrect Metadata/version; please update bittensor version')
 
     def black_list_checking(self,meta):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey 
