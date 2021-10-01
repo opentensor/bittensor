@@ -30,7 +30,9 @@ def test_run_template():
     config = Miner.config()
     config.miner.n_epochs = 1
     config.miner.epoch_length = 2
+    print ('start')
     with mock.patch.object(Miner,'forward_text',new=test_forward):
+        print ('create')
         gpt2_exodus_miner = Miner( config = config )
         with mock.patch.object(gpt2_exodus_miner.neuron.subtensor, 'get_current_block', new=block.block):
             bittensor.neuron.subtensor.connect = MagicMock(return_value = True)  
