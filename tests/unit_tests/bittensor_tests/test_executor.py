@@ -51,3 +51,8 @@ def test_regenerate_hotkey():
     assert os.path.isfile(executor.wallet.hotkeyfile) 
     os.remove(executor.wallet.hotkeyfile)
     assert not os.path.isfile(executor.wallet.hotkeyfile) 
+
+def test_overview():
+    wallet.create_new_coldkey(use_password=False, overwrite = True)
+    wallet.create_new_hotkey(use_password=False, overwrite = True)
+    executor.overview()

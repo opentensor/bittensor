@@ -346,7 +346,7 @@ def test_get_balance():
     assert type(balance) == bittensor.utils.balance.Balance
 
 def test_get_balances():
-
+    subtensor = bittensor.subtensor()
     balance= subtensor.get_balances()
     assert type(balance) == dict
     for i in balance:
