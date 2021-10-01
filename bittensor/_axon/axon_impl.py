@@ -24,10 +24,7 @@ from typing import List, Tuple, Callable
 
 import torch
 import grpc
-from termcolor import colored
-
 from loguru import logger
-from substrateinterface.utils.ss58 import ss58_encode
 
 import bittensor
 import bittensor.utils.stats as stat_utils

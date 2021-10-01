@@ -55,7 +55,7 @@ def test_forward_empty_request():
   
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.public_key,
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors=[]
     )
     response, code, call_time, message = axon._forward( request )
@@ -65,7 +65,7 @@ def test_forward_deserialization_error():
     x = dict()  # Not tensors that can be deserialized.
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.public_key,
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors=[ x ]
     )
     response, code, call_time, message  = axon._forward( request )
@@ -77,7 +77,7 @@ def test_forward_text_shape_error():
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.public_key,
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors=[ inputs_serialized ]
     )
     response, code, call_time, message  = axon._forward( request )
@@ -89,7 +89,7 @@ def test_forward_image_shape_error():
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.public_key,
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors=[ inputs_serialized ]
     )
     response, code, call_time, message  = axon._forward( request )
@@ -101,7 +101,7 @@ def test_forward_tensor_shape_error():
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.public_key,
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors=[ inputs_serialized ]
     )
     response, code, call_time, message  = axon._forward( request )
@@ -117,7 +117,7 @@ def test_forward_deserialization():
   
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.public_key,
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors=[inputs_serialized]
     )
     response, code, call_time, message = axon._forward( request )
@@ -130,7 +130,7 @@ def test_backward_invalid_request():
 
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.public_key,
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors=[inputs_serialized]
     )
     response, code, call_time, message = axon._backward( request )
@@ -142,7 +142,7 @@ def test_backward_deserialization_error():
     g = dict()
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.public_key,
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors=[ x, g]
     )
     response, code, call_time, message  = axon._backward( request )
@@ -157,7 +157,7 @@ def test_backward_text_shape_error():
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.public_key,
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors=[ inputs_serialized, grads_serialized]
     )
     response, code, call_time, message  = axon._backward( request )
@@ -171,7 +171,7 @@ def test_backward_image_shape_error():
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.public_key,
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors=[ inputs_serialized, grads_serialized]
     )
     response, code, call_time, message  = axon._backward( request )
@@ -185,7 +185,7 @@ def test_backward_tensor_shape_error():
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.public_key,
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors=[ inputs_serialized, grads_serialized]
     )
     response, code, call_time, message  = axon._backward( request )
@@ -200,7 +200,7 @@ def test_backward_grad_inputs_shape_error():
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.public_key,
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors=[ inputs_serialized, grads_serialized]
     )
     response, code, call_time, message = axon._backward( request )
@@ -217,7 +217,7 @@ def test_backward_response_deserialization_error():
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.public_key,
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors=[ inputs_serialized, grads_serialized]
     )
     response, code, call_time, message = axon._backward( request )
@@ -234,7 +234,7 @@ def test_backward_response_success():
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.public_key,
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors=[ inputs_serialized, grads_serialized]
     )
     response, code, call_time, message = axon._backward( request )

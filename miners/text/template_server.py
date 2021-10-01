@@ -130,7 +130,7 @@ def main( config ):
     with wandb.init (
             config = config, 
             name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
-            project = wallet.coldkeypub[:8],
+            project = wallet.coldkeypub.ss58_address[:8],
             group = wallet.hotkey.ss58_address[:8],
             save_code = True
         ):
