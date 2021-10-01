@@ -1,5 +1,5 @@
 import bittensor
-import os
+import os,sys
 from unittest.mock import MagicMock
 
 wallet =  bittensor.wallet(
@@ -69,3 +69,26 @@ def test_unstake_all_fail():
     wallet.create_new_hotkey(use_password=False, overwrite = True)
     executor.subtensor.unstake = MagicMock(return_value = False) 
     executor.unstake_all()
+
+
+# -- cli ---
+
+def test_create_cli_overview():
+    sys.argv = [sys.argv[0], '--overview']
+    cli = bittensor.cli(executor = executor)
+
+def test_create_cli_regen_coldkey():
+    sys.argv = [sys.argv[0], '--regen_coldkey']
+    cli = bittensor.cli(executor = executor)
+
+def test_create_cli_regen_hotkey():
+    sys.argv = [sys.argv[0], '--regen_hotkey']
+    cli = bittensor.cli(executor = executor)
+
+def test_create_cli_new_coldkey():
+    sys.argv = [sys.argv[0], '--new_coldkey']
+    cli = bittensor.cli(executor = executor)
+
+def test_create_cli_new_hotkey():
+    sys.argv = [sys.argv[0], '--new_hotkey']
+    cli = bittensor.cli(executor = executor)
