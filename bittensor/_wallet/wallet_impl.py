@@ -18,9 +18,12 @@
 # DEALINGS IN THE SOFTWARE.
 
 import json
+from multiprocessing import Value
 import os
 import re
 import sys
+import time
+import requests
 from types import SimpleNamespace
 
 from typing import Union
@@ -47,20 +50,24 @@ class Wallet():
         self,
         name:str,
         path:str,
-        hotkey:str 
+        hotkey:str,
+        email:str = None
     ):
         r""" Init bittensor wallet object containing a hot and coldkey.
             Args:
-                name (required=False, default='default):
+                name (required=True, default='default):
                     The name of the wallet to unlock for running bittensor
-                hotkey (required=False, default='default):
+                hotkey (required=True, default='default):
                     The name of hotkey used to running the miner.
-                path (required=False, default='~/.bittensor/wallets/'):
+                path (required=True, default='~/.bittensor/wallets/'):
                     The path to your bittensor wallets
+                email (required=False, default=None):
+                    Registration email.
         """
         self._name_string = name
         self._path_string = path
         self._hotkey_string = hotkey
+        self._email = email
         self._hotkey = None
         self._coldkey = None
         self._coldkeypub = None
@@ -71,6 +78,49 @@ class Wallet():
     def __repr__(self):
         return self.__str__()
 
+    def register ( self, email:str = None, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Wallet':
+        """ Registers this wallet on the chain.
+            Args:
+                subtensor( 'bittensor.Subtensor' ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+            Return:
+                wallet.
+        """
+        if email == None:
+            email = self._email
+            if email == None:
+                raise ValueError('You must pass registration email either through wallet initialization or during the register call.')
+        if subtensor == None: subtensor = bittensor.subtensor()
+        if self.is_registered( subtensor = subtensor ): print ('Already registered {}'.format( self.hotkey.ss58_address ))
+        else:
+            headers = {'Content-type': 'application/json'}
+            url = 'http://' + bittensor.__registration_servers__[0] + '/register?email={}&hotkey={}&coldkey={}&hotkey_signature={}&network={}'.format( email, self.hotkey.ss58_address, self.coldkey.ss58_address, 'signaturefaked', subtensor.network)
+            response = requests.post(url, headers=headers)
+            response_str = str(bytes.decode(response.content)) 
+            if response_str == 'Email Sent':
+                print ('Waiting for confirmation from email: {}'.format(email))
+                while True:
+                    if self.is_registered( subtensor = subtensor ):
+                        print ('Registered hotkey: {}'.format( self.hotkey.ss58_address ))
+                        return self      
+                    time.sleep(2)
+            else:
+                print ('Failed for reason: {}'.format( response_str ))
+                return self
+
+    def is_registered( self, subtensor: 'bittensor.Subtensor' = None ) -> bool:
+        """ Returns true if this wallet is registered.
+            Args:
+                subtensor( 'bittensor.Subtensor' ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+                    Determines which network we check for registration.
+            Return:
+                is_registered (bool):
+                    Is the wallet registered on the chain.
+        """
+        if subtensor == None: subtensor = bittensor.subtensor()
+        return subtensor.is_hotkey_registered( self.hotkey.ss58_address )
+
     def get_neuron ( self, subtensor: 'bittensor.Subtensor' = None ) -> SimpleNamespace:
         """ Returns this wallet's neuron information from subtensor.
             Args:
@@ -80,9 +130,9 @@ class Wallet():
                 neuron (SimpleNamespace):
                     neuron account on the chain.
         """
-        if subtensor == None:
-            subtensor = bittensor.subtensor()
         self.assert_hotkey()             
+        if subtensor == None: subtensor = bittensor.subtensor()
+        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
         neuron = subtensor.neuron_for_wallet( self )
         return neuron
 
@@ -95,7 +145,9 @@ class Wallet():
                 uid (int):
                     Network uid.
         """
-        neuron = self.get_neuron(subtensor)
+        if subtensor == None: subtensor = bittensor.subtensor()
+        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
+        neuron = self.get_neuron(subtensor = subtensor)
         if neuron.is_null:
             return -1
         else:
@@ -110,13 +162,27 @@ class Wallet():
                 balance (bittensor.utils.balance.Balance):
                     Stake account balance
         """
-        neuron = self.get_neuron(subtensor)
+        if subtensor == None: subtensor = bittensor.subtensor()
+        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
+        neuron = self.get_neuron(subtensor = subtensor)
         if neuron.is_null:
             return bittensor.Balance(0)
         else:
             return bittensor.Balance(neuron.stake)
 
-    def stake( self, 
+    def get_balance( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
+        """ Returns this wallet's coldkey balance from passed subtensor connection.
+            Args:
+                subtensor( 'bittensor.Subtensor' ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+            Return:
+                balance (bittensor.utils.balance.Balance):
+                    Coldkey balance.
+        """
+        if subtensor == None: subtensor = bittensor.subtensor()
+        return subtensor.get_balance(address = self.coldkeypub.ss58_address)
+
+    def add_stake( self, 
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -142,15 +208,15 @@ class Wallet():
         self.assert_coldkey()
         self.assert_coldkeypub()
         self.assert_hotkey()
+        if subtensor == None: subtensor = bittensor.subtensor()
+        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
         if amount == None:
             amount = self.get_balance()
         if not isinstance(amount, bittensor.Balance):
             amount = bittensor.utils.balance.Balance.from_float( amount )
-        if subtensor == None:
-            subtensor = bittensor.subtensor()
         return subtensor.add_stake( wallet = self, amount = amount, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
 
-    def unstake( self, 
+    def remove_stake( self, 
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -176,12 +242,12 @@ class Wallet():
         self.assert_coldkey()
         self.assert_coldkeypub()
         self.assert_hotkey()
+        if subtensor == None: subtensor = bittensor.subtensor()
+        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
         if amount == None:
             amount = self.get_stake()
         if not isinstance(amount, bittensor.Balance):
             amount = bittensor.utils.balance.Balance.from_float( amount )
-        if subtensor == None:
-            subtensor = bittensor.subtensor()
         return subtensor.unstake( wallet = self, amount = amount, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
 
     def transfer( 
@@ -215,18 +281,24 @@ class Wallet():
         self.assert_coldkey()
         self.assert_coldkeypub()
         self.assert_hotkey()
+        if subtensor == None: subtensor = bittensor.subtensor()
+        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
         if not isinstance(amount, bittensor.Balance):
             amount = bittensor.utils.balance.Balance.from_float( amount )
         balance = self.get_balance()
         if amount > balance:
             bittensor.logging.error(prefix='Transfer', sufix='Not enough balance to transfer: {} > {}'.format(amount, balance))
             return False
-        if subtensor == None:
-            subtensor = bittensor.subtensor()
         return subtensor.transfer( wallet = self, amount = amount, dest = dest, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
 
     def create_if_non_existent( self, coldkey_use_password:bool = True, hotkey_use_password:bool = True) -> 'Wallet':
         """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+        """
+        return self.create(coldkey_use_password, hotkey_use_password)
+
+    def create (self, coldkey_use_password:bool = True, hotkey_use_password:bool = True ) -> 'Wallet':
+        """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+
         """
         return self.create(coldkey_use_password, hotkey_use_password)
 
@@ -321,7 +393,7 @@ class Wallet():
             return False
 
     @property
-    def hotkey(self) -> Keypair:
+    def hotkey(self) -> 'Keypair':
         r""" Loads the hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or raises an error.
             Returns:
                 hotkey (Keypair):
@@ -349,10 +421,10 @@ class Wallet():
         return self._coldkey
 
     @property
-    def coldkeypub(self) -> str:
+    def coldkeypub(self) -> 'Keypair':
         r""" Loads the coldkeypub from wallet.path/wallet.name/coldkeypub.txt or raises an error.
             Returns:
-                coldkeypub (str):
+                coldkeypub (Keypair):
                     colkeypub loaded from config arguments.
             Raises:
                 KeyFileError: Raised if the file is corrupt of non-existent.
@@ -386,7 +458,7 @@ class Wallet():
         )
         return os.path.join(full_path, "hotkeys", self._hotkey_string)
 
-    def _load_coldkeypub(self) -> str:
+    def _load_coldkeypub(self) -> 'Keypair':
         if not os.path.isfile( self.coldkeypubfile ):
             logger.critical("coldkeypubfile  {} does not exist".format( self.coldkeypubfile ))
             raise KeyFileError
@@ -404,8 +476,9 @@ class Wallet():
         with open( self.coldkeypubfile , "r") as file:
             coldkeypub = file.readline().strip()
 
-        logger.success("Loaded coldkey.pub:".ljust(20) + "<blue>{}</blue>".format( coldkeypub ))
-        return coldkeypub
+        coldkeypub_keypair = Keypair( ss58_address = ss58_encode(coldkeypub) )
+        logger.success("Loaded coldkey.pub:".ljust(20) + "<blue>{}</blue>".format( coldkeypub_keypair.ss58_address ))
+        return coldkeypub_keypair
 
     def _load_hotkey(self) -> 'Keypair':
 
@@ -434,7 +507,7 @@ class Wallet():
                 logger.critical("Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt") from KeyFileError()
 
-            logger.success("Loaded hotkey:".ljust(20) + "<blue>{}</blue>".format(hotkey.public_key))
+            logger.success("Loaded hotkey:".ljust(20) + "<blue>{}</blue>".format(hotkey.ss58_address))
             return hotkey
 
 
@@ -466,7 +539,7 @@ class Wallet():
                 logger.critical("Keyfile corrupt")
                 raise KeyFileError("Keyfile corrupt") from KeyFileError()
 
-            logger.success("Loaded coldkey:".ljust(20) + "<blue>{}</blue>".format(coldkey.public_key))
+            logger.success("Loaded coldkey:".ljust(20) + "<blue>{}</blue>".format(coldkey.ss58_address))
             return coldkey
             
     def create_coldkey_from_uri(self, uri:str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':

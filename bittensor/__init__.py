@@ -48,6 +48,10 @@ __local_entrypoints__ = [
     '127.0.0.1:9944'
 ]
 
+__registration_servers__ = [
+    '127.0.0.1:5000'
+]
+
 # ---- Config ----
 from bittensor._config import config as config
 
