@@ -1,6 +1,7 @@
 import os
 
 
+import sys
 import time
 import pytest
 import random
@@ -29,7 +30,7 @@ def setup_chain():
     logger.info(path)
     if not path:
         logger.error("make sure the NODE_SUBTENSOR_BIN env var is set and points to the node-subtensor binary")
-        quit()
+        sys.exit()
 
     # Select a port
     port = select_port()
@@ -82,11 +83,11 @@ def setup_subtensor( port:int ):
 
 def add_stake( subtensor, wallet: 'bittensor.Wallet', amount: 'Balance' ):
     # Get the uid of the new neuron
-    uid = subtensor.get_uid_for_pubkey( wallet.hotkey.public_key )
+    uid = subtensor.get_uid_for_pubkey( wallet.hotkey.ss58_address )
     assert uid is not None
 
     # Add stake to new neuron
-    result = subtensor.add_stake( wallet = wallet, amount = amount, hotkey_id = wallet.hotkey.public_key, wait_for_finalization=True, timeout=30 )
+    result = subtensor.add_stake( wallet = wallet, amount = amount, hotkey_id = wallet.hotkey.ss58_address, wait_for_finalization=True, timeout=30 )
     assert result == True
 
 '''
@@ -107,7 +108,7 @@ def test_subscribe_success(setup_chain):
     subtensor = setup_subtensor(setup_chain)
     assert subtensor.connect() == True
     subtensor.subscribe(wallet=wallet, ip = "8.8.8.8", port = 6666, modality = bittensor.proto.Modality.TEXT)
-    uid = subtensor.get_uid_for_pubkey(wallet.hotkey.public_key)
+    uid = subtensor.get_uid_for_pubkey(wallet.hotkey.ss58_address)
     assert uid is not None
 
 '''
@@ -276,7 +277,7 @@ def test_get_uid_for_pubkey_succes(setup_chain):
     subtensor = setup_subtensor(setup_chain)
     assert subtensor.connect() is True
     subtensor.subscribe(wallet=wallet, ip = "8.8.8.8", port = 6666, modality = bittensor.proto.Modality.TEXT)
-    result = subtensor.get_uid_for_pubkey(wallet.hotkey.public_key)
+    result = subtensor.get_uid_for_pubkey(wallet.hotkey.ss58_address)
     assert result is not None
 
 def test_get_current_block(setup_chain):
@@ -305,7 +306,7 @@ def test_get_neuron_for_uid(setup_chain):
     subtensor = setup_subtensor(setup_chain)
     assert subtensor.connect() is True
     subtensor.subscribe(wallet=wallet, ip = "8.8.8.8", port = 6666, modality = bittensor.proto.Modality.TEXT)
-    uid = subtensor.get_uid_for_pubkey(wallet.hotkey.public_key)
+    uid = subtensor.get_uid_for_pubkey(wallet.hotkey.ss58_address)
     result = subtensor.get_neuron_for_uid(uid)
 
     assert isinstance(result, dict)
@@ -316,8 +317,8 @@ def test_get_neuron_for_uid(setup_chain):
     assert "port" in result
     assert "uid" in result
 
-    assert result['coldkey'] == ss58_encode(wallet.coldkey.public_key)
-    assert result['hotkey'] == ss58_encode(wallet.hotkey.public_key)
+    assert result['coldkey'] == wallet.coldkey.ss58_address
+    assert result['hotkey'] == wallet.hotkey.ss58_address
     assert result['ip_type'] == 4
     assert result['modality'] == 0
     assert result['port'] == 6666
@@ -328,7 +329,7 @@ def test_get_last_emit_data_for_uid__success(setup_chain):
     subtensor = setup_subtensor(setup_chain)
     assert subtensor.connect() is True
     subtensor.subscribe(wallet=wallet, ip = "8.8.8.8", port = 6666, modality = bittensor.proto.Modality.TEXT)
-    uid = subtensor.get_uid_for_pubkey(wallet.hotkey.public_key)
+    uid = subtensor.get_uid_for_pubkey(wallet.hotkey.ss58_address)
     result = subtensor.get_last_emit_data_for_uid( uid )
     current_block = subtensor.get_current_block()
     assert result < current_block
@@ -384,8 +385,8 @@ def test_set_weights_success(setup_chain):
     assert subtensorB.connect() is True
     subtensorB.subscribe(wallet=walletB, ip = "8.8.8.8", port = 6667, modality = bittensor.proto.Modality.TEXT)
 
-    uidA = subtensorA.get_uid_for_pubkey(walletA.hotkey.public_key)
-    uidB = subtensorB.get_uid_for_pubkey(walletB.hotkey.public_key)
+    uidA = subtensorA.get_uid_for_pubkey(walletA.hotkey.ss58_address)
+    uidB = subtensorB.get_uid_for_pubkey(walletB.hotkey.ss58_address)
 
     w_uids = torch.tensor([uidA, uidB])
     w_vals = torch.tensor([pow(2, 31) - 1, pow(2, 31)])
