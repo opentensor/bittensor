@@ -194,7 +194,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             'port': port, 
             'ip_type': ip_version,
             'modality': modality,
-            'coldkey': wallet.ss58_address,
+            'coldkey': wallet.coldkeypub.ss58_address,
         }
         
         with self.substrate as substrate:
