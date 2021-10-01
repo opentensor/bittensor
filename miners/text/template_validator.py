@@ -42,7 +42,7 @@ def config ():
     parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=1)
     parser.add_argument('--miner.momentum', type=float, help='optimizer momentum.', default=0.8)
     parser.add_argument('--miner.blocks_per_epoch', type=int, help='Blocks per epoch', default=30)
-    parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
+    parser.add_argument('--miner.n_topk_peer_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
     parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
     parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
     parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
@@ -102,9 +102,9 @@ def main( config ):
             self.encoder = TransformerEncoder( self.layers, config.nucleus.nlayers )
             self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
             self.loss_fct = torch.nn.CrossEntropyLoss()
-            self.chain_weights = torch.nn.Parameter(torch.ones( [ metagraph.n.item() ] , requires_grad=True))
+            self.peer_weights = torch.nn.Parameter(torch.ones( [ metagraph.n.item() ] , requires_grad=True))
 
-        def forward( self, inputs ):
+        def forward ( self, inputs ):
             # Apply model.
             remote_hidden = self.remote( inputs.to( device ) )
             encoded_hidden = self.encoder( remote_hidden )
@@ -116,25 +116,26 @@ def main( config ):
             self.loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
             return self.loss, decoded_targets
 
-        def scores(self):
-            chain_weights_d1 = torch.autograd.grad(self.loss, self.chain_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
-            chain_weights_d2 = torch.autograd.grad(chain_weights_d1.sum(), self.chain_weights, retain_graph=True, allow_unused=True )[0]
-            validator_scores =  chain_weights_d2 * (self.chain_weights**2)/2  
+        def scores ( self ):
+            # Computes salience scores for each peer in the network w.r.t the loss. 
+            # We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
+            peer_weights_d1 = torch.autograd.grad(self.loss, self.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
+            if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / metagraph.n.item()) # None if no grad w.r.t the chain weights.
+            peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.peer_weights, retain_graph=True, allow_unused=True )[0]
+            validator_scores =  peer_weights_d2 * (self.peer_weights**2)/2  
             return validator_scores
 
         def remote ( self, inputs ):
             # ---- Topk Weights ---- (TODO: check if the gaussians are enough to disrupt the chain weights)
             real_topk = min( config.nucleus.topk, metagraph.n.item() ) 
-            noise = torch.normal( 0, config.nucleus.noise_multiplier * torch.std( self.chain_weights ).item()+0.0000001, size=( self.chain_weights.size())).to( device )
-            topk_weights, topk_uids = torch.topk( self.chain_weights + noise, real_topk, dim=0 ) 
+            noise = torch.normal( 0, config.nucleus.noise_multiplier * torch.std( self.peer_weights ).item()+0.0000001, size=( self.peer_weights.size())).to( device )
+            topk_weights, topk_uids = torch.topk( self.peer_weights + noise, real_topk, dim=0 ) 
 
             # ---- Query network ----
-            # self.responses, return_ops, query_times = dendrite.forward_text ( 
-            #     endpoints = metagraph.endpoints[ topk_uids ], 
-            #     inputs = inputs
-            # )
-            responses = [ torch.rand( inputs.shape[0], inputs.shape[1], bittensor.__network_dim__ ) for _ in metagraph.endpoints[ topk_uids ]]  
-            return_ops = torch.tensor([0 for _ in metagraph.endpoints[ topk_uids ]], dtype = torch.int64)
+            responses, return_ops, query_times = dendrite.forward_text ( 
+                endpoints = metagraph.endpoints[ topk_uids ], 
+                inputs = inputs
+            )
             
             # ---- Join based on weights ----
             joining_uids = torch.where(return_ops==0)[0]
@@ -162,23 +163,22 @@ def main( config ):
 
     # Optionally resume.
     if config.miner.resume:
-        try:
-            validator.load_state_dict( torch.load("{}/validator.torch".format( run.dir ))['validator'], strict=False )
-        except:
-            pass
+        try: validator.load_state_dict( torch.load("{}/validator.torch".format( run.dir ))['validator'], strict=False )
+        except: pass
     torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( run.dir ))
 
     # --- Run Forever.
     epoch = 0
     global_step = 0
     best_loss = math.inf
-    prev_scores = torch.zeros_like( validator.chain_weights )
+    ema_score_decay = 0.97
+    ema_scores = torch.ones_like( validator.peer_weights ) * (1 / metagraph.n.item()) # Initial scores.
     while True:
         
         # --- Sync + reshape.      
         metagraph.sync().save()
-        chain_growth = metagraph.n.item() - torch.numel( validator.chain_weights )
-        validator.chain_weights = torch.nn.Parameter(torch.cat( [validator.chain_weights, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)])).to(device)
+        chain_growth = metagraph.n.item() - torch.numel( validator.peer_weights )
+        validator.peer_weights = torch.nn.Parameter(torch.cat( [validator.peer_weights, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)])).to(device)
         optimizer = torch.optim.SGD(
             [ {"params": validator.parameters()} ],
             lr = config.miner.learning_rate,
@@ -215,17 +215,17 @@ def main( config ):
                 'dividends': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green') 
             }
             for uid_i, score_i in enumerate(scores.tolist()): 
-                if score_i != 0: info[ str(uid_i) ] = colored('{:.4f}'.format( score_i ), 'green' if score_i - prev_scores[ uid_i ] > 0 else 'red')
-            prev_scores = scores
+                if score_i != 0: info[ str(uid_i) ] = colored('{:.4f}'.format( score_i ), 'green' if score_i - ema_scores[ uid_i ] > 0 else 'red')
+            ema_scores = ema_score_decay * ema_scores + (1 - ema_score_decay) * scores
             progress.set_infos( info )
         
         # ---  Set mechanism weights.
-        topk_scores, topk_uids = torch.topk( scores, k = min(config.miner.n_topk_chain_weights, metagraph.n.item())  )
+        topk_scores, topk_uids = torch.topk( ema_scores, k = min(config.miner.n_topk_peer_weights, metagraph.n.item())  )
         subtensor.set_weights (
             uids = topk_uids,
             weights = topk_scores,
-            wait_for_inclusion = False,
             wallet = wallet,
+            wait_for_inclusion = False,
         )    
 
         # --- Log.
