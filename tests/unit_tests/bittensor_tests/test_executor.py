@@ -1,6 +1,7 @@
 import bittensor
 import os,sys
 from unittest.mock import MagicMock
+from bittensor.utils.balance import Balance
 
 wallet =  bittensor.wallet(
     path = '/tmp/pytest',
@@ -8,6 +9,7 @@ wallet =  bittensor.wallet(
     hotkey = 'pytest',
 ) 
 executor = bittensor.executor( wallet = wallet )
+executor.metagraph.sync()
 
 def test_create_hotkey():
     executor.create_new_hotkey(
@@ -56,6 +58,18 @@ def test_regenerate_hotkey():
 def test_overview():
     wallet.create_new_coldkey(use_password=False, overwrite = True)
     wallet.create_new_hotkey(use_password=False, overwrite = True)
+    executor.overview()
+
+def test_overview_copy():
+    executor = bittensor.executor( wallet = wallet )
+    wallet.create_new_coldkey(use_password=False, overwrite = True)
+    wallet.create_new_hotkey(use_password=False, overwrite = True)
+    executor.metagraph.sync()
+
+    coldkey = executor.metagraph.coldkeys[0]
+    bal = Balance.from_float(200)
+    executor.wallet.coldkeypub.ss58_address = MagicMock(return_value = coldkey) 
+    executor.subtensor.get_balance = MagicMock(return_value = bal) 
     executor.overview()
 
 def test_unstake_all():
