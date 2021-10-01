@@ -32,6 +32,7 @@ class wallet:
             name: str = None,
             hotkey: str = None,
             path: str = None,
+            email: str = None,
         ) -> 'bittensor.Wallet':
         r""" Init bittensor wallet object containing a hot and coldkey.
 
@@ -44,6 +45,8 @@ class wallet:
                     The name of hotkey used to running the miner.
                 path (required=False, default='~/.bittensor/wallets/'):
                     The path to your bittensor wallets
+                email (required=False, default=None):
+                    Registration email.
         """
         if config == None: 
             config = wallet.config()
@@ -51,11 +54,13 @@ class wallet:
         config.wallet.name = name if name != None else config.wallet.name
         config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey
         config.wallet.path = path if path != None else config.wallet.path
+        config.wallet.email = email if email != None else config.wallet.email
         wallet.check_config( config )
         return wallet_impl.Wallet(
             name = config.wallet.name, 
             hotkey = config.wallet.hotkey, 
-            path = config.wallet.path 
+            path = config.wallet.path,
+            email = config.wallet.email,
         )
 
     @classmethod   
@@ -75,6 +80,7 @@ class wallet:
             parser.add_argument('--wallet.name',required=False, default='default', help='''The name of the wallet to unlock for running bittensor''')
             parser.add_argument('--wallet.hotkey', required=False, default='default', help='''The name of wallet's hotkey.''')
             parser.add_argument('--wallet.path',required=False, default='~/.bittensor/wallets/', help='''The path to your bittensor wallets''')
+            parser.add_argument('--wallet.email',required=False, default=None, help='''The email used to register your hotkey.''')
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass

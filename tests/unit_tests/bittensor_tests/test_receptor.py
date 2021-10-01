@@ -19,8 +19,8 @@ endpoint = bittensor.endpoint(
     ip = '0.0.0.0',
     ip_type = 4,
     port = 8060,
-    hotkey = wallet.hotkey.public_key,
-    coldkey = wallet.coldkey.public_key,
+    hotkey = wallet.hotkey.ss58_address,
+    coldkey = wallet.coldkey.ss58_address,
     modality = 0
 )
 receptor = bittensor.receptor ( 
@@ -65,7 +65,7 @@ def test_receptor_neuron_mock_server():
             
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__,
-            hotkey = wallet.hotkey.public_key,
+            hotkey = wallet.hotkey.ss58_address,
             return_code = bittensor.proto.ReturnCode.Success,
             tensors = [y_serialized])
 
@@ -86,7 +86,7 @@ def test_receptor_neuron_serve_timeout():
             
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__,
-            hotkey = wallet.hotkey.public_key,
+            hotkey = wallet.hotkey.ss58_address,
             return_code = bittensor.proto.ReturnCode.Timeout,
             tensors = [y_serialized])
 
@@ -102,7 +102,7 @@ def test_receptor_neuron_serve_timeout():
 def test_receptor_neuron_serve_empty():                
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__,
-            hotkey = wallet.hotkey.public_key,
+            hotkey = wallet.hotkey.ss58_address,
             return_code = bittensor.proto.ReturnCode.Success,
             tensors = [])
 
@@ -119,7 +119,7 @@ def test_receptor_neuron_mock_server_deserialization_error():
     y = dict() # bad response
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__,
-            hotkey = wallet.hotkey.public_key,
+            hotkey = wallet.hotkey.ss58_address,
             return_code = bittensor.proto.ReturnCode.Success,
             tensors = [y])
 
@@ -140,7 +140,7 @@ def test_receptor_neuron_mock_server_shape_error():
    
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__,
-            hotkey = wallet.hotkey.public_key,
+            hotkey = wallet.hotkey.ss58_address,
             return_code = bittensor.proto.ReturnCode.Success,
             tensors = [y_serialized])
 
@@ -163,7 +163,7 @@ def test_receptor_neuron_server_response_with_nans():
    
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__,
-            hotkey = wallet.hotkey.public_key,
+            hotkey = wallet.hotkey.ss58_address,
             return_code = bittensor.proto.ReturnCode.Success,
             tensors = [y_serialized])
 

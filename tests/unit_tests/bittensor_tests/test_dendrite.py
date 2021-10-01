@@ -21,8 +21,8 @@ neuron_obj = bittensor.endpoint(
     ip = '0.0.0.0',
     ip_type = 4,
     port = 12345,
-    hotkey = dendrite.wallet.hotkey.public_key,
-    coldkey = dendrite.wallet.coldkey.public_key,
+    hotkey = dendrite.wallet.hotkey.ss58_address,
+    coldkey = dendrite.wallet.coldkey.ss58_address,
     modality = 0
 )
 
@@ -144,8 +144,8 @@ def test_dendrite_backoff():
         ip = '0.0.0.0',
         ip_type = 4,
         port = 12345,
-        hotkey = _dendrite.wallet.hotkey.public_key,
-        coldkey = _dendrite.wallet.coldkey.public_key,
+        hotkey = _dendrite.wallet.hotkey.ss58_address,
+        coldkey = _dendrite.wallet.coldkey.ss58_address,
         modality = 0
     )
     print (_endpoint_obj)
