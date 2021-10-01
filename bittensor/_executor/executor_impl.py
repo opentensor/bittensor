@@ -83,12 +83,12 @@ class Executor:
         self.metagraph.load()
         self.metagraph.sync()
         self.metagraph.save()
-        balance = self.subtensor.get_balance( self.wallet.coldkeypub )
+        balance = self.subtensor.get_balance( self.wallet.coldkeypub.ss58_address )
 
         owned_endpoints = [] 
         endpoints = self.metagraph.endpoints
         for uid, cold in enumerate(self.metagraph.coldkeys):
-            if cold == self.wallet.coldkeypub:
+            if cold == self.wallet.coldkeypub.ss58_address :
                 owned_endpoints.append( endpoints[uid] )
 
         TABLE_DATA = []
@@ -140,7 +140,7 @@ class Executor:
         console = Console()
         table = Table(show_footer=False)
         table.title = (
-            "[bold white]Coldkey.pub:" + str(self.wallet.coldkeypub)
+            "[bold white]Coldkey.pub:" + str(self.wallet.coldkeypub.ss58_address )
         )
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
         table.add_column("[overline white]IP", justify='left', style='dim blue', no_wrap=True) 
@@ -177,7 +177,7 @@ class Executor:
         owned_endpoints = [] 
         endpoints = self.metagraph.endpoints
         for uid, cold in enumerate(self.metagraph.coldkeys):
-            if cold == self.wallet.coldkeypub:
+            if cold == self.wallet.coldkeypub.ss58_address :
                 owned_endpoints.append( endpoints[uid] )
 
         for endpoint in owned_endpoints:
@@ -190,7 +190,7 @@ class Executor:
                 timeout = bittensor.__blocktime__ * 5 
             )
             if result:
-                logger.success( "Unstaked: \u03C4{} from uid: {} to coldkey.pub: {}".format( stake, endpoint.uid, self.wallet.coldkey.public_key ))
+                logger.success( "Unstaked: \u03C4{} from uid: {} to coldkey.pub: {}".format( stake, endpoint.uid, self.wallet.coldkey.ss58_address ))
             else:
                 logger.critical("Unstaking transaction failed")
 
@@ -208,13 +208,13 @@ class Executor:
         endpoints = self.metagraph.endpoints
         for neuron_uid, cold in enumerate(self.metagraph.coldkeys):
             if neuron_uid == uid:
-                if cold != self.wallet.coldkeypub:
-                    logger.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
+                if cold != self.wallet.coldkeypub.ss58_address :
+                    logger.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.ss58_address))
                     sys.exit()
                 else:
                     endpoint = endpoints[neuron_uid]
         if endpoint == None:
-            logger.critical("No Neuron with uid: {} associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
+            logger.critical("No Neuron with uid: {} associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.ss58_address))
             sys.exit()
 
 
@@ -224,7 +224,7 @@ class Executor:
             logger.critical("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format( uid, stake, unstaking_balance))
             sys.exit()
 
-        logger.info("Requesting unstake of \u03C4{} from hotkey: {} to coldkey: {}".format(unstaking_balance.tao, endpoint.hotkey, self.wallet.coldkey.public_key))
+        logger.info("Requesting unstake of \u03C4{} from hotkey: {} to coldkey: {}".format(unstaking_balance.tao, endpoint.hotkey, self.wallet.coldkey.ss58_address))
         logger.info("Waiting for finalization...")
         result = self.subtensor.unstake (
             wallet = self.wallet, 
@@ -234,7 +234,7 @@ class Executor:
             timeout = bittensor.__blocktime__ * 5
         )
         if result:
-            logger.success("Unstaked: \u03C4{} from uid:{} to coldkey.pub:{}".format(unstaking_balance.tao, endpoint.uid, self.wallet.coldkey.public_key))
+            logger.success("Unstaked: \u03C4{} from uid:{} to coldkey.pub:{}".format(unstaking_balance.tao, endpoint.uid, self.wallet.coldkey.ss58_address))
         else:
             logger.critical("Unstaking transaction failed")
 
@@ -257,17 +257,17 @@ class Executor:
         endpoints = self.metagraph.endpoints
         for neuron_uid, cold in enumerate(self.metagraph.coldkeys):
             if neuron_uid == uid:
-                if cold != self.wallet.coldkeypub:
-                    logger.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
+                if cold != self.wallet.coldkeypub.ss58_address:
+                    logger.critical("Neuron with uid: {} is not associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.ss58_address))
                     sys.exit()
                 else:
                     endpoint = endpoints[neuron_uid]
         if endpoint == None:
-            logger.critical("No Neuron with uid: {} associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.public_key))
+            logger.critical("No Neuron with uid: {} associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.ss58_address))
             sys.exit()
 
 
-        logger.info("Adding stake of \u03C4{} from coldkey {} to hotkey {}".format( staking_balance.tao, self.wallet.coldkey.public_key, endpoint.hotkey))
+        logger.info("Adding stake of \u03C4{} from coldkey {} to hotkey {}".format( staking_balance.tao, self.wallet.coldkey.ss58_address, endpoint.hotkey))
         logger.info("Waiting for finalization...")
         result = self.subtensor.add_stake ( 
             wallet = self.wallet, 
@@ -277,7 +277,7 @@ class Executor:
             timeout = bittensor.__blocktime__ * 5
         )
         if result: 
-            logger.success("Staked: \u03C4{} to uid: {} from coldkey.pub: {}".format( staking_balance.tao, uid, self.wallet.coldkey.public_key ))
+            logger.success("Staked: \u03C4{} to uid: {} from coldkey.pub: {}".format( staking_balance.tao, uid, self.wallet.coldkey.ss58_address ))
         else:
             logger.critical("Stake transaction failed")
 
@@ -294,7 +294,7 @@ class Executor:
             logger.critical("Not enough balance (\u03C4{}) to transfer \u03C4{}".format(acount_balance, transfer_balance))
             sys.exit()
 
-        logger.info("Requesting transfer of \u03C4{}, from coldkey: {} to destination: {}".format(transfer_balance.tao, self.wallet.coldkey.public_key, destination))
+        logger.info("Requesting transfer of \u03C4{}, from coldkey: {} to destination: {}".format(transfer_balance.tao, self.wallet.coldkey.ss58_address, destination))
         logger.info("Waiting for finalization...")
         result = self.subtensor.transfer( 
             wallet = self.wallet, 
@@ -304,7 +304,7 @@ class Executor:
             timeout = bittensor.__blocktime__ * 5 
         )
         if result:
-            logger.success("Transfer finalized with amount: \u03C4{} to destination: {} from coldkey.pub: {}".format(transfer_balance.tao, destination, self.wallet.coldkey.public_key))
+            logger.success("Transfer finalized with amount: \u03C4{} to destination: {} from coldkey.pub: {}".format(transfer_balance.tao, destination, self.wallet.coldkey.ss58_address))
         else:
             logger.critical("Transfer failed")
  

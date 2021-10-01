@@ -24,10 +24,7 @@ from typing import List, Tuple, Callable
 
 import torch
 import grpc
-from termcolor import colored
-
 from loguru import logger
-from substrateinterface.utils.ss58 import ss58_encode
 
 import bittensor
 import bittensor.utils.stats as stat_utils
@@ -183,8 +180,11 @@ class Axon( bittensor.grpc.BittensorServicer ):
         except Exception as e:
             response_tensor = None
             message = "Error calling forward callback: {}".format(e)
-            code = bittensor.proto.ReturnCode.UnknownException
-            return response_tensor, code, message 
+            if isinstance(e, TimeoutError):
+                code = bittensor.proto.ReturnCode.Timeout
+            else:
+                code = bittensor.proto.ReturnCode.UnknownException
+            return response_tensor, code, message
 
     def _call_backward(
             self, 
@@ -218,6 +218,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
             message = "Backward callback is not yet subscribed on this axon."
             return None, bittensor.proto.ReturnCode.NotImplemented, message
 
+        if modality == bittensor.proto.Modality.TEXT:
+            self.backward_callback[modality]( public_key, inputs_x, grads_dy)
+            response_tensor = torch.ones(inputs_x.size())
+            message = "Success"
+            code = bittensor.proto.ReturnCode.Success
+            return response_tensor, code, message
+            
         # Make backward call.
         try:
             response_tensor = self.backward_callback[modality]( public_key, inputs_x, grads_dy)
@@ -228,7 +235,11 @@ class Axon( bittensor.grpc.BittensorServicer ):
         except Exception as e:
             response_tensor = None
             message = "Error calling backward callback: {}".format(e)
-            code = bittensor.proto.ReturnCode.UnknownException
+            if isinstance(e, TimeoutError):
+                code = bittensor.proto.ReturnCode.Timeout
+            else:
+                code = bittensor.proto.ReturnCode.UnknownException
+
             return response_tensor, code, message 
             
     def _forward(self, request):
