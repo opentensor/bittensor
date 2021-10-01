@@ -144,11 +144,25 @@ def main( config ):
     # Create validator model.
     validator = Validator( config = config ).to( device )
 
+    # Define Fishers Information Salience score
+    def fishers_salience(validator_loss, chain_weights):
+        print ('chain_weights', chain_weights)
+
+        dcw_i1 = torch.autograd.grad(validator_loss, chain_weights, create_graph=True)[0]
+        print ('dcw_i1', dcw_i1)
+
+        dcw_i2 = torch.autograd.grad(dcw_i1, chain_weights)[0]
+        print ('dcw_i2', dcw_i1)
+
+        salience =  dcw_i2 * (chain_weights**2)/2  
+        print ('salience', salience)
+        return salience
+
     # Create wandb for telemetry.
     run = wandb.init (
         config = config, 
         name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
-        project = wallet.coldkeypub[:8],
+        project = wallet.coldkeypub.ss58_address[:8],
         group = wallet.hotkey.ss58_address[:8],
         dir = os.path.expanduser('~/.bittensor/'),
         resume = config.miner.resume,
@@ -190,6 +204,7 @@ def main( config ):
             # --- Training step.
             while block >= subtensor.get_current_block():
                 loss, _ = validator( next( dataset ) )
+                scores = fishers_salience( loss, validator.chain_weights )
                 loss.backward()
                 clip_grad_norm_(validator.parameters(), config.miner.clip_gradients)
                 optimizer.step()
@@ -197,8 +212,8 @@ def main( config ):
                 global_step += 1
 
             # Take topk chain weights.
-            real_topk = min( config.miner.n_topk_chain_weights, metagraph.n.item() ) 
-            topk_norm_weights, topk_uids = torch.topk( F.softmax( validator.chain_weights ), k = real_topk )
+            topk_scores, topk_uids = torch.topk( scores, k = min(config.miner.n_topk_chain_weights, metagraph.n.item())  )
+            print (topk_scores)
 
             # Step logs.
             info = { 
@@ -212,16 +227,12 @@ def main( config ):
                 'stake': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green'),
                 'dividends': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green') 
             }
-            for weight, uid_j in list(zip(topk_norm_weights.tolist(), topk_uids.tolist())):
+            for weight, uid_j in list(zip(topk_scores.tolist(), topk_uids.tolist())):
                 if weight > 0.001: info[ str(uid_j) ] = colored('{:.4f}'.format( weight ), 'green' if validator.chain_weights.grad[ uid_j ] < 0 else 'red')
             progress.set_infos( info )
 
         
-        # --- fisher info
-        def get_fisher_info(loss, w):
-            dc_i1 = torch.autograd.grad(loss, w, create_graph=True)[0]
-            dc_i2 = torch.autograd.grad(dc_i1, w)[0]
-            return dc_i2*(w**2)/2  
+       
 
         fisher_info = topk_norm_weights.apply_(lambda w : get_fisher_info(loss, w))
             
