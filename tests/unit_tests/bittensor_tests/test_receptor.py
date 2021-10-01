@@ -292,5 +292,3 @@ if __name__ == "__main__":
     test_receptor_neuron_mock_server ()
     test_receptor_neuron_mock_server_deserialization_error ()
     test_receptor_neuron_mock_server_shape_error ()
-    test_receptor_pool_forward()
-    test_receptor_pool_backward()
