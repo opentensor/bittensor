@@ -12,10 +12,9 @@ def load_keypair_from_data(data) -> Keypair:
     """ Get keypair from data seed
     """
     try:
-        data = json.loads(data)
+        data = json.loads(data.decode())
         if "secretSeed" not in data:
             raise KeyFileError("Keyfile corrupt")
-
         return Keypair.create_from_seed(data['secretSeed'])
     except BaseException as e:
         logger.debug(e)
