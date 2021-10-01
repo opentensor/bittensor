@@ -28,7 +28,7 @@ from loguru import logger
 from substrateinterface import Keypair
 
 from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
-from bittensor._crypto import is_encrypted, decrypt_data, CryptoKeyError
+from bittensor._crypto import is_encrypted, decrypt_file, CryptoKeyError
 
 class cli_utils():
     """ Utils for cli, eg. create and validate wallet dir/password/keypair name
@@ -40,14 +40,12 @@ class cli_utils():
         """
         path = os.path.expanduser(path)
         try:
-            with open(path, 'rb') as file:
-                data = file.read()
-                if is_encrypted(data):
-                    password = cli_utils.ask_password()
-                    print("decrypting key... (this may take a few moments)")
-                    data = decrypt_data(password, data)
+            if is_encrypted(path):
+                password = cli_utils.ask_password()
+                print("decrypting key... (this may take a few moments)")
+                data = decrypt_file(password, path)
 
-                return load_keypair_from_data(data)
+            return load_keypair_from_data(data)
 
         except CryptoKeyError:
             print(colored("Invalid password", 'red'))
