@@ -15,7 +15,14 @@ def load_keypair_from_data(data) -> Keypair:
         data = json.loads(data.decode())
         if "secretSeed" not in data:
             raise KeyFileError("Keyfile corrupt")
-        return Keypair.create_from_seed(data['secretSeed'])
+
+        if isinstance(data['secretSeed'], list):
+            seed = data['secretSeed'][0]
+        else:
+           seed = data['secretSeed']
+
+        return Keypair.create_from_seed(seed)
+
     except BaseException as e:
         logger.debug(e)
         raise KeyFileError("Keyfile corrupt") from e

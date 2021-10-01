@@ -491,17 +491,18 @@ class Wallet():
             raise KeyFileError
 
         # Try hotkey load.
+        if is_encrypted(self.hotkeyfile):
+            password = cli_utils.ask_password()
+            logger.info("decrypting key... (this may take a few moments)")
+            data = decrypt_file(password, self.hotkeyfile)
+
+        else:
+            with open( self.hotkeyfile , 'rb') as file:
+                data = file.read()
+
+        hotkey = load_keypair_from_data(data)
         try:
-            if is_encrypted(self.hotkeyfile):
-                password = cli_utils.ask_password()
-                logger.info("decrypting key... (this may take a few moments)")
-                data = decrypt_file(password, self.hotkeyfile)
-
-            else:
-                with open( self.hotkeyfile , 'rb') as file:
-                    data = file.read()
-
-            hotkey = load_keypair_from_data(data)
+            pass
         except CryptoKeyError:
             logger.critical("Invalid password")
             raise CryptoKeyError("Invalid password") from CryptoKeyError()
