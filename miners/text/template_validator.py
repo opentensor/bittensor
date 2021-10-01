@@ -22,6 +22,7 @@ Example:
 
 """
 import argparse
+import enum
 import bittensor
 import math
 import torch
@@ -112,8 +113,14 @@ def main( config ):
             # Compute loss.
             shift_logits = decoded_targets[..., :-1, :].contiguous()
             shift_labels = inputs[..., 1:].contiguous()     
-            loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
-            return loss, decoded_targets
+            self.loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
+            return self.loss, decoded_targets
+
+        def scores(self):
+            chain_weights_d1 = torch.autograd.grad(self.loss, self.chain_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
+            chain_weights_d2 = torch.autograd.grad(chain_weights_d1.sum(), self.chain_weights, retain_graph=True, allow_unused=True )[0]
+            validator_scores =  chain_weights_d2 * (self.chain_weights**2)/2  
+            return validator_scores
 
         def remote ( self, inputs ):
             # ---- Topk Weights ---- (TODO: check if the gaussians are enough to disrupt the chain weights)
@@ -122,11 +129,13 @@ def main( config ):
             topk_weights, topk_uids = torch.topk( self.chain_weights + noise, real_topk, dim=0 ) 
 
             # ---- Query network ----
-            responses, return_ops, query_times = dendrite.forward_text ( 
-                endpoints = metagraph.endpoints[ topk_uids ], 
-                inputs = inputs
-            )
-
+            # self.responses, return_ops, query_times = dendrite.forward_text ( 
+            #     endpoints = metagraph.endpoints[ topk_uids ], 
+            #     inputs = inputs
+            # )
+            responses = [ torch.rand( inputs.shape[0], inputs.shape[1], bittensor.__network_dim__ ) for _ in metagraph.endpoints[ topk_uids ]]  
+            return_ops = torch.tensor([0 for _ in metagraph.endpoints[ topk_uids ]], dtype = torch.int64)
+            
             # ---- Join based on weights ----
             joining_uids = torch.where(return_ops==0)[0]
             joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 )
@@ -134,29 +143,10 @@ def main( config ):
             for index, joining_weight in enumerate( joining_weights ): 
                 output += responses[joining_uids[index]].to( device ) * joining_weight
 
-            # ---- Punish peers with non-successful return ops ----
-            with torch.no_grad():
-                self.chain_weights[topk_uids[(return_ops != 0)]] -= config.nucleus.punishment
-                self.chain_weights[ self.chain_weights < -1 ] = -1 # lower bound for chain weights 
-
             return output
 
     # Create validator model.
     validator = Validator( config = config ).to( device )
-
-    # Define Fishers Information Salience score
-    def fishers_salience(validator_loss, chain_weights):
-        print ('chain_weights', chain_weights)
-
-        dcw_i1 = torch.autograd.grad(validator_loss, chain_weights, create_graph=True)[0]
-        print ('dcw_i1', dcw_i1)
-
-        dcw_i2 = torch.autograd.grad(dcw_i1, chain_weights)[0]
-        print ('dcw_i2', dcw_i1)
-
-        salience =  dcw_i2 * (chain_weights**2)/2  
-        print ('salience', salience)
-        return salience
 
     # Create wandb for telemetry.
     run = wandb.init (
@@ -182,6 +172,7 @@ def main( config ):
     epoch = 0
     global_step = 0
     best_loss = math.inf
+    prev_scores = torch.zeros_like( validator.chain_weights )
     while True:
         
         # --- Sync + reshape.      
@@ -204,16 +195,12 @@ def main( config ):
             # --- Training step.
             while block >= subtensor.get_current_block():
                 loss, _ = validator( next( dataset ) )
-                scores = fishers_salience( loss, validator.chain_weights )
+                scores = torch.nn.functional.normalize ( torch.relu( validator.scores() ), p=1, dim = 0 )
                 loss.backward()
                 clip_grad_norm_(validator.parameters(), config.miner.clip_gradients)
                 optimizer.step()
                 optimizer.zero_grad() 
                 global_step += 1
-
-            # Take topk chain weights.
-            topk_scores, topk_uids = torch.topk( scores, k = min(config.miner.n_topk_chain_weights, metagraph.n.item())  )
-            print (topk_scores)
 
             # Step logs.
             info = { 
@@ -227,19 +214,16 @@ def main( config ):
                 'stake': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green'),
                 'dividends': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green') 
             }
-            for weight, uid_j in list(zip(topk_scores.tolist(), topk_uids.tolist())):
-                if weight > 0.001: info[ str(uid_j) ] = colored('{:.4f}'.format( weight ), 'green' if validator.chain_weights.grad[ uid_j ] < 0 else 'red')
+            for uid_i, score_i in enumerate(scores.tolist()): 
+                if score_i != 0: info[ str(uid_i) ] = colored('{:.4f}'.format( score_i ), 'green' if score_i - prev_scores[ uid_i ] > 0 else 'red')
+            prev_scores = scores
             progress.set_infos( info )
-
         
-       
-
-        fisher_info = topk_norm_weights.apply_(lambda w : get_fisher_info(loss, w))
-            
         # ---  Set mechanism weights.
+        topk_scores, topk_uids = torch.topk( scores, k = min(config.miner.n_topk_chain_weights, metagraph.n.item())  )
         subtensor.set_weights (
             uids = topk_uids,
-            weights = fisher_info,
+            weights = topk_scores,
             wait_for_inclusion = False,
             wallet = wallet,
         )    
@@ -250,7 +234,7 @@ def main( config ):
             'Stake': metagraph.S[ uid ].item(),
             'Dividends': metagraph.D[ uid ].item(),
         } 
-        for weight, uid_j in list(zip(final_weights.tolist(), topk_uids.tolist())):
+        for weight, uid_j in list( zip(topk_scores.tolist(), topk_uids.tolist())):
             if weight != 0: wand_data[ 'w_{},{}'.format( uid, uid_j ) ] = weight
         wandb.log( wand_data )
         
