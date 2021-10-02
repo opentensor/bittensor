@@ -13,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+"""
 import unittest
 import pytest
 from unittest.mock import MagicMock
@@ -146,3 +146,4 @@ class TestRuntimeState(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+"""
