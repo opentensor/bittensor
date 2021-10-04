@@ -213,9 +213,9 @@ setup_wallet_and_miner() {
           OS="$(uname)"
           if [[ "$OS" == "Linux" ]]; then
             echo "alias run_bittensor=\"./~/.bittensor/bittensor/scripts/run.sh\"" >> ~/.bashrc
-          elif [[ "$OS" == "Darwin" ]]; then
+          else
             echo "alias run_bittensor=\"./~/.bittensor/bittensor/scripts/run.sh\"" >> ~/.bash_profile
-        fi
+          fi
       break
       ;;
           [nN][oO]|[nN])
