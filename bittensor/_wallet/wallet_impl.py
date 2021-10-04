@@ -494,7 +494,7 @@ class Wallet():
             data = file.read()
             try:
                 # Try hotkey load.
-                if is_encrwypted(data):
+                if is_encrypted(data):
                     password = cli_utils.ask_password()
                     logger.info("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
