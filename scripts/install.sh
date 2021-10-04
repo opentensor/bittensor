@@ -77,15 +77,10 @@ linux_install_python() {
     sudo apt-get install --no-install-recommends --no-install-suggests -y python3-pip python3.8-dev 
 }
 
-linux_activate_installed_python() {
-    #ohai "Creating python virtualenv"
-    #mkdir -p ~/.bittensor/bittensor
-    #cd ~/.bittensor/
-    #python3.8 -m venv env
-    #ohai "Entering bittensor-environment"
-    #source "$HOME/.bittensor/env/bin/activate"
-    #ohai "You are using python@3.8$"
-    #ohai "Installing python tools"
+linux_update_pip() {
+    PYTHONPATH=$(which python)
+    ohai "You are using python@ $PYTHONPATH$"
+    ohai "Installing python tools"
     $python -m pip install --upgrade pip
 }
 
@@ -136,13 +131,7 @@ mac_install_python() {
     brew upgrade python@3.7
 }
 
-mac_activate_installed_python() {
-    # ohai "Creating python virtualenv"
-    # mkdir -p ~/.bittensor/bittensor
-    # cd ~/.bittensor/
-    # /usr/local/opt/python@3.7/bin/python3 -m venv env
-    # ohai "Entering python3.7 environment"
-    # source "$HOME/.bittensor/env/bin/activate"
+mac_update_pip() {
     PYTHONPATH=$(which python)
     ohai "You are using python@ $PYTHONPATH$"
     ohai "Installing python tools"
@@ -223,10 +212,8 @@ setup_wallet_and_miner() {
           OS="$(uname)"
           if [[ "$OS" == "Linux" ]]; then
             echo "alias run_bittensor=\"/bin/bash -c ~/.bittensor/bittensor/scripts/run.sh\"" >> ~/.bashrc
-            source ~/.bashrc
           elif [[ "$OS" == "Darwin" ]]; then
             echo "alias run_bittensor=\"/bin/bash -c ~/.bittensor/bittensor/scripts/run.sh\"" >> ~/.bash_profile
-            source ~/.bash_profilie
           else
             abort "Bittensor is only supported on macOS and Linux"
           fi
@@ -277,7 +264,7 @@ if [[ "$OS" == "Linux" ]]; then
     wait_for_user
     linux_install_pre
     linux_install_python
-    linux_activate_installed_python
+    linux_update_pip
     linux_install_bittensor
     echo ""
     echo ""
@@ -315,7 +302,7 @@ elif [[ "$OS" == "Darwin" ]]; then
     mac_install_brew
     mac_install_cmake
     mac_install_python
-    mac_activate_installed_python
+    mac_update_pip
     mac_install_bittensor
     echo ""
     echo ""
@@ -334,16 +321,11 @@ fi
 if [[ -t 1 ]]; then
 printf "\a"
 fi
-ohai "Installation successful!"
-ohai "-----IMPORTANT-----"
-echo "The Bittensor network is currently down for maintenance since block 1805945 (May 24th 2021)"
-echo "The main network will reopen on Bittensor-Exodus: November 2021."
-echo "Please use Kusanagi as a testing network for now"
-ohai "-------------------"
+ohai "Installation successful! Please restart your machine for the changes to take effect!"
+echo ""
+ohai "Once you've restarted your machine simply call \"run_bittensor\" to run a miner"
 echo ""
 echo ""
-echo ""
-ohai "To run a miner, simply call \"run_bittensor\""
 ohai "Follow-up:"
 echo ""
 echo "- Check your balance: "
