@@ -325,6 +325,7 @@ echo "The Bittensor network is currently down for maintenance since block 180594
 echo "The main network will reopen on Bittensor-Exodus: November 2021."
 echo "Please use Kusanagi as a testing network for now"
 ohai "-------------------"
+ohai "To run a miner, simply call `run_bittensor`"
 ohai "Follow-up:"
 echo ""
 echo "- Check your balance: "
