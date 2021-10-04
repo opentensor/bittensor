@@ -1,6 +1,8 @@
 import bittensor
 import os,sys
 from unittest.mock import MagicMock
+import unittest.mock as mock
+
 from bittensor.utils.balance import Balance
 
 wallet =  bittensor.wallet(
@@ -61,6 +63,12 @@ def test_overview():
     executor.overview()
 
 def test_overview_copy():
+    class mock_cold_key():
+        def __init__(self,coldkey):
+            self.ss58_address = str(coldkey)
+        def address(self):
+            return self.ss58_address
+
     executor = bittensor.executor( wallet = wallet )
     wallet.create_new_coldkey(use_password=False, overwrite = True)
     wallet.create_new_hotkey(use_password=False, overwrite = True)
@@ -68,9 +76,10 @@ def test_overview_copy():
 
     coldkey = executor.metagraph.coldkeys[0]
     bal = Balance.from_float(200)
-    executor.wallet.coldkeypub.ss58_address = MagicMock(return_value = coldkey) 
-    executor.subtensor.get_balance = MagicMock(return_value = bal) 
-    executor.overview()
+
+    with mock.patch.object(executor.wallet, '_coldkeypub', new=mock_cold_key(coldkey)):
+        executor.subtensor.get_balance = MagicMock(return_value = bal) 
+        executor.overview()
 
 def test_unstake_all():
     wallet.create_new_coldkey(use_password=False, overwrite = True)
@@ -90,21 +99,36 @@ def test_unstake_all_fail():
 def test_create_cli_overview():
     sys.argv = [sys.argv[0], 'overview']
     cli = bittensor.cli(executor = executor)
+    bal = Balance.from_float(200)
+    executor.subtensor.get_balance = MagicMock(return_value = bal) 
+    cli.run()
 
 def test_create_cli_regen_coldkey():
     mnemonic = ["cabin", "thing", "arch", "canvas", "game", "park", "motion", "snack", "advice", "arch", "parade", "climb"]
     sys.argv = [sys.argv[0], 'regen_coldkey', '--mnemonic', ' '.join(mnemonic) ]
     cli = bittensor.cli(executor = executor)
+    executor.regenerate_coldkey = MagicMock(return_value = True) 
+    cli.run()
 
 def test_create_cli_regen_hotkey():
     mnemonic = ["cabin", "thing", "arch", "canvas", "game", "park", "motion", "snack", "advice", "arch", "parade", "climb"]
     sys.argv = [sys.argv[0], 'regen_hotkey', '--mnemonic', ' '.join(mnemonic) ]
     cli = bittensor.cli(executor = executor)
+    executor.regenerate_hotkey = MagicMock(return_value = True) 
+    cli.run()
 
 def test_create_cli_new_coldkey():
     sys.argv = [sys.argv[0], 'new_coldkey']
     cli = bittensor.cli(executor = executor)
+    executor.create_new_coldkey = MagicMock(return_value = True) 
+    cli.run()
 
 def test_create_cli_new_hotkey():
     sys.argv = [sys.argv[0], 'new_hotkey']
     cli = bittensor.cli(executor = executor)
+    executor.create_new_hotkey = MagicMock(return_value = True) 
+    cli.run()
+
+
+if __name__ == "__main__":
+    test_overview_copy()
