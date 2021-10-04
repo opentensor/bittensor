@@ -31,7 +31,6 @@ import os
 import sys
 import yaml
 import wandb
-import signal
 
 from termcolor import colored
 from typing import List
@@ -180,7 +179,7 @@ class Nucleus(nn.Module):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len (or block_size), bittensor.__network_dim__]
-        output.remote_context, output.quested_peers, output.responded_peers = self.remote( inputs )
+        output = SimpleNamespace( **self.remote( inputs ).__dict__, **output.__dict__)
 
         # remote_hidden: projects from the remote_context
         # remote_hidden.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
@@ -216,28 +215,16 @@ class Nucleus(nn.Module):
         """
 
         # ---- Get active peers and their weights ---- 
-        # active_uids = torch.where(bittensor.neuron.metagraph.active > 0)[0]
-        # active_chain_weights = self.chain_weights[active_uids]
+        active_uids = torch.where(bittensor.neuron.metagraph.active > 0)[0]
+        active_chain_weights = self.chain_weights[active_uids]
 
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
-        # real_topk = min( self.config.nucleus.topk, bittensor.neuron.metagraph.n.item())
-        noise = torch.normal( 0, torch.std(self.chain_weights).item()+0.0000001, size=( self.chain_weights.size())).to( self.config.miner.device )
-        # topk_weights, topk_idx = torch.topk(self.chain_weights + noise , real_topk, dim=0)
-        # topk_uids = active_uids[topk_idx]
+        real_topk = min( self.config.nucleus.topk, bittensor.neuron.metagraph.n.item(), len(active_uids))
+        noise = torch.normal( 0, torch.std(active_chain_weights).item()+0.0000001, size=( active_chain_weights.size())).to( self.config.miner.device )
+        topk_weights, topk_idx = torch.topk(active_chain_weights + noise , real_topk, dim=0)
+        topk_uids = active_uids[topk_idx]
 
         # ---- Filter endpoints ----
-        topk_uids = []
-        swarm_1_ip = '157.230.231.158'
-        swarm_2_ip = '157.230.235.68'
-        swarm_3_ip = '157.230.227.198'
-        gpt2_ip = '134.122.119.130'
-        for i, e in enumerate(bittensor.neuron.metagraph.endpoint_objs):
-            if e.ip in [swarm_1_ip, swarm_2_ip, swarm_3_ip, gpt2_ip]:
-                topk_uids.append(i)
-
-        topk_uids = torch.tensor(topk_uids)
-        topk_weights = (self.chain_weights+noise)[topk_uids]
-
         endpoints = bittensor.neuron.metagraph.endpoints[ topk_uids ]
 
         # ---- Query network ----
@@ -247,11 +234,12 @@ class Nucleus(nn.Module):
         )
 
         # ---- Join based on weights ----
+        output = SimpleNamespace()
         joining_uids= torch.where(return_ops==0)[0]
         joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 ) 
-        output_context = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
+        output.remote_context = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
         for index, joining_weight in enumerate( joining_weights ):
-            output_context += responses[joining_uids[index]].detach().to( self.config.miner.device ) * joining_weight
+            output.remote_context += responses[joining_uids[index]].detach().to( self.config.miner.device ) * joining_weight
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
@@ -259,13 +247,13 @@ class Nucleus(nn.Module):
             self.chain_weights[self.chain_weights < -1] = -1 #lower bound for chain weights
 
         # ---- Return response -----
-        output_quested_peers = torch.zeros(bittensor.neuron.metagraph.n.item())
-        output_quested_peers[topk_uids] = 1
+        output.quested_peers = torch.zeros(bittensor.neuron.metagraph.n.item())
+        output.quested_peers[topk_uids] = 1
         
-        output_responded_peers = torch.zeros(bittensor.neuron.metagraph.n.item())
-        output_responded_peers[topk_uids[joining_uids]] = 1
+        output.responded_peers = torch.zeros(bittensor.neuron.metagraph.n.item())
+        output.responded_peers[topk_uids[joining_uids]] = 1
 
-        return output_context, output_quested_peers, output_responded_peers
+        return output
 
 class Miner:
 
