@@ -140,7 +140,7 @@ mac_activate_installed_python() {
     cd ~/.bittensor/
     /usr/local/opt/python@3.7/bin/python3 -m venv env
     ohai "Entering python3.7 environment"
-    source env/bin/activate
+    source ~/.bittensor/env/bin/activate
     PYTHONPATH=$(which python)
     ohai "You are using python@ $PYTHONPATH$"
     ohai "Installing python tools"
@@ -164,7 +164,17 @@ if [[ "$OS" == "Linux" ]]; then
     if [[ $? == 0 ]] ; then
         abort "This linux based install requires apt. To run with other distros (centos, arch, etc), you will need to manually install the requirements"
     fi
-
+    echo """
+    
+██████╗░██╗████████╗████████╗███████╗███╗░░██╗░██████╗░█████╗░██████╗░
+██╔══██╗██║╚══██╔══╝╚══██╔══╝██╔════╝████╗░██║██╔════╝██╔══██╗██╔══██╗
+██████╦╝██║░░░██║░░░░░░██║░░░█████╗░░██╔██╗██║╚█████╗░██║░░██║██████╔╝
+██╔══██╗██║░░░██║░░░░░░██║░░░██╔══╝░░██║╚████║░╚═══██╗██║░░██║██╔══██╗
+██████╦╝██║░░░██║░░░░░░██║░░░███████╗██║░╚███║██████╔╝╚█████╔╝██║░░██║
+╚═════╝░╚═╝░░░╚═╝░░░░░░╚═╝░░░╚══════╝╚═╝░░╚══╝╚═════╝░░╚════╝░╚═╝░░╚═╝
+                                                    
+                                                    - Mining a new element.
+    """
     ohai "This script will install:"
     echo "git"
     echo "curl"
@@ -182,6 +192,17 @@ if [[ "$OS" == "Linux" ]]; then
     linux_install_bittensor
 
 elif [[ "$OS" == "Darwin" ]]; then
+    echo """
+    
+██████╗░██╗████████╗████████╗███████╗███╗░░██╗░██████╗░█████╗░██████╗░
+██╔══██╗██║╚══██╔══╝╚══██╔══╝██╔════╝████╗░██║██╔════╝██╔══██╗██╔══██╗
+██████╦╝██║░░░██║░░░░░░██║░░░█████╗░░██╔██╗██║╚█████╗░██║░░██║██████╔╝
+██╔══██╗██║░░░██║░░░░░░██║░░░██╔══╝░░██║╚████║░╚═══██╗██║░░██║██╔══██╗
+██████╦╝██║░░░██║░░░░░░██║░░░███████╗██║░╚███║██████╔╝╚█████╔╝██║░░██║
+╚═════╝░╚═╝░░░╚═╝░░░░░░╚═╝░░░╚══════╝╚═╝░░╚══╝╚═════╝░░╚════╝░╚═╝░░╚═╝
+                                                    
+                                                    - Mining a new element.
+    """
     ohai "This script will install:"
     echo "xcode"
     echo "homebrew"
@@ -215,8 +236,7 @@ ohai "-------------------"
 ohai "Next steps:"
 echo ""
 echo "- 1) Choose your network: "
-echo "     $ export NETWORK=kusanagi   # Testing network (as of block 1805945)"
-echo "     $ export NETWORK=akatsuki     # Main network (opens August 31st 2021)"
+echo "     $ export NETWORK=akatsuki     # Test network (Main network opens November 1st 2021)"
 echo ""
 echo "- 2) Activate the installed python: "
 echo "    $ source ~/.bittensor/env/bin/activate"
