@@ -213,8 +213,14 @@ def main( config ):
                 'stake': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green'),
                 'dividends': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green') 
             }
+            
             for weight, uid_j in list(zip(final_weights.tolist(), topk_uids.tolist())):
-                if weight > 0.001: info[ str(uid_j) ] = colored('{:.4f}'.format( weight ), 'green' if validator.chain_weights.grad[ uid_j ] < 0 else 'red')
+                if (validator.chain_weights.grad != None) and (validator.chain_weights.grad[ uid_j ] < 0):
+                    color = 'green'
+                else:
+                    color = 'red'
+                if weight > 0.001: 
+                    info[ str(uid_j) ] = colored('{:.4f}'.format( weight ), color)
             progress.set_infos( info )
             
         # ---  Set mechanism weights.
