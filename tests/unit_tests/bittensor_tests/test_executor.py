@@ -88,21 +88,23 @@ def test_unstake_all_fail():
 # -- cli ---
 
 def test_create_cli_overview():
-    sys.argv = [sys.argv[0], '--overview']
+    sys.argv = [sys.argv[0], 'overview']
     cli = bittensor.cli(executor = executor)
 
 def test_create_cli_regen_coldkey():
-    sys.argv = [sys.argv[0], '--regen_coldkey']
+    mnemonic = ["cabin", "thing", "arch", "canvas", "game", "park", "motion", "snack", "advice", "arch", "parade", "climb"]
+    sys.argv = [sys.argv[0], 'regen_coldkey', '--mnemonic', ' '.join(mnemonic) ]
     cli = bittensor.cli(executor = executor)
 
 def test_create_cli_regen_hotkey():
-    sys.argv = [sys.argv[0], '--regen_hotkey']
+    mnemonic = ["cabin", "thing", "arch", "canvas", "game", "park", "motion", "snack", "advice", "arch", "parade", "climb"]
+    sys.argv = [sys.argv[0], 'regen_hotkey', '--mnemonic', ' '.join(mnemonic) ]
     cli = bittensor.cli(executor = executor)
 
 def test_create_cli_new_coldkey():
-    sys.argv = [sys.argv[0], '--new_coldkey']
+    sys.argv = [sys.argv[0], 'new_coldkey']
     cli = bittensor.cli(executor = executor)
 
 def test_create_cli_new_hotkey():
-    sys.argv = [sys.argv[0], '--new_hotkey']
+    sys.argv = [sys.argv[0], 'new_hotkey']
     cli = bittensor.cli(executor = executor)
