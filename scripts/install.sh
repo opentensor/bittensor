@@ -80,7 +80,7 @@ linux_activate_installed_python() {
     cd ~/.bittensor/
     python3.8 -m venv env
     ohai "Entering bittensor-environment"
-    source env/bin/activate
+    source ~/.bittensor/env/bin/activate
     ohai "You are using python@3.8$"
     ohai "Installing python tools"
     python -m pip install --upgrade pip
