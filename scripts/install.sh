@@ -160,14 +160,15 @@ setup_wallet_and_miner() {
         wallet_name="default"
         hotkey_name="default"
 
-        ohai "Creating new wallet. >>> REMEMBER TO SAVE THE MNEMONICS <<<"
+        ohai "Creating new wallet. "
+        echo ""
+        echo ""
+        ohai ">>> REMEMBER TO SAVE THE MNEMONICS <<<"
         wait_for_user 
 
         echo ""
         echo ""
-        echo "############################################################################################"
-        echo "#                             WALLET COLDKEY CREATION                                      #"
-        echo "############################################################################################"
+        ohai "Creating wallet coldkey..."
         bittensor-cli new_coldkey --wallet.name $wallet_name
         RESULT=$?
 
@@ -178,9 +179,7 @@ setup_wallet_and_miner() {
 
         echo ""
         echo ""
-        echo "############################################################################################"
-        echo "#                             WALLET HOTKEY CREATION                                       #"
-        echo "############################################################################################"
+        ohai "Creating wallet hotkey..."
         bittensor-cli new_hotkey --wallet.name $wallet_name --wallet.hotkey $hotkey_name
         RESULT=$?
 
@@ -294,7 +293,7 @@ elif [[ "$OS" == "Darwin" ]]; then
     echo "##                                                                  ##"
     echo "##                      BITTENSOR SETUP                             ##"
     echo "##                                                                  ##"
-    echo "######################################################################\n"
+    echo "######################################################################"
     setup_wallet_and_miner
 
 else
@@ -305,10 +304,10 @@ fi
 if [[ -t 1 ]]; then
 printf "\a"
 fi
-ohai "Installation successful! Please restart your machine for the changes to take effect!"
-echo ""
-ohai "Once you've restarted your machine simply call \"run_bittensor\" to run a miner"
-echo ""
+ohai "Installation successful!"
+ohai "If you simply intend to mine, then restart your machine and call \"run_bittensor\"."
+ohai "If you are a power user, you can just run the Python mining script directly: python3  ~/.bittensor/bittensor/miners/text/template_miner.py."
+ohai "If you wish to build your own Bittensor model, refer to documentation, and you can start in ~/.bittensor/bittensor/miners/text/template_miner.py."
 echo ""
 ohai "Follow-up:"
 echo ""
