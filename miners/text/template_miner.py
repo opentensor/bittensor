@@ -292,7 +292,7 @@ class Miner:
 
         # Torch optimizer.
         self.optimizer = torch.optim.SGD(
-            [ {"params": self.nucleus.parameters()}],
+            [ {'params': self.nucleus.chain_weights, 'lr': self.config.miner.learning_rate_chain} ],
             lr = self.config.miner.learning_rate,
             momentum = self.config.miner.momentum,
         )
@@ -673,11 +673,21 @@ class Miner:
         self.nucleus.to( self.device ) # Load nucleus
 
         # --- Load optimizer.
-        self.optimizer = torch.optim.SGD(
-            [{"params": self.nucleus.parameters()}],
-            lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
-            weight_decay = state_dict['optimizer_state']['param_groups'][0]['weight_decay'],
-        )
+        
+        if len(state_dict['optimizer_state']['param_groups']) == 1:
+            self.optimizer = torch.optim.SGD(
+                [ {'params': self.nucleus.chain_weights, 'lr': state_dict['optimizer_state']['param_groups'][0]['lr'] }],
+                lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
+                weight_decay = state_dict['optimizer_state']['param_groups'][0]['weight_decay'],
+            )
+        
+        else:
+            self.optimizer = torch.optim.SGD(
+                [ {'params': self.nucleus.chain_weights, 'lr': state_dict['optimizer_state']['param_groups'][0]['lr'] }],
+                lr = state_dict['optimizer_state']['param_groups'][1]['lr'],
+                weight_decay = state_dict['optimizer_state']['param_groups'][1]['weight_decay'],
+            )
+        
         bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( self.config.miner.full_path ))
 
     def save( self ):
