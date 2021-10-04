@@ -1,5 +1,8 @@
+
 #!/bin/bash
 set -u
+
+python="python3.8"
 
 abort() {
   printf "%s\n" "$1"
@@ -71,19 +74,20 @@ linux_install_python() {
         sudo apt-get update python3.8
     fi
     ohai "Installing python tools"
-    sudo apt-get install --no-install-recommends --no-install-suggests -y python3-pip python3.8-dev python3.8-venv
+    sudo apt-get install --no-install-recommends --no-install-suggests -y python3-pip python3.8-dev 
 }
 
 linux_activate_installed_python() {
-    ohai "Creating python virtualenv"
-    mkdir -p ~/.bittensor/bittensor
-    cd ~/.bittensor/
-    python3.8 -m venv env
-    ohai "Entering bittensor-environment"
-    source "$HOME/.bittensor/env/bin/activate"
-    ohai "You are using python@3.8$"
-    ohai "Installing python tools"
-    python -m pip install --upgrade pip
+    #ohai "Creating python virtualenv"
+    #mkdir -p ~/.bittensor/bittensor
+    #cd ~/.bittensor/
+    #python3.8 -m venv env
+    #ohai "Entering bittensor-environment"
+    #source "$HOME/.bittensor/env/bin/activate"
+    #ohai "You are using python@3.8$"
+    #ohai "Installing python tools"
+    $python -m pip install --upgrade pip
+    pip3 install python-dev
 }
 
 linux_install_bittensor() {
@@ -91,7 +95,7 @@ linux_install_bittensor() {
     mkdir -p ~/.bittensor/bittensor
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
     ohai "Installing bittensor"
-    python -m pip install -e ~/.bittensor/bittensor/
+    $python -m pip install -e ~/.bittensor/bittensor/
 }
 
 
@@ -134,25 +138,48 @@ mac_install_python() {
 }
 
 mac_activate_installed_python() {
-    ohai "Creating python virtualenv"
-    mkdir -p ~/.bittensor/bittensor
-    cd ~/.bittensor/
-    /usr/local/opt/python@3.7/bin/python3 -m venv env
-    ohai "Entering python3.7 environment"
-    source "$HOME/.bittensor/env/bin/activate"
+    # ohai "Creating python virtualenv"
+    # mkdir -p ~/.bittensor/bittensor
+    # cd ~/.bittensor/
+    # /usr/local/opt/python@3.7/bin/python3 -m venv env
+    # ohai "Entering python3.7 environment"
+    # source "$HOME/.bittensor/env/bin/activate"
     PYTHONPATH=$(which python)
     ohai "You are using python@ $PYTHONPATH$"
     ohai "Installing python tools"
-    python -m pip install --upgrade pip
+    $python -m pip install --upgrade pip
 }
 
 mac_install_bittensor() {
     ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
     ohai "Installing bittensor"
-    python -m pip install -e ~/.bittensor/bittensor/
+    $python -m pip install -e ~/.bittensor/bittensor/
     deactivate
 }
+
+create_wallet() {
+    while true
+    do
+      read -r -p "Do you wish to create a Bittensor wallet? [Y/n] " input
+    
+      case $input in
+          [yY][eE][sS]|[yY])
+      read -r -p "What do you wish to name this wallet? (default)" input
+      
+      break
+      ;;
+          [nN][oO]|[nN])
+      echo "No"
+      break
+              ;;
+          *)
+      echo "Invalid input..."
+      ;;
+      esac
+    done
+}
+
 
 # Do install.
 OS="$(uname)"
@@ -188,6 +215,7 @@ if [[ "$OS" == "Linux" ]]; then
     linux_install_python
     linux_activate_installed_python
     linux_install_bittensor
+    create_wallet
 
 elif [[ "$OS" == "Darwin" ]]; then
     echo """
@@ -216,6 +244,13 @@ elif [[ "$OS" == "Darwin" ]]; then
     mac_install_python
     mac_activate_installed_python
     mac_install_bittensor
+    echo "\n\n"
+    echo "######################################################################"
+    echo "#                                                                    #"
+    echo "#                       BITTENSOR SETUP                              #"
+    echo "#                                                                    #"
+    echo "######################################################################\n"
+    create_wallet
 
 else
   abort "Bittensor is only supported on macOS and Linux"
