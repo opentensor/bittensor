@@ -315,7 +315,7 @@ ohai "If you wish to build your own Bittensor model, refer to documentation. The
 echo ""
 ohai "Follow-up:"
 echo ""
-echo "- Check your balance: "
+echo "- Check your tao balance: "
 echo "    $ bittensor-cli overview --wallet.name <your wallet name> --wallet.hotkey <your hotkey name> --subtensor.network akatsuki"
 echo ""
 ohai "Extras:"
