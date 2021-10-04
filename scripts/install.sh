@@ -156,24 +156,11 @@ setup_wallet_and_miner() {
       case $input in
           [yY][eE][sS]|[yY])
         echo ""
-        read -r -p "What do you wish to name this wallet? [default] " input
+        
+        wallet_name="default"
+        hotkey_name="default"
 
-        wallet_name=$input
-        if [ -z "$wallet_name" ]
-        then
-          wallet_name="default"
-        fi
-        echo ""
-        read -r -p "What do you wish to name this wallet's hotkey? [default] " input
-        hotkey_name=$input
-        if [ -z "$hotkey_name" ]
-        then
-          hotkey_name="default"
-        fi
-
-        echo ""
-        echo ""
-        echo "Creating new wallet, REMEMBER TO SAVE THE MNEMONICS!"
+        ohai "Creating new wallet. >>> REMEMBER TO SAVE THE MNEMONICS <<<"
         wait_for_user 
 
         echo ""
@@ -182,12 +169,11 @@ setup_wallet_and_miner() {
         echo "#                             WALLET COLDKEY CREATION                                      #"
         echo "############################################################################################"
         bittensor-cli new_coldkey --wallet.name $wallet_name
-
         RESULT=$?
 
         if [ $RESULT -eq 0 ]; then
           echo ""
-          echo "Wallet coldkey created successfully"
+          ohai "Wallet coldkey created successfully"
         fi
 
         echo ""
@@ -196,14 +182,12 @@ setup_wallet_and_miner() {
         echo "#                             WALLET HOTKEY CREATION                                       #"
         echo "############################################################################################"
         bittensor-cli new_hotkey --wallet.name $wallet_name --wallet.hotkey $hotkey_name
-
         RESULT=$?
 
         if [ $RESULT -eq 0 ]; then
           echo ""
-          echo "Wallet hotkey created successfully"
-
-          echo "python3  ~/.bittensor/bittensor/miners/text/template_miner.py --subtensor.network akatsuki --wallet.name ${wallet_name} --wallet.hotkey ${hotkey_name}" >> ~/.bittensor/bittensor/scripts/run.sh
+          ohai "Wallet hotkey created successfully"
+          echo "python3  ~/.bittensor/bittensor/miners/text/template_miner.py" >> ~/.bittensor/bittensor/scripts/run.sh
           
           # Make run.sh executable
           chmod +x ~/.bittensor/bittensor/scripts/run.sh
