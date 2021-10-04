@@ -80,7 +80,7 @@ linux_activate_installed_python() {
     cd ~/.bittensor/
     python3.8 -m venv env
     ohai "Entering bittensor-environment"
-    . env/bin/activate
+    . "env/bin/activate"
     ohai "You are using python@3.8$"
     ohai "Installing python tools"
     python -m pip install --upgrade pip
@@ -140,7 +140,7 @@ mac_activate_installed_python() {
     cd ~/.bittensor/
     /usr/local/opt/python@3.7/bin/python3 -m venv env
     ohai "Entering python3.7 environment"
-    . env/bin/activate
+    . "env/bin/activate"
     PYTHONPATH=$(which python)
     ohai "You are using python@ $PYTHONPATH$"
     ohai "Installing python tools"
