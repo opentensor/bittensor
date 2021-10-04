@@ -14,10 +14,6 @@ getc() {
   /bin/stty "$save_state"
 }
 
-activate_venv() {
-  . ~/.bittensor/env/bin/activate
-}
-
 wait_for_user() {
   local c
   echo
@@ -84,7 +80,7 @@ linux_activate_installed_python() {
     cd ~/.bittensor/
     python3.8 -m venv env
     ohai "Entering bittensor-environment"
-    activate_venv
+    . env/bin/activate
     ohai "You are using python@3.8$"
     ohai "Installing python tools"
     python -m pip install --upgrade pip
@@ -144,7 +140,7 @@ mac_activate_installed_python() {
     cd ~/.bittensor/
     /usr/local/opt/python@3.7/bin/python3 -m venv env
     ohai "Entering python3.7 environment"
-    activate_venv
+    . env/bin/activate
     PYTHONPATH=$(which python)
     ohai "You are using python@ $PYTHONPATH$"
     ohai "Installing python tools"
@@ -231,13 +227,11 @@ fi
 if [[ -t 1 ]]; then
 printf "\a"
 fi
-RED='\033[0;31m'
-NC='\033[0m' # No Color
 ohai "Installation successful!"
 ohai "-----IMPORTANT-----"
-echo -e "${RED}The Bittensor network is currently down for maintenance since block 1805945 (May 24th 2021)"
-echo -e "${RED}The main network will reopen on Bittensor-Exodus: August 2021."
-echo -e "${RED}Please use Kusanagi as a testing network for now${NC}"
+echo "The Bittensor network is currently down for maintenance since block 1805945 (May 24th 2021)"
+echo "The main network will reopen on Bittensor-Exodus: August 2021."
+echo "Please use Kusanagi as a testing network for now${NC}"
 ohai "-------------------"
 ohai "Next steps:"
 echo ""
