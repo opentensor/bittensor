@@ -80,11 +80,10 @@ linux_activate_installed_python() {
     cd ~/.bittensor/
     python3.8 -m venv env
     ohai "Entering bittensor-environment"
-    bash --rcfile "$HOME/.bittensor/env/bin/activate" -i
+    source "$HOME/.bittensor/env/bin/activate"
     ohai "You are using python@3.8$"
     ohai "Installing python tools"
     python -m pip install --upgrade pip
-    python -m pip install python-dev
 }
 
 linux_install_bittensor() {
@@ -140,12 +139,11 @@ mac_activate_installed_python() {
     cd ~/.bittensor/
     /usr/local/opt/python@3.7/bin/python3 -m venv env
     ohai "Entering python3.7 environment"
-    bash --rcfile "$HOME/.bittensor/env/bin/activate" -i
+    source "$HOME/.bittensor/env/bin/activate"
     PYTHONPATH=$(which python)
     ohai "You are using python@ $PYTHONPATH$"
     ohai "Installing python tools"
     python -m pip install --upgrade pip
-    python -m pip install python-dev
 }
 
 mac_install_bittensor() {
@@ -231,7 +229,7 @@ ohai "Installation successful!"
 ohai "-----IMPORTANT-----"
 echo "The Bittensor network is currently down for maintenance since block 1805945 (May 24th 2021)"
 echo "The main network will reopen on Bittensor-Exodus: August 2021."
-echo "Please use Kusanagi as a testing network for now${NC}"
+echo "Please use Kusanagi as a testing network for now"
 ohai "-------------------"
 ohai "Next steps:"
 echo ""
