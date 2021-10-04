@@ -158,32 +158,35 @@ mac_install_bittensor() {
 }
 
 setup_wallet_and_miner() {
+    echo "\n\n"
     while true
     do
-      read -r -p "\nDo you wish to create a Bittensor wallet? [Y/n] " input
+      read -r -p "Do you wish to create a Bittensor wallet? [Y/n] " input
     
       case $input in
           [yY][eE][sS]|[yY])
-        
-        read -r -p "\nWhat do you wish to name this wallet? [default] " input
+        echo "\n"
+        read -r -p "What do you wish to name this wallet? [default] " input
 
         wallet_name=$input
         if [ -z "$wallet_name" ]
         then
           wallet_name="default"
         fi
-
-        read -r -p "\nWhat do you wish to name this wallet's hotkey? [default] " input
+        echo "\n"
+        read -r -p "What do you wish to name this wallet's hotkey? [default] " input
         hotkey_name=$input
         if [ -z "$hotkey_name" ]
         then
           hotkey_name="default"
         fi
 
+        echo "\n\n"
         echo "Creating new wallet, REMEMBER TO SAVE THE MNEMONICS!"
         wait_for_user 
 
-        echo "\n\n############################################################################################"
+        echo "\n\n"
+        echo "############################################################################################"
         echo "#                             WALLET COLDKEY CREATION                                      #"
         echo "############################################################################################"
         bittensor-cli new_coldkey --wallet.name $wallet_name
@@ -194,6 +197,7 @@ setup_wallet_and_miner() {
           echo "\nWallet coldkey created successfully"
         fi
 
+        echo "\n\n"
         echo "\n\n############################################################################################"
         echo "#                             WALLET HOTKEY CREATION                                       #"
         echo "############################################################################################"
@@ -206,12 +210,12 @@ setup_wallet_and_miner() {
 
           echo "python3  ~/.bittensor/bittensor/miners/text/template_miner.py --subtensor.network akatsuki --wallet.name ${wallet_name} --wallet.hotkey ${hotkey_name}" >> ~/.bittensor/bittensor/scripts/run.sh
 
-          echo "\nNow you can run Bittensor!"
+          OS="$(uname)"
+          if [[ "$OS" == "Linux" ]]; then
+            echo "alias run_bittensor=\"./~/.bittensor/bittensor/scripts/run.sh\"" >> ~/.bashrc
+          elif [[ "$OS" == "Darwin" ]]; then
+            echo "alias run_bittensor=\"./~/.bittensor/bittensor/scripts/run.sh\"" >> ~/.bash_profile
         fi
-
-
-        
-      
       break
       ;;
           [nN][oO]|[nN])
@@ -262,10 +266,11 @@ if [[ "$OS" == "Linux" ]]; then
     linux_install_bittensor
     echo "\n\n"
     echo "######################################################################"
-    echo "#                                                                    #"
-    echo "#                       BITTENSOR SETUP                              #"
-    echo "#                                                                    #"
-    echo "######################################################################\n"
+    echo "##                                                                  ##"
+    echo "##                      BITTENSOR SETUP                             ##"
+    echo "##                                                                  ##"
+    echo "######################################################################"
+    echo "\n\n"
     setup_wallet_and_miner
 
 elif [[ "$OS" == "Darwin" ]]; then
@@ -297,9 +302,9 @@ elif [[ "$OS" == "Darwin" ]]; then
     mac_install_bittensor
     echo "\n\n"
     echo "######################################################################"
-    echo "#                                                                    #"
-    echo "#                       BITTENSOR SETUP                              #"
-    echo "#                                                                    #"
+    echo "##                                                                  ##"
+    echo "##                      BITTENSOR SETUP                             ##"
+    echo "##                                                                  ##"
     echo "######################################################################\n"
     setup_wallet_and_miner
 
@@ -314,36 +319,15 @@ fi
 ohai "Installation successful!"
 ohai "-----IMPORTANT-----"
 echo "The Bittensor network is currently down for maintenance since block 1805945 (May 24th 2021)"
-echo "The main network will reopen on Bittensor-Exodus: August 2021."
+echo "The main network will reopen on Bittensor-Exodus: November 2021."
 echo "Please use Kusanagi as a testing network for now"
 ohai "-------------------"
-ohai "Some quick commands:"
-echo ""
-echo "- 1) Choose your network: "
-echo "     $ export NETWORK=akatsuki     # Test network (Main network opens November 1st 2021)"
-echo ""
-echo "- 2) Activate the installed python: "
-echo "    $ source ~/.bittensor/env/bin/activate"
-echo ""
-echo "- 3) Create a wallet: "
-echo "    $ export WALLET=<your wallet name>"
-echo "    $ export HOTKEY=<your hotkey name>"
-echo "    $ bittensor-cli new_coldkey --wallet.name \$WALLET"
-echo "    $ bittensor-cli new_hotkey --wallet.name \$WALLET --wallet.hotkey \$HOTKEY"
-echo ""
-echo "- 4) (Optional) Open a port on your NAT: "
-echo "    See Docs: ${tty_underline}https://app.gitbook.com/@opentensor/s/bittensor${tty_reset}"
-echo ""
-echo "- 5) Run a miner: "
-echo "    i.e. $ python ~/.bittensor/bittensor/miners/text/template_miner.py --logging.debug \\"
-echo "                   --subtensor.network \$NETWORK \\"       
-echo "                   --wallet.name \$WALLET \\"
-echo "                   --wallet.hotkey \$HOTKEY"
-echo ""
+echo "\n\n"
+ohai "To run a miner: simply call `run_bittensor`"
 ohai "Follow-up:"
 echo ""
 echo "- Check your balance: "
-echo "    $ bittensor-cli overview --wallet.name \$WALLET --wallet.hotkey \$HOTKEY --subtensor.network \$NETWORK"
+echo "    $ bittensor-cli overview --wallet.name <your wallet name> --wallet.hotkey <your hotkey name> --subtensor.network akatsuki"
 echo ""
 echo ""
 ohai "Extras:"
