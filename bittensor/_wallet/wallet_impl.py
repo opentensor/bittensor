@@ -494,7 +494,7 @@ class Wallet():
             data = file.read()
             try:
                 # Try hotkey load.
-                if is_encrypted(data):
+                if is_encrwypted(data):
                     password = cli_utils.ask_password()
                     logger.info("decrypting key... (this may take a few moments)")
                     data = decrypt_data(password, data)
@@ -714,7 +714,7 @@ class Wallet():
         cli_utils.validate_create_path( self.hotkeyfile, overwrite = overwrite )
         self._hotkey = cli_utils.gen_new_key( n_words )
         cli_utils.display_mnemonic_msg( self._hotkey )
-
+        import pdb; pdb.set_trace()
         # Encrypt
         if use_password:
             password = cli_utils.input_password()
@@ -845,10 +845,11 @@ class Wallet():
         """ Convert the keypair to dictionary with accountId, publicKey, secretPhrase, secretSeed, and ss58Address  
         """
         # Needs this incase the key is URI generated.
+        import
         if keypair.seed_hex == None:
             secret_seed = "0x" + "0" * 64 
         else:
-            secret_seed = "0x" + keypair.seed_hex,
+            secret_seed = "0x" + keypair.seed_hex
 
         return {
             'accountId': keypair.public_key,
