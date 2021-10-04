@@ -300,10 +300,10 @@ class Wallet():
         """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
         """
         # ---- Setup Wallet. ----
-        if not self.has_coldkeypub:
+        if not self.has_coldkey:
             self.create_new_coldkey( n_words = 12, use_password = coldkey_use_password )
         
-        if not self.has_coldkey:
+        if not self.has_coldkeypub:
             raise RuntimeError('The axon must have access to a decrypted coldkeypub')
         
         if not self.has_hotkey:
