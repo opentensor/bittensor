@@ -87,7 +87,6 @@ linux_activate_installed_python() {
     #ohai "You are using python@3.8$"
     #ohai "Installing python tools"
     $python -m pip install --upgrade pip
-    pip3 install python-dev
 }
 
 linux_install_bittensor() {
@@ -165,8 +164,29 @@ create_wallet() {
     
       case $input in
           [yY][eE][sS]|[yY])
-      read -r -p "What do you wish to name this wallet? (default)" input
+        
+        read -r -p "What do you wish to name this wallet? [default] " input
+
+        wallet_name=$input
+        if [ -z "$wallet_name" ]
+        then
+          wallet_name="default"
+        fi
+
+        read -r -p "What do you wish to name this wallet's hotkey? [default] " input
+        hotkey_name=$input
+        if [ -z "$hotkey_name" ]
+        then
+          hotkey_name="default"
+        fi
+
+        echo "Creating new wallet, REMEMBER TO SAVE THE MNEMONICS!"
+        wait_for_user
+        bittensor-cli new_coldkey --wallet.name $wallet_name
+        bittensor-cli new_hotkey --wallet.name $wallet_name --wallet.hotkey $hotkey_name
       
+        
+      echo "Wallet name will be $name"
       break
       ;;
           [nN][oO]|[nN])
