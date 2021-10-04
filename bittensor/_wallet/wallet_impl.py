@@ -714,7 +714,6 @@ class Wallet():
         cli_utils.validate_create_path( self.hotkeyfile, overwrite = overwrite )
         self._hotkey = cli_utils.gen_new_key( n_words )
         cli_utils.display_mnemonic_msg( self._hotkey )
-        import pdb; pdb.set_trace()
         # Encrypt
         if use_password:
             password = cli_utils.input_password()
@@ -845,7 +844,6 @@ class Wallet():
         """ Convert the keypair to dictionary with accountId, publicKey, secretPhrase, secretSeed, and ss58Address  
         """
         # Needs this incase the key is URI generated.
-        import
         if keypair.seed_hex == None:
             secret_seed = "0x" + "0" * 64 
         else:
