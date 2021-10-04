@@ -209,13 +209,16 @@ setup_wallet_and_miner() {
           echo "\nWallet hotkey created successfully"
 
           echo "python3  ~/.bittensor/bittensor/miners/text/template_miner.py --subtensor.network akatsuki --wallet.name ${wallet_name} --wallet.hotkey ${hotkey_name}" >> ~/.bittensor/bittensor/scripts/run.sh
-
+        
           OS="$(uname)"
           if [[ "$OS" == "Linux" ]]; then
             echo "alias run_bittensor=\"./~/.bittensor/bittensor/scripts/run.sh\"" >> ~/.bashrc
-          else
+          elif [[ "$OS" == "Darwin" ]]; then
             echo "alias run_bittensor=\"./~/.bittensor/bittensor/scripts/run.sh\"" >> ~/.bash_profile
+          else
+            abort "Bittensor is only supported on macOS and Linux"
           fi
+        fi
       break
       ;;
           [nN][oO]|[nN])
@@ -322,8 +325,6 @@ echo "The Bittensor network is currently down for maintenance since block 180594
 echo "The main network will reopen on Bittensor-Exodus: November 2021."
 echo "Please use Kusanagi as a testing network for now"
 ohai "-------------------"
-echo "\n\n"
-ohai "To run a miner: simply call `run_bittensor`"
 ohai "Follow-up:"
 echo ""
 echo "- Check your balance: "
