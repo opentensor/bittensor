@@ -4,6 +4,7 @@ import torch
 import bittensor
 
 from unittest.mock import MagicMock
+import unittest.mock as mock
 
 wallet =  bittensor.wallet(
     path = '/tmp/pytest',
@@ -31,6 +32,49 @@ channel = grpc.insecure_channel('localhost',
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])          
 stub = bittensor.grpc.BittensorStub(channel)
+
+def test_print():
+    print(receptor)
+    print(str(receptor))
+
+#-- dummy testing --
+
+def test_dummy_forward():
+    endpoint = bittensor.endpoint.dummy()
+    dummy_receptor = bittensor.receptor ( endpoint= endpoint, wallet=wallet)
+    assert dummy_receptor.endpoint.uid == -1
+    x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
+    out, ops, time = dummy_receptor.forward( x, bittensor.proto.Modality.TEXT, timeout=1)
+    assert ops == bittensor.proto.ReturnCode.EmptyRequest
+    assert list(out.shape) == [2, 4, bittensor.__network_dim__]
+
+def test_dummy_backward():
+    endpoint = bittensor.endpoint.dummy()
+    dummy_receptor = bittensor.receptor ( endpoint= endpoint, wallet=wallet)
+    assert dummy_receptor.endpoint.uid == -1
+
+    x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
+    grads = torch.ones((x.size(0),x.size(1),bittensor.__network_dim__))
+    out, ops, time = dummy_receptor.backward( x,grads,bittensor.proto.Modality.TEXT , timeout=1)
+    print (out, ops, time)
+    assert ops == bittensor.proto.ReturnCode.EmptyRequest
+    assert list(out.shape) == [2, 4, bittensor.__network_dim__]
+
+# -- request serialization --
+
+def test_receptor_forward_request_serialize_error():    
+    x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
+    out, ops, time = receptor.forward( x, dict(), timeout=1)
+    assert ops == bittensor.proto.ReturnCode.RequestSerializationException
+
+
+def test_receptor_backward_request_serialize_error():    
+    x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
+    grads = torch.ones((x.size(0),x.size(1),bittensor.__network_dim__))
+    out, ops, time = receptor.backward( x,grads, dict(), timeout=1)
+    assert ops == bittensor.proto.ReturnCode.RequestSerializationException
+
+# -- forward testing --
 
 def test_receptor_neuron_text():
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
@@ -282,6 +326,138 @@ def test_receptor_neuron_server_response_with_nans_backward():
     out, ops, time  = receptor.backward(x,x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Success
     assert out[0][0][0] == 0
+"""
+# -- no return code -- 
+
+def test_receptor_forward_no_return():
+    y = torch.rand(3, 3, bittensor.__network_dim__)
+    
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            
+    mock_return_val = bittensor.proto.TensorMessage(
+            version = bittensor.__version_as_int__,
+            hotkey = wallet.hotkey.ss58_address,
+            return_code = None,
+            tensors = [y_serialized])
+
+    stub.Forward = MagicMock( return_value=mock_return_val )
+    receptor.stub = stub
+
+    x = torch.rand(3, 3, bittensor.__network_dim__)
+    out, ops, time  = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
+    assert ops == bittensor.proto.ReturnCode.UnknownException
+
+def test_receptor_backward_no_return():
+    y = torch.rand(3, 3, bittensor.__network_dim__)
+    
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            
+    mock_return_val = bittensor.proto.TensorMessage(
+            version = bittensor.__version_as_int__,
+            hotkey = wallet.hotkey.ss58_address,
+            return_code = None,
+            tensors = [y_serialized])
+
+    stub.Backward = MagicMock( return_value=mock_return_val )
+    receptor.stub = stub
+
+    x = torch.rand(3, 3, bittensor.__network_dim__)
+    out, ops, time  = receptor.backward(x,x, bittensor.proto.Modality.TENSOR, timeout=1)
+    assert ops == bittensor.proto.ReturnCode.UnknownException
+"""
+# -- no exception in response -- 
+
+def test_receptor_forward_exception():
+    y = torch.rand(3, 3, bittensor.__network_dim__)
+    
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            
+    mock_return_val = bittensor.proto.TensorMessage(
+            version = bittensor.__version_as_int__,
+            hotkey = wallet.hotkey.ss58_address,
+            return_code = bittensor.proto.ReturnCode.UnknownException,
+            tensors = [y_serialized])
+
+    stub.Forward = MagicMock( return_value=mock_return_val )
+    receptor.stub = stub
+
+    x = torch.rand(3, 3, bittensor.__network_dim__)
+    out, ops, time  = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
+    assert ops == bittensor.proto.ReturnCode.UnknownException
+
+def test_receptor_backward_exception():
+    y = torch.zeros(3, 3, bittensor.__network_dim__)
+    
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            
+    mock_return_val = bittensor.proto.TensorMessage(
+            version = bittensor.__version_as_int__,
+            hotkey = wallet.hotkey.ss58_address,
+            return_code = bittensor.proto.ReturnCode.UnknownException,
+            tensors = [y_serialized])
+
+    stub.Backward = MagicMock( return_value=mock_return_val )
+    receptor.stub = stub
+
+    x = torch.rand(3, 3, bittensor.__network_dim__)
+    out, ops, time  = receptor.backward(x,x, bittensor.proto.Modality.TENSOR, timeout=1)
+    assert ops == bittensor.proto.ReturnCode.UnknownException
+
+# -- stub erorr -- 
+
+def test_receptor_forward_stub_exception():
+
+
+    def forward_break():
+        raise Exception('Mock')
+
+    with mock.patch.object(receptor.stub, 'Forward', new=forward_break):
+        x = torch.rand(3, 3, bittensor.__network_dim__)
+        out, ops, time  = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
+        assert ops == bittensor.proto.ReturnCode.UnknownException
+
+def test_receptor_backward_stub_exception():
+
+    def backward_break():
+        raise Exception('Mock')
+    with mock.patch.object(receptor.stub, 'Backward', new=backward_break):
+        x = torch.rand(3, 3, bittensor.__network_dim__)
+        out, ops, time  = receptor.backward(x,x, bittensor.proto.Modality.TENSOR, timeout=1)
+        assert ops == bittensor.proto.ReturnCode.UnknownException
+
+
+def test_receptor_forward_endpoint_exception():
+    
+    receptor = bittensor.receptor ( 
+        endpoint = endpoint, 
+        wallet = wallet,
+    )
+    
+    def forward_break():
+        raise Exception('Mock')
+
+    with mock.patch.object(bittensor.proto, 'TensorMessage', new=forward_break):
+        x = torch.rand(3, 3, bittensor.__network_dim__)
+        out, ops, time  = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
+        assert ops == bittensor.proto.ReturnCode.UnknownException
+
+def test_receptor_backward_endpoint_exception():
+    
+    receptor = bittensor.receptor ( 
+        endpoint = endpoint, 
+        wallet = wallet,
+    )
+    def backward_break():
+        raise Exception('Mock')
+
+    with mock.patch.object(bittensor.proto, 'TensorMessage', new=backward_break):
+        x = torch.rand(3, 3, bittensor.__network_dim__)
+        out, ops, time  = receptor.backward(x,x, bittensor.proto.Modality.TENSOR, timeout=1)
+        assert ops == bittensor.proto.ReturnCode.UnknownException
 
 
 if __name__ == "__main__":
