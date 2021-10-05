@@ -228,6 +228,7 @@ def main( config ):
         metagraph.sync().save()
         chain_growth = metagraph.n.item() - torch.numel( validator.peer_weights )
         validator.peer_weights = torch.nn.Parameter(torch.cat( [validator.peer_weights, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)])).to(device)
+        ema_scores = torch.nn.Parameter(torch.cat( [ema_scores, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)])).to(device)
         optimizer = torch.optim.SGD(
             [ {'params': validator.peer_weights, 'lr': config.miner.learning_rate_chain} ],
             lr = config.miner.learning_rate,
