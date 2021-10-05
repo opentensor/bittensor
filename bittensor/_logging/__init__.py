@@ -200,7 +200,7 @@ class logging:
         if cls.__debug_on__ or cls.__trace_on__:
             return True
         else:
-            return record["level"].name != "DEBUG"
+            return False
 
 
     @classmethod
@@ -216,7 +216,7 @@ class logging:
         """
         extra = record['extra']
         if 'rpc' in extra:
-            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[inputs]} | {extra[key_str]} | {extra[rpc_message]} \n"
+            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[uid_str]} | {extra[inputs]} | {extra[call_time]} | {extra[key_str]} | {extra[rpc_message]} \n"
             return log_format
         if 'receptor' in extra:
             log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
@@ -228,7 +228,7 @@ class logging:
     def log_save_formatter(cls, record):
         extra = record['extra']
         if 'rpc' in extra:
-            log_format = "{time:YYYY-MM-DD HH:mm:ss.SSS} | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[inputs]} | {extra[key_str]} | {extra[rpc_message]} \n"
+            log_format = "{time:YYYY-MM-DD HH:mm:ss.SSS} | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[uid_str]} | {extra[inputs]} | {extra[call_time]} | {extra[key_str]} | {extra[rpc_message]} \n"
             return log_format
         if 'receptor' in extra:
             log_format = "{time:YYYY-MM-DD HH:mm:ss.SSS} | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
@@ -237,7 +237,7 @@ class logging:
             return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | {message}\n"
 
     @classmethod
-    def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs:list = None, outputs:list = None, message:str = ''):
+    def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, call_time: float, pubkey: str, uid: int = None, inputs:list = None, outputs:list = None, message:str = ''):
         """ Debug logging for the communication between endpoints with axon/dendrite 
         """
 
@@ -257,7 +257,14 @@ class logging:
             arrow = "<---"
         else:
             arrow = "--->"
+        
         key_str = "{}".format( pubkey )
+        call_time_str = "{:.2f}s".format(call_time).center(6)
+
+        if uid != None:
+            uid_str = str(uid).center(5)
+        else:
+            uid_str = "-".center(5)
 
         code_color = bittensor.utils.codes.code_to_loguru_color( code )
         code_string = bittensor.utils.codes.code_to_string( code )
@@ -271,8 +278,7 @@ class logging:
         inputs = inputs.center(15)
 
         rpc_message = message if message != None else 'None'
-
-        logger.debug( 'rpc', rpc=True, prefix=prefix, direction=direction, arrow=arrow, key_str=key_str, code_str=code_str, inputs = inputs, rpc_message = rpc_message)
+        logger.debug( 'rpc', rpc=True, prefix=prefix, direction=direction, arrow=arrow, call_time = call_time_str, uid_str=uid_str, key_str=key_str, code_str=code_str, inputs = inputs, rpc_message = rpc_message)
 
 
     @classmethod

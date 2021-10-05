@@ -21,29 +21,17 @@ Example:
     $ python miners/text/template_client.py
 
 """
-import argparse
 import bittensor
+import sys
 import torch
 import time
 import wandb
 import datetime
-from qqdm import qqdm
-from transformers import BertModel, BertConfig
-
-def config ():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=1)
-    parser.add_argument('--miner.momentum', type=float, help='optimizer momentum.', default=0.8)
-    parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
-    parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
-    bittensor.wallet.add_args( parser )
-    bittensor.axon.add_args( parser )
-    bittensor.subtensor.add_args( parser )
-    bittensor.logging.add_args( parser )
-    return bittensor.config( parser )
+from nuclei.server import server
 
 def main( config ):
-    print (config)
+    # Create Subtensor connection
+    subtensor = bittensor.subtensor(config = config)
 
     # Init bittensor logging.
     bittensor.logging( config = config )
@@ -55,52 +43,39 @@ def main( config ):
     metagraph = bittensor.metagraph ( 
         subtensor = bittensor.subtensor( config = config )
     ).load().sync().save()
+    
 
     # Instantiate the model we are going to serve on the network.
     # Miner training device.
-    device = torch.device( device = config.miner.device)
-    model = BertModel( 
-        BertConfig (
-            vocab_size = bittensor.__vocab_size__,
-            hidden_size = bittensor.__network_dim__,
-            num_hidden_layers = 8,
-            num_attention_heads = 8,
-            intermediate_size = 3072,
-            hidden_act = "gelu",
-            hidden_dropout_prob = 0.1,
-            attention_probs_dropout_prob = 0.1,
-            max_position_embeddings = 512,
-            type_vocab_size = 2,
-            initializer_range = 0.02,
-            layer_norm_eps = 1e-12,
-            pad_token_id = 0,
-            gradient_checkpointing = False,
-            position_embedding_type = "absolute",
-            use_cache = True,
-        )
-    ).to( device )
+    model = server(config=config,model_name='bert-base-uncased',pretrained=True)
+
 
     # Create our optimizer.
     optimizer = torch.optim.SGD(
         [ {"params": model.parameters()} ],
-        lr = config.miner.learning_rate,
-        momentum = config.miner.momentum,
+        lr = config.server.learning_rate,
+        momentum = config.server.momentum,
     )
 
-    # Define our forward function.
-    def forward_text ( pubkey, inputs_x, modality ):
-        return model( inputs_x.to(device) ).last_hidden_state
+    def forward_text (pubkey, inputs_x ):
+        r""" Single threaded version of the Forward function that is called when the axon recieves a forward request from other peers
+        """ 
+        return model.encode_forward( inputs_x )
 
-    # Define our backward function.
-    def backward_text ( pubkey:str, inputs_x, grads_dy, modality ):
+
+    def backward_text ( pubkey:str, inputs_x, grads_dy ):
+        r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
+            Updates the server parameters with gradients through the chain.             
+        """
         with torch.enable_grad():
-            outputs_y = model( inputs_x.to(device) ).last_hidden_state
-            torch.autograd.backward (
-                tensors = [ outputs_y.to(device) ],
-                grad_tensors = [ grads_dy.to(device) ]
-            )
-            optimizer.step() # Applies accumulated gradients.
-            optimizer.zero_grad() 
+            with torch.autograd.set_detect_anomaly(True):
+                outputs_y = model.encode_forward( inputs_x )
+                torch.autograd.backward (
+                    tensors = [ outputs_y ],
+                    grad_tensors = [ grads_dy ]
+                    )
+                optimizer.step()
+                optimizer.zero_grad()
 
     # Create our axon server and subscribe it to the network.
     axon = bittensor.axon (
@@ -113,13 +88,15 @@ def main( config ):
     with wandb.init (
             config = config, 
             name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
-            project = wallet.coldkeypub[:8],
+            project = wallet.coldkeypub.ss58_address[:8],
             group = wallet.hotkey.ss58_address[:8],
-            save_code = True
         ):
 
         # --- Run Forever.
         while True:
+            end_block = subtensor.get_current_block() + config.server.blocks_per_epoch
+            while end_block >= subtensor.get_current_block():
+                time.sleep( bittensor.__blocktime__ )
             metagraph.sync().save()
             uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
             wandb_data = {
@@ -131,7 +108,7 @@ def main( config ):
             for uid_i, val in enumerate(metagraph.W[:,uid].tolist()):
                 wandb_data[ 'w_{},{}'.format(uid_i, uid) ] = val
             wandb.log( wandb_data )
-            time.sleep( 10 * bittensor.__blocktime__ )
+            
 
 if __name__ == "__main__":
-    main( config() )
+    main( server.config() )

@@ -124,7 +124,7 @@ def get_external_ip() -> str:
     except Exception:
         pass    
 
-    # --- Try urllib ipv6 (Doesn't work yet)
+    # --- Try urllib ipv6 
     try:
         external_ip = urllib.request.urlopen('https://ident.me').read().decode('utf8')
         assert isinstance(ip_to_int(external_ip), int)
@@ -132,7 +132,7 @@ def get_external_ip() -> str:
     except Exception:
         pass
 
-    # --- Try Wikipedia ipv6 (Doesn't work yet)
+    # --- Try Wikipedia 
     try:
         external_ip = requests.get('https://www.wikipedia.org').headers['X-Client-IP']
         assert isinstance(ip_to_int(external_ip), int)

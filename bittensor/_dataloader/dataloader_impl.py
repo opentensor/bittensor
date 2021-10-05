@@ -138,7 +138,7 @@ class GenesisTextDataloader( Dataloader ):
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
         self.dataset = dataset
         self.data_dir = data_dir
-        self._infinite_iterator = None # Allows us to call __next__ on this object.
+        self.__infinite_dataset_iterator = None
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
@@ -348,16 +348,16 @@ class GenesisTextDataloader( Dataloader ):
 
 
     def __next__(self):
-        """Allows us to linears pass through the entire dataset like a normal iterator.
-            Refills the iterator with a new batch every 100000 inputs.
+        """Returns the next element from the dataset. 
         """
-        if self._infinite_iterator == None:
-            self._infinite_iterator = iter(self.dataloader(100000))
+        if self.__infinite_dataset_iterator == None:
+            self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000000)])
         try:
-            return next( self._infinite_iterator )
+            return next(self.__infinite_dataset_iterator)
         except StopIteration:
-            self._infinite_iterator = iter(self.dataloader(100000))
-            return next( self._infinite_iterator )
+            self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000000)])
+            return next(self.__infinite_dataset_iterator)
+
 
     def __len__(self):
         """Returns length of dataset minus the block size

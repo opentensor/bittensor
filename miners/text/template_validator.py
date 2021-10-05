@@ -139,26 +139,12 @@ def main( config ):
 
         def remote ( self, inputs ):
             # ---- Topk Weights ---- (TODO: check if the gaussians are enough to disrupt the chain weights)
-            # real_topk = min( config.nucleus.topk, metagraph.n.item() ) 
+            real_topk = min( config.nucleus.topk, metagraph.n.item() ) 
             noise = torch.normal( 0, config.nucleus.noise_multiplier * torch.std( self.chain_weights ).item()+0.0000001, size=( self.chain_weights.size())).to( device )
-            # topk_weights, topk_uids = torch.topk( self.chain_weights + noise, real_topk, dim=0 ) 
-            
-
-            # ---- Filter endpoints ----
-            topk_uids = []
-            swarm_1_ip = '157.230.231.158'
-            swarm_2_ip = '157.230.235.68'
-            swarm_3_ip = '157.230.227.198'
-            gpt2_ip = '134.122.119.130'
-            for i, e in enumerate(metagraph.endpoint_objs):
-                if e.ip in [swarm_1_ip, swarm_2_ip, gpt2_ip]:
-                    topk_uids.append(i)
-
-            topk_uids = torch.tensor(topk_uids)
-            topk_weights = (self.chain_weights+noise)[topk_uids]
+            topk_weights, topk_uids = torch.topk( self.chain_weights + noise, real_topk, dim=0 ) 
 
             # ---- Query network ----
-            responses, return_ops = dendrite.forward_text ( 
+            responses, return_ops, query_times = dendrite.forward_text ( 
                 endpoints = metagraph.endpoints[ topk_uids ], 
                 inputs = inputs
             )
@@ -199,13 +185,12 @@ def main( config ):
     run = wandb.init (
         config = config, 
         name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
-        project = wallet.coldkeypub[:8] if not config.wandb.project else config.wandb.project,
+        project = wallet.coldkeypub.ss58_address[:8] if not config.wandb.project else config.wandb.project,
         group = wallet.hotkey.ss58_address[:8] if not config.wandb.run_group else config.wandb.run_group,
         dir = os.path.expanduser('~/.bittensor/'),
         resume = config.miner.resume,
         save_code = True
     )
-
     wandb.watch( validator, log = 'all', log_freq = 10 )
 
     # Optionally resume.
