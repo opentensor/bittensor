@@ -151,7 +151,7 @@ def main( config ):
             noise = torch.normal( 0, config.nucleus.noise_multiplier * torch.std( self.peer_weights ).item()+0.0000001, size=( self.peer_weights.size())).to( device )
             # topk_weights, topk_uids = torch.topk( self.peer_weights + noise, real_topk, dim=0 ) 
 
-            topk_uids = [4,5,6,9,32,39,20]
+            topk_uids = torch.tensor([4,5,6,9,32,39,20])
             topk_weights = (self.peer_weights + noise)[topk_uids]
             
             # ---- Query network ----
