@@ -292,7 +292,10 @@ class Receptor(nn.Module):
                 # ---- Catch non-code ----
                 try:
                     bittensor_code = response.return_code
-                except Exception:
+                except:
+                    bittensor_code = bittensor.proto.ReturnCode.NoReturn
+
+                if bittensor_code == bittensor.proto.ReturnCode.NoReturn:
                     code = bittensor.proto.ReturnCode.UnknownException
                     message = 'no return code.'
                     call_time = clock.time() - start_time
@@ -538,7 +541,10 @@ class Receptor(nn.Module):
         # ---- Catch Code Errors ----
         try:
             bittensor_code = response.return_code
-        except Exception:
+        except:
+            bittensor_code = bittensor.proto.ReturnCode.NoReturn
+            
+        if bittensor_code == bittensor.proto.ReturnCode.NoReturn:
             code = bittensor.proto.ReturnCode.UnknownException
             message = 'no response code.'
             call_time = clock.time() - start_time
