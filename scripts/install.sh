@@ -68,7 +68,7 @@ linux_install_python() {
     which $python
     if [[ $? != 0 ]] ; then
         ohai "Installing python"
-        sudo apt-get install --no-install-recommends --no-install-suggests -y python3.8
+        sudo apt-get install --no-install-recommends --no-install-suggests -y python3
     else
         ohai "Updating python"
         sudo apt-get update python3
@@ -78,7 +78,7 @@ linux_install_python() {
 }
 
 linux_update_pip() {
-    PYTHONPATH=$(which python)
+    PYTHONPATH=$(which $python)
     ohai "You are using python@ $PYTHONPATH$"
     ohai "Installing python tools"
     $python -m pip install --upgrade pip
@@ -124,10 +124,10 @@ mac_install_cmake() {
 }
 
 mac_install_python() {
-    which -s python3.7
-    ohai "Installing python3.7"
+    which -s python3
+    ohai "Installing python3"
     brew list python@3.7 &>/dev/null || brew install python@3.7;
-    ohai "Updating python3.7"
+    ohai "Updating python3"
     brew upgrade python@3.7
 }
 
@@ -240,8 +240,8 @@ if [[ "$OS" == "Linux" ]]; then
     echo "git"
     echo "cmake"
     echo "build-essential"
-    echo "python3.8"
-    echo "python3.8-pip"
+    echo "python3"
+    echo "python3-pip"
     echo "bittensor"
 
     wait_for_user
@@ -277,8 +277,8 @@ elif [[ "$OS" == "Darwin" ]]; then
     echo "homebrew"
     echo "git"
     echo "cmake"
-    echo "python3.7"
-    echo "python3.7-pip"
+    echo "python3"
+    echo "python3-pip"
     echo "bittensor"
 
     wait_for_user
