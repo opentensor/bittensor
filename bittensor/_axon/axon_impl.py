@@ -284,7 +284,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
             # ---- Check shape and modality ----
             if list(torch_inputs.shape)[0] < 1:
-                code = bittensor.proto.ReturnCode.RequestShapeException,
+                code = bittensor.proto.ReturnCode.RequestShapeException
                 message = "Forward request batch dim exception with batch_size = {} ".format(list(torch_inputs.shape)[0])
                 call_time = clock.time() - start_time
                 bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
