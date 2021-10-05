@@ -347,7 +347,6 @@ def test_receptor_neuron_server_response_with_nans_backward():
     out, ops, time  = receptor.backward(x,x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Success
     assert out[0][0][0] == 0
-
 # -- no return code -- 
 
 def test_receptor_forward_no_return():
