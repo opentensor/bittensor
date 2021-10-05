@@ -99,12 +99,12 @@ class Executor:
         total_success = 0
         total_time = 0.0
         logger.info('\nRunning queries ...')
-        for endpoint in tqdm(owned_endpoints):
-
+        for ep in tqdm(owned_endpoints):
+            endpoint =  bittensor.endpoint.from_tensor( ep )
             # Make query and get response.
             if self.wallet.has_hotkey:
                 start_time = time.time()
-                _, code = self.dendrite.forward_text( endpoints = [endpoint], inputs = [torch.zeros((1,1), dtype=torch.int64)] )
+                _, code, times = self.dendrite.forward_text( endpoints = [endpoint], inputs = [torch.zeros((1,1), dtype=torch.int64)] )
                 end_time = time.time()
                 code_to_string = code_utils.code_to_string(code.item())
                 code_color = code_utils.code_to_color(code.item()) 
@@ -162,7 +162,6 @@ class Executor:
         table.width = None
         console = Console()
         console.print(table)
-
 
     def unstake_all ( self ):
         r""" Unstaked from all hotkeys associated with this wallet's coldkey.

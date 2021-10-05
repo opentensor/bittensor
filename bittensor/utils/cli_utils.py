@@ -51,7 +51,7 @@ class cli_utils():
 
         except CryptoKeyError:
             print(colored("Invalid password", 'red'))
-            quit()
+            sys.exit()
         except KeyFileError as e:
             print(colored("Keyfile corrupt", 'red'))
             raise e
@@ -74,7 +74,7 @@ class cli_utils():
                 return
             else:
                 print(colored("{} exists, but is not a directory. Aborting".format(wallet_dir), 'red'))
-                quit()
+                sys.exit()
         os.mkdir(wallet_dir)
 
     @staticmethod
@@ -87,7 +87,7 @@ class cli_utils():
                 return
             else:
                 print(colored("{} exists, but is not a directory. Aborting".format(hotkeys_dir), 'red'))
-                quit()
+                sys.exit()
         os.mkdir(hotkeys_dir)
 
     @staticmethod
@@ -101,7 +101,7 @@ class cli_utils():
                 return
             else:
                 print(colored("~/.bittensor/wallets exists, but is not a directory. Aborting", 'red'))
-                quit()
+                sys.exit()
         os.mkdir(wallet_dir)
 
     @staticmethod
@@ -148,11 +148,11 @@ class cli_utils():
 
         if not os.path.isfile(path):
             print(colored("{} is not a file. Aborting".format(path), 'red'))
-            quit()
+            sys.exit()
 
         if not os.access(path, os.R_OK):
             print(colored("{} is not readable. Aborting".format(path), 'red'))
-            quit()
+            sys.exit()
 
     @staticmethod
     def create_dirs():
@@ -177,17 +177,17 @@ class cli_utils():
                     return keyfile
 
                 else:
-                    quit()
+                    sys.exit()
             else:
                 print(colored("No write access for  %s" % keyfile, 'red'))
-                quit()
+                sys.exit()
         else:
             pdir = os.path.dirname(keyfile)
             if os.access(pdir, os.W_OK):
                 return keyfile
             else:
                 print(colored("No write access for  %s" % keyfile, 'red'))
-                quit()
+                sys.exit()
 
     @staticmethod
     def write_pubkey_to_text_file( keyfile, pubkey_str:str ):
@@ -245,14 +245,14 @@ class cli_utils():
         """
         if len(mnemonic) not in [12,15,18,21,24]:
             print(colored("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words", 'red'))
-            quit()
+            sys.exit()
 
         try:
             keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
             return keypair
         except ValueError as e:
             print(colored(str(e), "red"))
-            quit()
+            sys.exit()
 
     @staticmethod
     def gen_new_key(words):
