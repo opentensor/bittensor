@@ -29,7 +29,6 @@ pytest-xdist==2.2.0
 pytorch_transformers
 pyyaml
 rich
-rollbar
 requests>=2.25.0
 scalecodec~=0.11.16
 termcolor
