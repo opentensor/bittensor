@@ -22,6 +22,7 @@ from typing import Tuple, List
 
 import torch
 from loguru import logger
+import concurrent
 
 import bittensor
 
@@ -98,10 +99,16 @@ class ReceptorPool ( torch.nn.Module ):
             for (inputs, endpoint) 
             in list(zip( inputs, endpoints )) 
         ]
-        for result in self.thread_pool.map( lambda args: _call_receptor_forward_with_args(*args), call_args ):
-            forward_outputs.append( result[0] )
-            forward_codes.append( result[1] )
-            forward_times.append( result[2] )
+        results = self.thread_pool.map( lambda args: _call_receptor_forward_with_args(*args), call_args, timeout=timeout*10)
+        try:
+            for result in results:
+                forward_outputs.append( result[0] )
+                forward_codes.append( result[1] )
+                forward_times.append( result[2] )
+        except concurrent.futures._base.TimeoutError:
+            forward_outputs= [torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
+            forward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
+            forward_times= [15] * len(endpoints)
 
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
@@ -164,10 +171,18 @@ class ReceptorPool ( torch.nn.Module ):
             for (inputs_x, grads_dy, endpoint) in 
             list(zip( inputs_x, grads_dy, endpoints )) 
         ]
-        for result in self.thread_pool.map( lambda args: _call_receptor_backward_with_args(*args), call_args ):
-            backward_outputs.append( result[0] )
-            backward_codes.append( result[1] )
-            backward_times.append( result[2] )
+        results = self.thread_pool.map( lambda args: _call_receptor_backward_with_args(*args), call_args, timeout=timeout*10)
+
+        # --- catch any timeout issues due to threadpool --- 
+        try:
+            for result in results:
+                backward_outputs.append( result[0] )
+                backward_codes.append( result[1] )
+                backward_times.append( result[2] )
+        except concurrent.futures._base.TimeoutError:
+            backward_outputs= [torch.zeros( (inputs_x.size(0), inputs_x.size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
+            backward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
+            backward_times= [15] * len(endpoints)
 
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
