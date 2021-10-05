@@ -31,7 +31,7 @@ pyyaml
 rich
 rollbar
 requests>=2.25.0
-scalecodec~=0.11.16
+scalecodec>=1.0.3
 termcolor
 tensorboard
 torch>=1.6.0
@@ -46,5 +46,5 @@ codecov
 tqdm
 qqdm
 wandb>=0.11.1
-substrate-interface>=0.13.11
 ansible_vault>=2.1
+substrate-interface>=1.0.2
