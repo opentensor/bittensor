@@ -366,7 +366,7 @@ def test_receptor_forward_no_return():
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
     out, ops, time  = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
-    assert ops == bittensor.proto.ReturnCode.UnknownException
+    assert ops == bittensor.proto.ReturnCode.NoReturn
 
 def test_receptor_backward_no_return():
     y = torch.rand(3, 3, bittensor.__network_dim__)
@@ -384,7 +384,7 @@ def test_receptor_backward_no_return():
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
     out, ops, time  = receptor.backward(x,x, bittensor.proto.Modality.TENSOR, timeout=1)
-    assert ops == bittensor.proto.ReturnCode.UnknownException
+    assert ops == bittensor.proto.ReturnCode.NoReturn
 
 # -- no exception in response -- 
 

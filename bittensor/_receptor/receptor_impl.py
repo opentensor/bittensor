@@ -296,7 +296,7 @@ class Receptor(nn.Module):
                     bittensor_code = bittensor.proto.ReturnCode.NoReturn
 
                 if bittensor_code == bittensor.proto.ReturnCode.NoReturn:
-                    code = bittensor.proto.ReturnCode.UnknownException
+                    code = bittensor.proto.ReturnCode.NoReturn
                     message = 'no return code.'
                     call_time = clock.time() - start_time
                     bittensor.logging.rpc_log( axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=response_message  )
@@ -543,9 +543,9 @@ class Receptor(nn.Module):
             bittensor_code = response.return_code
         except:
             bittensor_code = bittensor.proto.ReturnCode.NoReturn
-            
+
         if bittensor_code == bittensor.proto.ReturnCode.NoReturn:
-            code = bittensor.proto.ReturnCode.UnknownException
+            code = bittensor.proto.ReturnCode.NoReturn
             message = 'no response code.'
             call_time = clock.time() - start_time
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
