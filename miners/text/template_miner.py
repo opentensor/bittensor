@@ -316,6 +316,7 @@ class Miner:
         parser = argparse.ArgumentParser()
         parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
         parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=1)
+        parser.add_argument('--miner.learning_rate_chain', type=float, help='Training initial learning rate.', default=1)
         parser.add_argument('--miner.weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25)
         parser.add_argument('--miner.momentum', type=float, help='optimizer momentum.', default=0.8)
         parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
@@ -409,7 +410,7 @@ class Miner:
                     batches_count = 0
 
                     # ---- Run epoch ----
-                    start_block = self.neuron.subtensor.get_current_block()
+                    start_block = self.neuron.subtensor.get_current_block() + 1
                     end_block = start_block + self.config.miner.epoch_length
                     block_steps = [ block_delta for block_delta in range(start_block, end_block)]
                     progress_bar = qqdm( block_steps, total=len(block_steps), desc=format_str('white', f'Epoch:'))
@@ -453,7 +454,7 @@ class Miner:
                             self.epoch_data_size += inputs.nelement()
                             batches_count += 1
 
-                        # ---- Sync with metagraph ----
+                        # ---- Check to sync with metagraph ----
                         current_block = self.neuron.subtensor.get_current_block()
                         block_diff = current_block - self.last_sync_block
                         if block_diff >= self.config.miner.sync_block_time:
@@ -462,7 +463,7 @@ class Miner:
                             self.sync_count += 1
                             
                         # ---- Update the epoch loss if it is the last iteration
-                        if block == end_block - 1:
+                        if (block + 1) % (self.config.miner.epoch_length ) == 0 :
                             self.epoch_loss = total_epoch_loss / batches_count
                             self.local_target_epoch_loss = total_local_target_epoch_loss / batches_count
                             self.distillation_epoch_loss = total_distillation_epoch_loss / batches_count
