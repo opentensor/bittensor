@@ -243,7 +243,7 @@ class Receptor(nn.Module):
                 code = bittensor.proto.ReturnCode.EmptyRequest
                 message = 'bad endpoint'
                 call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message  )
+                bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message  )
                 return zeros, code, call_time, message
 
             # ---- Inputs Serialization ----
@@ -448,7 +448,7 @@ class Receptor(nn.Module):
             code = bittensor.proto.ReturnCode.EmptyRequest
             message = 'bad endpoint'
             call_time = clock.time() - start_time
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
             return zeros, code, call_time, message
 
 
