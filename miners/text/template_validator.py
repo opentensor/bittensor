@@ -319,7 +319,7 @@ def main( config ):
         
         for uid_j in topk_uids.tolist():
             wandb_data[ f'fisher ema uid: {str(uid_j).zfill(3)}' ] = scores[uid_j]
-            wandb_data[ f'fisher epoch score uid: {str(uid_j).zfill(3)}' ] = epoch_scores[uid_j]
+            wandb_data[ f'fisher epoch score uid: {str(uid_j).zfill(3)}' ] = epoch_score[uid_j]
             wandb_data[ f'weight norm uid:{str(uid_j).zfill(3)}' ] = topk_norm_weights[uid_j]
             wandb_data[ f'weight wo norm uid:{str(uid_j).zfill(3)}' ] = validator.peer_weights[uid_j]
             wandb_data[f'Quested uid: {str(uid_j).zfill(3)}']= validator.logs.quested_peers_count[uid_j]
