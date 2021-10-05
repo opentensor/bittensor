@@ -148,7 +148,7 @@ def main( config ):
     run = wandb.init (
         config = config, 
         name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
-        project = wallet.coldkeypub[:8],
+        project = wallet.coldkeypub.ss58_address[:8],
         group = wallet.hotkey.ss58_address[:8],
         dir = os.path.expanduser('~/.bittensor/'),
         resume = config.miner.resume,
