@@ -136,7 +136,7 @@ def code_to_loguru_color( code: bittensor.proto.ReturnCode ) -> str:
     elif code == 4:
         return 'red'
     elif code == 5:
-        return 'black'
+        return 'red'
     elif code == 6:
         return 'red'
     elif code == 7:
