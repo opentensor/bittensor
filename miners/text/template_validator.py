@@ -147,10 +147,13 @@ def main( config ):
 
         def query ( self, inputs ):
             # ---- Topk Weights ---- (TODO: check if the gaussians are enough to disrupt the chain weights)
-            real_topk = min( config.nucleus.topk, metagraph.n.item() ) 
+            # real_topk = min( config.nucleus.topk, metagraph.n.item() ) 
             noise = torch.normal( 0, config.nucleus.noise_multiplier * torch.std( self.peer_weights ).item()+0.0000001, size=( self.peer_weights.size())).to( device )
-            topk_weights, topk_uids = torch.topk( self.peer_weights + noise, real_topk, dim=0 ) 
+            # topk_weights, topk_uids = torch.topk( self.peer_weights + noise, real_topk, dim=0 ) 
 
+            topk_uids = [4,5,6,9,32,39,20]
+            topk_weights = (self.peer_weights + noise)[topk_uids]
+            
             # ---- Query network ----
             responses, return_ops, query_times = dendrite.forward_text ( 
                 endpoints = metagraph.endpoints[ topk_uids ], 
@@ -243,6 +246,7 @@ def main( config ):
         # --- Reset the epoch logs
         validator.logs.quested_peers_count = torch.zeros(0)
         validator.logs.responded_peers_count = torch.zeros(0)
+        total_epoch_score = torch.zeros(metagraph.n.item())
         total_epoch_loss = math.inf
         batch_count = 0
         
@@ -258,6 +262,7 @@ def main( config ):
                 optimizer.zero_grad() 
                 global_step += 1
                 batch_count += 1
+                total_epoch_score += scores
                 total_epoch_loss += loss.item()
 
             # Take topk chain weights.
@@ -302,6 +307,7 @@ def main( config ):
         # --- Log.
         metagraph.sync().save()
         epoch_loss = total_epoch_loss / batch_count
+        epoch_score = total_epoch_score / batch_count
         
         wandb_data = {
             'Stake': metagraph.S[ uid ].item(),
@@ -313,7 +319,7 @@ def main( config ):
         
         for uid_j in topk_uids.tolist():
             wandb_data[ f'fisher ema uid: {str(uid_j).zfill(3)}' ] = scores[uid_j]
-            wandb_data[ f'fisher wo ema uid: {str(uid_j).zfill(3)}' ] = ema_scores[uid_j]
+            wandb_data[ f'fisher epoch score uid: {str(uid_j).zfill(3)}' ] = epoch_scores[uid_j]
             wandb_data[ f'weight norm uid:{str(uid_j).zfill(3)}' ] = topk_norm_weights[uid_j]
             wandb_data[ f'weight wo norm uid:{str(uid_j).zfill(3)}' ] = validator.peer_weights[uid_j]
             wandb_data[f'Quested uid: {str(uid_j).zfill(3)}']= validator.logs.quested_peers_count[uid_j]
