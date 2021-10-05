@@ -181,8 +181,7 @@ def main( config ):
                 self.logs.responded_peers_count = torch.cat((self.logs.responded_peers_count, fill))
 
             self.logs.quested_peers_count += quested_peers
-            self.logs.responded_peers_count += quested_peers
-        
+            self.logs.responded_peers_count += responded_peers
 
             return output
 
@@ -275,11 +274,13 @@ def main( config ):
                 'loss': colored('{:.4f}'.format(loss.item()), 'green'), 
                 'best': colored('{:.4f}'.format(best_loss), 'green'), 
                 'stake': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green'),
-                'dividends': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green') 
+                'dividends': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green')
             }
             
-            for uid_i, score_i in enumerate(scores.tolist()): 
-                if score_i != 0: info[ 'fi_' + str(uid_i) ] = colored('{:.4f}'.format( score_i ), 'green' if score_i - ema_scores[ uid_i ] > 0 else 'red')
+            for uid_i, score_i in enumerate(scores.tolist()):
+                if score_i != 0: 
+                    info[ 'fi_' + str(uid_i) ] = colored('{:.4f}'.format( score_i ), 'green' if score_i - ema_scores[ uid_i ] > 0 else 'red')
+            
             ema_scores = ema_score_decay * ema_scores + (1 - ema_score_decay) * scores
             
             for weight_norm, uid_j in list(zip(topk_norm_weights.tolist(),topk_uids.tolist())):
@@ -311,12 +312,13 @@ def main( config ):
         respond_rate = validator.logs.responded_peers_count / validator.logs.quested_peers_count
         
         for uid_j in topk_uids.tolist():
-            wandb_data[ 'ema_fisher_{}'.format( uid_j ) ] = ema_scores[uid_j]
-            wandb_data[ 'w_norm_{}'.format( uid_j ) ] = topk_norm_weights[uid_j]
-            wandb_data[ 'w_wo_norm_{}'.format(  uid_j ) ] = validator.peer_weights[uid_j]
-            wandb_data[f'Quested uid: {str(uid_j)}']= validator.logs.quested_peers_count[uid_j]
-            wandb_data[f'Responded uid: {str(uid_j)}']= validator.logs.responded_peers_count[uid_j]
-            wandb_data[f'Respond rate uid: {str(uid_j)}']= respond_rate[uid_j]
+            wandb_data[ f'fisher ema uid: {str(uid_j).zfill(3)}' ] = scores[uid_j]
+            wandb_data[ f'fisher wo ema uid: {str(uid_j).zfill(3)}' ] = ema_scores[uid_j]
+            wandb_data[ f'weight norm uid:{str(uid_j).zfill(3)}' ] = topk_norm_weights[uid_j]
+            wandb_data[ f'weight wo norm uid:{str(uid_j).zfill(3)}' ] = validator.peer_weights[uid_j]
+            wandb_data[f'Quested uid: {str(uid_j).zfill(3)}']= validator.logs.quested_peers_count[uid_j]
+            wandb_data[f'Responded uid: {str(uid_j).zfill(3)}']= validator.logs.responded_peers_count[uid_j]
+            wandb_data[f'Respond rate uid: {str(uid_j).zfill(3)}']= respond_rate[uid_j]
 
         wandb.log( wandb_data )
         
