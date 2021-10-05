@@ -438,7 +438,7 @@ class Miner:
                             self.optimizer.zero_grad()
                             current_block = self.neuron.subtensor.get_current_block()
 
-                            # ---- Update outputs and losses 
+                            # ---- Aggrigate outputs and losses 
                             total_epoch_loss += output.local_target_loss.item()
                             total_local_target_epoch_loss += output.local_target_loss.item()
                             total_distillation_epoch_loss += output.distillation_loss.item()
