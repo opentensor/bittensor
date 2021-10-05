@@ -82,6 +82,7 @@ class Receptor(nn.Module):
             backward_bytes_out = stat_utils.timed_rolling_avg(0.0, 0.01),
             backward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.01),
             codes = {
+                bittensor.proto.ReturnCode.NoReturn: 0,
                 bittensor.proto.ReturnCode.Success: 0,
                 bittensor.proto.ReturnCode.Timeout: 0,
                 bittensor.proto.ReturnCode.Backoff: 0,
