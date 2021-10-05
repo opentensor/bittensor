@@ -2,7 +2,7 @@
 #!/bin/bash
 set -u
 
-python="python3.8"
+python="python3"
 
 abort() {
   printf "%s\n" "$1"
@@ -65,16 +65,16 @@ linux_install_pre() {
 }
 
 linux_install_python() {
-    which -s python3.8
+    which $python
     if [[ $? != 0 ]] ; then
-        ohai "Installing python3.8"
+        ohai "Installing python"
         sudo apt-get install --no-install-recommends --no-install-suggests -y python3.8
     else
-        ohai "Updating python3.8"
-        sudo apt-get update python3.8
+        ohai "Updating python"
+        sudo apt-get update python3
     fi
     ohai "Installing python tools"
-    sudo apt-get install --no-install-recommends --no-install-suggests -y python3-pip python3.8-dev 
+    sudo apt-get install --no-install-recommends --no-install-suggests -y python3-pip python3-dev 
 }
 
 linux_update_pip() {

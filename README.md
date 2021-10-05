@@ -16,9 +16,17 @@
 Bittensor is a market which monetizes intelligence production accross the internet. Validators price this information by learning to speculate on its value against unsupervised objectives. Producers who perform well are rewarded with token inflation. Consumers purchase this currency to gain access to network. Bittensor is collectively-run, open-source, and open-access. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
 
 ## Install
+Two ways to install Bittensor. 
+
+1. Through pip:
 
 ```bash
 $ pip3 install bittensor
+```
+
+2. Full installation:
+```bash
+
 ```
 
 ## Consumer 
