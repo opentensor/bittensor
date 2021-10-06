@@ -238,7 +238,7 @@ class Nucleus(nn.Module):
         joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 )
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
         for index, joining_weight in enumerate( joining_weights ):
-            output += responses[joining_uids[index]].detach().to( self.config.miner.device ) * joining_weight
+            output += responses[joining_uids[index]].to( self.config.miner.device ) * joining_weight
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
@@ -280,7 +280,7 @@ class Miner:
         #Torch scheduler
         self.scheduler= torch.optim.lr_scheduler.StepLR(self.optimizer,
             step_size= 1.0,
-            gamma=0.9
+            gamma=0.95
         )
 
         # Bittensor backend
@@ -317,7 +317,7 @@ class Miner:
         parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
         parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template_miner')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
-        parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=1)
+        parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=10)
         parser.add_argument('--miner.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
         bittensor.add_args( parser )
         Nucleus.add_args( parser ) 
@@ -441,8 +441,6 @@ class Miner:
                     The public key of the caller.
                 inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
-                modality ( bittensor.proto.Modality, `required`):
-                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
 
             Returns:
                 outputs (:obj:`torch.FloatTensor`):
@@ -472,9 +470,7 @@ class Miner:
                     torch inputs from previous forward call.
                 grads_dy ( :obj:`torch.Tensor`, `required`):
                     torch grads of forward output.
-                modality ( bittensor.proto.Modality, `required`):
-                    modality of inputs e.g. bittensor.proto.Modality.TEXT.
-
+                    
             Returns:
                 outputs (:obj:`torch.FloatTensor`, `optional`):
                     The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
@@ -587,7 +583,7 @@ class Miner:
             topk_weights, topk_uids = torch.topk( self.nucleus.chain_weights.detach(), k = real_topk )
             normalized_topk_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
             did_set = bittensor.neuron.subtensor.timeout_set_weights(
-                timeout=5,
+                timeout=10,
                 uids = topk_uids,
                 weights = normalized_topk_weights,
                 wait_for_inclusion = True,
@@ -667,7 +663,7 @@ class Miner:
         Currently, this is not turned on.
         """
         uid =self.neuron.metagraph.hotkeys.index(pubkey)
-        if self.neuron.metagraph.S[uid] < self.config.miner.blacklist:
+        if self.neuron.metagraph.S[uid].item() < self.config.miner.blacklist:
             return True
         else:
             return False
