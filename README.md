@@ -19,13 +19,19 @@ Bittensor is a market which monetizes intelligence production accross the intern
 - [1. Documentation](#1-documentation)
 - [2. Install](#2-install)
 - [3. Using Bittensor](#3-using-bittensor)
-  - [3.1. Consumer](#31-consumer)
-  - [3.2. Producer](#32-producer)
+  - [3.1. Client](#31-client)
+  - [3.2. Server](#32-server)
   - [3.3. Validator](#33-validator)
 - [4. Features](#4-features)
   - [4.1. Creating a bittensor wallet](#41-creating-a-bittensor-wallet)
-  - [4.2. Running a template miner](#42-running-a-template-miner)
-  - [4.3. Running a template server](#43-running-a-template-server)
+  - [4.2. Selecting the network to join](#42-selecting-the-network-to-join)
+  - [4.3. Running a template miner](#43-running-a-template-miner)
+  - [4.4. Running a template server](#44-running-a-template-server)
+  - [4.5. Subscription to the network](#45-subscription-to-the-network)
+  - [4.6. Syncing with the chain/ Finding the ranks/stake/uids of other nodes](#46-syncing-with-the-chain-finding-the-ranksstakeuids-of-other-nodes)
+  - [4.7. Finding and creating the endpoints for other nodes in the network](#47-finding-and-creating-the-endpoints-for-other-nodes-in-the-network)
+  - [4.8. Querying others in the network](#48-querying-others-in-the-network)
+  - [4.9. Creating a Priority Thread Pool for the axon](#49-creating-a-priority-thread-pool-for-the-axon)
 - [5. License](#5-license)
 - [6. Acknowledgments](#6-acknowledgments)
 
@@ -43,7 +49,7 @@ $ pip3 install bittensor
 
 The following examples showcase how to use the Bittensor API for 3 seperate purposes.
 
-### 3.1. Consumer 
+### 3.1. Client 
 
 For users that want to explore what is possible using on the Bittensor network.
 
@@ -57,14 +63,14 @@ representations, _ = bittensor.dendrite( wallet = wallet ).forward_text (
     endpoints = graph.endpoints,
     inputs = "The quick brown fox jumped over the lazy dog"
 )
-representations = // N tensors with shape (1, 9, 512)
+representations = // N tensors with shape (1, 9, 1024)
 ...
 // Distill model. 
 ...
 loss.backward() // Accumulate gradients on endpoints.
 ```
 
-### 3.2. Producer
+### 3.2. Server
 
 For users that want to serve up a custom model onto the Bittensor network
 
@@ -128,24 +134,32 @@ bittensor.subtensor().set_weights (
 
 
 ```bash
-$ pip3 install bittensor
 $ bittensor-cli new_coldkey --wallet.name <WALLET NAME>
 $ bittensor-cli new_hotkey --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
 ```
 
-### 4.2. Running a template miner
+### 4.2. Selecting the network to join 
+There are two open Bittensor networks: Kusanagi and Akatsuki.
+
+- Kusanagi is the test network. Use Kusanagi to get familiar with Bittensor without worrying about losing valuable tokens. 
+- Akatsuki is the main network. The main network will reopen on Bittensor-akatsuki: November 2021.
+
+```bash
+$ export NETWORK=akatsuki 
+$ python (..) --subtensor.network $NETWORK
+```
+
+### 4.3. Running a template miner
 
 The following command will run Bittensor's template miner
 
 ```bash
-$ pip3 install bittensor
 $ python ~/.bittensor/bittensor/miners/text/template_miner.py
 ```
 
 OR with customized settings
 
 ```bash
-$ pip3 install bittensor
 $ python ~/.bittensor/bittensor/miners/text/template_miner.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
 ```
 
@@ -155,12 +169,11 @@ For the full list of settings, please run
 $ python ~/.bittensor/bittensor/miners/text/template_miner.py --help
 ```
 
-### 4.3. Running a template server
+### 4.4. Running a template server
 
 The template server follows a similar structure as the template miner. 
 
 ```bash
-$ pip3 install bittensor
 $ python ~/.bittensor/bittensor/miners/text/template_server.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
 ```
 
@@ -169,6 +182,114 @@ For the full list of settings, please run
 ```bash
 $ python ~/.bittensor/bittensor/miners/text/template_server.py --help
 ```
+
+###  4.5. Subscription to the network
+
+The subscription to the bittensor network is done using the axon. We must first create a bittensor wallet and a bittensor axon to subscribe.
+
+```python
+import bittensor
+
+wallet = bittensor.wallet().create()
+axon = bittensor.axon (
+    wallet = wallet,
+    forward_text = forward_text,
+    backward_text = backward_text
+).start().subscribe()
+```
+
+### 4.6. Syncing with the chain/ Finding the ranks/stake/uids of other nodes
+
+Information from the chain are collected by the metagraph.
+
+```python
+import bittensor
+
+meta = bittensor.metagraph()
+meta.sync()
+
+# --- uid ---
+print(meta.uids)
+
+# --- hotkeys ---
+print(meta.hotkeys)
+
+# --- ranks ---
+print(meta.R)
+
+# --- stake ---
+print(meta.S)
+
+```
+
+### 4.7. Finding and creating the endpoints for other nodes in the network
+
+```python
+import bittensor
+
+meta = bittensor.metagraph()
+meta.sync()
+
+### Address for the node uid 0
+address = meta.endpoints[0]
+endpoint = bittensor.endpoint.from_tensor(address)
+```
+
+### 4.8. Querying others in the network
+
+```python
+import bittensor
+
+meta = bittensor.metagraph()
+meta.sync()
+
+### Address for the node uid 0
+address = meta.endpoints[0]
+
+### Creating the endpoint, wallet, and dendrite
+endpoint = bittensor.endpoint.from_tensor(address)
+wallet = bittensor.wallet().create()
+den = bittensor.dendrite(wallet = wallet)
+
+representations, _ = den.forward_text (
+    endpoints = endpoint,
+    inputs = "Hello World"
+)
+
+```
+
+### 4.9. Creating a Priority Thread Pool for the axon
+
+```python
+import bittensor
+import torch
+from nuclei.server import server
+
+model = server(config=config,model_name='bert-base-uncased',pretrained=True)
+optimizer = torch.optim.SGD( [ {"params": model.parameters()} ], lr = 0.01 )
+threadpool = bittensor.prioritythreadpool(config=config)
+metagraph = bittensor.metagraph().sync()
+
+def forward_text( pubkey, inputs_x ):
+    def call(inputs):
+        return model.encode_forward( inputs )
+
+    uid = metagraph.hotkeys.index(pubkey)
+    priority = metagraph.S[uid].item()
+    future = threadpool.submit(call,inputs=inputs_x,priority=priority)
+    try:
+        return future.result(timeout= model.config.server.forward_timeout)
+    except concurrent.futures.TimeoutError :
+        raise TimeoutError('TimeOutError')
+  
+
+wallet = bittensor.wallet().create()
+axon = bittensor.axon (
+    wallet = wallet,
+    forward_text = forward_text,
+).start().subscribe()
+```
+
 ---
 
 ## 5. License
