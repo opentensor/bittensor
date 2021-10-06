@@ -30,16 +30,27 @@ def test_run_template():
     config = Miner.config()
     config.miner.n_epochs = 1
     config.miner.epoch_length = 2
+    config.wallet.path = '/tmp/pytest'
+    config.wallet.name = 'pytest'
+    config.wallet.hotkey = 'pytest'
+    
+    wallet = bittensor.wallet(
+        path = '/tmp/pytest',
+        name = 'pytest',
+        hotkey = 'pytest',
+    )
+    
     with mock.patch.object(Miner,'forward_text',new=test_forward):
+        
         miner = Miner( config = config )
+        miner.neuron.wallet = wallet.create(coldkey_use_password = False)
+        
         with mock.patch.object(miner.neuron.subtensor, 'get_current_block', new=block.block):
             bittensor.neuron.subtensor.connect = MagicMock(return_value = True)  
             bittensor.neuron.subtensor.is_connected = MagicMock(return_value = True)      
             bittensor.neuron.subtensor.subscribe = MagicMock(return_value = True)  
 
-            # setting password to the coldkey as input
-            with mock.patch('getpass.getpass', return_value = 'bit2021NOV'):
-                miner.run()
+            miner.run()
 
             assert magic.call_count == 1
             assert isinstance(magic.call_args[0][0],str)

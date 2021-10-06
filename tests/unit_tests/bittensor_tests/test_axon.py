@@ -22,8 +22,7 @@ def sign(wallet):
     message  = nounce+str(wallet.hotkey.ss58_address) 
     spliter = 'bitxx'
 
-    with mock.patch('getpass.getpass', return_value = ''):
-        signature = spliter.join([nounce,str(wallet.hotkey.ss58_address),wallet.hotkey.sign(message)])
+    signature = spliter.join([nounce,str(wallet.hotkey.ss58_address),wallet.hotkey.sign(message)])
     return signature
 
 def test_sign():
