@@ -5,7 +5,9 @@ wallet =  bittensor.wallet(
     path = '/tmp/pytest',
     name = 'pytest',
     hotkey = 'pytest',
-) 
+)
+
+wallet = wallet.create(coldkey_use_password=False, hotkey_use_password=False)
 executor = bittensor.executor( wallet = wallet )
 
 def test_create_hotkey():

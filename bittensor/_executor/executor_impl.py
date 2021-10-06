@@ -179,7 +179,8 @@ class Executor:
             if cold == self.wallet.coldkeypub.ss58_address :
                 owned_endpoints.append( endpoints[uid] )
 
-        for endpoint in owned_endpoints:
+        for ep in owned_endpoints:
+            endpoint =  bittensor.endpoint.from_tensor( ep )
             stake = self.metagraph.S[ endpoint.uid ].item()
             result = self.subtensor.unstake( 
                 wallet = self.wallet, 
@@ -212,10 +213,12 @@ class Executor:
                     sys.exit()
                 else:
                     endpoint = endpoints[neuron_uid]
+
         if endpoint == None:
             logger.critical("No Neuron with uid: {} associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.ss58_address))
             sys.exit()
 
+        endpoint =  bittensor.endpoint.from_tensor( endpoint )
 
         unstaking_balance = Balance.from_float( amount_tao )
         stake = self.subtensor.get_stake_for_uid(endpoint.uid)
@@ -265,6 +268,8 @@ class Executor:
             logger.critical("No Neuron with uid: {} associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.ss58_address))
             sys.exit()
 
+
+        endpoint =  bittensor.endpoint.from_tensor( endpoint )
 
         logger.info("Adding stake of \u03C4{} from coldkey {} to hotkey {}".format( staking_balance.tao, self.wallet.coldkey.ss58_address, endpoint.hotkey))
         logger.info("Waiting for finalization...")
