@@ -1,11 +1,13 @@
 <div align="center">
-
 # **Bittensor**
+<!-- omit in toc -->
+
 [![Pushing Image to Docker](https://github.com/opentensor/bittensor/actions/workflows/docker_image_push.yml/badge.svg?branch=master)](https://github.com/opentensor/bittensor/actions/workflows/docker_image_push.yml)
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/3rUr6EcvbB)
 [![PyPI version](https://badge.fury.io/py/bittensor.svg)](https://badge.fury.io/py/bittensor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ---
+<!-- omit in toc -->
 
 ### Internet-scale Neural Networks
 
@@ -15,15 +17,13 @@
 
 Bittensor is a market which monetizes intelligence production accross the internet. Validators price this information by learning to speculate on its value against unsupervised objectives. Producers who perform well are rewarded with token inflation. Consumers purchase this currency to gain access to network. Bittensor is collectively-run, open-source, and open-access. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
 
-- [**Bittensor**](#bittensor)
-  - [![License: MIT](https://opensource.org/licenses/MIT)](#)
-    - [Internet-scale Neural Networks](#internet-scale-neural-networks)
-  - [Install](#install)
-  - [Consumer](#consumer)
-  - [Producer](#producer)
-  - [Validator](#validator)
-  - [License](#license)
-  - [Acknowledgments](#acknowledgments)
+- [![License: MIT](https://opensource.org/licenses/MIT)](#)
+- [Install](#install)
+- [Consumer](#consumer)
+- [Producer](#producer)
+- [Validator](#validator)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
 
 ## Install
 
