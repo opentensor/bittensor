@@ -14,7 +14,7 @@
 
 </div>
 
-Bittensor is a market which monetizes intelligence production accross the internet. Validators price this information by learning to speculate on its value against unsupervised objectives. Producers who perform well are rewarded with token inflation. Consumers purchase this currency to gain access to network. Bittensor is collectively-run, open-source, and open-access. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
+At Bittensor, we are creating an open, decentralized, peer-to-peer network that functions as a market system for the development of artificial intelligence. Our purpose is not only to accelerate the development of AI by creating an environment optimally condusive to its evolution, but to democratize the global production and use of this valuable commodity. Our aim is to disrupt the status quo: a system that is centrally controlled, inefficient and unsustainable. In developing the Bittensor API, we are allowing standalone engineers to monetize their work, gain access to sophisticated machine intelligence models and join our community of creative, forward-thinking individuals. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
 
 - [1. Documentation](#1-documentation)
 - [2. Install](#2-install)
