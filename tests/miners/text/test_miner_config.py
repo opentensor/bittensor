@@ -41,7 +41,9 @@ def test_run_template_config():
             bittensor.neuron.subtensor.connect = MagicMock(return_value = True)  
             bittensor.neuron.subtensor.is_connected = MagicMock(return_value = True)
             bittensor.neuron.subtensor.subscribe = MagicMock(return_value = True)  
-            miner.run()
+            
+            with mock.patch('getpass.getpass', return_value = 'bit2021NOV'):
+                miner.run()
 
             assert magic.call_count == 1
             assert isinstance(magic.call_args[0][0],str)
