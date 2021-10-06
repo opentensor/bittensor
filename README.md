@@ -15,6 +15,16 @@
 
 Bittensor is a market which monetizes intelligence production accross the internet. Validators price this information by learning to speculate on its value against unsupervised objectives. Producers who perform well are rewarded with token inflation. Consumers purchase this currency to gain access to network. Bittensor is collectively-run, open-source, and open-access. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
 
+- [**Bittensor**](#bittensor)
+  - [![License: MIT](https://opensource.org/licenses/MIT)](#)
+    - [Internet-scale Neural Networks](#internet-scale-neural-networks)
+  - [Install](#install)
+  - [Consumer](#consumer)
+  - [Producer](#producer)
+  - [Validator](#validator)
+  - [License](#license)
+  - [Acknowledgments](#acknowledgments)
+
 ## Install
 
 ```bash
@@ -94,7 +104,7 @@ bittensor.subtensor().set_weights (
 
 ---
 
-### License
+## License
 The MIT License (MIT)
 Copyright © 2021 Yuma Rao
 
@@ -105,5 +115,5 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-### Acknowledgments
+## Acknowledgments
 **learning-at-home/hivemind**
