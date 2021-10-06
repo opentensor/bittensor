@@ -37,6 +37,7 @@ def test_run_template():
             bittensor.neuron.subtensor.is_connected = MagicMock(return_value = True)      
             bittensor.neuron.subtensor.subscribe = MagicMock(return_value = True)  
 
+            # setting password to the coldkey as input
             with mock.patch('getpass.getpass', return_value = 'bit2021NOV'):
                 miner.run()
 
