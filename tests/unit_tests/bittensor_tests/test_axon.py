@@ -11,18 +11,24 @@ wallet =  bittensor.wallet (
     name = 'pytest',
     hotkey = 'pytest',
 ) 
-def sign(wallet):
-    nounce = datetime.now().strftime(format= '%m%d%Y%H%M%S%f')
-    message  = nounce+str(wallet.hotkey.ss58_address) 
-    spliter = 'bitxx'
-    signature = spliter.join([nounce,str(wallet.hotkey.ss58_address),wallet.hotkey.sign(message)])
-    return signature
-
 
 wallet.create_new_coldkey( use_password=False, overwrite = True)
 wallet.create_new_hotkey( use_password=False, overwrite = True)
 
 axon = bittensor.axon(wallet = wallet)
+
+def sign(wallet):
+    nounce = datetime.now().strftime(format= '%m%d%Y%H%M%S%f')
+    message  = nounce+str(wallet.hotkey.ss58_address) 
+    spliter = 'bitxx'
+
+    with mock.patch('getpass.getpass', return_value = ''):
+        signature = spliter.join([nounce,str(wallet.hotkey.ss58_address),wallet.hotkey.sign(message)])
+    return signature
+
+def test_sign():
+    sign(wallet)
+    sign(axon.wallet)
 
 def test_forward_not_implemented():
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
@@ -49,7 +55,6 @@ def test_forward_tensor_success():
     )
     response, code, call_time, message = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.Success
-
 
 def test_forward_tensor_success_image():
     def forward( pubkey:str, inputs_x: torch.FloatTensor):
@@ -180,7 +185,6 @@ def test_forward_response_deserialization_error():
     response, code, call_time, message = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.ResponseDeserializationException
 
-
 def test_forward_tensor_exception():
     def forward( pubkey:str, inputs_x: torch.FloatTensor):
         if pubkey == '_':
@@ -274,7 +278,6 @@ def test_backward_deserialization_error():
     response, code, call_time, message  = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.RequestDeserializationException
 
-
 def test_backward_text_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
@@ -317,7 +320,6 @@ def test_backward_tensor_shape_error():
     response, code, call_time, message  = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
-
 def test_backward_grads_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(1, 1, 1, bittensor.__network_dim__)
@@ -331,7 +333,6 @@ def test_backward_grads_shape_error():
     )
     response, code, call_time, message  = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.RequestShapeException
-
 
 def test_backward_grad_inputs_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
@@ -364,7 +365,6 @@ def test_backward_response_serialization_error():
     response, code, call_time, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.ResponseSerializationException
 
-
 def test_backward_response_empty_error():
     def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ):
         return None
@@ -381,7 +381,6 @@ def test_backward_response_empty_error():
     )
     response, code, call_time, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.EmptyResponse
-
 
 def test_backward_response_success_text():
     def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
@@ -434,7 +433,6 @@ def test_backward_response_success():
     response, code, call_time, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.Success
 
-
 def test_backward_response_timeout():
     def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
         if pubkey == '_':
@@ -454,7 +452,6 @@ def test_backward_response_timeout():
     )
     response, code, call_time, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.Timeout
-
 
 def test_backward_response_exception():
     def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
@@ -476,13 +473,13 @@ def test_backward_response_exception():
     response, code, call_time, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.UnknownException
 
-
 def test_grpc_forward_works():
     def forward( pubkey:str, inputs_x:torch.FloatTensor):
         return torch.zeros( [1, 1, 1])
     axon = bittensor.axon (
         port = 8080,
         ip = '127.0.0.1',
+        wallet = wallet,
     )
     axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TENSOR )
     axon.start()
@@ -519,6 +516,7 @@ def test_grpc_backward_works():
     axon = bittensor.axon (
         port = 8080,
         ip = '127.0.0.1',
+        wallet = wallet,
     )
     axon.attach_backward_callback( backward , modality = bittensor.proto.Modality.TENSOR)
     axon.start()
@@ -555,6 +553,7 @@ def test_grpc_forward_fails():
     axon = bittensor.axon (
         port = 8080,
         ip = '127.0.0.1',
+        wallet = wallet,
     )
     axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TENSOR )
     axon.start()
@@ -588,6 +587,7 @@ def test_grpc_backward_fails():
     axon = bittensor.axon (
         port = 8080,
         ip = '127.0.0.1',
+        wallet = wallet
     )
     axon.attach_backward_callback( backward , modality = bittensor.proto.Modality.TENSOR)
     axon.start()
