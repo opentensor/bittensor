@@ -2,10 +2,8 @@ from sys import version
 import grpc
 import torch
 import bittensor
-import time
 
 from unittest.mock import MagicMock
-import unittest.mock as mock
 
 # --- Receptor Pool ---
 
@@ -60,26 +58,3 @@ def test_receptor_pool_max_workers_forward():
     x = torch.ones( (2,2,2) )
     resp1,  _, _ = receptor_pool.forward( endpoints, x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert list(torch.stack(resp1, dim=0).shape) == [2, 2, 2, bittensor.__network_dim__]
-
-def test_receptor_pool_forward_hang():
-    endpoints = [neuron_obj,neuron_obj]
-    x = torch.ones( (2,2,2) )
-    def sleep(request ,timeout,metadata):
-        time.sleep(20)
-    receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
-    with mock.patch.object(receptor_pool.receptors[neuron_obj.hotkey].stub, 'Forward', new=sleep): 
-        resp1,  codes, _ = receptor_pool.forward( endpoints, x, bittensor.proto.Modality.TENSOR, timeout=1)
-        assert codes == [bittensor.proto.ReturnCode.Timeout,bittensor.proto.ReturnCode.Timeout]
-
-def test_receptor_pool_backward_hang():
-    endpoints = [neuron_obj,neuron_obj]
-    x = torch.ones( (2,2,2) )
-    def sleep(request ,timeout,metadata):
-        time.sleep(20)
-    receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
-    with mock.patch.object(receptor_pool.receptors[neuron_obj.hotkey].stub, 'Backward', new=sleep): 
-        resp1,  codes, _ = receptor_pool.backward( endpoints, x,x, bittensor.proto.Modality.TENSOR, timeout=1)
-        assert codes == [bittensor.proto.ReturnCode.Timeout,bittensor.proto.ReturnCode.Timeout]
-
-if __name__ == "__main__":
-    test_receptor_pool_forward_hang()
