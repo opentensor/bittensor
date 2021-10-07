@@ -40,7 +40,7 @@ from nuclei.server import server
 import sys
 import os
 import torch.nn.functional as F
-
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 def main( config ):
 
@@ -168,8 +168,8 @@ def main( config ):
     # --- Init Wandb.
     bittensor.wandb(
         config = config,
-        cold_pubkey = wallet.coldkeypub,
-        hot_pubkey = wallet.hotkey.public_key,
+        cold_pubkey = wallet.coldkeypub.ss58_address,
+        hot_pubkey = wallet.hotkey.ss58_address,
         root_dir = full_path
     )
 
