@@ -82,6 +82,7 @@ class Receptor(nn.Module):
             backward_bytes_out = stat_utils.timed_rolling_avg(0.0, 0.01),
             backward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.01),
             codes = {
+                bittensor.proto.ReturnCode.NoReturn: 0,
                 bittensor.proto.ReturnCode.Success: 0,
                 bittensor.proto.ReturnCode.Timeout: 0,
                 bittensor.proto.ReturnCode.Backoff: 0,
@@ -239,6 +240,12 @@ class Receptor(nn.Module):
                 call_time = clock.time() - start_time
                 bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=message )
                 return zeros, code, call_time, message
+            elif self.endpoint.uid == -1:
+                code = bittensor.proto.ReturnCode.EmptyRequest
+                message = 'bad endpoint'
+                call_time = clock.time() - start_time
+                bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message  )
+                return zeros, code, call_time, message
 
             # ---- Inputs Serialization ----
             try:
@@ -255,7 +262,7 @@ class Receptor(nn.Module):
             request = bittensor.proto.TensorMessage (
                 version = bittensor.__version_as_int__,
                 hotkey = self.wallet.hotkey.ss58_address,
-                tensors = [serialized_inputs]
+                tensors = [serialized_inputs],
             )
         
             # ---- Make RPC call ----
@@ -285,8 +292,11 @@ class Receptor(nn.Module):
                 # ---- Catch non-code ----
                 try:
                     bittensor_code = response.return_code
-                except Exception:
-                    code = bittensor.proto.ReturnCode.UnknownException
+                except:
+                    bittensor_code = bittensor.proto.ReturnCode.NoReturn
+
+                if bittensor_code == bittensor.proto.ReturnCode.NoReturn:
+                    code = bittensor.proto.ReturnCode.NoReturn
                     message = 'no return code.'
                     call_time = clock.time() - start_time
                     bittensor.logging.rpc_log( axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=response_message  )
@@ -437,6 +447,14 @@ class Receptor(nn.Module):
             call_time = clock.time() - start_time
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
             return zeros, code, call_time, message
+        
+        if self.endpoint.uid == -1:
+            code = bittensor.proto.ReturnCode.EmptyRequest
+            message = 'bad endpoint'
+            call_time = clock.time() - start_time
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
+            return zeros, code, call_time, message
+
 
         # ---- Check grads size ----
         if torch.numel( grads_dy ) == 0:
@@ -463,8 +481,9 @@ class Receptor(nn.Module):
             request = bittensor.proto.TensorMessage(
                 version = bittensor.__version_as_int__,
                 hotkey = self.wallet.hotkey.ss58_address,
-                tensors = [serialized_inputs, serialized_grads]
+                tensors = [serialized_inputs, serialized_grads],
             )
+            
             call_time = clock.time() - start_time
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=bittensor.proto.ReturnCode.Success, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=None)
             response = self.stub.Backward(request = request, 
@@ -522,8 +541,11 @@ class Receptor(nn.Module):
         # ---- Catch Code Errors ----
         try:
             bittensor_code = response.return_code
-        except Exception:
-            code = bittensor.proto.ReturnCode.UnknownException
+        except:
+            bittensor_code = bittensor.proto.ReturnCode.NoReturn
+
+        if bittensor_code == bittensor.proto.ReturnCode.NoReturn:
+            code = bittensor.proto.ReturnCode.NoReturn
             message = 'no response code.'
             call_time = clock.time() - start_time
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
@@ -556,12 +578,10 @@ class Receptor(nn.Module):
             call_time = clock.time() - start_time
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
             return zeros, code, call_time, message
-            
         try:
             # ---- Check response shape is same as inputs ----
-            if  outputs.size(0) != inputs_x.size(0) \
-                or outputs.size(1) != inputs_x.size(1) \
-                or outputs.size(2) != inputs_x.size(2):
+            if  outputs.size() != inputs_x.size():
+
                 code = bittensor.proto.ReturnCode.ResponseShapeException 
                 message = 'output shape does not match inputs shape'
                 call_time = clock.time() - start_time
@@ -570,9 +590,11 @@ class Receptor(nn.Module):
         except Exception as e:
             code = bittensor.proto.ReturnCode.UnknownException
             message = 'Size Error: {}'.format(e)
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
-            return zeros, code, message
+            call_time = clock.time() - start_time
 
+            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
+            return zeros, code, call_time, message
+            
         # ---- Safe catch NaNs and replace with 0.0 ----
         outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
    

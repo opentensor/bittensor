@@ -87,29 +87,30 @@ message TensorMessage {
 
 // Return codes from Backward and Forward call.
 enum ReturnCode {
-	Success = 0; // Succesfull query.
-	Timeout = 1; // Request timeout.
-	Backoff = 2; // Call triggered a backoff.
-	Unavailable = 3; // Endpoint not available.
-	NotImplemented = 4; // Modality not implemented.
-	EmptyRequest = 5; // Request is empty.
-	EmptyResponse = 6; // Response is empty.
-	InvalidResponse = 7; // Request is invalid.
-	InvalidRequest = 8; // Response is invalid.
-	RequestShapeException = 9; // Request has invalid shape.
-	ResponseShapeException = 10; // Response has invalid shape.
-	RequestSerializationException = 11; // Request failed to serialize.
-	ResponseSerializationException = 12; // Response failed to serialize.
-	RequestDeserializationException = 13; // Request failed to deserialize.
-	ResponseDeserializationException = 14; // Response failed to deserialize.
-	NotServingNucleus = 15; // Receiving Neuron is not serving a Nucleus to query.
-	NucleusTimeout = 16; // Processing on the server side timeout.
-	NucleusFull = 17; // Returned when the processing queue on the server is full.
-	RequestIncompatibleVersion = 18; // The request handler is incompatible with the request version.
-	ResponseIncompatibleVersion = 19; // The request handler is incompatible with the request version.
-	SenderUnknown = 20; // The requester is not known by the reciever. 
-	UnknownException = 21; // Unknown exception.
-	Unauthenticated = 22; // Authentication failed.
+	NoReturn = 0; // Default Value
+	Success = 1; // Succesfull query.
+	Timeout = 2; // Request timeout.
+	Backoff = 3; // Call triggered a backoff.
+	Unavailable = 4; // Endpoint not available.
+	NotImplemented = 5; // Modality not implemented.
+	EmptyRequest = 6; // Request is empty.
+	EmptyResponse = 7; // Response is empty.
+	InvalidResponse = 8; // Request is invalid.
+	InvalidRequest = 9; // Response is invalid.
+	RequestShapeException = 10; // Request has invalid shape.
+	ResponseShapeException = 11; // Response has invalid shape.
+	RequestSerializationException = 12; // Request failed to serialize.
+	ResponseSerializationException = 13; // Response failed to serialize.
+	RequestDeserializationException = 14; // Request failed to deserialize.
+	ResponseDeserializationException = 15; // Response failed to deserialize.
+	NotServingNucleus = 16; // Receiving Neuron is not serving a Nucleus to query.
+	NucleusTimeout = 17; // Processing on the server side timeout.
+	NucleusFull = 18; // Returned when the processing queue on the server is full.
+	RequestIncompatibleVersion = 19; // The request handler is incompatible with the request version.
+	ResponseIncompatibleVersion = 20; // The request handler is incompatible with the request version.
+	SenderUnknown = 21; // The requester is not known by the reciever. 
+	UnknownException = 22; // Unknown exception.
+	Unauthenticated = 23; // Authentication failed.
 }
 
 // A serialized tensor object created using the serializer class.

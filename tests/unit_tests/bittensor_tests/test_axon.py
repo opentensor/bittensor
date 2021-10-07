@@ -3,6 +3,8 @@ import grpc
 import bittensor
 from datetime import datetime
 import logging
+import pytest
+import unittest.mock as mock
 
 wallet =  bittensor.wallet (
     path = '/tmp/pytest',
@@ -48,6 +50,21 @@ def test_forward_tensor_success():
     response, code, call_time, message = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.Success
 
+
+def test_forward_tensor_success_image():
+    def forward( pubkey:str, inputs_x: torch.FloatTensor):
+        return torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
+    axon.attach_forward_callback( forward, modality=1)
+    inputs_raw = torch.rand(1,1,1, 1, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version_as_int__,
+        tensors=[inputs_serialized]
+    )
+    response, code, call_time, message = axon._forward( request )
+    assert code == bittensor.proto.ReturnCode.Success
+
 def test_forward_empty_request():
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -71,6 +88,30 @@ def test_forward_deserialization_error():
     response, code, call_time, message  = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.RequestDeserializationException
 
+def test_forward_batch_shape_error():
+    inputs_raw = torch.rand(0, 1, 1)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        hotkey = axon.wallet.hotkey.ss58_address,
+        tensors=[ inputs_serialized ]
+    )
+    response, code, call_time, message  = axon._forward( request )
+    assert code == bittensor.proto.ReturnCode.RequestShapeException
+
+def test_forward_seq_shape_error():
+    inputs_raw = torch.rand(1, 0, 1)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        hotkey = axon.wallet.hotkey.ss58_address,
+        tensors=[ inputs_serialized ]
+    )
+    response, code, call_time, message  = axon._forward( request )
+    assert code == bittensor.proto.ReturnCode.RequestShapeException
+
 def test_forward_text_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
     serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -86,7 +127,7 @@ def test_forward_text_shape_error():
 def test_forward_image_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
     serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
         hotkey = axon.wallet.hotkey.ss58_address,
@@ -98,7 +139,7 @@ def test_forward_image_shape_error():
 def test_forward_tensor_shape_error():
     inputs_raw = torch.rand(1, 1, 1, 1)
     serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
         hotkey = axon.wallet.hotkey.ss58_address,
@@ -107,7 +148,7 @@ def test_forward_tensor_shape_error():
     response, code, call_time, message  = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
-def test_forward_deserialization():
+def test_forward_deserialization_empty():
     def forward( pubkey:str, inputs_x: torch.Tensor):
         return None
     axon.attach_forward_callback( forward, modality = bittensor.proto.Modality.TENSOR)
@@ -123,6 +164,78 @@ def test_forward_deserialization():
     response, code, call_time, message = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.EmptyResponse
 
+def test_forward_response_deserialization_error():
+    def forward( pubkey:str, inputs_x: torch.Tensor):
+        return dict()
+    axon.attach_forward_callback( forward, modality = bittensor.proto.Modality.TENSOR)
+    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+  
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version_as_int__,
+        hotkey = axon.wallet.hotkey.ss58_address,
+        tensors=[inputs_serialized]
+    )
+    response, code, call_time, message = axon._forward( request )
+    assert code == bittensor.proto.ReturnCode.ResponseDeserializationException
+
+
+def test_forward_tensor_exception():
+    def forward( pubkey:str, inputs_x: torch.FloatTensor):
+        if pubkey == '_':
+            return None
+        else:
+            raise Exception('Mock')
+    axon.attach_forward_callback( forward, modality=2)
+    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version_as_int__,
+        tensors=[inputs_serialized],
+        hotkey= '123'
+    )
+    response, code, call_time, message = axon._forward( request )
+    assert code == bittensor.proto.ReturnCode.UnknownException
+
+def test_forward_tensor_timeout():
+    def forward( pubkey:str, inputs_x: torch.FloatTensor):
+        if pubkey == '_':
+            return None
+        else:
+            raise TimeoutError('Timeout')
+    axon.attach_forward_callback( forward, modality=2)
+    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version_as_int__,
+        tensors=[inputs_serialized],
+        hotkey= '123'
+    )
+
+    response, code, call_time, message = axon._forward( request )
+    assert code == bittensor.proto.ReturnCode.Timeout
+
+def test_forward_unknown_error():
+    def forward( pubkey:str, inputs_x: torch.FloatTensor,modality):
+        raise Exception('Unknown')
+    with mock.patch.object(axon, '_call_forward', new=forward):
+        inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
+        serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+        inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+        request = bittensor.proto.TensorMessage(
+            version = bittensor.__version_as_int__,
+            tensors=[inputs_serialized],
+            hotkey= '123'
+        )
+
+        response, code, call_time, message = axon._forward( request )
+        assert code == bittensor.proto.ReturnCode.UnknownException
+
+#--- backwards ---
+
 def test_backward_invalid_request():
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
@@ -136,6 +249,19 @@ def test_backward_invalid_request():
     response, code, call_time, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.InvalidRequest
 
+def test_backward_response_not_implemented():
+    inputs_raw = torch.rand(1, 1, 1)
+    grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        hotkey = axon.wallet.hotkey.ss58_address,
+        tensors=[ inputs_serialized, grads_serialized]
+    )
+    response, code, call_time, message = axon._backward( request )
+    assert code == bittensor.proto.ReturnCode.NotImplemented
 
 def test_backward_deserialization_error():
     x = dict()  # Not tensors that can be deserialized.
@@ -192,6 +318,21 @@ def test_backward_tensor_shape_error():
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
 
+def test_backward_grads_shape_error():
+    inputs_raw = torch.rand(1, 1, 1)
+    grads_raw = torch.rand(1, 1, 1, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        hotkey = axon.wallet.hotkey.ss58_address,
+        tensors=[ inputs_serialized, grads_serialized]
+    )
+    response, code, call_time, message  = axon._backward( request )
+    assert code == bittensor.proto.ReturnCode.RequestShapeException
+
+
 def test_backward_grad_inputs_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(2, 1, bittensor.__network_dim__)
@@ -206,7 +347,25 @@ def test_backward_grad_inputs_shape_error():
     response, code, call_time, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
-def test_backward_response_deserialization_error():
+def test_backward_response_serialization_error():
+    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ):
+        return dict() 
+    axon.attach_backward_callback( backward,modality=bittensor.proto.Modality.TENSOR)
+    inputs_raw = torch.rand(1, 1, 1)
+    grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        hotkey = axon.wallet.hotkey.ss58_address,
+        tensors=[ inputs_serialized, grads_serialized]
+    )
+    response, code, call_time, message = axon._backward( request )
+    assert code == bittensor.proto.ReturnCode.ResponseSerializationException
+
+
+def test_backward_response_empty_error():
     def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ):
         return None
     axon.attach_backward_callback( backward,modality=bittensor.proto.Modality.TENSOR)
@@ -222,6 +381,41 @@ def test_backward_response_deserialization_error():
     )
     response, code, call_time, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.EmptyResponse
+
+
+def test_backward_response_success_text():
+    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
+        return torch.zeros( [1, 1])
+    axon.attach_backward_callback( backward,modality = bittensor.proto.Modality.TEXT )
+    inputs_raw = torch.ones((1, 1))
+    grads_raw = torch.zeros((1, 1, bittensor.__network_dim__))
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        hotkey = axon.wallet.hotkey.ss58_address,
+        tensors=[ inputs_serialized, grads_serialized]
+    )
+    response, code, call_time, message = axon._backward( request )
+    assert code == bittensor.proto.ReturnCode.Success
+
+def test_backward_response_success_image():
+    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
+        return torch.zeros( [1, 1])
+    axon.attach_backward_callback( backward,modality = bittensor.proto.Modality.IMAGE )
+    inputs_raw = torch.ones((1, 1,1,1,1))
+    grads_raw = torch.zeros((1, 1, bittensor.__network_dim__))
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
+    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        hotkey = axon.wallet.hotkey.ss58_address,
+        tensors=[ inputs_serialized, grads_serialized]
+    )
+    response, code, call_time, message = axon._backward( request )
+    assert code == bittensor.proto.ReturnCode.Success
 
 def test_backward_response_success():
     def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
@@ -239,6 +433,49 @@ def test_backward_response_success():
     )
     response, code, call_time, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.Success
+
+
+def test_backward_response_timeout():
+    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
+        if pubkey == '_':
+            return None
+        else:
+            raise TimeoutError('Timeout')
+    axon.attach_backward_callback( backward,modality = bittensor.proto.Modality.TENSOR )
+    inputs_raw = torch.rand(1, 1, 1)
+    grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        hotkey = axon.wallet.hotkey.ss58_address,
+        tensors=[ inputs_serialized, grads_serialized]
+    )
+    response, code, call_time, message = axon._backward( request )
+    assert code == bittensor.proto.ReturnCode.Timeout
+
+
+def test_backward_response_exception():
+    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
+        if pubkey == '_':
+            return None
+        else:
+            raise Exception('Timeout')
+    axon.attach_backward_callback( backward,modality = bittensor.proto.Modality.TENSOR )
+    inputs_raw = torch.rand(1, 1, 1)
+    grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        hotkey = axon.wallet.hotkey.ss58_address,
+        tensors=[ inputs_serialized, grads_serialized]
+    )
+    response, code, call_time, message = axon._backward( request )
+    assert code == bittensor.proto.ReturnCode.UnknownException
+
 
 def test_grpc_forward_works():
     def forward( pubkey:str, inputs_x:torch.FloatTensor):
