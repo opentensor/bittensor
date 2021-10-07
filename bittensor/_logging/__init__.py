@@ -23,29 +23,13 @@ import sys
 import argparse
 import copy
 
-import rollbar
 from loguru import logger
 
 import bittensor
 
 logger = logger.opt(colors=True)
 
-# Handler which sends messages to a rollbar server.
-class RollbarHandler:
-    """ Handles error report 
-    """
-    def write(self, message):
-        """ Report the message with rollbar
-        """
-        record = message.record
-        if record['level'].name == "WARNING":
-            rollbar.report_message(message, 'warning')
-        elif record['level'].name == "ERROR":
-            rollbar.report_message(message, 'error')
-        else:
-            pass
-
- # Remove default sink.
+# Remove default sink.
 try:
     logger.remove( 0 )
 except Exception:
@@ -59,7 +43,6 @@ class logging:
     __trace_on__:bool = False
     __std_sink__:int = None
     __file_sink__:int = None
-    __rollbar_sink__:int = None
 
     def __new__(
             cls,
@@ -89,8 +72,6 @@ class logging:
         # Optionally Remove other sinks.
         if cls.__std_sink__ != None:
             logger.remove( cls.__std_sink__ )
-        if cls.__rollbar_sink__ != None:
-            logger.remove( cls.__rollbar_sink__ )
         if cls.__file_sink__ != None:
             logger.remove( cls.__file_sink__ )
 
@@ -104,23 +85,6 @@ class logging:
             diagnose = True,
             format = cls.log_formatter
         )
-
-        # Add filtered rollbar handler.
-        rollbar_token = os.environ.get("ROLLBAR_TOKEN", False)
-        rollbar_env = "production"
-        rollbar_handler = RollbarHandler()
-        if rollbar_token:
-            # Rollbar is enabled.
-            logger.info("Error reporting enabled using {}:{}", rollbar_token, rollbar_env)
-            rollbar.init(rollbar_token, rollbar_env)
-            cls.__rollbar_sink__ = logger.add (
-                sink = rollbar_handler,
-                level = 'WARNING',
-                colorize = True,
-                enqueue = True,
-                backtrace = True,
-                diagnose = True,
-            )
 
         cls.set_debug(config.logging.debug)
         cls.set_trace(config.logging.trace)
