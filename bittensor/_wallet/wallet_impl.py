@@ -33,8 +33,7 @@ from substrateinterface.utils.ss58 import ss58_encode
 
 import bittensor
 from bittensor.utils.cli_utils import cli_utils
-from bittensor._crypto import encrypt_to_file, is_encrypted, decrypt_file, CryptoKeyError
-from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
+from bittensor._wallet.wallet_util import encrypt_to_file, is_encrypted, decrypt_file,load_keypair_from_data, CryptoKeyError , KeyFileError
 
 logger = logger.opt(colors=True)
 

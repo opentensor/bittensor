@@ -1,5 +1,5 @@
 import bittensor
-from bittensor._crypto import encrypt_to_file, is_encrypted, decrypt_file, CryptoKeyError
+from bittensor._wallet.wallet_util import encrypt_to_file, is_encrypted, decrypt_file, CryptoKeyError
 from unittest.mock import MagicMock
 import os
 import shutil
@@ -51,9 +51,10 @@ def check_keys_exists(the_wallet = None):
     assert the_wallet._coldkeypub != None
 
 def test_encrypt_and_decrypt():
-    init_wallet()
-    password = "bit2021SEP"
     file = '/tmp/pytest_test_encrypt_and_decrypt'
+    if os.path.isfile(file):
+        os.remove(file)
+    password = "bit2021SEP"
     encrypt_to_file("data", password, file)
     assert is_encrypted(file) == True
     data = decrypt_file(password, file)
