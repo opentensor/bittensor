@@ -26,48 +26,50 @@ def code_to_string( code: bittensor.proto.ReturnCode ) -> str:
     """ Return code -> string
     """
     if code == 0: 
+        return 'NoReturn'
+    elif code == 1: 
         return 'Success'
-    elif code == 1:
-        return 'Timeout'
     elif code == 2:
-        return 'Backoff'
+        return 'Timeout'
     elif code == 3:
-        return 'Unavailable'
+        return 'Backoff'
     elif code == 4:
-        return 'NotImplemented'
+        return 'Unavailable'
     elif code == 5:
-        return 'EmptyRequest'
+        return 'NotImplemented'
     elif code == 6:
-        return 'EmptyResponse'
+        return 'EmptyRequest'
     elif code == 7:
-        return 'InvalidResponse'
+        return 'EmptyResponse'
     elif code == 8:
-        return 'InvalidRequest'
+        return 'InvalidResponse'
     elif code == 9:
-        return 'RequestShapeException'
+        return 'InvalidRequest'
     elif code == 10:
-        return 'ResponseShapeException'
+        return 'RequestShapeException'
     elif code == 11:
-        return 'RequestSerializationException'
+        return 'ResponseShapeException'
     elif code == 12:
-        return 'ResponseSerializationException'
+        return 'RequestSerializationException'
     elif code == 13:
-        return 'RequestDeserializationException'
+        return 'ResponseSerializationException'
     elif code == 14:
-        return 'ResponseDeserializationException'
+        return 'RequestDeserializationException'
     elif code == 15:
-        return 'NotServingNucleus'
+        return 'ResponseDeserializationException'
     elif code == 16:
-        return 'NucleusTimeout'
+        return 'NotServingNucleus'
     elif code == 17:
-        return 'NucleusFull'
+        return 'NucleusTimeout'
     elif code == 18:
-        return 'RequestIncompatibleVersion'
+        return 'NucleusFull'
     elif code == 19:
-        return 'ResponseIncompatibleVersion'
+        return 'RequestIncompatibleVersion'
     elif code == 20:
-        return 'SenderUnknown'
+        return 'ResponseIncompatibleVersion'
     elif code == 21:
+        return 'SenderUnknown'
+    elif code == 22:
         return 'UnknownException'
     else:
         return 'UnknownCode'
@@ -126,13 +128,13 @@ def code_to_loguru_color( code: bittensor.proto.ReturnCode ) -> str:
     """ Return code -> loguru color
     """
     if code == 0: 
+        return 'red'
+    elif code == 1: 
         return 'green'
-    elif code == 1:
-        return 'yellow'
     elif code == 2:
         return 'yellow'
     elif code == 3:
-        return 'red'
+        return 'yellow'
     elif code == 4:
         return 'red'
     elif code == 5:
@@ -158,16 +160,18 @@ def code_to_loguru_color( code: bittensor.proto.ReturnCode ) -> str:
     elif code == 15:
         return 'red'
     elif code == 16:
-        return 'yellow'
+        return 'red'
     elif code == 17:
         return 'yellow'
     elif code == 18:
-        return 'red'
+        return 'yellow'
     elif code == 19:
         return 'red'
     elif code == 20:
         return 'red'
     elif code == 21:
+        return 'red'
+    elif code == 22:
         return 'red'
     else:
         return 'red'
