@@ -39,6 +39,10 @@ __akatsuki_entrypoints__ = [
     "main.akatsuki.bittensor.com:9944"
 ]
 
+__kusanagi_entrypoints__ = [
+    "test.kusanagi.bittensor.com:9944"
+]
+
 __nobunaga_entrypoints__ = [
     'staging.nobunaga.opentensor.ai'
 ]
