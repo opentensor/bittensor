@@ -296,13 +296,13 @@ class Wallet():
         """
         return self.create(coldkey_use_password, hotkey_use_password)
 
-    def create (self, coldkey_use_password:bool = True, hotkey_use_password:bool = True ) -> 'Wallet':
+    def create (self, coldkey_use_password:bool = True, hotkey_use_password:bool = False ) -> 'Wallet':
         """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
 
         """
         return self.create(coldkey_use_password, hotkey_use_password)
 
-    def create (self, coldkey_use_password:bool = True, hotkey_use_password:bool = True ) -> 'Wallet':
+    def create (self, coldkey_use_password:bool = True, hotkey_use_password:bool = False ) -> 'Wallet':
         """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
 
         """
