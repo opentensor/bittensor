@@ -82,6 +82,7 @@ class Receptor(nn.Module):
             backward_bytes_out = stat_utils.timed_rolling_avg(0.0, 0.01),
             backward_bytes_in = stat_utils.timed_rolling_avg(0.0, 0.01),
             codes = {
+                bittensor.proto.ReturnCode.NoReturn: 0,
                 bittensor.proto.ReturnCode.Success: 0,
                 bittensor.proto.ReturnCode.Timeout: 0,
                 bittensor.proto.ReturnCode.Backoff: 0,
@@ -291,8 +292,11 @@ class Receptor(nn.Module):
                 # ---- Catch non-code ----
                 try:
                     bittensor_code = response.return_code
-                except Exception:
-                    code = bittensor.proto.ReturnCode.UnknownException
+                except:
+                    bittensor_code = bittensor.proto.ReturnCode.NoReturn
+
+                if bittensor_code == bittensor.proto.ReturnCode.NoReturn:
+                    code = bittensor.proto.ReturnCode.NoReturn
                     message = 'no return code.'
                     call_time = clock.time() - start_time
                     bittensor.logging.rpc_log( axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=response_message  )
@@ -537,8 +541,11 @@ class Receptor(nn.Module):
         # ---- Catch Code Errors ----
         try:
             bittensor_code = response.return_code
-        except Exception:
-            code = bittensor.proto.ReturnCode.UnknownException
+        except:
+            bittensor_code = bittensor.proto.ReturnCode.NoReturn
+
+        if bittensor_code == bittensor.proto.ReturnCode.NoReturn:
+            code = bittensor.proto.ReturnCode.NoReturn
             message = 'no response code.'
             call_time = clock.time() - start_time
             bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
