@@ -324,7 +324,7 @@ def main( config ):
             'Epoch_loss': epoch_loss
         } 
 
-        real_topk = min( config.miner.n_topk_peer_weights, metagraph.n.item() ) 
+        real_topk = min( config.miner.n_topk_peer_weights, metagraph.n.item() ,len(torch.where(metagraph.active > 0)[0])) 
         topk_norm_weights, topk_uids = torch.topk( F.softmax( validator.peer_weights.detach() ), k = real_topk )
         respond_rate = validator.logs.responded_peers_count / validator.logs.quested_peers_count
         
