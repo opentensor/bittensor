@@ -489,6 +489,7 @@ def test_axon_receptor_connection_forward_works():
         forward_tensor= forward,
         port = 8080,
         ip = '127.0.0.1',
+        wallet = wallet,
     )
     axon.start()
     
@@ -521,6 +522,7 @@ def test_axon_receptor_connection_forward_unauthenticated():
         forward_tensor= forward,
         port = 8080,
         ip = '127.0.0.1',
+        wallet = wallet,
     )
     axon.start()
     
@@ -554,6 +556,7 @@ def test_axon_receptor_connection_backward_works():
         backward_tensor = backward,
         port = 8080,
         ip = '127.0.0.1',
+        wallet = wallet,
     )
     axon.start()
     
@@ -584,6 +587,7 @@ def test_axon_receptor_connection_backward_unauthenticated():
         backward_tensor= backward,
         port = 8080,
         ip = '127.0.0.1',
+        wallet = wallet,
     )
     axon.start()
     
@@ -618,6 +622,7 @@ def test_axon_receptor_connection_forward_unimplemented():
         forward_tensor= forward,
         port = 8080,
         ip = '127.0.0.1',
+        wallet = wallet,
     )
     axon.start()
     
@@ -650,6 +655,7 @@ def test_axon_receptor_connection_backward_unimplemented():
         backward_tensor= backward,
         port = 8080,
         ip = '127.0.0.1',
+        wallet = wallet,
     )
     axon.start()
     endpoint = bittensor.endpoint(
@@ -686,6 +692,7 @@ def test_axon_receptor_connection_forward_timeout():
         forward_tensor= forward,
         port = 8080,
         ip = '127.0.0.1',
+        wallet = wallet,
     )
     axon.start()
     
@@ -721,6 +728,7 @@ def test_axon_receptor_connection_backward_timeout():
         backward_tensor = backward,
         port = 8080,
         ip = '127.0.0.1',
+        wallet = wallet,
     )
     axon.start()
     
