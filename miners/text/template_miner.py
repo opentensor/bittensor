@@ -627,15 +627,15 @@ class Miner:
         self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
         self.nucleus.to( self.device ) # Load nucleus
 
-        # --- Load optimizer.
-        
+        # --- Load optimizer
+        # check if the optimizer has previously stored separate param for the chain_weight 
         if len(state_dict['optimizer_state']['param_groups']) == 1:
             self.optimizer = torch.optim.SGD(
-                [ {'params': self.nucleus.chain_weights, 'lr': state_dict['optimizer_state']['param_groups'][0]['lr'] }],
+                [ {"params": self.nucleus.parameters()}],
                 lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
                 weight_decay = state_dict['optimizer_state']['param_groups'][0]['weight_decay'],
             )
-        
+
         else:
             self.optimizer = torch.optim.SGD(
                 [ {'params': self.nucleus.chain_weights, 'lr': state_dict['optimizer_state']['param_groups'][0]['lr'] }],
