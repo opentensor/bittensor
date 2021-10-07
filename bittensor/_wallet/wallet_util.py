@@ -11,6 +11,10 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from loguru import logger
 from ansible_vault import Vault
 
+import json
+from substrateinterface import Keypair
+
+
 class CryptoKeyError(Exception):
     """ Exception for invalid signature, key, token, password, etc 
         Overwrite the built-in CryptoKeyError
@@ -41,7 +45,7 @@ def decrypt_file(password, full_path):
                 data = vault.load(open(full_path).read())
                 return data
 
-            elif data[:6] == b"gAAAAA":
+            elif data[:5] == b"gAAAAA":
                 key = __generate_key(password)
                 cipher_suite = Fernet(key)
                 data = cipher_suite.decrypt(data)
@@ -56,7 +60,7 @@ def decrypt_file(password, full_path):
 def __generate_key(password):
     """ Get key from password
     """
-    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), salt=__SALT, length=32, iterations=10000000, backend=default_backend())
+    kdf = PBKDF1HMAC(algorithm=hashes.SHA256(), salt=__SALT, length=32, iterations=10000000, backend=default_backend())
     key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
     return key
 
@@ -66,3 +70,21 @@ def is_encrypted(file):
     with open( file , 'rb') as f:
         data = f.read()
         return (data[:14] == b'$ANSIBLE_VAULT') or (data[:6] == b"gAAAAA")
+
+
+
+
+
+def load_keypair_from_data(data) -> Keypair:
+    """ Get keypair from data seed
+    """
+    try:
+        data = json.loads(data.decode())
+        if "secretSeed" not in data:
+            raise KeyFileError("Keyfile corrupt")
+
+        return Keypair.create_from_seed(data['secretSeed'])
+
+    except BaseException as e:
+        logger.debug(e)
+        raise KeyFileError("Keyfile corrupt") from e
