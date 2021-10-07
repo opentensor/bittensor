@@ -291,7 +291,7 @@ class Wallet():
             return False
         return subtensor.transfer( wallet = self, amount = amount, dest = dest, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
 
-    def create_if_non_existent( self, coldkey_use_password:bool = True, hotkey_use_password:bool = True) -> 'Wallet':
+    def create_if_non_existent( self, coldkey_use_password:bool = True, hotkey_use_password:bool = False) -> 'Wallet':
         """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
         """
         return self.create(coldkey_use_password, hotkey_use_password)
