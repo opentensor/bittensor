@@ -1,5 +1,5 @@
 import bittensor
-from bittensor._wallet.wallet_utils import wallet_utils, CryptoKeyError
+from bittensor.utils.wallet_utils import wallet_utils, CryptoKeyError
 from unittest.mock import MagicMock
 import os
 import shutil

@@ -32,8 +32,7 @@ from substrateinterface import Keypair
 from substrateinterface.utils.ss58 import ss58_encode
 
 import bittensor
-from bittensor.utils.cli_utils import cli_utils
-from bittensor._wallet.wallet_utils import wallet_utils, CryptoKeyError , KeyFileError
+from bittensor.utils.wallet_utils import wallet_utils, CryptoKeyError , KeyFileError
 
 logger = logger.opt(colors=True)
 
@@ -488,7 +487,7 @@ class Wallet():
         try:
             # Try hotkey load.
             if wallet_utils.is_encrypted(self.hotkeyfile):
-                password = cli_utils.ask_password_to_decrypt()
+                password = wallet_utils.ask_password_to_decrypt()
                 logger.info("decrypting key... (this may take a few moments)")
                 data = wallet_utils.decrypt_file(password, self.hotkeyfile)
 
@@ -521,7 +520,7 @@ class Wallet():
         try:
             # Try key load.
             if wallet_utils.is_encrypted(self.coldkeyfile):
-                password = cli_utils.ask_password_to_decrypt()
+                password = wallet_utils.ask_password_to_decrypt()
                 logger.info("decrypting key... (this may take a few moments)")
                 data = wallet_utils.decrypt_file(password, self.coldkeyfile)
             else:
@@ -559,23 +558,23 @@ class Wallet():
             os.makedirs( dir_path )
 
         # Create Key
-        cli_utils.validate_create_path( self.coldkeyfile, overwrite = overwrite)
+        wallet_utils.validate_create_path( self.coldkeyfile, overwrite = overwrite)
         self._coldkey = Keypair.create_from_uri( uri )
-        cli_utils.display_mnemonic_msg( self._coldkey  )
-        cli_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
+        wallet_utils.display_mnemonic_msg( self._coldkey  )
+        wallet_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
 
         # Encrypt
         if use_password:
-            password = cli_utils.ask_password_to_encrypt()
+            password = wallet_utils.ask_password_to_encrypt()
             logger.info("Encrypting coldkey ... (this might take a few moments)")
             coldkey_json_data = json.dumps( self.to_dict(self._coldkey) ).encode()
             wallet_utils.encrypt_to_file(coldkey_json_data, password, self.coldkeyfile)
             del coldkey_json_data
         else:
             coldkey_data = json.dumps(self.to_dict(self._coldkey)).encode()
-            cli_utils.save_keys( self.coldkeyfile, coldkey_data )
+            wallet_utils.save_keys( self.coldkeyfile, coldkey_data )
         
-        cli_utils.set_file_permissions( self.coldkeyfile )
+        wallet_utils.set_file_permissions( self.coldkeyfile )
         
         return self
 
@@ -600,22 +599,22 @@ class Wallet():
             os.makedirs( dir_path )
 
         # Create
-        cli_utils.validate_create_path( self.hotkeyfile, overwrite = overwrite)
+        wallet_utils.validate_create_path( self.hotkeyfile, overwrite = overwrite)
         self._hotkey = Keypair.create_from_uri( uri )
-        cli_utils.display_mnemonic_msg( self._hotkey )
+        wallet_utils.display_mnemonic_msg( self._hotkey )
 
         # Encrypt
         if use_password:
-            password = cli_utils.ask_password_to_encrypt()
+            password = wallet_utils.ask_password_to_encrypt()
             logger.info("Encrypting hotkey ... (this might take a few moments)")
             hotkey_json_data = json.dumps( self.to_dict(self._hotkey) ).encode()
             wallet_utils.encrypt_to_file(hotkey_json_data, password, self.hotkeyfile)
             del hotkey_json_data
         else:
             hotkey_data = json.dumps(self.to_dict(self._hotkey)).encode()
-            cli_utils.save_keys( self.hotkeyfile, hotkey_data )
+            wallet_utils.save_keys( self.hotkeyfile, hotkey_data )
         
-        cli_utils.set_file_permissions( self.hotkeyfile )
+        wallet_utils.set_file_permissions( self.hotkeyfile )
         
         return self
 
@@ -653,23 +652,23 @@ class Wallet():
             os.makedirs( dir_path )
 
         # Create Key
-        cli_utils.validate_create_path( self.coldkeyfile, overwrite = overwrite  )
-        self._coldkey = cli_utils.gen_new_key( n_words )
-        cli_utils.display_mnemonic_msg( self._coldkey  )
-        cli_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
+        wallet_utils.validate_create_path( self.coldkeyfile, overwrite = overwrite  )
+        self._coldkey = wallet_utils.gen_new_key( n_words )
+        wallet_utils.display_mnemonic_msg( self._coldkey  )
+        wallet_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
 
         # Encrypt
         if use_password:
-            password = cli_utils.ask_password_to_encrypt()
+            password = wallet_utils.ask_password_to_encrypt()
             logger.info("Encrypting coldkey ... (this might take a few moments)")
             coldkey_json_data = json.dumps( self.to_dict(self._coldkey) ).encode()
             wallet_utils.encrypt_to_file(coldkey_json_data, password, self.coldkeyfile)
             del coldkey_json_data
         else:
             coldkey_data = json.dumps(self.to_dict(self._coldkey)).encode()
-            cli_utils.save_keys( self.coldkeyfile, coldkey_data )
+            wallet_utils.save_keys( self.coldkeyfile, coldkey_data )
 
-        cli_utils.set_file_permissions( self.coldkeyfile )
+        wallet_utils.set_file_permissions( self.coldkeyfile )
         
         return self
 
@@ -709,21 +708,21 @@ class Wallet():
             os.makedirs( dir_path )
 
         # Create
-        cli_utils.validate_create_path( self.hotkeyfile, overwrite = overwrite )
-        self._hotkey = cli_utils.gen_new_key( n_words )
-        cli_utils.display_mnemonic_msg( self._hotkey )
+        wallet_utils.validate_create_path( self.hotkeyfile, overwrite = overwrite )
+        self._hotkey = wallet_utils.gen_new_key( n_words )
+        wallet_utils.display_mnemonic_msg( self._hotkey )
         # Encrypt
         if use_password:
-            password = cli_utils.ask_password_to_encrypt()
+            password = wallet_utils.ask_password_to_encrypt()
             logger.info("Encrypting hotkey ... (this might take a few moments)")
             hotkey_json_data = json.dumps( self.to_dict(self._hotkey) ).encode()
             wallet_utils.encrypt_to_file(hotkey_json_data, password, self.hotkeyfile)
             del hotkey_json_data
         else:
             hotkey_data = json.dumps(self.to_dict(self._hotkey)).encode()
-            cli_utils.save_keys( self.hotkeyfile, hotkey_data )
+            wallet_utils.save_keys( self.hotkeyfile, hotkey_data )
 
-        cli_utils.set_file_permissions( self.hotkeyfile )
+        wallet_utils.set_file_permissions( self.hotkeyfile )
         
         return self
 
@@ -764,22 +763,22 @@ class Wallet():
             os.makedirs( dir_path )
 
         # Regenerate
-        cli_utils.validate_create_path( self.coldkeyfile, overwrite = overwrite)
-        self._coldkey = cli_utils.validate_generate_mnemonic( mnemonic )
-        cli_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
+        wallet_utils.validate_create_path( self.coldkeyfile, overwrite = overwrite)
+        self._coldkey = wallet_utils.get_key_from_mnemonic( mnemonic )
+        wallet_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
         
         # Encrypt
         if use_password:
-            password = cli_utils.ask_password_to_encrypt()
+            password = wallet_utils.ask_password_to_encrypt()
             logger.info("Encrypting key ... (this might take a few moments)")
             json_data = json.dumps( self.to_dict(self._coldkey) ).encode()
             wallet_utils.encrypt_to_file(json_data, password, self.coldkeyfile)
             del json_data
         else:
             coldkey_data = json.dumps(self.to_dict(self._coldkey) ).encode()
-            cli_utils.save_keys( self.coldkeyfile, coldkey_data ) 
+            wallet_utils.save_keys( self.coldkeyfile, coldkey_data ) 
 
-        cli_utils.set_file_permissions( self.coldkeyfile )
+        wallet_utils.set_file_permissions( self.coldkeyfile )
         
         return self
 
@@ -820,21 +819,21 @@ class Wallet():
             os.makedirs( dir_path )
 
         # Regenerate
-        cli_utils.validate_create_path( self.hotkeyfile, overwrite = overwrite)
-        self._hotkey = cli_utils.validate_generate_mnemonic( mnemonic )
+        wallet_utils.validate_create_path( self.hotkeyfile, overwrite = overwrite)
+        self._hotkey = wallet_utils.get_key_from_mnemonic( mnemonic )
 
         # Encrypt
         if use_password:
-            password = cli_utils.ask_password_to_encrypt()
+            password = wallet_utils.ask_password_to_encrypt()
             logger.info("Encrypting hotkey ... (this might take a few moments)")
             hotkey_json_data = json.dumps( self.to_dict(self._hotkey)  ).encode()
             wallet_utils.encrypt_to_file(hotkey_json_data, password, self.hotkeyfile)
             del hotkey_json_data
         else:
             hotkey_data = json.dumps( self.to_dict(self._hotkey)).encode()
-            cli_utils.save_keys( self.hotkeyfile, hotkey_data )
+            wallet_utils.save_keys( self.hotkeyfile, hotkey_data )
         
-        cli_utils.set_file_permissions( self.hotkeyfile )
+        wallet_utils.set_file_permissions( self.hotkeyfile )
         
         return self
 
