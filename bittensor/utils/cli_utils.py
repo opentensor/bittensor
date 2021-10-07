@@ -27,106 +27,12 @@ from password_strength import PasswordPolicy
 from loguru import logger
 from substrateinterface import Keypair
 
-from bittensor._wallet.wallet_util import is_encrypted, decrypt_file, load_keypair_from_data, KeyFileError, CryptoKeyError
+from bittensor._wallet.wallet_utils import wallet_utils, KeyFileError, CryptoKeyError
 
 class cli_utils():
     """ Utils for cli, eg. create and validate wallet dir/password/keypair name
     """
 
-    @staticmethod
-    def load_key(path) -> Keypair:
-        """ Get Keypair from the path, where passward has to be provided
-        """
-        path = os.path.expanduser(path)
-        try:
-            if is_encrypted(path):
-                password = cli_utils.ask_password()
-                print("decrypting key... (this may take a few moments)")
-                data = decrypt_file(password, path)
-
-            return load_keypair_from_data(data)
-
-        except CryptoKeyError:
-            print(colored("Invalid password", 'red'))
-            quit()
-        except KeyFileError as e:
-            print(colored("Keyfile corrupt", 'red'))
-            raise e
-        
-    @staticmethod
-    def enable_debug(should_debug):
-        """ If not debug, log messages to stderr with the minimum level as INFO
-        """
-        if not should_debug:
-            logger.remove()
-            logger.add(sink=sys.stderr, level="INFO")
-
-    @staticmethod
-    def create_wallet_dir_if_not_exists(wallet_dir):
-        """ Check if wallet_dir exist, if not then make dir for wallet_dir
-        """
-        wallet_dir = os.path.expanduser(wallet_dir)
-        if os.path.exists(wallet_dir):
-            if os.path.isdir(wallet_dir):
-                return
-            else:
-                print(colored("{} exists, but is not a directory. Aborting".format(wallet_dir), 'red'))
-                quit()
-        os.mkdir(wallet_dir)
-
-    @staticmethod
-    def create_hotkeys_dir_if_not_exists(hotkeys_dir):
-        """ Check if hotkeys_dir exist, if not then make dir for hotkeys_dir
-        """
-        hotkeys_dir = os.path.expanduser(hotkeys_dir)
-        if os.path.exists(hotkeys_dir):
-            if os.path.isdir(hotkeys_dir):
-                return
-            else:
-                print(colored("{} exists, but is not a directory. Aborting".format(hotkeys_dir), 'red'))
-                quit()
-        os.mkdir(hotkeys_dir)
-
-    @staticmethod
-    def create_wallets_dir_if_not_exists():
-        """ Check if walletS dir exists, if not then create walletS dir to store all the wallets
-        """
-        wallet_dir = "~/.bittensor/wallets"
-        wallet_dir = os.path.expanduser(wallet_dir)
-        if os.path.exists(wallet_dir):
-            if os.path.isdir(wallet_dir):
-                return
-            else:
-                print(colored("~/.bittensor/wallets exists, but is not a directory. Aborting", 'red'))
-                quit()
-        os.mkdir(wallet_dir)
-
-    @staticmethod
-    def validate_wallet_name( wallet_name:str ) -> str:
-        """ Confirm the chosen wallet name with the user 
-        """
-        if wallet_name == None:
-            choice = input("Use 'default' as wallet ? (y/N) ")
-            if choice == "y":
-                return 'default'
-            else:
-                return input("Wallet name: ")
-        else:
-            return wallet_name
-
-    @staticmethod
-    def validate_hotkey_name( hotkey_name:str ) -> str:
-        """ Confirm the chosen hotkey name with the user 
-        """
-        if hotkey_name == None:
-            choice = input("Use 'default' as hotkey name ? (y/N) ")
-            if choice == "y":
-                return 'default'
-            else:
-                return input("Hotkey name: ")
-        else:
-            return hotkey_name
-            
     @staticmethod
     def may_overwrite( file:str ):
         """ Confirm to overwrite the file with the user
@@ -136,29 +42,6 @@ class cli_utils():
             return True
         else:
             return False
-
-    @staticmethod
-    def validate_path(path):
-        """ Validate if the path is a file and accessible
-        """
-        path = os.path.expanduser(path)
-
-        if not os.path.isfile(path):
-            print(colored("{} is not a file. Aborting".format(path), 'red'))
-            quit()
-
-        if not os.access(path, os.R_OK):
-            print(colored("{} is not readable. Aborting".format(path), 'red'))
-            quit()
-
-    @staticmethod
-    def create_dirs():
-        """ Create walletS dir to store all the wallets
-        """
-        path = '~/.bittensor/wallets/'
-        path = os.path.expanduser(path)
-        if not os.path.exists(path):
-            os.makedirs(path)
 
     @staticmethod
     def validate_create_path( keyfile, overwrite: bool = False ):
@@ -195,7 +78,7 @@ class cli_utils():
             pubfile.write(pubkey_str.strip())
 
     @staticmethod
-    def input_password():
+    def ask_password_to_encrypt():
         """ Ask user to input a password
         """
         valid = False
@@ -206,11 +89,12 @@ class cli_utils():
         return password
 
     @staticmethod
-    def ask_password():
+    def ask_password_to_decrypt():
         """ Ask user to input a password
         """
         password = getpass.getpass("Enter password to unlock key: ")
         return password
+
     @staticmethod
     def validate_password(password):
         """ The policy to validate the strength of password
@@ -274,7 +158,6 @@ class cli_utils():
         print("bittensor-cli regen --mnemonic %s" % mnemonic)
         print('')
 
-
     @staticmethod
     def save_keys(path, data):
         """ Write the key(data) to path
@@ -288,19 +171,3 @@ class cli_utils():
         """ Set permission to be read and write by owner
         """
         os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
-
-    @staticmethod
-    def confirm_no_password():
-        """ Warn the owner for not providing password
-        """
-        print(colored('*** WARNING ***', 'white'))
-        print(colored('You have not specified the --password flag.', 'white'))
-        print(colored('This means that the generated key will be stored as plaintext in the keyfile', 'white'))
-        print(colored('The benefit of this is that you will not be prompted for a password when bittensor starts', 'white'))
-        print(colored('The drawback is that an attacker has access to the key if they have access to the account bittensor runs on', 'white'))
-        print()
-        choice = input("Do you wish to proceed? (Y/n) ")
-        if choice in ["n", "N"]:
-            return False
-
-        return True

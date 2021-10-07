@@ -33,7 +33,7 @@ from substrateinterface.utils.ss58 import ss58_encode
 
 import bittensor
 from bittensor.utils.cli_utils import cli_utils
-from bittensor._wallet.wallet_util import encrypt_to_file, is_encrypted, decrypt_file,load_keypair_from_data, CryptoKeyError , KeyFileError
+from bittensor._wallet.wallet_utils import wallet_utils, CryptoKeyError , KeyFileError
 
 logger = logger.opt(colors=True)
 
@@ -487,16 +487,16 @@ class Wallet():
 
         try:
             # Try hotkey load.
-            if is_encrypted(self.hotkeyfile):
-                password = cli_utils.ask_password()
+            if wallet_utils.is_encrypted(self.hotkeyfile):
+                password = cli_utils.ask_password_to_decrypt()
                 logger.info("decrypting key... (this may take a few moments)")
-                data = decrypt_file(password, self.hotkeyfile)
+                data = wallet_utils.decrypt_file(password, self.hotkeyfile)
 
             else:
                 with open( self.hotkeyfile , 'rb') as file:
                     data = file.read()
 
-            hotkey = load_keypair_from_data(data)
+            hotkey = wallet_utils.load_keypair_from_data(data)
         except CryptoKeyError:
             logger.critical("Invalid password")
             raise CryptoKeyError("Invalid password") from CryptoKeyError()
@@ -520,14 +520,14 @@ class Wallet():
 
         try:
             # Try key load.
-            if is_encrypted(self.coldkeyfile):
-                password = cli_utils.ask_password()
+            if wallet_utils.is_encrypted(self.coldkeyfile):
+                password = cli_utils.ask_password_to_decrypt()
                 logger.info("decrypting key... (this may take a few moments)")
-                data = decrypt_file(password, self.coldkeyfile)
+                data = wallet_utils.decrypt_file(password, self.coldkeyfile)
             else:
                 with open(self.coldkeyfile, 'rb') as file:
                     data =file.read()
-            coldkey = load_keypair_from_data(data)
+            coldkey = wallet_utils.load_keypair_from_data(data)
 
         except CryptoKeyError:
             logger.critical("Invalid password")
@@ -566,10 +566,10 @@ class Wallet():
 
         # Encrypt
         if use_password:
-            password = cli_utils.input_password()
+            password = cli_utils.ask_password_to_encrypt()
             logger.info("Encrypting coldkey ... (this might take a few moments)")
             coldkey_json_data = json.dumps( self.to_dict(self._coldkey) ).encode()
-            encrypt_to_file(coldkey_json_data, password, self.coldkeyfile)
+            wallet_utils.encrypt_to_file(coldkey_json_data, password, self.coldkeyfile)
             del coldkey_json_data
         else:
             coldkey_data = json.dumps(self.to_dict(self._coldkey)).encode()
@@ -606,10 +606,10 @@ class Wallet():
 
         # Encrypt
         if use_password:
-            password = cli_utils.input_password()
+            password = cli_utils.ask_password_to_encrypt()
             logger.info("Encrypting hotkey ... (this might take a few moments)")
             hotkey_json_data = json.dumps( self.to_dict(self._hotkey) ).encode()
-            encrypt_to_file(hotkey_json_data, password, self.hotkeyfile)
+            wallet_utils.encrypt_to_file(hotkey_json_data, password, self.hotkeyfile)
             del hotkey_json_data
         else:
             hotkey_data = json.dumps(self.to_dict(self._hotkey)).encode()
@@ -660,10 +660,10 @@ class Wallet():
 
         # Encrypt
         if use_password:
-            password = cli_utils.input_password()
+            password = cli_utils.ask_password_to_encrypt()
             logger.info("Encrypting coldkey ... (this might take a few moments)")
             coldkey_json_data = json.dumps( self.to_dict(self._coldkey) ).encode()
-            encrypt_to_file(coldkey_json_data, password, self.coldkeyfile)
+            wallet_utils.encrypt_to_file(coldkey_json_data, password, self.coldkeyfile)
             del coldkey_json_data
         else:
             coldkey_data = json.dumps(self.to_dict(self._coldkey)).encode()
@@ -714,10 +714,10 @@ class Wallet():
         cli_utils.display_mnemonic_msg( self._hotkey )
         # Encrypt
         if use_password:
-            password = cli_utils.input_password()
+            password = cli_utils.ask_password_to_encrypt()
             logger.info("Encrypting hotkey ... (this might take a few moments)")
             hotkey_json_data = json.dumps( self.to_dict(self._hotkey) ).encode()
-            encrypt_to_file(hotkey_json_data, password, self.hotkeyfile)
+            wallet_utils.encrypt_to_file(hotkey_json_data, password, self.hotkeyfile)
             del hotkey_json_data
         else:
             hotkey_data = json.dumps(self.to_dict(self._hotkey)).encode()
@@ -770,10 +770,10 @@ class Wallet():
         
         # Encrypt
         if use_password:
-            password = cli_utils.input_password()
+            password = cli_utils.ask_password_to_encrypt()
             logger.info("Encrypting key ... (this might take a few moments)")
             json_data = json.dumps( self.to_dict(self._coldkey) ).encode()
-            encrypt_to_file(json_data, password, self.coldkeyfile)
+            wallet_utils.encrypt_to_file(json_data, password, self.coldkeyfile)
             del json_data
         else:
             coldkey_data = json.dumps(self.to_dict(self._coldkey) ).encode()
@@ -825,10 +825,10 @@ class Wallet():
 
         # Encrypt
         if use_password:
-            password = cli_utils.input_password()
+            password = cli_utils.ask_password_to_encrypt()
             logger.info("Encrypting hotkey ... (this might take a few moments)")
             hotkey_json_data = json.dumps( self.to_dict(self._hotkey)  ).encode()
-            encrypt_to_file(hotkey_json_data, password, self.hotkeyfile)
+            wallet_utils.encrypt_to_file(hotkey_json_data, password, self.hotkeyfile)
             del hotkey_json_data
         else:
             hotkey_data = json.dumps( self.to_dict(self._hotkey)).encode()
