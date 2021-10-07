@@ -561,7 +561,7 @@ class Wallet():
         wallet_utils.validate_create_path( self.coldkeyfile, overwrite = overwrite)
         self._coldkey = Keypair.create_from_uri( uri )
         wallet_utils.display_mnemonic_msg( self._coldkey  )
-        wallet_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
+        wallet_utils.write_pubkey_to_file( self.coldkeyfile, self._coldkey.public_key )
 
         # Encrypt
         if use_password:
@@ -572,7 +572,7 @@ class Wallet():
             del coldkey_json_data
         else:
             coldkey_data = json.dumps(self.to_dict(self._coldkey)).encode()
-            wallet_utils.save_keys( self.coldkeyfile, coldkey_data )
+            wallet_utils.write_key_to_file( self.coldkeyfile, coldkey_data )
         
         wallet_utils.set_file_permissions( self.coldkeyfile )
         
@@ -612,7 +612,7 @@ class Wallet():
             del hotkey_json_data
         else:
             hotkey_data = json.dumps(self.to_dict(self._hotkey)).encode()
-            wallet_utils.save_keys( self.hotkeyfile, hotkey_data )
+            wallet_utils.write_key_to_file( self.hotkeyfile, hotkey_data )
         
         wallet_utils.set_file_permissions( self.hotkeyfile )
         
@@ -655,7 +655,7 @@ class Wallet():
         wallet_utils.validate_create_path( self.coldkeyfile, overwrite = overwrite  )
         self._coldkey = wallet_utils.gen_new_key( n_words )
         wallet_utils.display_mnemonic_msg( self._coldkey  )
-        wallet_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
+        wallet_utils.write_pubkey_to_file( self.coldkeyfile, self._coldkey.public_key )
 
         # Encrypt
         if use_password:
@@ -666,7 +666,7 @@ class Wallet():
             del coldkey_json_data
         else:
             coldkey_data = json.dumps(self.to_dict(self._coldkey)).encode()
-            wallet_utils.save_keys( self.coldkeyfile, coldkey_data )
+            wallet_utils.write_key_to_file( self.coldkeyfile, coldkey_data )
 
         wallet_utils.set_file_permissions( self.coldkeyfile )
         
@@ -720,7 +720,7 @@ class Wallet():
             del hotkey_json_data
         else:
             hotkey_data = json.dumps(self.to_dict(self._hotkey)).encode()
-            wallet_utils.save_keys( self.hotkeyfile, hotkey_data )
+            wallet_utils.write_key_to_file( self.hotkeyfile, hotkey_data )
 
         wallet_utils.set_file_permissions( self.hotkeyfile )
         
@@ -765,7 +765,7 @@ class Wallet():
         # Regenerate
         wallet_utils.validate_create_path( self.coldkeyfile, overwrite = overwrite)
         self._coldkey = wallet_utils.get_key_from_mnemonic( mnemonic )
-        wallet_utils.write_pubkey_to_text_file( self.coldkeyfile, self._coldkey.public_key )
+        wallet_utils.write_pubkey_to_file( self.coldkeyfile, self._coldkey.public_key )
         
         # Encrypt
         if use_password:
@@ -776,7 +776,7 @@ class Wallet():
             del json_data
         else:
             coldkey_data = json.dumps(self.to_dict(self._coldkey) ).encode()
-            wallet_utils.save_keys( self.coldkeyfile, coldkey_data ) 
+            wallet_utils.write_key_to_file( self.coldkeyfile, coldkey_data ) 
 
         wallet_utils.set_file_permissions( self.coldkeyfile )
         
@@ -831,7 +831,7 @@ class Wallet():
             del hotkey_json_data
         else:
             hotkey_data = json.dumps( self.to_dict(self._hotkey)).encode()
-            wallet_utils.save_keys( self.hotkeyfile, hotkey_data )
+            wallet_utils.write_key_to_file( self.hotkeyfile, hotkey_data )
         
         wallet_utils.set_file_permissions( self.hotkeyfile )
         
