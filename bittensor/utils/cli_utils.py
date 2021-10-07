@@ -27,8 +27,7 @@ from password_strength import PasswordPolicy
 from loguru import logger
 from substrateinterface import Keypair
 
-from bittensor._crypto.keyfiles import load_keypair_from_data, KeyFileError
-from bittensor._crypto import is_encrypted, decrypt_file, CryptoKeyError
+from bittensor._wallet.wallet_util import is_encrypted, decrypt_file, load_keypair_from_data, KeyFileError, CryptoKeyError
 
 class cli_utils():
     """ Utils for cli, eg. create and validate wallet dir/password/keypair name
