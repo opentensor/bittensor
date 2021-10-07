@@ -154,12 +154,12 @@ def main( config ):
 
             # ---- Get active peers and their weights ---- 
             active_uids = torch.where(metagraph.active > 0)[0]
-            active_chain_weights = self.chain_weights[active_uids]
+            active_peer_weights = self.peer_weights[active_uids]
 
             # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
-            real_topk = min( self.config.nucleus.topk, metagraph.n.item(), len(active_uids))
-            noise = torch.normal( 0, torch.std(active_chain_weights).item()+0.0000001, size=( active_chain_weights.size())).to( self.config.miner.device )
-            topk_weights, topk_idx = torch.topk(active_chain_weights + noise , real_topk, dim=0)
+            real_topk = min( config.nucleus.topk, metagraph.n.item(), len(active_uids))
+            noise = torch.normal( 0, torch.std(active_peer_weights).item()+0.0000001, size=( active_peer_weights.size())).to( config.miner.device )
+            topk_weights, topk_idx = torch.topk(active_peer_weights + noise , real_topk, dim=0)
             topk_uids = active_uids[topk_idx]
 
             # ---- Query network ----

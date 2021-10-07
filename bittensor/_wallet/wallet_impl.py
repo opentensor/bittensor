@@ -848,7 +848,7 @@ class Wallet():
         if keypair.seed_hex == None:
             secret_seed = "0x" + "0" * 64 
         else:
-            secret_seed = "0x" + keypair.seed_hex,
+            secret_seed = "0x" + keypair.seed_hex
 
         return {
             'accountId': keypair.public_key,
