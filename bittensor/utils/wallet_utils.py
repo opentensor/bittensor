@@ -23,6 +23,7 @@ from ansible_vault import Vault
 import json
 from substrateinterface import Keypair
 
+__SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
 
 class CryptoKeyError(Exception):
     """ Exception for invalid signature, key, token, password, etc 
@@ -32,8 +33,6 @@ class CryptoKeyError(Exception):
 class KeyFileError(Exception):
     """ Overwrite the built-in CryptoKeyError
     """
-
-__SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
 
 class _user_interface:
     """ Stores functions for the interactions with user
