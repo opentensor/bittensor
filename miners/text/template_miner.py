@@ -684,13 +684,11 @@ class Miner:
         r""" Sets the chain weights.
         """
         try:
-            real_topk = min( self.config.miner.n_topk_peer_weights , bittensor.neuron.metagraph.n.item() )
-            topk_weights, topk_uids = torch.topk( self.nucleus.peer_weights.detach(), k = real_topk )
-            normalized_topk_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
+            topk_scores, topk_uids = torch.topk( self.ema_scores, k = min(self.config.miner.n_topk_peer_weights, bittensor.neuron.metagraph.n.item())  )
             did_set = bittensor.neuron.subtensor.timeout_set_weights(
                 timeout=10,
                 uids = topk_uids,
-                weights = normalized_topk_weights,
+                weights = topk_scores,
                 wait_for_inclusion = True,
                 wallet = bittensor.neuron.wallet,
             )
