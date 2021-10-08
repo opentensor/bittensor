@@ -344,7 +344,7 @@ class Miner:
             if self.config.neuron.use_wandb:
                 bittensor.wandb(
                     config = self.config,
-                    cold_pubkey = self.neuron.wallet.ss58_address,
+                    cold_pubkey = self.neuron.wallet.coldkey.ss58_address,
                     hot_pubkey = self.neuron.wallet.hotkey.ss58_address,
                     root_dir = self.neuron.root_dir
                 )
