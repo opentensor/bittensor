@@ -52,7 +52,7 @@ __local_entrypoints__ = [
 ]
 
 __registration_servers__ = [
-    'registration.opentensor.ai:9944'
+    'registration.opentensor.ai:5000'
 ]
 
 # ---- Config ----
