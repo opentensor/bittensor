@@ -96,7 +96,7 @@ linux_update_pip() {
     PYTHONPATH=$(which $python)
     ohai "You are using python@ $PYTHONPATH$"
     ohai "Installing python tools"
-    $python -m pip3 install --upgrade pip3
+    $python -m pip install --upgrade pip
 }
 
 linux_install_bittensor() {
@@ -154,8 +154,7 @@ mac_update_pip() {
     PYTHONPATH=$(which $python)
     ohai "You are using python@ $PYTHONPATH$"
     ohai "Installing python tools"
-    $python -m pip3 install --upgrade pip3
-    exit_on_error $? 
+    $python -m pip install --upgrade pip
 }
 
 mac_install_bittensor() {
