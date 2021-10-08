@@ -2,7 +2,7 @@
 #!/bin/bash
 set -u
 
-# enable !! command completion
+# enable  command completion
 set -o history -o histexpand
 
 python="python3"
@@ -73,7 +73,8 @@ cd "/usr" || exit 1
 
 linux_install_pre() {
     sudo apt-get update 
-    sudo apt-get install --no-install-recommends --no-install-suggests -y apt-utils curl git cmake build-essential 
+    sudo apt-get install --no-install-recommends --no-install-suggests -y apt-utils curl git cmake build-essential
+    exit_on_error $?
 }
 
 linux_install_python() {
@@ -81,15 +82,14 @@ linux_install_python() {
     if [[ $? != 0 ]] ; then
         ohai "Installing python"
         sudo apt-get install --no-install-recommends --no-install-suggests -y $python
-        exit_on_error $? !!
     else
         ohai "Updating python"
         sudo apt-get install --only-upgrade $python
-        exit_on_error $? !!
     fi
+    exit_on_error $? 
     ohai "Installing python tools"
     sudo apt-get install --no-install-recommends --no-install-suggests -y $python-pip $python-dev 
-    exit_on_error $? !!
+    exit_on_error $? 
 }
 
 linux_update_pip() {
@@ -105,7 +105,7 @@ linux_install_bittensor() {
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
-    exit_on_error $? !!
+    exit_on_error $? 
 }
 
 
@@ -114,7 +114,7 @@ mac_install_xcode() {
     if [[ $? != 0 ]] ; then
         ohai "Installing xcode:"
         xcode-select --install
-        exit_on_error $? !!
+        exit_on_error $? 
     fi
 }
 
@@ -127,7 +127,7 @@ mac_install_brew() {
         ohai "Updating brew:"
         brew update --verbose
     fi
-    exit_on_error $? !!
+    exit_on_error $? 
 }
 
 mac_install_cmake() {
@@ -147,7 +147,7 @@ mac_install_python() {
     brew list python@3 &>/dev/null || brew install python@3;
     ohai "Updating python3"
     brew upgrade python@3
-    exit_on_error $? !!
+    exit_on_error $? 
 }
 
 mac_update_pip() {
@@ -155,7 +155,7 @@ mac_update_pip() {
     ohai "You are using python@ $PYTHONPATH$"
     ohai "Installing python tools"
     $python -m pip3 install --upgrade pip3
-    exit_on_error $? !!
+    exit_on_error $? 
 }
 
 mac_install_bittensor() {
@@ -163,7 +163,7 @@ mac_install_bittensor() {
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
-    exit_on_error $? !!
+    exit_on_error $? 
     deactivate
 }
 
@@ -191,7 +191,7 @@ setup_wallet_and_miner() {
         echo ""
         ohai "Creating wallet coldkey..."
         bittensor-cli new_coldkey --wallet.name $wallet_name
-        exit_on_error $? !!
+        exit_on_error $? 
 
         echo ""
         echo ""
