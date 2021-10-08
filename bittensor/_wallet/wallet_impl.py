@@ -105,7 +105,7 @@ class Wallet():
         if subtensor == None: subtensor = bittensor.subtensor()
         
         # Check registration. You cannot register twice with the same email. You also can't register the same hotkey under a different email.
-        if self.is_registered( subtensor = subtensor ): print ('Already registered: {}'.format( self.hotkey.ss58_address ))
+        if self.is_registered( subtensor = subtensor ): print ('Already registered: {}'.format( self.hotkey.ss58_address )); return self
 
         # Get registration url endpoint from constants or args.
         server_url = bittensor.__registration_servers__[0] if registraiton_server == None else registraiton_server
