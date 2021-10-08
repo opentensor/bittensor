@@ -167,7 +167,7 @@ def main( config ):
                 endpoints = metagraph.endpoints[ topk_uids ], 
                 inputs = inputs
             )
-            
+
             # ---- Join based on weights ----
             joining_uids = torch.where(return_ops==0)[0]
             joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 )
@@ -190,9 +190,11 @@ def main( config ):
                 fill = torch.zeros(len(quested_peers) - len(self.logs.quested_peers_count))
                 self.logs.quested_peers_count = torch.cat((self.logs.quested_peers_count, fill))
                 self.logs.responded_peers_count = torch.cat((self.logs.responded_peers_count, fill))
+                self.logs.peers_respond_time = torch.cat((self.logs.peers_respond_time, fill))
 
             self.logs.quested_peers_count += quested_peers
             self.logs.responded_peers_count += responded_peers
+            self.logs.peers_respond_time[topk_uids] += query_times
 
             return output
 
@@ -234,7 +236,7 @@ def main( config ):
     epoch = 0
     global_step = 0
     best_loss = math.inf
-    ema_score_decay = 0.97
+    ema_score_decay = 0.995
     ema_scores = torch.ones_like( validator.peer_weights ) * (1 / metagraph.n.item()) 
 
     while True:
@@ -254,6 +256,7 @@ def main( config ):
         # --- Reset the epoch logs
         validator.logs.quested_peers_count = torch.zeros(0)
         validator.logs.responded_peers_count = torch.zeros(0)
+        validator.logs.peers_respond_time = torch.zeros(0)
         total_epoch_val_score = torch.zeros(metagraph.n.item())
         total_epoch_score = torch.zeros(metagraph.n.item())
         total_epoch_loss = 0
@@ -275,6 +278,7 @@ def main( config ):
                 total_epoch_val_score += val_score
                 total_epoch_score += scores
                 total_epoch_loss += loss.item()
+                ema_scores = ema_score_decay * ema_scores + (1 - ema_score_decay) * scores
 
 
             # --- Step logs.
@@ -298,7 +302,6 @@ def main( config ):
                     weight_wo_norm = validator.peer_weights[uid_i]
                     info[ 'pw_' + str(uid_i) ] = colored('{:.4f}'.format( weight_wo_norm ), color)
             
-            ema_scores = ema_score_decay * ema_scores + (1 - ema_score_decay) * scores
             
             progress.set_infos( info )
         
@@ -326,6 +329,7 @@ def main( config ):
 
         norm_weights = F.softmax( validator.peer_weights.detach() )
         respond_rate = validator.logs.responded_peers_count / validator.logs.quested_peers_count
+        respond_time = validator.logs.peers_respond_time / validator.logs.responded_peers_count
         
         for uid_j in topk_uids.tolist():
             uid_str = str(uid_j).zfill(3)
@@ -337,6 +341,7 @@ def main( config ):
             wandb_data[ f'Quested uid: {uid_str}' ]= validator.logs.quested_peers_count[uid_j]
             wandb_data[ f'Responded uid: {uid_str}' ]= validator.logs.responded_peers_count[uid_j]
             wandb_data[ f'Respond rate uid: {uid_str}' ]= respond_rate[uid_j]
+            wandb_data[ f'Respond time uid: {uid_str}' ]= respond_time[uid_j]
 
         wandb.log( wandb_data )
         
