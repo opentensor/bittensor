@@ -1,5 +1,5 @@
-""" Functions for wallets, including key extraction, storage, and user interface,
-other then 
+""" The major util class is wallet_utils,
+which includes functions for key extraction, storage, and user interface
 """
 import os
 import sys
@@ -118,17 +118,17 @@ class _keyfile_manager:
                     return full_path
 
                 else:
-                    quit()
+                    sys.exit()
             else:
                 print(colored("No write access for  %s" % full_path, 'red'))
-                quit()
+                sys.exit()
         else:
             pdir = os.path.dirname(full_path)
             if os.access(pdir, os.W_OK):
                 return full_path
             else:
                 print(colored("No write access for  %s" % full_path, 'red'))
-                quit()
+                sys.exit()
 
     @staticmethod
     def encrypt_to_file(data, password, full_path):
@@ -221,14 +221,14 @@ class _key_obtainer:
         """
         if len(mnemonic) not in [12,15,18,21,24]:
             print(colored("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words", 'red'))
-            quit()
+            sys.exit()
 
         try:
             keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
             return keypair
         except ValueError as e:
             print(colored(str(e), "red"))
-            quit()
+            sys.exit()
 
     @staticmethod
     def load_keypair_from_data(data) -> Keypair:
