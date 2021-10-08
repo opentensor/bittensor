@@ -18,16 +18,16 @@ Bittensor is a market which monetizes intelligence production accross the intern
 ## Install
 Two ways to install Bittensor. 
 
-1. Through pip:
+1. Through installer (recommended):
+```
+$ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/opentensor/bittensor/master/scripts/install.sh)"
+```
 
+2. Through pip (Advanced):
 ```bash
 $ pip3 install bittensor
 ```
 
-2. Full installation:
-```bash
-
-```
 
 ## Consumer 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1m6c4_D1FHHcZxnDJCW4F0qORWhXV_hc_?usp=sharing)
