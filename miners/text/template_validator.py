@@ -257,7 +257,6 @@ def main( config ):
         validator.logs.quested_peers_count = torch.zeros(0)
         validator.logs.responded_peers_count = torch.zeros(0)
         validator.logs.peers_respond_time = torch.zeros(0)
-        total_epoch_val_score = torch.zeros(metagraph.n.item())
         total_epoch_score = torch.zeros(metagraph.n.item())
         total_epoch_loss = 0
         batch_count = 0
@@ -275,7 +274,6 @@ def main( config ):
                 optimizer.zero_grad() 
                 global_step += 1
                 batch_count += 1
-                total_epoch_val_score += val_score
                 total_epoch_score += scores
                 total_epoch_loss += loss.item()
                 ema_scores = ema_score_decay * ema_scores + (1 - ema_score_decay) * scores
@@ -319,7 +317,6 @@ def main( config ):
         metagraph.sync().save()
         epoch_loss = total_epoch_loss / batch_count
         epoch_score = total_epoch_score / batch_count
-        epoch_val_score = total_epoch_val_score / batch_count
         
         wandb_data = {
             'Stake': metagraph.S[ uid ].item(),
@@ -334,7 +331,6 @@ def main( config ):
         for uid_j in topk_uids.tolist():
             uid_str = str(uid_j).zfill(3)
             wandb_data[ f'Fisher ema uid: {uid_str}' ] = ema_scores[uid_j]
-            wandb_data[ f'Fisher epoch val score uid: {uid_str}' ] = epoch_val_score[uid_j]
             wandb_data[ f'Fisher epoch score uid: {uid_str}' ] = epoch_score[uid_j]
             wandb_data[ f'Peer weight (norm) uid:{uid_str}' ] = norm_weights[uid_j]
             wandb_data[ f'Peer weight (w/o norm) uid:{uid_str}' ] = validator.peer_weights[uid_j]
