@@ -243,9 +243,9 @@ class Nucleus(nn.Module):
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
-            self.peer_weights[topk_uids[(return_ops != 0)]] -=  self.config.nucleus.punishment
+            self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
             self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
-
+        
         # ---- Return response -----
         output.quested_peers = torch.zeros(bittensor.neuron.metagraph.n.item())
         output.quested_peers[topk_uids] = 1

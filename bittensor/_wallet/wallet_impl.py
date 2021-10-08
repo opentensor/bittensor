@@ -714,7 +714,6 @@ class Wallet():
         cli_utils.validate_create_path( self.hotkeyfile, overwrite = overwrite )
         self._hotkey = cli_utils.gen_new_key( n_words )
         cli_utils.display_mnemonic_msg( self._hotkey )
-
         # Encrypt
         if use_password:
             password = cli_utils.input_password()

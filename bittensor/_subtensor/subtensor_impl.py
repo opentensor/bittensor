@@ -81,33 +81,6 @@ class Subtensor:
             else:
                 return self.chain_endpoint
 
-        # Else defaults to networks.
-        # TODO(const): this should probably make a DNS lookup.
-        if self.network == "akatsuki":
-            akatsuki_available = [item for item in bittensor.__akatsuki_entrypoints__ if item not in blacklist ]
-            if len(akatsuki_available) == 0:
-                return None
-            return random.choice (akatsuki_available)
-
-        elif self.network == "kusanagi":
-            kusanagi_available = [item for item in bittensor.__kusanagi_entrypoints__ if item not in blacklist ]
-            if len(kusanagi_available) == 0:
-                return None
-            return random.choice( kusanagi_available )
-
-        elif self.network == "local":
-            local_available = [item for item in bittensor.__local_entrypoints__ if item not in blacklist ]
-            if len(local_available) == 0:
-                return None
-            return random.choice( local_available )
-            
-        else:
-            kusanagi_available = [item for item in bittensor.__kusanagi_entrypoints__ if item not in blacklist ]
-            if len(kusanagi_available) == 0:
-                return None
-            return random.choice( kusanagi_available )
-
-
     def connect( self, timeout: int = 10, failure = True ) -> bool:
         attempted_endpoints = []
         while True:
@@ -450,15 +423,15 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     def get_balances(self, block: int = None) -> Dict[str, Balance]:
         with self.substrate as substrate:
-            result = substrate.iterate_map (
+            result = substrate.query_map(
                 module='System',
                 storage_function='Account',
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
             return_dict = {}
             for r in result:
-                balance = bittensor.Balance( int( r[1]['data']['free'] ) )
-                return_dict[r[0]] = balance
+                bal = bittensor.Balance( int( r[1]['data']['free'].value ) )
+                return_dict[r[0].value] = bal
             return return_dict
 
     def neurons(self, block: int = None) -> List[SimpleNamespace]: 
