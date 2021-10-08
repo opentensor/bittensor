@@ -324,19 +324,19 @@ def main( config ):
             'Epoch_loss': epoch_loss
         } 
 
-        real_topk = min( config.miner.n_topk_peer_weights, metagraph.n.item() ,len(torch.where(metagraph.active > 0)[0])) 
-        topk_norm_weights, topk_uids = torch.topk( F.softmax( validator.peer_weights.detach() ), k = real_topk )
+        norm_weights = F.softmax( validator.peer_weights.detach() )
         respond_rate = validator.logs.responded_peers_count / validator.logs.quested_peers_count
         
         for uid_j in topk_uids.tolist():
-            wandb_data[ f'fisher ema uid: {str(uid_j).zfill(3)}' ] = ema_scores[uid_j]
-            wandb_data[ f'fisher epoch val score uid: {str(uid_j).zfill(3)}' ] = epoch_val_score[uid_j]
-            wandb_data[ f'fisher epoch score uid: {str(uid_j).zfill(3)}' ] = epoch_score[uid_j]
-            wandb_data[ f'weight norm uid:{str(uid_j).zfill(3)}' ] = topk_norm_weights[uid_j]
-            wandb_data[ f'weight wo norm uid:{str(uid_j).zfill(3)}' ] = validator.peer_weights[uid_j]
-            wandb_data[f'Quested uid: {str(uid_j).zfill(3)}']= validator.logs.quested_peers_count[uid_j]
-            wandb_data[f'Responded uid: {str(uid_j).zfill(3)}']= validator.logs.responded_peers_count[uid_j]
-            wandb_data[f'Respond rate uid: {str(uid_j).zfill(3)}']= respond_rate[uid_j]
+            uid_str = str(uid_j).zfill(3)
+            wandb_data[ f'Fisher ema uid: {uid_str}' ] = ema_scores[uid_j]
+            wandb_data[ f'Fisher epoch val score uid: {uid_str}' ] = epoch_val_score[uid_j]
+            wandb_data[ f'Fisher epoch score uid: {uid_str}' ] = epoch_score[uid_j]
+            wandb_data[ f'Peer weight (norm) uid:{uid_str}' ] = norm_weights[uid_j]
+            wandb_data[ f'Peer weight (w/o norm) uid:{uid_str}' ] = validator.peer_weights[uid_j]
+            wandb_data[ f'Quested uid: {uid_str}' ]= validator.logs.quested_peers_count[uid_j]
+            wandb_data[ f'Responded uid: {uid_str}' ]= validator.logs.responded_peers_count[uid_j]
+            wandb_data[ f'Respond rate uid: {uid_str}' ]= respond_rate[uid_j]
 
         wandb.log( wandb_data )
         

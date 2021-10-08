@@ -307,6 +307,7 @@ class Miner:
 
         # ---- Init how often to sync with metagraph, value will be overriden by config----  
         self.last_sync_block = 0
+        self.logs = SimpleNamespace()
 
     @staticmethod
     def config() -> 'bittensor.Config':
@@ -375,6 +376,9 @@ class Miner:
         chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.chain_weights.shape[0]
         self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
         
+        zero_fill = torch.zeros(chain_growth)
+        self.logs.quested_peers_count = torch.cat((self.logs.quested_peers_count, zero_fill))
+        self.logs.responded_peers_count = torch.cat((self.logs.responded_peers_count, zero_fill))
         bittensor.logging.success( 'Synced metagraph:', 'Block: {}'.format(current_block))
         
     
@@ -394,9 +398,9 @@ class Miner:
 
             # ---- Init run state ----
             self.epoch = 0
-            self.global_step = 0
-            self.epoch_loss = math.inf/2
-            self.best_epoch_loss = math.inf
+            self.logs.global_step = 0
+            self.logs.epoch_loss = math.inf/2
+            self.logs.best_epoch_loss = math.inf
 
             # ---- reloads previous run ----
             try:
@@ -412,10 +416,10 @@ class Miner:
                 try:
 
                     # --- Init epoch stat----
-                    self.quested_peers_count = torch.zeros(0)
-                    self.responded_peers_count = torch.zeros(0)
-                    self.epoch_data_size = 0
-                    self.sync_count = 0
+                    self.logs.quested_peers_count = torch.zeros(bittensor.neuron.metagraph.n.item())
+                    self.logs.responded_peers_count = torch.zeros(bittensor.neuron.metagraph.n.item())
+                    self.logs.epoch_data_size = 0
+                    self.logs.sync_count = 0
                     total_epoch_loss = 0.0
                     total_local_target_epoch_loss = 0
                     total_distillation_epoch_loss = 0
@@ -457,14 +461,9 @@ class Miner:
                             total_distillation_epoch_loss += output.distillation_loss.item()
                             total_remote_target_epoch_loss += output.remote_target_loss.item()
                             
-                            if len(self.quested_peers_count) < len(output.quested_peers):
-                                fill = torch.zeros(len(output.quested_peers) - len(self.quested_peers_count))
-                                self.quested_peers_count = torch.cat((self.quested_peers_count, fill))
-                                self.responded_peers_count = torch.cat((self.responded_peers_count, fill))
-                            
-                            self.quested_peers_count += output.quested_peers
-                            self.responded_peers_count += output.responded_peers
-                            self.epoch_data_size += inputs.nelement()
+                            self.logs.quested_peers_count += output.quested_peers
+                            self.logs.responded_peers_count += output.responded_peers
+                            self.logs.epoch_data_size += inputs.nelement()
                             batches_count += 1
 
                         # ---- Check to sync with metagraph ----
@@ -473,25 +472,25 @@ class Miner:
                         if block_diff >= self.config.miner.sync_block_time:
                             self.sync(current_block)
                             self.last_sync_block = current_block
-                            self.sync_count += 1
+                            self.logs.sync_count += 1
                             
                         # ---- Update the epoch loss if it is the last iteration
                         if (block + 1) % (self.config.miner.epoch_length ) == 0 :
-                            self.epoch_loss = total_epoch_loss / batches_count
-                            self.local_target_epoch_loss = total_local_target_epoch_loss / batches_count
-                            self.distillation_epoch_loss = total_distillation_epoch_loss / batches_count
-                            self.remote_target_epoch_loss = total_remote_target_epoch_loss / batches_count
+                            self.logs.epoch_loss = total_epoch_loss / batches_count
+                            self.logs.local_target_epoch_loss = total_local_target_epoch_loss / batches_count
+                            self.logs.distillation_epoch_loss = total_distillation_epoch_loss / batches_count
+                            self.logs.remote_target_epoch_loss = total_remote_target_epoch_loss / batches_count
 
                         # ---- Block logs.
-                        self.logs (
+                        self.log(
                             progress_bar,
                             iteration = block,
                             output = output,
                         )
-                        self.global_step += 1
+                        self.logs.global_step += 1
 
                     # ---- Update params ----
-                    self.epoch_loss = total_epoch_loss / self.config.miner.epoch_length
+                    self.logs.epoch_loss = total_epoch_loss / self.config.miner.epoch_length
                     self.epoch += 1
 
                     # ---- Checkpoint state ----
@@ -576,11 +575,11 @@ class Miner:
         r""" Optionally Saves, updates and then reloads the miner training state.
         """
         last_saved = self.get_saved_state()
-        if last_saved == None or last_saved['epoch_loss'] >= self.epoch_loss:
+        if last_saved == None or last_saved['epoch_loss'] >= self.logs.epoch_loss:
             self.save()
 
         # Checks if epochs managed to diverage
-        if not math.isfinite(self.epoch_loss):
+        if not math.isfinite(self.logs.epoch_loss):
             logger.error('Incorrect epoch loss detected, reloading to previous saved state')
             self.reload()
 
@@ -608,8 +607,8 @@ class Miner:
 
         # ---- Load training state.
         self.epoch = state_dict['epoch']
-        self.epoch_loss = state_dict['epoch_loss']
-        self.global_step = state_dict['global_step']
+        self.logs.epoch_loss = state_dict['epoch_loss']
+        self.logs.global_step = state_dict['global_step']
         if 'network' in state_dict.keys() and bittensor.neuron.subtensor.network == state_dict['network']: # checks if you are loading into the same network
             chain_growth = bittensor.neuron.metagraph.n.item()- state_dict['nucleus_state']['chain_weights'].shape[0]
             #updates the shape of nucleus chain weights
@@ -651,8 +650,8 @@ class Miner:
         try:
             state_dict = {
                 'epoch': self.epoch,
-                'epoch_loss': self.epoch_loss,
-                'global_step': self.global_step,
+                'epoch_loss': self.logs.epoch_loss,
+                'global_step': self.logs.global_step,
                 'nucleus_state': self.nucleus.state_dict(), # Save nucleus state.
                 'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
                 'network': bittensor.neuron.subtensor.network # Save Network
@@ -685,7 +684,7 @@ class Miner:
             logger.error('Failure setting weights on chain with error: {}', e)
 
     # ---- Training logs ----
-    def logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
+    def log( self, progress_bar, iteration:int, output: SimpleNamespace ):
         r""" Called after every training step. Displays miner state to screen.
         """
         self_uid = bittensor.neuron.metagraph.hotkeys.index(bittensor.neuron.wallet.hotkey.ss58_address)
@@ -693,11 +692,11 @@ class Miner:
         rank = bittensor.neuron.metagraph.R[ self_uid ].item()
         incentive = bittensor.neuron.metagraph.I[ self_uid ].item()
         info = {
-            'GS': colored('{}'.format(self.global_step), 'red'),
+            'GS': colored('{}'.format(self.logs.global_step), 'red'),
             'LS': colored('{}'.format(iteration), 'blue'),
             'Epoch': colored('{}'.format(self.epoch+1), 'green'),
-            'Loss': colored('{:.4f}'.format(self.epoch_loss), 'yellow'),
-            'Best': colored('{:.4f}'.format(self.best_epoch_loss), 'red'),
+            'Loss': colored('{:.4f}'.format(self.logs.epoch_loss), 'yellow'),
+            'Best': colored('{:.4f}'.format(self.logs.best_epoch_loss), 'red'),
             'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
             'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
             'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
@@ -714,9 +713,9 @@ class Miner:
                     'remote_target_loss':output.remote_target_loss.item(),
                     'distillation_loss':output.distillation_loss.item(),
                     'local_target_loss': output.local_target_loss.item(),
-                    'remote_target_epoch_loss': self.remote_target_epoch_loss,
-                    'distillation_epoch_loss': self.distillation_epoch_loss,
-                    'local_target_epoch_loss': self.local_target_epoch_loss,
+                    'remote_target_epoch_loss': self.logs.remote_target_epoch_loss,
+                    'distillation_epoch_loss': self.logs.distillation_epoch_loss,
+                    'local_target_epoch_loss': self.logs.local_target_epoch_loss,
                     'local_accuracy':output.local_accuracy,
                     'Number of Peers':bittensor.neuron.metagraph.n.item(),
                     'Stake':stake,
@@ -725,14 +724,15 @@ class Miner:
                     'Axon QPS':bittensor.neuron.axon.stats.qps.value,
                     'Axon in bytes (total)':bittensor.neuron.axon.stats.total_in_bytes.value,
                     'Axon out bytes (total)':bittensor.neuron.axon.stats.total_out_bytes.value,
-                    'Sync with metagraph': self.sync_count,
-                    'Data size': self.epoch_data_size,
+                    'Sync with metagraph': self.logs.sync_count,
+                    'Data size': self.logs.epoch_data_size,
                     }
                 #removing normalization of chain weights for display
                 normalized_chain_weights =  F.softmax (self.nucleus.chain_weights.detach())
-                respond_rate = self.responded_peers_count / self.quested_peers_count
+                respond_rate = self.logs.responded_peers_count / self.logs.quested_peers_count
                 endpoints = bittensor.neuron.metagraph.endpoint_objs
-                for uid in bittensor.neuron.metagraph.uids.tolist():
+                for uid in range(len(normalized_chain_weights)):
+                    uid_str = str(uid).zfill(3)
                     pubkey = endpoints[uid].hotkey
                     if normalized_chain_weights[uid].item() > 0:
                         if self.nucleus.chain_weights.grad != None:
@@ -741,18 +741,18 @@ class Miner:
                             weight_dif = 0
 
                         if weight_dif > 0:
-                            info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'green')
+                            color = 'green'
                         elif weight_dif == 0:
-                            info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'white')
+                            color = 'white'
                         else:
-                            info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), 'red')
+                            color = 'red'
+                        info[uid_str] = colored('{:.4f}'.format(normalized_chain_weights[uid]), color)
                         if self.config.neuron.use_wandb:
-                            wandb_info[f'Chain weights (norm) uid: {str(uid)}']= normalized_chain_weights[uid]
-                            wandb_info[f'Chain weights (w/o norm) uid: {str(uid)}']= self.nucleus.chain_weights[uid]
-
-                            wandb_info[f'Quested uid: {str(uid)}']= self.quested_peers_count[uid]
-                            wandb_info[f'Responded uid: {str(uid)}']= self.responded_peers_count[uid]
-                            wandb_info[f'Respond rate uid: {str(uid)}']= respond_rate[uid]
+                            wandb_info[f'Chain weights (norm) uid: {uid_str}']= normalized_chain_weights[uid]
+                            wandb_info[f'Chain weights (w/o norm) uid: {uid_str}']= self.nucleus.chain_weights[uid]
+                            wandb_info[f'Quested uid: {uid_str}']= self.logs.quested_peers_count[uid]
+                            wandb_info[f'Responded uid: {uid_str}']= self.logs.responded_peers_count[uid]
+                            wandb_info[f'Respond rate uid: {uid_str}']= respond_rate[uid]
             try:
                 wandb.log(wandb_info)
             except Exception as e:
