@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"\x8f\x01\n\x06Neuron\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0b\n\x03uid\x18\x02 \x01(\x03\x12\x0e\n\x06hotkey\x18\x03 \x01(\t\x12\x0f\n\x07\x63oldkey\x18\x04 \x01(\t\x12\n\n\x02ip\x18\x05 \x01(\t\x12\x0c\n\x04port\x18\x06 \x01(\x05\x12\x0f\n\x07ip_type\x18\x07 \x01(\x05\x12\x1b\n\x08modality\x18\x08 \x01(\x0e\x32\t.Modality\"}\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x18\n\x07tensors\x18\x05 \x03(\x0b\x32\x07.Tensor\x12 \n\x0breturn_code\x18\x06 \x01(\x0e\x32\x0b.ReturnCode\x12\x0f\n\x07message\x18\x07 \x01(\t\"\xc9\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x1b\n\x08modality\x18\x07 \x01(\x0e\x32\t.Modality\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08*\xaa\x04\n\nReturnCode\x12\x0b\n\x07Success\x10\x00\x12\x0b\n\x07Timeout\x10\x01\x12\x0b\n\x07\x42\x61\x63koff\x10\x02\x12\x0f\n\x0bUnavailable\x10\x03\x12\x12\n\x0eNotImplemented\x10\x04\x12\x10\n\x0c\x45mptyRequest\x10\x05\x12\x11\n\rEmptyResponse\x10\x06\x12\x13\n\x0fInvalidResponse\x10\x07\x12\x12\n\x0eInvalidRequest\x10\x08\x12\x19\n\x15RequestShapeException\x10\t\x12\x1a\n\x16ResponseShapeException\x10\n\x12!\n\x1dRequestSerializationException\x10\x0b\x12\"\n\x1eResponseSerializationException\x10\x0c\x12#\n\x1fRequestDeserializationException\x10\r\x12$\n ResponseDeserializationException\x10\x0e\x12\x15\n\x11NotServingNucleus\x10\x0f\x12\x12\n\x0eNucleusTimeout\x10\x10\x12\x0f\n\x0bNucleusFull\x10\x11\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x12\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x13\x12\x11\n\rSenderUnknown\x10\x14\x12\x14\n\x10UnknownException\x10\x15\x12\x13\n\x0fUnauthenticated\x10\x16*\x19\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*Q\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05*+\n\x08Modality\x12\x08\n\x04TEXT\x10\x00\x12\t\n\x05IMAGE\x10\x01\x12\n\n\x06TENSOR\x10\x02\x32\x66\n\tBittensor\x12+\n\x07\x46orward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12,\n\x08\x42\x61\x63kward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x62\x06proto3'
+  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"\x8f\x01\n\x06Neuron\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0b\n\x03uid\x18\x02 \x01(\x03\x12\x0e\n\x06hotkey\x18\x03 \x01(\t\x12\x0f\n\x07\x63oldkey\x18\x04 \x01(\t\x12\n\n\x02ip\x18\x05 \x01(\t\x12\x0c\n\x04port\x18\x06 \x01(\x05\x12\x0f\n\x07ip_type\x18\x07 \x01(\x05\x12\x1b\n\x08modality\x18\x08 \x01(\x0e\x32\t.Modality\"}\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x18\n\x07tensors\x18\x05 \x03(\x0b\x32\x07.Tensor\x12 \n\x0breturn_code\x18\x06 \x01(\x0e\x32\x0b.ReturnCode\x12\x0f\n\x07message\x18\x07 \x01(\t\"\xc9\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x1b\n\x08modality\x18\x07 \x01(\x0e\x32\t.Modality\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08*\xb8\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17*\x19\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*Q\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05*+\n\x08Modality\x12\x08\n\x04TEXT\x10\x00\x12\t\n\x05IMAGE\x10\x01\x12\n\n\x06TENSOR\x10\x02\x32\x66\n\tBittensor\x12+\n\x07\x46orward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12,\n\x08\x42\x61\x63kward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x62\x06proto3'
 )
 
 _RETURNCODE = _descriptor.EnumDescriptor(
@@ -31,117 +31,122 @@ _RETURNCODE = _descriptor.EnumDescriptor(
   create_key=_descriptor._internal_create_key,
   values=[
     _descriptor.EnumValueDescriptor(
-      name='Success', index=0, number=0,
+      name='NoReturn', index=0, number=0,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='Timeout', index=1, number=1,
+      name='Success', index=1, number=1,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='Backoff', index=2, number=2,
+      name='Timeout', index=2, number=2,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='Unavailable', index=3, number=3,
+      name='Backoff', index=3, number=3,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='NotImplemented', index=4, number=4,
+      name='Unavailable', index=4, number=4,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='EmptyRequest', index=5, number=5,
+      name='NotImplemented', index=5, number=5,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='EmptyResponse', index=6, number=6,
+      name='EmptyRequest', index=6, number=6,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='InvalidResponse', index=7, number=7,
+      name='EmptyResponse', index=7, number=7,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='InvalidRequest', index=8, number=8,
+      name='InvalidResponse', index=8, number=8,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='RequestShapeException', index=9, number=9,
+      name='InvalidRequest', index=9, number=9,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='ResponseShapeException', index=10, number=10,
+      name='RequestShapeException', index=10, number=10,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='RequestSerializationException', index=11, number=11,
+      name='ResponseShapeException', index=11, number=11,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='ResponseSerializationException', index=12, number=12,
+      name='RequestSerializationException', index=12, number=12,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='RequestDeserializationException', index=13, number=13,
+      name='ResponseSerializationException', index=13, number=13,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='ResponseDeserializationException', index=14, number=14,
+      name='RequestDeserializationException', index=14, number=14,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='NotServingNucleus', index=15, number=15,
+      name='ResponseDeserializationException', index=15, number=15,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='NucleusTimeout', index=16, number=16,
+      name='NotServingNucleus', index=16, number=16,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='NucleusFull', index=17, number=17,
+      name='NucleusTimeout', index=17, number=17,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='RequestIncompatibleVersion', index=18, number=18,
+      name='NucleusFull', index=18, number=18,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='ResponseIncompatibleVersion', index=19, number=19,
+      name='RequestIncompatibleVersion', index=19, number=19,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='SenderUnknown', index=20, number=20,
+      name='ResponseIncompatibleVersion', index=20, number=20,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='UnknownException', index=21, number=21,
+      name='SenderUnknown', index=21, number=21,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='Unauthenticated', index=22, number=22,
+      name='UnknownException', index=22, number=22,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='Unauthenticated', index=23, number=23,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
@@ -149,7 +154,7 @@ _RETURNCODE = _descriptor.EnumDescriptor(
   containing_type=None,
   serialized_options=None,
   serialized_start=514,
-  serialized_end=1068,
+  serialized_end=1082,
 )
 _sym_db.RegisterEnumDescriptor(_RETURNCODE)
 
@@ -169,8 +174,8 @@ _SERIALIZER = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1070,
-  serialized_end=1095,
+  serialized_start=1084,
+  serialized_end=1109,
 )
 _sym_db.RegisterEnumDescriptor(_SERIALIZER)
 
@@ -200,8 +205,8 @@ _TENSORTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1097,
-  serialized_end=1147,
+  serialized_start=1111,
+  serialized_end=1161,
 )
 _sym_db.RegisterEnumDescriptor(_TENSORTYPE)
 
@@ -246,8 +251,8 @@ _DATATYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1149,
-  serialized_end=1230,
+  serialized_start=1163,
+  serialized_end=1244,
 )
 _sym_db.RegisterEnumDescriptor(_DATATYPE)
 
@@ -277,35 +282,36 @@ _MODALITY = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1232,
-  serialized_end=1275,
+  serialized_start=1246,
+  serialized_end=1289,
 )
 _sym_db.RegisterEnumDescriptor(_MODALITY)
 
 Modality = enum_type_wrapper.EnumTypeWrapper(_MODALITY)
-Success = 0
-Timeout = 1
-Backoff = 2
-Unavailable = 3
-NotImplemented = 4
-EmptyRequest = 5
-EmptyResponse = 6
-InvalidResponse = 7
-InvalidRequest = 8
-RequestShapeException = 9
-ResponseShapeException = 10
-RequestSerializationException = 11
-ResponseSerializationException = 12
-RequestDeserializationException = 13
-ResponseDeserializationException = 14
-NotServingNucleus = 15
-NucleusTimeout = 16
-NucleusFull = 17
-RequestIncompatibleVersion = 18
-ResponseIncompatibleVersion = 19
-SenderUnknown = 20
-UnknownException = 21
-Unauthenticated = 22
+NoReturn = 0
+Success = 1
+Timeout = 2
+Backoff = 3
+Unavailable = 4
+NotImplemented = 5
+EmptyRequest = 6
+EmptyResponse = 7
+InvalidResponse = 8
+InvalidRequest = 9
+RequestShapeException = 10
+ResponseShapeException = 11
+RequestSerializationException = 12
+ResponseSerializationException = 13
+RequestDeserializationException = 14
+ResponseDeserializationException = 15
+NotServingNucleus = 16
+NucleusTimeout = 17
+NucleusFull = 18
+RequestIncompatibleVersion = 19
+ResponseIncompatibleVersion = 20
+SenderUnknown = 21
+UnknownException = 22
+Unauthenticated = 23
 MSGPACK = 0
 TORCH = 0
 TENSORFLOW = 1
@@ -590,8 +596,8 @@ _BITTENSOR = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=1277,
-  serialized_end=1379,
+  serialized_start=1291,
+  serialized_end=1393,
   methods=[
   _descriptor.MethodDescriptor(
     name='Forward',

@@ -35,13 +35,16 @@ __network_dim__ = 1024 # All network responses have shape = [ __batch_size__, __
 # Substrate chain block time (seconds).
 __blocktime__ = 6
 
-# Hardcoded entry point nodes. 
-__kusanagi_entrypoints__ = [
-    "test.kusanagi.bittensor.com:9944" 
-]
-
 __akatsuki_entrypoints__ = [
     "main.akatsuki.bittensor.com:9944"
+]
+
+__kusanagi_entrypoints__ = [
+    "test.kusanagi.bittensor.com:9944"
+]
+
+__nobunaga_entrypoints__ = [
+    'staging.nobunaga.opentensor.ai'
 ]
 
 __local_entrypoints__ = [
@@ -49,7 +52,7 @@ __local_entrypoints__ = [
 ]
 
 __registration_servers__ = [
-    '127.0.0.1:5000'
+    'registration.opentensor.ai'
 ]
 
 # ---- Config ----

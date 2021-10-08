@@ -347,7 +347,6 @@ def test_receptor_neuron_server_response_with_nans_backward():
     out, ops, time  = receptor.backward(x,x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Success
     assert out[0][0][0] == 0
-"""
 # -- no return code -- 
 
 def test_receptor_forward_no_return():
@@ -359,7 +358,6 @@ def test_receptor_forward_no_return():
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__,
             hotkey = wallet.hotkey.ss58_address,
-            return_code = None,
             tensors = [y_serialized])
 
     stub.Forward = MagicMock( return_value=mock_return_val )
@@ -367,7 +365,7 @@ def test_receptor_forward_no_return():
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
     out, ops, time  = receptor.forward(x, bittensor.proto.Modality.TENSOR, timeout=1)
-    assert ops == bittensor.proto.ReturnCode.UnknownException
+    assert ops == bittensor.proto.ReturnCode.NoReturn
 
 def test_receptor_backward_no_return():
     y = torch.rand(3, 3, bittensor.__network_dim__)
@@ -378,7 +376,6 @@ def test_receptor_backward_no_return():
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__,
             hotkey = wallet.hotkey.ss58_address,
-            return_code = None,
             tensors = [y_serialized])
 
     stub.Backward = MagicMock( return_value=mock_return_val )
@@ -386,8 +383,8 @@ def test_receptor_backward_no_return():
 
     x = torch.rand(3, 3, bittensor.__network_dim__)
     out, ops, time  = receptor.backward(x,x, bittensor.proto.Modality.TENSOR, timeout=1)
-    assert ops == bittensor.proto.ReturnCode.UnknownException
-"""
+    assert ops == bittensor.proto.ReturnCode.NoReturn
+
 # -- no exception in response -- 
 
 def test_receptor_forward_exception():
