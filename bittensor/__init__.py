@@ -44,7 +44,7 @@ __kusanagi_entrypoints__ = [
 ]
 
 __nobunaga_entrypoints__ = [
-    'staging.nobunaga.opentensor.ai'
+    'staging.nobunaga.opentensor.ai:9944'
 ]
 
 __local_entrypoints__ = [
@@ -52,7 +52,7 @@ __local_entrypoints__ = [
 ]
 
 __registration_servers__ = [
-    'registration.opentensor.ai'
+    'registration.opentensor.ai:9944'
 ]
 
 # ---- Config ----

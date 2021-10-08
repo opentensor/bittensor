@@ -121,18 +121,18 @@ class Wallet():
         if subtensor == None: subtensor = bittensor.subtensor()
         return subtensor.is_hotkey_registered( self.hotkey.ss58_address )
 
-    def get_neuron ( self, subtensor: 'bittensor.Subtensor' = None ) -> SimpleNamespace:
+    def get_neuron ( self, subtensor: 'bittensor.Subtensor' = None ) -> Union[ SimpleNamespace, None] :
         """ Returns this wallet's neuron information from subtensor.
             Args:
                 subtensor( 'bittensor.Subtensor' ):
                     Bittensor subtensor connection. Overrides with defaults if None.
             Return:
-                neuron (SimpleNamespace):
-                    neuron account on the chain.
+                neuron (Union[ SimpleNamespace, None ]):
+                    neuron account on the chain or None if you are not registered.
         """
         self.assert_hotkey()             
         if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
+        if not self.is_registered(subtensor=subtensor): return None
         neuron = subtensor.neuron_for_wallet( self )
         return neuron
 
@@ -143,10 +143,10 @@ class Wallet():
                     Bittensor subtensor connection. Overrides with defaults if None.
             Return:
                 uid (int):
-                    Network uid.
+                    Network uid or -1 if you are not registered.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
+        if not self.is_registered(subtensor=subtensor): return -1
         neuron = self.get_neuron(subtensor = subtensor)
         if neuron.is_null:
             return -1
@@ -160,10 +160,10 @@ class Wallet():
                     Bittensor subtensor connection. Overrides with defaults if None.
             Return:
                 balance (bittensor.utils.balance.Balance):
-                    Stake account balance
+                    Stake account balance.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
+        if not self.is_registered(subtensor=subtensor): return bittensor.Balance(0)
         neuron = self.get_neuron(subtensor = subtensor)
         if neuron.is_null:
             return bittensor.Balance(0)
@@ -279,10 +279,7 @@ class Wallet():
                     If we did not wait for finalization / inclusion, the response is true.
         """
         self.assert_coldkey()
-        self.assert_coldkeypub()
-        self.assert_hotkey()
         if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor): raise ValueError('This wallet is not registered. Call wallet.register( email = <your email>) before this function.')
         if not isinstance(amount, bittensor.Balance):
             amount = bittensor.utils.balance.Balance.from_float( amount )
         balance = self.get_balance()
@@ -291,18 +288,12 @@ class Wallet():
             return False
         return subtensor.transfer( wallet = self, amount = amount, dest = dest, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
 
-    def create_if_non_existent( self, coldkey_use_password:bool = True, hotkey_use_password:bool = True) -> 'Wallet':
+    def create_if_non_existent( self, coldkey_use_password:bool = True, hotkey_use_password:bool = False) -> 'Wallet':
         """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
         """
         return self.create(coldkey_use_password, hotkey_use_password)
 
-    def create (self, coldkey_use_password:bool = True, hotkey_use_password:bool = True ) -> 'Wallet':
-        """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
-
-        """
-        return self.create(coldkey_use_password, hotkey_use_password)
-
-    def create (self, coldkey_use_password:bool = True, hotkey_use_password:bool = True ) -> 'Wallet':
+    def create (self, coldkey_use_password:bool = True, hotkey_use_password:bool = False ) -> 'Wallet':
         """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
 
         """
@@ -581,7 +572,7 @@ class Wallet():
         cli_utils.set_file_permissions( self.coldkeyfile )
         return self
 
-    def create_hotkey_from_uri( self, uri:str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+    def create_hotkey_from_uri( self, uri:str, use_password: bool = False, overwrite:bool = False) -> 'Wallet':  
         """ Creates hotkey from suri string, optionally encrypts it with the user's inputed password.
             Args:
                 uri: (str, required):
@@ -675,7 +666,7 @@ class Wallet():
         cli_utils.set_file_permissions( self.coldkeyfile )
         return self
 
-    def new_hotkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+    def new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False) -> 'Wallet':  
         """ Creates a new hotkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
@@ -690,7 +681,7 @@ class Wallet():
         """
         self.create_new_hotkey( n_words, use_password, overwrite )
 
-    def create_new_hotkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+    def create_new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False) -> 'Wallet':  
         """ Creates a new hotkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
