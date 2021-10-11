@@ -394,17 +394,26 @@ class Wallet():
         coldkeypub_path = os.path.join(wallet_path, "coldkeypub.txt")
         return bittensor.Keyfile( path = coldkeypub_path )
 
-    def set_hotkey(self, keypair: 'bittensor.Keypair', encrypt: bool = False ) -> 'bittensor.Keyfile':
+    def set_hotkey(self, keypair: 'bittensor.Keypair', encrypt: bool = False, overwrite: bool = False) -> 'bittensor.Keyfile':
         self._hotkey = keypair
-        self.hotkey_file.set_keypair( keypair, encrypt = encrypt )
+        self.hotkey_file.set_keypair( keypair, encrypt = encrypt, overwrite = overwrite )
 
-    def set_coldkeypub(self, keypair: 'bittensor.Keypair', encrypt: bool = False ) -> 'bittensor.Keyfile':
+    def set_coldkeypub(self, keypair: 'bittensor.Keypair', encrypt: bool = False, overwrite: bool = False) -> 'bittensor.Keyfile':
         self._coldkeypub = Keypair(ss58_address=keypair.ss58_address)
-        self.coldkeypub_file.set_keypair( self._coldkeypub, encrypt = encrypt )
+        self.coldkeypub_file.set_keypair( self._coldkeypub, encrypt = encrypt, overwrite = overwrite  )
 
-    def set_coldkey(self, keypair: 'bittensor.Keypair', encrypt: bool = True ) -> 'bittensor.Keyfile':
+    def set_coldkey(self, keypair: 'bittensor.Keypair', encrypt: bool = True, overwrite: bool = False) -> 'bittensor.Keyfile':
         self._coldkey = keypair
-        self.coldkey_file.set_keypair( self._coldkey, encrypt = encrypt)
+        self.coldkey_file.set_keypair( self._coldkey, encrypt = encrypt, overwrite = overwrite )
+
+    def get_coldkey(self, password: str = None ) -> 'bittensor.Keypair':
+        self.coldkey_file.get_keypair( password = password )
+
+    def get_hotkey(self, password: str = None ) -> 'bittensor.Keypair':
+        self.hotkey_file.get_keypair( password = password )
+
+    def get_coldkeypub(self, password: str = None ) -> 'bittensor.Keypair':
+        self.coldkeypub_file.get_keypair( password = password )
 
     @property
     def hotkey(self) -> 'bittensor.Keypair':
@@ -463,8 +472,8 @@ class Wallet():
         """
         keypair = Keypair.create_from_uri( uri )
         display_mnemonic_msg( keypair )
-        self.set_coldkey( keypair, encrypt = use_password)
-        self.set_coldkeypub( keypair )
+        self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
+        self.set_coldkeypub( keypair, overwrite = overwrite)
         return self
 
     def create_hotkey_from_uri( self, uri:str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
@@ -482,7 +491,7 @@ class Wallet():
         """
         keypair = Keypair.create_from_uri( uri )
         display_mnemonic_msg( keypair  )
-        self.set_hotkey( keypair, encrypt=use_password)
+        self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self
 
     def new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
@@ -516,8 +525,8 @@ class Wallet():
         mnemonic = Keypair.generate_mnemonic( n_words)
         keypair = Keypair.create_from_mnemonic(mnemonic)
         display_mnemonic_msg( keypair  )
-        self.set_coldkey( keypair, encrypt = use_password)
-        self.set_coldkeypub( keypair )
+        self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
+        self.set_coldkeypub( keypair, overwrite = overwrite)
         return self
 
     def new_hotkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
@@ -551,7 +560,7 @@ class Wallet():
         mnemonic = Keypair.generate_mnemonic( n_words)
         keypair = Keypair.create_from_mnemonic(mnemonic)
         display_mnemonic_msg( keypair  )
-        self.set_hotkey( keypair, encrypt=use_password)
+        self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self
 
     def regen_coldkey( self, mnemonic: Union[list, str], use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
@@ -587,8 +596,8 @@ class Wallet():
             raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
         keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
         display_mnemonic_msg( keypair  )
-        self.set_coldkey( keypair, encrypt = use_password)
-        self.set_coldkeypub( keypair )
+        self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
+        self.set_coldkeypub( keypair, overwrite = overwrite)
         return self 
 
     def regen_hotkey( self, mnemonic: Union[list, str], use_password: bool = True, overwrite:bool = False) -> 'Wallet':
@@ -624,5 +633,5 @@ class Wallet():
             raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
         keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
         display_mnemonic_msg( keypair  )
-        self.set_hotkey( keypair, encrypt=use_password)
+        self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self 
