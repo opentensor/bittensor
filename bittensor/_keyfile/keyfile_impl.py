@@ -120,23 +120,22 @@ def keyfile_data_is_encrypted_legacy( keyfile_data:bytes ) -> bool:
 def keyfile_data_is_encrypted( keyfile_data:bytes ) -> bool:
     return keyfile_data_is_encrypted_ansible( keyfile_data ) or keyfile_data_is_encrypted_legacy( keyfile_data )
 
-def encrypt_keyfile_data ( keyfile_data:bytes ) -> bytes:
-    password = ask_password_to_encrypt()
+def encrypt_keyfile_data ( keyfile_data:bytes, password: str = None ) -> bytes:
+    password = ask_password_to_encrypt() if password == None else password
     vault = Vault( password )
     return vault.vault.encrypt ( keyfile_data )
 
-def decrypt_keyfile_data( keyfile_data: bytes ) -> bytes:
+def decrypt_keyfile_data( keyfile_data: bytes, password: str = None) -> bytes:
 
     try:
+        password = getpass.getpass("Enter password to unlock key: ") if password == None else password
         # Ansible decrypt.
         if keyfile_data_is_encrypted_ansible( keyfile_data ):
-            password = getpass.getpass("Enter password to unlock key: ")
             vault = Vault( password )
             decrypted_keyfile_data = vault.load( keyfile_data )
 
         # Legacy decrypt.
         elif keyfile_data_is_encrypted_legacy( keyfile_data ):
-            password = getpass.getpass("Enter password to unlock key: ")
             __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
             kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), salt=__SALT, length=32, iterations=10000000, backend=default_backend())
             key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
@@ -157,15 +156,15 @@ class Keyfile( object ):
     """ Defines an interface for a subtrate interface keypair stored on device.
     """
     def __init__( self, path: str ):
-        self.fullpath = os.path.expanduser(path)
+        self.path = os.path.expanduser(path)
 
     def __str__(self):
         if not self.exists_on_device():
-            return "Keyfile<(empty:{})>".format( self.fullpath )
+            return "Keyfile<(empty:{})>".format( self.path )
         if self.is_encrypted():
-            return "Keyfile<(encrypted:{})>".format( self.fullpath )
+            return "Keyfile<(encrypted:{})>".format( self.path )
         else:
-            return "Keyfile<(decrypted:{})>".format( self.fullpath )
+            return "Keyfile<(decrypted:{})>".format( self.path )
 
     def __repr__(self):
         return self.__str__()
@@ -178,36 +177,36 @@ class Keyfile( object ):
     def keyfile_data( self ) -> bytes:
         return self._read_keyfile_data_from_file()
 
-    def set_keypair ( self, keypair: 'Keypair', encrypt: bool = True, overwrite: bool = False ):
+    def set_keypair ( self, keypair: 'Keypair', encrypt: bool = True, overwrite: bool = False, password:str = None):
         # Create dirs.
-        directory = os.path.dirname( self.fullpath )
+        directory = os.path.dirname( self.path )
         if not os.path.exists( directory ):
             os.makedirs( directory ) 
         keyfile_data = keypair_to_keyfile_data( keypair )
         if encrypt:
-            keyfile_data = encrypt_keyfile_data( keyfile_data )
-        self._write_keyfile_data_to_file( keyfile_data, overwrite )
+            keyfile_data = encrypt_keyfile_data( keyfile_data, password )
+        self._write_keyfile_data_to_file( keyfile_data, overwrite = overwrite )
 
-    def get_keypair(self) -> 'Keypair':
+    def get_keypair(self, password: str = None) -> 'Keypair':
         keyfile_data = self._read_keyfile_data_from_file()
         if keyfile_data_is_encrypted( keyfile_data ):
-            keyfile_data = decrypt_keyfile_data( keyfile_data )
+            keyfile_data = decrypt_keyfile_data( keyfile_data, password)
         return load_keypair_from_data( keyfile_data )
 
     def exists_on_device( self ) -> bool:
-        if not os.path.isfile( self.fullpath ):
+        if not os.path.isfile( self.path ):
             return False
         return True
 
     def is_readable( self ) -> bool:
         if not self.exists_on_device():
             return False
-        if not os.access( self.fullpath , os.R_OK ):
+        if not os.access( self.path , os.R_OK ):
             return False
         return True
 
     def is_writable( self ) -> bool:
-        if os.access(self.fullpath, os.W_OK):
+        if os.access(self.path, os.W_OK):
             return True
         return False
 
@@ -219,50 +218,52 @@ class Keyfile( object ):
         return keyfile_data_is_encrypted( self._read_keyfile_data_from_file() )
 
     def _may_overwrite ( self ) -> bool:
-        choice = input("File {} already exists. Overwrite ? (y/N) ".format( self.fullpath ))
+        choice = input("File {} already exists. Overwrite ? (y/N) ".format( self.path ))
         return choice == 'y'
 
-    def encrypt( self ):
+    def encrypt( self, password: str = None):
         if not self.exists_on_device():
-            raise KeyFileError( "Keyfile at: {} is not a file".format( self.fullpath ))
+            raise KeyFileError( "Keyfile at: {} is not a file".format( self.path ))
         if not self.is_readable():
-            raise KeyFileError( "Keyfile at: {} is not readable".format( self.fullpath ))
+            raise KeyFileError( "Keyfile at: {} is not readable".format( self.path ))
         if not self.is_writable():
-            raise KeyFileError( "Keyfile at: {} is not writeable".format( self.fullpath ) ) 
+            raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) ) 
         keyfile_data = self._read_keyfile_data_from_file()
         if not keyfile_data_is_encrypted( keyfile_data ):
-            keyfile_data = encrypt_keyfile_data( keyfile_data )
+            keyfile_data = encrypt_keyfile_data( keyfile_data, password )
         self._write_keyfile_data_to_file( keyfile_data, overwrite = True )
 
-    def decrypt( self ):
+    def decrypt( self, password: str = None):
         if not self.exists_on_device():
-            raise KeyFileError( "Keyfile at: {} is not a file".format( self.fullpath ))
+            raise KeyFileError( "Keyfile at: {} is not a file".format( self.path ))
         if not self.is_readable():
-            raise KeyFileError( "Keyfile at: {} is not readable".format( self.fullpath ))
+            raise KeyFileError( "Keyfile at: {} is not readable".format( self.path ))
         if not self.is_writable():
-            raise KeyFileError( "No write access for {}".format( self.fullpath ) ) 
+            raise KeyFileError( "No write access for {}".format( self.path ) ) 
         keyfile_data = self._read_keyfile_data_from_file()
         if keyfile_data_is_encrypted( keyfile_data ):
-            keyfile_data = decrypt_keyfile_data( keyfile_data )
+            keyfile_data = decrypt_keyfile_data( keyfile_data, password )
         self._write_keyfile_data_to_file( keyfile_data, overwrite = True )
 
     def _read_keyfile_data_from_file ( self ) -> bytes:
         if not self.exists_on_device():
-            raise KeyFileError( "Keyfile at: {} is not a file".format( self.fullpath ))
+            raise KeyFileError( "Keyfile at: {} is not a file".format( self.path ))
         if not self.exists_on_device():
-            raise KeyFileError( "Keyfile at: {} is not readable".format( self.fullpath ))
-        with open( self.fullpath , 'rb') as file:
+            raise KeyFileError( "Keyfile at: {} is not readable".format( self.path ))
+        with open( self.path , 'rb') as file:
             data = file.read()
         return data
 
     def _write_keyfile_data_to_file ( self, keyfile_data:bytes, overwrite: bool = False ):
         # Check overwrite.
-        if self.exists_on_device() and not overwrite and not self._may_overwrite():
-            raise KeyFileError( "Keyfile at: {} is not writeable".format( self.fullpath ) ) 
-        with open(self.fullpath, "wb") as keyfile:
+        print (overwrite)
+        if self.exists_on_device() and not overwrite:
+            if self._may_overwrite():
+                raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) ) 
+        with open(self.path, "wb") as keyfile:
             keyfile.write( keyfile_data )
         # Set file permissions.
-        os.chmod(self.fullpath, stat.S_IRUSR | stat.S_IWUSR)
+        os.chmod(self.path, stat.S_IRUSR | stat.S_IWUSR)
 
 
 
