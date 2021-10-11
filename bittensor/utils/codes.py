@@ -26,48 +26,50 @@ def code_to_string( code: bittensor.proto.ReturnCode ) -> str:
     """ Return code -> string
     """
     if code == 0: 
+        return 'NoReturn'
+    elif code == 1: 
         return 'Success'
-    elif code == 1:
-        return 'Timeout'
     elif code == 2:
-        return 'Backoff'
+        return 'Timeout'
     elif code == 3:
-        return 'Unavailable'
+        return 'Backoff'
     elif code == 4:
-        return 'NotImplemented'
+        return 'Unavailable'
     elif code == 5:
-        return 'EmptyRequest'
+        return 'NotImplemented'
     elif code == 6:
-        return 'EmptyResponse'
+        return 'EmptyRequest'
     elif code == 7:
-        return 'InvalidResponse'
+        return 'EmptyResponse'
     elif code == 8:
-        return 'InvalidRequest'
+        return 'InvalidResponse'
     elif code == 9:
-        return 'RequestShapeException'
+        return 'InvalidRequest'
     elif code == 10:
-        return 'ResponseShapeException'
+        return 'RequestShapeException'
     elif code == 11:
-        return 'RequestSerializationException'
+        return 'ResponseShapeException'
     elif code == 12:
-        return 'ResponseSerializationException'
+        return 'RequestSerializationException'
     elif code == 13:
-        return 'RequestDeserializationException'
+        return 'ResponseSerializationException'
     elif code == 14:
-        return 'ResponseDeserializationException'
+        return 'RequestDeserializationException'
     elif code == 15:
-        return 'NotServingNucleus'
+        return 'ResponseDeserializationException'
     elif code == 16:
-        return 'NucleusTimeout'
+        return 'NotServingNucleus'
     elif code == 17:
-        return 'NucleusFull'
+        return 'NucleusTimeout'
     elif code == 18:
-        return 'RequestIncompatibleVersion'
+        return 'NucleusFull'
     elif code == 19:
-        return 'ResponseIncompatibleVersion'
+        return 'RequestIncompatibleVersion'
     elif code == 20:
-        return 'SenderUnknown'
+        return 'ResponseIncompatibleVersion'
     elif code == 21:
+        return 'SenderUnknown'
+    elif code == 22:
         return 'UnknownException'
     else:
         return 'UnknownCode'
@@ -126,13 +128,13 @@ def code_to_loguru_color( code: bittensor.proto.ReturnCode ) -> str:
     """ Return code -> loguru color
     """
     if code == 0: 
+        return 'red'
+    elif code == 1: 
         return 'green'
-    elif code == 1:
-        return 'yellow'
     elif code == 2:
         return 'yellow'
     elif code == 3:
-        return 'red'
+        return 'yellow'
     elif code == 4:
         return 'red'
     elif code == 5:
@@ -158,57 +160,18 @@ def code_to_loguru_color( code: bittensor.proto.ReturnCode ) -> str:
     elif code == 15:
         return 'red'
     elif code == 16:
-        return 'yellow'
+        return 'red'
     elif code == 17:
         return 'yellow'
     elif code == 18:
-        return 'red'
+        return 'yellow'
     elif code == 19:
         return 'red'
     elif code == 20:
         return 'red'
     elif code == 21:
         return 'red'
+    elif code == 22:
+        return 'red'
     else:
         return 'red'
-
-def rpc_log( axon: bool, forward: bool, is_response: bool, code:int, pubkey: str, inputs, outputs, message:str ):
-    """ Standardized rpc logging
-    """
-    if axon:
-        log_msg = '<white>Axon</white>     '
-    else:
-        log_msg = '<white>Dendrite</white> '
-    if forward:
-        log_msg += "<green>Forward</green> "
-    else:
-        log_msg += "<green>Backward</green>"
-    if is_response:
-        log_msg += " <green>Response</green> <--- "
-    else:
-        log_msg += " <green>Request</green>  ---> "
-    if is_response:
-        if axon:
-            log_msg += "<white>to:  </white><blue>{}</blue> ".format( pubkey )
-        else:
-            log_msg += "<white>from:</white><blue>{}</blue> ".format( pubkey )
-    else:
-        if axon:
-            log_msg += "<white>from:</white><blue>{}</blue> ".format( pubkey )
-        else:
-            log_msg += "<white>to:  </white><blue>{}</blue> ".format( pubkey )
-    log_msg += "<white>code:</white>"
-    code_color = code_to_loguru_color( code )
-    code_string = code_to_string( code )
-    code_str = "<" + code_color + ">" + code_string + "</" + code_color + ">"
-    log_msg += code_str
-    if inputs != None:
-        if isinstance(inputs, list):
-            log_msg += " <white>inputs:</white>{}".format( [list(inp.shape) for inp in inputs] )
-        else:
-            log_msg += " <white>inputs:</white>{}".format( list(inputs.shape) )
-    if outputs != None:
-        log_msg += " <white>outputs:</white>{}".format( list(outputs.shape))
-    if message != None:
-        log_msg += " <white>message:</white><" + code_color + ">" + message + "</" + code_color + ">"
-    logger.debug( log_msg )

@@ -99,12 +99,12 @@ class Executor:
         total_success = 0
         total_time = 0.0
         logger.info('\nRunning queries ...')
-        for endpoint in tqdm(owned_endpoints):
-
+        for end in tqdm(owned_endpoints):
+            endpoint =  bittensor.endpoint.from_tensor( end )
             # Make query and get response.
             if self.wallet.has_hotkey:
                 start_time = time.time()
-                _, code = self.dendrite.forward_text( endpoints = [endpoint], inputs = [torch.zeros((1,1), dtype=torch.int64)] )
+                _, code, times = self.dendrite.forward_text( endpoints = [endpoint], inputs = [torch.zeros((1,1), dtype=torch.int64)] )
                 end_time = time.time()
                 code_to_string = code_utils.code_to_string(code.item())
                 code_color = code_utils.code_to_color(code.item()) 
@@ -118,7 +118,7 @@ class Executor:
                 code_str = '[N/A]'
                 query_time = '[N/A]'
 
-            uid = endpoint.uid
+            uid = self.metagraph.coldkeys.index(self.wallet.coldkeypub.ss58_address)
             stake = self.metagraph.S[ uid ].item()
             rank = self.metagraph.R[ uid ].item()
             incentive = self.metagraph.I[ uid ].item()

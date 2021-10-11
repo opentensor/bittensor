@@ -7,6 +7,7 @@ import numpy
 from miners.text.template_miner import Miner,Nucleus
 
 def test_run_template():
+    bittensor.logging()
 
     magic = MagicMock(return_value = 1)
     def test_forward(cls,pubkey,inputs_x):

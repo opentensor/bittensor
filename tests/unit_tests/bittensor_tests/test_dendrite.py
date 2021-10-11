@@ -118,6 +118,101 @@ def test_dendrite_forward_text_shape_error():
     with pytest.raises(ValueError):
         dendrite.forward_image( [neuron_obj], [x])
 
+def test_dendrite_forward_tensor_type_error():
+    x = torch.zeros(3, 3, bittensor.__network_dim__, dtype=torch.int32)
+    with pytest.raises(ValueError):
+        dendrite.forward_tensor( [neuron_obj], x)
+
+def test_dendrite_forward_image_type_error():
+    x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ], dtype=torch.int64)
+    with pytest.raises(ValueError):
+        dendrite.forward_image( [neuron_obj], x)
+
+def test_dendrite_forward_text_type_error():
+    x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.float32)
+    with pytest.raises(ValueError):
+        dendrite.forward_image( [neuron_obj], x)
+
+def test_dendrite_forward_tensor_endpoint_type_error():
+    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
+    with pytest.raises(ValueError):
+        dendrite.forward_tensor( [dict()], [x])
+
+def test_dendrite_forward_image_endpoint_type_error():
+    x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ], dtype=torch.float32)
+    with pytest.raises(ValueError):
+        dendrite.forward_image( [dict()], [x])
+
+def test_dendrite_forward_text_endpoint_type_error():
+    x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
+    with pytest.raises(ValueError):
+        dendrite.forward_image( [dict()], [x])
+
+def test_dendrite_forward_tensor_endpoint_len_error():
+    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
+    with pytest.raises(ValueError):
+        dendrite.forward_tensor( [], [x])
+
+def test_dendrite_forward_image_endpoint_len_error():
+    x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ], dtype=torch.float32)
+    with pytest.raises(ValueError):
+        dendrite.forward_image( [], [x])
+
+def test_dendrite_forward_text_endpoint_len_error():
+    x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
+    with pytest.raises(ValueError):
+        dendrite.forward_image( [], [x])
+
+def test_dendrite_forward_tensor_input_len_error():
+    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
+    with pytest.raises(ValueError):
+        dendrite.forward_tensor( [neuron_obj], [])
+
+def test_dendrite_forward_image_input_len_error():
+    x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ], dtype=torch.float32)
+    with pytest.raises(ValueError):
+        dendrite.forward_image( [neuron_obj], [])
+
+def test_dendrite_forward_text_input_len_error():
+    x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
+    with pytest.raises(ValueError):
+        dendrite.forward_image( [neuron_obj], [])
+
+
+def test_dendrite_forward_tensor_mismatch_len_error():
+    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
+    with pytest.raises(ValueError):
+        dendrite.forward_tensor( [neuron_obj], [x,x])
+
+def test_dendrite_forward_image_mismatch_len_error():
+    x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ], dtype=torch.float32)
+    with pytest.raises(ValueError):
+        dendrite.forward_image( [neuron_obj], [x,x])
+
+def test_dendrite_forward_text_mismatch_len_error():
+    x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
+    with pytest.raises(ValueError):
+        dendrite.forward_image( [neuron_obj], [x,x])
+
+def test_dendrite_forward_text_non_list():
+    x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
+    out, ops, times = dendrite.forward_text( neuron_obj, x)
+    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
+    assert list(out[0].shape) == [2, 4, bittensor.__network_dim__]
+
+def test_dendrite_forward_image_non_list():
+    x = torch.tensor([ [ [ [ [ 1 ] ] ] ] ], dtype=torch.float32)
+    out, ops, times = dendrite.forward_image( neuron_obj, x)
+    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
+    assert list(out[0].shape) == [1, bittensor.__network_dim__]
+
+def test_dendrite_forward_tensor_non_list():
+    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
+    out, ops, times = dendrite.forward_tensor( neuron_obj, x)
+    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
+    assert list(out[0].shape) == [3, bittensor.__network_dim__]
+
+
 def test_dendrite_forward_text():
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     out, ops, times = dendrite.forward_text( [neuron_obj], [x])

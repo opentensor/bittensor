@@ -101,32 +101,3 @@ class config:
         bittensor.metagraph.add_args( parser )
         bittensor.dataloader.add_args( parser )
         return bittensor.config( parser )
-
-    @staticmethod
-    def load_from_relative_path(path: str)  -> 'bittensor.Config':
-        r""" Loads and returns a Munched config object from a relative path.
-
-            Args:
-                path (str, `required`): 
-                    Path to config.yaml file. full_path = cwd() + path
-    
-            Returns:
-                config  (:obj:`bittensor.Config` `required`):
-                    bittensor.Config object with values from config under path.
-        """
-        # Load yaml items from relative path.
-        path_items = config_impl.Config()
-        if path != None:
-            path = os.getcwd() + '/' + path
-            if not os.path.isfile(path):
-                logger.error('CONFIG: cannot find passed configuration file at {}', path)
-                raise FileNotFoundError('Cannot find a configuration file at', path)
-            with open(path, 'r') as f:
-                try:
-                    path_items = yaml.safe_load(f)
-                    path_items = munch.munchify(path_items)
-                    path_items = config_impl.Config( path_items )
-                except yaml.YAMLError as yaml_error:
-                    logger.error('CONFIG: cannot parse passed configuration file at {}', path)
-                    raise config.InvalidConfigFile from yaml_error
-        return path_items
