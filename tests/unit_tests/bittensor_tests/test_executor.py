@@ -19,9 +19,9 @@ def test_create_hotkey():
         use_password = False,
         overwrite = True
     )
-    assert os.path.isfile(executor.wallet.hotkeyfile) 
-    os.remove(executor.wallet.hotkeyfile)
-    assert not os.path.isfile(executor.wallet.hotkeyfile) 
+    assert executor.wallet.hotkey_file.exists_on_device()
+    os.remove(executor.wallet.hotkey_file.path)
+    assert not executor.wallet.hotkey_file.exists_on_device()
 
 def test_create_coldkey():
     executor.create_new_coldkey(
@@ -29,11 +29,11 @@ def test_create_coldkey():
         use_password = False,
         overwrite = True
     )
-    assert os.path.isfile(executor.wallet.coldkeyfile) 
-    os.remove(executor.wallet.coldkeyfile)
-    os.remove(executor.wallet.coldkeypubfile)
-    assert not os.path.isfile(executor.wallet.coldkeyfile) 
-    assert not os.path.isfile(executor.wallet.coldkeypubfile) 
+    assert executor.wallet.coldkey_file.exists_on_device() 
+    os.remove(executor.wallet.coldkey_file.path)
+    os.remove(executor.wallet.coldkeypub_file.path)
+    assert not executor.wallet.coldkey_file.exists_on_device() 
+    assert not executor.wallet.coldkeypub_file.exists_on_device() 
 
 def test_regenerate_coldkey():
     executor.regenerate_coldkey(
@@ -41,11 +41,11 @@ def test_regenerate_coldkey():
         use_password = False,
         overwrite = True
     )
-    assert os.path.isfile(executor.wallet.coldkeyfile) 
-    os.remove(executor.wallet.coldkeyfile)
-    os.remove(executor.wallet.coldkeypubfile)
-    assert not os.path.isfile(executor.wallet.coldkeyfile) 
-    assert not os.path.isfile(executor.wallet.coldkeypubfile) 
+    assert executor.wallet.coldkey_file.exists_on_device() 
+    os.remove(executor.wallet.coldkey_file.path)
+    os.remove(executor.wallet.coldkeypub_file.path)
+    assert not executor.wallet.coldkey_file.exists_on_device() 
+    assert not executor.wallet.coldkeypub_file.exists_on_device() 
 
 def test_regenerate_hotkey():
     executor.regenerate_hotkey(
@@ -53,9 +53,9 @@ def test_regenerate_hotkey():
         use_password = False,
         overwrite = True
     )
-    assert os.path.isfile(executor.wallet.hotkeyfile) 
-    os.remove(executor.wallet.hotkeyfile)
-    assert not os.path.isfile(executor.wallet.hotkeyfile) 
+    assert executor.wallet.hotkey_file.exists_on_device()
+    os.remove(executor.wallet.hotkey_file.path)
+    assert not executor.wallet.hotkey_file.exists_on_device()
 
 def test_overview():
     wallet.create_new_coldkey(use_password=False, overwrite = True)
