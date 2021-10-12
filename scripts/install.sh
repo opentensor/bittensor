@@ -2,7 +2,10 @@
 #!/bin/bash
 set -u
 
-python="python3.8"
+# enable  command completion
+set -o history -o histexpand
+
+python="python3"
 
 abort() {
   printf "%s\n" "$1"
@@ -15,6 +18,15 @@ getc() {
   /bin/stty raw -echo
   IFS= read -r -n 1 -d '' "$@"
   /bin/stty "$save_state"
+}
+
+exit_on_error() {
+    exit_code=$1
+    last_command=${@:2}
+    if [ $exit_code -ne 0 ]; then
+        >&2 echo "\"${last_command}\" command failed with exit code ${exit_code}."
+        exit $exit_code
+    fi
 }
 
 wait_for_user() {
@@ -61,24 +73,27 @@ cd "/usr" || exit 1
 
 linux_install_pre() {
     sudo apt-get update 
-    sudo apt-get install --no-install-recommends --no-install-suggests -y apt-utils curl git cmake build-essential 
+    sudo apt-get install --no-install-recommends --no-install-suggests -y apt-utils curl git cmake build-essential
+    exit_on_error $?
 }
 
 linux_install_python() {
-    which -s python3.8
+    which $python
     if [[ $? != 0 ]] ; then
-        ohai "Installing python3.8"
-        sudo apt-get install --no-install-recommends --no-install-suggests -y python3.8
+        ohai "Installing python"
+        sudo apt-get install --no-install-recommends --no-install-suggests -y $python
     else
-        ohai "Updating python3.8"
-        sudo apt-get update python3.8
+        ohai "Updating python"
+        sudo apt-get install --only-upgrade $python
     fi
+    exit_on_error $? 
     ohai "Installing python tools"
-    sudo apt-get install --no-install-recommends --no-install-suggests -y python3-pip python3.8-dev 
+    sudo apt-get install --no-install-recommends --no-install-suggests -y $python-pip $python-dev 
+    exit_on_error $? 
 }
 
 linux_update_pip() {
-    PYTHONPATH=$(which python)
+    PYTHONPATH=$(which $python)
     ohai "You are using python@ $PYTHONPATH$"
     ohai "Installing python tools"
     $python -m pip install --upgrade pip
@@ -90,6 +105,7 @@ linux_install_bittensor() {
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
+    exit_on_error $? 
 }
 
 
@@ -98,6 +114,7 @@ mac_install_xcode() {
     if [[ $? != 0 ]] ; then
         ohai "Installing xcode:"
         xcode-select --install
+        exit_on_error $? 
     fi
 }
 
@@ -110,6 +127,7 @@ mac_install_brew() {
         ohai "Updating brew:"
         brew update --verbose
     fi
+    exit_on_error $? 
 }
 
 mac_install_cmake() {
@@ -124,15 +142,16 @@ mac_install_cmake() {
 }
 
 mac_install_python() {
-    which -s python3.7
-    ohai "Installing python3.7"
-    brew list python@3.7 &>/dev/null || brew install python@3.7;
-    ohai "Updating python3.7"
-    brew upgrade python@3.7
+    which -s python3
+    ohai "Installing python3"
+    brew list python@3 &>/dev/null || brew install python@3;
+    ohai "Updating python3"
+    brew upgrade python@3
+    exit_on_error $? 
 }
 
 mac_update_pip() {
-    PYTHONPATH=$(which python)
+    PYTHONPATH=$(which $python)
     ohai "You are using python@ $PYTHONPATH$"
     ohai "Installing python tools"
     $python -m pip install --upgrade pip
@@ -143,6 +162,7 @@ mac_install_bittensor() {
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
+    exit_on_error $? 
     deactivate
 }
 
@@ -170,12 +190,7 @@ setup_wallet_and_miner() {
         echo ""
         ohai "Creating wallet coldkey..."
         bittensor-cli new_coldkey --wallet.name $wallet_name
-        RESULT=$?
-
-        if [ $RESULT -eq 0 ]; then
-          echo ""
-          ohai "Wallet coldkey created successfully"
-        fi
+        exit_on_error $? 
 
         echo ""
         echo ""
@@ -240,8 +255,8 @@ if [[ "$OS" == "Linux" ]]; then
     echo "git"
     echo "cmake"
     echo "build-essential"
-    echo "python3.8"
-    echo "python3.8-pip"
+    echo "python3"
+    echo "python3-pip"
     echo "bittensor"
 
     wait_for_user
@@ -277,8 +292,8 @@ elif [[ "$OS" == "Darwin" ]]; then
     echo "homebrew"
     echo "git"
     echo "cmake"
-    echo "python3.7"
-    echo "python3.7-pip"
+    echo "python3"
+    echo "python3-pip"
     echo "bittensor"
 
     wait_for_user
