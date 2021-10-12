@@ -48,4 +48,4 @@ jobs:
     - name: Run dataloader tests
       run: pytest ./tests/integration_tests/test_dataloader_ipfs.py --cov=./ --cov-append 
     - name: Upload Coverage to Codecov
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v1
