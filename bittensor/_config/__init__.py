@@ -45,9 +45,11 @@ class config:
         # 1. Optionall load defaults if the --config is set.
         try:
             config_file_path = str(os.getcwd()) + '/' + vars(parser.parse_known_args()[0])['config']
-            
-        except:
+
+        except Exception as e:
             config_file_path = None
+            logger.info('No Config File Loaded')
+            
         if config_file_path != None:
             config_file_path = os.path.expanduser(config_file_path)
             try:
