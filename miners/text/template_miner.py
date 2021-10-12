@@ -89,6 +89,7 @@ class Nucleus(nn.Module):
 
         self.loss_fct = nn.CrossEntropyLoss()
         self.peer_weights = nn.Parameter(torch.ones( [0] , requires_grad=True))
+        self.noise_offset = 0.0000001
         self.init_weights()
 
     @staticmethod
@@ -220,7 +221,7 @@ class Nucleus(nn.Module):
 
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
         real_topk = min( self.config.nucleus.topk, bittensor.neuron.metagraph.n.item(), len(active_uids))
-        noise = torch.normal( 0, torch.std(active_peer_weights).item()+0.0000001, size=( active_peer_weights.size())).to( self.config.miner.device )
+        noise = torch.normal( 0, torch.std(active_peer_weights).item()+self.noise_offset, size=( active_peer_weights.size())).to( self.config.miner.device )
         topk_weights, topk_idx = torch.topk(active_peer_weights + noise , real_topk, dim=0)
         topk_uids = active_uids[topk_idx]
 

@@ -116,6 +116,7 @@ def main( config ):
             self.loss_fct = torch.nn.CrossEntropyLoss()
             self.peer_weights = torch.nn.Parameter(torch.ones( [ metagraph.n.item() ] , requires_grad=True))
             self.logs = SimpleNamespace()
+            self.noise_offset = 0.0000001
 
         def forward ( self, inputs ):
             # Apply model.
@@ -146,7 +147,7 @@ def main( config ):
 
             # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
             real_topk = min( config.nucleus.topk, metagraph.n.item(), len(active_uids))
-            noise = torch.normal( 0, torch.std(active_peer_weights).item()+0.0000001, size=( active_peer_weights.size())).to( config.miner.device )
+            noise = torch.normal( 0, torch.std(active_peer_weights).item()+self.noise_offset, size=( active_peer_weights.size())).to( config.miner.device )
             topk_weights, topk_idx = torch.topk(active_peer_weights + noise , real_topk, dim=0)
             topk_uids = active_uids[topk_idx]
 
