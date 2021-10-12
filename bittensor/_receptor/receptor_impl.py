@@ -293,10 +293,7 @@ class Receptor(nn.Module):
                     response_message = ''
 
                 # ---- Catch non-code ----
-                try:
-                    bittensor_code = response.return_code
-                except:
-                    bittensor_code = bittensor.proto.ReturnCode.NoReturn
+                bittensor_code = response.return_code
 
                 if bittensor_code == bittensor.proto.ReturnCode.NoReturn:
                     code = bittensor.proto.ReturnCode.NoReturn

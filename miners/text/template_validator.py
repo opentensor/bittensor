@@ -33,6 +33,7 @@ from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from qqdm import qqdm, format_str
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
+from loguru import logger; logger = logger.opt(colors=True)
 
 def config ():
     parser = argparse.ArgumentParser()    
@@ -160,8 +161,8 @@ def main( config ):
     if config.miner.resume:
         try:
             validator.load_state_dict( torch.load("{}/validator.torch".format( run.dir ))['validator'], strict=False )
-        except:
-            pass
+        except Exception as e:
+            logger.error('Error reloading model: {} '.format(e))
     torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( run.dir ))
 
     # --- Run Forever.

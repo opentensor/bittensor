@@ -360,7 +360,8 @@ class Miner:
             try:
                 self.reload()
                 self.neuron.axon.check()
-            except:
+            except Exception as e:
+                logger.error("Error when trying to reload model: {}".format(e))
                 self.save()
                 self.reload()
                 self.neuron.axon.check()
@@ -537,7 +538,8 @@ class Miner:
         try:
             bittensor.neuron.metagraph.load().sync().save()
 
-        except:
+        except Exception as e:
+            logger.error('Error in loading metagraph: {}'.format(e))
             bittensor.neuron.metagraph.sync().save()
 
         # ---- Load training state.
