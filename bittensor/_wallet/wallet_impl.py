@@ -135,37 +135,55 @@ class Wallet():
     def balance(self) -> SimpleNamespace:
         return self.get_balance()
 
-    def register ( self, email:str = None, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Wallet':
+    def register ( 
+            self, 
+            email:str = None, 
+            subtensor: 'bittensor.Subtensor' = None, 
+            registraiton_server: str = None 
+        ) -> 'bittensor.Wallet':
         """ Registers this wallet on the chain.
             Args:
+                email (str):
+                    registration email.
                 subtensor( 'bittensor.Subtensor' ):
                     Bittensor subtensor connection. Overrides with defaults if None.
+                registraiton_server (str):
+                    For testing only, a registration server.
             Return:
-                wallet.
+                This wallet.
         """
+        # Register with the passed email or use the default.
         if email == None:
             email = self._email
             if email == None:
                 print(colored('You must pass registration email either through wallet initialization or during the register call.', 'red')); return self
 
+        # Get chain connection.
         if subtensor == None: subtensor = bittensor.subtensor()
-        if self.is_registered( subtensor = subtensor ): 
-            print (colored('Already registered {}'.format( self.hotkey.ss58_address ), 'green')); 
-            return self
+        
+        # Check registration. You cannot register twice with the same email. You also can't register the same hotkey under a different email.
+        if self.is_registered( subtensor = subtensor ): print (colored('Already registered {}'.format( self.hotkey.ss58_address ), 'green')); return self
 
+        # Get registration url endpoint from constants or args.
+        server_url = bittensor.__registration_servers__[0] if registraiton_server == None else registraiton_server
+
+        # Create a request signature.
+        request_signature = self.hotkey.sign( str(email) + str(self.hotkey.ss58_address) + str(self.coldkeypub.ss58_address) + str(subtensor.network) )
+        
+        # Make registration request.
         headers = {'Content-type': 'application/json'}
-        url = 'http://' + bittensor.__registration_servers__[0] + '/register?email={}&hotkey={}&coldkey={}&hotkey_signature={}&network={}'.format( email, self.hotkey.ss58_address, self.coldkey.ss58_address, 'signaturefaked', subtensor.network)
+        url = 'http://' + server_url + '/register?email={}&hotkey={}&coldkey={}&hotkey_signature={}&network={}'.format( email, self.hotkey.ss58_address, self.coldkeypub.ss58_address, request_signature, subtensor.network)
         response = requests.post(url, headers=headers)
-        response_str = str(bytes.decode(response.content)) 
-        if response_str == 'Email Sent':
-            print (colored('Waiting for confirmation from email: {}'.format(email), 'white'))
+        response = json.loads(bytes.decode(response.content)) 
+        if response['status'] == 0:
+            print ('Waiting for confirmation from email: {}'.format(email))
             while True:
                 if self.is_registered( subtensor = subtensor ):
-                    print (colored('Registered hotkey: {}'.format( self.hotkey.ss58_address ), 'green'))
+                    print ('Registered hotkey: {}'.format( self.hotkey.ss58_address ))
                     return self      
                 time.sleep(2)
         else:
-            print (colored('Failed for reason: {}'.format( response_str ), 'red'))
+            print ('Failed for reason: {}'.format( response['response'] ))
             return self
 
     def is_registered( self, subtensor: 'bittensor.Subtensor' = None ) -> bool:
@@ -181,14 +199,14 @@ class Wallet():
         if subtensor == None: subtensor = bittensor.subtensor()
         return subtensor.is_hotkey_registered( self.hotkey.ss58_address )
 
-    def get_neuron ( self, subtensor: 'bittensor.Subtensor' = None ) -> SimpleNamespace:
+    def get_neuron ( self, subtensor: 'bittensor.Subtensor' = None ) -> Union[ SimpleNamespace, None] :
         """ Returns this wallet's neuron information from subtensor.
             Args:
                 subtensor( 'bittensor.Subtensor' ):
                     Bittensor subtensor connection. Overrides with defaults if None.
             Return:
-                neuron (SimpleNamespace):
-                    neuron account on the chain.
+                neuron (Union[ SimpleNamespace, None ]):
+                    neuron account on the chain or None if you are not registered.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
         if not self.is_registered(subtensor=subtensor): 
@@ -204,7 +222,7 @@ class Wallet():
                     Bittensor subtensor connection. Overrides with defaults if None.
             Return:
                 uid (int):
-                    Network uid.
+                    Network uid or -1 if you are not registered.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
         if not self.is_registered(subtensor=subtensor): 
@@ -223,7 +241,7 @@ class Wallet():
                     Bittensor subtensor connection. Overrides with defaults if None.
             Return:
                 balance (bittensor.utils.balance.Balance):
-                    Stake account balance
+                    Stake account balance.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
         if not self.is_registered(subtensor=subtensor): 
@@ -476,7 +494,7 @@ class Wallet():
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self
 
-    def create_hotkey_from_uri( self, uri:str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+    def create_hotkey_from_uri( self, uri:str, use_password: bool = False, overwrite:bool = False) -> 'Wallet':  
         """ Creates hotkey from suri string, optionally encrypts it with the user's inputed password.
             Args:
                 uri: (str, required):
@@ -529,7 +547,7 @@ class Wallet():
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self
 
-    def new_hotkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+    def new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False) -> 'Wallet':  
         """ Creates a new hotkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
@@ -544,7 +562,7 @@ class Wallet():
         """
         self.create_new_hotkey( n_words, use_password, overwrite )
 
-    def create_new_hotkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+    def create_new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False) -> 'Wallet':  
         """ Creates a new hotkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
