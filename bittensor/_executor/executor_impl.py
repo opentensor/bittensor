@@ -78,7 +78,6 @@ class Executor:
     def overview ( self ): 
         r""" Prints an overview for the wallet's colkey.
         """
-        self.wallet.assert_coldkeypub()
         self.subtensor.connect()
         self.metagraph.load()
         self.metagraph.sync()
@@ -102,7 +101,7 @@ class Executor:
         for end in tqdm(owned_endpoints):
             endpoint =  bittensor.endpoint.from_tensor( end )
             # Make query and get response.
-            if self.wallet.has_hotkey:
+            if self.wallet.hotkey_file.exists_on_device():
                 start_time = time.time()
                 _, code, times = self.dendrite.forward_text( endpoints = [endpoint], inputs = [torch.zeros((1,1), dtype=torch.int64)] )
                 end_time = time.time()
@@ -167,8 +166,6 @@ class Executor:
     def unstake_all ( self ):
         r""" Unstaked from all hotkeys associated with this wallet's coldkey.
         """
-        self.wallet.assert_coldkey()
-        self.wallet.assert_coldkeypub()
         self.subtensor.connect()
         self.metagraph.load()
         self.metagraph.sync()
@@ -197,8 +194,6 @@ class Executor:
     def unstake( self, amount_tao: int, uid: int ):
         r""" Unstaked token of amount to from uid.
         """
-        self.wallet.assert_coldkey()
-        self.wallet.assert_coldkeypub()
         self.subtensor.connect()
         self.metagraph.load()
         self.metagraph.sync()
@@ -241,8 +236,6 @@ class Executor:
     def stake( self, amount_tao: int, uid: int ):
         r""" Stakes token of amount to hotkey uid.
         """
-        self.wallet.assert_coldkey()
-        self.wallet.assert_coldkeypub()
         self.subtensor.connect()
         self.metagraph.load()
         self.metagraph.sync()
@@ -285,8 +278,6 @@ class Executor:
         r""" Transfers token of amount to dest.
             
         """
-        self.wallet.assert_coldkey()
-        self.wallet.assert_coldkeypub()
         self.subtensor.connect()
         transfer_balance = Balance.from_float( amount_tao )
         acount_balance = self.subtensor.get_balance(self.wallet.coldkey.ss58_address)
