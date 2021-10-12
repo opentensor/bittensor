@@ -5,6 +5,7 @@ import bittensor
 import torch
 import numpy
 from miners.text.template_miner import Miner,Nucleus
+import bittensor
 
 def test_run_template():
 
@@ -33,11 +34,23 @@ def test_run_template():
     print ('start')
     with mock.patch.object(Miner,'forward_text',new=test_forward):
         print ('create')
+        
+        config.wallet.path = '/tmp/pytest'
+        config.wallet.name = 'pytest'
+        config.wallet.hotkey = 'pytest'
         gpt2_exodus_miner = Miner( config = config )
+        wallet = bittensor.wallet(
+            path = '/tmp/pytest',
+            name = 'pytest',
+            hotkey = 'pytest',
+        )
+        gpt2_exodus_miner.neuron.wallet = wallet.create(coldkey_use_password = False)
+        
         with mock.patch.object(gpt2_exodus_miner.neuron.subtensor, 'get_current_block', new=block.block):
             bittensor.neuron.subtensor.connect = MagicMock(return_value = True)  
             bittensor.neuron.subtensor.is_connected = MagicMock(return_value = True)      
             bittensor.neuron.subtensor.subscribe = MagicMock(return_value = True)  
+
             gpt2_exodus_miner.run()
 
             assert magic.call_count == 1

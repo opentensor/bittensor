@@ -32,7 +32,6 @@ rich
 requests>=2.25.0
 scalecodec>=1.0.3
 termcolor
-tensorboard
 torch>=1.6.0
 torchvision
 transformers>=4.5.0
@@ -45,4 +44,5 @@ codecov
 tqdm
 qqdm
 wandb>=0.11.1
+ansible_vault>=2.1
 substrate-interface>=1.0.2

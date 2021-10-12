@@ -44,7 +44,7 @@ __kusanagi_entrypoints__ = [
 ]
 
 __nobunaga_entrypoints__ = [
-    'staging.nobunaga.opentensor.ai'
+    'staging.nobunaga.opentensor.ai:9944'
 ]
 
 __local_entrypoints__ = [
@@ -52,7 +52,7 @@ __local_entrypoints__ = [
 ]
 
 __registration_servers__ = [
-    'registration.opentensor.ai'
+    'registration.opentensor.ai:5000'
 ]
 
 # ---- Config ----
@@ -70,6 +70,7 @@ from bittensor.utils.balance import Balance as Balance
 from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon
 from bittensor._wallet import wallet as wallet
+from bittensor._keyfile import keyfile as keyfile
 from bittensor._receptor import receptor as receptor
 from bittensor._endpoint import endpoint as endpoint
 from bittensor._dendrite import dendrite as dendrite
@@ -85,9 +86,11 @@ from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
+from substrateinterface import Keypair as Keypair
 from bittensor._axon.axon_impl import Axon as Axon
 from bittensor._config.config_impl import Config as Config
 from bittensor._wallet.wallet_impl import Wallet as Wallet
+from bittensor._keyfile.keyfile_impl import Keyfile as Keyfile
 from bittensor._receptor.receptor_impl import Receptor as Receptor
 from bittensor._endpoint.endpoint_impl import Endpoint as Endpoint
 from bittensor._executor.executor_impl import Executor as Executor
