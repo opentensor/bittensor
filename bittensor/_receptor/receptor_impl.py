@@ -233,6 +233,8 @@ class Receptor(nn.Module):
         """
         start_time = clock.time()
         zeros = nill_response_for(inputs)
+
+
         try:
             # ---- Check inputs size ----
             if torch.numel(inputs) == 0:
