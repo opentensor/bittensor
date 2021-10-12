@@ -349,7 +349,6 @@ class Miner:
                     root_dir = self.neuron.root_dir
                 )
 
-
             # ---- Init run state ----
             self.epoch = 0
             self.global_step = 0
