@@ -158,15 +158,15 @@ def main( config ):
             )
 
             # ---- Join based on weights ----
-            joining_uids = torch.where(return_ops==0)[0]
-            joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 )
+            joining_uids = torch.where( return_ops == bittensor.proto.ReturnCode.Success)[0]
+            joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 )
             output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( device )
             for index, joining_weight in enumerate( joining_weights ): 
                 output += responses[joining_uids[index]].to( device ) * joining_weight
 
             # ---- Punish peers with non-successful return ops ----
             with torch.no_grad():
-                self.peer_weights[topk_uids[(return_ops != 0)]] -= config.nucleus.punishment
+                self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -= config.nucleus.punishment
                 self.peer_weights[ self.peer_weights < -1 ] = -1 # lower bound for chain weights 
 
             quested_peers = torch.zeros(metagraph.n.item())
