@@ -40,14 +40,12 @@ jobs:
         ./scripts/create_wallet.sh
         ./scripts/build_protos.sh
     - name: Run Unit Tests
-      run: pytest ./tests/unit_tests
+      run: pytest ./tests/unit_tests --cov=./ --cov-append 
     - name: Run Integration Tests
-      run: pytest ./tests/integration_tests
+      run: pytest ./tests/integration_tests --cov=./ --cov-append 
     - name: Run Miners
-      run: python tests/miners/text/test_gpt2_exodus.py
+      run: python tests/miners/text/test_gpt2_exodus.py --cov=./ --cov-append 
     - name: Run dataloader tests
-      run: pytest ./tests/integration_tests/test_dataloader_ipfs.py
-    - name: Generate Code Coverage Report
-      run: pytest --cov=bittensor tests
+      run: pytest ./tests/integration_tests/test_dataloader_ipfs.py --cov=./ --cov-append 
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v1
