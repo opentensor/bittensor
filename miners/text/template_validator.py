@@ -38,7 +38,7 @@ from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
 def config ():
     parser = argparse.ArgumentParser()    
-    parser.add_argument('--miner.config', type=str, help='If set, defaults are overridden by passed file.')
+    parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
     parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template_miner')
     parser.add_argument('--miner.resume', action='store_true', help='resume previous trial.', default=False)
     parser.add_argument('--miner.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
@@ -63,18 +63,6 @@ def config ():
     bittensor.subtensor.add_args( parser )
     bittensor.logging.add_args( parser )
     bittensor.dataloader.add_args( parser )
-    
-    # ---- Loads config_file and updates defaults
-    config_file_path = vars(parser.parse_known_args()[0])['miner.config']
-    if config_file_path:
-        config_file_path = os.path.expanduser(config_file_path)
-        try:
-            with open(config_file_path) as f:
-                params_config = yaml.safe_load(f)
-                print('Config File Detected at {} updating defaults'.format(config_file_path))
-                parser.set_defaults(**params_config)
-        except Exception as e:
-            print('Error in loading: {} using default parser settings'.format(e))
     
     return bittensor.config( parser )
 
