@@ -55,6 +55,7 @@ def config ():
     parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default=2)
     parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
     parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
+    parser.add_argument('--nucleus.punishment', type=float, help='the punishment for those not responding', default=0)
     parser.add_argument('--wandb.project', type=str, help='''Optionally pass wandb project name for use_wandb''', default='default')
     parser.add_argument('--wandb.run_group', type = str, help='''Optionally pass wandb group name for use_wandb''', default='default')
     
