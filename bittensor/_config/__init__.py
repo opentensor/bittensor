@@ -43,13 +43,9 @@ class config:
             parser = ArgumentParser()
 
         # 1. Optionall load defaults if the --config is set.
-        try:
-            config_file_path = str(os.getcwd()) + '/' + vars(parser.parse_known_args()[0])['config']
-            
-        except:
-            config_file_path = None
-        if config_file_path != None:
-            config_file_path = os.path.expanduser(config_file_path)
+        config_load = vars(parser.parse_known_args()[0])['config']
+        if config_load != None:
+            config_file_path = os.path.expanduser( str(os.getcwd()) + '/' + config_load)
             try:
                 with open(config_file_path) as f:
                     params_config = yaml.safe_load(f)
