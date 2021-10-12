@@ -69,6 +69,7 @@ def main( config ):
     threadpool = bittensor.prioritythreadpool(config=config)
 
     # Define our forward function.
+    @logger.catch
     def forward_text (pubkey, inputs_x ):
         r""" Forward function that is called when the axon recieves a forward request from other peers
             Args:
@@ -91,9 +92,10 @@ def main( config ):
         except concurrent.futures.TimeoutError :
             raise TimeoutError('TimeOutError')
         except Exception as e:
-            print('Error found {}'.format(repr(e)))
+            logger.error('Error found: {}, with message {}'.format(repr(e), e))
 
     # Define our backward function.
+    @logger.catch
     def backward_text (pubkey:str, inputs_x, grads_dy ):
         r"""Backwards function that is called when the axon recieves a backwards request from other peers.
             Updates the server parameters with gradients through the chain.
@@ -137,7 +139,7 @@ def main( config ):
         except concurrent.futures.TimeoutError :
             raise TimeoutError('TimeOutError')
         except Exception as e:
-            print('Error found {}'.format(repr(e)))
+            logger.error('Error found: {}, with message {}'.format(repr(e), e))
 
     def blacklist(pubkey:str) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
@@ -231,6 +233,8 @@ def main( config ):
 
             # wandb syncing and update metagraph
             metagraph.sync().save()
+            chain_weights =torch.zeros(metagraph.n)
+            chain_weights[uid] = 1 
             wandb.log( wandb_data )
             logger.info(wandb_data)
             

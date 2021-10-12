@@ -431,6 +431,7 @@ class Miner:
                         break
 
     # ---- Axon Forward call ----
+    @logger.catch
     def forward_text ( self, pubkey:str, inputs_x: torch.FloatTensor) -> torch.FloatTensor:
         r""" Subscribed to an axon servicing endpoint: processes forward messages from the wire.
             The arguments reflect an RPC request from another miner in the network, the response tensor
@@ -458,6 +459,7 @@ class Miner:
         return future.result(timeout = self.config.miner.timeout)
 
     # ---- Axon Backward call ----
+    @logger.catch
     def backward_text ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:
         r""" Subscribed to an axon servicing endpoint: Processes backward messages from the wire.
             Arguments reflect an RPC backward request from another miner in the network, the response tensor
