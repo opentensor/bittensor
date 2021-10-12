@@ -33,17 +33,40 @@ from substrateinterface.utils.ss58 import ss58_encode
 from termcolor import colored
 from substrateinterface import Keypair
 
-class CryptoKeyError(Exception):
-    """ Exception for invalid signature, key, token, password, etc 
-        Overwrite the built-in CryptoKeyError
-    """
-
 class KeyFileError(Exception):
-    """ Overwrite the built-in CryptoKeyError
+    """ Error thrown when the keyfile is corrupt, non-writable, nno-readable or the password used to decrypt is invalid.
     """
 
-def load_keypair_from_data( keyfile_data:bytes ) -> 'bittensor.Keypair':
+def serialized_keypair_to_keyfile_data( keypair: 'bittensor.Keypair' ):
+    """ Serializes keypair object into keyfile data.
+        Args:
+            password ( str, required ):
+                password to verify.
+        Returns:
+            valid ( bool ):
+                True if the password meets validity requirements.
+    """
+    json_data = {
+        'accountId': keypair.public_key if keypair.public_key != None else None,
+        'publicKey': keypair.public_key if keypair.public_key != None else None,
+        'secretPhrase': keypair.mnemonic if keypair.mnemonic != None else None,
+        'secretSeed': "0x" + keypair.seed_hex if keypair.seed_hex != None else None,
+        'ss58Address': keypair.ss58_address if keypair.ss58_address != None else None
+    }
+    return json.dumps( json_data ).encode()
 
+def deserialize_keypair_from_keyfile_data( keyfile_data:bytes ) -> 'bittensor.Keypair':
+    """ Deserializes Keypair object from passed keyfile data.
+        Args:
+            keyfile_data ( bytest, required ):
+                Keyfile data as bytes to be loaded.
+        Returns:
+            keypair (bittensor.Keypair):
+                Keypair loaded from bytes.
+        Raises:
+            KeyFileError:
+                Raised if the passed bytest cannot construct a keypair object.
+    """
     try:
         keyfile_dict = json.loads( keyfile_data.decode() )
     except json.decoder.JSONDecodeError:
@@ -69,10 +92,16 @@ def load_keypair_from_data( keyfile_data:bytes ) -> 'bittensor.Keypair':
         return Keypair( ss58_address = keyfile_dict['ss58Address'] )
 
     else:
-        raise CryptoKeyError('Keypair could not be created from keyfile data: {}'.format( keyfile_dict ))
+        raise KeyFileError('Keypair could not be created from keyfile data: {}'.format( keyfile_dict ))
 
-def validate_password( password ):
-    """ The policy to validate the strength of password
+def validate_password( password:str ) -> bool:
+    """ Validates the password again a password policy.
+        Args:
+            password ( str, required ):
+                password to verify.
+        Returns:
+            valid ( bool ):
+                True if the password meets validity requirements.
     """
     policy = PasswordPolicy.from_names(
         strength=0.20,
@@ -92,19 +121,12 @@ def validate_password( password ):
         return False
     return True
 
-def keypair_to_keyfile_data( keypair ):
-    """ Convert the keypair to dictionary with accountId, publicKey, secretPhrase, secretSeed, and ss58Address  
+def ask_password_to_encrypt() -> str:
+    """ Password from user prompt.
+        Returns:
+            password (str):
+                Valid password from user prompt.
     """
-    json_data = {
-        'accountId': keypair.public_key if keypair.public_key != None else None,
-        'publicKey': keypair.public_key if keypair.public_key != None else None,
-        'secretPhrase': keypair.mnemonic if keypair.mnemonic != None else None,
-        'secretSeed': "0x" + keypair.seed_hex if keypair.seed_hex != None else None,
-        'ss58Address': keypair.ss58_address if keypair.ss58_address != None else None
-    }
-    return json.dumps( json_data ).encode()
-
-def ask_password_to_encrypt():
     valid = False
     while not valid:
         password = getpass.getpass("Specify password for key encryption: ")
@@ -112,28 +134,73 @@ def ask_password_to_encrypt():
     return password
 
 def keyfile_data_is_encrypted_ansible( keyfile_data:bytes ) -> bool:
+    """ Returns true if the keyfile data is ansible encrypted.
+        Args:
+            keyfile_data ( bytes, required ):
+                Bytes to validate
+        Returns:
+            is_ansible (bool):
+                True if data is ansible encrypted.
+    """
     return keyfile_data[:14] == b'$ANSIBLE_VAULT'
 
 def keyfile_data_is_encrypted_legacy( keyfile_data:bytes ) -> bool:
+    """ Returns true if the keyfile data is legacy encrypted.
+        Args:
+            keyfile_data ( bytes, required ):
+                Bytes to validate
+        Returns:
+            is_legacy (bool):
+                True if data is legacy encrypted.
+    """
     return keyfile_data[:6] == b"gAAAAA"
 
 def keyfile_data_is_encrypted( keyfile_data:bytes ) -> bool:
+    """ Returns true if the keyfile data is encrypted.
+        Args:
+            keyfile_data ( bytes, required ):
+                Bytes to validate
+        Returns:
+            is_encrypted (bool):
+                True if data is encrypted.
+    """
     return keyfile_data_is_encrypted_ansible( keyfile_data ) or keyfile_data_is_encrypted_legacy( keyfile_data )
 
 def encrypt_keyfile_data ( keyfile_data:bytes, password: str = None ) -> bytes:
+    """ Encrypts passed keyfile data using ansible vault.
+        Args:
+            keyfile_data ( bytes, required ):
+                Bytes to validate
+            password ( bool, optional ):
+                It set, uses this password to encrypt data.
+        Returns:
+            encrytped_data (bytes):
+                Ansible encrypted data.
+    """
     password = ask_password_to_encrypt() if password == None else password
     vault = Vault( password )
     return vault.vault.encrypt ( keyfile_data )
 
 def decrypt_keyfile_data( keyfile_data: bytes, password: str = None) -> bytes:
-
+    """ Decrypts passed keyfile data using ansible vault.
+        Args:
+            keyfile_data ( bytes, required ):
+                Bytes to validate
+            password ( bool, optional ):
+                It set, uses this password to decrypt data.
+        Returns:
+            decrypted_data (bytes):
+                Decrypted data.
+         Raises:
+            KeyFileError:
+                Raised if the file is corrupted or if the password is incorrect.
+    """
     try:
         password = getpass.getpass("Enter password to unlock key: ") if password == None else password
         # Ansible decrypt.
         if keyfile_data_is_encrypted_ansible( keyfile_data ):
             vault = Vault( password )
             decrypted_keyfile_data = vault.load( keyfile_data )
-
         # Legacy decrypt.
         elif keyfile_data_is_encrypted_legacy( keyfile_data ):
             __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
@@ -141,12 +208,12 @@ def decrypt_keyfile_data( keyfile_data: bytes, password: str = None) -> bytes:
             key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
             cipher_suite = Fernet(key)
             decrypted_keyfile_data = cipher_suite.decrypt( keyfile_data )   
-
+        # Unknown.
         else: 
             raise KeyFileError( "Keyfile data: {} is corrupt".format( keyfile_data ))
 
     except (InvalidSignature, InvalidKey, InvalidToken):
-        raise CryptoKeyError('Invalid password')
+        raise KeyFileError('Invalid password')
 
     if not isinstance(decrypted_keyfile_data, bytes):
         decrypted_keyfile_data = json.dumps( decrypted_keyfile_data ).encode()
@@ -170,35 +237,90 @@ class Keyfile( object ):
         return self.__str__()
 
     @property
-    def keypair( self ) -> 'Keypair':
+    def keypair( self ) -> 'bittensor.Keypair':
+        """ Returns the keypair from path, decrypts data if the file is encrypted.
+            Args:
+                password ( str, optional ):
+                    Optional password used to decrypt file. If None, asks for user input.
+            Returns:
+                keypair (bittensor.Keypair):
+                    Keypair stored under path.
+            Raises:
+                KeyFileError:
+                    Raised if the file does not exists, is not readable, writable 
+                    corrupted, or if the password is incorrect.
+        """
         return self.get_keypair()
 
     @property
     def keyfile_data( self ) -> bytes:
+        """ Returns keyfile data under path.
+            Returns:
+                keyfile_data (bytes):   
+                    Keyfile data stored under path.
+            Raises:
+                KeyFileError:
+                    Raised if the file does not exists, is not readable, or writable.
+        """
         return self._read_keyfile_data_from_file()
 
-    def set_keypair ( self, keypair: 'Keypair', encrypt: bool = True, overwrite: bool = False, password:str = None):
-        # Create dirs.
+    def set_keypair ( self, keypair: 'bittensor.Keypair', encrypt: bool = True, overwrite: bool = False, password:str = None):
+        """ Writes the keypair to the file and optional encrypts data.
+            Args:
+                keypair (bittensor.Keypair):
+                    Keypair to store under path.
+                encrypt ( bool, optional, default = True ):
+                    If True, encrypts file under path.
+                overwrite ( bool, optional, default = True ):
+                    If True, forces overwrite of current file.
+                password ( str, optional ):
+                    Optional password used to encrypt file. If None, asks for user input.
+            Raises:
+                KeyFileError:
+                    Raised if the file does not exists, is not readable, or writable.
+        """
         directory = os.path.dirname( self.path )
         if not os.path.exists( directory ):
             os.makedirs( directory ) 
-        keyfile_data = keypair_to_keyfile_data( keypair )
+        keyfile_data = serialized_keypair_to_keyfile_data( keypair )
         if encrypt:
             keyfile_data = encrypt_keyfile_data( keyfile_data, password )
         self._write_keyfile_data_to_file( keyfile_data, overwrite = overwrite )
 
-    def get_keypair(self, password: str = None) -> 'Keypair':
+    def get_keypair(self, password: str = None) -> 'bittensor.Keypair':
+        """ Returns the keypair from path, decrypts data if the file is encrypted.
+            Args:
+                password ( str, optional ):
+                    Optional password used to decrypt file. If None, asks for user input.
+            Returns:
+                keypair (bittensor.Keypair):
+                    Keypair stored under path.
+            Raises:
+                KeyFileError:
+                    Raised if the file does not exists, is not readable, writable 
+                    corrupted, or if the password is incorrect.
+        """
         keyfile_data = self._read_keyfile_data_from_file()
         if keyfile_data_is_encrypted( keyfile_data ):
             keyfile_data = decrypt_keyfile_data( keyfile_data, password)
-        return load_keypair_from_data( keyfile_data )
+        return deserialize_keypair_from_keyfile_data( keyfile_data )
 
     def exists_on_device( self ) -> bool:
+        """ Returns true if the file exists on the device.
+            Returns:
+                on_device (bool):
+                    True if the file is on device.
+        """
         if not os.path.isfile( self.path ):
             return False
         return True
 
     def is_readable( self ) -> bool:
+        """ Returns true if the file under path is readable.
+            Returns:
+                readable (bool):
+                    True if the file is readable.
+        """
         if not self.exists_on_device():
             return False
         if not os.access( self.path , os.R_OK ):
@@ -206,11 +328,21 @@ class Keyfile( object ):
         return True
 
     def is_writable( self ) -> bool:
+        """ Returns true if the file under path is writable.
+            Returns:
+                writable (bool):
+                    True if the file is writable.
+        """
         if os.access(self.path, os.W_OK):
             return True
         return False
 
     def is_encrypted ( self ) -> bool:
+        """ Returns true if the file under path is encrypted.
+            Returns:
+                encrypted (bool):
+                    True if the file is encrypted.
+        """
         if not self.exists_on_device():
             return False
         if not self.is_readable():
@@ -222,6 +354,14 @@ class Keyfile( object ):
         return choice == 'y'
 
     def encrypt( self, password: str = None):
+        """ Encrypts file under path.
+            Args:
+                password: (str, optional):
+                    Optional password for encryption. Otherwise asks for user input.
+            Raises:
+                KeyFileError:
+                    Raised if the file does not exists, is not readable, writable.
+        """
         if not self.exists_on_device():
             raise KeyFileError( "Keyfile at: {} is not a file".format( self.path ))
         if not self.is_readable():
@@ -234,6 +374,15 @@ class Keyfile( object ):
         self._write_keyfile_data_to_file( keyfile_data, overwrite = True )
 
     def decrypt( self, password: str = None):
+        """ Decrypts file under path.
+            Args:
+                password: (str, optional):
+                    Optional password for decryption. Otherwise asks for user input.
+            Raises:
+                KeyFileError:
+                    Raised if the file does not exists, is not readable, writable 
+                    corrupted, or if the password is incorrect.
+        """
         if not self.exists_on_device():
             raise KeyFileError( "Keyfile at: {} is not a file".format( self.path ))
         if not self.is_readable():
@@ -246,6 +395,14 @@ class Keyfile( object ):
         self._write_keyfile_data_to_file( keyfile_data, overwrite = True )
 
     def _read_keyfile_data_from_file ( self ) -> bytes:
+        """ Reads keyfile data from path.
+            Returns:
+                keyfile_data: (bytes, required):
+                    Keyfile data sotred under path.
+            Raises:
+                KeyFileError:
+                    Raised if the file does not exists or is not readable.
+        """
         if not self.exists_on_device():
             raise KeyFileError( "Keyfile at: {} is not a file".format( self.path ))
         if not self.exists_on_device():
@@ -255,6 +412,16 @@ class Keyfile( object ):
         return data
 
     def _write_keyfile_data_to_file ( self, keyfile_data:bytes, overwrite: bool = False ):
+        """ Writes the keyfile data to path, if overwrite is true, forces operation without asking.
+            Args:
+                keyfile_data: (bytes, required):
+                    Byte data to store under path.
+                overwrite (bool, optional):
+                    If True, overwrites data without asking for overwrite permissions from the user.
+            Raises:
+                KeyFileError:
+                    Raised if the file is not writable or the user returns No to overwrite prompt.
+        """
         # Check overwrite.
         print (overwrite)
         if self.exists_on_device() and not overwrite:
