@@ -83,6 +83,12 @@ message TensorMessage {
 
 	// Message associated with return code.
 	string message = 7; 
+
+	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
+	bool requires_grad = 8;
+
+	// Uid: uid of the sender
+	int32 uid = 9;
 }
 
 // Return codes from Backward and Forward call.

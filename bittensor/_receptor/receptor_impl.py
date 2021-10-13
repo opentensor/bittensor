@@ -266,6 +266,8 @@ class Receptor(nn.Module):
                 version = bittensor.__version_as_int__,
                 hotkey = self.wallet.hotkey.ss58_address,
                 tensors = [serialized_inputs],
+                requires_grad = True,
+                uid = self.wallet.uid,
             )
         
             # ---- Make RPC call ----
@@ -483,6 +485,8 @@ class Receptor(nn.Module):
                 version = bittensor.__version_as_int__,
                 hotkey = self.wallet.hotkey.ss58_address,
                 tensors = [serialized_inputs, serialized_grads],
+                requires_grad = True,
+                uid = self.wallet.uid,
             )
             
             call_time = clock.time() - start_time
