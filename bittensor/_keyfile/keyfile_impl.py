@@ -227,11 +227,11 @@ class Keyfile( object ):
 
     def __str__(self):
         if not self.exists_on_device():
-            return "Keyfile<(empty:{})>".format( self.path )
+            return "Keyfile (empty, {})>".format( self.path )
         if self.is_encrypted():
-            return "Keyfile<(encrypted:{})>".format( self.path )
+            return "Keyfile (encrypted, {})>".format( self.path )
         else:
-            return "Keyfile<(decrypted:{})>".format( self.path )
+            return "Keyfile (decrypted, {})>".format( self.path )
 
     def __repr__(self):
         return self.__str__()
@@ -423,7 +423,6 @@ class Keyfile( object ):
                     Raised if the file is not writable or the user returns No to overwrite prompt.
         """
         # Check overwrite.
-        print (overwrite)
         if self.exists_on_device() and not overwrite:
             if self._may_overwrite():
                 raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) ) 
