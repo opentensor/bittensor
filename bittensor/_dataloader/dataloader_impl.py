@@ -46,10 +46,11 @@ class Dataloader():
         self.wikitext_text_dataset_hash = 'QmRjFNn3XpYMycVzTE4YcVcxk45vNZcTAjKmtEqPLKwAWd'
         self.email_text_dataset_hash = 'QmWnqorfUGg3Cm4dLt8crcceTfa4LsTas5JXzR6w6SJgEK'
         self.book_corpus_text_dataset_hash = 'QmXtmQEYcUse3bNkFDiLAVBRzRWtLfVMiJUZntUD88tekw'
+        
         self.test_text_dataset_hash = 'QmRhWSMPQzTiWcdGYy8vpRMxSxCAKDJBaXvmum4fjkF7cJ'
         self.validation_text_dataset_hash = 'QmQnE8wBmxKgNteFkZ1RAdZFit16iSeHwX6zSpYfwFmAuG'
 
-        self.text_dataset_hashes = [
+        self.train_dataset_hashes = [
             self.genesis_text_dataset_hash, 
             self.wikitext_text_dataset_hash, 
         ]
@@ -127,7 +128,7 @@ class GenesisTextDataloader( Dataloader ):
         batch_size,
         max_corpus_size,
         num_workers,
-        dataset,
+        dataset_name,
         data_dir,
         save_dataset
     ):
@@ -137,7 +138,7 @@ class GenesisTextDataloader( Dataloader ):
         self.max_corpus_size = max_corpus_size
         self.num_workers = num_workers
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
-        self.dataset = dataset
+        self.dataset_name = dataset_name
         self.data_dir = data_dir
         self.save_dataset = save_dataset
         self.__infinite_dataset_iterator = None
@@ -238,19 +239,19 @@ class GenesisTextDataloader( Dataloader ):
             logger.success("Retrieving a dataset files from the IPFS gateway...")
 
             # Retrieves the directory for the given dataset
-            if self.dataset == 'train':
+            if self.dataset_name == 'train':
                 directory_links = []
-                for dataset_hash in self.text_dataset_hashes: 
+                for dataset_hash in self.train_dataset_hashes: 
                     dir_links = self.get_directory_links(dataset_hash)
                     if dir_links:
                         directory_links.extend(dir_links)
                 if len(directory_links) == 0:
                     directory_links = None
 
-            elif self.dataset == 'test':
+            elif self.dataset_name == 'test':
                 directory_links = self.get_directory_links(self.test_text_dataset_hash)
 
-            elif self.dataset == 'validation':
+            elif self.dataset_name == 'validation':
                 directory_links = self.get_directory_links(self.validation_text_dataset_hash)['links']
 
             data_corpus = []

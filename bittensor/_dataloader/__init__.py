@@ -35,7 +35,7 @@ class dataloader:
             batch_size: int = None,
             max_corpus_size:int = None,
             num_workers: int = None,
-            dataset: str=None,
+            dataset_name: str=None,
             save_dataset: bool=None
         ):
         if config == None: 
@@ -45,7 +45,7 @@ class dataloader:
         config.dataloader.batch_size = batch_size if batch_size != None else config.dataloader.batch_size
         config.dataloader.max_corpus_size = max_corpus_size if max_corpus_size != None else config.dataloader.max_corpus_size
         config.dataloader.num_workers = num_workers if num_workers != None else config.dataloader.num_workers
-        config.dataloader.dataset = dataset if dataset != None else config.dataloader.dataset
+        config.dataloader.dataset_name = dataset_name if dataset_name != None else config.dataloader.dataset_name
         config.dataloader.save_dataset = save_dataset if save_dataset != None else config.dataloader.save_dataset
         dataloader.check_config( config )
         return dataloader_impl.GenesisTextDataloader(
@@ -53,7 +53,7 @@ class dataloader:
             batch_size = config.dataloader.batch_size,
             max_corpus_size = config.dataloader.max_corpus_size,
             num_workers = config.dataloader.num_workers,
-            dataset = config.dataloader.dataset,
+            dataset_name = config.dataloader.dataset_name,
             data_dir = config.dataloader.data_dir,
             save_dataset = config.dataloader.save_dataset
         )
@@ -76,7 +76,7 @@ class dataloader:
             parser.add_argument('--dataloader.block_size', default=20, type=int, help='Number of text items to pull for each example..')
             parser.add_argument('--dataloader.max_corpus_size', default=1e+6, type=int, help='Maximum amount of data to download from IPFS into memory for training.')
             parser.add_argument('--dataloader.num_workers', default=0, type=int, help='Number of workers for data loader.')
-            parser.add_argument('--dataloader.dataset', default='train', type=str, help='Which datasets to use (genesis or wikitext)).')
+            parser.add_argument('--dataloader.dataset_name', default='train', type=str, help='Which datasets to use (train/test/validation)).')
             parser.add_argument('--dataloader.data_dir', default='~/.bittensor/data/', type=str, help='Where to save and load the data.')
             parser.add_argument('--dataloader.save_dataset', default=False, type=bool, help='Save the downloaded dataset or not.')
         except argparse.ArgumentError:
@@ -92,5 +92,5 @@ class dataloader:
         assert config.dataloader.block_size > 0, 'Block size must be larger than 0'
         assert config.dataloader.max_corpus_size > 0, 'max_corpus_size must be larger than 0'
         assert config.dataloader.num_workers >= 0, 'num_workers must be equal to or larger than 0'
-        assert config.dataloader.dataset in ['train','test','validation'], 'dataset must be one of the following choices: genesis, wikitext, test, or validation'
+        assert config.dataloader.dataset_name in ['train','test','validation'], 'dataset_name must be one of the following choices: train, test, or validation'
         assert isinstance(config.dataloader.save_dataset, bool) , 'save_dataset must be True/False only'
