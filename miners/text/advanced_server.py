@@ -70,7 +70,6 @@ def main( config ):
     threadpool = bittensor.prioritythreadpool(config=config)
 
     # Define our forward function.
-    @logger.catch
     def forward_text (pubkey, inputs_x ):
         r""" Forward function that is called when the axon recieves a forward request from other peers
             Args:
@@ -96,7 +95,6 @@ def main( config ):
             logger.error('Error found: {}, with message {}'.format(repr(e), e))
 
     # Define our backward function.
-    @logger.catch
     def backward_text (pubkey:str, inputs_x, grads_dy ):
         r"""Backwards function that is called when the axon recieves a backwards request from other peers.
             Updates the server parameters with gradients through the chain.
@@ -168,6 +166,10 @@ def main( config ):
     if not os.path.exists(full_path):
         os.makedirs(full_path)
 
+    # load our old model
+    if config.server.restart != True:
+        gp_server.load(full_path)
+
     # --- Init Wandb.
     bittensor.wandb(
         config = config,
@@ -238,7 +240,10 @@ def main( config ):
             chain_weights[uid] = 1 
             wandb.log( wandb_data )
             logger.info(wandb_data)
-            
+
+            # save the model
+            gp_server.save(full_path)
+
             # --- setting weights
             try: 
                 did_set = subtensor.timeout_set_weights(
