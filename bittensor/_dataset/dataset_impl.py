@@ -1,0 +1,387 @@
+""" Implementation for the dataset and GenesisTextDataset class, which handles dataloading from ipfs
+"""
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+import os
+import random
+
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data import Subset
+import torch
+
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+import requests
+
+
+from loguru import logger
+import bittensor
+
+logger = logger.opt(colors=True)
+
+
+class Dataset():
+    """ Implementation for the dataset class, which handles dataloading from ipfs
+    """
+    def __init__(self):
+        # IPFS hash of the genesis dataset
+        # TODO (shibshib): Find a proper way to set this as config instead of hardcoding it.
+        # More dataset hashes can be added as we add directories for other modalities.
+        self.genesis_text_dataset_hash = 'QmXwfPoh2QFYqC6cYcW8kzyd9ruFfhnUi2kVBkdhawjUzj'
+        self.wikitext_text_dataset_hash = 'QmRjFNn3XpYMycVzTE4YcVcxk45vNZcTAjKmtEqPLKwAWd'
+        self.email_text_dataset_hash = 'QmWnqorfUGg3Cm4dLt8crcceTfa4LsTas5JXzR6w6SJgEK'
+        self.book_corpus_text_dataset_hash = 'QmXtmQEYcUse3bNkFDiLAVBRzRWtLfVMiJUZntUD88tekw'
+        
+        self.test_text_dataset_hash = 'QmRhWSMPQzTiWcdGYy8vpRMxSxCAKDJBaXvmum4fjkF7cJ'
+        self.validation_text_dataset_hash = 'QmQnE8wBmxKgNteFkZ1RAdZFit16iSeHwX6zSpYfwFmAuG'
+
+        self.train_dataset_hashes = [
+            self.genesis_text_dataset_hash, 
+            self.wikitext_text_dataset_hash, 
+        ]
+        # Used to retrieve directory contentx
+        self.dag_get = 'https://gateway.pinata.cloud/api/v0/dag/get'
+
+        # Used to retrieve file contents
+        self.file_cat = 'https://gateway.pinata.cloud/api/v0/cat'
+
+        # Used when current corpus has been exhausted
+        self.refresh_corpus = False
+
+    @staticmethod
+    def requests_retry_session(
+            retries=5,
+            backoff_factor=0.5,
+            status_forcelist=(500, 502, 504),
+            session=None,
+        ):
+        """ Creates a retriable session for request calls. This enables
+        automatic retries and back-off retries should any request calls fail.
+
+        Args:
+            retries (int, optional): Maximum number of retries. Defaults to 3.
+            backoff_factor (float, optional): Factor by which to back off if a retry fails. Defaults to 0.3.
+            status_forcelist (tuple, optional): A set of integer HTTP status codes that we should force a retry on. Defaults to (500, 502, 504).
+            session ([type], optional): Session for which to set up the retries. Defaults to None.
+
+        Returns:
+            requests.Session(): A Requests Session object set up for retries and backoff.
+        """
+
+        session = session or requests.Session()
+        retry = Retry(
+            total=retries,
+            read=retries,
+            connect=retries,
+            backoff_factor=backoff_factor,
+            status_forcelist=status_forcelist,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        return session
+
+    def retrieve_directory(self, dir_hash: str):
+        """Connects to Pinata IPFS gateway and retrieves the directory of
+        genesis datasets.
+
+        Returns:
+            dict: A dictionary of the files inside of the genesis_datasets and their hashes.
+        """
+        session = requests.Session()
+        params = (('arg', dir_hash),)
+        session.params.update(params)
+
+        response = Dataset.requests_retry_session(session=session).get(self.dag_get)
+
+        return response
+
+    def __len__(self):
+        """ Returns length of the dataset that the dataset is processing
+        """
+
+    def __getitem__(self, idx):
+        """ Returns the next batch from the dataset.
+        """
+
+class GenesisTextDataset( Dataset ):
+    """ One kind of dataset that caters for the data from ipfs 
+    """
+    def __init__(
+        self,
+        block_size,
+        batch_size,
+        max_corpus_size,
+        num_workers,
+        dataset_name,
+        data_dir,
+        save_dataset
+    ):
+        super().__init__()
+        self.block_size = block_size
+        self.batch_size = batch_size
+        self.max_corpus_size = max_corpus_size
+        self.num_workers = num_workers
+        self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
+        self.dataset_name = dataset_name
+        self.data_dir = data_dir
+        self.save_dataset = save_dataset
+        self.__infinite_dataset_iterator = None
+
+        # Retrieve a random slice of the genesis dataset
+        self.data = []
+
+        # Used to refresh corpus if we've exhausted the whole dataset
+        self.refresh_corpus = True
+
+        if not os.path.isdir(os.path.expanduser(data_dir)):
+            os.makedirs(os.path.expanduser(data_dir))
+
+    def get_directory_links(self, dir_hash: str, dir_name:str = None):
+        """
+        Check response from retrieve_directory(), 
+        if the response is fine then return the links,
+        else return None
+
+        Returns:
+            list of dict: links 
+        """
+        response = self.retrieve_directory(dir_hash)
+
+        if response.status_code != 200:
+            logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(dir_hash))
+        else:
+            directory = response.json()
+            if directory and 'links' in directory.keys():
+                logger.success("Loaded folder:".ljust(20) + "<blue>{}</blue>".format(dir_hash))
+                return directory['links']
+            else:
+                logger.warning("Directory seems empty, ignoring directory:".ljust(20) + "<blue>{}</blue>". format(dir_hash))
+        return None
+
+    def get_text(self, file_hash: str, file_name: str):
+        """
+        Load the data from disk if it is already in the the data_dir,
+        else download it from  IPFS using retrieve_text_file and save it
+
+        Returns:
+            str: the data as string
+        """
+        text = None
+        full_path = os.path.expanduser(os.path.join(self.data_dir, file_name))
+
+        # Load text from path
+        if os.path.exists(full_path):
+            try:
+                with open(full_path, mode='r') as f:
+                    text = f.read()
+                logger.success("Loaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
+            except Exception:
+                logger.warning("Load failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
+
+        # Download text
+        if text == None:
+            response = self.retrieve_text_file(file_hash)
+
+            if response.status_code != 200:
+                logger.warning("Failed to retrieve file, ignoring file:".ljust(20) + "<blue>{}</blue>".format(file_name))
+            else:
+                text = response.text
+                logger.success("Downloaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
+                
+                # Saving text
+                if self.save_dataset:
+                    try:
+                        with open(full_path, mode = 'w+') as f:
+                            f.write(text)
+                            logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_name))
+                    except Exception:
+                        logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
+
+        return text
+
+    def retrieve_text_file(self, file_hash: str):
+        """Connects to Pinata IPFS gateway and retrieves the contents of
+        a genesis text file.
+
+        Returns:
+            str: The contents of the file.
+        """
+        session = requests.Session()
+        params = (('arg', file_hash),)
+        session.params.update(params)
+        response = Dataset.requests_retry_session(session=session).post(self.file_cat)
+
+        return response
+
+    def construct_text_corpus(self):
+        """Connects to Pinata IPFS gateway and retrieves the directory of genesis datasets.
+
+        Returns:
+            string: Contents of the text file.
+        """
+        try:
+            logger.success("Retrieving a dataset files from the IPFS gateway...")
+
+            # Retrieves the directory for the given dataset
+            if self.dataset_name == 'train':
+                directory_links = []
+                for dataset_hash in self.train_dataset_hashes: 
+                    dir_links = self.get_directory_links(dataset_hash)
+                    if dir_links:
+                        directory_links.extend(dir_links)
+                if len(directory_links) == 0:
+                    directory_links = None
+
+            elif self.dataset_name == 'test':
+                directory_links = self.get_directory_links(self.test_text_dataset_hash)
+
+            elif self.dataset_name == 'validation':
+                directory_links = self.get_directory_links(self.validation_text_dataset_hash)['links']
+
+            data_corpus = []
+
+            # Generate a random order of the directories
+            directory_order = list(range(len(directory_links)))
+            random.shuffle(directory_order)
+
+            # Pick a random dataset file and return its contents
+            if directory_links:
+                # Let's construct a dataset!
+                total_dataset_size = 0
+
+                # Make sure the file we chose satisfies our maximum file size requirement
+                i = 0
+                while total_dataset_size <= self.max_corpus_size:
+                    # Find file hash
+                    random_dataset_file = directory_links[directory_order[i]]
+                    file_name = random_dataset_file['Name']
+                    random_dataset_file_hash = random_dataset_file['Cid']['/']
+                    
+                    text = self.get_text(random_dataset_file_hash, file_name)
+                    if text != None:
+                        data_corpus.extend(text.split())
+                        total_dataset_size += int(random_dataset_file['Size'])
+                    i += 1
+
+                return data_corpus
+
+            logger.error("It appears the directory is empty... Restart your miner to try again.")
+            return None
+        except Exception as e:
+            logger.error("Ran into exception when trying to retrieve dataset from IPFS: {}".format(e))
+
+        return None
+
+    def dataloader(self, epoch_length=None):
+        """ Creates a torch dataloader out of a subclass of this class.
+
+        Args:
+            epoch_length (int, optional): The epoch length of the miner. If this length is not set or if it is larger than the dataset,
+            then a dataloader for the entire dataset is returned. Otherwise, a dataloader for a subset of the dataset of epoch_length
+            is returned. Defaults to None.
+
+        Returns:
+            torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
+        """
+        scale = 1
+        # If we've exhausted the dataset, retrieve another corpus.
+        if self.refresh_corpus or len(self) < (epoch_length * self.batch_size) * scale:
+            self.data = self.construct_text_corpus()
+            self.refresh_corpus = False
+
+        # If epoch_length is set then we just need a slice of
+        # the dataset we downloaded of length epoch_length.
+        if epoch_length:
+
+            # Set up upper bound of indices to fit the batch size we want.
+            idx_bound = epoch_length * self.batch_size
+            if idx_bound * scale < len(self):
+                # Collect enough random indices to batch together using batch_size into epoch_length batches
+                random_start = random.randint(0, len(self) - round(idx_bound * scale))
+                indices = list(range(random_start, random_start + idx_bound))
+
+                subset = Subset(self, indices)
+
+                # Clear out these indices from our current corpus
+                try:
+                    del self.data[random_start: random_start + idx_bound]
+                except Exception:
+                    # There is too little data left over for us to delete according to our epoch_length,
+                    # let's get more data!
+                    self.refresh_corpus = True
+            else:
+                self.refresh_corpus = True
+                return DataLoader(self,
+                            shuffle=True,
+                            batch_size=self.batch_size,
+                            num_workers=self.num_workers,
+                            drop_last=True)
+
+
+            # Set up dataloader
+            return DataLoader(subset,
+                            shuffle=True,
+                            batch_size=self.batch_size,
+                            num_workers=self.num_workers,
+                            drop_last=True)
+
+        # If epoch_length is not set or it is higher than the total size of the dataset,
+        #  then just shuffle dataset and return the whole thing.
+        self.refresh_corpus = True
+        return DataLoader(self,
+                            shuffle=True,
+                            batch_size=self.batch_size,
+                            num_workers=self.num_workers,
+                            drop_last=True)
+
+    def __next__(self):
+        """Returns the next element from the dataset. 
+        """
+        if self.__infinite_dataset_iterator == None:
+            self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000000)])
+        try:
+            return next(self.__infinite_dataset_iterator)
+        except StopIteration:
+            self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000000)])
+            return next(self.__infinite_dataset_iterator)
+
+
+    def __len__(self):
+        """Returns length of dataset minus the block size
+
+        Returns:
+            int: length of dataset minus block size
+        """
+        return len(self.data) - self.block_size
+
+    def __getitem__(self, idx):
+        """ Returns a batch of sentences from text dataset.
+
+            Args:
+                idx: index of data input
+
+            Returns:
+                torch.tensor(dix)
+        """
+        start_idx = (idx*self.block_size)%len(self)
+        end_idx = start_idx + self.block_size
+
+        tokenized_text = torch.tensor(self.tokenizer(" ".join(self.data[start_idx:end_idx]), padding=True, truncation=True)['input_ids'], dtype=torch.long)
+
+        return tokenized_text[:self.block_size]

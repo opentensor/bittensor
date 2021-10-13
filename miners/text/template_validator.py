@@ -55,7 +55,7 @@ def config ():
     bittensor.dendrite.add_args( parser )
     bittensor.subtensor.add_args( parser )
     bittensor.logging.add_args( parser )
-    bittensor.dataloader.add_args( parser )
+    bittensor.dataset.add_args( parser )
     return bittensor.config( parser )
 
 def main( config ):
@@ -88,7 +88,7 @@ def main( config ):
     dendrite = bittensor.dendrite ( config = config )
 
     # Load genesis dataset.
-    dataset = bittensor.dataloader ( config = config )
+    dataset = bittensor.dataset ( config = config )
 
     # Build Device.
     device = torch.device ( device = config.miner.device )

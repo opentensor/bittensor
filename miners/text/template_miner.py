@@ -261,7 +261,7 @@ class Miner:
         )
 
         # Dataset of text.
-        self.dataset = bittensor.dataloader (
+        self.dataset = bittensor.dataset (
             config = self.config
         )
 

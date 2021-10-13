@@ -45,7 +45,7 @@ jobs:
       run: pytest ./tests/integration_tests --cov=./ --cov-append 
     - name: Run Miners
       run: python tests/miners/text/test_gpt2_exodus.py --cov=./ --cov-append 
-    - name: Run dataloader tests
-      run: pytest ./tests/integration_tests/test_dataloader_ipfs.py --cov=./ --cov-append 
+    - name: Run dataset tests
+      run: pytest ./tests/integration_tests/test_dataset_ipfs.py --cov=./ --cov-append 
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v1
