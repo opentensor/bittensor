@@ -108,6 +108,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
             return_code = code,
             message = message,
             tensors = [tensor] if tensor is not None else [],
+            requires_grad = True,
+            uid = -1,
         )
         # ---- Update stats for this request.
         self.update_stats_for_request( request, response )
@@ -136,6 +138,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
             return_code = code,
             message = message,
             tensors = [tensor] if tensor is not None else [],
+            requires_grad = True,
+            uid = -1,
         )
         self.update_stats_for_request( request, response )
         return response
