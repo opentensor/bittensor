@@ -128,7 +128,8 @@ class GenesisTextDataloader( Dataloader ):
         max_corpus_size,
         num_workers,
         dataset,
-        data_dir
+        data_dir,
+        save_dataset
     ):
         super().__init__()
         self.block_size = block_size
@@ -138,6 +139,7 @@ class GenesisTextDataloader( Dataloader ):
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
         self.dataset = dataset
         self.data_dir = data_dir
+        self.save_dataset = save_dataset
         self.__infinite_dataset_iterator = None
 
         # Retrieve a random slice of the genesis dataset
@@ -202,12 +204,13 @@ class GenesisTextDataloader( Dataloader ):
                 logger.success("Downloaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
                 
                 # Saving text
-                try:
-                    with open(full_path, mode = 'w+') as f:
-                        f.write(text)
-                        logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_name))
-                except Exception:
-                    logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
+                if self.save_dataset:
+                    try:
+                        with open(full_path, mode = 'w+') as f:
+                            f.write(text)
+                            logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_name))
+                    except Exception:
+                        logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
 
         return text
 

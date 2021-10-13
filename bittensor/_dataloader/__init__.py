@@ -35,7 +35,8 @@ class dataloader:
             batch_size: int = None,
             max_corpus_size:int = None,
             num_workers: int = None,
-            dataset: str=None
+            dataset: str=None,
+            save_dataset: bool=None
         ):
         if config == None: 
             config = dataloader.config()
@@ -45,6 +46,7 @@ class dataloader:
         config.dataloader.max_corpus_size = max_corpus_size if max_corpus_size != None else config.dataloader.max_corpus_size
         config.dataloader.num_workers = num_workers if num_workers != None else config.dataloader.num_workers
         config.dataloader.dataset = dataset if dataset != None else config.dataloader.dataset
+        config.dataloader.save_dataset = save_dataset if save_dataset != None else config.dataloader.save_dataset
         dataloader.check_config( config )
         return dataloader_impl.GenesisTextDataloader(
             block_size = config.dataloader.block_size,
@@ -52,7 +54,8 @@ class dataloader:
             max_corpus_size = config.dataloader.max_corpus_size,
             num_workers = config.dataloader.num_workers,
             dataset = config.dataloader.dataset,
-            data_dir = config.dataloader.data_dir
+            data_dir = config.dataloader.data_dir,
+            save_dataset = config.dataloader.save_dataset
         )
 
     @classmethod
@@ -75,6 +78,7 @@ class dataloader:
             parser.add_argument('--dataloader.num_workers', default=0, type=int, help='Number of workers for data loader.')
             parser.add_argument('--dataloader.dataset', default='train', type=str, help='Which datasets to use (genesis or wikitext)).')
             parser.add_argument('--dataloader.data_dir', default='~/.bittensor/data/', type=str, help='Where to save and load the data.')
+            parser.add_argument('--dataloader.save_dataset', default=False, type=bool, help='Save the downloaded dataset or not.')
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -89,3 +93,4 @@ class dataloader:
         assert config.dataloader.max_corpus_size > 0, 'max_corpus_size must be larger than 0'
         assert config.dataloader.num_workers >= 0, 'num_workers must be equal to or larger than 0'
         assert config.dataloader.dataset in ['train','test','validation'], 'dataset must be one of the following choices: genesis, wikitext, test, or validation'
+        assert isinstance(config.dataloader.save_dataset, bool) , 'save_dataset must be True/False only'
