@@ -356,7 +356,7 @@ class Miner:
             self.epoch_loss = math.inf/2
             self.best_epoch_loss = math.inf
 
-            # ---- reloads previous run ----
+            # ---- reloads previous run if not restart ----
             if self.config.miner.restart:
                 self.save()
 
